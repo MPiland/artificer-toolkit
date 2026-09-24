@@ -1,18 +1,20 @@
 import { ActionIcon, Tooltip } from '@mantine/core'
+import { convexQuery } from '@convex-dev/react-query'
 import { useQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Gamepad2 } from 'lucide-react'
-import { getCampaignDetail, getCampaignSessions } from '#app/data/campaigns/queries'
+import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
   buildTabletopHref,
-  findCurrentTabletopSession,
   openAuxiliaryWindow,
   tabletopWindowName
 } from './CampaignTabletopWindow.model'
 
 export function CampaignTabletopButton({ campaignId }: { campaignId: string }) {
   const campaign = useQuery(getCampaignDetail(campaignId))
-  const sessions = useQuery(getCampaignSessions(campaignId))
-  const currentSession = sessions.data ? findCurrentTabletopSession(sessions.data) : undefined
+  const currentSession = useQuery(
+    convexQuery(convexApi.campaigns.sessions.latestOpen, { campaignId })
+  ).data
   const campaignDetail = campaign.data
 
   if (!campaignDetail || !currentSession) return null

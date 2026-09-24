@@ -12,7 +12,7 @@ import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 
 type GuidedCreatureAuthoringProps = {
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
 }

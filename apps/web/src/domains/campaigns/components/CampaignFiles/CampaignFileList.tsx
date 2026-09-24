@@ -1,9 +1,8 @@
 import { Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignAttachments } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useAction, useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import * as styles from './CampaignFiles.css'
 
 export function CampaignFileList({
@@ -15,22 +14,22 @@ export function CampaignFileList({
   currentUserId: string
   sessionId?: string
 }) {
-  const queryClient = useQueryClient()
-  const attachments = useQuery(getCampaignAttachments(campaign.id))
-  const visible = (attachments.data ?? []).filter(
+  const attachments = usePaginatedQuery(
+    convexApi.campaigns.attachments.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  const removeAttachment = useConvexMutation(convexApi.campaigns.attachments.remove)
+  const getDelivery = useAction(convexApi.media.fileActions.getDelivery)
+  const visible = attachments.results.filter(
     (attachment) => !sessionId || attachment.sessionId === sessionId
   )
   const remove = useMutation({
     mutationFn: (attachmentId: string) =>
-      api.campaigns.attachments.delete(campaign.id, attachmentId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.attachments(campaign.id)
-      })
+      removeAttachment({ campaignId: campaign.id, attachmentId })
   })
   const download = useMutation({
-    mutationFn: (attachmentId: string) =>
-      api.campaigns.attachments.delivery(campaign.id, attachmentId),
+    mutationFn: (attachmentId: string) => getDelivery({ campaignId: campaign.id, attachmentId }),
     onSuccess: (delivery) => {
       const link = document.createElement('a')
       link.href = delivery.url
@@ -48,8 +47,9 @@ export function CampaignFileList({
       <Title id={sessionId ? 'session-files-title' : 'campaign-files-title'} order={2}>
         {sessionId ? 'Handouts and files' : 'Campaign files'}
       </Title>
-      {attachments.isPending ? <Loader aria-label='Loading Campaign files' size='sm' /> : null}
-      {attachments.error ? <Alert color='red'>Campaign files couldn’t be loaded.</Alert> : null}
+      {attachments.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading Campaign files' size='sm' />
+      ) : null}
       <Stack gap={0}>
         {visible.map((attachment) => (
           <div className={styles.row} key={attachment.id}>
@@ -91,7 +91,15 @@ export function CampaignFileList({
           </div>
         ))}
       </Stack>
-      {!attachments.isPending && !attachments.error && visible.length === 0 ? (
+      {attachments.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => attachments.loadMore(48)}>
+          Load more files
+        </Button>
+      ) : null}
+      {attachments.status === 'LoadingMore' ? (
+        <Loader aria-label='Loading more Campaign files' size='sm' />
+      ) : null}
+      {attachments.status === 'Exhausted' && visible.length === 0 ? (
         <Text c='dimmed'>No files attached.</Text>
       ) : null}
       {download.error ? <Alert color='red'>That file couldn’t be downloaded.</Alert> : null}

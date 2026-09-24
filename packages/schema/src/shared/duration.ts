@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { durationKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
@@ -6,30 +6,32 @@ import { authoredIdentifierSchema } from './authoredLimits.js'
 export const durationDtoSchema = z.union([
   z.object({
     id: authoredIdentifierSchema,
-    durationKind: z.literal(durationKindSchema.enum.INSTANTANEOUS)
+    durationKind: z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
   }),
   z.object({
     id: authoredIdentifierSchema,
-    durationKind: z.literal(durationKindSchema.enum.UNTIL_DISPELLED)
+    durationKind: z.literal(durationKindSchema._zod.def.entries.UNTIL_DISPELLED)
   }),
   z.object({
     id: authoredIdentifierSchema,
     durationKind: z.enum([
-      durationKindSchema.enum.TURN,
-      durationKindSchema.enum.ROUND,
-      durationKindSchema.enum.MINUTE,
-      durationKindSchema.enum.HOUR,
-      durationKindSchema.enum.DAY,
-      durationKindSchema.enum.WEEK,
-      durationKindSchema.enum.MONTH,
-      durationKindSchema.enum.YEAR
+      durationKindSchema._zod.def.entries.TURN,
+      durationKindSchema._zod.def.entries.ROUND,
+      durationKindSchema._zod.def.entries.MINUTE,
+      durationKindSchema._zod.def.entries.HOUR,
+      durationKindSchema._zod.def.entries.DAY,
+      durationKindSchema._zod.def.entries.WEEK,
+      durationKindSchema._zod.def.entries.MONTH,
+      durationKindSchema._zod.def.entries.YEAR
     ]),
     amount: z.number(),
-    scaling: createBreakpointScalingDtoSchema(
-      z.object({
-        amount: z.number()
-      })
-    ).optional()
+    scaling: z.optional(
+      createBreakpointScalingDtoSchema(
+        z.object({
+          amount: z.number()
+        })
+      )
+    )
   })
 ])
 

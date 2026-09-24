@@ -18,8 +18,6 @@
       "#domains/*": ["./src/domains/*"],
       "#routes/*": ["./src/routes/*"],
       "#assets/*": ["./src/assets/*"],
-      "#supabase": ["./src/supabase/index.ts"],
-      "#supabase/*": ["./src/supabase/*"],
       "#auth": ["./src/auth/index.ts"],
       "#test/msw/handlers": ["./src/test/msw/handlers.ts"],
       "#test/msw/server": ["./src/test/msw/server.ts"],

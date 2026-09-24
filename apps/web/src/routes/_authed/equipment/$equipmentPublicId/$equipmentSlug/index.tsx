@@ -1,75 +1,42 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
-import { getEquipment } from '#app/data/equipment/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { equipmentResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getEquipment, useGetEquipment } from '#app/data/equipment/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
-import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import {
+  resolveAuthoredDetailView,
+  validateAuthoredDetailSearch
+} from '#app/routing/authoredDetailSearch'
 import type { EquipmentDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { EquipmentDetailPage } from '#domains/equipment/pages/EquipmentDetailPage'
-import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 
-const equipmentDetailMeta = ['equipment', 'rarities']
+const equipmentDetailMeta = ['classes', 'currencies', 'equipment', 'heritages', 'rarities']
 
 export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equipmentSlug/')({
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps: search, params }): Promise<EquipmentDetailLoaderData> => {
-    const client = createServerApi()
-    const equipmentId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.equipment.list(),
-      publicId: params.equipmentPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'EQUIPMENT'
-    })
-    const view = search.view ?? 'active'
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getEquipment(
-        {
-          id: equipmentId,
-          meta: equipmentDetailMeta,
-          view
-        },
-        client
+  loader: async ({
+    context,
+    deps: search,
+    location,
+    params
+  }): Promise<EquipmentDetailLoaderData> => {
+    const view = resolveAuthoredDetailView(search, location.pathname)
+    const response = equipmentResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(
+        getEquipment({ id: params.equipmentPublicId, meta: equipmentDetailMeta, view })
       )
     )
     const draft = response?.draft ?? null
-    const systemId = response?.item?.systemId
-    const [classes, system] = systemId
-      ? await Promise.all([
-          loadPagedAuthoredCatalogItems(client.content.classes.list, {
-            direction: 'FORWARD',
-            limit: 48,
-            sort: 'name'
-          }),
-          loadAuthoredRouteSystem(context.queryClient, client, systemId)
-        ])
-      : [null, null]
-    const references: Pick<
-      AuthoredContentReferenceData,
-      'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
-    > = {
-      classes: (classes ?? [])
-        .filter((classRecord) => classRecord.systemId === systemId)
-        .map((classRecord) => ({ label: classRecord.label, value: classRecord.id })),
-      currencies: (system?.currencies ?? []).map((currency) => ({
-        label: currency.label,
-        value: currency.id
-      })),
+    const equipmentId = response?.item?.id ?? draft?.subjectId ?? params.equipmentPublicId
+    const references = {
+      classes: response?.meta?.classes ?? [],
+      currencies: response?.meta?.currencies ?? [],
       equipment: response?.meta?.equipment ?? [],
-      heritages: (system?.heritages ?? []).map((heritage) => ({
-        label: heritage.label,
-        value: heritage.id
-      })),
+      heritages: response?.meta?.heritages ?? [],
       rarities: response?.meta?.rarities ?? []
     }
     const routeSubject = getAuthoredRouteSubject(equipmentId, response, draft)
@@ -90,13 +57,25 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
 })
 
 function EquipmentDetailRoute() {
-  const { draft, equipmentId, references, response, view } = Route.useLoaderData()
+  const { equipmentId, view } = Route.useLoaderData()
+  const { equipmentPublicId } = Route.useParams()
+  const { data: response } = useGetEquipment({
+    id: equipmentPublicId,
+    meta: equipmentDetailMeta,
+    view
+  })
 
   return (
     <EquipmentDetailPage
-      draft={draft}
+      draft={response?.draft ?? null}
       equipmentId={equipmentId}
-      references={references}
+      references={{
+        classes: response?.meta?.classes ?? [],
+        currencies: response?.meta?.currencies ?? [],
+        equipment: response?.meta?.equipment ?? [],
+        heritages: response?.meta?.heritages ?? [],
+        rarities: response?.meta?.rarities ?? []
+      }}
       response={response}
       view={view}
     />

@@ -71,7 +71,7 @@ function maskNodeMapValue(value: unknown, nodeMap: NodeMap<Record<string, unknow
     const childMap = typeof group.nodes === 'function' ? group.nodes() : group.nodes
     if (group.groupKind === 'ARRAY' && Array.isArray(current)) {
       presented[key] = current.map((item) => maskNodeMapValue(item, childMap))
-    } else if (group.groupKind === 'OBJECT') {
+    } else if (group.groupKind === 'OBJECT' && isRecord(current)) {
       presented[key] = maskNodeMapValue(current, childMap)
     }
   }

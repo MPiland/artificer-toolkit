@@ -1,6 +1,17 @@
-import { Accordion, Badge, Button, Drawer, Group, NumberInput, Select, Text } from '@mantine/core'
+import {
+  Accordion,
+  Alert,
+  Badge,
+  Button,
+  Drawer,
+  Group,
+  NumberInput,
+  Select,
+  Text
+} from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconSettings } from '@tabler/icons-react'
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import {
@@ -18,9 +29,17 @@ import type {
   OpenSheetPanel,
   SubmitSheetCommand
 } from '../core/CharacterSheet.types'
-import { getInventoryCurrencyTotals } from './characterSheetInventory.utils'
+import {
+  getInventoryCurrencyRows,
+  getInventoryCurrencyTotals
+} from './characterSheetInventory.utils'
+import {
+  createCharacterCurrencyIdentityKey,
+  resolveCharacterCurrencyIdentity
+} from '@artificer-toolkit/schema/shared/characterCurrency'
 import { toNumber } from '../core/characterSheet.utils'
 import { AppSelect } from '#ui/primitives/Select'
+import { getCharacterSheetEquipmentOptions } from '#app/data/characters/queries'
 
 export function CharacterSheetInventory({
   editable = true,
@@ -44,18 +63,51 @@ export function CharacterSheetInventory({
   const [manageOpened, manage] = useDisclosure(false)
   const [equipmentId, setEquipmentId] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
-  const [currencyId, setCurrencyId] = useState<string | null>(
-    sheet.reference.currencyOptions[0]?.id ?? null
-  )
+  const [currencyAdjustmentKey, setCurrencyAdjustmentKey] = useState<string | null>(null)
+  const [currencyMoveKey, setCurrencyMoveKey] = useState<string | null>(null)
   const [currencyAmount, setCurrencyAmount] = useState(1)
   const [containerId, setContainerId] = useState<string | null>(null)
   const [currencyFromContainerId, setCurrencyFromContainerId] = useState('carried')
   const [currencyToContainerId, setCurrencyToContainerId] = useState('carried')
+  const equipmentOptionsQuery = useQuery(
+    getCharacterSheetEquipmentOptions(
+      manageOpened ? sheet.meta.characterId : undefined,
+      sheet.meta.campaignId
+    )
+  )
+  const equipmentOptions = equipmentOptionsQuery.data ?? sheet.reference.equipmentOptions
+  const equipmentOptionsUnavailable =
+    manageOpened && (equipmentOptionsQuery.isPending || equipmentOptionsQuery.isError)
   const containers = sheet.inventory.containers ?? []
   const currencyTotals = getInventoryCurrencyTotals(sheet)
-  const selectedEquipment = sheet.reference.equipmentOptions.find(
-    (option) => option.id === equipmentId
-  )
+  const currencyRows = getInventoryCurrencyRows(sheet)
+  const currentCurrencyOptions = sheet.reference.currencyOptions.map((option) => {
+    const identity = resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option])
+    return { ...option, identity, key: createCharacterCurrencyIdentityKey(identity) }
+  })
+  const currentCurrencyByKey = new Map(currentCurrencyOptions.map((option) => [option.key, option]))
+  const heldCurrencyOptions = [
+    ...new Map(
+      sheet.inventory.currencies.map((currency) => {
+        const identity = resolveCharacterCurrencyIdentity(
+          currency,
+          sheet.reference.currencyOptions,
+          'PRESERVE'
+        )
+        return [
+          createCharacterCurrencyIdentityKey(identity),
+          { identity, key: createCharacterCurrencyIdentityKey(identity), label: currency.label }
+        ] as const
+      })
+    ).values()
+  ]
+  const adjustmentKey = currentCurrencyByKey.has(currencyAdjustmentKey ?? '')
+    ? currencyAdjustmentKey
+    : (currentCurrencyOptions[0]?.key ?? null)
+  const moveKey = heldCurrencyOptions.some((option) => option.key === currencyMoveKey)
+    ? currencyMoveKey
+    : (heldCurrencyOptions[0]?.key ?? null)
+  const selectedEquipment = equipmentOptions.find((option) => option.id === equipmentId)
   const containerOptions = [
     { value: 'carried', label: 'Carried' },
     ...containers.map((container) => ({ value: container.id, label: container.label }))
@@ -155,8 +207,8 @@ export function CharacterSheetInventory({
                           aria-label={`${container.label} currency`}
                           className={inventoryStyles.inventorySummary}
                         >
-                          {container.currencies.map((currency) => (
-                            <span key={currency.currencyId}>
+                          {getInventoryCurrencyRows(sheet, container.currencies).map((currency) => (
+                            <span key={currency.id}>
                               <strong>{currency.amount}</strong>
                               <small>{currency.label}</small>
                             </span>
@@ -189,29 +241,35 @@ export function CharacterSheetInventory({
         <div className={detailStyles.drawerStack}>
           <section className={detailStyles.drawerSection}>
             <Text fw={700}>Add an item</Text>
+            {equipmentOptionsQuery.isPending ? (
+              <Text c='dimmed' role='status' size='sm'>
+                Loading equipment…
+              </Text>
+            ) : equipmentOptionsQuery.isError ? (
+              <Alert color='red' role='alert' title='Equipment unavailable'>
+                Equipment choices could not be loaded. Try again later.
+              </Alert>
+            ) : null}
             <AppSelect
-              data={sheet.reference.equipmentOptions.map((option) => ({
+              data={equipmentOptions.map((option) => ({
                 value: option.id,
                 label: option.label
               }))}
-              disabled={pending}
+              disabled={pending || equipmentOptionsUnavailable}
               label='Equipment'
               placeholder='Choose an item'
               searchable
               value={equipmentId}
               onChange={(value) => {
                 setEquipmentId(value)
-                if (
-                  sheet.reference.equipmentOptions.find((option) => option.id === value)
-                    ?.isContainer
-                ) {
+                if (equipmentOptions.find((option) => option.id === value)?.isContainer) {
                   setContainerId(null)
                 }
               }}
             />
             <div className={detailStyles.inlineControlRow}>
               <NumberInput
-                disabled={pending}
+                disabled={pending || equipmentOptionsUnavailable}
                 label='Quantity'
                 min={1}
                 value={quantity}
@@ -223,14 +281,14 @@ export function CharacterSheetInventory({
                     ? [{ value: 'carried', label: 'Carried' }]
                     : containerOptions
                 }
-                disabled={pending || selectedEquipment?.isContainer}
+                disabled={pending || equipmentOptionsUnavailable || selectedEquipment?.isContainer}
                 label='Add to'
                 value={containerId ?? 'carried'}
                 onChange={(value) => setContainerId(value === 'carried' ? null : value)}
               />
             </div>
             <Button
-              disabled={pending || !equipmentId}
+              disabled={pending || equipmentOptionsUnavailable || !equipmentId}
               onClick={() => {
                 if (!equipmentId) return
                 void submitCommand({
@@ -265,14 +323,14 @@ export function CharacterSheetInventory({
               onChange={(value) => setCurrencyToContainerId(value ?? 'carried')}
             />
             <Select
-              data={sheet.reference.currencyOptions.map((option) => ({
-                value: option.id,
+              data={heldCurrencyOptions.map((option) => ({
+                value: option.key,
                 label: option.label
               }))}
-              disabled={pending}
+              disabled={pending || heldCurrencyOptions.length === 0}
               label='Currency type to move'
-              value={currencyId}
-              onChange={setCurrencyId}
+              value={moveKey}
+              onChange={setCurrencyMoveKey}
             />
             <NumberInput
               disabled={pending}
@@ -282,12 +340,16 @@ export function CharacterSheetInventory({
               onChange={(value) => setCurrencyAmount(Math.max(toNumber(value), 1))}
             />
             <Button
-              disabled={pending || !currencyId || currencyFromContainerId === currencyToContainerId}
+              disabled={pending || !moveKey || currencyFromContainerId === currencyToContainerId}
               onClick={async () => {
-                if (!currencyId || currencyFromContainerId === currencyToContainerId) return
+                if (!moveKey || currencyFromContainerId === currencyToContainerId) return
+                const identity = heldCurrencyOptions.find(
+                  (option) => option.key === moveKey
+                )?.identity
+                if (!identity) return
                 await submitCommand({
                   type: 'MOVE_CURRENCY',
-                  currencyId,
+                  ...identity,
                   amount: currencyAmount,
                   fromContainerId:
                     currencyFromContainerId === 'carried' ? undefined : currencyFromContainerId,
@@ -326,9 +388,9 @@ export function CharacterSheetInventory({
 
           <section className={detailStyles.drawerSection}>
             <Text fw={700}>Currency</Text>
-            {sheet.inventory.currencies.map((currency) => (
+            {currencyRows.map((currency) => (
               <CharacterSheetDetailRow
-                key={`${currency.containerId ?? 'carried'}:${currency.currencyId}`}
+                key={currency.id}
                 left={
                   <>
                     <Text fw={700}>{currency.label}</Text>
@@ -339,13 +401,18 @@ export function CharacterSheetInventory({
                   <CharacterSheetCompactActions>
                     <Button
                       className={rowStyles.compactActionControl}
-                      disabled={pending}
+                      disabled={
+                        pending ||
+                        !currentCurrencyByKey.has(
+                          createCharacterCurrencyIdentityKey(currency.identity)
+                        )
+                      }
                       size='xs'
                       variant='default'
                       onClick={() =>
                         submitCommand({
                           type: 'ADJUST_CURRENCY',
-                          currencyId: currency.currencyId,
+                          ...currency.identity,
                           amount: -1,
                           containerId: currency.containerId,
                           expectedVersion: version
@@ -356,12 +423,17 @@ export function CharacterSheetInventory({
                     </Button>
                     <Button
                       className={rowStyles.compactActionControl}
-                      disabled={pending}
+                      disabled={
+                        pending ||
+                        !currentCurrencyByKey.has(
+                          createCharacterCurrencyIdentityKey(currency.identity)
+                        )
+                      }
                       size='xs'
                       onClick={() =>
                         submitCommand({
                           type: 'ADJUST_CURRENCY',
-                          currencyId: currency.currencyId,
+                          ...currency.identity,
                           amount: 1,
                           containerId: currency.containerId,
                           expectedVersion: version
@@ -378,16 +450,16 @@ export function CharacterSheetInventory({
 
           <section className={detailStyles.drawerSection}>
             <Select
-              data={sheet.reference.currencyOptions.map((option) => ({
-                value: option.id,
+              data={currentCurrencyOptions.map((option) => ({
+                value: option.key,
                 label: option.label
               }))}
-              disabled={pending || sheet.reference.currencyOptions.length === 0}
+              disabled={pending || currentCurrencyOptions.length === 0}
               label='Currency type'
               placeholder='Choose currency'
               searchable
-              value={currencyId}
-              onChange={setCurrencyId}
+              value={adjustmentKey}
+              onChange={setCurrencyAdjustmentKey}
             />
             <NumberInput
               disabled={pending}
@@ -396,13 +468,15 @@ export function CharacterSheetInventory({
               onChange={(value) => setCurrencyAmount(toNumber(value))}
             />
             <Button
-              disabled={pending || !currencyId || currencyAmount === 0}
+              disabled={pending || !adjustmentKey || currencyAmount === 0}
               variant='default'
               onClick={() => {
-                if (!currencyId || currencyAmount === 0) return
+                if (!adjustmentKey || currencyAmount === 0) return
+                const identity = currentCurrencyByKey.get(adjustmentKey)?.identity
+                if (!identity) return
                 void submitCommand({
                   type: 'ADJUST_CURRENCY',
-                  currencyId,
+                  ...identity,
                   amount: currencyAmount,
                   expectedVersion: version
                 })

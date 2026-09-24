@@ -1,14 +1,27 @@
 import {
+  LIVE_SESSION_CONTROL_PATH,
+  LIVE_SESSION_CONTROL_SECRET_HEADER,
   LIVE_SESSION_PATH_PREFIX,
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
-  LIVE_SESSION_WEBSOCKET_PROTOCOL
+  LIVE_SESSION_WEBSOCKET_PROTOCOL,
+  liveSessionControlInputSchema
 } from '@artificer-toolkit/schema/api/liveSessions'
 
 import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
-import { LiveSessionRoom } from './liveSessionRoom.js'
+import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
+
+function secretMatches(supplied: string, expected: string): boolean {
+  const encoder = new TextEncoder()
+  const suppliedBytes = encoder.encode(supplied)
+  const expectedBytes = encoder.encode(expected)
+  return (
+    suppliedBytes.byteLength === expectedBytes.byteLength &&
+    crypto.subtle.timingSafeEqual(suppliedBytes, expectedBytes)
+  )
+}
 
 function offeredProtocols(request: Request): string[] {
   return (request.headers.get('sec-websocket-protocol') ?? '')
@@ -37,6 +50,27 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
     const url = new URL(request.url)
     if (request.method === 'GET' && url.pathname === '/health') {
       return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } })
+    }
+    if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
+      const secret = environment.LIVE_SESSION_WORKER_SECRET
+      if (!secret || new TextEncoder().encode(secret).byteLength < 32)
+        return new Response('Live Session control unavailable.', { status: 503 })
+      const supplied = request.headers.get(LIVE_SESSION_CONTROL_SECRET_HEADER)
+      if (!supplied || !secretMatches(supplied, secret))
+        return new Response('Unauthorized.', { status: 401 })
+      const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
+      if (!parsed.success)
+        return new Response('Invalid live-session control request.', { status: 400 })
+      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(
+        `${parsed.data.campaignId}:${parsed.data.sessionId}`
+      )
+      return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(
+        new Request(`https://live-session.internal${LIVE_SESSION_CONTROL_PATH}`, {
+          body: JSON.stringify(parsed.data),
+          headers: { 'content-type': 'application/json' },
+          method: 'POST'
+        })
+      )
     }
     const path = url.pathname.match(new RegExp(`^${LIVE_SESSION_PATH_PREFIX}/([^/]+)$`))
     if (!path) return new Response('Not found.', { status: 404 })

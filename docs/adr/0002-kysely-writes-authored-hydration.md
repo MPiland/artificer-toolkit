@@ -1,11 +1,13 @@
 # ADR 0002: Kysely-owned writes and authored-shaped hydration
 
-- **Status:** decision
+- **Status:** historical — superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-07-10
 - **Scope:** database writes, repositories, upserts, and read-model boundaries
 - **Update when:** write ownership, transaction/RLS behavior, upsert replacement semantics, or repository return shapes change
 - **Verification:** `packages/db/src/client.ts`; `packages/db/src/repositories/contracts.ts`; `packages/db/src/domains/**/repositories`; `packages/db/src/domains/**/upserts`; round-trip repository tests
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces active normalized hydration as the operational read model while retaining SQL/Kysely ownership.
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaced active normalized hydration as the operational read model during the SQL era. [ADR 0029](0029-convex-backend-cutover.md) supersedes SQL/Kysely persistence ownership.
+
+> This ADR records the retired SQL/Kysely implementation. It is not current persistence guidance.
 
 ## Context
 

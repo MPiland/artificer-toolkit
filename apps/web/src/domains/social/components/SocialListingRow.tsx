@@ -1,7 +1,7 @@
 import { Badge, Group, Text, Title } from '@mantine/core'
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import type { SocialListingDto } from '#app/lib/api'
+import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
 import {
   buildSocialListingRouteParams,
   formatListingLocation,

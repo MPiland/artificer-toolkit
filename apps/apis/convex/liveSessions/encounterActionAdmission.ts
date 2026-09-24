@@ -1,0 +1,65 @@
+import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { QueryCtx } from '../_generated/server'
+import { readNativeEncounterActionAdmission } from '../encounters/actionAdmission'
+import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
+import { requireIdentity } from '../lib/identity'
+import { requireCampaignLiveAuthority } from './authorityGuard'
+
+/** Shared authorization and replay fences for the pending and terminal action transactions. */
+export async function readLiveEncounterActionAdmission(
+  ctx: QueryCtx,
+  input: Omit<
+    LiveSessionEncounterActionPendingInput,
+    'snapshot' | 'revisions' | 'maintenanceOwners'
+  >
+) {
+  const { userId } = await requireIdentity(ctx)
+  if (
+    userId !== input.expectedUserId ||
+    input.command.encounterId.toLowerCase() !== input.encounterId ||
+    input.command.expectedVersion !== input.expectedVersion ||
+    (input.response &&
+      (input.response.encounterId.toLowerCase() !== input.encounterId ||
+        input.response.expectedVersion !== input.expectedVersion))
+  )
+    throw new Error('Live Session Encounter command scope mismatch.')
+  const authority = await requireCampaignLiveAuthority(ctx, {
+    campaignId: input.campaignId,
+    sessionId: input.sessionId,
+    epoch: input.authorityEpoch
+  })
+  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
+  let responseAdmission = null
+  if (input.response) {
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (query) => query.eq('id', input.encounterId))
+      .unique()
+    if (!run) throw new Error('Encounter Run was not found.')
+    responseAdmission = await readNativeEncounterActionResponseAdmission(
+      ctx,
+      input.response,
+      run,
+      userId
+    )
+    if (!responseAdmission) throw new Error('The occurrence is not an ordinary Encounter action.')
+  }
+  const admission =
+    responseAdmission?.admission ??
+    (await readNativeEncounterActionAdmission(ctx, input.command, userId))
+  if (
+    admission.state.campaignId !== input.campaignId ||
+    admission.state.sessionId !== input.sessionId ||
+    (responseAdmission && checksumCanonicalJson(input.command) !== admission.fingerprint)
+  )
+    throw new Error('Live Session Encounter scope mismatch.')
+  // A lost response replays before checking the revisions consumed by its transaction.
+  if (responseAdmission?.kind === 'REPLAY')
+    return { ...admission, kind: 'REPLAY' as const, result: responseAdmission.result, resume: null }
+  if (admission.kind === 'REPLAY') return { ...admission, resume: null }
+  const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
+  if (resume && resume.resolution.requestId !== resume.pending.snapshot.request.requestId)
+    throw new Error('The action evidence request is stale.')
+  return { ...admission, resume }
+}

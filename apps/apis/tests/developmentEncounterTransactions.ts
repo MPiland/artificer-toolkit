@@ -1,0 +1,341 @@
+import assert from 'node:assert/strict'
+import type { FunctionReference } from 'convex/server'
+import {
+  encounterCommandResultDtoSchema,
+  encounterGmProjectionDtoSchema,
+  type EncounterExecuteInput
+} from '@artificer-toolkit/schema/api/encounters'
+import {
+  bindEncounterToPresentedSceneResultDtoSchema,
+  type BindEncounterToPresentedSceneInputDto,
+  type EncounterActorTokenBindingCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import { campaignSessionDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { api } from '../convex/_generated/api.js'
+import type { DevelopmentClient } from './developmentClient'
+import {
+  bindScene,
+  bindToken,
+  type verifyEncounterLifecycle
+} from './developmentEncounterLifecycle'
+
+export async function verifyEncounterTransactions({
+  owner,
+  player,
+  ownerUserId,
+  playerUserId,
+  campaignId,
+  fixture,
+  rollback,
+  concurrent
+}: {
+  owner: DevelopmentClient
+  player: DevelopmentClient
+  ownerUserId: string
+  playerUserId: string
+  campaignId: string
+  fixture: Awaited<ReturnType<typeof verifyEncounterLifecycle>>
+  rollback: (input: {
+    encounterId: string
+    operation:
+      | { kind: 'COMMAND'; input: EncounterExecuteInput }
+      | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
+      | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
+  }) => Promise<unknown>
+  concurrent: (
+    actor: 'OWNER' | 'PLAYER',
+    reference: FunctionReference<'mutation', 'public', Record<string, unknown>, unknown>,
+    args: Record<string, unknown>
+  ) => Promise<unknown>
+}) {
+  async function sceneState() {
+    return Promise.all(
+      fixture.scenes.map(async (scene) => {
+        const header = await owner.query(api.scenes.definitionReads.get, {
+          campaignId,
+          sceneId: scene.sceneId
+        })
+        const tokens = await owner.query(api.scenes.definitionReads.entities, {
+          campaignId,
+          sceneId: scene.sceneId,
+          saveId: header.saveId,
+          collection: 'tokens',
+          paginationOpts: { cursor: null, numItems: 8 }
+        })
+        assert.equal(tokens.isDone, true)
+        return { header, tokens }
+      })
+    )
+  }
+  const originalScenes = await sceneState()
+  const prepared = encounterGmProjectionDtoSchema.parse(
+    await owner.mutation(api.encounters.runs.create, {
+      campaignId,
+      sessionId: fixture.session.id,
+      blueprintId: fixture.blueprint.id,
+      commandId: crypto.randomUUID()
+    })
+  )
+  assert.equal(prepared.automationMode, 'MANUAL')
+  const start: EncounterExecuteInput = {
+    command: {
+      type: 'START',
+      encounterId: prepared.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: prepared.version
+    }
+  }
+  assert.deepEqual(
+    await rollback({ encounterId: prepared.id, operation: { kind: 'COMMAND', input: start } }),
+    { rolledBack: true }
+  )
+  assert.deepEqual(
+    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
+    prepared
+  )
+  const starts = await Promise.all([
+    concurrent('OWNER', api.encounters.commands.execute, start),
+    concurrent('OWNER', api.encounters.commands.execute, start)
+  ])
+  assert.deepEqual(starts[0], starts[1])
+  const started = encounterCommandResultDtoSchema.parse(starts[0])
+  let projection = encounterGmProjectionDtoSchema.parse(started.projection)
+  assert.equal(projection.status, 'ACTIVE')
+  let bindingInput: BindEncounterToPresentedSceneInputDto = {
+    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+    encounterId: prepared.id,
+    commandId: crypto.randomUUID()
+  }
+  assert.deepEqual(
+    await rollback({
+      encounterId: prepared.id,
+      operation: { kind: 'SCENE_BINDING', input: bindingInput }
+    }),
+    { rolledBack: true }
+  )
+  const previousPresentation = await owner.query(api.scenes.presentations.get, {
+    campaignId,
+    sessionId: fixture.session.id
+  })
+  assert.ok(previousPresentation)
+  const competingBinding = { ...bindingInput, commandId: crypto.randomUUID() }
+  const bindings = await Promise.allSettled([
+    concurrent('OWNER', bindScene, bindingInput),
+    concurrent('OWNER', bindScene, competingBinding),
+    concurrent('OWNER', api.scenes.presentations.set, {
+      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
+      commandId: crypto.randomUUID(),
+      sessionId: fixture.session.id,
+      sceneId: fixture.scenes[1].liveSceneId,
+      expectedPresentationVersion: previousPresentation.version
+    })
+  ])
+  assert.equal(bindings[2]!.status, 'fulfilled')
+  assert.equal(bindings.slice(0, 2).filter((result) => result.status === 'fulfilled').length, 1)
+  const bindingWinner = bindings[0]!.status === 'fulfilled' ? 0 : 1
+  const bindingResult = bindings[bindingWinner]!
+  assert.equal(bindingResult.status, 'fulfilled')
+  const bindingLoser = bindings[1 - bindingWinner]!
+  assert.equal(bindingLoser.status, 'rejected')
+  if (bindingLoser.status === 'rejected')
+    assert.match(String(bindingLoser.reason), /different.*binding/)
+  if (bindingWinner === 1) bindingInput = competingBinding
+  const bound = bindEncounterToPresentedSceneResultDtoSchema.parse(bindingResult.value)
+  assert.equal(bound.replayed, false)
+  const scene = fixture.scenes.find((candidate) => candidate.liveSceneId === bound.sceneId)
+  assert.ok(scene)
+  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
+  const actor = projection.actors.find((candidate) => candidate.kind === 'CHARACTER')
+  assert.ok(actor?.sourceId)
+  let tokenInput: EncounterActorTokenBindingCommandInputDto = {
+    type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+    encounterId: prepared.id,
+    commandId: crypto.randomUUID(),
+    expectedEncounterVersion: projection.version,
+    actorId: actor.id,
+    sceneId: bound.sceneId,
+    tokenId: scene.tokenIds[0]
+  }
+  assert.deepEqual(
+    await rollback({
+      encounterId: prepared.id,
+      operation: { kind: 'TOKEN_BINDING', input: tokenInput }
+    }),
+    { rolledBack: true }
+  )
+  const otherActor = projection.actors.find((candidate) => candidate.id !== actor.id)
+  assert.ok(otherActor)
+  const competingToken = { ...tokenInput, actorId: otherActor.id, commandId: crypto.randomUUID() }
+  const tokenResults = await Promise.allSettled([
+    concurrent('OWNER', bindToken, { input: tokenInput }),
+    concurrent('OWNER', bindToken, { input: competingToken })
+  ])
+  assert.equal(tokenResults.filter((result) => result.status === 'fulfilled').length, 1)
+  const tokenWinner = tokenResults[0]!.status === 'fulfilled' ? 0 : 1
+  const tokenSuccess = tokenResults[tokenWinner]!
+  assert.equal(tokenSuccess.status, 'fulfilled')
+  const tokenFailure = tokenResults[1 - tokenWinner]!
+  if (tokenFailure.status === 'rejected') assert.match(String(tokenFailure.reason), /changed/)
+  const losingActorId = tokenWinner === 0 ? otherActor.id : actor.id
+  if (tokenWinner === 1) tokenInput = competingToken
+  const tokenResult = encounterCommandResultDtoSchema.parse(tokenSuccess.value)
+  projection = encounterGmProjectionDtoSchema.parse(tokenResult.projection)
+  assert.equal(projection.version, tokenInput.expectedEncounterVersion + 1)
+  await assert.rejects(
+    owner.mutation(bindToken, {
+      input: {
+        ...tokenInput,
+        actorId: losingActorId,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: projection.version
+      }
+    }),
+    /already bound/
+  )
+  const advance = (): EncounterExecuteInput => ({
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: prepared.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  })
+  const firstAdvance = advance()
+  const secondAdvance = advance()
+  const advances = await Promise.allSettled([
+    concurrent('OWNER', api.encounters.commands.execute, firstAdvance),
+    concurrent('OWNER', api.encounters.commands.execute, secondAdvance)
+  ])
+  assert.equal(advances.filter((result) => result.status === 'fulfilled').length, 1)
+  for (const result of advances) {
+    if (result.status === 'fulfilled') {
+      const next = encounterGmProjectionDtoSchema.parse(
+        encounterCommandResultDtoSchema.parse(result.value).projection
+      )
+      assert.equal(next.version, projection.version + 1)
+      projection = next
+    } else assert.match(String(result.reason), /version is stale/)
+  }
+  const beforeTransferActors = projection.actors
+  const transferAdvance = advance()
+  await owner.mutation(api.campaigns.ownership.request, {
+    campaignId,
+    recipientUserId: playerUserId
+  })
+  try {
+    const transfer = await Promise.allSettled([
+      concurrent('OWNER', api.encounters.commands.execute, transferAdvance),
+      concurrent('PLAYER', api.campaigns.ownership.accept, { campaignId })
+    ])
+    const accepted = transfer[1]!
+    assert.equal(accepted.status, 'fulfilled')
+    const formerOwner = await owner.query(api.campaigns.queries.get, { id: campaignId })
+    assert.equal(formerOwner.role, 'PLAYER')
+    if (transfer[0]!.status === 'rejected')
+      assert.match(String(transfer[0]!.reason), /Campaign not found/)
+    const current = encounterGmProjectionDtoSchema.parse(
+      await player.query(api.encounters.projectionReads.get, { encounterId: prepared.id })
+    )
+    assert.equal(
+      current.version,
+      projection.version + (transfer[0]!.status === 'fulfilled' ? 1 : 0)
+    )
+    assert.deepEqual(current.actors, beforeTransferActors)
+    projection = current
+    await assert.rejects(
+      owner.mutation(api.encounters.commands.execute, advance()),
+      /Campaign not found/
+    )
+  } finally {
+    const current: CampaignDetailDto = await player.query(api.campaigns.queries.get, {
+      id: campaignId
+    })
+    if (current.role === 'OWNER') {
+      await player.mutation(api.campaigns.ownership.request, {
+        campaignId,
+        recipientUserId: ownerUserId
+      })
+      await owner.mutation(api.campaigns.ownership.accept, { campaignId })
+    }
+  }
+  assert.equal((await owner.query(api.campaigns.queries.get, { id: campaignId })).role, 'OWNER')
+  // Becoming the Campaign owner removes the player's Character assignment.
+  assert.deepEqual(
+    await player.mutation(api.campaigns.assignments.assign, {
+      campaignId,
+      characterId: actor.sourceId
+    }),
+    { ok: true }
+  )
+  assert.deepEqual(await owner.mutation(api.encounters.commands.execute, start), started)
+  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
+  const complete: EncounterExecuteInput = {
+    command: {
+      type: 'COMPLETE',
+      encounterId: prepared.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const session = await owner.query(api.campaigns.sessions.get, {
+    campaignId,
+    sessionNumber: fixture.session.sessionNumber
+  })
+  const finishInput = {
+    campaignId,
+    sessionId: session.id,
+    expectedVersion: session.version,
+    commandId: crypto.randomUUID()
+  }
+  const finishes = await Promise.allSettled([
+    concurrent('OWNER', api.encounters.commands.execute, complete),
+    concurrent('OWNER', api.campaigns.sessionFinish.finish, finishInput)
+  ])
+  const finishResult = finishes[1]!
+  assert.equal(finishResult.status, 'fulfilled')
+  const finished = campaignSessionDtoSchema.parse(finishResult.value)
+  assert.equal(finished.status, 'FINISHED')
+  assert.equal(finished.version, session.version + 1)
+  const current = encounterGmProjectionDtoSchema.parse(
+    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id })
+  )
+  if (finishes[0]!.status === 'fulfilled') {
+    assert.equal(current.status, 'COMPLETED')
+    assert.equal(current.version, projection.version + 1)
+  } else {
+    assert.match(String(finishes[0]!.reason), /Finished Sessions/)
+    assert.deepEqual(current, projection)
+  }
+  projection = current
+  assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
+  await assert.rejects(owner.mutation(api.encounters.commands.execute, start), /Finished Sessions/)
+  await assert.rejects(owner.mutation(bindScene, bindingInput), /Finished Sessions/)
+  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Finished Sessions/)
+  assert.deepEqual(
+    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
+    projection
+  )
+  const timeline = await owner.query(api.encounters.timelineReads.timeline, {
+    encounterId: prepared.id,
+    limit: 100
+  })
+  assert.equal(timeline.nextCursor, null)
+  assert.equal(timeline.entries.length, projection.version + 1)
+  assert.deepEqual(
+    timeline.entries.map((entry) => entry.version).sort((left, right) => left - right),
+    Array.from({ length: projection.version + 1 }, (_, version) => version)
+  )
+  assert.ok(timeline.entries.every((entry) => entry.actorUserId === ownerUserId))
+  assert.deepEqual(await sceneState(), originalScenes)
+  console.log(
+    'V08 forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules passed.'
+  )
+  return {
+    projection,
+    sceneId: bound.sceneId,
+    actorId: tokenInput.actorId,
+    tokenId: tokenInput.tokenId
+  }
+}

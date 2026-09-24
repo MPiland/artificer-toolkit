@@ -8,7 +8,7 @@ type GuidedAuthoringFrameProps = {
   children: ReactNode
   description: string
   domainLabel: string
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onBack?: () => void
   onNext?: () => void
   stepIndex?: number
@@ -63,7 +63,13 @@ export function GuidedAuthoringFrame({
             </Text>
           ) : null}
         </div>
-        <Button className={styles.headerAction} type='button' variant='subtle' onClick={onAdvanced}>
+        <Button
+          className={styles.headerAction}
+          disabled={!onAdvanced}
+          type='button'
+          variant='subtle'
+          onClick={onAdvanced}
+        >
           Switch to advanced
         </Button>
       </header>

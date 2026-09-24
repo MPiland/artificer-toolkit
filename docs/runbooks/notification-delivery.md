@@ -1,6 +1,6 @@
 # Notification delivery
 
-> **Historical:** This Novu runbook is superseded by the [Supabase notification delivery runbook](supabase-notification-delivery.md). Do not use the commands below for current deployments.
+> **Historical:** This Novu path and its later Supabase replacement are both retired by Phase 8.2. Current delivery runs through Convex; use the [Convex notification delivery runbook](convex-notification-delivery.md). Do not use the commands below for current deployments.
 
 Use this runbook for the Phase 05 Novu dispatcher and Framework Bridge. Artificer remains authoritative for applications, invitations, memberships, and destinations; Novu Cloud owns feed state and channel preferences.
 

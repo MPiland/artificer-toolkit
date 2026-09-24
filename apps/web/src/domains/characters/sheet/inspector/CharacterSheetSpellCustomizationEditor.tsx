@@ -1,7 +1,7 @@
 import { Button, NumberInput, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import * as inspectorEditorStyles from './inspectorEditor.css'

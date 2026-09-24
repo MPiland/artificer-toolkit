@@ -1,0 +1,196 @@
+import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  concentrationCommandId,
+  concentrationOccurrenceId
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { MutationCtx } from '../_generated/server'
+import {
+  persistNativeConcentrationPending,
+  persistNativeConcentrationResult
+} from '../encounters/actionChildPersistence'
+import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
+
+/** Persists concentration children within the authorized parent's transaction. */
+export async function persistLiveEncounterConcentrationChildren(
+  ctx: MutationCtx,
+  args: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    parentOccurrenceId: string
+    fingerprint: string
+    userId: string
+    authorizedCharacterIds: ReadonlySet<string>
+    occurredAt: string
+    applications: ReturnType<typeof nativeConcentrationDamageApplications>
+  } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
+) {
+  const { state, applications, parentOccurrenceId } = args
+  const store = createActiveRuleEffectStore(ctx)
+  const bindings = new Map<string, string>()
+  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId))) {
+    const slot = await store.findMaintainedState({
+      encounterId: state.id,
+      ownerActorId: targetActorId,
+      maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    })
+    if (slot) bindings.set(targetActorId, slot.id)
+  }
+  let remaining = applications.flatMap((application) => {
+    const maintainedStateId = bindings.get(application.targetActorId)
+    return maintainedStateId ? [{ ...application, maintainedStateId }] : []
+  })
+  let actors = args.actors
+  let correlationId = parentOccurrenceId
+  for (const child of args.concentration) {
+    const result = child.result
+    const application = remaining.shift()
+    if (
+      !application ||
+      result.status !== 'COMPLETE' ||
+      result.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
+    )
+      throw new Error('Live Session concentration child is unexpected.')
+    const output = result.applicationOutputs
+    const { maintainedStateId, ...damage } = application
+    const expectedId = concentrationOccurrenceId(parentOccurrenceId, damage)
+    if (
+      state.automationMode !== 'AUTOMATIC' ||
+      result.occurrenceId !== expectedId ||
+      result.occurrenceVersion !== 1 ||
+      result.evidence.source.gameSystemId !== state.gameSystemId ||
+      result.evidence.source.definitionId !== output.concentrationDefinition.id ||
+      result.evidence.source.checksum !== output.concentrationDefinition.checksum ||
+      output.occurrenceId !== expectedId ||
+      output.parentOccurrenceId !== parentOccurrenceId ||
+      checksumCanonicalJson(output.application) !== checksumCanonicalJson(application) ||
+      child.commandId !== concentrationCommandId(expectedId) ||
+      child.correlationId !== correlationId ||
+      child.fingerprint !==
+        checksumRuleDocument({
+          parentOccurrenceId,
+          application: damage,
+          contextChecksum: output.contextChecksum
+        }) ||
+      child.metadata.transition !== 'START' ||
+      child.metadata.definitionId !== output.concentrationDefinition.id ||
+      child.metadata.expectedAggregateVersion !== state.version ||
+      child.metadata.factsChecksum !== result.initialFactsChecksum ||
+      child.metadata.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum
+    )
+      throw new Error('Live Session concentration receipt scope mismatch.')
+    const slot = await store.findMaintainedStateById({
+      encounterId: state.id,
+      stateId: maintainedStateId
+    })
+    const target = actors.find((actor) => actor.id === application.targetActorId)
+    if (
+      !slot ||
+      slot.ownerActorId !== application.targetActorId ||
+      slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
+      !target ||
+      (target.kind === 'CHARACTER' &&
+        target.sourceRevision !== output.targetCharacter.streamVersion)
+    )
+      throw new Error('Live Session concentration target changed.')
+    const existing = await ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_publicId', (q) => q.eq('id', expectedId))
+      .unique()
+    if (existing) throw new Error('The concentration child occurrence already exists.')
+    const skipped =
+      output.outcome === 'SAVE_FAILURE'
+        ? remaining.filter((entry) => entry.maintainedStateId === maintainedStateId)
+        : []
+    if (
+      checksumCanonicalJson(output.skipped) !==
+      checksumCanonicalJson(
+        skipped.map((entry) => ({ ...entry, reason: 'MAINTAINED_STATE_ENDED' }))
+      )
+    )
+      throw new Error('Live Session concentration skipped applications mismatch.')
+    if (output.cleanup) {
+      actors = await applyLiveConcentrationCleanup(ctx, {
+        state,
+        actors,
+        slot,
+        cleanup: output.cleanup,
+        authorizedCharacterIds: args.authorizedCharacterIds,
+        occurredAt: args.occurredAt
+      })
+      remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
+    }
+    const nextId = remaining[0] ? concentrationOccurrenceId(parentOccurrenceId, remaining[0]) : null
+    if (output.nextOccurrenceId !== nextId)
+      throw new Error('Live Session concentration child order mismatch.')
+    await persistNativeConcentrationResult(ctx, {
+      state,
+      result,
+      commandId: child.commandId,
+      fingerprint: child.fingerprint,
+      userId: args.userId,
+      correlationId,
+      metadata: child.metadata,
+      occurredAt: args.occurredAt
+    })
+    correlationId = expectedId
+  }
+  const pending = args.pendingConcentration
+  if (pending) {
+    const application = remaining.shift()
+    if (
+      state.automationMode !== 'ASSISTED' ||
+      !application ||
+      pending.snapshotKind !== 'KERNEL_EVIDENCE' ||
+      pending.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+    )
+      throw new Error('Live Session pending concentration is unexpected.')
+    const context = pending.applicationContext
+    const { maintainedStateId, ...damage } = application
+    const slot = await store.findMaintainedStateById({
+      encounterId: state.id,
+      stateId: maintainedStateId
+    })
+    const target = actors.find((actor) => actor.id === application.targetActorId)
+    if (
+      !slot ||
+      slot.ownerActorId !== application.targetActorId ||
+      !target ||
+      (target.kind === 'CHARACTER' &&
+        target.sourceRevision !== context.targetCharacter.streamVersion) ||
+      pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, damage) ||
+      pending.graph.source.gameSystemId !== state.gameSystemId ||
+      pending.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+      context.parentOccurrenceId !== parentOccurrenceId ||
+      context.parentCommandFingerprint !== args.fingerprint ||
+      context.finalizedDamageEnvelopeChecksum !== checksumRuleDocument(applications) ||
+      checksumCanonicalJson(context.application) !== checksumCanonicalJson(damage) ||
+      checksumCanonicalJson(context.remaining) !== checksumCanonicalJson(remaining) ||
+      checksumCanonicalJson(context.maintainedState) !==
+        checksumCanonicalJson({
+          id: slot.id,
+          version: slot.version,
+          maintenanceDefinitionId: slot.maintenanceDefinitionId,
+          descriptorChecksum: slot.descriptorChecksum
+        })
+    )
+      throw new Error('Live Session pending concentration scope mismatch.')
+    await persistNativeConcentrationPending(ctx, {
+      state,
+      context,
+      continuation: pending,
+      deferredCleaving: pending.deferredCleaving,
+      occurredAt: args.occurredAt
+    })
+  } else if (remaining.length)
+    throw new Error('Live Session concentration children are incomplete.')
+  return actors
+}

@@ -1,54 +1,44 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type {
   ExecuteDiceConfigurationInputDto,
-  ExecuteRollInputDto,
-  RollRecordDto
+  ExecuteRollInputDto
 } from '@artificer-toolkit/schema/api/rolls'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { useMutation } from '@tanstack/react-query'
 
-export function getRollHistory() {
-  return queryOptions({
-    queryKey: queryKeys.rolls.history(),
-    queryFn: () => api.rolls.history()
-  })
+export function getRollHistory(enabled = true) {
+  return convexQuery(api.rolls.history, enabled ? {} : 'skip')
 }
 
 export function useExecuteRollMutation() {
-  return useMutation({
-    mutationFn: (input: ExecuteRollInputDto) => api.rolls.execute(input)
-  })
+  const execute = useConvexMutation(api.rolls.execute)
+  return useMutation({ mutationFn: (input: ExecuteRollInputDto) => execute(input) })
 }
 
 export function useExecuteDiceConfigurationMutation() {
+  const executeConfiguration = useConvexMutation(api.rolls.executeConfiguration)
   return useMutation({
-    mutationFn: (input: ExecuteDiceConfigurationInputDto) => api.rolls.executeConfiguration(input)
+    mutationFn: (input: ExecuteDiceConfigurationInputDto) => executeConfiguration(input)
   })
 }
 
 export function useDiscardRollMutation() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (rollId: string) => api.rolls.discard(rollId),
-    onMutate: (rollId) => {
-      const previousHistory = queryClient.getQueryData<RollRecordDto[]>(queryKeys.rolls.history())
-      queryClient.setQueryData<RollRecordDto[]>(queryKeys.rolls.history(), (current) =>
-        current?.filter((roll) => roll.id !== rollId)
+  const discard = useConvexMutation(api.rolls.discard).withOptimisticUpdate(
+    (localStore, { id }) => {
+      const history = localStore.getQuery(api.rolls.history, {})
+      if (history === undefined) return
+      localStore.setQuery(
+        api.rolls.history,
+        {},
+        history.filter((record) => record.id !== id)
       )
-      return previousHistory
-    },
-    onError: (_error, _rollId, previousHistory) =>
-      queryClient.setQueryData(queryKeys.rolls.history(), previousHistory),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.rolls.history() })
-  })
+    }
+  )
+  return useMutation({ mutationFn: (rollId: string) => discard({ id: rollId }) })
 }
 
 export function useClearRollHistoryMutation() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: () => api.rolls.clearHistory(),
-    onSuccess: () => queryClient.setQueryData(queryKeys.rolls.history(), [])
-  })
+  const clearHistory = useConvexMutation(api.rolls.clearHistory)
+  return useMutation({ mutationFn: () => clearHistory({}) })
 }

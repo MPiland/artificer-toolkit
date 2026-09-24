@@ -29,6 +29,7 @@ export function AuthoredListTable({
   paddingTop,
   paddingBottom,
   viewportRef,
+  embedded = false,
   onView,
   onViewIntent,
   actionHandlers
@@ -41,7 +42,8 @@ export function AuthoredListTable({
   renderedRows: number[]
   paddingTop: number
   paddingBottom: number
-  viewportRef: RefObject<HTMLDivElement | null>
+  viewportRef?: RefObject<HTMLDivElement | null>
+  embedded?: boolean
   onView?: (item: AuthoredListItem) => void
   onViewIntent?: (item: AuthoredListItem) => void
   actionHandlers: AuthoredListActionHandlers
@@ -58,7 +60,7 @@ export function AuthoredListTable({
   )
 
   return (
-    <div className={styles.tableScroll} ref={viewportRef}>
+    <div className={embedded ? undefined : styles.tableScroll} ref={viewportRef}>
       <Table
         aria-label='Authored content table'
         classNames={{

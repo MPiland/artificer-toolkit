@@ -260,7 +260,8 @@ describe('Character Sheet overview', () => {
       const mobileViewport = mobilePager.children.item(1)
       expect(mobileViewport).toBeInstanceOf(HTMLElement)
       fireEvent.touchStart(mobileViewport as HTMLElement, {
-        touches: [{ clientX: 320, clientY: 120 }]
+        touches: [{ clientX: 320, clientY: 120 }],
+        changedTouches: [{ clientX: 320, clientY: 120 }]
       })
       fireEvent.touchEnd(mobileViewport as HTMLElement, {
         changedTouches: [{ clientX: 220, clientY: 124 }]

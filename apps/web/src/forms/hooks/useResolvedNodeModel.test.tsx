@@ -1,15 +1,14 @@
 import { useState } from 'react'
-import { HttpResponse, http } from 'msw'
-import { screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  NodeRuntimePathDto,
-  NodeRuntimeResolveRequestDto,
-  NodeRuntimeResolveResponseDto
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimePathDto,
+  type NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { server } from '#test/msw/server'
-import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 
 const initialModel = createModel('Initial', [['stalePath']])
@@ -22,22 +21,29 @@ describe('useResolvedNodeModel', () => {
     let requestCount = 0
     let releaseNextResolve: (() => void) | undefined
 
-    server.use(
-      http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
-        readBatchedInput<NodeRuntimeResolveRequestDto>(await request.json())
-        requestCount += 1
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          queryFn: async ({ queryKey }) => {
+            expect(queryKey.slice(0, 2)).toEqual(['convexQuery', 'authoring/nodeRuntime:resolve'])
+            nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+            requestCount += 1
+            if (requestCount === 1) return compactNodeRuntimeResponse(initialModel)
 
-        if (requestCount === 1) return trpcJson(initialModel)
-
-        await new Promise<void>((resolve) => {
-          releaseNextResolve = resolve
-        })
-
-        return trpcJson(nextModel)
-      })
-    )
-
-    renderWithAppProviders(<ResolvedModelHarness onClearPaths={onClearPaths} />)
+            await new Promise<void>((resolve) => {
+              releaseNextResolve = resolve
+            })
+            return compactNodeRuntimeResponse(nextModel)
+          }
+        }
+      }
+    })
+    render(<ResolvedModelHarness onClearPaths={onClearPaths} />, {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      )
+    })
 
     await waitFor(() => {
       expect(screen.getByTestId('model-label')).toHaveTextContent('Initial')
@@ -60,6 +66,7 @@ describe('useResolvedNodeModel', () => {
     expect(screen.getByTestId('clear-path-count')).toHaveTextContent('1')
     expect(onClearPaths).toHaveBeenCalledTimes(2)
     expect(onClearPaths).toHaveBeenLastCalledWith([['freshPath']])
+    client.clear()
   })
 })
 
@@ -69,9 +76,9 @@ function ResolvedModelHarness({
   onClearPaths: (paths: readonly NodeRuntimePathDto[]) => void
 }) {
   const [mode, setMode] = useState('initial')
-  const model = useResolvedNodeModel({
+  const { model } = useResolvedNodeModel({
     debounceMs: 0,
-    mapId: 'test-form',
+    mapId: 'feature',
     onClearPaths,
     systemId: 'system-1',
     values: { mode }
@@ -94,7 +101,7 @@ function createModel(
 ): NodeRuntimeResolveResponseDto {
   return {
     clearPaths,
-    mapId: 'test-form',
+    mapId: 'feature',
     scopes: [],
     steps: [
       {
@@ -105,16 +112,4 @@ function createModel(
       }
     ]
   }
-}
-
-function trpcJson(data: unknown) {
-  return HttpResponse.json([{ result: { data } }])
-}
-
-function readBatchedInput<TInput>(body: unknown): TInput {
-  if (typeof body !== 'object' || body === null || !('0' in body)) {
-    throw new Error('Expected batched tRPC input.')
-  }
-
-  return (body as { 0: TInput })[0]
 }

@@ -16,6 +16,7 @@
     "types": "wrangler types src/worker-configuration.d.ts"
   },
   "dependencies": {
+    "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
     "jose": "^6.2.4",

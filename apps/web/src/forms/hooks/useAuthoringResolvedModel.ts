@@ -27,7 +27,7 @@ export function useAuthoringResolvedModel({
   values: Record<string, unknown>
 }) {
   const resolvedAncestors = useMemo(() => (ancestors ? [...ancestors] : undefined), [ancestors])
-  const resolvedModel = useResolvedNodeModel({
+  const resolution = useResolvedNodeModel({
     mapId,
     values,
     parentValues,
@@ -47,12 +47,15 @@ export function useAuthoringResolvedModel({
         : undefined,
     [mapId, model, parentValues, resolveModel, resolvedAncestors, values]
   )
-  const activeModel = model ?? resolvedModel ?? staticModel
+  const activeModel = model ?? resolution.model ?? staticModel
   const visibleSteps = useMemo(() => getVisibleAuthoringSteps(activeModel), [activeModel])
 
   return {
     model: activeModel,
-    steps: visibleSteps
+    steps: visibleSteps,
+    error: resolveModel && !model ? resolution.error : null,
+    isFetching: resolution.isFetching,
+    refetch: resolution.refetch
   }
 }
 

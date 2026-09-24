@@ -1,13 +1,16 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
-const uuidSchema = postgresUuidSchema.transform((value) => value.toLowerCase())
-const contractVersionSchema = z.number().int().positive().max(10_000)
-export const ruleCapabilityKeyDtoSchema = z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/)
-const localNodeIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/)
-export const ruleGraphPortNameDtoSchema = z.string().regex(/^[a-z][a-zA-Z0-9_]{0,79}$/)
+const uuidSchema = z.pipe(
+  postgresUuidSchema,
+  z.transform((value) => value.toLowerCase())
+)
+const contractVersionSchema = z.number().check(z.int()).check(z.positive()).check(z.lte(10_000))
+export const ruleCapabilityKeyDtoSchema = z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))
+const localNodeIdSchema = z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/))
+export const ruleGraphPortNameDtoSchema = z.string().check(z.regex(/^[a-z][a-zA-Z0-9_]{0,79}$/))
 
 export const ruleGraphSourceEntryBindingDtoSchema = z.strictObject({
   sourceEntryId: uuidSchema,
@@ -15,12 +18,14 @@ export const ruleGraphSourceEntryBindingDtoSchema = z.strictObject({
 })
 const sourceEntryBindingsDtoSchema = z
   .array(ruleGraphSourceEntryBindingDtoSchema)
-  .max(RULE_GRAPH_LIMITS.NODES)
-  .refine(
-    (bindings) =>
-      new Set(bindings.map((binding) => binding.sourceEntryId)).size === bindings.length &&
-      new Set(bindings.map((binding) => binding.nodeId)).size === bindings.length,
-    'Rule source-entry bindings must form a one-to-one source-entry to node relation.'
+  .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  .check(
+    z.refine(
+      (bindings) =>
+        new Set(bindings.map((binding) => binding.sourceEntryId)).size === bindings.length &&
+        new Set(bindings.map((binding) => binding.nodeId)).size === bindings.length,
+      'Rule source-entry bindings must form a one-to-one source-entry to node relation.'
+    )
   )
 
 const vocabularyBindingsDtoSchema = z
@@ -30,16 +35,22 @@ const vocabularyBindingsDtoSchema = z
       definitionId: uuidSchema
     })
   )
-  .max(RULE_GRAPH_LIMITS.NODES)
-  .refine(
-    (bindings) =>
-      new Set(bindings.map((binding) => `${binding.kind}:${binding.definitionId}`)).size ===
-      bindings.length,
-    'Rule vocabulary bindings must be unique.'
+  .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  .check(
+    z.refine(
+      (bindings) =>
+        new Set(bindings.map((binding) => `${binding.kind}:${binding.definitionId}`)).size ===
+        bindings.length,
+      'Rule vocabulary bindings must be unique.'
+    )
   )
 
 export const ruleValueKindDtoSchema = z.enum(['BOOLEAN', 'NUMBER', 'TEXT'])
-export const ruleValueDtoSchema = z.union([z.boolean(), z.number().finite(), z.string().max(1_000)])
+export const ruleValueDtoSchema = z.union([
+  z.boolean(),
+  z.number(),
+  z.string().check(z.maxLength(1_000))
+])
 
 export const ruleOperationReferenceDtoSchema = z.strictObject({
   key: ruleCapabilityKeyDtoSchema,
@@ -55,15 +66,19 @@ export const ruleFactContractDtoSchema = z.strictObject({
 export const gameSystemRuleCapabilityDtoSchema = z.strictObject({
   gameSystemId: uuidSchema,
   contractVersion: contractVersionSchema,
-  authoredRootKinds: z.array(ruleCapabilityKeyDtoSchema).max(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS),
+  authoredRootKinds: z
+    .array(ruleCapabilityKeyDtoSchema)
+    .check(z.maxLength(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS)),
   definitionFamilyKeys: z
     .array(ruleCapabilityKeyDtoSchema)
-    .max(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES),
-  factContracts: z.array(ruleFactContractDtoSchema).max(RULE_GRAPH_LIMITS.FACT_CONTRACTS),
+    .check(z.maxLength(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES)),
+  factContracts: z
+    .array(ruleFactContractDtoSchema)
+    .check(z.maxLength(RULE_GRAPH_LIMITS.FACT_CONTRACTS)),
   operationContracts: z
     .array(ruleOperationReferenceDtoSchema)
-    .min(1)
-    .max(RULE_GRAPH_LIMITS.OPERATION_CONTRACTS)
+    .check(z.minLength(1))
+    .check(z.maxLength(RULE_GRAPH_LIMITS.OPERATION_CONTRACTS))
 })
 
 export const ruleInputBindingDtoSchema = z.discriminatedUnion('kind', [
@@ -79,11 +94,11 @@ export const ruleInputBindingDtoSchema = z.discriminatedUnion('kind', [
 export const ruleGraphNodeDefinitionDtoSchema = z.strictObject({
   id: localNodeIdSchema,
   operation: ruleOperationReferenceDtoSchema,
-  inputs: z
-    .record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema)
-    .refine((inputs) => Object.keys(inputs).length <= RULE_GRAPH_LIMITS.NODE_INPUTS, {
+  inputs: z.record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema).check(
+    z.refine((inputs) => Object.keys(inputs).length <= RULE_GRAPH_LIMITS.NODE_INPUTS, {
       message: `Rule nodes support at most ${RULE_GRAPH_LIMITS.NODE_INPUTS} input bindings.`
     })
+  )
 })
 
 export const ruleGraphDefinitionDtoSchema = z
@@ -92,26 +107,33 @@ export const ruleGraphDefinitionDtoSchema = z
     id: uuidSchema,
     gameSystemId: uuidSchema,
     definitionFamilyKey: ruleCapabilityKeyDtoSchema,
-    nodes: z.array(ruleGraphNodeDefinitionDtoSchema).min(1).max(RULE_GRAPH_LIMITS.NODES),
-    outputs: z.record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema).refine((outputs) => {
-      const count = Object.keys(outputs).length
-      return count >= 1 && count <= RULE_GRAPH_LIMITS.OUTPUTS
-    }, `Rule graphs require between one and ${RULE_GRAPH_LIMITS.OUTPUTS} outputs.`),
-    sourceEntryBindings: sourceEntryBindingsDtoSchema.optional(),
-    vocabularyBindings: vocabularyBindingsDtoSchema.optional()
+    nodes: z
+      .array(ruleGraphNodeDefinitionDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+    outputs: z.record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema).check(
+      z.refine((outputs) => {
+        const count = Object.keys(outputs).length
+        return count >= 1 && count <= RULE_GRAPH_LIMITS.OUTPUTS
+      }, `Rule graphs require between one and ${RULE_GRAPH_LIMITS.OUTPUTS} outputs.`)
+    ),
+    sourceEntryBindings: z.optional(sourceEntryBindingsDtoSchema),
+    vocabularyBindings: z.optional(vocabularyBindingsDtoSchema)
   })
-  .superRefine((definition, context) => {
-    if (
-      definition.sourceEntryBindings?.some(
-        (binding) => !definition.nodes.some((node) => node.id === binding.nodeId)
+  .check(
+    z.superRefine((definition, context) => {
+      if (
+        definition.sourceEntryBindings?.some(
+          (binding) => !definition.nodes.some((node) => node.id === binding.nodeId)
+        )
       )
-    )
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['sourceEntryBindings'],
-        message: 'Rule source-entry bindings must reference an existing graph node.'
-      })
-  })
+        context.addIssue({
+          code: 'custom',
+          path: ['sourceEntryBindings'],
+          message: 'Rule source-entry bindings must reference an existing graph node.'
+        })
+    })
+  )
 
 export type RuleValueKindDto = z.infer<typeof ruleValueKindDtoSchema>
 export type RuleValueDto = z.infer<typeof ruleValueDtoSchema>

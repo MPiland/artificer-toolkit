@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { AuthPageShell, ResetPasswordForm } from '../components'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { ResetPasswordForm } from '../components/ResetPasswordForm'
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()

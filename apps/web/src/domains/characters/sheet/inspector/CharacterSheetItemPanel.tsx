@@ -2,7 +2,7 @@ import { Accordion, Button, Modal, Switch, Text } from '@mantine/core'
 import { useState } from 'react'
 
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeatureUseControl'
 import { CharacterSheetResourceStepper } from '../shared/CharacterSheetResourceStepper'

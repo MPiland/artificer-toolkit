@@ -1,25 +1,23 @@
 import { notifications } from '@mantine/notifications'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
 import {
   buildCreatureListFilters,
   creatureListAttributeColumns,
-  creatureListSortOptions,
-  formatCreatureCategory,
-  mapCreatureListToAuthoredItems,
-  summarizeCreatureList
+  creatureListSortOptions
 } from '#app/data/creatures/creatureListMapper'
-import { getCreature, getCreatureList, useGetCreatureList } from '#app/data/creatures/queries'
-import { createServerApi } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { getCreature } from '#app/data/creatures/queries'
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
-import type { CreatureListRequestDto } from '#app/lib/api'
 
 const creatureDetailMeta = [
   'challengeRatings',
@@ -29,17 +27,19 @@ const creatureDetailMeta = [
   'equipment',
   'speeds'
 ]
-const creatureCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies CreatureListRequestDto
-
 export const Route = createFileRoute('/_authed/creatures/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getCreatureList(creatureCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'CREATURE',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, { subjectKind: 'CREATURE' })
+      )
+    ])
   },
   component: CreaturesRoute
 })
@@ -47,32 +47,14 @@ export const Route = createFileRoute('/_authed/creatures/')({
 function CreaturesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildCreatureListFilters,
-    buildRequest: ({ filterValues, query, sort }): CreatureListRequestDto => ({
-      ...creatureCatalogueRequest,
-      category: filterValues.category ?? undefined,
-      query: query || undefined,
-      sort: sort === 'category' ? 'category' : 'name',
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) =>
-      mapDraftSummariesToAuthoredItems(response.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatCreatureCategory
-      }),
-    mapItems: mapCreatureListToAuthoredItems,
-    summarize: summarizeCreatureList,
-    useList: useGetCreatureList
-  })
+  const listing = useNativeAuthoredCatalogWindow('CREATURE')
+  const operations = createAuthoredOperations('CREATURE', useConvex())
   const duplicateMutation = useMutation({
-    mutationFn: (id: string) => api.content.creatures.duplicate(id),
+    mutationFn: operations.duplicate,
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.creatures.all()
+      })
       notifications.show({
         color: 'green',
         message: 'Creature duplicated as owned content.'
@@ -92,8 +74,8 @@ function CreaturesRoute() {
     }
   })
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.creatures.deleteActive,
-    deleteDraft: api.content.creatures.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.creatures.detailRoot,
     domainLabel: 'Creature',
     domainQueryKey: queryKeys.content.creatures.all(),
@@ -104,11 +86,16 @@ function CreaturesRoute() {
     <>
       <AuthoredListPage
         title='Creatures'
-        summary={listing.summary ?? 'Loading creatures...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} creatures / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading creatures...'
+        }
         createLabel='Create Creature'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildCreatureListFilters(listing.summary?.categories ?? [])}
         attributeColumns={creatureListAttributeColumns}
         sortOptions={creatureListSortOptions}
         catalog={listing.catalog}
@@ -125,7 +112,7 @@ function CreaturesRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(
             getCreature({
-              id: item.id,
+              id: item.publicId,
               meta: creatureDetailMeta,
               view: item.contentState === 'draft' ? 'draft' : 'active'
             })

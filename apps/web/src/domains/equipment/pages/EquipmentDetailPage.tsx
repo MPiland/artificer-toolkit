@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { equipmentAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import {
   type AuthoredDraftDto,
@@ -29,7 +30,7 @@ import {
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -50,6 +51,7 @@ export function EquipmentDetailPage({
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('EQUIPMENT', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState<EquipmentAuthoringInputDto>({
     draft,
@@ -58,13 +60,13 @@ export function EquipmentDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.equipment.deleteActive,
-    discard: api.content.equipment.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.equipment.detailRoot(equipmentId),
     domainLabel: 'Equipment',
     domainQueryKey: queryKeys.content.equipment.all(),
     draftQueryKey: queryKeys.content.equipment.draft(equipmentId),
-    duplicate: api.content.equipment.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: equipmentId,
     navigateEdit: async (subject) =>
@@ -73,6 +75,14 @@ export function EquipmentDetailPage({
         to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/equipment' })
+  })
+
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: equipmentId,
+    label: detailState.item?.label ?? 'Equipment',
+    subjectKind: 'EQUIPMENT',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -115,13 +125,6 @@ export function EquipmentDetailPage({
     draft?.publicId ?? response?.publicId ?? equipmentId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: equipmentId,
-    label: item.label,
-    subjectKind: 'EQUIPMENT',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {

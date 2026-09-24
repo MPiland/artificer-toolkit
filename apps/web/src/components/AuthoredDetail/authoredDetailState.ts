@@ -1,4 +1,4 @@
-import type { z } from 'zod'
+import type * as core from 'zod/v4/core'
 import type {
   AuthoredContentPermissionsDto,
   AuthoredContentProvenanceDto
@@ -48,7 +48,7 @@ export function resolveAuthoredDetailState<TItem>({
 }: {
   draft: AuthoredDraftDto | null | undefined
   response: AuthoredDetailResponse<TItem> | null | undefined
-  schema: z.ZodType<TItem>
+  schema: core.$ZodType<TItem>
   viewActive?: boolean
 }): ResolvedAuthoredDetailState<TItem> {
   const activeItem = response?.item ?? null

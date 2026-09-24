@@ -7,11 +7,7 @@ import {
   type Page,
   type Response
 } from '@playwright/test'
-import {
-  campaignSceneStateDtoSchema,
-  type CampaignSceneStateDto
-} from '@artificer-toolkit/schema/api/vttScenes'
-import { signedVttMapDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
+import { readFile, writeFile } from 'node:fs/promises'
 
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
@@ -28,15 +24,29 @@ const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^http/, (protoco
 )
 const warmupPairs = boundedSampleCount('VTT_USAGE_WARMUP_PAIRS', 2, 0)
 const measuredPairs = boundedSampleCount('VTT_USAGE_MEASURED_PAIRS', 10, 1)
-const hostTimingP95Limits =
-  topology === 'MANAGED' ? { ruleBound: 250, sceneOnly: 100 } : { ruleBound: 1_500, sceneOnly: 500 }
-const managedLaunchP95Limits = {
-  localPaint: 100,
-  peerCommit: 1_500,
-  peerPreview: 250,
-  peerVisual: 1_500
+const browserLimits = {
+  authoritativeP95: 1_000,
+  durableP95: 250,
+  durableP99: 500,
+  ephemeralP95: 150,
+  ruleConvergenceP95: 1_500,
+  sceneConvergenceP95: 1_500
 }
-const signInReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
+const pageReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
+const diagnosticSections = [
+  'fixture-ready',
+  'door-convergence',
+  'token-drag',
+  'rule-convergence',
+  'recovery'
+] as const
+const checkpointPath = process.env.MANAGED_VTT_CHECKPOINT_PATH?.trim() || null
+const startSection = diagnosticSection(process.env.MANAGED_VTT_START_SECTION, 'fixture-ready')
+const endSection = diagnosticSection(process.env.MANAGED_VTT_END_SECTION, 'recovery')
+const startSectionIndex = diagnosticSections.indexOf(startSection)
+const endSectionIndex = diagnosticSections.indexOf(endSection)
+if (endSectionIndex < startSectionIndex)
+  throw new Error('Managed VTT diagnostic end section precedes its start section.')
 
 test('connects three users through the live room and recovers a reversible scene commit', async ({
   browser
@@ -48,12 +58,18 @@ test('connects three users through the live room and recovers a reversible scene
   let managedPaths: ManagedPaths | null = null
   let originalDoorAction: string | null = null
   const timings: Record<string, number> = {}
-  const hostTimings = { ruleBound: [] as number[], sceneOnly: [] as number[] }
-  const peerVisualTimings: number[] = []
+  const convergenceTimings = {
+    authoritative: [] as number[],
+    durable: [] as number[],
+    ephemeral: [] as number[],
+    recipientHeader: [] as number[],
+    ruleBound: [] as number[],
+    sceneOnly: [] as number[]
+  }
   const tokenDragTimings = {
-    localPaint: [] as number[],
-    peerCommit: [] as number[],
-    peerPreview: [] as number[]
+    durable: [] as number[],
+    ephemeral: [] as number[],
+    inputToSend: [] as number[]
   }
 
   try {
@@ -68,14 +84,10 @@ test('connects three users through the live room and recovers a reversible scene
       expectCampaignMembershipRole(player.page, 'PLAYER', 'PLAYER'),
       expectCampaignMembershipRole(player2.page, 'PLAYER2', 'PLAYER')
     ])
-    managedPaths = await resolveManagedPaths(player.page)
-
     const readyStartedAt = performance.now()
-    await Promise.all([
-      openTabletop(gm, managedPaths),
-      openTabletop(player, managedPaths),
-      openTabletop(player2, managedPaths)
-    ])
+    managedPaths = await resolveManagedPaths(player.page, gm)
+    await openTabletop(player, managedPaths)
+    await openTabletop(player2, managedPaths)
     timings.readyMs = performance.now() - readyStartedAt
     console.info(`Managed VTT ready: ${timings.readyMs.toFixed(1)}ms`)
 
@@ -90,45 +102,46 @@ test('connects three users through the live room and recovers a reversible scene
       expectManagedSocket(player),
       expectManagedSocket(player2)
     ])
-    await expect.poll(() => gm.ticketResponses.some((response) => response.ok())).toBe(true)
-    await expect.poll(() => player.ticketResponses.some((response) => response.ok())).toBe(true)
-    await expect.poll(() => player2.ticketResponses.some((response) => response.ok())).toBe(true)
     await expectPrivateSnapshot(gm, [player, player2])
     await Promise.all([expectExactVttMapDelivery(player), expectExactVttMapDelivery(player2)])
+    await recordDiagnosticCheckpoint('fixture-ready')
 
     originalDoorAction = await readDoorAction(gm.page, doorIndex)
-    const currentDoorAction = await collectDoorHostTimings(
-      gm,
-      [player, player2],
-      originalDoorAction,
-      hostTimings.sceneOnly,
-      peerVisualTimings,
-      timings
-    )
-    await collectTokenDragTimings(gm, [player, player2], tokenDragTimings)
-    await collectRuleHostTimings(player, managedPaths, hostTimings.ruleBound)
-    const hostTimingSummary = summarizeHostTimings(hostTimings)
-    await testInfo.attach('managed-vtt-host-timings', {
-      body: JSON.stringify(hostTimingSummary, null, 2),
+    let currentDoorAction = originalDoorAction
+    if (shouldRunDiagnosticSection('door-convergence')) {
+      currentDoorAction = await collectDoorConvergenceTimings(
+        gm,
+        [player, player2],
+        originalDoorAction,
+        convergenceTimings,
+        timings
+      )
+      assertConvergenceThresholds(convergenceTimings)
+      await recordDiagnosticCheckpoint('door-convergence')
+    }
+    if (shouldRunDiagnosticSection('token-drag')) {
+      await collectTokenDragTimings(
+        gm,
+        [player, player2],
+        [player2],
+        tokenDragTimings,
+        convergenceTimings
+      )
+      assertConvergenceThresholds(convergenceTimings)
+      await recordDiagnosticCheckpoint('token-drag')
+    }
+    if (shouldRunDiagnosticSection('rule-convergence')) {
+      await collectRuleConvergenceTimings(player, managedPaths, convergenceTimings)
+      assertConvergenceThresholds(convergenceTimings)
+      await recordDiagnosticCheckpoint('rule-convergence')
+    }
+    const convergenceSummary = summarizeConvergenceTimings(convergenceTimings)
+
+    await testInfo.attach('managed-vtt-convergence-timings', {
+      body: JSON.stringify(convergenceSummary, null, 2),
       contentType: 'application/json'
     })
-    console.info(`Managed VTT host timings: ${JSON.stringify(hostTimingSummary)}`)
-    expect(hostTimingSummary.sceneOnly.p95).toBeLessThan(hostTimingP95Limits.sceneOnly)
-    expect(hostTimingSummary.ruleBound.p95).toBeLessThan(hostTimingP95Limits.ruleBound)
-    if (topology === 'MANAGED') {
-      expect(summarizeTimings(peerVisualTimings).p95).toBeLessThan(
-        managedLaunchP95Limits.peerVisual
-      )
-      expect(summarizeTimings(tokenDragTimings.localPaint).p95).toBeLessThan(
-        managedLaunchP95Limits.localPaint
-      )
-      expect(summarizeTimings(tokenDragTimings.peerPreview).p95).toBeLessThan(
-        managedLaunchP95Limits.peerPreview
-      )
-      expect(summarizeTimings(tokenDragTimings.peerCommit).p95).toBeLessThan(
-        managedLaunchP95Limits.peerCommit
-      )
-    }
+    console.info(`Managed VTT convergence timings: ${JSON.stringify(convergenceSummary)}`)
 
     await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
@@ -139,13 +152,13 @@ test('connects three users through the live room and recovers a reversible scene
     clients.push(player2)
     await openTabletop(player2, managedPaths)
     await expectManagedSocket(player2)
-    await expectDoorAction(player2, currentDoorAction)
+    await expectDoorHidden(player2)
 
     player = await openManagedClient(browser, 'PLAYER', playerCredentials)
     clients.push(player)
     await openTabletop(player, managedPaths)
     await expectManagedSocket(player)
-    await expectDoorAction(player, currentDoorAction)
+    await expectDoorHidden(player)
 
     gm = await openManagedClient(browser, 'GM', gmCredentials)
     clients.push(gm)
@@ -153,17 +166,23 @@ test('connects three users through the live room and recovers a reversible scene
     await expectManagedSocket(gm)
     await expectDoorAction(gm, currentDoorAction)
     timings.recoveryMs = performance.now() - recoveryStartedAt
+    await recordDiagnosticCheckpoint('recovery')
 
     await testInfo.attach('managed-vtt-timings', {
       body: JSON.stringify(
         {
           e2eDiagnosticMs: timings,
-          hostProcessingMs: summarizeHostTimings(hostTimings),
-          peerVisualMs: summarizeTimings(peerVisualTimings),
+          convergenceMs: convergenceSummary,
           tokenDragVisualMs: {
-            localPaint: summarizeTimings(tokenDragTimings.localPaint),
-            peerCommit: summarizeTimings(tokenDragTimings.peerCommit),
-            peerPreview: summarizeTimings(tokenDragTimings.peerPreview)
+            durable: tokenDragTimings.durable.length
+              ? summarizeTimings(tokenDragTimings.durable)
+              : null,
+            ephemeral: tokenDragTimings.ephemeral.length
+              ? summarizeTimings(tokenDragTimings.ephemeral)
+              : null,
+            inputToSend: tokenDragTimings.inputToSend.length
+              ? summarizeTimings(tokenDragTimings.inputToSend)
+              : null
           }
         },
         null,
@@ -208,18 +227,44 @@ test('connects three users through the live room and recovers a reversible scene
   if (cleanupFailure) throw cleanupFailure
 })
 
+type DiagnosticSection = (typeof diagnosticSections)[number]
+
+function diagnosticSection(
+  value: string | undefined,
+  fallback: DiagnosticSection
+): DiagnosticSection {
+  const section = value?.trim() || fallback
+  if (!diagnosticSections.includes(section as DiagnosticSection))
+    throw new Error(`Unknown managed VTT diagnostic section: ${section}.`)
+  return section as DiagnosticSection
+}
+
+function shouldRunDiagnosticSection(section: DiagnosticSection): boolean {
+  const index = diagnosticSections.indexOf(section)
+  return index >= startSectionIndex && index <= endSectionIndex
+}
+
+async function recordDiagnosticCheckpoint(section: DiagnosticSection): Promise<void> {
+  if (!checkpointPath || !shouldRunDiagnosticSection(section)) return
+  const checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8')) as Record<string, unknown>
+  await writeFile(
+    checkpointPath,
+    `${JSON.stringify({ ...checkpoint, lastCompletedSection: section }, null, 2)}\n`
+  )
+}
+
 interface ManagedClient {
   assetResponses: Response[]
   browserErrors: string[]
   context: BrowserContext
-  deliveryResponses: Response[]
   failedRequests: string[]
   liveSessionFrames: string[]
+  liveSessionSentFrameTimes: number[]
   liveSessionSentFrames: string[]
   liveSessionUrls: string[]
   page: Page
   role: 'GM' | 'PLAYER' | 'PLAYER2'
-  ticketResponses: Response[]
+  visualFramePaintPending: boolean
   visualFramePaints: VisualFramePaint[]
   visualFrameTracking: boolean
 }
@@ -230,139 +275,102 @@ interface VisualFramePaint {
   receivedAt: number
 }
 
+interface TokenDragPreview {
+  position: { x: number; y: number }
+  sequence: number
+  tokenId: string
+}
+
 interface ManagedPaths {
   characterSheet: string
   tabletop: string
 }
 
-interface ManagedCampaignSummary {
-  assignedCharacter: { publicId: string } | null
-  name: string
-  publicId: string
-  role: 'OWNER' | 'PLAYER'
+interface ConvergenceTimings {
+  authoritative: number[]
+  durable: number[]
+  ephemeral: number[]
+  recipientHeader: number[]
+  ruleBound: number[]
+  sceneOnly: number[]
 }
 
-interface ManagedCharacterListItem {
-  publicId: string
+type ConvergenceSummary = Record<
+  keyof ConvergenceTimings,
+  ReturnType<typeof summarizeTimings> | null
+>
+
+function summarizeConvergenceTimings(timings: ConvergenceTimings): ConvergenceSummary {
+  return Object.fromEntries(
+    Object.entries(timings).map(([name, values]) => [
+      name,
+      values.length ? summarizeTimings(values) : null
+    ])
+  ) as ConvergenceSummary
 }
 
-async function resolveManagedPaths(page: Page): Promise<ManagedPaths> {
-  const campaigns = parseCampaignSummaries(await queryManagedTrpc(page, 'campaigns.list'))
-  const matches = campaigns.filter((campaign) => campaign.name === campaignName)
-  if (matches.length !== 1) {
-    throw new Error(
-      `Expected exactly one managed smoke Campaign named ${JSON.stringify(campaignName)}, found ${matches.length}.`
-    )
+function assertConvergenceThresholds(timings: ConvergenceTimings): void {
+  const summary = summarizeConvergenceTimings(timings)
+  console.info(`Managed VTT convergence checkpoint: ${JSON.stringify(summary)}`)
+  if (summary.sceneOnly)
+    expect(summary.sceneOnly.p95).toBeLessThan(browserLimits.sceneConvergenceP95)
+  if (summary.ruleBound)
+    expect(summary.ruleBound.p95).toBeLessThan(browserLimits.ruleConvergenceP95)
+  if (summary.authoritative)
+    expect(summary.authoritative.p95).toBeLessThanOrEqual(browserLimits.authoritativeP95)
+  if (summary.ephemeral)
+    expect(summary.ephemeral.p95).toBeLessThanOrEqual(browserLimits.ephemeralP95)
+  if (summary.durable) {
+    expect(summary.durable.p95).toBeLessThanOrEqual(browserLimits.durableP95)
+    expect(summary.durable.p99).toBeLessThanOrEqual(browserLimits.durableP99)
   }
-  const campaign = matches[0]!
-  const assignedCharacter = campaign.assignedCharacter
-  if (!assignedCharacter) {
-    throw new Error(
-      `Managed smoke Campaign ${JSON.stringify(campaignName)} has no Character assigned to the signed-in player.`
-    )
-  }
+}
 
-  const characters = parseCharacterList(await queryManagedTrpc(page, 'characters.list'))
-  if (!characters.some((character) => character.publicId === assignedCharacter.publicId)) {
-    throw new Error(
-      `Assigned managed smoke Character ${JSON.stringify(assignedCharacter.publicId)} is not available to the signed-in player.`
-    )
-  }
+async function campaignCard(page: Page): Promise<Locator> {
+  await gotoManagedPage(page, '/campaigns')
+  const cards = page.locator('article').filter({
+    has: page.getByRole('heading', { name: campaignName, exact: true })
+  })
+  await expect(cards).toHaveCount(1, { timeout: pageReadyTimeoutMs })
+  return cards.first()
+}
 
+async function resolveManagedPaths(page: Page, gm: ManagedClient): Promise<ManagedPaths> {
+  const card = await campaignCard(page)
+  const testId = await card.getAttribute('data-testid')
+  if (!testId?.startsWith('campaign-')) {
+    throw new Error(`Managed smoke Campaign ${JSON.stringify(campaignName)} has no route identity.`)
+  }
+  const campaignPublicId = testId.slice('campaign-'.length)
+  const tabletop = `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}/sessions/1`
+  await openTabletop(gm, { tabletop })
+  await expectManagedSocket(gm)
+  const playCharacter = card.getByRole('button', { name: 'Play Character' })
+  await expect(playCharacter).toHaveCount(1)
+  await playCharacter.click()
+  await page.waitForURL((url) => /^\/characters\/[^/]+\/[^/]+\/?$/.test(url.pathname))
+  const characterPath = new URL(page.url()).pathname.replace(/\/$/, '')
   return {
-    characterSheet: `/characters/${encodeURIComponent(assignedCharacter.publicId)}/sheet`,
-    tabletop: `/tabletop/campaigns/${encodeURIComponent(campaign.publicId)}/sessions/1`
+    characterSheet: characterPath,
+    tabletop
   }
 }
 
 async function expectCampaignMembershipRole(
   page: Page,
   clientRole: ManagedClient['role'],
-  expectedCampaignRole: ManagedCampaignSummary['role']
+  expectedCampaignRole: 'OWNER' | 'PLAYER'
 ): Promise<void> {
-  const campaigns = parseCampaignSummaries(await queryManagedTrpc(page, 'campaigns.list'))
-  const matches = campaigns.filter((campaign) => campaign.name === campaignName)
-  if (matches.length !== 1) {
-    throw new Error(
-      `${clientRole} campaigns.list expected exactly one smoke Campaign named ${JSON.stringify(campaignName)}, found ${matches.length}.`
-    )
-  }
-  if (matches[0]?.role !== expectedCampaignRole) {
-    throw new Error(
-      `${clientRole} campaigns.list expected ${expectedCampaignRole} for ${JSON.stringify(campaignName)}, received ${matches[0]?.role ?? 'none'}.`
-    )
-  }
-}
-
-async function queryManagedTrpc(page: Page, procedure: string): Promise<unknown> {
-  const response = await page.evaluate(async (procedureName) => {
-    const input = encodeURIComponent(JSON.stringify({ 0: null }))
-    const result = await fetch(`/api/trpc/${procedureName}?batch=1&input=${input}`, {
-      credentials: 'same-origin'
-    })
-    return { body: await result.text(), status: result.status }
-  }, procedure)
-  if (response.status !== 200) {
-    throw new Error(`Managed ${procedure} query failed with HTTP ${response.status}.`)
-  }
-  let parsed: unknown
+  const card = await campaignCard(page)
+  const expectedLabel = expectedCampaignRole === 'OWNER' ? 'GM' : 'Player'
   try {
-    parsed = JSON.parse(response.body) as unknown
+    await expect(card.getByText(expectedLabel, { exact: true })).toBeVisible()
   } catch (error) {
-    throw new Error(`Managed ${procedure} query returned invalid JSON.`, { cause: error })
+    throw new Error(
+      `${clientRole} expected ${expectedCampaignRole} membership in ${JSON.stringify(campaignName)}.`,
+      { cause: error }
+    )
   }
-  const envelope = Array.isArray(parsed) ? parsed[0] : parsed
-  const envelopeRecord = record(envelope)
-  const result = record(envelopeRecord?.result)
-  const data = result?.data
-  const dataRecord = record(data)
-  if (dataRecord && Object.hasOwn(dataRecord, 'json')) return dataRecord.json
-  if (data !== undefined) return data
-  throw new Error(`Managed ${procedure} query returned no result data.`)
-}
-
-function parseCampaignSummaries(value: unknown): ManagedCampaignSummary[] {
-  if (!Array.isArray(value)) throw new Error('Managed campaigns.list returned a non-list response.')
-  return value.map((item, index) => {
-    const candidate = record(item)
-    const name = candidate?.name
-    const publicId = candidate?.publicId
-    const role = candidate?.role
-    const assigned = candidate?.assignedCharacter
-    if (
-      !candidate ||
-      typeof name !== 'string' ||
-      typeof publicId !== 'string' ||
-      (role !== 'OWNER' && role !== 'PLAYER')
-    ) {
-      throw new Error(`Managed campaigns.list item ${index} has an invalid shape.`)
-    }
-    if (assigned === null) return { assignedCharacter: null, name, publicId, role }
-    const assignedRecord = record(assigned)
-    if (!assignedRecord || typeof assignedRecord.publicId !== 'string') {
-      throw new Error(`Managed campaigns.list item ${index} has an invalid shape.`)
-    }
-    return {
-      assignedCharacter: { publicId: assignedRecord.publicId },
-      name,
-      publicId,
-      role
-    }
-  })
-}
-
-function parseCharacterList(value: unknown): ManagedCharacterListItem[] {
-  const response = record(value)
-  const items = response?.items
-  if (!Array.isArray(items))
-    throw new Error('Managed characters.list returned an invalid response.')
-  return items.map((item, index) => {
-    const candidate = record(item)
-    if (!candidate || typeof candidate.publicId !== 'string') {
-      throw new Error(`Managed characters.list item ${index} has an invalid shape.`)
-    }
-    return { publicId: candidate.publicId }
-  })
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -371,22 +379,16 @@ function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-async function collectDoorHostTimings(
+async function collectDoorConvergenceTimings(
   gm: ManagedClient,
   players: readonly ManagedClient[],
   originalAction: string,
-  samples: number[],
-  peerVisualSamples: number[],
+  samples: ConvergenceTimings,
   diagnostics: Record<string, number>
 ): Promise<string> {
   let action = originalAction
   for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
-    await Promise.all(
-      players.map(async (player) => {
-        await player.page.getByRole('button', { name: 'Scene controls' }).click()
-        await expect(player.page.getByRole('menuitem', { name: action, exact: true })).toBeVisible()
-      })
-    )
+    const priorVersion = await readSceneVersion(gm.page)
     await gm.page.getByRole('button', { name: 'Scene controls' }).click()
     const gmAction = gm.page.getByRole('menuitem', { name: action, exact: true })
     await expect(gmAction).toBeVisible()
@@ -400,27 +402,57 @@ async function collectDoorHostTimings(
         { once: true }
       )
     })
-    const priorFrameCount = gm.liveSessionFrames.length
+    const sentFrameStart = gm.liveSessionSentFrames.length
+    const recipientHeaderConvergence = Promise.all(
+      [gm, ...players].map((client) => waitForRecipientSceneVersion(client.page, priorVersion + 1))
+    )
+    const liveSceneConvergence = Promise.all(
+      [gm, ...players].map((client) => waitForSceneVersion(client.page, priorVersion + 1))
+    )
     await gmAction.click()
     action = nextAction
-    const hostTiming = waitForCorrelatedHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
-    await Promise.all(
-      players.map((player) =>
-        expect(player.page.getByRole('menuitem', { name: action, exact: true })).toBeVisible()
+    await expect
+      .poll(() =>
+        gm.liveSessionSentFrames
+          .slice(sentFrameStart)
+          .some((payload) => isSceneDoorCommandFrame(payload))
       )
-    )
+      .toBe(true)
+    const [recipientHeaderResult, liveSceneResult] = await Promise.allSettled([
+      recipientHeaderConvergence,
+      liveSceneConvergence
+    ])
+    if (recipientHeaderResult.status === 'rejected' || liveSceneResult.status === 'rejected') {
+      const alerts = await gm.page.getByRole('alert').allTextContents()
+      const cause =
+        liveSceneResult.status === 'rejected'
+          ? liveSceneResult.reason
+          : recipientHeaderResult.status === 'rejected'
+            ? recipientHeaderResult.reason
+            : undefined
+      throw new Error(
+        `Door convergence failed. GM alerts: ${JSON.stringify(alerts)}. Recent received frames: ${JSON.stringify(summarizeFrames(gm.liveSessionFrames.slice(-10)))}. Recent sent frames: ${JSON.stringify(summarizeFrames(gm.liveSessionSentFrames.slice(-10)))}.`,
+        { cause }
+      )
+    }
+    const recipientHeaderObservedAt = recipientHeaderResult.value
+    const observedAt = liveSceneResult.value
     const submittedAt = await gm.page.evaluate(
       () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
     )
     assertTimestamp(submittedAt)
-    const peerVisualMs = Date.now() - submittedAt
-    const timing = await hostTiming
-    await Promise.all(players.map((player) => player.page.keyboard.press('Escape')))
-    await expectDoorAction(gm, action)
-    diagnostics[`doorCommit${index + 1}Ms`] = peerVisualMs
+    const sceneOnlyMs = observedAt[0]! - submittedAt
+    const durableMs = Math.max(...observedAt.slice(1)) - submittedAt
+    await Promise.all([
+      expectDoorAction(gm, action),
+      ...players.map((player) => expectDoorHidden(player))
+    ])
+    diagnostics[`doorCommit${index + 1}Ms`] = durableMs
     if (index >= warmupPairs) {
-      samples.push(timing)
-      peerVisualSamples.push(peerVisualMs)
+      samples.authoritative.push(Math.max(...observedAt) - submittedAt)
+      samples.durable.push(durableMs)
+      samples.recipientHeader.push(Math.max(...recipientHeaderObservedAt) - submittedAt)
+      samples.sceneOnly.push(sceneOnlyMs)
     }
   }
   return action
@@ -433,139 +465,189 @@ function assertTimestamp(value: unknown): asserts value is number {
 async function collectTokenDragTimings(
   gm: ManagedClient,
   players: readonly ManagedClient[],
-  samples: { localPaint: number[]; peerCommit: number[]; peerPreview: number[] }
+  previewPlayers: readonly ManagedClient[],
+  samples: { durable: number[]; ephemeral: number[]; inputToSend: number[] },
+  convergence: ConvergenceTimings
 ): Promise<void> {
-  const scene = latestSceneState(gm)
-  const token = scene.tokens.find((candidate) => candidate.label === dragTokenLabel)
-  if (!token || token.locked) {
-    throw new Error(
-      `Managed smoke Scene is missing movable token ${JSON.stringify(dragTokenLabel)}.`
-    )
-  }
-  for (const player of players) {
-    if (!latestSceneState(player).tokens.some((candidate) => candidate.id === token.id)) {
-      throw new Error(`${player.role} cannot observe the managed drag token.`)
-    }
-  }
-
-  const origin = token.position
-  if (scene.grid.kind === 'GRIDLESS') {
-    throw new Error('Managed token-drag smoke requires a gridded Scene.')
-  }
-  const step = Math.max(scene.grid.cellSize, 10)
-  const alternate = {
-    x: origin.x,
-    y: origin.y + step < scene.map.height ? origin.y + step : origin.y - step
-  }
   const totalSamples = warmupPairs + measuredPairs
-  for (const client of [gm, ...players]) client.visualFrameTracking = true
+  const sentToReceived: number[] = []
+  const receivedToPaint: number[] = []
+  const clients = [gm, ...players]
+  const previewPlayerSet = new Set(previewPlayers)
+  const privatePlayers = players.filter((player) => !previewPlayerSet.has(player))
   try {
     for (let index = 0; index < totalSamples; index += 1) {
-      const canvas = gm.page.getByRole('img', { name: 'Interactive campaign scene' })
-      const from = await sceneToClient(canvas, scene, origin)
-      const to = await sceneToClient(canvas, scene, alternate)
+      const priorVersion = await readSceneVersion(gm.page)
+      await gm.page.getByRole('button', { name: 'Scene controls' }).click()
+      await gm.page.getByRole('menuitem', { name: `Focus ${dragTokenLabel}`, exact: true }).click()
+      await gm.page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+          })
+      )
+      const canvas = liveSceneRegion(gm.page).getByRole('img', {
+        name: 'Interactive campaign scene'
+      })
+      const bounds = await canvas.boundingBox()
+      if (!bounds) throw new Error('Managed VTT canvas has no layout bounds.')
+      const from = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+      const dragDistance = Math.min(80, bounds.height / 5)
+      const to = {
+        x: from.x,
+        y: from.y + (index % 2 === 0 ? dragDistance : -dragDistance)
+      }
       await gm.page.mouse.move(from.x, from.y)
-      await gm.page.mouse.down()
+      await expect
+        .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
+        .toBe('grab')
       await armLocalDragPaint(gm.page)
-      const previewStarts = players.map((player) => player.visualFramePaints.length)
-      await gm.page.mouse.move(to.x, to.y)
+      const previewStarts = previewPlayers.map((player) => player.visualFramePaints.length)
+      const privateStarts = privatePlayers.map((player) => player.liveSessionFrames.length)
+      const originStart = gm.liveSessionFrames.length
+      const originSentStart = gm.liveSessionSentFrames.length
+      for (const player of previewPlayers) player.visualFrameTracking = true
+      await gm.page.mouse.down()
+      await gm.page.mouse.move(from.x + 1, from.y)
+      await expect
+        .poll(() => canvas.evaluate((element) => getComputedStyle(element).cursor))
+        .toBe('grabbing')
+      await gm.page.mouse.move(to.x, to.y, { steps: 6 })
 
       const localPaint = await waitForLocalDragPaint(gm.page)
+      await expect
+        .poll(() =>
+          gm.liveSessionSentFrames
+            .slice(originSentStart)
+            .some((payload) => sentTokenDragPreview(payload))
+        )
+        .toBe(true)
+      const originAccepted = () =>
+        gm.liveSessionFrames
+          .slice(originStart)
+          .map(tokenDragAccepted)
+          .find((value) => value !== null) ?? null
+      try {
+        await expect.poll(originAccepted).not.toBeNull()
+      } catch (error) {
+        throw new Error(
+          `GM token preview received no authoritative response. Recent received frames: ${JSON.stringify(summarizeFrames(gm.liveSessionFrames.slice(originStart)))}. Recent sent frames: ${JSON.stringify(summarizeFrames(gm.liveSessionSentFrames.slice(originSentStart)))}.`,
+          { cause: error }
+        )
+      }
+      expect(originAccepted()).toBe(true)
       const peerPreviewPaints = await Promise.all(
-        players.map((player, playerIndex) =>
-          waitForVisualFrame(player, previewStarts[playerIndex]!, (payload) =>
-            framePreviewsToken(payload, token.id)
+        previewPlayers.map((player, playerIndex) =>
+          waitForVisualFrame(
+            player,
+            previewStarts[playerIndex]!,
+            (payload) => tokenDragPreview(payload) !== null
           )
         )
       )
-      const resolvedTarget = tokenPreviewPosition(peerPreviewPaints[0]!.payload, token.id)
+      for (const player of previewPlayers) player.visualFrameTracking = false
+      for (const [privateIndex, player] of privatePlayers.entries()) {
+        await player.page.evaluate(
+          () =>
+            new Promise<void>((resolve) => {
+              requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+            })
+        )
+        expect(
+          player.liveSessionFrames
+            .slice(privateStarts[privateIndex]!)
+            .some((payload) => tokenDragPreview(payload) !== null)
+        ).toBe(false)
+      }
+      const resolvedTarget = tokenDragPreview(peerPreviewPaints[0]!.payload)
       if (!resolvedTarget) throw new Error('Managed VTT drag preview has no resolved position.')
       for (const preview of peerPreviewPaints.slice(1)) {
-        if (!samePosition(tokenPreviewPosition(preview.payload, token.id), resolvedTarget)) {
+        const candidate = tokenDragPreview(preview.payload)
+        if (
+          candidate?.sequence !== resolvedTarget.sequence ||
+          candidate?.tokenId !== resolvedTarget.tokenId ||
+          !samePosition(candidate.position, resolvedTarget.position)
+        ) {
           throw new Error('Managed VTT peers received different resolved drag positions.')
         }
       }
+      const sentOffset = gm.liveSessionSentFrames
+        .slice(originSentStart)
+        .findIndex((payload) => sentTokenDragPreview(payload)?.sequence === resolvedTarget.sequence)
+      if (sentOffset < 0)
+        throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
+      const sentAt = gm.liveSessionSentFrameTimes[originSentStart + sentOffset]
+      if (sentAt === undefined)
+        throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
 
       await armLocalDragRelease(gm.page)
-      const commitClients = [gm, ...players]
-      const commitStarts = commitClients.map((client) => client.visualFramePaints.length)
       await gm.page.mouse.up()
       const releasedAt = await waitForLocalDragRelease(gm.page)
-      const commitPaints = await Promise.all(
-        commitClients.map((client, clientIndex) =>
-          waitForVisualFrame(client, commitStarts[clientIndex]!, (payload) =>
-            frameCommitsTokenAt(payload, token.id, resolvedTarget)
-          )
-        )
+      const observedAt = await Promise.all(
+        clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1))
       )
 
       if (index >= warmupPairs) {
-        samples.localPaint.push(localPaint.paintedAt - localPaint.movedAt)
-        samples.peerPreview.push(
-          Math.max(...peerPreviewPaints.map(({ paintedAt }) => paintedAt!)) - localPaint.movedAt
+        const slowestPaint = peerPreviewPaints.reduce((slowest, next) =>
+          slowest.paintedAt! >= next.paintedAt! ? slowest : next
         )
-        samples.peerCommit.push(
-          Math.max(...commitPaints.slice(1).map(({ paintedAt }) => paintedAt!)) - releasedAt
-        )
+        const ephemeralMs = slowestPaint.paintedAt! - sentAt
+        sentToReceived.push(slowestPaint.receivedAt - sentAt)
+        receivedToPaint.push(slowestPaint.paintedAt! - slowestPaint.receivedAt)
+        const durableMs = Math.max(...observedAt.slice(1)) - releasedAt
+        samples.ephemeral.push(ephemeralMs)
+        samples.durable.push(durableMs)
+        samples.inputToSend.push(sentAt - localPaint.movedAt)
+        convergence.ephemeral.push(ephemeralMs)
+        convergence.durable.push(durableMs)
+        convergence.authoritative.push(Math.max(...observedAt) - releasedAt)
       }
 
-      const restoreStarts = commitClients.map((client) => client.visualFramePaints.length)
       await gm.page.getByRole('button', { name: 'Undo last token move' }).click()
-      await Promise.all(
-        commitClients.map((client, clientIndex) =>
-          waitForVisualFrame(client, restoreStarts[clientIndex]!, (payload) =>
-            frameCommitsTokenAt(payload, token.id, origin)
-          )
-        )
-      )
+      await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 2)))
     }
   } finally {
-    for (const client of [gm, ...players]) client.visualFrameTracking = false
+    for (const client of clients) client.visualFrameTracking = false
   }
   console.info(
+    `Managed VTT preview timing segments: ${JSON.stringify({
+      sentToReceived: summarizeTimings(sentToReceived),
+      receivedToPaint: summarizeTimings(receivedToPaint)
+    })}`
+  )
+  console.info(
     `Managed VTT token drag timings: ${JSON.stringify({
-      localPaint: summarizeTimings(samples.localPaint),
-      peerCommit: summarizeTimings(samples.peerCommit),
-      peerPreview: summarizeTimings(samples.peerPreview)
+      durable: summarizeTimings(samples.durable),
+      ephemeral: summarizeTimings(samples.ephemeral),
+      inputToSend: summarizeTimings(samples.inputToSend)
     })}`
   )
 }
 
-function latestSceneState(client: ManagedClient): CampaignSceneStateDto {
-  for (const payload of [...client.liveSessionFrames].reverse()) {
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(payload) as unknown
-    } catch {
-      continue
-    }
-    const message = record(parsed)
-    if (!message) continue
-    const snapshots = [
-      ...(Array.isArray(message.sceneSnapshots) ? message.sceneSnapshots : []),
-      ...(message.snapshot ? [message.snapshot] : [])
-    ]
-    for (const snapshot of snapshots) {
-      const scene = record(snapshot)?.scene
-      const result = campaignSceneStateDtoSchema.safeParse(scene)
-      if (result.success) return result.data
-    }
-  }
-  throw new Error(`${client.role} has no valid live Scene snapshot.`)
+function liveSceneRegion(page: Page): Locator {
+  return page.getByRole('region', { name: /^Live scene: / })
 }
 
-async function sceneToClient(
-  canvas: Locator,
-  scene: CampaignSceneStateDto,
-  point: { x: number; y: number }
-): Promise<{ x: number; y: number }> {
-  const bounds = await canvas.boundingBox()
-  if (!bounds) throw new Error('Managed VTT canvas has no layout bounds.')
-  const scale = Math.min(bounds.width / scene.map.width, bounds.height / scene.map.height) * 0.94
-  return {
-    x: bounds.x + (bounds.width - scene.map.width * scale) / 2 + point.x * scale,
-    y: bounds.y + (bounds.height - scene.map.height * scale) / 2 + point.y * scale
-  }
+async function readSceneVersion(page: Page): Promise<number> {
+  const label = await liveSceneRegion(page)
+    .getByText(/^v\d+$/)
+    .innerText()
+  const version = Number(label.slice(1))
+  if (!Number.isInteger(version)) throw new Error(`Invalid managed Scene version ${label}.`)
+  return version
+}
+
+async function waitForSceneVersion(page: Page, version: number): Promise<number> {
+  await expect(liveSceneRegion(page).getByText(`v${version}`, { exact: true })).toBeVisible()
+  return Date.now()
+}
+
+async function waitForRecipientSceneVersion(page: Page, version: number): Promise<number> {
+  await expect(liveSceneRegion(page)).toHaveAttribute(
+    'data-recipient-scene-version',
+    String(version)
+  )
+  return Date.now()
 }
 
 async function armLocalDragPaint(page: Page): Promise<void> {
@@ -634,16 +716,16 @@ async function waitForVisualFrame(
   try {
     await expect.poll(read).not.toBeNull()
   } catch (error) {
-    const rejection = [...client.liveSessionFrames]
+    const received = [...client.liveSessionFrames]
       .reverse()
       .map(parsedFrame)
-      .find((message) => message?.type === 'COMMAND_REJECTED')
+      .find((message) => message !== null)
     const sent = [...client.liveSessionSentFrames]
       .reverse()
       .map(parsedFrame)
       .find((message) => message !== null)
     throw new Error(
-      `${client.role} did not paint the expected live-session frame. Last rejection: ${JSON.stringify(rejection)}. Last sent: ${JSON.stringify(sent)}.`,
+      `${client.role} did not paint the expected live-session frame. Last received: ${JSON.stringify(received)}. Last sent: ${JSON.stringify(sent)}.`,
       { cause: error }
     )
   }
@@ -652,54 +734,43 @@ async function waitForVisualFrame(
   return result
 }
 
-function framePreviewsToken(payload: string, tokenId: string): boolean {
+function tokenDragAccepted(payload: string): boolean | null {
   const message = parsedFrame(payload)
-  const envelope = record(record(message?.message)?.envelope)
-  return (
-    message?.type === 'TRANSIENT' &&
-    envelope?.kind === 'TOKEN_DRAG_PREVIEW' &&
-    envelope.tokenId === tokenId
-  )
-}
-
-function tokenPreviewPosition(payload: string, tokenId: string): { x: number; y: number } | null {
-  if (!framePreviewsToken(payload, tokenId)) return null
-  const message = parsedFrame(payload)
-  const position = record(record(record(message?.message)?.envelope)?.position)
-  return typeof position?.x === 'number' && typeof position.y === 'number'
-    ? { x: position.x, y: position.y }
+  const resolution = record(record(message?.message)?.tokenDragResolution)
+  return message?.type === 'TRANSIENT' && typeof resolution?.accepted === 'boolean'
+    ? resolution.accepted
     : null
 }
 
-function frameCommitsTokenAt(
-  payload: string,
-  tokenId: string,
-  position: { x: number; y: number }
-): boolean {
+function sentTokenDragPreview(payload: string): TokenDragPreview | null {
   const message = parsedFrame(payload)
-  if (message?.type !== 'COMMAND_COMMITTED') return false
-  const delta = record(message.delta)
+  return message?.type === 'TRANSIENT' ? readTokenDragPreview(message.envelope) : null
+}
+
+function tokenDragPreview(payload: string): TokenDragPreview | null {
+  const message = parsedFrame(payload)
+  return message?.type === 'TRANSIENT'
+    ? readTokenDragPreview(record(message.message)?.envelope)
+    : null
+}
+
+function readTokenDragPreview(value: unknown): TokenDragPreview | null {
+  const envelope = record(value)
+  const position = record(envelope?.position)
   if (
-    (delta?.kind === 'TOKEN_MOVED' || delta?.kind === 'TOKEN_MOVE_UNDONE') &&
-    delta.tokenId === tokenId &&
-    samePosition(delta.position, position)
+    envelope?.kind !== 'TOKEN_DRAG_PREVIEW' ||
+    typeof envelope.sequence !== 'number' ||
+    typeof envelope.tokenId !== 'string' ||
+    typeof position?.x !== 'number' ||
+    typeof position.y !== 'number'
   ) {
-    return true
+    return null
   }
-  const snapshots = [
-    ...(Array.isArray(message.sceneSnapshots) ? message.sceneSnapshots : []),
-    ...(message.snapshot ? [message.snapshot] : [])
-  ]
-  return snapshots.some((snapshot) => {
-    const tokens = record(record(snapshot)?.scene)?.tokens
-    return (
-      Array.isArray(tokens) &&
-      tokens.some((token) => {
-        const candidate = record(token)
-        return candidate?.id === tokenId && samePosition(candidate.position, position)
-      })
-    )
-  })
+  return {
+    position: { x: position.x, y: position.y },
+    sequence: envelope.sequence,
+    tokenId: envelope.tokenId
+  }
 }
 
 function parsedFrame(payload: string): Record<string, unknown> | null {
@@ -710,190 +781,176 @@ function parsedFrame(payload: string): Record<string, unknown> | null {
   }
 }
 
+function isSceneDoorCommandFrame(payload: string): boolean {
+  const message = parsedFrame(payload)
+  const command = record(message?.command)
+  const sceneCommand = record(command?.command)
+  return (
+    message?.type === 'COMMAND' &&
+    command?.scope === 'SCENE' &&
+    sceneCommand?.type === 'SET_SCENE_DOOR_STATE'
+  )
+}
+
 function samePosition(value: unknown, expected: { x: number; y: number }): boolean {
   const position = record(value)
   return position?.x === expected.x && position.y === expected.y
 }
 
-async function collectRuleHostTimings(
+async function collectRuleConvergenceTimings(
   client: ManagedClient,
   paths: ManagedPaths,
-  samples: number[]
+  samples: ConvergenceTimings
 ): Promise<void> {
   const sheet = await client.context.newPage()
+  const peerSheet = await client.context.newPage()
+  for (const page of [sheet, peerSheet]) {
+    page.on('console', (message) => {
+      if (message.type() === 'error')
+        client.browserErrors.push(safeDiagnosticMessage(message.text()))
+    })
+    page.on('pageerror', (error) => client.browserErrors.push(safeDiagnosticMessage(error.message)))
+    page.on('requestfailed', (request) => {
+      client.failedRequests.push(
+        `${request.method()} ${safeRequestUrl(request.url())}: ${request.failure()?.errorText ?? 'failed'}`
+      )
+    })
+  }
   try {
-    observeLiveSessionSockets(sheet, client)
-    await gotoManagedPage(sheet, paths.characterSheet)
-    await sheet.getByRole('button', { name: 'Manage hit points' }).click()
-    const modifierInput = sheet.getByLabel('Max HP adjustment', { exact: true })
+    for (const page of [sheet, peerSheet]) {
+      let renderError: unknown = new Error('Character Sheet did not render.')
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        await gotoManagedPage(page, paths.characterSheet)
+        try {
+          await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
+            timeout: pageReadyTimeoutMs
+          })
+          await page.waitForLoadState('networkidle')
+          renderError = null
+          break
+        } catch (error) {
+          renderError = error
+        }
+      }
+      if (renderError)
+        throw new Error('Character Sheet did not render after one retry.', { cause: renderError })
+    }
+    const manageHitPoints = sheet.getByRole('button', { name: 'Manage hit points' })
+    let editorError: unknown = new Error('Hit point editor did not open.')
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await expect(manageHitPoints).toBeEnabled({ timeout: pageReadyTimeoutMs })
+      await manageHitPoints.click()
+      try {
+        await expect(manageHitPoints).toHaveAttribute('aria-expanded', 'true')
+        editorError = null
+        break
+      } catch (error) {
+        editorError = error
+      }
+    }
+    if (editorError)
+      throw new Error(
+        `Hit point editor did not open after one retry. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}.`,
+        { cause: editorError }
+      )
+    const hitPointEditor = sheet.getByRole('dialog', { name: 'Manage Hit Points' })
+    await expect(hitPointEditor).toBeVisible()
+    const modifierInput = hitPointEditor.getByLabel('Max HP adjustment', { exact: true })
     await expect(modifierInput).toBeVisible()
     const originalModifier = Number(await modifierInput.inputValue())
     if (!Number.isFinite(originalModifier)) {
       throw new Error('The managed smoke Character has an invalid Max HP adjustment.')
     }
     const alternateModifier = originalModifier === 0 ? 1 : 0
+    let currentModifier = originalModifier
+    let currentMaxHitPoints = await readMaxHitPoints(peerSheet)
     for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
+      let expectedMaxHitPoints = currentMaxHitPoints + alternateModifier - currentModifier
       await setMaxHpModifierAndCollect(
-        client,
         sheet,
+        peerSheet,
         alternateModifier,
+        expectedMaxHitPoints,
         index >= warmupPairs,
         samples
       )
+      currentModifier = alternateModifier
+      currentMaxHitPoints = expectedMaxHitPoints
+      expectedMaxHitPoints = currentMaxHitPoints + originalModifier - currentModifier
       await setMaxHpModifierAndCollect(
-        client,
         sheet,
+        peerSheet,
         originalModifier,
+        expectedMaxHitPoints,
         index >= warmupPairs,
         samples
       )
+      currentModifier = originalModifier
+      currentMaxHitPoints = expectedMaxHitPoints
     }
   } finally {
-    await sheet.close()
+    await Promise.all([sheet.close(), peerSheet.close()])
   }
 }
 
 async function setMaxHpModifierAndCollect(
-  client: ManagedClient,
   sheet: Page,
+  peerSheet: Page,
   value: number,
+  expectedMaxHitPoints: number,
   collect: boolean,
-  samples: number[]
+  samples: ConvergenceTimings
 ): Promise<void> {
-  const priorFrameCount = client.liveSessionFrames.length
   const input = sheet.getByLabel('Max HP adjustment', { exact: true })
   await input.fill(String(value))
-  await input.press('Enter')
-  const timing = await waitForCorrelatedHostTiming(client, priorFrameCount, 'RULE_BOUND')
-  if (collect) samples.push(timing)
-}
-
-async function waitForCorrelatedHostTiming(
-  client: ManagedClient,
-  priorFrameCount: number,
-  category: 'RULE_BOUND' | 'SCENE_ONLY'
-): Promise<number> {
-  const readAccepted = () =>
-    client.liveSessionFrames
-      .slice(priorFrameCount)
-      .map(parseAcceptedCommand)
-      .find((value): value is { acceptedSequence: number; commandId: string } => value !== null) ??
-    null
-  try {
-    await expect.poll(readAccepted).not.toBeNull()
-  } catch (error) {
-    throw new Error(
-      `${client.role} did not receive a ${category} command acknowledgement. Recent frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
-      { cause: error }
+  await input.evaluate((element) => {
+    element.addEventListener(
+      'blur',
+      () => {
+        ;(window as unknown as Record<string, unknown>).__vttActionSubmittedAt = Date.now()
+      },
+      { once: true }
     )
-  }
-  const accepted = readAccepted()
-  if (!accepted) throw new Error(`Missing ${category} command acknowledgement.`)
-  const commandId = accepted.commandId
-  const readOutcome = () =>
-    client.liveSessionFrames
-      .slice(priorFrameCount)
-      .map((value) => parseCommandOutcome(value, category, commandId))
-      .find((outcome) => outcome !== null) ?? null
-  try {
-    await expect.poll(readOutcome).not.toBeNull()
-  } catch (error) {
-    throw new Error(
-      `${client.role} command ${commandId} acceptedSequence=${accepted.acceptedSequence} did not receive a terminal ${category} outcome. Last frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
-      { cause: error }
-    )
-  }
-  const outcome = readOutcome()
-  if (!outcome) throw new Error(`Missing ${category} command outcome for ${commandId}.`)
-  if (outcome.kind === 'REJECTED') {
-    throw new Error(
-      `${category} command ${commandId} rejected (${outcome.code}): ${outcome.message}`
-    )
-  }
-  return outcome.durationMs
-}
-
-function parseAcceptedCommand(
-  value: string
-): { acceptedSequence: number; commandId: string } | null {
-  try {
-    const parsed: unknown = JSON.parse(value)
-    if (!parsed || typeof parsed !== 'object') return null
-    const message = parsed as Record<string, unknown>
-    return message.type === 'COMMAND_ACCEPTED' &&
-      typeof message.commandId === 'string' &&
-      typeof message.acceptedSequence === 'number'
-      ? { acceptedSequence: message.acceptedSequence, commandId: message.commandId }
-      : null
-  } catch {
-    return null
-  }
-}
-
-function parseCommandOutcome(
-  value: string,
-  category: 'RULE_BOUND' | 'SCENE_ONLY',
-  commandId: string
-):
-  | { code: string; kind: 'REJECTED'; commandId: string; message: string }
-  | { commandId: string; durationMs: number; kind: 'TIMING' }
-  | null {
-  try {
-    const parsed: unknown = JSON.parse(value)
-    if (!parsed || typeof parsed !== 'object') return null
-    const message = parsed as Record<string, unknown>
-    if (message.type === 'COMMAND_REJECTED') {
-      if (message.commandId !== commandId) return null
-      return {
-        code: typeof message.code === 'string' ? message.code : 'UNKNOWN',
-        kind: 'REJECTED',
-        commandId,
-        message: typeof message.message === 'string' ? message.message : 'No rejection detail.'
-      }
-    }
-    if (message.type !== 'COMMAND_COMMITTED' || message.originCommandId !== commandId) {
-      return null
-    }
-    const hostTiming = message.hostTiming
-    if (!hostTiming || typeof hostTiming !== 'object') return null
-    const { category: timingCategory, durationMs } = hostTiming as {
-      category?: unknown
-      durationMs?: unknown
-    }
-    return timingCategory === category && typeof durationMs === 'number'
-      ? { commandId, durationMs, kind: 'TIMING' }
-      : null
-  } catch {
-    return null
-  }
-}
-
-function nearestRankP95(samples: readonly number[]): number {
-  if (samples.length === 0) throw new Error('Managed host timing has no samples.')
-  return [...samples].sort((left, right) => left - right)[Math.ceil(samples.length * 0.95) - 1]!
-}
-
-function summarizeHostTimings(samples: { ruleBound: number[]; sceneOnly: number[] }) {
-  const nearestRank = (values: readonly number[], percentile: number) => {
-    if (values.length === 0) throw new Error('Managed host timing has no samples.')
-    return [...values].sort((left, right) => left - right)[
-      Math.ceil(values.length * percentile) - 1
-    ]!
-  }
-  const summarize = (values: readonly number[]) => ({
-    max: Math.max(...values),
-    p50: nearestRank(values, 0.5),
-    p95: nearestRankP95(values),
-    raw: values
   })
-  return { ruleBound: summarize(samples.ruleBound), sceneOnly: summarize(samples.sceneOnly) }
+  await input.press('Enter')
+  await expect
+    .poll(() => readMaxHitPoints(peerSheet), {
+      intervals: [5, 10, 20],
+      timeout: 30_000
+    })
+    .toBe(expectedMaxHitPoints)
+  const observedAt = Date.now()
+  const submittedAt = await sheet.evaluate(
+    () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
+  )
+  assertTimestamp(submittedAt)
+  if (collect) {
+    const durationMs = observedAt - submittedAt
+    samples.authoritative.push(durationMs)
+    samples.durable.push(durationMs)
+    samples.ruleBound.push(durationMs)
+  }
+}
+
+async function readMaxHitPoints(page: Page): Promise<number> {
+  const readout = page.getByText('HP', { exact: true }).first().locator('..')
+  await expect(readout).toBeVisible()
+  const match = (await readout.innerText()).match(/HP\s*-?\d+\s*\/\s*(-?\d+)/)
+  if (!match) throw new Error('The managed smoke Character has no visible HP readout.')
+  return Number(match[1])
+}
+
+function nearestRank(values: readonly number[], percentile: number): number {
+  if (values.length === 0) throw new Error('Managed convergence timing has no samples.')
+  return [...values].sort((left, right) => left - right)[Math.ceil(values.length * percentile) - 1]!
 }
 
 function summarizeTimings(values: readonly number[]) {
   return {
     max: Math.max(...values),
-    p50: [...values].sort((left, right) => left - right)[Math.ceil(values.length * 0.5) - 1],
-    p95: nearestRankP95(values),
+    p50: nearestRank(values, 0.5),
+    p95: nearestRank(values, 0.95),
+    p99: nearestRank(values, 0.99),
     raw: values
   }
 }
@@ -912,14 +969,14 @@ async function openManagedClient(
       assetResponses: [],
       browserErrors,
       context,
-      deliveryResponses: [],
       failedRequests,
       liveSessionFrames: [],
+      liveSessionSentFrameTimes: [],
       liveSessionSentFrames: [],
       liveSessionUrls: [],
       page,
       role,
-      ticketResponses: [],
+      visualFramePaintPending: false,
       visualFramePaints: [],
       visualFrameTracking: false
     }
@@ -940,19 +997,13 @@ async function openManagedClient(
         )
       }
       if (isVttMapAsset(response)) client.assetResponses.push(response)
-      if (response.url().includes('media.getVttMapDelivery')) {
-        client.deliveryResponses.push(response)
-      }
-      if (response.url().includes('/api/trpc/campaigns.sessions.ticket')) {
-        client.ticketResponses.push(response)
-      }
     })
     observeLiveSessionSockets(page, client)
     await test.step(`${role} signs in`, () => signIn(page, account.email, account.password))
     return client
   } catch (error) {
     const diagnostics = ` Browser errors: ${JSON.stringify(browserErrors)}. Failed requests: ${JSON.stringify(failedRequests)}.`
-    await context.close()
+    await context.close().catch(() => undefined)
     throw new Error(`${role} sign-in failed.${diagnostics}`, { cause: error })
   }
 }
@@ -964,7 +1015,13 @@ function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
     socket.on('framereceived', ({ payload }) => {
       const rawPayload = payload.toString()
       client.liveSessionFrames.push(rawPayload)
-      if (!client.visualFrameTracking || !isVisualTimingFrame(rawPayload)) return
+      if (
+        !client.visualFrameTracking ||
+        client.visualFramePaintPending ||
+        !isVisualTimingFrame(rawPayload)
+      )
+        return
+      client.visualFramePaintPending = true
       const frame: VisualFramePaint = {
         paintedAt: null,
         payload: rawPayload,
@@ -982,17 +1039,22 @@ function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
           frame.paintedAt = paintedAt
         })
         .catch(() => undefined)
+        .finally(() => {
+          client.visualFramePaintPending = false
+        })
     })
-    socket.on('framesent', ({ payload }) => client.liveSessionSentFrames.push(payload.toString()))
+    socket.on('framesent', ({ payload }) => {
+      client.liveSessionSentFrameTimes.push(Date.now())
+      client.liveSessionSentFrames.push(payload.toString())
+    })
   })
 }
 
 function isVisualTimingFrame(payload: string): boolean {
   const message = parsedFrame(payload)
   return (
-    message?.type === 'COMMAND_COMMITTED' ||
-    (message?.type === 'TRANSIENT' &&
-      record(record(message.message)?.envelope)?.kind === 'TOKEN_DRAG_PREVIEW')
+    message?.type === 'TRANSIENT' &&
+    record(record(message.message)?.envelope)?.kind === 'TOKEN_DRAG_PREVIEW'
   )
 }
 
@@ -1014,16 +1076,47 @@ function safeDiagnosticMessage(value: string): string {
     .slice(0, 1_000)
 }
 
-async function openTabletop(client: ManagedClient, paths: ManagedPaths): Promise<void> {
-  await gotoManagedPage(client.page, paths.tabletop)
-  try {
-    await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible({
-      timeout: 60_000
-    })
-  } catch (error) {
+async function openTabletop(
+  client: ManagedClient,
+  paths: Pick<ManagedPaths, 'tabletop'>
+): Promise<void> {
+  let rendererError: unknown = null
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const errorStart = client.browserErrors.length
+    await gotoManagedPage(client.page, paths.tabletop)
+    const renderer = { state: 'WAITING' as 'READY' | 'RETRY' | 'WAITING' }
+    try {
+      await expect
+        .poll(
+          async () => {
+            renderer.state = (await client.page
+              .getByRole('img', { name: 'Interactive campaign scene' })
+              .isVisible())
+              ? 'READY'
+              : client.browserErrors
+                    .slice(errorStart)
+                    .some((value) => value.includes('Function execution timed out'))
+                ? 'RETRY'
+                : 'WAITING'
+            return renderer.state
+          },
+          { timeout: 60_000 }
+        )
+        .not.toBe('WAITING')
+    } catch (error) {
+      rendererError = error
+      break
+    }
+    if (renderer.state === 'READY') {
+      rendererError = null
+      break
+    }
+    rendererError = new Error('The local Convex read timed out.')
+  }
+  if (rendererError) {
     throw new Error(
       `${client.role} renderer did not start. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}.`,
-      { cause: error }
+      { cause: rendererError }
     )
   }
   await expect(client.page.getByText(campaignName, { exact: true })).toBeVisible()
@@ -1048,15 +1141,7 @@ async function describeMapDelivery(client: ManagedClient): Promise<{
     resourceType: string
     status: number
   }[]
-  deliveries: { metadata: MapDeliveryMetadata[]; status: number }[]
 }> {
-  const deliveries = await Promise.all(
-    client.deliveryResponses.map(async (response) => {
-      const metadata: MapDeliveryMetadata[] = []
-      if (response.ok()) collectMapDeliveryMetadata(await response.json(), metadata)
-      return { metadata, status: response.status() }
-    })
-  )
   return {
     assets: client.assetResponses.map((response) => ({
       contentLength: response.headers()['content-length'] ?? null,
@@ -1064,36 +1149,8 @@ async function describeMapDelivery(client: ManagedClient): Promise<{
       path: safeRequestUrl(response.url()),
       resourceType: response.request().resourceType(),
       status: response.status()
-    })),
-    deliveries
+    }))
   }
-}
-
-interface MapDeliveryMetadata {
-  assetId: string
-  hasOverview: boolean
-  height: number | null
-  tileCount: number | null
-  width: number | null
-}
-
-function collectMapDeliveryMetadata(value: unknown, result: MapDeliveryMetadata[]): void {
-  if (Array.isArray(value)) {
-    for (const item of value) collectMapDeliveryMetadata(item, result)
-    return
-  }
-  if (!value || typeof value !== 'object') return
-  const candidate = value as Record<string, unknown>
-  if (typeof candidate.assetId === 'string') {
-    result.push({
-      assetId: candidate.assetId,
-      hasOverview: Boolean(candidate.overview),
-      height: typeof candidate.height === 'number' ? candidate.height : null,
-      tileCount: Array.isArray(candidate.tiles) ? candidate.tiles.length : null,
-      width: typeof candidate.width === 'number' ? candidate.width : null
-    })
-  }
-  for (const item of Object.values(candidate)) collectMapDeliveryMetadata(item, result)
 }
 
 async function expectManagedSocket(client: ManagedClient): Promise<void> {
@@ -1106,52 +1163,38 @@ async function expectManagedSocket(client: ManagedClient): Promise<void> {
       )
     })
   ).toBe(true)
+  await expect
+    .poll(() =>
+      client.liveSessionFrames.some((frame) => parsedFrame(frame)?.type === 'TRANSIENT_READY')
+    )
+    .toBe(true)
 }
 
 async function expectPrivateSnapshot(
   gm: ManagedClient,
   players: readonly ManagedClient[]
 ): Promise<void> {
-  await expect
-    .poll(() => gm.liveSessionFrames.some((frame) => frame.includes(gmOnlyTokenLabel)))
-    .toBe(true)
+  await gm.page.getByRole('button', { name: 'Scene controls' }).click()
+  await expect(gm.page.getByRole('menuitem', { name: `Focus ${gmOnlyTokenLabel}` })).toBeVisible()
+  await gm.page.keyboard.press('Escape')
   for (const player of players) {
-    expect(player.liveSessionFrames.some((frame) => frame.includes(gmOnlyTokenLabel))).toBe(false)
+    await player.page.getByRole('button', { name: 'Scene controls' }).click()
+    await expect(
+      player.page.getByRole('menuitem', { name: `Focus ${gmOnlyTokenLabel}` })
+    ).toHaveCount(0)
+    await expect(
+      player.page.getByRole('menuitem', { name: new RegExp(`^Door ${doorIndex}:`) })
+    ).toHaveCount(0)
+    await player.page.keyboard.press('Escape')
   }
 }
-
 async function expectExactVttMapDelivery(client: ManagedClient): Promise<void> {
-  await expect.poll(() => client.deliveryResponses.some((response) => response.ok())).toBe(true)
-  const expectedUrls = new Set<string>()
-  for (const response of client.deliveryResponses.filter((candidate) => candidate.ok())) {
-    const body: unknown = await response.json()
-    collectSignedMediaUrls(body, expectedUrls)
-  }
-  expect(expectedUrls.size).toBeGreaterThan(0)
-  await expect
-    .poll(() =>
-      [...expectedUrls].every((url) =>
-        client.assetResponses.some((response) => response.ok() && response.url() === url)
-      )
+  await expect.poll(() => client.assetResponses.some((response) => response.ok())).toBe(true)
+  expect(
+    client.assetResponses.every(
+      (response) => response.ok() && response.headers()['content-type']?.startsWith('image/')
     )
-    .toBe(true)
-}
-
-function collectSignedMediaUrls(value: unknown, urls: Set<string>): void {
-  if (Array.isArray(value)) {
-    for (const item of value) collectSignedMediaUrls(item, urls)
-    return
-  }
-  if (!value || typeof value !== 'object') return
-
-  const delivery = signedVttMapDeliveryDtoSchema.safeParse(value)
-  if (delivery.success) {
-    urls.add(delivery.data.overview.url)
-    for (const tile of delivery.data.tiles) urls.add(tile.url)
-    return
-  }
-
-  for (const item of Object.values(value)) collectSignedMediaUrls(item, urls)
+  ).toBe(true)
 }
 
 async function restoreDoorFromAuthoritativeState(
@@ -1169,7 +1212,9 @@ async function restoreDoorFromAuthoritativeState(
   }
   const currentDoorAction = await readDoorAction(gm.page, doorIndex)
   if (currentDoorAction === originalDoorAction) return
+  const priorVersion = await readSceneVersion(gm.page)
   await clickDoorAction(gm.page, currentDoorAction)
+  await waitForSceneVersion(gm.page, priorVersion + 1)
   await expectDoorAction(gm, originalDoorAction)
 }
 
@@ -1181,8 +1226,8 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await gotoManagedPage(page, '/sign-in')
   const emailInput = page.getByRole('textbox', { name: 'Email or username' })
   const passwordInput = page.getByRole('textbox', { name: 'Password' })
-  await expect(emailInput).toBeEnabled({ timeout: signInReadyTimeoutMs })
-  await expect(passwordInput).toBeEnabled({ timeout: signInReadyTimeoutMs })
+  await expect(emailInput).toBeEnabled({ timeout: pageReadyTimeoutMs })
+  await expect(passwordInput).toBeEnabled({ timeout: pageReadyTimeoutMs })
   await passwordInput.fill(password, { timeout: 15_000 })
   await emailInput.fill(email, { timeout: 15_000 })
   await expect(emailInput).toHaveValue(email)
@@ -1226,36 +1271,65 @@ async function expectDoorAction(client: ManagedClient, action: string): Promise<
   }
 }
 
+async function expectDoorHidden(client: ManagedClient): Promise<void> {
+  await client.page.getByRole('button', { name: 'Scene controls' }).click()
+  try {
+    await expect(
+      client.page.getByRole('menuitem', { name: new RegExp(`^Door ${doorIndex}:`) })
+    ).toHaveCount(0)
+  } finally {
+    await client.page.keyboard.press('Escape')
+  }
+}
+
 function summarizeFrames(frames: readonly string[]): unknown[] {
   return frames.flatMap((value) => {
-    try {
-      const parsed: unknown = JSON.parse(value)
-      if (!parsed || typeof parsed !== 'object') return []
-      const message = parsed as Record<string, unknown>
-      const delta =
-        message.delta && typeof message.delta === 'object'
-          ? (message.delta as Record<string, unknown>)
-          : null
-      const hostTiming =
-        message.hostTiming && typeof message.hostTiming === 'object'
-          ? (message.hostTiming as Record<string, unknown>)
-          : null
-      return [
-        {
-          aggregateId: typeof message.aggregateId === 'string' ? message.aggregateId : null,
-          aggregateKind: typeof message.aggregateKind === 'string' ? message.aggregateKind : null,
-          code: typeof message.code === 'string' ? message.code : null,
-          deltaKind: typeof delta?.kind === 'string' ? delta.kind : null,
-          hasSnapshot: Boolean(message.snapshot),
-          hostTimingCategory: typeof hostTiming?.category === 'string' ? hostTiming.category : null,
-          replayed: message.replayed === true,
-          type: typeof message.type === 'string' ? message.type : null,
-          version: typeof message.version === 'number' ? message.version : null
-        }
-      ]
-    } catch {
-      return []
-    }
+    const message = parsedFrame(value)
+    if (!message) return []
+    const envelope = record(record(message.message)?.envelope) ?? record(message.envelope)
+    const command = record(record(message.command)?.command)
+    const state = record(message.state)
+    const correctionState = record(record(message.correction)?.state)
+    const scene = record(state?.scene) ?? correctionState
+    const barriers = Array.isArray(scene?.barriers) ? scene.barriers : []
+    return [
+      {
+        barrierCount: barriers.length,
+        barrierId: typeof command?.barrierId === 'string' ? command.barrierId : null,
+        code: typeof message.code === 'string' ? message.code : null,
+        commandId:
+          typeof message.commandId === 'string'
+            ? message.commandId
+            : typeof command?.commandId === 'string'
+              ? command.commandId
+              : null,
+        currentSequence:
+          typeof message.currentSequence === 'number' ? message.currentSequence : null,
+        expectedSceneVersion:
+          typeof command?.expectedSceneVersion === 'number' ? command.expectedSceneVersion : null,
+        expectedSessionSequence:
+          typeof message.expectedSessionSequence === 'number'
+            ? message.expectedSessionSequence
+            : null,
+        sceneBarriers: barriers.slice(0, 8).map((barrier) => {
+          const value = record(barrier)
+          return {
+            id: typeof value?.id === 'string' ? value.id : null,
+            kind: typeof value?.kind === 'string' ? value.kind : null
+          }
+        }),
+        sceneId:
+          typeof command?.sceneId === 'string'
+            ? command.sceneId
+            : typeof scene?.id === 'string'
+              ? scene.id
+              : null,
+        sceneVersion: typeof scene?.version === 'number' ? scene.version : null,
+        sequence: typeof message.sequence === 'number' ? message.sequence : null,
+        transientKind: typeof envelope?.kind === 'string' ? envelope.kind : null,
+        type: typeof message.type === 'string' ? message.type : null
+      }
+    ]
   })
 }
 

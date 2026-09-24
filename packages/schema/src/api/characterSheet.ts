@@ -1,17 +1,26 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character'
 import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
-const identifierSchema = z.string().trim().min(1)
+const identifierSchema = z.string().check(z.trim()).check(z.minLength(1))
 // PostgreSQL accepts UUID-shaped deterministic SRD IDs whose version bits are zero.
 const uuidSchema = z.guid()
+const adjustmentUuidSchema = z.pipe(
+  uuidSchema,
+  z.transform((value) => value.toLowerCase())
+)
+
+export const characterSheetReadInputSchema = z.strictObject({
+  id: z.string().check(z.minLength(1)).check(z.maxLength(240))
+})
+export type CharacterSheetReadInput = z.infer<typeof characterSheetReadInputSchema>
 
 export const characterSheetSourceNoteDtoSchema = z
   .string()
-  .trim()
-  .max(240)
-  .refine((value) => !/[\r\n]/u.test(value), 'Source notes must use one line.')
+  .check(z.trim())
+  .check(z.maxLength(240))
+  .check(z.refine((value) => !/[\r\n]/u.test(value), 'Source notes must use one line.'))
 
 export const characterProficiencyLevelDtoSchema = z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
 
@@ -49,7 +58,7 @@ export const characterMechanicSourceRefDtoSchema = z.union([
   }),
   z.object({
     kind: z.literal('MANUAL_ADJUSTMENT'),
-    adjustmentId: uuidSchema
+    adjustmentId: adjustmentUuidSchema
   })
 ])
 
@@ -72,21 +81,21 @@ const abilityOtherModifierAdjustmentDtoSchema = z.object({
   family: z.literal('ABILITY'),
   ability: abilityCodeSchema,
   field: z.literal('OTHER_MODIFIER'),
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const abilityScoreOverrideAdjustmentDtoSchema = z.object({
   family: z.literal('ABILITY'),
   ability: abilityCodeSchema,
   field: z.literal('SCORE_OVERRIDE'),
-  value: z.number().int().nonnegative()
+  value: z.number().check(z.int()).check(z.nonnegative())
 })
 
 const savingThrowNumericAdjustmentDtoSchema = z.object({
   family: z.literal('SAVING_THROW'),
   ability: abilityCodeSchema,
   field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const savingThrowProficiencyAdjustmentDtoSchema = z.object({
@@ -100,7 +109,7 @@ const skillNumericAdjustmentDtoSchema = z.object({
   family: z.literal('SKILL'),
   skillId: uuidSchema,
   field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const skillProficiencyAdjustmentDtoSchema = z.object({
@@ -121,33 +130,33 @@ const passiveAdjustmentDtoSchema = z.object({
   family: z.literal('PASSIVE'),
   skillId: uuidSchema,
   field: z.literal('TOTAL_OVERRIDE'),
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const senseAdjustmentDtoSchema = z.object({
   family: z.literal('SENSE'),
   senseId: uuidSchema,
   field: z.literal('RANGE_OVERRIDE'),
-  value: z.number().int().nonnegative()
+  value: z.number().check(z.int()).check(z.nonnegative())
 })
 
 const movementAdjustmentDtoSchema = z.object({
   family: z.literal('MOVEMENT'),
   speedId: uuidSchema,
   field: z.literal('SPEED_OVERRIDE'),
-  value: z.number().int().nonnegative()
+  value: z.number().check(z.int()).check(z.nonnegative())
 })
 
 const hitPointAdjustmentDtoSchema = z.union([
   z.object({
     family: z.literal('HIT_POINTS'),
     field: z.literal('MAXIMUM_MODIFIER'),
-    value: z.number().int()
+    value: z.number().check(z.int())
   }),
   z.object({
     family: z.literal('HIT_POINTS'),
     field: z.literal('MAXIMUM_OVERRIDE'),
-    value: z.number().int().nonnegative()
+    value: z.number().check(z.int()).check(z.nonnegative())
   })
 ])
 
@@ -155,7 +164,7 @@ const spellAdjustmentDtoSchema = z.object({
   family: z.literal('SPELL'),
   source: characterSpellSourceRefDtoSchema,
   field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'DAMAGE_BONUS', 'DC_BONUS', 'DC_OVERRIDE']),
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const itemNumericAdjustmentDtoSchema = z.object({
@@ -169,7 +178,7 @@ const itemWeightAdjustmentDtoSchema = z.object({
   family: z.literal('ITEM'),
   itemInstanceId: uuidSchema,
   field: z.literal('WEIGHT_OVERRIDE'),
-  value: z.number().nonnegative()
+  value: z.number().check(z.nonnegative())
 })
 
 const itemPropertyAdjustmentDtoSchema = z.object({
@@ -183,7 +192,7 @@ const companionNumericAdjustmentDtoSchema = z.object({
   family: z.literal('COMPANION'),
   companionInstanceId: uuidSchema,
   field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE']),
-  value: z.number().int().nonnegative()
+  value: z.number().check(z.int()).check(z.nonnegative())
 })
 
 const companionReferenceAdjustmentDtoSchema = z.object({
@@ -262,68 +271,70 @@ export const characterSheetAdjustmentValueDtoSchema = z.union([
   proficiencyAdditionDtoSchema
 ])
 
-export const characterSheetCoreAdjustmentCommandDtoSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    sourceNote: characterSheetSourceNoteDtoSchema.optional()
-  })
-  .and(characterSheetCoreAdjustmentValueDtoSchema)
+export const characterSheetCoreAdjustmentCommandDtoSchema = z.intersection(
+  z.object({
+    id: z.optional(adjustmentUuidSchema),
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
+  }),
+  characterSheetCoreAdjustmentValueDtoSchema
+)
 
-export const characterSheetItemAdjustmentCommandDtoSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    sourceNote: characterSheetSourceNoteDtoSchema.optional()
-  })
-  .and(
-    z.union([
-      itemNumericAdjustmentDtoSchema,
-      itemWeightAdjustmentDtoSchema,
-      itemPropertyAdjustmentDtoSchema
-    ])
-  )
+export const characterSheetItemAdjustmentCommandDtoSchema = z.intersection(
+  z.object({
+    id: z.optional(adjustmentUuidSchema),
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
+  }),
+  z.union([
+    itemNumericAdjustmentDtoSchema,
+    itemWeightAdjustmentDtoSchema,
+    itemPropertyAdjustmentDtoSchema
+  ])
+)
 
-export const characterSheetCompanionAdjustmentCommandDtoSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    sourceNote: characterSheetSourceNoteDtoSchema.optional()
-  })
-  .and(
-    z.union([
-      companionNumericAdjustmentDtoSchema,
-      companionReferenceAdjustmentDtoSchema,
-      companionSizeAdjustmentDtoSchema
-    ])
-  )
+export const characterSheetCompanionAdjustmentCommandDtoSchema = z.intersection(
+  z.object({
+    id: z.optional(adjustmentUuidSchema),
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
+  }),
+  z.union([
+    companionNumericAdjustmentDtoSchema,
+    companionReferenceAdjustmentDtoSchema,
+    companionSizeAdjustmentDtoSchema
+  ])
+)
 
-export const characterSheetAdjustmentCommandDtoSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    sourceNote: characterSheetSourceNoteDtoSchema.optional()
-  })
-  .and(characterSheetAdjustmentValueDtoSchema)
+export const characterSheetAdjustmentCommandDtoSchema = z.intersection(
+  z.object({
+    id: z.optional(adjustmentUuidSchema),
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
+  }),
+  characterSheetAdjustmentValueDtoSchema
+)
 
 export const characterSheetAdjustmentMetadataDtoSchema = z.object({
-  id: uuidSchema,
+  id: adjustmentUuidSchema,
   characterId: uuidSchema,
-  sourceNote: characterSheetSourceNoteDtoSchema.optional(),
+  sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
   createdBy: uuidSchema,
   updatedBy: uuidSchema,
   createdAt: z.string(),
   updatedAt: z.string()
 })
 
-export const characterSheetAdjustmentDtoSchema = characterSheetAdjustmentMetadataDtoSchema.and(
+export const characterSheetAdjustmentDtoSchema = z.intersection(
+  characterSheetAdjustmentMetadataDtoSchema,
   characterSheetAdjustmentValueDtoSchema
 )
 
-export const characterSheetAdjustmentWriteDtoSchema = z
-  .object({
-    id: uuidSchema,
+export const characterSheetAdjustmentWriteDtoSchema = z.intersection(
+  z.object({
+    id: adjustmentUuidSchema,
     characterId: uuidSchema,
-    sourceNote: characterSheetSourceNoteDtoSchema.optional(),
+    sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
     actorId: uuidSchema
-  })
-  .and(characterSheetAdjustmentValueDtoSchema)
+  }),
+  characterSheetAdjustmentValueDtoSchema
+)
 
 export const characterMovementDisplayPreferenceDtoSchema = z.union([
   z.object({ mode: z.literal('AUTO') }),
@@ -345,12 +356,12 @@ export const characterCalculationContributionDtoSchema = z.object({
 export const characterNumericCalculationDtoSchema = z.object({
   base: z.number(),
   contributions: z.array(characterCalculationContributionDtoSchema),
-  override: z
-    .object({
+  override: z.optional(
+    z.object({
       adjustmentId: uuidSchema,
       value: z.number()
     })
-    .optional(),
+  ),
   effective: z.number()
 })
 
@@ -358,75 +369,79 @@ export const characterDiceRollSpecDtoSchema = diceExpressionDtoSchema
 
 export const characterDiceRollResultDtoSchema = z.object({
   spec: characterDiceRollSpecDtoSchema,
-  rolls: z.array(z.number().int().positive()),
-  total: z.number().int()
+  rolls: z.array(z.number().check(z.int()).check(z.positive())),
+  total: z.number().check(z.int())
 })
 
 export const characterRestKindDtoSchema = z.enum(['SHORT', 'LONG'])
 export const characterRestHealingModeDtoSchema = z.enum(['AUTOMATIC', 'MANUAL'])
 
 export const characterRestHitDieSelectionDtoSchema = z.strictObject({
-  die: z.number().int().min(2),
-  count: z.number().int().positive()
+  die: z.number().check(z.int()).check(z.gte(2)),
+  count: z.number().check(z.int()).check(z.positive())
 })
 
 export const characterRestHitDieSelectionsDtoSchema = z
   .array(characterRestHitDieSelectionDtoSchema)
-  .superRefine((selections, context) => {
-    const seenDice = new Set<number>()
-    selections.forEach((selection, index) => {
-      if (seenDice.has(selection.die)) {
-        context.addIssue({
-          code: 'custom',
-          path: [index, 'die'],
-          message: `Hit die d${selection.die} may appear only once.`
-        })
-      }
-      seenDice.add(selection.die)
+  .check(
+    z.superRefine((selections, context) => {
+      const seenDice = new Set<number>()
+      selections.forEach((selection, index) => {
+        if (seenDice.has(selection.die)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'die'],
+            message: `Hit die d${selection.die} may appear only once.`
+          })
+        }
+        seenDice.add(selection.die)
+      })
     })
-  })
+  )
 
 export const characterRestHitDiceRollTermDtoSchema = z.strictObject({
-  die: z.number().int().min(2),
-  count: z.number().int().positive(),
-  modifierPerDie: z.number().int(),
-  rolls: z.array(z.number().int().positive())
+  die: z.number().check(z.int()).check(z.gte(2)),
+  count: z.number().check(z.int()).check(z.positive()),
+  modifierPerDie: z.number().check(z.int()),
+  rolls: z.array(z.number().check(z.int()).check(z.positive()))
 })
 
 export const characterRestHitDiceRollEvidenceDtoSchema = z
   .strictObject({
-    expression: z.string().trim().min(1),
-    terms: z.array(characterRestHitDiceRollTermDtoSchema).min(1),
-    total: z.number().int()
+    expression: z.string().check(z.trim()).check(z.minLength(1)),
+    terms: z.array(characterRestHitDiceRollTermDtoSchema).check(z.minLength(1)),
+    total: z.number().check(z.int())
   })
-  .superRefine((evidence, context) => {
-    try {
-      validateCharacterHitDiceRollEvidence(evidence)
-    } catch (error) {
-      context.addIssue({
-        code: 'custom',
-        message: error instanceof Error ? error.message : 'Invalid hit-die roll evidence.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((evidence, context) => {
+      try {
+        validateCharacterHitDiceRollEvidence(evidence)
+      } catch (error) {
+        context.addIssue({
+          code: 'custom',
+          message: error instanceof Error ? error.message : 'Invalid hit-die roll evidence.'
+        })
+      }
+    })
+  )
 
 export const characterCompletedRestResultDtoSchema = z.strictObject({
   restKind: characterRestKindDtoSchema,
-  previewFingerprint: z.string().trim().min(1),
+  previewFingerprint: z.string().check(z.trim()).check(z.minLength(1)),
   hitPoints: z.strictObject({
-    currentBefore: z.number().int().nonnegative(),
-    currentAfter: z.number().int().nonnegative(),
-    temporaryBefore: z.number().int().nonnegative(),
-    temporaryAfter: z.number().int().nonnegative(),
-    healingApplied: z.number().int().nonnegative()
+    currentBefore: z.number().check(z.int()).check(z.nonnegative()),
+    currentAfter: z.number().check(z.int()).check(z.nonnegative()),
+    temporaryBefore: z.number().check(z.int()).check(z.nonnegative()),
+    temporaryAfter: z.number().check(z.int()).check(z.nonnegative()),
+    healingApplied: z.number().check(z.int()).check(z.nonnegative())
   }),
   exhaustion: z.strictObject({
-    before: z.number().int().nonnegative(),
-    after: z.number().int().nonnegative()
+    before: z.number().check(z.int()).check(z.nonnegative()),
+    after: z.number().check(z.int()).check(z.nonnegative())
   }),
   spentHitDice: characterRestHitDieSelectionsDtoSchema,
   recoveredHitDice: characterRestHitDieSelectionsDtoSchema,
-  rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional(),
+  rollEvidence: z.optional(characterRestHitDiceRollEvidenceDtoSchema),
   resetMaximumHitPointModifier: z.boolean(),
   recoveredResourceIds: z.array(identifierSchema),
   recoveredSpellSlotKeys: z.array(identifierSchema),
@@ -450,7 +465,7 @@ export const characterResourceRecoveryAmountDtoSchema = z.union([
   z.object({ kind: z.literal('ALL') }),
   z.object({
     kind: z.literal('FIXED'),
-    amount: z.number().int().positive()
+    amount: z.number().check(z.int()).check(z.positive())
   }),
   z.object({
     kind: z.literal('DICE'),

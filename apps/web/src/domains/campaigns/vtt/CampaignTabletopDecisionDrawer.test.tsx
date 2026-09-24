@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -82,30 +83,75 @@ const adjudicatedPending = {
   ]
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
-function committed(commandId: string, occurrenceVersion = 3) {
+const actionOutcomePending = {
+  kind: 'ACTION_OUTCOME_EVIDENCE',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  request: { requestId: 'action-outcome', min: 0, max: 10 },
+  allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const passagePending = {
+  kind: 'MOVEMENT_PASSAGE_CHOICE',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  sourceActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [
+    { optionId: 'a'.repeat(64), ruleKind: 'OVERRUN' as const, economy: 'ACTION' as const },
+    { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
+  ],
+  allowedResponses: ['DECLINE', 'OPTION']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const d20Pending = {
+  kind: 'D20_EVIDENCE',
+  occurrenceId,
+  occurrenceVersion: 3,
+  encounterVersion: tabletopGmEncounter.version,
+  request: { requestId: 'attack-roll', min: 1, max: 20, rollMode: 'NORMAL' as const },
+  allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const legendaryPending = {
+  kind: 'LEGENDARY_ACTION_CHOICE',
+  occurrenceId,
+  occurrenceVersion: 4,
+  encounterVersion: tabletopGmEncounter.version,
+  ownerActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [
+    {
+      optionId: 'c'.repeat(64),
+      actionId: 'tail-swipe',
+      ownerFeatureId: '77777777-7777-4777-8777-777777777799',
+      targetActorId: tabletopGmEncounter.actors[0]!.id
+    }
+  ],
+  allowedResponses: ['DECLINE', 'OPTION']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const cleavingPending = {
+  kind: 'OPTIONAL_COMBAT_CLEAVING',
+  occurrenceId,
+  occurrenceVersion: 5,
+  encounterVersion: tabletopGmEncounter.version,
+  sourceActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [{ optionId: 'd'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
+  allowedResponses: ['DECLINE', 'OPTION']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
   return {
-    type: 'COMMAND_COMMITTED' as const,
-    acceptedSequence: 1,
-    aggregateKind: 'ENCOUNTER' as const,
-    aggregateId: tabletopGmEncounter.id,
-    deliverySequence: 1,
-    originCommandId: commandId,
-    replayed: false,
-    changedAggregates: [],
-    encounterActorTokenBindings: [],
-    encounterSceneBindings: [],
-    version: tabletopGmEncounter.version,
-    response: {
-      projection: tabletopGmEncounter,
-      roll: null,
-      resolution: null,
-      occurrence: {
-        occurrenceId,
-        occurrenceVersion,
-        status: 'COMPLETE' as const,
-        outcome: null,
-        pending: null
-      }
+    projection: tabletopGmEncounter,
+    roll: null,
+    resolution: null,
+    occurrence: {
+      occurrenceId,
+      occurrenceVersion,
+      status: 'COMPLETE' as const,
+      outcome: null,
+      pending: null
     }
   }
 }
@@ -113,7 +159,7 @@ function committed(commandId: string, occurrenceVersion = 3) {
 describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
   it('submits only the selected frozen primary and bonus identities', async () => {
     const user = userEvent.setup()
-    const onResolve = vi.fn(async (command) => committed(command.commandId))
+    const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
         connected
@@ -125,7 +171,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
-    await user.click(screen.getByRole('combobox', { name: 'Primary action' }))
+    await user.click(await screen.findByRole('combobox', { name: 'Primary action' }))
     await user.keyboard('{ArrowDown}{Enter}')
     await user.click(screen.getByRole('combobox', { name: 'Bonus action' }))
     await user.keyboard('{ArrowDown}{Enter}')
@@ -145,7 +191,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
 
   it('submits closed GM adjudication inputs and remains disabled while reconnecting', async () => {
     const user = userEvent.setup()
-    const onResolve = vi.fn(async (command) => committed(command.commandId))
+    const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
         connected
@@ -156,7 +202,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
-    await user.click(screen.getByRole('combobox', { name: 'Primary action' }))
+    await user.click(await screen.findByRole('combobox', { name: 'Primary action' }))
     await user.keyboard('{ArrowDown}{Enter}')
     await user.click(screen.getByRole('combobox', { name: 'Actor size' }))
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{Enter}')
@@ -192,5 +238,172 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
       />
     )
     expect(screen.getByRole('button', { name: 'Declare actions' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
+  it('submits the entered result and disables controls while disconnected', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const { rerender } = renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={actionOutcomePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Action outcome required')).toBeVisible()
+    await user.type(screen.getByLabelText('Result'), '7')
+    await user.click(screen.getByRole('button', { name: 'Submit result' }))
+
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        occurrenceId,
+        resolution: { kind: 'ENTER_INTEGER', requestId: 'action-outcome', value: 7 }
+      })
+    )
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected={false}
+        encounter={tabletopGmEncounter}
+        pending={actionOutcomePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Submit result' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeDisabled()
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={actionOutcomePending}
+        submitting
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Submit result' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer passage choice', () => {
+  it('submits passage options and decline with the existing command envelope', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={passagePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Passage choice')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Overrun · Action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'PASSAGE_OPTION', optionId: 'a'.repeat(64) } })
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Decline passage' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'PASSAGE_DECLINE' } })
+    )
+  })
+
+  it('disables passage controls while disconnected or submitting and follows a paused result', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const { rerender } = renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        connected={false}
+        encounter={tabletopGmEncounter}
+        pending={passagePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByRole('button', { name: 'Overrun · Action' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Decline passage' })).toBeDisabled()
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={passagePending}
+        submitting
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Tumble · Bonus action' })).toBeDisabled()
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={d20Pending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Submit physical roll' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => {
+  it('submits canonical option selections and disables Cleaving while closed', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const { rerender } = renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={legendaryPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('button', { name: /^tail-swipe · / }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'OPTION', optionId: 'c'.repeat(64) } })
+    )
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected={false}
+        encounter={tabletopGmEncounter}
+        pending={cleavingPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByText('Cleaving choice')).toBeVisible()
+    expect(screen.getByRole('button', { name: /^Cleave / })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Decline cleaving' })).toBeDisabled()
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        connected
+        encounter={tabletopGmEncounter}
+        pending={cleavingPending}
+        submitting
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.getByRole('button', { name: /^Cleave / })).toBeDisabled()
   })
 })

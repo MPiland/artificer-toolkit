@@ -1,12 +1,12 @@
 import {
   accountEmailUpdateInputSchema,
+  accountDeleteInputSchema,
   accountPasswordUpdateInputSchema,
   type AccountDeleteInput,
   type AccountEmailUpdateInput,
   type AccountPasswordUpdateInput
 } from '@artificer-toolkit/schema/api/account'
-import { getSupabaseBrowserClient } from '#supabase/client'
-import { deleteAccountFn } from '#app/server/auth/deleteAccountFn'
+import { betterAuthClient } from '#app/auth/betterAuthClient'
 
 export type AccountActionResult = {
   ok: boolean
@@ -23,16 +23,26 @@ export const accountClient = {
       }
     }
 
-    const { email } = parsed.data
-    const emailRedirectTo = new URL(
-      '/settings/account?emailChanged=1',
-      window.location.origin
-    ).toString()
-    const { error } = await getSupabaseBrowserClient().auth.updateUser(
-      { email },
-      { emailRedirectTo }
-    )
-    return error ? { ok: false, message: error.message } : { ok: true }
+    try {
+      const result = await betterAuthClient.$fetch('/change-email', {
+        method: 'POST',
+        body: {
+          newEmail: parsed.data.email,
+          callbackURL: new URL(
+            '/settings/account?emailChanged=1',
+            window.location.origin
+          ).toString()
+        }
+      })
+      return result.error
+        ? {
+            ok: false,
+            message: result.error.message ?? 'Could not update your email. Try again.'
+          }
+        : { ok: true }
+    } catch {
+      return { ok: false, message: 'Could not update your email. Try again.' }
+    }
   },
 
   async updatePassword(input: AccountPasswordUpdateInput): Promise<AccountActionResult> {
@@ -41,23 +51,47 @@ export const accountClient = {
       return { ok: false, message: parsed.error.issues[0]?.message ?? 'Enter valid passwords.' }
     }
 
-    const client = getSupabaseBrowserClient()
-    const { error: authenticationError } = await client.auth.signInWithPassword({
-      email: parsed.data.email,
-      password: parsed.data.currentPassword
-    })
-    if (authenticationError) {
-      return { ok: false, message: 'Your current password is incorrect.' }
+    try {
+      const result = await betterAuthClient.$fetch('/account/password', {
+        method: 'POST',
+        body: parsed.data
+      })
+      if (!result.error) return { ok: true }
+      if (result.error.code === 'INVALID_PASSWORD') {
+        return { ok: false, message: 'Your current password is incorrect.' }
+      }
+      return {
+        ok: false,
+        message: result.error.message ?? 'Could not update your password. Try again.'
+      }
+    } catch {
+      return { ok: false, message: 'Could not update your password. Try again.' }
     }
-
-    const { error } = await client.auth.updateUser({
-      password: parsed.data.password
-    })
-    return error ? { ok: false, message: error.message } : { ok: true }
   },
 
   async deleteAccount(input: AccountDeleteInput): Promise<AccountActionResult> {
-    const result = await deleteAccountFn({ data: input })
-    return 'error' in result ? { ok: false, message: result.message } : { ok: true }
+    const parsed = accountDeleteInputSchema.safeParse(input)
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message:
+          parsed.error.issues[0]?.message ?? 'Enter a valid email address and current password.'
+      }
+    }
+
+    try {
+      const result = await betterAuthClient.$fetch('/account/delete', {
+        method: 'POST',
+        body: parsed.data
+      })
+      return result.error
+        ? {
+            ok: false,
+            message: result.error.message ?? 'Could not delete your account. Try again.'
+          }
+        : { ok: true }
+    } catch {
+      return { ok: false, message: 'Could not delete your account. Try again.' }
+    }
   }
 }

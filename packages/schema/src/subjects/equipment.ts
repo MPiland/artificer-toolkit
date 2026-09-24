@@ -1,51 +1,53 @@
-import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared'
-import { z } from 'zod'
+import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/subjects/core'
+import { z } from '../zod.js'
 
 import { capacityDtoSchema, containsDtoSchema, costDtoSchema, weightDtoSchema } from './shared.js'
 import {
-  authoredRecordStatusSchema,
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema,
   authoredReferenceCollectionSchema,
   authoredRichTextSchema,
-  authoredShortTextSchema,
-  chargeDtoSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import { chargeDtoSchema } from '../shared/charge.js'
+import { characterFacetDtoSchema } from '../shared/facet.js'
+import {
+  authoredRecordStatusSchema,
   equipmentAttributeCodeSchema,
-  equipmentPropertyCodeSchema,
-  characterFacetDtoSchema
-} from '../shared/index.js'
-import { effectDtoSchema } from '../effects/index.js'
-import { featureDtoSchema } from '../features/index.js'
-import { modifierGrantDtoSchema } from '../grants/index.js'
+  equipmentPropertyCodeSchema
+} from '../shared/enums.js'
+import { effectDtoSchema } from '../effects/effect.js'
+import { featureDtoSchema } from '../features/feature.js'
+import { modifierGrantDtoSchema } from '../grants/modifier.js'
 
 const equipmentBaseDtoSchema = z.object({
   kind: z.literal('EQUIPMENT'),
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  description: authoredRichTextSchema.nullable(),
-  status: authoredRecordStatusSchema.optional(),
-  quote: authoredRichTextSchema.optional(),
+  description: z.nullable(authoredRichTextSchema),
+  status: z.optional(authoredRecordStatusSchema),
+  quote: z.optional(authoredRichTextSchema),
   rarityId: authoredIdentifierSchema,
   userId: authoredIdentifierSchema,
   systemId: authoredIdentifierSchema
 })
 
-const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
-  attributes: authoredReferenceCollectionSchema(equipmentAttributeCodeSchema).optional(),
-  cost: costDtoSchema.optional(),
-  weight: weightDtoSchema.optional(),
-  effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
-  charges: chargeDtoSchema.optional(),
-  capacity: capacityDtoSchema.optional(),
-  modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema).optional(),
-  maxStack: z.number().int().optional(),
-  maxBonus: authoredNonnegativeNumberSchema.int().optional(),
-  armorClass: z.number().int().optional(),
-  contains: authoredNestedCollectionSchema(containsDtoSchema).optional(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
-  restrictions: characterFacetDtoSchema.optional(),
-  requiresAttunement: z.boolean().optional(),
+const baseEquipmentAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
+  attributes: z.optional(authoredReferenceCollectionSchema(equipmentAttributeCodeSchema)),
+  cost: z.optional(costDtoSchema),
+  weight: z.optional(weightDtoSchema),
+  effects: z.optional(authoredNestedCollectionSchema(effectDtoSchema)),
+  charges: z.optional(chargeDtoSchema),
+  capacity: z.optional(capacityDtoSchema),
+  modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
+  maxStack: z.optional(z.number().check(z.int())),
+  maxBonus: z.optional(authoredNonnegativeNumberSchema.check(z.int())),
+  armorClass: z.optional(z.number().check(z.int())),
+  contains: z.optional(authoredNestedCollectionSchema(containsDtoSchema)),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+  restrictions: z.optional(characterFacetDtoSchema),
+  requiresAttunement: z.optional(z.boolean()),
   properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema),
   category: z.enum([
     EQUIPMENT_CATEGORY_CODE.WEAPON,
@@ -56,26 +58,29 @@ const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   ])
 })
 
-const equipmentVariantAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
+const equipmentVariantAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
   category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
   parentEquipmentId: authoredIdentifierSchema,
-  properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional(),
-  effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
-  charges: chargeDtoSchema.optional(),
-  modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema).optional(),
-  maxBonus: authoredNonnegativeNumberSchema.int().optional(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
-  restrictions: characterFacetDtoSchema.optional(),
-  requiresAttunement: z.boolean().optional()
+  properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+  effects: z.optional(authoredNestedCollectionSchema(effectDtoSchema)),
+  charges: z.optional(chargeDtoSchema),
+  modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
+  maxBonus: z.optional(authoredNonnegativeNumberSchema.check(z.int())),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
+  restrictions: z.optional(characterFacetDtoSchema),
+  requiresAttunement: z.optional(z.boolean())
 })
 
-const baseEquipmentAuthoringInputDtoSchemaBase = baseEquipmentAuthoredDtoSchemaBase.extend({
-  userId: authoredIdentifierSchema.optional()
+const baseEquipmentAuthoringInputDtoSchemaBase = z.extend(baseEquipmentAuthoredDtoSchemaBase, {
+  userId: z.optional(authoredIdentifierSchema)
 })
 
-const equipmentVariantAuthoringInputDtoSchemaBase = equipmentVariantAuthoredDtoSchemaBase.extend({
-  userId: authoredIdentifierSchema.optional()
-})
+const equipmentVariantAuthoringInputDtoSchemaBase = z.extend(
+  equipmentVariantAuthoredDtoSchemaBase,
+  {
+    userId: z.optional(authoredIdentifierSchema)
+  }
+)
 
 export type BaseEquipmentAuthoredDto = z.infer<typeof baseEquipmentAuthoredDtoSchemaBase>
 export type EquipmentVariantAuthoredDto = z.infer<typeof equipmentVariantAuthoredDtoSchemaBase>
@@ -89,19 +94,20 @@ export type EquipmentVariantAuthoringInputDto = z.infer<
 export type EquipmentAuthoringInputDto =
   | BaseEquipmentAuthoringInputDto
   | EquipmentVariantAuthoringInputDto
-export const baseEquipmentAuthoredDtoSchema: z.ZodType<BaseEquipmentAuthoredDto> =
+export const baseEquipmentAuthoredDtoSchema: z.ZodMiniType<BaseEquipmentAuthoredDto> =
   baseEquipmentAuthoredDtoSchemaBase
-export const equipmentVariantAuthoredDtoSchema: z.ZodType<EquipmentVariantAuthoredDto> =
+export const equipmentVariantAuthoredDtoSchema: z.ZodMiniType<EquipmentVariantAuthoredDto> =
   equipmentVariantAuthoredDtoSchemaBase
-export const baseEquipmentAuthoringInputDtoSchema: z.ZodType<BaseEquipmentAuthoringInputDto> =
+export const baseEquipmentAuthoringInputDtoSchema: z.ZodMiniType<BaseEquipmentAuthoringInputDto> =
   baseEquipmentAuthoringInputDtoSchemaBase
-export const equipmentVariantAuthoringInputDtoSchema: z.ZodType<EquipmentVariantAuthoringInputDto> =
+export const equipmentVariantAuthoringInputDtoSchema: z.ZodMiniType<EquipmentVariantAuthoringInputDto> =
   equipmentVariantAuthoringInputDtoSchemaBase
-export const equipmentAuthoredDtoSchema: z.ZodType<EquipmentAuthoredDto> = z.union([
-  baseEquipmentAuthoredDtoSchema,
-  equipmentVariantAuthoredDtoSchema
-])
-export const equipmentAuthoringInputDtoSchema: z.ZodType<EquipmentAuthoringInputDto> = z.union([
-  baseEquipmentAuthoringInputDtoSchema,
-  equipmentVariantAuthoringInputDtoSchema
-])
+export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = z.discriminatedUnion(
+  'category',
+  [baseEquipmentAuthoredDtoSchemaBase, equipmentVariantAuthoredDtoSchemaBase]
+)
+export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> =
+  z.discriminatedUnion('category', [
+    baseEquipmentAuthoringInputDtoSchemaBase,
+    equipmentVariantAuthoringInputDtoSchemaBase
+  ])

@@ -1,5 +1,6 @@
 import { Stack, Text, Title } from '@mantine/core'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignSessionEncounters } from '../CampaignSessionEncounters'
 import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'

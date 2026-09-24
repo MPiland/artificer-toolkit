@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema
@@ -11,9 +11,9 @@ export const applyGrantDtoSchema = z.object({
   id: authoredIdentifierSchema,
   effectKind: z.literal('APPLY_GRANT'),
   grants: z.object({
-    modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema).optional(),
-    proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema).optional(),
-    senses: authoredNestedCollectionSchema(senseGrantDtoSchema).optional()
+    modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
+    proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),
+    senses: z.optional(authoredNestedCollectionSchema(senseGrantDtoSchema))
   })
 })
 

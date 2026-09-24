@@ -1,4 +1,9 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
+import {
+  characterCurrencyAmountDtoSchema,
+  characterCurrencyQualificationDtoSchema
+} from '../shared/characterCurrency.js'
+import { characterSheetConditionDtoSchema } from './characterSheetCondition.js'
 
 import {
   abilityCodeSchema,
@@ -9,141 +14,136 @@ import {
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
-import {
-  capacityDtoSchema,
-  castingTimeDtoSchema,
-  costDtoSchema,
-  rangeDtoSchema,
-  weightDtoSchema
-} from '../subjects/shared.js'
+import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/shared.js'
+import { castingTimeDtoSchema } from '../subjects/castingTime.js'
+import { rangeDtoSchema } from '../shared/range.js'
 import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
+  characterSheetReadInputSchema,
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
 import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 
+export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
+
+const stringSchema = z.string()
+const integerSchema = z.number().check(z.int())
+const booleanSchema = z.boolean()
+
 export const characterSheetFactDtoSchema = z.object({
-  label: z.string(),
-  value: z.string()
+  label: stringSchema,
+  value: stringSchema
 })
 
-export const characterSheetProficiencyFactDtoSchema = characterSheetFactDtoSchema.extend({
+export const characterSheetProficiencyFactDtoSchema = z.extend(characterSheetFactDtoSchema, {
   kind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON'])
 })
 
 export const characterSheetOptionDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional()
+  id: stringSchema,
+  label: stringSchema,
+  description: z.optional(stringSchema)
 })
 
 export const characterSheetMetaDtoSchema = z.object({
-  characterId: z.string(),
-  campaignId: z.string().uuid().nullable().optional(),
+  characterId: stringSchema,
+  campaignId: z.optional(z.nullable(stringSchema.check(z.uuid()))),
   viewer: z.enum(['CHARACTER_OWNER', 'CAMPAIGN_OWNER']),
   capabilities: z.object({
-    managePlayState: z.boolean(),
-    managePrivateNotes: z.boolean(),
-    manageInventory: z.boolean(),
-    openBuilder: z.boolean()
+    managePlayState: booleanSchema,
+    managePrivateNotes: booleanSchema,
+    manageInventory: booleanSchema,
+    openBuilder: booleanSchema
   }),
-  systemId: z.string(),
+  systemId: stringSchema,
   status: authoredRecordStatusSchema,
-  streamVersion: z.number().int(),
-  hasBuilderDraft: z.boolean().optional()
+  streamVersion: integerSchema,
+  hasBuilderDraft: z.optional(booleanSchema)
 })
 
 export const characterSheetIdentityDtoSchema = z.object({
-  label: z.string(),
-  description: z.string().optional(),
-  concept: z.string().optional(),
-  classSummary: z.string(),
-  raceLabel: z.string().optional(),
-  backgroundLabel: z.string().optional(),
-  totalLevel: z.number().int()
+  label: stringSchema,
+  description: z.optional(stringSchema),
+  concept: z.optional(stringSchema),
+  classSummary: stringSchema,
+  raceLabel: z.optional(stringSchema),
+  backgroundLabel: z.optional(stringSchema),
+  totalLevel: integerSchema
 })
 
 export const characterSheetAbilityDtoSchema = z.object({
   ability: abilityCodeSchema,
-  score: z.number().int(),
-  modifier: z.number().int(),
+  score: integerSchema,
+  modifier: integerSchema,
   rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
 })
 
 export const characterSheetHitDiceDtoSchema = z.object({
-  die: z.number().int(),
-  total: z.number().int(),
-  used: z.number().int(),
-  remaining: z.number().int()
+  die: integerSchema,
+  total: integerSchema,
+  used: integerSchema,
+  remaining: integerSchema
 })
 
-export const characterSheetConditionDtoSchema = z.object({
-  conditionTypeId: z
-    .string()
-    .regex(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
-    ),
-  label: z.string(),
-  description: z.string().optional(),
-  notes: z.string().optional()
-})
+export { characterSheetConditionDtoSchema } from './characterSheetCondition.js'
 
 export const characterSheetExhaustionDtoSchema = z
   .strictObject({
-    label: z.string().trim().min(1),
-    description: z.string().trim().min(1),
-    level: z.number().int().nonnegative(),
-    minimumLevel: z.number().int().nonnegative(),
-    maximumLevel: z.number().int().positive(),
-    notes: z.string().optional()
+    label: stringSchema.check(z.trim()).check(z.minLength(1)),
+    description: stringSchema.check(z.trim()).check(z.minLength(1)),
+    level: integerSchema.check(z.nonnegative()),
+    minimumLevel: integerSchema.check(z.nonnegative()),
+    maximumLevel: integerSchema.check(z.positive()),
+    notes: z.optional(stringSchema)
   })
-  .superRefine((exhaustion, context) => {
-    if (
-      exhaustion.minimumLevel > exhaustion.maximumLevel ||
-      exhaustion.level < exhaustion.minimumLevel ||
-      exhaustion.level > exhaustion.maximumLevel
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['level'],
-        message: 'Exhaustion level must be within the rules-system range.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((exhaustion, context) => {
+      if (
+        exhaustion.minimumLevel > exhaustion.maximumLevel ||
+        exhaustion.level < exhaustion.minimumLevel ||
+        exhaustion.level > exhaustion.maximumLevel
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['level'],
+          message: 'Exhaustion level must be within the rules-system range.'
+        })
+      }
+    })
+  )
 
 export const characterSheetOverviewDtoSchema = z.object({
   abilities: z.array(characterSheetAbilityDtoSchema),
   facts: z.array(characterSheetFactDtoSchema),
-  armorClass: z.number().int(),
-  initiative: z.number().int(),
+  armorClass: integerSchema,
+  initiative: integerSchema,
   initiativeRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-  proficiencyBonus: z.number().int(),
-  inspiration: z.boolean().optional(),
-  currentHitPoints: z.number().int(),
-  maxHitPoints: z.number().int(),
-  tempHitPoints: z.number().int(),
-  maxHitPointsModifier: z.number().int(),
-  maxHitPointsModifierAdjustmentId: z.guid().nullable(),
-  maxHitPointsOverride: z.number().int().nullable(),
+  proficiencyBonus: integerSchema,
+  inspiration: z.optional(booleanSchema),
+  currentHitPoints: integerSchema,
+  maxHitPoints: integerSchema,
+  tempHitPoints: integerSchema,
+  maxHitPointsModifier: integerSchema,
+  maxHitPointsModifierAdjustmentId: z.nullable(z.guid()),
+  maxHitPointsOverride: z.nullable(integerSchema),
   savingThrows: z.array(
     z.object({
       ability: abilityCodeSchema,
-      label: z.string(),
-      total: z.number().int(),
+      label: stringSchema,
+      total: integerSchema,
       rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
     })
   ),
   skills: z.array(
     z.object({
-      skillId: z.string(),
-      code: z.string(),
-      label: z.string(),
+      skillId: stringSchema,
+      code: stringSchema,
+      label: stringSchema,
       ability: abilityCodeSchema,
-      total: z.number().int(),
+      total: integerSchema,
       rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
     })
@@ -154,69 +154,69 @@ export const characterSheetOverviewDtoSchema = z.object({
 })
 
 export const characterSheetOutcomeScalingDtoSchema = z.object({
-  level: z.number().int().positive(),
-  expression: z.string()
+  level: integerSchema.check(z.positive()),
+  expression: stringSchema
 })
 
 export const characterSheetOutcomeDtoSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('DAMAGE'),
-    pathCode: z.string(),
-    expression: z.string(),
-    damageTypeId: z.string(),
-    damageTypeLabel: z.string(),
-    scaling: z.array(characterSheetOutcomeScalingDtoSchema).optional()
+    pathCode: stringSchema,
+    expression: stringSchema,
+    damageTypeId: stringSchema,
+    damageTypeLabel: stringSchema,
+    scaling: z.optional(z.array(characterSheetOutcomeScalingDtoSchema))
   }),
   z.object({
     kind: z.literal('HEAL'),
-    pathCode: z.string(),
-    expression: z.string(),
-    temporary: z.boolean(),
-    scaling: z.array(characterSheetOutcomeScalingDtoSchema).optional()
+    pathCode: stringSchema,
+    expression: stringSchema,
+    temporary: booleanSchema,
+    scaling: z.optional(z.array(characterSheetOutcomeScalingDtoSchema))
   }),
   z.object({
     kind: z.literal('CONDITION'),
-    pathCode: z.string(),
-    conditionId: z.string(),
-    label: z.string()
+    pathCode: stringSchema,
+    conditionId: stringSchema,
+    label: stringSchema
   }),
   z.object({
     kind: z.literal('EFFECT'),
-    pathCode: z.string(),
-    effectKind: z.string(),
-    label: z.string().optional()
+    pathCode: stringSchema,
+    effectKind: stringSchema,
+    label: z.optional(stringSchema)
   })
 ])
 
 export const characterSheetMechanicDtoSchema = z.object({
-  effectId: z.string(),
-  trigger: z.string(),
-  activation: z
-    .object({
-      kind: z.string(),
-      amount: z.number().int().positive()
+  effectId: stringSchema,
+  trigger: stringSchema,
+  activation: z.optional(
+    z.object({
+      kind: stringSchema,
+      amount: integerSchema.check(z.positive())
     })
-    .optional(),
-  rangeLabel: z.string().optional(),
-  attackBonus: z.number().int().optional(),
-  attackRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).optional(),
-  save: z
-    .object({
+  ),
+  rangeLabel: z.optional(stringSchema),
+  attackBonus: z.optional(integerSchema),
+  attackRollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+  save: z.optional(
+    z.object({
       ability: abilityCodeSchema,
-      dc: z.number().int().optional()
+      dc: z.optional(integerSchema)
     })
-    .optional(),
+  ),
   outcomes: z.array(characterSheetOutcomeDtoSchema)
 })
 
 export const characterSheetActionDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
+  id: stringSchema,
+  label: stringSchema,
   kind: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'OTHER']),
-  sourceLabel: z.string().optional(),
-  description: z.string().optional(),
-  rollable: z.boolean().optional(),
-  mechanic: characterSheetMechanicDtoSchema.optional(),
+  sourceLabel: z.optional(stringSchema),
+  description: z.optional(stringSchema),
+  rollable: z.optional(booleanSchema),
+  mechanic: z.optional(characterSheetMechanicDtoSchema),
   availability: z.discriminatedUnion('status', [
     z.object({ status: z.literal('AVAILABLE') }),
     z.object({
@@ -224,108 +224,115 @@ export const characterSheetActionDtoSchema = z.object({
       reasonCode: characterActionReasonCodeSchema
     })
   ]),
-  resourceGrantId: z.string().optional(),
-  resourceCost: z.number().int().positive().optional()
+  resourceGrantId: z.optional(stringSchema),
+  resourceCost: z.optional(integerSchema.check(z.positive()))
 })
 
 const characterSheetExtraKindOptionDtoSchema = z.object({
   code: z.enum(['COMPANION', 'MOUNT', 'OWNED', 'VEHICLE']),
-  label: z.string().min(1)
+  label: stringSchema.check(z.minLength(1))
 })
 
 const characterSheetCreatureOriginOptionDtoSchema = z.object({
   code: z.enum(['WORLD', 'SUMMONED']),
-  label: z.string().min(1)
+  label: stringSchema.check(z.minLength(1))
 })
 
 const characterSheetExtraActionDtoSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().optional()
+  id: stringSchema.check(z.minLength(1)),
+  label: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema)
 })
 
 const characterSheetExtraFeatureDtoSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().optional()
+  id: stringSchema.check(z.minLength(1)),
+  label: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema)
 })
 
 const characterSheetExtraHitPointsDtoSchema = z.object({
-  current: z.number().int().nonnegative(),
-  maximum: z.number().int().nonnegative()
+  current: integerSchema.check(z.nonnegative()),
+  maximum: integerSchema.check(z.nonnegative())
 })
 
-const characterSheetExtraCreatureHitPointsDtoSchema = characterSheetExtraHitPointsDtoSchema.extend({
-  temp: z.number().int().nonnegative()
-})
+const characterSheetExtraCreatureHitPointsDtoSchema = z.extend(
+  characterSheetExtraHitPointsDtoSchema,
+  {
+    temp: integerSchema.check(z.nonnegative())
+  }
+)
 
 const characterSheetExtraHitDiceDtoSchema = z
   .array(
     z
       .object({
-        die: z.number().int().positive(),
-        total: z.number().int().nonnegative(),
-        used: z.number().int().nonnegative(),
-        remaining: z.number().int().nonnegative()
+        die: integerSchema.check(z.positive()),
+        total: integerSchema.check(z.nonnegative()),
+        used: integerSchema.check(z.nonnegative()),
+        remaining: integerSchema.check(z.nonnegative())
       })
-      .refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
-        message: 'Hit dice usage and remaining count must be consistent.'
-      })
-  )
-  .superRefine((hitDice, context) => {
-    const seen = new Set<number>()
-
-    hitDice.forEach(({ die }, index) => {
-      if (seen.has(die)) {
-        context.addIssue({
-          code: 'custom',
-          path: [index, 'die'],
-          message: 'Hit dice denominations must be unique.'
+      .check(
+        z.refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
+          message: 'Hit dice usage and remaining count must be consistent.'
         })
-      }
-      seen.add(die)
+      )
+  )
+  .check(
+    z.superRefine((hitDice, context) => {
+      const seen = new Set<number>()
+
+      hitDice.forEach(({ die }, index) => {
+        if (seen.has(die)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'die'],
+            message: 'Hit dice denominations must be unique.'
+          })
+        }
+        seen.add(die)
+      })
     })
-  })
+  )
 
 const characterSheetExtraCommonDtoSchema = z.object({
   id: z.guid(),
-  kindLabel: z.string().min(1),
-  authoredName: z.string().min(1),
-  displayName: z.string().min(1),
-  customName: z.string().optional(),
-  notes: z.string().optional(),
-  isActive: z.boolean(),
+  kindLabel: stringSchema.check(z.minLength(1)),
+  authoredName: stringSchema.check(z.minLength(1)),
+  displayName: stringSchema.check(z.minLength(1)),
+  customName: z.optional(stringSchema),
+  notes: z.optional(stringSchema),
+  isActive: booleanSchema,
   actions: z.array(characterSheetExtraActionDtoSchema),
   features: z.array(characterSheetExtraFeatureDtoSchema),
   equipmentItemIds: z.array(z.guid())
 })
 
-const characterSheetCreatureExtraDtoSchema = characterSheetExtraCommonDtoSchema.extend({
+const characterSheetCreatureExtraDtoSchema = z.extend(characterSheetExtraCommonDtoSchema, {
   kind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
   creatureId: z.guid(),
   relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
-  relationshipLabel: z.string().min(1),
-  size: sizeCodeSchema.optional(),
-  alignmentId: z.guid().optional(),
-  creatureTypeId: z.guid().optional(),
+  relationshipLabel: stringSchema.check(z.minLength(1)),
+  size: z.optional(sizeCodeSchema),
+  alignmentId: z.optional(z.guid()),
+  creatureTypeId: z.optional(z.guid()),
   originKind: z.enum(['WORLD', 'SUMMONED']),
-  originLabel: z.string().min(1),
-  armorClass: z.number().int().nonnegative(),
-  speedLabel: z.string().min(1).optional(),
-  carryingCapacityLabel: z.string().min(1).optional(),
-  riderCapacity: z.number().int().nonnegative().optional(),
+  originLabel: stringSchema.check(z.minLength(1)),
+  armorClass: integerSchema.check(z.nonnegative()),
+  speedLabel: z.optional(stringSchema.check(z.minLength(1))),
+  carryingCapacityLabel: z.optional(stringSchema.check(z.minLength(1))),
+  riderCapacity: z.optional(integerSchema.check(z.nonnegative())),
   hitPoints: characterSheetExtraCreatureHitPointsDtoSchema,
   hitDice: characterSheetExtraHitDiceDtoSchema
 })
 
-const characterSheetVehicleExtraDtoSchema = characterSheetExtraCommonDtoSchema.extend({
+const characterSheetVehicleExtraDtoSchema = z.extend(characterSheetExtraCommonDtoSchema, {
   kind: z.literal('VEHICLE'),
   vehicleId: z.guid(),
-  categoryLabel: z.string().min(1),
-  speedLabel: z.string().min(1).optional(),
-  crewLabel: z.string().min(1).optional(),
-  passengerCapacity: z.number().int().nonnegative().optional(),
-  cargoCapacityLabel: z.string().min(1).optional(),
+  categoryLabel: stringSchema.check(z.minLength(1)),
+  speedLabel: z.optional(stringSchema.check(z.minLength(1))),
+  crewLabel: z.optional(stringSchema.check(z.minLength(1))),
+  passengerCapacity: z.optional(integerSchema.check(z.nonnegative())),
+  cargoCapacityLabel: z.optional(stringSchema.check(z.minLength(1))),
   hitPoints: characterSheetExtraHitPointsDtoSchema
 })
 
@@ -341,237 +348,267 @@ export const characterSheetExtraCatalogKindDtoSchema = z.enum(['CREATURE', 'VEHI
 
 export const characterSheetExtraCatalogCursorDtoSchema = z.strictObject({
   id: z.guid(),
-  label: z.string().min(1)
+  label: stringSchema.check(z.minLength(1))
 })
 
 export const characterSheetExtraCatalogInputDtoSchema = z.strictObject({
   kind: characterSheetExtraCatalogKindDtoSchema,
-  query: z.string().trim().max(120).optional(),
-  cursor: characterSheetExtraCatalogCursorDtoSchema.optional(),
-  limit: z.number().int().min(1).max(50).default(25)
+  query: z.optional(stringSchema.check(z.trim()).check(z.maxLength(120))),
+  cursor: z.optional(characterSheetExtraCatalogCursorDtoSchema),
+  limit: z._default(integerSchema.check(z.gte(1)).check(z.lte(50)), 25)
 })
+
+export const characterSheetExtraCatalogReadInputSchema = z.extend(
+  characterSheetExtraCatalogInputDtoSchema,
+  {
+    id: characterSheetReadInputSchema.shape.id,
+    cursor: z.optional(
+      z.extend(characterSheetExtraCatalogCursorDtoSchema, {
+        label: stringSchema.check(z.minLength(1)).check(z.maxLength(200))
+      })
+    )
+  }
+)
+
+export type CharacterSheetExtraCatalogReadInput = z.infer<
+  typeof characterSheetExtraCatalogReadInputSchema
+>
 
 export const characterSheetExtraCatalogOptionDtoSchema = z.strictObject({
   id: z.guid(),
-  label: z.string().min(1),
-  description: z.string().optional()
+  label: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema)
 })
 
 export const characterSheetExtraCatalogResponseDtoSchema = z.strictObject({
   items: z.array(characterSheetExtraCatalogOptionDtoSchema),
-  nextCursor: characterSheetExtraCatalogCursorDtoSchema.nullable()
+  nextCursor: z.nullable(characterSheetExtraCatalogCursorDtoSchema)
 })
 
 export const characterSheetResourceDtoSchema = z.object({
-  id: z.string(),
+  id: stringSchema,
   owner: characterResourceOwnerRefDtoSchema,
-  label: z.string(),
-  description: z.string().optional(),
-  sourceLabel: z.string(),
-  sourceFeatureId: z.string().optional(),
-  used: z.number().int(),
-  max: z.number().int(),
-  remaining: z.number().int(),
+  label: stringSchema,
+  description: z.optional(stringSchema),
+  sourceLabel: stringSchema,
+  sourceFeatureId: z.optional(stringSchema),
+  used: integerSchema,
+  max: integerSchema,
+  remaining: integerSchema,
   recoveries: z.array(characterResourceRecoveryDtoSchema)
 })
 
 export const characterSheetSpellSlotDtoSchema = z.object({
-  slotKey: z.string(),
-  label: z.string(),
-  level: z.number().int().nullable(),
-  used: z.number().int(),
-  max: z.number().int(),
-  remaining: z.number().int()
+  slotKey: stringSchema,
+  label: stringSchema,
+  level: z.nullable(integerSchema),
+  used: integerSchema,
+  max: integerSchema,
+  remaining: integerSchema
 })
 
 export const characterSheetSpellSourceDtoSchema = z.object({
-  id: z.string().optional(),
+  id: z.optional(stringSchema),
   source: characterSpellSourceRefDtoSchema,
-  classId: z.string().optional(),
-  label: z.string(),
-  provenance: z
-    .enum(['CLASS', 'SUBCLASS', 'RACE', 'BACKGROUND', 'FEAT', 'FEATURE', 'OPTION', 'EQUIPMENT'])
-    .optional(),
-  acquisition: z.enum(['KNOWN', 'PREPARED', 'ALWAYS_PREPARED', 'GRANTED']).optional(),
-  castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']).optional(),
-  fixedLevel: z.number().int().positive().optional(),
-  resourceGrantId: z.string().optional(),
-  resourceOwner: characterResourceOwnerRefDtoSchema.optional(),
-  customName: z.string().optional(),
-  notes: z.string().optional(),
-  displayAsAttack: z.boolean().optional(),
-  canPrepare: z.boolean(),
-  prepared: z.boolean().optional()
+  classId: z.optional(stringSchema),
+  label: stringSchema,
+  provenance: z.optional(
+    z.enum(['CLASS', 'SUBCLASS', 'RACE', 'BACKGROUND', 'FEAT', 'FEATURE', 'OPTION', 'EQUIPMENT'])
+  ),
+  acquisition: z.optional(z.enum(['KNOWN', 'PREPARED', 'ALWAYS_PREPARED', 'GRANTED'])),
+  castMode: z.optional(z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE'])),
+  fixedLevel: z.optional(integerSchema.check(z.positive())),
+  resourceGrantId: z.optional(stringSchema),
+  resourceOwner: z.optional(characterResourceOwnerRefDtoSchema),
+  customName: z.optional(stringSchema),
+  notes: z.optional(stringSchema),
+  displayAsAttack: z.optional(booleanSchema),
+  canPrepare: booleanSchema,
+  prepared: z.optional(booleanSchema)
 })
 
 export const characterSheetSpellPreparationSourceDtoSchema = z.object({
-  classId: z.string(),
-  label: z.string(),
-  preparedSpellLimit: z.number().int().min(0).optional(),
-  preparedSpellIds: z.array(z.string())
+  classId: stringSchema,
+  label: stringSchema,
+  preparedSpellLimit: z.optional(integerSchema.check(z.gte(0))),
+  preparedSpellIds: z.array(stringSchema)
 })
 
 export const characterSheetSpellDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
-  level: z.number().int(),
-  school: z.string().optional(),
-  castingTime: castingTimeDtoSchema.optional(),
-  components: z.array(spellComponentSchema).optional(),
-  attributes: z.array(spellAttributeSchema).optional(),
-  materialDescription: z.string().optional(),
-  prepared: z.boolean().optional(),
-  known: z.boolean().optional(),
-  sourceLabel: z.string().optional(),
-  sources: z.array(characterSheetSpellSourceDtoSchema).optional(),
-  mechanics: z.array(characterSheetMechanicDtoSchema).optional()
+  id: stringSchema,
+  label: stringSchema,
+  description: z.optional(stringSchema),
+  level: integerSchema,
+  school: z.optional(stringSchema),
+  castingTime: z.optional(castingTimeDtoSchema),
+  components: z.optional(z.array(spellComponentSchema)),
+  attributes: z.optional(z.array(spellAttributeSchema)),
+  materialDescription: z.optional(stringSchema),
+  prepared: z.optional(booleanSchema),
+  known: z.optional(booleanSchema),
+  sourceLabel: z.optional(stringSchema),
+  sources: z.optional(z.array(characterSheetSpellSourceDtoSchema)),
+  mechanics: z.optional(z.array(characterSheetMechanicDtoSchema))
 })
 
 export const characterSheetActiveSpellEntryDtoSchema = z.object({
-  rowId: z.string().min(1),
+  rowId: stringSchema.check(z.minLength(1)),
   target: z.object({
     kind: z.literal('SPELL'),
     source: characterSpellSourceRefDtoSchema,
-    castLevel: z.number().int().nonnegative()
+    castLevel: integerSchema.check(z.nonnegative())
   }),
   spellId: z.guid(),
   source: characterSpellSourceRefDtoSchema,
-  sourceId: z.string().min(1),
-  displayName: z.string().min(1),
-  sourceLabel: z.string().min(1).optional(),
-  sourceQualifier: z.string().min(1).optional(),
-  castLevel: z.number().int().nonnegative(),
-  activationType: activationCodeSchema.optional(),
-  activationLabel: z.string().min(1).optional(),
-  rangeLabel: z.string().min(1).optional(),
-  hitOrDcLabel: z.string().min(1).optional(),
-  primaryEffect: z.string().min(1).optional(),
-  mechanics: z.array(characterSheetMechanicDtoSchema).optional(),
-  available: z.boolean(),
-  unavailableReason: z.string().min(1).optional(),
+  sourceId: stringSchema.check(z.minLength(1)),
+  displayName: stringSchema.check(z.minLength(1)),
+  sourceLabel: z.optional(stringSchema.check(z.minLength(1))),
+  sourceQualifier: z.optional(stringSchema.check(z.minLength(1))),
+  castLevel: integerSchema.check(z.nonnegative()),
+  activationType: z.optional(activationCodeSchema),
+  activationLabel: z.optional(stringSchema.check(z.minLength(1))),
+  rangeLabel: z.optional(stringSchema.check(z.minLength(1))),
+  hitOrDcLabel: z.optional(stringSchema.check(z.minLength(1))),
+  primaryEffect: z.optional(stringSchema.check(z.minLength(1))),
+  mechanics: z.optional(z.array(characterSheetMechanicDtoSchema)),
+  available: booleanSchema,
+  unavailableReason: z.optional(stringSchema.check(z.minLength(1))),
   cast: z.object({
     spellId: z.guid(),
-    sourceId: z.string().min(1),
-    slotKey: z.string().min(1).optional()
+    sourceId: stringSchema.check(z.minLength(1)),
+    slotKey: z.optional(stringSchema.check(z.minLength(1)))
   })
 })
 
 export const characterSheetActiveSpellGroupDtoSchema = z.object({
-  level: z.number().int().nonnegative(),
-  label: z.string().min(1),
+  level: integerSchema.check(z.nonnegative()),
+  label: stringSchema.check(z.minLength(1)),
   entries: z.array(characterSheetActiveSpellEntryDtoSchema)
 })
 
 export const characterSheetEquipmentPropertyDtoSchema = z.object({
   code: equipmentPropertyCodeSchema,
-  label: z.string().min(1)
+  label: stringSchema.check(z.minLength(1))
 })
 
 export const characterSheetInventoryItemDtoSchema = z.object({
-  id: z.string(),
-  equipmentId: z.string(),
-  label: z.string(),
-  equipmentLabel: z.string().optional(),
-  description: z.string().nullable().optional(),
-  category: z.string().optional(),
-  properties: z.array(characterSheetEquipmentPropertyDtoSchema).optional(),
-  rarityId: z.string().optional(),
-  cost: costDtoSchema.optional(),
-  costLabel: z.string().optional(),
-  weight: weightDtoSchema.optional(),
-  armorClass: z.number().int().optional(),
-  customName: z.string().optional(),
-  quantity: z.number().int(),
-  equipped: z.boolean(),
-  attuned: z.boolean(),
-  requiresAttunement: z.boolean(),
-  displayAsAttack: z.boolean().optional(),
-  containerId: z.string().optional(),
-  capacity: capacityDtoSchema.optional(),
-  notes: z.string().optional()
+  id: stringSchema,
+  equipmentId: stringSchema,
+  label: stringSchema,
+  equipmentLabel: z.optional(stringSchema),
+  description: z.optional(z.nullable(stringSchema)),
+  category: z.optional(stringSchema),
+  properties: z.optional(z.array(characterSheetEquipmentPropertyDtoSchema)),
+  rarityId: z.optional(stringSchema),
+  cost: z.optional(costDtoSchema),
+  costLabel: z.optional(stringSchema),
+  weight: z.optional(weightDtoSchema),
+  armorClass: z.optional(integerSchema),
+  customName: z.optional(stringSchema),
+  quantity: integerSchema,
+  equipped: booleanSchema,
+  attuned: booleanSchema,
+  requiresAttunement: booleanSchema,
+  displayAsAttack: z.optional(booleanSchema),
+  containerId: z.optional(stringSchema),
+  capacity: z.optional(capacityDtoSchema),
+  notes: z.optional(stringSchema)
 })
 
-export const characterSheetCurrencyDtoSchema = z.object({
-  currencyId: z.string(),
-  label: z.string(),
-  amount: z.number(),
-  containerId: z.string().optional()
+export const characterSheetCurrencyDtoSchema = z.extend(characterCurrencyAmountDtoSchema, {
+  label: stringSchema,
+  containerId: z.optional(stringSchema)
 })
+export const characterSheetCurrencyOptionDtoSchema = z.extend(
+  characterCurrencyQualificationDtoSchema,
+  characterSheetOptionDtoSchema.shape
+)
 
 export const characterSheetReferenceDtoSchema = z.object({
   features: z.array(characterSheetReferenceFeatureDtoSchema),
   proficiencies: z.array(characterSheetProficiencyFactDtoSchema),
   defenses: z.array(
-    characterSheetFactDtoSchema.extend({
+    z.extend(characterSheetFactDtoSchema, {
       kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
-      damageTypeId: z.string()
+      damageTypeId: stringSchema
     })
   ),
   senses: z.array(
-    characterSheetFactDtoSchema.extend({
-      senseId: z.string(),
-      range: rangeDtoSchema.optional()
+    z.extend(characterSheetFactDtoSchema, {
+      senseId: stringSchema,
+      range: z.optional(rangeDtoSchema)
     })
   ),
   conditionOptions: z.array(
-    characterSheetOptionDtoSchema.extend({
-      code: z.string().trim().min(1)
+    z.extend(characterSheetOptionDtoSchema, {
+      code: stringSchema.check(z.trim()).check(z.minLength(1))
     })
   ),
   equipmentOptions: z.array(
-    characterSheetOptionDtoSchema.extend({
-      isContainer: z.boolean(),
-      maxStack: z.number().int().positive().optional(),
-      requiresAttunement: z.boolean()
+    z.extend(characterSheetOptionDtoSchema, {
+      isContainer: booleanSchema,
+      maxStack: z.optional(integerSchema.check(z.positive())),
+      requiresAttunement: booleanSchema
     })
   ),
-  currencyOptions: z.array(characterSheetOptionDtoSchema)
+  currencyOptions: z.array(characterSheetCurrencyOptionDtoSchema)
 })
 
+export const characterSheetEquipmentOptionsInputSchema = z.extend(characterSheetReadInputSchema, {
+  campaignId: z.optional(stringSchema.check(z.uuid()))
+})
+export const characterSheetEquipmentOptionsResponseDtoSchema =
+  characterSheetReferenceDtoSchema.shape.equipmentOptions
+export type CharacterSheetEquipmentOptionsInput = z.infer<
+  typeof characterSheetEquipmentOptionsInputSchema
+>
+export type CharacterSheetEquipmentOptionsResponseDto = z.infer<
+  typeof characterSheetEquipmentOptionsResponseDtoSchema
+>
+
 export const characterSheetNotesDtoSchema = z.object({
-  alignment: z.string().optional(),
-  lifestyle: z.string().optional(),
-  faith: z.string().optional(),
-  gender: z.string().optional(),
-  age: z.string().optional(),
-  appearance: z.string().optional(),
-  personalityTraits: z.string().optional(),
-  ideals: z.string().optional(),
-  bonds: z.string().optional(),
-  flaws: z.string().optional(),
-  organizations: z.string().optional(),
-  allies: z.string().optional(),
-  enemies: z.string().optional(),
-  backstory: z.string().optional(),
-  notes: z.string().optional(),
-  groups: z
-    .array(
+  alignment: z.optional(stringSchema),
+  lifestyle: z.optional(stringSchema),
+  faith: z.optional(stringSchema),
+  gender: z.optional(stringSchema),
+  age: z.optional(stringSchema),
+  appearance: z.optional(stringSchema),
+  personalityTraits: z.optional(stringSchema),
+  ideals: z.optional(stringSchema),
+  bonds: z.optional(stringSchema),
+  flaws: z.optional(stringSchema),
+  organizations: z.optional(stringSchema),
+  allies: z.optional(stringSchema),
+  enemies: z.optional(stringSchema),
+  backstory: z.optional(stringSchema),
+  notes: z.optional(stringSchema),
+  groups: z.optional(
+    z.array(
       z.object({
-        id: z.string(),
-        label: z.string(),
-        sortOrder: z.number().int(),
+        id: stringSchema,
+        label: stringSchema,
+        sortOrder: integerSchema,
         kind: z.enum(['SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM'])
       })
     )
-    .optional(),
-  items: z
-    .array(
+  ),
+  items: z.optional(
+    z.array(
       z.object({
-        id: z.string(),
-        title: z.string(),
-        body: z.string().optional(),
-        groupId: z.string(),
-        pinned: z.boolean(),
-        createdAt: z.string(),
-        updatedAt: z.string()
+        id: stringSchema,
+        title: stringSchema,
+        body: z.optional(stringSchema),
+        groupId: stringSchema,
+        pinned: booleanSchema,
+        createdAt: stringSchema,
+        updatedAt: stringSchema
       })
     )
-    .optional()
+  )
 })
 
 export const characterSheetResponseDtoSchema = z.object({
-  publicId: z.string().optional(),
+  publicId: z.optional(stringSchema),
   meta: characterSheetMetaDtoSchema,
   identity: characterSheetIdentityDtoSchema,
   overview: characterSheetOverviewDtoSchema,
@@ -583,28 +620,28 @@ export const characterSheetResponseDtoSchema = z.object({
     hitDice: z.array(characterSheetHitDiceDtoSchema)
   }),
   spells: z.object({
-    saveDc: z.number().int().nullable(),
-    attackBonus: z.number().int().nullable(),
-    attackRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).optional(),
+    saveDc: z.nullable(integerSchema),
+    attackBonus: z.nullable(integerSchema),
+    attackRollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     slots: z.array(characterSheetSpellSlotDtoSchema),
     activeGroups: z.array(characterSheetActiveSpellGroupDtoSchema),
     spells: z.array(characterSheetSpellDtoSchema),
-    preparationSources: z.array(characterSheetSpellPreparationSourceDtoSchema).optional()
+    preparationSources: z.optional(z.array(characterSheetSpellPreparationSourceDtoSchema))
   }),
   inventory: z.object({
     items: z.array(characterSheetInventoryItemDtoSchema),
     currencies: z.array(characterSheetCurrencyDtoSchema),
-    containers: z
-      .array(
+    containers: z.optional(
+      z.array(
         z.object({
-          id: z.string(),
-          label: z.string(),
-          capacity: capacityDtoSchema.optional(),
-          itemIds: z.array(z.string()),
+          id: stringSchema,
+          label: stringSchema,
+          capacity: z.optional(capacityDtoSchema),
+          itemIds: z.array(stringSchema),
           currencies: z.array(characterSheetCurrencyDtoSchema)
         })
       )
-      .optional()
+    )
   }),
   extras: characterSheetExtrasDtoSchema,
   reference: characterSheetReferenceDtoSchema,
@@ -619,3 +656,5 @@ export type CharacterSheetExtraCatalogInputDto = z.infer<
 export type CharacterSheetExtraCatalogResponseDto = z.infer<
   typeof characterSheetExtraCatalogResponseDtoSchema
 >
+
+export type CharacterSheetCurrencyOptionDto = z.infer<typeof characterSheetCurrencyOptionDtoSchema>

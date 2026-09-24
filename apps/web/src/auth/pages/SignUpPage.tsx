@@ -1,11 +1,10 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { transitionContent } from '../auth.css'
-import { AuthPageShell, SignUpForm } from '../components'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { SignUpForm } from '../components/SignUpForm'
 import { ctaRow, primaryLink } from '#app/marketing/marketing.css'
 
 export function SignUpPage({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
-  const navigate = useNavigate()
-
   if (!publicSignUpEnabled) {
     return (
       <AuthPageShell
@@ -28,9 +27,7 @@ export function SignUpPage({ publicSignUpEnabled = false }: { publicSignUpEnable
       title='Create your account'
       description='Create an account to save your characters and homebrew.'
     >
-      <SignUpForm
-        onSuccess={(result) => (result.session ? navigate({ to: '/home' }) : undefined)}
-      />
+      <SignUpForm />
     </AuthPageShell>
   )
 }

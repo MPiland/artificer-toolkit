@@ -430,13 +430,12 @@ export function collectReactionReachCandidates(input: {
   const candidates: ReactionReachCandidate[] = []
   for (const source of input.sources) {
     const reactor = input.tokens.find((token) => token.id === source.reactorTokenId)
+    if (!reactor || !input.actorIdByTokenId.get(reactor.id)) return []
     if (
-      !reactor ||
-      !input.actorIdByTokenId.get(reactor.id) ||
       reactor.id === moving.id ||
       input.actorIdByTokenId.get(reactor.id) === input.actorIdByTokenId.get(moving.id)
     )
-      return []
+      continue
     const sourceCandidates =
       input.movementKind === 'TELEPORT'
         ? teleportCandidate({

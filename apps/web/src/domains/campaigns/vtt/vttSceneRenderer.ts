@@ -110,6 +110,7 @@ export interface VttSceneRenderer {
     transientVisualCount: number
     zoomScale: number
   }
+  previewDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN' | null) => void
   retryMap: (delivery: SignedVttMapDeliveryDto) => void
   update: (next: VttSceneRendererUpdate) => void
   zoomIn: () => void
@@ -276,6 +277,7 @@ export async function createVttSceneRenderer(
       visuals: Record<'CLOSED' | 'LOCKED' | 'OPEN', Graphics>
     }
   >()
+  const doorPreviews = new Map<string, 'CLOSED' | 'LOCKED' | 'OPEN'>()
   const lightVisuals = new Map<string, Graphics>()
   const loadedTokenArtUrls = new Set<string>()
   const transientVisuals = new Map<
@@ -286,7 +288,14 @@ export async function createVttSceneRenderer(
   const transientTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
   const remoteTokenDragPreviews = new Map<
     string,
-    { current: ScenePoint; graphic: Graphics; target: ScenePoint; tokenId: string }
+    {
+      current: ScenePoint
+      graphic: Graphics
+      target: ScenePoint
+      tokenId: string
+      sequence: number
+      renderedSequence: number | null
+    }
   >()
   const remoteFogPreviews = new Map<
     string,
@@ -319,13 +328,32 @@ export async function createVttSceneRenderer(
   const onTickerUpdate = () => {
     const elapsedMs = app.ticker.deltaMS
     for (const preview of remoteTokenDragPreviews.values()) {
-      const token = current?.scene.tokens.find((candidate) => candidate.id === preview.tokenId)
-      if (!token) continue
+      if (!tokenVisuals.has(preview.tokenId)) continue
       interpolateScenePoint(preview.current, preview.target, elapsedMs)
       positionRemoteTokenDragPreview(preview.graphic, preview.current)
     }
   }
   app.ticker.add(onTickerUpdate)
+  const previewRenderObserver = {
+    postrender(options: { container: Container }) {
+      if (options.container !== app.stage) return
+      for (const preview of remoteTokenDragPreviews.values()) {
+        if (preview.renderedSequence === preview.sequence) continue
+        preview.renderedSequence = preview.sequence
+        // Record after Pixi submits the updated preview, so browser proofs can observe its paint.
+        performance.mark('artificer:vtt-token-preview-rendered', {
+          detail: {
+            sceneId: current?.scene.id,
+            tokenId: preview.tokenId,
+            sequence: preview.sequence,
+            position: preview.target
+          }
+        })
+        performance.clearMarks('artificer:vtt-token-preview-rendered')
+      }
+    }
+  }
+  app.renderer.runners.postrender.add(previewRenderObserver)
 
   function worldPoint(event: FederatedPointerEvent): ScenePoint {
     const point = world.toLocal(event.global)
@@ -679,7 +707,10 @@ export async function createVttSceneRenderer(
     for (const barrier of scene.barriers) {
       if (barrier.kind !== 'DOOR') continue
       remainingDoorIds.delete(barrier.id)
-      const state = scene.doorStates[barrier.id] ?? barrier.initialState
+      const authoritativeState = scene.doorStates[barrier.id] ?? barrier.initialState
+      const previewState = doorPreviews.get(barrier.id)
+      if (previewState === authoritativeState) doorPreviews.delete(barrier.id)
+      const state = previewState ?? authoritativeState
       let entry = doorVisuals.get(barrier.id)
       if (!entry || entry.barrier !== barrier) {
         if (entry) destroyDoorVisuals(entry.visuals)
@@ -697,6 +728,7 @@ export async function createVttSceneRenderer(
       const entry = doorVisuals.get(doorId)
       if (entry) destroyDoorVisuals(entry.visuals)
       doorVisuals.delete(doorId)
+      doorPreviews.delete(doorId)
     }
     renderedDoorStates = scene.doorStates
   }
@@ -834,6 +866,7 @@ export async function createVttSceneRenderer(
         entry?.visual.removeFromParent()
         entry?.visual.destroy({ children: true })
         const visual = createTokenVisual(token, presentation)
+        visual.position.set(token.position.x, token.position.y)
         tokenLayer.addChild(visual)
         entry = { appearanceKey, presentation, token, visual }
         tokenVisuals.set(token.id, entry)
@@ -1293,7 +1326,11 @@ export async function createVttSceneRenderer(
       return
     }
     if (gestureStart) updateGesturePreview(point)
-    else callbacks.onPointerPreview(point)
+  })
+
+  app.stage.on('pointermove', (event) => {
+    if (panStart || drag || gestureStart) return
+    callbacks.onPointerPreview(worldPoint(event))
   })
 
   app.stage.on('pointerup', (event) => {
@@ -1403,6 +1440,12 @@ export async function createVttSceneRenderer(
 
   return {
     applyTransient(message) {
+      if (
+        !current ||
+        message.envelope.sceneId !== current.scene.id ||
+        message.envelope.baselineVersion !== current.scene.version
+      )
+        return
       const key = `${message.userId}:${message.envelope.kind}:${message.envelope.kind === 'TOKEN_DRAG_PREVIEW' ? message.envelope.tokenId : ''}`
       const timeout = transientTimeouts.get(key)
       if (timeout) clearTimeout(timeout)
@@ -1478,13 +1521,16 @@ export async function createVttSceneRenderer(
           const preview = remoteTokenDragPreviews.get(key)
           if (preview) {
             preview.target = position
+            preview.sequence = message.envelope.sequence
           } else {
             const initial = { x: token.position.x, y: token.position.y }
             remoteTokenDragPreviews.set(key, {
               current: initial,
               graphic: visual.container,
               target: position,
-              tokenId: token.id
+              tokenId: token.id,
+              sequence: message.envelope.sequence,
+              renderedSequence: null
             })
             positionRemoteTokenDragPreview(visual.container, initial)
           }
@@ -1523,6 +1569,7 @@ export async function createVttSceneRenderer(
       loadedTokenArtUrls.clear()
       clearTransientVisuals()
       app.ticker.remove(onTickerUpdate)
+      app.renderer.runners.postrender.remove(previewRenderObserver)
       fogTexture?.destroy(true)
       fogTexture = null
       app.canvas.removeEventListener('wheel', onWheel)
@@ -1561,6 +1608,18 @@ export async function createVttSceneRenderer(
         transientVisualCount: transientVisuals.size,
         zoomScale: world.scale.x
       }
+    },
+    previewDoorState(barrierId, state) {
+      const entry = doorVisuals.get(barrierId)
+      if (!entry) return
+      if (state) {
+        doorPreviews.set(barrierId, state)
+        setDoorVisualState(entry.visuals, state)
+        return
+      }
+      doorPreviews.delete(barrierId)
+      const authoritativeState = current?.scene.doorStates[barrierId] ?? entry.barrier.initialState
+      setDoorVisualState(entry.visuals, authoritativeState)
     },
     retryMap(delivery) {
       if (!current || !isMapDeliveryForScene(current.scene, delivery)) return

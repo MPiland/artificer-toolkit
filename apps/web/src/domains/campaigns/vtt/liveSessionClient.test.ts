@@ -1,14 +1,87 @@
-import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
+import {
+  liveSessionWebSocketClientMessageDtoSchema,
+  type LiveSessionCommandDto,
+  type LiveSessionTransientBroadcastDto
+} from '@artificer-toolkit/schema/api/liveSessions'
+import type {
+  CampaignSceneStateDto,
+  SceneTransientEnvelopeDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const sessionId = '00000000-0000-4000-8000-000000000002'
-const sceneDefinitionId = '00000000-0000-4000-8000-000000000004'
-const commandId = '00000000-0000-4000-8000-000000000005'
+const sceneId = '00000000-0000-4000-8000-000000000003'
+const userId = '00000000-0000-4000-8000-000000000004'
+const authorityEpoch = '00000000-0000-4000-8000-000000000006'
+const commandId = '00000000-0000-4000-8000-000000000007'
+
+const door = {
+  a: { x: 10, y: 10 },
+  b: { x: 20, y: 10 },
+  blocksLightWhenClosed: true,
+  blocksMovementWhenClosed: true,
+  id: '00000000-0000-4000-8000-000000000012',
+  initialState: 'CLOSED',
+  kind: 'DOOR',
+  openAngleDegrees: 90
+} as const
+const sceneState = {
+  annotations: [],
+  ambientIllumination: 'BRIGHT',
+  barriers: [door],
+  campaignId,
+  darknessZones: [],
+  definitionId: '00000000-0000-4000-8000-000000000013',
+  definitionVersion: 1,
+  doorStates: { [door.id]: 'CLOSED' as const },
+  fogLayers: [],
+  fogMode: 'SHARED_PARTY',
+  grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },
+  id: sceneId,
+  lights: [],
+  map: {
+    assetId: '00000000-0000-4000-8000-000000000014',
+    height: 64,
+    tileManifestAssetId: null,
+    width: 64
+  },
+  measurements: [],
+  name: 'Scene',
+  tokens: [],
+  version: 4,
+  visionRevealMode: 'ON_DRAG'
+} satisfies CampaignSceneStateDto
+
+const recipientState = {
+  recipientRole: 'PLAYER',
+  scene: null
+}
+
+const command = {
+  scope: 'SCENE',
+  command: {
+    barrierId: door.id,
+    commandId,
+    expectedSceneVersion: sceneState.version,
+    sceneId,
+    state: 'OPEN',
+    type: 'SET_SCENE_DOOR_STATE'
+  }
+} satisfies LiveSessionCommandDto
+
+const envelope = {
+  baselineVersion: 1,
+  kind: 'POINTER_PREVIEW',
+  position: { x: 4, y: 8 },
+  sceneId,
+  sequence: 2
+} satisfies SceneTransientEnvelopeDto
 
 class FakeSocket extends EventTarget {
   static readonly instances: FakeSocket[] = []
+  closedWith: { code: number; reason: string } | null = null
   readonly sent: string[] = []
   readyState = 0
 
@@ -25,8 +98,12 @@ class FakeSocket extends EventTarget {
     this.dispatchEvent(new Event('open'))
   }
 
-  receive(message: LiveSessionWebSocketServerMessageDto): void {
+  receive(message: unknown): void {
     this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) }))
+  }
+
+  receiveRaw(data: string): void {
+    this.dispatchEvent(new MessageEvent('message', { data }))
   }
 
   send(data: string): void {
@@ -35,20 +112,10 @@ class FakeSocket extends EventTarget {
 
   close(code = 1000, reason = ''): void {
     if (this.readyState === 3) return
+    this.closedWith = { code, reason }
     this.readyState = 3
     this.dispatchEvent(new CloseEvent('close', { code, reason }))
   }
-}
-
-const readyMessage: LiveSessionWebSocketServerMessageDto = {
-  aggregateVersions: [],
-  campaignId,
-  deliverySequence: 0,
-  encounterActorTokenBindings: [],
-  encounterSceneBindings: [],
-  sceneSnapshots: [],
-  sessionId,
-  type: 'READY'
 }
 
 afterEach(() => {
@@ -57,258 +124,590 @@ afterEach(() => {
 })
 
 describe('live-session browser connection', () => {
-  it('uses a fresh ticket and resumes pending commands after reconnect', async () => {
-    vi.useFakeTimers()
+  it('authenticates, retains the initial Scene synchronization, and exchanges transients', async () => {
     const statuses: string[] = []
-    const messages: LiveSessionWebSocketServerMessageDto[] = []
-    const getTicket = vi.fn(async () => ({
-      expiresAt: '2026-08-15T12:01:00.000Z',
-      ticket: `ticket-${getTicket.mock.calls.length}`
-    }))
+    const transients: LiveSessionTransientBroadcastDto[] = []
     const connection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),
-      getTicket,
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({
+        expiresAt: '2026-08-15T12:01:00.000Z',
+        ticket: 'ticket-1'
+      }),
       onError: (error) => {
         throw error
       },
-      onMessage: (message) => messages.push(message),
+      onStatus: (status) => statuses.push(status),
+      onTransient: (message) => transients.push(message),
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    expect(socket.url).toBe(`wss://live.example.test/live-session/${sessionId}`)
+    expect(socket.protocols).toEqual(['artificer.live-session.v1', 'artificer.ticket.ticket-1'])
+    socket.open()
+    await vi.waitFor(() =>
+      expect(socket.sent).toEqual(['{"accessToken":"access-token","type":"AUTHENTICATE"}'])
+    )
+    expect(statuses).not.toContain('CONNECTED')
+    connection.synchronizeScene(sceneId, 7, 3, 11)
+    expect(socket.sent).toHaveLength(1)
+    expect(connection.sendTransient(envelope)).toBe(false)
+    expect(socket.sent).toHaveLength(1)
+
+    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    expect(statuses.at(-1)).toBe('CONNECTED')
+    expect(JSON.parse(socket.sent[1]!) as unknown).toEqual({
+      expectedPresentationVersion: 11,
+      expectedSessionVersion: 3,
+      sceneId,
+      type: 'SYNCHRONIZE_SCENE',
+      version: 7
+    })
+    connection.synchronizeScene(sceneId, 7, 3, 11)
+    expect(socket.sent).toHaveLength(2)
+    connection.synchronizeScene(sceneId, 7, 3, 12)
+    expect(JSON.parse(socket.sent[2]!) as unknown).toEqual({
+      expectedPresentationVersion: 12,
+      expectedSessionVersion: 3,
+      sceneId,
+      type: 'SYNCHRONIZE_SCENE',
+      version: 7
+    })
+    expect(connection.sendTransient(envelope)).toBe(true)
+    expect(JSON.parse(socket.sent[3]!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
+
+    const broadcast = { envelope, userId }
+    socket.receive({ message: broadcast, type: 'TRANSIENT' })
+    expect(transients).toEqual([broadcast])
+    connection.close()
+  })
+
+  it('uses STATE_SYNC as command readiness, applies ordered commits, and surfaces rejection', async () => {
+    const durableStates: unknown[] = []
+    const errors: Error[] = []
+    const rejections: unknown[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onCommandRejected: (rejection) => rejections.push(rejection),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    expect(connection.sendCommand(command)).toBe(false)
+
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      recipientState: {
+        recipientRole: 'OWNER',
+        scene: { id: sceneId, version: 4 }
+      },
+      sequence: 4
+    })
+
+    const committed = connection.submitCommand(command)
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+      command,
+      expectedSessionSequence: 4,
+      type: 'COMMAND'
+    })
+    socket.receive({
+      commandId,
+      delta: {
+        result: {
+          commandId,
+          delta: { barrierId: door.id, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+          occurrence: null,
+          replayed: false,
+          sceneId,
+          version: 5
+        },
+        scope: 'SCENE'
+      },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    await expect(committed).resolves.toMatchObject({ commandId, sequence: 5 })
+    expect(durableStates.at(-1)).toMatchObject({
+      commandReady: true,
+      recipientState: { scene: { doorStates: { [door.id]: 'OPEN' }, version: 5 } },
+      sequence: 5
+    })
+
+    const rejectedCommand = {
+      ...command,
+      command: { ...command.command, commandId: '00000000-0000-4000-8000-000000000008' }
+    }
+    const rejected = connection.submitCommand(rejectedCommand)
+    socket.receive({
+      code: 'STALE_STATE',
+      commandId: rejectedCommand.command.commandId,
+      currentSequence: 5,
+      message: 'Scene state changed.',
+      type: 'COMMAND_REJECTED'
+    })
+    await expect(rejected).rejects.toThrow('Scene state changed.')
+    expect(rejections).toHaveLength(1)
+    expect(durableStates.at(-1)).toMatchObject({ sequence: 5 })
+
+    socket.receive({
+      commandId: '00000000-0000-4000-8000-000000000009',
+      delta: { sceneId, scope: 'SCENE_VERSION', version: 7 },
+      sequence: 7,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(errors.at(-1)?.message).toBe('Live play received commands out of order.')
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 5 })
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+      lastAppliedSequence: 5,
+      type: 'RESUME'
+    })
+    connection.close()
+  })
+
+  it('waits for the requested Scene before resending a pending command', async () => {
+    const durableStates: unknown[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => {
+        throw error
+      },
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    connection.synchronizeScene(sceneId, sceneState.version, 3, 11)
+    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+
+    const doorCommand = {
+      command: {
+        barrierId: door.id,
+        commandId: '00000000-0000-4000-8000-000000000008',
+        expectedSceneVersion: sceneState.version,
+        sceneId,
+        state: 'OPEN',
+        type: 'SET_SCENE_DOOR_STATE'
+      },
+      scope: 'SCENE'
+    } satisfies LiveSessionCommandDto
+    const committed = connection.submitCommand(doorCommand)
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+      command: doorCommand,
+      expectedSessionSequence: 4,
+      type: 'COMMAND'
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    socket.receive({ type: 'AUTHENTICATION_REQUIRED' })
+    await vi.waitFor(() =>
+      expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+        accessToken: 'access-token',
+        type: 'AUTHENTICATE'
+      })
+    )
+    const beforeRenewedReadiness = socket.sent.length
+    expect(connection.sendTransient(envelope)).toBe(false)
+    expect(socket.sent).toHaveLength(beforeRenewedReadiness)
+    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    expect(connection.sendTransient(envelope)).toBe(true)
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
+    const beforeUnsynchronizedState = socket.sent.length
+
+    socket.receive({ authorityEpoch, sequence: 4, state: recipientState, type: 'STATE_SYNC' })
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 4 })
+    expect(socket.sent).toHaveLength(beforeUnsynchronizedState)
+
+    const newerSceneState = { ...sceneState, version: 5 }
+    socket.receive({
+      authorityEpoch,
+      sequence: 5,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: newerSceneState },
+      type: 'STATE_SYNC'
+    })
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: true, sequence: 5 })
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+      command: doorCommand,
+      expectedSessionSequence: 4,
+      type: 'COMMAND'
+    })
+    const afterSynchronizedState = socket.sent.length
+
+    socket.receive({
+      authorityEpoch,
+      sequence: 5,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: newerSceneState },
+      type: 'STATE_SYNC'
+    })
+    expect(socket.sent).toHaveLength(afterSynchronizedState)
+
+    socket.receive({
+      commandId: doorCommand.command.commandId,
+      delta: {
+        result: {
+          commandId: doorCommand.command.commandId,
+          delta: { barrierId: door.id, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+          occurrence: null,
+          replayed: false,
+          sceneId,
+          version: 5
+        },
+        scope: 'SCENE'
+      },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    await expect(committed).resolves.toMatchObject({ sequence: 5 })
+    expect(durableStates.at(-1)).toMatchObject({
+      recipientState: { scene: { doorStates: { [door.id]: 'CLOSED' }, version: 5 } },
+      sequence: 5
+    })
+    connection.close()
+  })
+  it('applies visible and hidden Scene commits and resumes for stale or gapped versions', async () => {
+    const durableStates: unknown[] = []
+    const errors: Error[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+
+    socket.receive({
+      commandId,
+      delta: {
+        result: {
+          commandId,
+          delta: { barrierId: door.id, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+          occurrence: null,
+          replayed: false,
+          sceneId,
+          version: 5
+        },
+        scope: 'SCENE'
+      },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(durableStates.at(-1)).toMatchObject({
+      recipientState: { scene: { doorStates: { [door.id]: 'OPEN' }, version: 5 } },
+      sequence: 5
+    })
+
+    socket.receive({
+      commandId: '00000000-0000-4000-8000-000000000008',
+      delta: { sceneId, scope: 'SCENE_VERSION', version: 6 },
+      sequence: 6,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(durableStates.at(-1)).toMatchObject({
+      recipientState: { scene: { doorStates: { [door.id]: 'OPEN' }, version: 6 } },
+      sequence: 6
+    })
+
+    const correctedScene = { ...sceneState, version: 9 }
+    socket.receive({
+      code: 'STALE_STATE',
+      commandId: '00000000-0000-4000-8000-000000000009',
+      correction: { scope: 'SCENE', state: correctedScene },
+      currentSequence: 6,
+      message: 'Scene state changed.',
+      type: 'COMMAND_REJECTED'
+    })
+    expect(durableStates.at(-1)).toMatchObject({
+      recipientState: { scene: { doorStates: { [door.id]: 'CLOSED' }, version: 9 } },
+      sequence: 6
+    })
+
+    socket.receive({
+      commandId: '00000000-0000-4000-8000-000000000010',
+      delta: { sceneId, scope: 'SCENE_VERSION', version: 11 },
+      sequence: 7,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(errors.at(-1)?.message).toBe('Live play could not apply the next command.')
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 6 })
+    expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({
+      lastAppliedSequence: 6,
+      type: 'RESUME'
+    })
+
+    socket.receive({
+      authorityEpoch,
+      sequence: 6,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: correctedScene },
+      type: 'STATE_SYNC'
+    })
+    socket.receive({
+      commandId: '00000000-0000-4000-8000-000000000011',
+      delta: { sceneId, scope: 'SCENE_VERSION', version: 9 },
+      sequence: 7,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(errors.at(-1)?.message).toBe('Live play could not apply the next command.')
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 6 })
+    connection.close()
+  })
+  it('validates strict Scene synchronization messages', () => {
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        expectedPresentationVersion: 2,
+        expectedSessionVersion: 3,
+        sceneId,
+        type: 'SYNCHRONIZE_SCENE',
+        version: 0
+      }).success
+    ).toBe(true)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        expectedPresentationVersion: 2,
+        expectedSessionVersion: 3,
+        sceneId,
+        type: 'SYNCHRONIZE_SCENE',
+        version: -1
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        expectedPresentationVersion: 2,
+        expectedSessionVersion: 3,
+        extra: true,
+        sceneId,
+        type: 'SYNCHRONIZE_SCENE',
+        version: 1.5
+      }).success
+    ).toBe(false)
+  })
+
+  it('fetches a new token when authentication is requested', async () => {
+    const getAccessToken = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('initial-token')
+      .mockResolvedValueOnce('refreshed-token')
+    const statuses: string[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken,
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onError: (error) => {
+        throw error
+      },
       onStatus: (status) => statuses.push(status),
       onTransient: () => undefined,
       url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
-    const first = FakeSocket.instances[0]
-    expect(first?.url).toBe(`wss://live.example.test/live-session/${sessionId}`)
-    expect(first?.protocols).toEqual(['artificer.live-session.v1', 'artificer.ticket.ticket-1'])
-    first?.open()
-    first?.receive(readyMessage)
-    const pending = connection.executeCommand({
-      aggregateKind: 'SESSION',
-      command: {
-        commandId,
-        expectedPresentationVersion: null,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-      }
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    await Promise.resolve()
+    socket.receive({ type: 'AUTHENTICATION_REQUIRED' })
+    await vi.waitFor(() => expect(getAccessToken).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+    expect(JSON.parse(socket.sent[1]!) as unknown).toEqual({
+      accessToken: 'refreshed-token',
+      type: 'AUTHENTICATE'
+    })
+    expect(statuses.at(-1)).toBe('RECONNECTING')
+    connection.close()
+  })
+
+  it('waits for a server challenge before refreshing authentication', async () => {
+    vi.useFakeTimers()
+    const getAccessToken = vi.fn(async () => 'access-token')
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken,
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onError: (error) => {
+        throw error
+      },
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
     })
 
-    first?.close(1012, 'restart')
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(socket.sent).toHaveLength(1)
+    expect(getAccessToken).toHaveBeenCalledOnce()
+    connection.close()
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(socket.sent).toHaveLength(1)
+  })
+
+  it('reconnects with a fresh one-use ticket and resets backoff after transient readiness', async () => {
+    vi.useFakeTimers()
+    const getTicket = vi.fn(async () => ({
+      expiresAt: '2026-08-15T12:01:00.000Z',
+      ticket: `ticket-${getTicket.mock.calls.length}`
+    }))
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket,
+      onError: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const first = FakeSocket.instances[0]!
+    first.open()
+    await vi.waitFor(() => expect(first.sent).toHaveLength(1))
+    first.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    first.receive({ authorityEpoch, sequence: 4, state: recipientState, type: 'STATE_SYNC' })
+    const committed = connection.submitCommand(command)
+    expect(JSON.parse(first.sent.at(-1)!) as unknown).toEqual({
+      command,
+      expectedSessionSequence: 4,
+      type: 'COMMAND'
+    })
+    first.close(1012, 'restart')
     await vi.advanceTimersByTimeAsync(1_000)
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
-    const second = FakeSocket.instances[1]
-    expect(second?.protocols[1]).toBe('artificer.ticket.ticket-2')
-    second?.open()
-    second?.receive(readyMessage)
-
-    expect(second?.sent.map((message) => JSON.parse(message) as unknown)).toEqual([
-      {
-        lastSeenDeliverySequence: 0,
-        pendingCommandIds: [commandId],
-        type: 'RESUME'
-      },
-      {
-        command: {
-          aggregateKind: 'SESSION',
-          command: {
-            commandId,
-            expectedPresentationVersion: null,
-            sceneId: sceneDefinitionId,
-            sessionId,
-            type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-          }
-        },
-        type: 'COMMAND'
-      }
-    ])
-    second?.receive({
-      acceptedSequence: 1,
-      aggregateId: sessionId,
-      aggregateKind: 'SESSION',
-      changedAggregates: [{ aggregateId: sessionId, aggregateKind: 'SESSION', version: 1 }],
-      deliverySequence: 1,
-      originCommandId: commandId,
-      replayed: true,
-      response: {
-        commandId,
-        replayed: true,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        version: 1
-      },
-      type: 'COMMAND_COMMITTED',
-      version: 1
+    const second = FakeSocket.instances[1]!
+    expect(second.protocols[1]).toBe('artificer.ticket.ticket-2')
+    second.open()
+    await vi.waitFor(() => expect(second.sent).toHaveLength(1))
+    second.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    second.receive({
+      authorityEpoch,
+      sequence: 5,
+      state: recipientState,
+      type: 'STATE_SYNC'
     })
-    await expect(pending).resolves.toMatchObject({ originCommandId: commandId, replayed: true })
-    expect(messages.map(({ type }) => type)).toEqual(['READY', 'READY', 'COMMAND_COMMITTED'])
-    expect(statuses).toContain('RECONNECTING')
-    connection.close()
-  })
-
-  it('backs off failed admission attempts and resets only after an authoritative READY', async () => {
-    vi.useFakeTimers()
-    const connection = createLiveSessionConnection({
-      createSocket: (url, protocols) => new FakeSocket(url, protocols),
-      getTicket: vi.fn(async () => ({
-        expiresAt: '2026-08-15T12:01:00.000Z',
-        ticket: `ticket-${FakeSocket.instances.length + 1}`
-      })),
-      onError: () => undefined,
-      onMessage: () => undefined,
-      onStatus: () => undefined,
-      onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    expect(JSON.parse(second.sent.at(-1)!) as unknown).toEqual({
+      command,
+      expectedSessionSequence: 4,
+      type: 'COMMAND'
     })
+    second.receive({ commandId, delta: null, sequence: 5, type: 'COMMAND_COMMITTED' })
+    await expect(committed).resolves.toMatchObject({ commandId, sequence: 5 })
+    second.receive({ authorityEpoch, sequence: 8, state: recipientState, type: 'STATE_SYNC' })
 
-    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
-    const delays = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000]
-    for (const [index, delay] of delays.entries()) {
-      FakeSocket.instances.at(-1)?.close(1012, 'unavailable')
-      await vi.advanceTimersByTimeAsync(delay - 1)
-      expect(FakeSocket.instances).toHaveLength(index + 1)
-      await vi.advanceTimersByTimeAsync(1)
-      await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(index + 2))
-    }
-
-    const admitted = FakeSocket.instances.at(-1)!
-    admitted.open()
-    admitted.receive(readyMessage)
-    admitted.close(1012, 'restart')
+    second.close(1012, 'restart')
     await vi.advanceTimersByTimeAsync(999)
-    expect(FakeSocket.instances.at(-1)).toBe(admitted)
+    expect(FakeSocket.instances).toHaveLength(2)
     await vi.advanceTimersByTimeAsync(1)
-    await vi.waitFor(() => expect(FakeSocket.instances.at(-1)).not.toBe(admitted))
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(3))
+    const third = FakeSocket.instances[2]!
+    expect(third.protocols[1]).toBe('artificer.ticket.ticket-3')
+    third.open()
+    await vi.waitFor(() => expect(third.sent).toHaveLength(1))
+    third.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    expect(JSON.parse(third.sent[1]!) as unknown).toEqual({
+      lastAppliedSequence: 8,
+      type: 'RESUME'
+    })
+    expect(getTicket).toHaveBeenCalledTimes(3)
     connection.close()
   })
 
-  it('resolves authoritative command responses and rejects terminal command failures', async () => {
+  it('closes invalid messages and reports a generic authentication failure', async () => {
+    const onError = vi.fn()
     const connection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),
-      getTicket: async () => ({
-        expiresAt: '2026-08-15T12:01:00.000Z',
-        ticket: 'ticket'
-      }),
-      onError: (error) => {
-        throw error
-      },
-      onMessage: () => undefined,
+      getAccessToken: async () => Promise.reject(new Error('upstream secret')),
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onError,
       onStatus: () => undefined,
       onTransient: () => undefined,
       url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
     })
+
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const socket = FakeSocket.instances[0]!
     socket.open()
-    socket.receive(readyMessage)
-
-    const committed = connection.executeCommand({
-      aggregateKind: 'SESSION',
-      command: {
-        commandId,
-        expectedPresentationVersion: null,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-      }
+    await vi.waitFor(() =>
+      expect(onError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unable to authenticate live play.' })
+      )
+    )
+    expect(onError).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'upstream secret' })
+    )
+    expect(socket.sent).toEqual([])
+    expect(socket.closedWith).toEqual({
+      code: 4001,
+      reason: 'Live-session authentication failed.'
     })
-    socket.receive({
-      acceptedSequence: 1,
-      aggregateId: sessionId,
-      aggregateKind: 'SESSION',
-      changedAggregates: [{ aggregateId: sessionId, aggregateKind: 'SESSION', version: 1 }],
-      deliverySequence: 1,
-      originCommandId: commandId,
-      replayed: false,
-      response: {
-        commandId,
-        replayed: false,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        version: 1
-      },
-      type: 'COMMAND_COMMITTED',
-      version: 1
-    })
-    await expect(committed).resolves.toMatchObject({
-      aggregateKind: 'SESSION',
-      originCommandId: commandId,
-      version: 1
-    })
-
-    const rejectedCommandId = '00000000-0000-4000-8000-000000000006'
-    const rejected = connection.executeCommand({
-      aggregateKind: 'SESSION',
-      command: {
-        commandId: rejectedCommandId,
-        expectedPresentationVersion: 1,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-      }
-    })
-    socket.receive({
-      code: 'STALE_VERSION',
-      commandId: rejectedCommandId,
-      message: 'The scene changed before this command committed.',
-      type: 'COMMAND_REJECTED'
-    })
-    await expect(rejected).rejects.toThrow('The scene changed before this command committed.')
     connection.close()
-  })
 
-  it('rejects pending commands when connection authorization is revoked', async () => {
-    const connection = createLiveSessionConnection({
+    const invalidError = vi.fn()
+    const invalidConnection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),
-      getTicket: async () => ({
-        expiresAt: '2026-08-15T12:01:00.000Z',
-        ticket: 'ticket'
-      }),
-      onError: (error) => {
-        throw error
-      },
-      onMessage: () => undefined,
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket-2' }),
+      onError: invalidError,
       onStatus: () => undefined,
       onTransient: () => undefined,
       url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
     })
-    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
-    const socket = FakeSocket.instances[0]!
-    socket.open()
-    socket.receive(readyMessage)
-
-    const first = connection.executeCommand({
-      aggregateKind: 'SESSION',
-      command: {
-        commandId,
-        expectedPresentationVersion: null,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-      }
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
+    const invalidSocket = FakeSocket.instances[1]!
+    invalidSocket.open()
+    await vi.waitFor(() => expect(invalidSocket.sent).toHaveLength(1))
+    invalidSocket.receiveRaw('{invalid')
+    expect(invalidError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'The live-session host returned an invalid message.' })
+    )
+    expect(invalidSocket.closedWith).toEqual({
+      code: 4002,
+      reason: 'Invalid live-session message.'
     })
-    const second = connection.executeCommand({
-      aggregateKind: 'SESSION',
-      command: {
-        commandId: '00000000-0000-4000-8000-000000000007',
-        expectedPresentationVersion: null,
-        sceneId: sceneDefinitionId,
-        sessionId,
-        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-      }
-    })
-    const firstRejection = expect(first).rejects.toThrow('Campaign membership changed.')
-    const secondRejection = expect(second).rejects.toThrow('Campaign membership changed.')
-
-    socket.receive({
-      code: 'UNAUTHORIZED',
-      commandId: null,
-      message: 'Campaign membership changed.',
-      type: 'COMMAND_REJECTED'
-    })
-
-    await Promise.all([firstRejection, secondRejection])
-    connection.close()
+    invalidConnection.close()
   })
 
   it('rejects unsupported endpoint protocols before connecting', () => {

@@ -16,8 +16,7 @@
     "test-results/**",
     "playwright-report/**",
     "**/*.d.ts",
-    "**/routeTree.gen.ts",
-    "packages/db/src/types/supabase.database.ts"
+    "**/routeTree.gen.ts"
   ],
   "printWidth": 100,
   "semi": false,

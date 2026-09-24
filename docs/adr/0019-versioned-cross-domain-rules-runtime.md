@@ -1,11 +1,13 @@
 # ADR 0019: Versioned cross-domain rules runtime
 
-- **Status:** historical — superseded by ADRs 0023 and 0024
+- **Status:** historical — superseded by [ADRs 0023](0023-shared-rules-kernel-and-system-capabilities.md), [0024](0024-current-published-authored-content.md), and [0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-13
 - **Scope:** Character, Encounter, and future VTT mechanical evaluation; rule-pack revisions and migration from the TypeScript engine
 - **Update when:** evaluator boundary, revision identity, model contract, Character pin policy, command responsibility, or migration gate changes
 - **Verification:** rule-pack revision and Character finalization/upgrade contracts; Character and Encounter evaluator conformance fixtures
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) makes version-matched Character mechanics projections durable correctness read models; Zen remains the single rules authority.
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) made version-matched Character mechanics projections durable correctness read models during this architecture's lifetime.
+
+> Everything below records the retired Zen, rule-pack, SQL, and session-host architecture. ADRs 0023, 0024, and 0029 are current.
 
 ## Context
 

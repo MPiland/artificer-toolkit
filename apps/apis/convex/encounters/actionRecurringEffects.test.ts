@@ -1,0 +1,532 @@
+// @vitest-environment node
+import { expect, it } from 'vitest'
+import {
+  encounterCommandResultDtoSchema,
+  encounterGmProjectionDtoSchema,
+  type EncounterCommandResultDto,
+  type EncounterExecuteInput
+} from '@artificer-toolkit/schema/api/encounters'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import {
+  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_RULE_STATE_DEFINITIONS
+} from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { fixture } from '../../tests/fixtures/characters'
+import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
+import { importedSubject } from '../../tests/fixtures/publication'
+import { api, internal } from '../_generated/api'
+
+const recurringCreatureId = '00000000-0000-4000-8000-0000000008c0'
+const recurringFeatureId = '00000000-0000-4000-8000-0000000008c1'
+const recurringEffectId = '00000000-0000-4000-8000-0000000008c2'
+
+function recurringCreature(kind: 'HEAL' | 'SAVE_DAMAGE') {
+  const bite = wolf.features?.find((feature) => feature.label === 'Bite')
+  const dexterity = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')
+  const slashing = srdSystemRecord.damageTypes?.find((damageType) => damageType.code === 'SLASHING')
+  if (!bite || !dexterity || !slashing)
+    throw new Error('Recurring action fixture requires Wolf Bite, Dexterity, and Slashing.')
+  return {
+    ...wolf,
+    id: recurringCreatureId,
+    label: `Recurring ${kind} creature`,
+    features: wolf.features?.map((feature) =>
+      feature.id !== bite.id
+        ? feature
+        : {
+            ...feature,
+            id: recurringFeatureId,
+            effects: feature.effects?.slice(0, 1).map((effect) => ({
+              ...effect,
+              id: recurringEffectId,
+              invocation:
+                kind === 'HEAL'
+                  ? {
+                      ...effect.invocation,
+                      triggerCode: 'ACTIVATED' as const,
+                      range: { id: effect.invocation.range.id, rangeKind: 'SELF' as const },
+                      targeting: { selectionKind: 'SELF' as const }
+                    }
+                  : {
+                      ...effect.invocation,
+                      triggerCode: 'SAVING_THROW' as const,
+                      savingThrow: {
+                        id: '00000000-0000-4000-8000-0000000008c3',
+                        dcMethod: 'FIXED_DC' as const,
+                        abilityDefinitionId: dexterity.id,
+                        baseDc: 10
+                      },
+                      range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
+                      targeting: {
+                        selectionKind: 'SINGLE_TARGET' as const,
+                        dispositionKind: 'ANY' as const
+                      }
+                    },
+              paths: effect.paths?.slice(0, 1).map((path) =>
+                !('resultBlock' in path)
+                  ? path
+                  : {
+                      ...path,
+                      pathCode: kind === 'HEAL' ? ('ON_USE' as const) : ('ON_SAVE_FAIL' as const),
+                      resultBlock: {
+                        ...path.resultBlock,
+                        id: '00000000-0000-4000-8000-0000000008c4',
+                        duration: {
+                          id: '00000000-0000-4000-8000-0000000008c5',
+                          durationKind: 'ROUND' as const,
+                          amount: 2
+                        },
+                        lifecycle: { recurringKind: 'START_OF_TURN' as const },
+                        outcomes:
+                          kind === 'HEAL'
+                            ? [
+                                {
+                                  id: '00000000-0000-4000-8000-0000000008c6',
+                                  effectKind: 'HEAL' as const,
+                                  valueKind: 'FIXED' as const,
+                                  scalingKind: 'NONE' as const,
+                                  amount: 1
+                                }
+                              ]
+                            : [
+                                {
+                                  id: '00000000-0000-4000-8000-0000000008c7',
+                                  effectKind: 'DAMAGE' as const,
+                                  damageTypeId: slashing.id,
+                                  valueKind: 'FIXED' as const,
+                                  scalingKind: 'NONE' as const,
+                                  amount: 1
+                                }
+                              ]
+                      }
+                    }
+              )
+            }))
+          }
+    )
+  }
+}
+
+async function settleStart(
+  base: Awaited<ReturnType<typeof fixture>>,
+  result: EncounterCommandResultDto
+) {
+  let current = result
+  for (let resolutions = 0; current.occurrence?.status === 'PENDING'; resolutions++) {
+    expect(resolutions).toBeLessThan(20)
+    const pending = current.occurrence.pending
+    const resolution =
+      pending?.kind === 'INITIATIVE_EVIDENCE'
+        ? {
+            kind: 'ENTER_INTEGER' as const,
+            requestId: pending.request.requestId,
+            value: pending.request.max
+          }
+        : pending?.kind === 'INITIATIVE_ORDER'
+          ? {
+              kind: 'INITIATIVE_ENTITY' as const,
+              requestId: pending.requestId,
+              entityId: pending.optionIds[0]!
+            }
+          : (() => {
+              throw new Error(
+                'Recurring action fixture requested an unsupported initiative continuation.'
+              )
+            })()
+    current = encounterCommandResultDtoSchema.parse(
+      await base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: current.projection.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: current.projection.version,
+          correlationId: null,
+          occurrenceId: current.occurrence.occurrenceId,
+          expectedOccurrenceVersion: current.occurrence.occurrenceVersion,
+          resolution
+        }
+      })
+    )
+  }
+  return current
+}
+
+async function recurringFixture(
+  kind: 'HEAL' | 'SAVE_DAMAGE',
+  automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC'
+) {
+  const base = await fixture()
+  const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
+  await base.t.mutation(internal.content.import.bootstrap, policies.bootstrap)
+  await base.t.mutation(internal.content.import.importDefinitions, policies.imported)
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: SRD_RULE_STATE_DEFINITIONS.filter(
+      (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
+    )
+  })
+  const creature = recurringCreature(kind)
+  await base.t.mutation(internal.content.import.importSubjects, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
+  })
+  let campaign = await base.owner.caller.mutation(api.campaigns.create.create, {
+    name: 'Recurring action fixture',
+    format: 'ONGOING',
+    toneTags: ['HEROIC'],
+    contentMaturity: 'STANDARD',
+    gameSystemId: srdSystemRecord.id,
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+  })
+  campaign = await base.owner.caller.mutation(api.campaigns.update.update, {
+    campaignId: campaign.id,
+    expectedVersion: campaign.version,
+    additionalRulesCatalogueIds: [policies.bootstrap.catalogue.id]
+  })
+  const settings = await base.owner.caller.query(api.campaigns.playSettings.get, {
+    campaignId: campaign.id
+  })
+  const { version, updatedAt: _updatedAt, ...fields } = settings
+  await base.owner.caller.mutation(api.campaigns.playSettings.save, {
+    ...fields,
+    expectedVersion: version,
+    automationMode,
+    initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+    initiativeTieDefinitionId: null
+  })
+  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
+    campaignId: campaign.id
+  })
+  const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
+    gameSystemId: campaign.gameSystemId,
+    name: 'Recurring action fixture',
+    commandId: crypto.randomUUID(),
+    enemies: Array.from({ length: kind === 'HEAL' ? 1 : 2 }, () => ({
+      kind: 'CREATURE' as const,
+      sourceId: recurringCreatureId
+    }))
+  })
+  let run = await base.owner.caller.mutation(api.encounters.runs.create, {
+    campaignId: campaign.id,
+    sessionId: session.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  run = encounterGmProjectionDtoSchema.parse(
+    (
+      await settleStart(
+        base,
+        encounterCommandResultDtoSchema.parse(
+          await base.owner.caller.mutation(api.encounters.commands.execute, {
+            command: {
+              type: 'START',
+              encounterId: run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: run.version
+            }
+          })
+        )
+      )
+    ).projection
+  )
+  const sources = run.actors.filter(
+    (actor) => actor.kind === 'CREATURE' && actor.sourceId === recurringCreatureId
+  )
+  const actor = sources[0]
+  const target = kind === 'HEAL' ? actor : sources[1]
+  if (!actor || !target) throw new Error('Recurring action fixture actors are unavailable.')
+  if (run.currentActorId !== actor.id)
+    run = encounterGmProjectionDtoSchema.parse(
+      (
+        await base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: {
+            type: 'SET_CURRENT_ACTOR',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: run.version,
+            actorId: actor.id
+          }
+        })
+      ).projection
+    )
+  return { base, run, actor, target }
+}
+
+async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
+  return base.base.t.run(async (ctx) => ({
+    effects: await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', base.run.id)
+      )
+      .take(3),
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+      .take(10)
+  }))
+}
+
+function actionInput(base: Awaited<ReturnType<typeof recurringFixture>>) {
+  return {
+    type: 'RESOLVE_ACTION' as const,
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: base.run.version,
+    actorId: base.actor.id,
+    targetActorId: base.target.id,
+    actionId: `${base.actor.id}:FEATURE:${recurringFeatureId}:EFFECT:${recurringEffectId}`,
+    optionalCombatIntent: null,
+    sceneContext: null
+  }
+}
+
+function diceResponse(encounterId: string, input: unknown) {
+  const pendingResult = encounterCommandResultDtoSchema.parse(input)
+  const pending = pendingResult.occurrence?.pending
+  if (!pending || pending.kind !== 'D20_EVIDENCE')
+    throw new Error('Expected recurring damage d20 evidence.')
+  return {
+    command: {
+      type: 'RESOLVE_RULE_OCCURRENCE' as const,
+      encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pendingResult.projection.version,
+      correlationId: null,
+      occurrenceId: pendingResult.occurrence!.occurrenceId,
+      expectedOccurrenceVersion: pendingResult.occurrence!.occurrenceVersion,
+      resolution: {
+        kind: 'ENTER_DICE' as const,
+        requestId: pending.request.requestId,
+        rawFaces: [1]
+      }
+    }
+  } satisfies EncounterExecuteInput
+}
+
+it('creates, ticks, expires, and replays a recurring heal after zero healing at maximum HP', async () => {
+  const base = await recurringFixture('HEAL')
+  const action = actionInput(base)
+  expect(base.actor.currentHitPoints).toBe(base.actor.maxHitPoints)
+  const created = await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+    command: action
+  })
+  expect(created.occurrence?.status).toBe('COMPLETE')
+  const afterAction = await stored(base)
+  expect(afterAction.effects).toHaveLength(1)
+  expect(afterAction.effects[0]).toMatchObject({
+    targetActorId: base.actor.id,
+    lifecycle: { remainingTicks: 2 }
+  })
+  const receipt = afterAction.receipts.find((row) => row.commandId === action.commandId)
+  if (!receipt) throw new Error('Recurring heal action receipt is missing.')
+  const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+  expect(execution).toMatchObject({
+    status: 'COMPLETE',
+    applicationOutputs: {
+      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+      activeEffectTransitions: [expect.objectContaining({ kind: 'CREATE' })]
+    }
+  })
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, { command: action })
+  ).resolves.toEqual(created)
+  expect(await stored(base)).toEqual(afterAction)
+
+  let projection = encounterGmProjectionDtoSchema.parse(
+    (
+      await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: created.projection.version,
+          actorId: base.actor.id,
+          currentHitPoints: base.actor.maxHitPoints - 2
+        }
+      })
+    ).projection
+  )
+  const firstAdvance: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const firstTick = await base.base.owner.caller.mutation(
+    api.encounters.commands.execute,
+    firstAdvance
+  )
+  projection = encounterGmProjectionDtoSchema.parse(firstTick.projection)
+  expect(projection.actors.find((actor) => actor.id === base.actor.id)?.currentHitPoints).toBe(
+    base.actor.maxHitPoints - 1
+  )
+  expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+  ).resolves.toEqual(firstTick)
+
+  const secondAdvance: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const expired = await base.base.owner.caller.mutation(
+    api.encounters.commands.execute,
+    secondAdvance
+  )
+  expect(
+    encounterGmProjectionDtoSchema
+      .parse(expired.projection)
+      .actors.find((actor) => actor.id === base.actor.id)?.currentHitPoints
+  ).toBe(base.actor.maxHitPoints)
+  expect((await stored(base)).effects).toEqual([])
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, secondAdvance)
+  ).resolves.toEqual(expired)
+}, 30000)
+
+it.each([
+  { face: 1, effects: 1, label: 'failed save' },
+  { face: 20, effects: 0, label: 'successful save' }
+])('creates recurring damage only for the selected $label branch', async ({ face, effects }) => {
+  const base = await recurringFixture('SAVE_DAMAGE', 'ASSISTED')
+  const action = actionInput(base)
+  const issued = await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+    command: action
+  })
+  expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
+  const pending = await base.base.owner.caller.query(
+    api.encounters.pendingReads.pendingRuleOccurrence,
+    {
+      encounterId: base.run.id
+    }
+  )
+  if (!pending || pending.kind !== 'D20_EVIDENCE')
+    throw new Error('Recurring save evidence is missing.')
+  const response: EncounterExecuteInput = {
+    command: {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      correlationId: null,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+      }
+    }
+  }
+  const settled = await base.base.owner.caller.mutation(api.encounters.commands.execute, response)
+  expect(settled.occurrence?.status).toBe('COMPLETE')
+  expect((await stored(base)).effects).toHaveLength(effects)
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, { command: action })
+  ).resolves.toEqual(settled)
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, response)
+  ).resolves.toEqual(settled)
+  const afterAction = await stored(base)
+  expect(afterAction.effects).toHaveLength(effects)
+  if (effects === 0) return
+
+  expect(
+    encounterGmProjectionDtoSchema
+      .parse(settled.projection)
+      .actors.find((actor) => actor.id === base.target.id)?.currentHitPoints
+  ).toBe(base.target.currentHitPoints - 1)
+
+  let projection = encounterGmProjectionDtoSchema.parse(settled.projection)
+  const firstAdvance: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const firstPending = await base.base.owner.caller.mutation(
+    api.encounters.commands.execute,
+    firstAdvance
+  )
+  expect(firstPending.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+  ).resolves.toEqual(firstPending)
+  const firstResponse = diceResponse(base.run.id, firstPending)
+  const firstTick = await base.base.owner.caller.action(
+    api.encounters.commandActions.execute,
+    firstResponse
+  )
+  projection = encounterGmProjectionDtoSchema.parse(firstTick.projection)
+  expect(projection.actors.find((actor) => actor.id === base.target.id)?.currentHitPoints).toBe(
+    base.target.currentHitPoints - 2
+  )
+  expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
+  await expect(
+    base.base.owner.caller.action(api.encounters.commandActions.execute, firstResponse)
+  ).resolves.toEqual(firstTick)
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+  ).resolves.toEqual(firstTick)
+
+  const bridgeAdvance: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const bridged = await base.base.owner.caller.mutation(
+    api.encounters.commands.execute,
+    bridgeAdvance
+  )
+  projection = encounterGmProjectionDtoSchema.parse(bridged.projection)
+  expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
+
+  const finalAdvance: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version
+    }
+  }
+  const finalPending = await base.base.owner.caller.mutation(
+    api.encounters.commands.execute,
+    finalAdvance
+  )
+  expect(finalPending.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
+  const finalResponse = diceResponse(base.run.id, finalPending)
+  const expired = await base.base.owner.caller.action(
+    api.encounters.commandActions.execute,
+    finalResponse
+  )
+  expect(
+    encounterGmProjectionDtoSchema
+      .parse(expired.projection)
+      .actors.find((actor) => actor.id === base.target.id)?.currentHitPoints
+  ).toBe(base.target.currentHitPoints - 3)
+  expect((await stored(base)).effects).toEqual([])
+  await expect(
+    base.base.owner.caller.action(api.encounters.commandActions.execute, finalResponse)
+  ).resolves.toEqual(expired)
+  await expect(
+    base.base.owner.caller.mutation(api.encounters.commands.execute, finalAdvance)
+  ).resolves.toEqual(expired)
+})

@@ -1,0 +1,386 @@
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
+import type {
+  CompiledActionEntryPoint,
+  CharacterInitiativeActorFacts
+} from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
+import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
+import type { ServerInitiativeDeclarationRequestDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import { assertEncounterFeatureActionCapabilityCurrent } from './encounterFeatureActionCapabilityDiscovery.js'
+import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+
+export type InitiativeDeclarationSelection =
+  | { kind: 'CHARACTER_ACTION'; optionId: string }
+  | { kind: 'CHARACTER_SPELL_CAST'; optionId: string }
+  | { kind: 'CREATURE_FEATURE_ACTION'; optionId: string }
+  | {
+      kind: 'GM_ADJUDICATED'
+      optionId: 'GM_ADJUDICATED'
+      actorSize: string
+      actionFactors: readonly (
+        | 'MELEE_HEAVY'
+        | 'MELEE_LIGHT_OR_FINESSE'
+        | 'MELEE_TWO_HANDED'
+        | 'RANGED_LOADING'
+      )[]
+      spellLevel: number | null
+    }
+
+type Actor = Parameters<typeof discoverEncounterFeatureActionCapabilities>[0]['actor']
+type CreatureSystem = {
+  conditionTypes: readonly { id: string }[]
+  abilities?: readonly { id: string; code: string }[]
+}
+export type InitiativeDeclarationSource =
+  | {
+      kind: 'CHARACTER'
+      actor: Actor
+      mechanics: {
+        rulePolicyInput: Pick<CharacterRulePolicyInput, 'actionCandidates' | 'spellCastCandidates'>
+        rulePolicyOutput: Pick<CharacterRulePolicyOutput, 'spellCastMechanics'>
+        compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
+        initiativeActorFacts: CharacterInitiativeActorFacts
+        authoredVersionVector: AuthoredVersionVector
+      }
+    }
+  | { kind: 'CREATURE'; actor: Actor; system?: CreatureSystem }
+  | { kind: 'CUSTOM'; actor: Pick<Actor, 'id'> }
+
+type Option = ServerInitiativeDeclarationRequestDto['primaryOptions'][number]
+function creatureCapabilities(source: Extract<InitiativeDeclarationSource, { kind: 'CREATURE' }>) {
+  return discoverEncounterFeatureActionCapabilities({
+    actor: source.actor,
+    conditionDefinitionIds: source.system?.conditionTypes.map((condition) => condition.id),
+    abilityDefinitions: source.system?.abilities
+  })
+}
+function publishedChecksum(entry: CompiledActionEntryPoint): string {
+  if (entry.compilation.kind !== 'COMPILED')
+    throw new EncounterValidationError('The declared Character action is not executable.')
+  return entry.schemaVersion === 4
+    ? (entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
+        ? entry.compilation.executionPlan.published
+        : entry.compilation.executionPlan.test.published
+      ).checksum
+    : entry.compilation.published.checksum
+}
+
+function spellVersion(
+  source: Extract<InitiativeDeclarationSource, { kind: 'CHARACTER' }>,
+  spellId: string
+) {
+  const matches = source.mechanics.authoredVersionVector.filter(
+    (entry) => entry.subjectKind === 'SPELL' && entry.subjectId === spellId
+  )
+  if (matches.length !== 1)
+    throw new EncounterValidationError(
+      'The declared spell lacks one exact pinned authored version.'
+    )
+  return matches[0]!
+}
+function options(source: InitiativeDeclarationSource) {
+  if (source.kind === 'CUSTOM') {
+    const primaryOptions: Option[] = [
+      {
+        kind: 'GM_ADJUDICATED',
+        optionId: 'GM_ADJUDICATED',
+        label: 'GM adjudication',
+        selectionContract: checksumRuleDocument({
+          kind: 'GM_ADJUDICATED',
+          actorId: source.actor.id
+        })
+      }
+    ]
+    const adjudicationFields: ServerInitiativeDeclarationRequestDto['adjudicationFields'] = [
+      {
+        kind: 'SELECT',
+        key: 'actorSize',
+        label: 'Actor size',
+        required: true,
+        options: ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
+          value,
+          label: value[0]! + value.slice(1).toLowerCase()
+        }))
+      },
+      {
+        kind: 'MULTI_SELECT',
+        key: 'actionFactors',
+        label: 'Action factors',
+        minimumSelections: 0,
+        maximumSelections: 4,
+        options: [
+          { value: 'MELEE_HEAVY', label: 'Melee heavy' },
+          { value: 'MELEE_LIGHT_OR_FINESSE', label: 'Melee light or finesse' },
+          { value: 'MELEE_TWO_HANDED', label: 'Melee two-handed' },
+          { value: 'RANGED_LOADING', label: 'Ranged loading' }
+        ]
+      },
+      { kind: 'NULLABLE_INTEGER', key: 'spellLevel', label: 'Spell level', minimum: 0, maximum: 99 }
+    ]
+    return {
+      primaryOptions,
+      bonusOptions: [],
+      adjudicationFields,
+      sourceOptionsChecksum: checksumRuleDocument({
+        primaryOptions,
+        bonusOptions: [],
+        adjudicationFields
+      })
+    }
+  }
+  if (source.kind === 'CREATURE') {
+    const primaryOptions = creatureCapabilities(source)
+      .map((capability) => ({
+        kind: 'CREATURE_FEATURE_ACTION' as const,
+        optionId: capability.actionId,
+        label: capability.label ?? 'Feature action',
+        selectionContract: checksumRuleDocument({
+          kind: 'CREATURE_FEATURE_ACTION',
+          actionId: capability.actionId,
+          creatureSourceId: capability.creatureSourceId,
+          sourceRevision: capability.sourceRevision,
+          sourceVersionId: capability.sourceVersionId,
+          sourceChecksum: capability.sourceChecksum,
+          compiledEffectChecksum: capability.compiledEffectChecksum
+        })
+      }))
+      .sort((a, b) => a.optionId.localeCompare(b.optionId))
+    if (!primaryOptions.length)
+      throw new EncounterValidationError(
+        'The Creature has no exact initiative declaration options.'
+      )
+    return {
+      primaryOptions,
+      bonusOptions: [],
+      adjudicationFields: [],
+      sourceOptionsChecksum: checksumRuleDocument({
+        primaryOptions,
+        bonusOptions: [],
+        adjudicationFields: []
+      })
+    }
+  }
+  const choices: Array<Option & { bonus: boolean }> = []
+  for (const candidate of source.mechanics.rulePolicyInput.actionCandidates) {
+    const entry = source.mechanics.compiledActionEntryPoints.find(
+      (value) => value.actionId === candidate.actionId
+    )
+    if (!entry || entry.compilation.kind !== 'COMPILED') continue
+    const activationCode = candidate.mechanicFacts.invocation.activation?.code ?? null
+    choices.push({
+      kind: 'CHARACTER_ACTION',
+      optionId: candidate.actionId,
+      label: candidate.label ?? (activationCode === 'BONUS_ACTION' ? 'Bonus action' : 'Action'),
+      selectionContract: checksumRuleDocument({
+        kind: 'CHARACTER_ACTION',
+        optionId: candidate.actionId,
+        sourceChecksum: publishedChecksum(entry),
+        activationCode
+      }),
+      bonus: activationCode === 'BONUS_ACTION'
+    })
+  }
+  for (const candidate of source.mechanics.rulePolicyInput.spellCastCandidates) {
+    if (
+      !source.mechanics.rulePolicyOutput.spellCastMechanics.some(
+        (value) => value.candidateId === candidate.candidateId
+      )
+    )
+      continue
+    const version = spellVersion(source, candidate.spellId)
+    choices.push({
+      kind: 'CHARACTER_SPELL_CAST',
+      optionId: candidate.candidateId,
+      label: candidate.label ?? 'Spell cast',
+      selectionContract: checksumRuleDocument({
+        kind: 'CHARACTER_SPELL_CAST',
+        optionId: candidate.candidateId,
+        spellId: candidate.spellId,
+        castLevel: candidate.castLevel,
+        spellVersionId: version.versionId,
+        spellVersion: version.version,
+        spellChecksum: version.checksum
+      }),
+      bonus: false
+    })
+  }
+  choices.sort((a, b) => a.optionId.localeCompare(b.optionId))
+  const primaryOptions = choices.map(({ bonus: _bonus, ...choice }) => choice)
+  const bonusOptions = choices
+    .filter((choice) => choice.bonus)
+    .map(({ bonus: _bonus, ...choice }) => choice)
+  if (!primaryOptions.length)
+    throw new EncounterValidationError('The Character has no exact initiative declaration options.')
+  return {
+    primaryOptions,
+    bonusOptions,
+    adjudicationFields: [],
+    sourceOptionsChecksum: checksumRuleDocument({
+      primaryOptions,
+      bonusOptions,
+      adjudicationFields: []
+    })
+  }
+}
+export function createEncounterInitiativeDeclarationRequest(input: {
+  requestId: string
+  encounterId: string
+  round: number
+  actorId: string
+  participantExpectedVersion: number
+  controllerUserId: string | null
+  source: InitiativeDeclarationSource
+}): ServerInitiativeDeclarationRequestDto {
+  return {
+    requestId: input.requestId,
+    kind: 'INITIATIVE_DECLARATION',
+    encounterId: input.encounterId,
+    round: input.round,
+    actorId: input.actorId,
+    participantExpectedVersion: input.participantExpectedVersion,
+    controllerUserId: input.controllerUserId,
+    ...options(input.source)
+  }
+}
+export function compileEncounterInitiativeDeclaration(input: {
+  source: InitiativeDeclarationSource
+  primary: InitiativeDeclarationSelection
+  bonus: InitiativeDeclarationSelection | null
+}): { declaration: InitiativeDeclarationFactsDto; checksum: string } {
+  const compile = (
+    selection: InitiativeDeclarationSelection
+  ): InitiativeDeclarationFactsDto['primary'] => {
+    if (input.source.kind === 'CUSTOM') {
+      if (selection.kind !== 'GM_ADJUDICATED')
+        throw new EncounterValidationError(
+          'Custom initiative declarations require GM adjudication.'
+        )
+      return {
+        kind: 'GM_ADJUDICATED',
+        optionId: 'GM_ADJUDICATED',
+        actorId: input.source.actor.id,
+        actionFactors: [...selection.actionFactors].sort(),
+        spellLevel: selection.spellLevel
+      }
+    }
+    if (input.source.kind === 'CREATURE') {
+      if (selection.kind !== 'CREATURE_FEATURE_ACTION')
+        throw new EncounterValidationError(
+          'Creature initiative declarations require an immutable Feature action.'
+        )
+      const capability = creatureCapabilities(input.source).find(
+        (value) => value.actionId === selection.optionId
+      )
+      if (!capability)
+        throw new EncounterConflictError('The declared Creature action is unavailable.')
+      assertEncounterFeatureActionCapabilityCurrent({ actor: input.source.actor, capability })
+      return {
+        kind: 'CREATURE_FEATURE_ACTION',
+        optionId: capability.actionId,
+        actorId: input.source.actor.id,
+        creatureSourceId: capability.creatureSourceId,
+        sourceRevision: capability.sourceRevision,
+        sourceVersionId: capability.sourceVersionId,
+        sourceChecksum: capability.sourceChecksum,
+        ownerFeatureId: capability.ownerFeatureId,
+        featureOptionId: capability.featureOptionId,
+        effectId: capability.effectId,
+        compiledEffectChecksum: capability.compiledEffectChecksum,
+        activationCode: capability.mechanicFacts.invocation.activation?.code ?? null,
+        featureResourceUse: capability.featureResourceUse
+      }
+    }
+    if (selection.kind === 'CHARACTER_ACTION') {
+      const candidate = input.source.mechanics.rulePolicyInput.actionCandidates.find(
+        (value) => value.actionId === selection.optionId
+      )
+      const entry = input.source.mechanics.compiledActionEntryPoints.find(
+        (value) => value.actionId === selection.optionId
+      )
+      if (!candidate || !entry || entry.compilation.kind !== 'COMPILED')
+        throw new EncounterValidationError(
+          'The declared Character action is not an exact executable option.'
+        )
+      const item = candidate.equipment
+        ? input.source.mechanics.initiativeActorFacts.equippedItems.find(
+            (value) => value.itemInstanceId === candidate.equipment?.itemInstanceId
+          )
+        : null
+      if (candidate.equipment && !item)
+        throw new EncounterConflictError('The declared Character action equipment facts are stale.')
+      return {
+        kind: 'CHARACTER_ACTION',
+        optionId: candidate.actionId,
+        effectId: candidate.effectId,
+        sourceId: candidate.sourceId,
+        sourceChecksum: publishedChecksum(entry),
+        activationCode: candidate.mechanicFacts.invocation.activation?.code ?? null,
+        equipmentInstanceId: item?.itemInstanceId ?? null,
+        equipmentProperties: item?.properties ?? []
+      }
+    }
+    if (selection.kind !== 'CHARACTER_SPELL_CAST')
+      throw new EncounterValidationError('Character initiative declaration source is invalid.')
+    const candidate = input.source.mechanics.rulePolicyInput.spellCastCandidates.find(
+      (value) => value.candidateId === selection.optionId
+    )
+    const mechanic = input.source.mechanics.rulePolicyOutput.spellCastMechanics.find(
+      (value) => value.candidateId === selection.optionId
+    )
+    if (!candidate || !mechanic || mechanic.spellId !== candidate.spellId)
+      throw new EncounterValidationError('The declared spell cast is not an exact current option.')
+    const version = spellVersion(input.source, candidate.spellId)
+    return {
+      kind: 'CHARACTER_SPELL_CAST',
+      optionId: candidate.candidateId,
+      spellId: candidate.spellId,
+      spellVersionId: version.versionId,
+      spellVersion: version.version,
+      spellChecksum: version.checksum,
+      sourceKind: candidate.source.sourceKind,
+      sourceInstanceId: candidate.source.sourceInstanceId,
+      castLevel: candidate.castLevel
+    }
+  }
+  const size =
+    input.source.kind === 'CHARACTER'
+      ? input.source.mechanics.initiativeActorFacts.effectiveSize
+      : input.source.kind === 'CREATURE'
+        ? (() => {
+            const snapshot = input.source.actor.snapshot
+            if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
+              throw new EncounterConflictError('Creature initiative source is stale.')
+            const payload = (snapshot as Record<string, unknown>).payload
+            if (typeof payload !== 'object' || payload === null || Array.isArray(payload))
+              throw new EncounterConflictError('Creature initiative source is stale.')
+            const value = (payload as Record<string, unknown>).size
+            if (typeof value !== 'string')
+              throw new EncounterConflictError('Creature initiative size is unavailable.')
+            return value
+          })()
+        : input.primary.kind === 'GM_ADJUDICATED'
+          ? input.primary.actorSize
+          : null
+  if (!size)
+    throw new EncounterValidationError(
+      'The initiative source lacks an authoritative effective size.'
+    )
+  const declaration = {
+    actorSize: size,
+    primary: compile(input.primary),
+    bonus: input.bonus ? compile(input.bonus) : null
+  }
+  if (
+    declaration.bonus?.kind === declaration.primary.kind &&
+    declaration.bonus.optionId === declaration.primary.optionId
+  )
+    throw new EncounterValidationError(
+      'The declared bonus source must differ from the primary source.'
+    )
+  return { declaration, checksum: checksumRuleDocument(declaration) }
+}

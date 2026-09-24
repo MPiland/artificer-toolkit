@@ -195,6 +195,7 @@ describe('import contracts', () => {
   })
 
   it('caps portable data depth without recursive validation', () => {
+    expect(IMPORT_MAX_PORTABLE_DEPTH).toBe(25)
     const nested = (depth: number): Record<string, unknown> => {
       let value: unknown = 'leaf'
       for (let index = 0; index < depth; index += 1) value = { child: value }

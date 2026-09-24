@@ -1,5 +1,5 @@
 import { getPredicateOptionsForSubject, RELATIONS } from '@artificer-toolkit/shared/core'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   abilityCodeSchema,
@@ -24,51 +24,56 @@ import {
 import {
   AUTHORED_LIMITS,
   authoredIdentifierSchema,
+  unknownObjectSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from './authoredLimits.js'
 
-export const unknownObjectSchema = z.record(authoredIdentifierSchema, z.unknown())
+export { unknownObjectSchema }
 export const unknownObjectArraySchema = authoredNestedCollectionSchema(unknownObjectSchema)
 
 const selectableRootSchema = z.object({
-  authoringModeKind: authoringModeKindSchema.optional()
+  authoringModeKind: z.optional(authoringModeKindSchema)
 })
 
-const subjectSelectionSchema = selectableRootSchema.extend({
-  classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  raceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  backgroundIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  creatureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  vehicleIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  subraceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  subclassIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  resourceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  ancestryOptionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  proficiencyKind: proficiencyKindSchema.optional()
+const subjectSelectionSchema = z.extend(selectableRootSchema, {
+  classIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  featureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  spellIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  equipmentIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  featIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  raceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  backgroundIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  creatureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  vehicleIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  optionIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  subraceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  subclassIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  resourceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  ancestryOptionIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  proficiencyKind: z.optional(proficiencyKindSchema)
 })
 
 const selectableSchema = (
-  selectedSchema: z.ZodObject<z.ZodRawShape>,
-  extraSchema?: z.ZodObject<z.ZodRawShape>
+  selectedSchema: z.ZodMiniObject<z.core.$ZodShape>,
+  extraSchema?: z.ZodMiniObject<z.core.$ZodShape>
 ) =>
   z.union([
-    z
-      .object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
-      })
-      .merge(extraSchema ?? z.object({})),
-    z
-      .object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED)
-      })
-      .merge(selectedSchema)
-      .merge(extraSchema ?? z.object({}))
+    z.extend(
+      z.object({
+        authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+      }),
+      (extraSchema ?? z.object({})).shape
+    ),
+    z.extend(
+      z.extend(
+        z.object({
+          authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED)
+        }),
+        selectedSchema.shape
+      ),
+      (extraSchema ?? z.object({})).shape
+    )
   ])
 
 const rangePredicatePayloadSchema = z.union([
@@ -76,21 +81,23 @@ const rangePredicatePayloadSchema = z.union([
     z.object({
       rangeKind: authoredReferenceCollectionSchema(
         z.enum([
-          rangeKindSchema.enum.SELF,
-          rangeKindSchema.enum.TOUCH,
-          rangeKindSchema.enum.SIGHT,
-          rangeKindSchema.enum.UNLIMITED
+          rangeKindSchema._zod.def.entries.SELF,
+          rangeKindSchema._zod.def.entries.TOUCH,
+          rangeKindSchema._zod.def.entries.SIGHT,
+          rangeKindSchema._zod.def.entries.UNLIMITED
         ])
       )
     })
   ),
   selectableSchema(
     z.object({
-      rangeKind: authoredReferenceCollectionSchema(z.literal(rangeKindSchema.enum.DISTANCE))
+      rangeKind: authoredReferenceCollectionSchema(
+        z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
+      )
     }),
     z.object({
       min: z.number(),
-      max: z.number().optional(),
+      max: z.optional(z.number()),
       unit: measurementUnitCodeSchema
     })
   )
@@ -100,7 +107,7 @@ const durationPredicatePayloadSchema = z.union([
   selectableSchema(
     z.object({
       durationKind: authoredReferenceCollectionSchema(
-        z.literal(durationKindSchema.enum.INSTANTANEOUS)
+        z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
       )
     })
   ),
@@ -108,416 +115,394 @@ const durationPredicatePayloadSchema = z.union([
     z.object({
       durationKind: authoredReferenceCollectionSchema(
         z.enum([
-          durationKindSchema.enum.TURN,
-          durationKindSchema.enum.ROUND,
-          durationKindSchema.enum.MINUTE,
-          durationKindSchema.enum.HOUR,
-          durationKindSchema.enum.DAY,
-          durationKindSchema.enum.WEEK,
-          durationKindSchema.enum.MONTH,
-          durationKindSchema.enum.YEAR
+          durationKindSchema._zod.def.entries.TURN,
+          durationKindSchema._zod.def.entries.ROUND,
+          durationKindSchema._zod.def.entries.MINUTE,
+          durationKindSchema._zod.def.entries.HOUR,
+          durationKindSchema._zod.def.entries.DAY,
+          durationKindSchema._zod.def.entries.WEEK,
+          durationKindSchema._zod.def.entries.MONTH,
+          durationKindSchema._zod.def.entries.YEAR
         ])
       )
     }),
     z.object({
       min: z.number(),
-      max: z.number().optional()
+      max: z.optional(z.number())
     })
   )
 ])
 
 const predicatePayloadSchema = z.union([
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SUBCLASS_SPECIALIZATION)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          specializationIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
+  // Equipment modifiers commonly use this leaf; avoid trying each deeper predicate first.
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SPELLCASTING)
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_EQUIPPED)
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.RANGE)
-    })
-    .and(rangePredicatePayloadSchema),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.DURATION)
-    })
-    .and(durationPredicatePayloadSchema),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SUBCLASS_SPECIALIZATION)
+    }),
+    selectableSchema(
+      z.object({
+        specializationIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CONCENTRATION)
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING)
+  }),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RANGE)
+    }),
+    rangePredicatePayloadSchema
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DURATION)
+    }),
+    durationPredicatePayloadSchema
+  ),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONCENTRATION)
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.RITUAL)
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RITUAL)
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SIZE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          sizes: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SIZE)
+    }),
+    selectableSchema(
+      z.object({
+        sizes: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.FEATURE_OBTAINED),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEATURE_OBTAINED),
     featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.OPTION_OBTAINED),
-    featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.OPTION_OBTAINED),
+    featureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
     optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.MAGIC_SCHOOL)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          magicSchoolIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SPELLCASTING_ABILITY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
-        })
-      )
-    ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MAGIC_SCHOOL)
+    }),
+    selectableSchema(
+      z.object({
+        magicSchoolIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING_ABILITY)
+    }),
+    selectableSchema(
+      z.object({
+        abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SPELL_LEVEL),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_LEVEL),
     min: z.number(),
-    max: z.number().optional()
+    max: z.optional(z.number())
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SAVING_THROW_ABILITY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
-        })
-      )
-    ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY)
+    }),
+    selectableSchema(
+      z.object({
+        abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SAVING_THROW_DC),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_DC),
     min: z.number(),
-    max: z.number().optional()
+    max: z.optional(z.number())
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.EQUIPMENT_CATEGORY),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_CATEGORY),
     category: equipmentCategoryCodeSchema
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.EQUIPMENT_PROPERTY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
-        }),
-        z.object({
-          category: equipmentCategoryCodeSchema.optional()
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.EQUIPMENT_PROFICIENCY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        }),
-        z.object({
-          category: equipmentCategoryCodeSchema.optional(),
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional(),
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.EQUIPMENT_PROPERTY_PROFICIENCY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
-        }),
-        z.object({
-          category: equipmentCategoryCodeSchema.optional()
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SAVE_ABILITY_PROFICIENCY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          abilities: abilityCodeSchema
-        }),
-        z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.LANGUAGE_PROFICIENCY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        }),
-        z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.EQUIPMENT_EQUIPPED)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        }),
-        z.object({
-          category: equipmentCategoryCodeSchema.optional(),
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional()
-        })
-      )
-    ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY)
+    }),
+    selectableSchema(
+      z.object({
+        properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+      }),
+      z.object({
+        category: z.optional(equipmentCategoryCodeSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)
+    }),
+    selectableSchema(
+      z.object({
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      z.object({
+        category: z.optional(equipmentCategoryCodeSchema),
+        properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+        level: scalingAmountKindSchema
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY_PROFICIENCY)
+    }),
+    selectableSchema(
+      z.object({
+        properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+      }),
+      z.object({
+        category: z.optional(equipmentCategoryCodeSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVE_ABILITY_PROFICIENCY)
+    }),
+    selectableSchema(
+      z.object({
+        abilities: abilityCodeSchema
+      }),
+      z.object({
+        level: scalingAmountKindSchema
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.LANGUAGE_PROFICIENCY)
+    }),
+    selectableSchema(
+      z.object({
+        languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      z.object({
+        level: scalingAmountKindSchema
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_EQUIPPED)
+    }),
+    selectableSchema(
+      z.object({
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      z.object({
+        category: z.optional(equipmentCategoryCodeSchema),
+        properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema))
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.ARMOR_CLASS),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ARMOR_CLASS),
     min: z.number(),
-    max: z.number().optional()
+    max: z.optional(z.number())
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.DAMAGE_TYPE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          damageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CONDITION_TYPE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          conditionTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CHARGE_LIMIT_KIND)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          chargeLimitKind: authoredReferenceCollectionSchema(chargeLimitKindSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CHARGE_RESET_KIND)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          chargeResetKind: authoredReferenceCollectionSchema(chargeResetKindSchema)
-        })
-      )
-    ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DAMAGE_TYPE)
+    }),
+    selectableSchema(
+      z.object({
+        damageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONDITION_TYPE)
+    }),
+    selectableSchema(
+      z.object({
+        conditionTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_LIMIT_KIND)
+    }),
+    selectableSchema(
+      z.object({
+        chargeLimitKind: authoredReferenceCollectionSchema(chargeLimitKindSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_RESET_KIND)
+    }),
+    selectableSchema(
+      z.object({
+        chargeResetKind: authoredReferenceCollectionSchema(chargeResetKindSchema)
+      })
+    )
+  ),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CAN_CAST_SPELL)
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CAN_CAST_SPELL)
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CHARACTER_LEVEL),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
     min: z.number(),
-    max: z.number().optional()
+    max: z.optional(z.number())
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CLASS_LEVEL),
-    classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).min(1),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CLASS_LEVEL),
+    classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).check(z.minLength(1)),
     min: z.number(),
-    max: z.number().optional()
+    max: z.optional(z.number())
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SPELL_OBTAINED),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_OBTAINED),
     spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.FEAT_OBTAINED),
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEAT_OBTAINED),
     featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.HERITAGE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SKILL_PROFICIENCY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        }),
-        z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SKILL_SCORE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.ABILITY_SCORE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          abilities: abilityCodeSchema
-        }),
-        z.object({
-          min: z.number(),
-          max: z.number().optional()
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.SAVING_THROW_ABILITY_BONUS)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          abilities: abilityCodeSchema
-        }),
-        z.object({
-          min: z.number(),
-          max: z.number().optional()
-        })
-      )
-    ),
-  z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.WHILE_SOURCE_CARRIED)
-  }),
-  z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.WHILE_SOURCE_EQUIPPED)
-  }),
-  z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.WHILE_SOURCE_ATTUNED)
-  }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CREATURE_CATEGORY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          categories: authoredReferenceCollectionSchema(creatureCategoryCodeSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CREATURE_TYPE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.CREATURE_SIZE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
-        })
-      )
-    ),
-  z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CREATURE_IS_MOUNT)
-  }),
-  z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.CREATURE_IS_COMPANION)
-  }),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.VEHICLE_CATEGORY)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          categories: authoredReferenceCollectionSchema(vehicleCategoryCodeSchema)
-        })
-      )
-    ),
-  z
-    .object({
-      predicateCode: z.literal(predicateCodeSchema.enum.VEHICLE_SIZE)
-    })
-    .and(
-      selectableSchema(
-        z.object({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
-        })
-      )
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HERITAGE)
+    }),
+    selectableSchema(
+      z.object({
+        heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
     )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_PROFICIENCY)
+    }),
+    selectableSchema(
+      z.object({
+        skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      z.object({
+        level: scalingAmountKindSchema
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_SCORE)
+    }),
+    selectableSchema(
+      z.object({
+        skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ABILITY_SCORE)
+    }),
+    selectableSchema(
+      z.object({
+        abilities: abilityCodeSchema
+      }),
+      z.object({
+        min: z.number(),
+        max: z.optional(z.number())
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY_BONUS)
+    }),
+    selectableSchema(
+      z.object({
+        abilities: abilityCodeSchema
+      }),
+      z.object({
+        min: z.number(),
+        max: z.optional(z.number())
+      })
+    )
+  ),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_CARRIED)
+  }),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_ATTUNED)
+  }),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_CATEGORY)
+    }),
+    selectableSchema(
+      z.object({
+        categories: authoredReferenceCollectionSchema(creatureCategoryCodeSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_TYPE)
+    }),
+    selectableSchema(
+      z.object({
+        creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)
+    }),
+    selectableSchema(
+      z.object({
+        sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+      })
+    )
+  ),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_MOUNT)
+  }),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_COMPANION)
+  }),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_CATEGORY)
+    }),
+    selectableSchema(
+      z.object({
+        categories: authoredReferenceCollectionSchema(vehicleCategoryCodeSchema)
+      })
+    )
+  ),
+  z.intersection(
+    z.object({
+      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_SIZE)
+    }),
+    selectableSchema(
+      z.object({
+        sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+      })
+    )
+  )
 ])
 
 type SubjectSelectionDto = z.infer<typeof subjectSelectionSchema>
@@ -582,59 +567,60 @@ export type ScopedFacetDto = FacetBodyDto & {
   subject: z.infer<typeof nodeSubjectCodeSchema>
 }
 
-const facetBodySchema: z.ZodType<FacetBodyDto> = z.lazy(() =>
-  subjectSelectionSchema.extend({
+const facetBodySchema: z.ZodMiniType<FacetBodyDto> = z.lazy(() =>
+  z.extend(subjectSelectionSchema, {
     groups: authoredNestedCollectionSchema(facetBodyGroupSchema)
   })
 )
 
-const facetPredicateConditionSchema = z
-  .object({
+const facetPredicateConditionSchema = z.intersection(
+  z.object({
     id: authoredIdentifierSchema,
     order: z.number(),
     kind: z.literal('PREDICATE'),
     constraint: authoringConstraintCodeSchema
-  })
-  .and(predicatePayloadSchema)
+  }),
+  predicatePayloadSchema
+)
 
-const facetExistsConditionSchema: z.ZodType<FacetExistsConditionDto> = z.lazy(() =>
-  z
-    .object({
+const facetExistsConditionSchema: z.ZodMiniType<FacetExistsConditionDto> = z.lazy(() =>
+  z.intersection(
+    z.object({
       id: authoredIdentifierSchema,
       order: z.number(),
       kind: z.literal('EXISTS'),
       constraint: authoringConstraintCodeSchema,
       relationCode: relationCodeSchema,
-      where: facetBodySchema.optional()
-    })
-    .and(subjectSelectionSchema)
+      where: z.optional(facetBodySchema)
+    }),
+    subjectSelectionSchema
+  )
 )
 
-const facetConditionSchema: z.ZodType<FacetConditionDto> = z.union([
+const facetConditionSchema: z.ZodMiniType<FacetConditionDto> = z.union([
   facetPredicateConditionSchema,
   facetExistsConditionSchema
 ])
 
-const facetBodyGroupSchema: z.ZodType<FacetBodyGroupDto> = z.object({
+const facetBodyGroupSchema: z.ZodMiniType<FacetBodyGroupDto> = z.object({
   id: authoredIdentifierSchema,
   order: z.number(),
-  conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
+  conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
 })
 
-const facetContextSchema: z.ZodType<FacetContextDto> = z
-  .object({
+const facetContextSchema: z.ZodMiniType<FacetContextDto> = z.intersection(
+  z.object({
     id: authoredIdentifierSchema,
     order: z.number(),
     subject: nodeSubjectCodeSchema,
-    conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
+    conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
+  }),
+  z.partial(subjectSelectionSchema, {
+    authoringModeKind: true
   })
-  .and(
-    subjectSelectionSchema.partial({
-      authoringModeKind: true
-    })
-  )
+)
 
-const facetGroupSchema: z.ZodType<FacetGroupDto> = z.object({
+const facetGroupSchema: z.ZodMiniType<FacetGroupDto> = z.object({
   id: authoredIdentifierSchema,
   order: z.number(),
   contexts: authoredNestedCollectionSchema(facetContextSchema)
@@ -651,27 +637,26 @@ const facetDtoSchemaBase = z.object({
   groups: authoredNestedCollectionSchema(facetGroupSchema)
 })
 
-export const facetDtoSchema: z.ZodType<FacetDto> = z.preprocess(
-  rejectExcessiveFacetNesting,
+export const facetDtoSchema: z.ZodMiniType<FacetDto> = z.pipe(
+  z.transform(rejectExcessiveFacetNesting),
   facetDtoSchemaBase
 )
 
-const characterFacetContextSchema: z.ZodType<
+const characterFacetContextSchema: z.ZodMiniType<
   CharacterFacetDto['groups'][number]['contexts'][number]
-> = z
-  .object({
+> = z.intersection(
+  z.object({
     id: authoredIdentifierSchema,
     order: z.number(),
     subject: z.literal('CHARACTER'),
-    conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
+    conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
+  }),
+  z.partial(subjectSelectionSchema, {
+    authoringModeKind: true
   })
-  .and(
-    subjectSelectionSchema.partial({
-      authoringModeKind: true
-    })
-  )
+)
 
-const characterFacetDtoSchemaBase: z.ZodType<CharacterFacetDto> = z
+const characterFacetDtoSchemaBase: z.ZodMiniType<CharacterFacetDto> = z
   .object({
     id: authoredIdentifierSchema,
     groups: authoredNestedCollectionSchema(
@@ -682,71 +667,75 @@ const characterFacetDtoSchemaBase: z.ZodType<CharacterFacetDto> = z
       })
     )
   })
-  .superRefine((facet, context) => {
-    const predicateCodes = new Set<string>(
-      getPredicateOptionsForSubject('CHARACTER').map((option) => option.code)
-    )
-    const relationCodes = new Set<string>(Object.keys(RELATIONS.CHARACTER))
+  .check(
+    z.superRefine((facet, context) => {
+      const predicateCodes = new Set<string>(
+        getPredicateOptionsForSubject('CHARACTER').map((option) => option.code)
+      )
+      const relationCodes = new Set<string>(Object.keys(RELATIONS.CHARACTER))
 
-    facet.groups.forEach((group, groupIndex) => {
-      group.contexts.forEach((characterContext, contextIndex) => {
-        characterContext.conditions?.forEach((condition, conditionIndex) => {
-          if (condition.kind === 'PREDICATE' && !predicateCodes.has(condition.predicateCode)) {
-            context.addIssue({
-              code: 'custom',
-              message: `Predicate "${condition.predicateCode}" is not valid for CHARACTER.`,
-              path: [
-                'groups',
-                groupIndex,
-                'contexts',
-                contextIndex,
-                'conditions',
-                conditionIndex,
-                'predicateCode'
-              ]
-            })
-          }
+      facet.groups.forEach((group, groupIndex) => {
+        group.contexts.forEach((characterContext, contextIndex) => {
+          characterContext.conditions?.forEach((condition, conditionIndex) => {
+            if (condition.kind === 'PREDICATE' && !predicateCodes.has(condition.predicateCode)) {
+              context.addIssue({
+                code: 'custom',
+                message: `Predicate "${condition.predicateCode}" is not valid for CHARACTER.`,
+                path: [
+                  'groups',
+                  groupIndex,
+                  'contexts',
+                  contextIndex,
+                  'conditions',
+                  conditionIndex,
+                  'predicateCode'
+                ]
+              })
+            }
 
-          if (condition.kind === 'EXISTS' && !relationCodes.has(condition.relationCode)) {
-            context.addIssue({
-              code: 'custom',
-              message: `Relation "${condition.relationCode}" is not valid for CHARACTER.`,
-              path: [
-                'groups',
-                groupIndex,
-                'contexts',
-                contextIndex,
-                'conditions',
-                conditionIndex,
-                'relationCode'
-              ]
-            })
-          }
+            if (condition.kind === 'EXISTS' && !relationCodes.has(condition.relationCode)) {
+              context.addIssue({
+                code: 'custom',
+                message: `Relation "${condition.relationCode}" is not valid for CHARACTER.`,
+                path: [
+                  'groups',
+                  groupIndex,
+                  'contexts',
+                  contextIndex,
+                  'conditions',
+                  conditionIndex,
+                  'relationCode'
+                ]
+              })
+            }
+          })
         })
       })
     })
-  })
+  )
 
-export const characterFacetDtoSchema: z.ZodType<CharacterFacetDto> = z.preprocess(
-  rejectExcessiveFacetNesting,
+export const characterFacetDtoSchema: z.ZodMiniType<CharacterFacetDto> = z.pipe(
+  z.transform(rejectExcessiveFacetNesting),
   characterFacetDtoSchemaBase
 )
 
-const scopedFacetDtoSchemaBase = z
-  .object({ id: authoredIdentifierSchema, subject: nodeSubjectCodeSchema })
-  .and(facetBodySchema)
+const scopedFacetDtoSchemaBase = z.intersection(
+  z.object({ id: authoredIdentifierSchema, subject: nodeSubjectCodeSchema }),
+  facetBodySchema
+)
 
-export const scopedFacetDtoSchema: z.ZodType<ScopedFacetDto> = z.preprocess(
-  rejectExcessiveFacetNesting,
+export const scopedFacetDtoSchema: z.ZodMiniType<ScopedFacetDto> = z.pipe(
+  z.transform(rejectExcessiveFacetNesting),
   scopedFacetDtoSchemaBase
 )
 
-function rejectExcessiveFacetNesting(value: unknown, context: z.RefinementCtx): unknown {
+function rejectExcessiveFacetNesting(value: unknown, context: z.core.ParsePayload): unknown {
   if (!exceedsFacetNestingDepth(value)) return value
 
-  context.addIssue({
+  context.issues.push({
     code: 'custom',
-    message: `Facet nesting must be at most ${AUTHORED_LIMITS.facetNestingDepth} levels`
+    message: `Facet nesting must be at most ${AUTHORED_LIMITS.facetNestingDepth} levels`,
+    input: value
   })
   return z.NEVER
 }

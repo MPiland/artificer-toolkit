@@ -126,6 +126,22 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         )
       )
       .set(
+        'ruleDefinitionId',
+        selectSingle(
+          ['ruleDefinitionId'],
+          'Rule',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', {
+              selectColumns: ['id', 'label']
+            })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER')
+          }
+        )
+      )
+      .set(
         'conditionTypeId',
         selectSingle(
           ['conditionTypeId'],

@@ -1,4 +1,4 @@
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { CampaignFileList } from './CampaignFileList'
 import { CampaignFileUploader } from './CampaignFileUploader'
 import * as styles from './CampaignFiles.css'

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -15,16 +15,24 @@ import {
 } from './campaignContractSchemas.js'
 import { tableSafetyPracticeDtoSchema } from './tableSafety.js'
 
-const usernameSchema = z.string().trim().min(3).max(30)
-const titleSchema = z.string().trim().min(1).max(100)
-const summarySchema = z.string().trim().min(1).max(2_000)
-const policyTextSchema = z.string().trim().min(1).max(4_000)
-const applicationMessageSchema = z.string().trim().min(1).max(2_000)
-const reportDetailsSchema = z.string().trim().min(1).max(4_000)
+const usernameSchema = z.string().check(z.trim()).check(z.minLength(3)).check(z.maxLength(30))
+const titleSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))
+const summarySchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(2_000))
+const policyTextSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(4_000))
+const applicationMessageSchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(2_000))
+const reportDetailsSchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(4_000))
 const stateCodeSchema = z
   .string()
-  .trim()
-  .regex(/^[A-Z]{2}$/)
+  .check(z.trim())
+  .check(z.regex(/^[A-Z]{2}$/))
 
 export const socialProfileStatusDtoSchema = z.enum(['ACTIVE', 'SUSPENDED'])
 export const socialContentPreferenceDtoSchema = z.enum(['STANDARD', 'MATURE'])
@@ -76,17 +84,17 @@ export const socialProfileDtoSchema = z.strictObject({
 
 export const socialEligibilityDtoSchema = z.strictObject({
   eligible: z.boolean(),
-  profilePublicId: uuidSchema.nullable(),
-  adultAttestedAt: timestampSchema.nullable(),
+  profilePublicId: z.nullable(uuidSchema),
+  adultAttestedAt: z.nullable(timestampSchema),
   contentPreference: socialContentPreferenceDtoSchema,
-  status: socialProfileStatusDtoSchema.nullable()
+  status: z.nullable(socialProfileStatusDtoSchema)
 })
 
 export const updateSocialContentPreferenceInputSchema = z.discriminatedUnion('contentPreference', [
   z.strictObject({ contentPreference: z.literal('STANDARD') }),
   z.strictObject({
     contentPreference: z.literal('MATURE'),
-    birthDate: z.iso.date().optional()
+    birthDate: z.optional(z.iso.date())
   })
 ])
 
@@ -110,14 +118,14 @@ export const socialListingScheduleDtoSchema = z.discriminatedUnion('kind', [
     kind: z.literal('RECURRING'),
     timeZone: timeZoneSchema,
     summary: summarySchema,
-    weekday: z.number().int().min(0).max(6),
-    localStartTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    weekday: z.number().check(z.int()).check(z.gte(0)).check(z.lte(6)),
+    localStartTime: z.string().check(z.regex(/^([01]\d|2[0-3]):[0-5]\d$/)),
     recurrence: socialRecurrenceDtoSchema
   })
 ])
 
 export const socialListingLocationDtoSchema = z.strictObject({
-  city: z.string().trim().min(1).max(100),
+  city: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)),
   stateCode: stateCodeSchema
 })
 
@@ -127,15 +135,18 @@ export const socialListingExpectationsDtoSchema = z.strictObject({
   allowedContentRules: policyTextSchema,
   tableConduct: policyTextSchema,
   contentBoundaries: policyTextSchema,
-  safetyPractices: z.array(socialSafetyPracticeDtoSchema).min(1).max(6),
+  safetyPractices: z
+    .array(socialSafetyPracticeDtoSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(6)),
   safetyDetails: policyTextSchema
 })
 
 export const socialListingSystemDtoSchema = z.strictObject({
   systemId: postgresUuidSchema,
-  label: z.string().trim().min(1).max(120),
-  rulesetCode: z.string().trim().min(1).max(100),
-  rulesetVersion: z.string().trim().min(1).max(100)
+  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(120)),
+  rulesetCode: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)),
+  rulesetVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))
 })
 
 export const socialListingDtoSchema = z.strictObject({
@@ -149,17 +160,19 @@ export const socialListingDtoSchema = z.strictObject({
   system: socialListingSystemDtoSchema,
   format: campaignFormatDtoSchema,
   toneTags: campaignToneTagsDtoSchema,
-  toneDetails: z.string().trim().min(1).max(1_000).nullable(),
+  toneDetails: z.nullable(
+    z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
+  ),
   contentMaturity: campaignContentMaturityDtoSchema,
   playMode: socialPlayModeDtoSchema,
-  capacity: z.number().int().positive(),
-  availableSeats: z.number().int().nonnegative(),
+  capacity: z.number().check(z.int()).check(z.positive()),
+  availableSeats: z.number().check(z.int()).check(z.nonnegative()),
   ageBand: z.literal('13_PLUS'),
   schedule: socialListingScheduleDtoSchema,
-  location: socialListingLocationDtoSchema.nullable(),
+  location: z.nullable(socialListingLocationDtoSchema),
   expectations: socialListingExpectationsDtoSchema,
   isFree: z.literal(true),
-  publishedAt: timestampSchema.nullable(),
+  publishedAt: z.nullable(timestampSchema),
   version: versionSchema
 })
 
@@ -168,9 +181,9 @@ const socialListingFieldsSchema = z.strictObject({
   audience: socialListingAudienceDtoSchema,
   systemId: postgresUuidSchema,
   playMode: socialPlayModeDtoSchema,
-  capacity: z.number().int().min(1).max(100),
+  capacity: z.number().check(z.int()).check(z.gte(1)).check(z.lte(100)),
   schedule: socialListingScheduleDtoSchema,
-  location: socialListingLocationDtoSchema.nullable(),
+  location: z.nullable(socialListingLocationDtoSchema),
   expectations: socialListingExpectationsDtoSchema
 })
 
@@ -179,7 +192,7 @@ const validateSocialListingLocation = (
     playMode: z.infer<typeof socialPlayModeDtoSchema>
     location: unknown
   },
-  context: z.RefinementCtx
+  context: z.core.$RefinementCtx
 ) => {
   const needsLocation = value.playMode !== 'ONLINE'
   if (needsLocation !== (value.location !== null))
@@ -192,15 +205,15 @@ const validateSocialListingLocation = (
     })
 }
 
-export const createSocialListingInputSchema = socialListingFieldsSchema
-  .extend({ campaignId: uuidSchema })
-  .superRefine(validateSocialListingLocation)
-export const updateSocialListingInputSchema = socialListingFieldsSchema
-  .extend({
+export const createSocialListingInputSchema = z
+  .extend(socialListingFieldsSchema, { campaignId: uuidSchema })
+  .check(z.superRefine(validateSocialListingLocation))
+export const updateSocialListingInputSchema = z
+  .extend(socialListingFieldsSchema, {
     listingPublicId: uuidSchema,
     expectedVersion: versionSchema
   })
-  .superRefine(validateSocialListingLocation)
+  .check(z.superRefine(validateSocialListingLocation))
 export const socialListingVersionInputSchema = z.strictObject({
   listingPublicId: uuidSchema,
   expectedVersion: versionSchema
@@ -215,28 +228,30 @@ export const socialDiscoveryCursorDtoSchema = z.strictObject({
 })
 
 export const socialDiscoveryInputSchema = z.strictObject({
-  query: z.string().trim().max(200).optional(),
-  systemId: postgresUuidSchema.optional(),
-  rulesetCode: z.string().trim().min(1).max(100).optional(),
-  rulesetVersion: z.string().trim().min(1).max(100).optional(),
-  format: campaignFormatDtoSchema.optional(),
-  contentMaturity: campaignContentMaturityDtoSchema.optional(),
-  toneTags: campaignToneTagsDtoSchema.optional(),
-  playMode: socialPlayModeDtoSchema.optional(),
-  timeZone: timeZoneSchema.optional(),
-  scheduleKind: socialScheduleKindDtoSchema.optional(),
-  weekday: z.number().int().min(0).max(6).optional(),
-  stateCode: stateCodeSchema.optional(),
-  city: z.string().trim().min(1).max(100).optional(),
-  minimumAvailableSeats: z.number().int().min(1).max(100).optional(),
-  safetyPractices: z.array(socialSafetyPracticeDtoSchema).max(6).optional(),
-  cursor: socialDiscoveryCursorDtoSchema.optional(),
-  limit: z.number().int().min(1).max(50).default(20)
+  query: z.optional(z.string().check(z.trim()).check(z.maxLength(200))),
+  systemId: z.optional(postgresUuidSchema),
+  rulesetCode: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))),
+  rulesetVersion: z.optional(
+    z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))
+  ),
+  format: z.optional(campaignFormatDtoSchema),
+  contentMaturity: z.optional(campaignContentMaturityDtoSchema),
+  toneTags: z.optional(campaignToneTagsDtoSchema),
+  playMode: z.optional(socialPlayModeDtoSchema),
+  timeZone: z.optional(timeZoneSchema),
+  scheduleKind: z.optional(socialScheduleKindDtoSchema),
+  weekday: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(6))),
+  stateCode: z.optional(stateCodeSchema),
+  city: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))),
+  minimumAvailableSeats: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(100))),
+  safetyPractices: z.optional(z.array(socialSafetyPracticeDtoSchema).check(z.maxLength(6))),
+  cursor: z.optional(socialDiscoveryCursorDtoSchema),
+  limit: z._default(z.number().check(z.int()).check(z.gte(1)).check(z.lte(50)), 20)
 })
 
 export const socialDiscoveryPageDtoSchema = z.strictObject({
   items: z.array(socialListingDtoSchema),
-  nextCursor: socialDiscoveryCursorDtoSchema.nullable()
+  nextCursor: z.nullable(socialDiscoveryCursorDtoSchema)
 })
 
 export const socialApplicationDtoSchema = z.strictObject({
@@ -249,7 +264,7 @@ export const socialApplicationDtoSchema = z.strictObject({
   listingVersion: versionSchema,
   expectations: socialListingExpectationsDtoSchema,
   submittedAt: timestampSchema,
-  respondedAt: timestampSchema.nullable(),
+  respondedAt: z.nullable(timestampSchema),
   version: versionSchema
 })
 
@@ -262,7 +277,7 @@ export const socialApplicationVersionInputSchema = z.strictObject({
   applicationPublicId: uuidSchema,
   expectedVersion: versionSchema
 })
-export const decideSocialApplicationInputSchema = socialApplicationVersionInputSchema.extend({
+export const decideSocialApplicationInputSchema = z.extend(socialApplicationVersionInputSchema, {
   decision: z.enum(['ACCEPT', 'DECLINE'])
 })
 
@@ -309,7 +324,7 @@ export const socialModerationQueueItemDtoSchema = z.strictObject({
   version: versionSchema
 })
 
-export const socialModerationReportDtoSchema = socialModerationQueueItemDtoSchema.extend({
+export const socialModerationReportDtoSchema = z.extend(socialModerationQueueItemDtoSchema, {
   reporter: socialProfileDtoSchema,
   details: reportDetailsSchema,
   evidence: jsonSchema
@@ -321,7 +336,15 @@ export const socialReportPublicIdInputSchema = z.strictObject({
 
 export const takeSocialModerationActionInputSchema = z.strictObject({
   reportPublicId: uuidSchema,
-  action: socialModerationActionDtoSchema.exclude(['VIEWED']),
+  action: z.enum([
+    socialModerationActionDtoSchema._zod.def.entries.START_REVIEW,
+    socialModerationActionDtoSchema._zod.def.entries.DISMISS,
+    socialModerationActionDtoSchema._zod.def.entries.RESOLVE,
+    socialModerationActionDtoSchema._zod.def.entries.HIDE_LISTING,
+    socialModerationActionDtoSchema._zod.def.entries.RESTORE_LISTING,
+    socialModerationActionDtoSchema._zod.def.entries.SUSPEND_PROFILE,
+    socialModerationActionDtoSchema._zod.def.entries.RESTORE_PROFILE
+  ]),
   reason: reportDetailsSchema,
   expectedVersion: versionSchema
 })
@@ -340,6 +363,7 @@ export type UpdateSocialListingInput = z.input<typeof updateSocialListingInputSc
 export type SocialDiscoveryInput = z.input<typeof socialDiscoveryInputSchema>
 export type SocialDiscoveryPageDto = z.infer<typeof socialDiscoveryPageDtoSchema>
 export type SocialApplicationDto = z.infer<typeof socialApplicationDtoSchema>
+export type SocialApplicationVersionInput = z.infer<typeof socialApplicationVersionInputSchema>
 export type SubmitSocialApplicationInput = z.input<typeof submitSocialApplicationInputSchema>
 export type DecideSocialApplicationInput = z.input<typeof decideSocialApplicationInputSchema>
 export type SocialBlockDto = z.infer<typeof socialBlockDtoSchema>

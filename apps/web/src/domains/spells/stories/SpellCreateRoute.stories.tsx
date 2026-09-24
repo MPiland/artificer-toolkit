@@ -1,17 +1,33 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { mocked } from 'storybook/test'
 import { Route } from '#routes/_authed/spells/new'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { expectCreateGuidedSpellRoute } from '#domains/authoredRouteStory.play'
 import {
-  authoredRouteNodeRuntimeHandlers,
+  configureAuthoredRouteStoryQueries,
   createAuthoredCreateRouteOverrides
 } from '#domains/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Spells/Routes/Create',
+  decorators: [
+    (Story) => {
+      configureAuthoredRouteStoryQueries(useQueryClient())
+      return <Story />
+    }
+  ],
+  beforeEach: () => {
+    mocked(usePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [],
+      status: 'Exhausted'
+    })
+  },
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers: authoredRouteNodeRuntimeHandlers },
     tanstack: {
       router: {
         route: Route,

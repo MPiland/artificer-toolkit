@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { type AuthoredDraftDto, type SpellResponseDto } from '@artificer-toolkit/schema/api/content'
 import { type SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
@@ -15,26 +16,24 @@ import {
   useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
-import type { SpellDetailReferenceData } from '#app/data/spells/referenceData'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 import { buildSpellDetailModel } from './SpellDetail.model'
 
 export function SpellDetailPage({
   draft,
-  references,
   response,
   spellId,
   view
 }: {
   draft: AuthoredDraftDto | null
-  references: SpellDetailReferenceData
   response: SpellResponseDto
   spellId: string
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('SPELL', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
@@ -43,13 +42,13 @@ export function SpellDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.spells.deleteActive,
-    discard: api.content.spells.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.spells.detailRoot(spellId),
     domainLabel: 'Spell',
     domainQueryKey: queryKeys.content.spells.all(),
     draftQueryKey: queryKeys.content.spells.draft(spellId),
-    duplicate: api.content.spells.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: spellId,
     navigateEdit: async (subject) =>
@@ -58,6 +57,13 @@ export function SpellDetailPage({
         to: '/spells/$spellPublicId/$spellSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/spells' })
+  })
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: spellId,
+    label: detailState.item?.label ?? 'Spell',
+    subjectKind: 'SPELL',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -96,18 +102,16 @@ export function SpellDetailPage({
   }
 
   const item = detailState.item
-  const spellModel = buildSpellDetailModel(item, references)
+  const spellModel = buildSpellDetailModel(item, {
+    classes: response?.meta?.classes ?? [],
+    conditionTypes: response?.meta?.conditionTypes ?? [],
+    damageTypes: response?.meta?.damageTypes ?? [],
+    magicSchools: response?.meta?.magicSchools ?? []
+  })
   const spellParams = buildSpellRouteParams(
     draft?.publicId ?? response?.publicId ?? spellId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: spellId,
-    label: item.label,
-    subjectKind: 'SPELL',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {

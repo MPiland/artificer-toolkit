@@ -1,10 +1,5 @@
-import type { ClassListResponseDto } from '#app/lib/api'
-import type {
-  AuthoredListAttributeColumn,
-  AuthoredListFilter,
-  AuthoredListItem
-} from '#components/AuthoredList'
-import { summarizeAuthoredDescription } from '../authoredListMapper'
+import type { AuthoredCatalogueSummary } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredListAttributeColumn, AuthoredListFilter } from '#components/AuthoredList'
 
 const UNCATEGORIZED_CLASS_CATEGORY = 'UNCATEGORIZED'
 
@@ -18,53 +13,9 @@ export function formatClassCategory(category: string | undefined): string {
     .replace(/^\w/, (letter) => letter.toUpperCase())
 }
 
-export function mapClassListToAuthoredItems(response: ClassListResponseDto): AuthoredListItem[] {
-  return response.items.map((item) => {
-    const category = item.category ?? UNCATEGORIZED_CLASS_CATEGORY
-    const categoryLabel = formatClassCategory(category)
-    const parentClassId = item.parentClassId ?? undefined
-    const parentLabel = item.parentClassLabel ?? undefined
-
-    return {
-      id: item.id,
-      publicId: item.publicId,
-      name: item.label,
-      description: summarizeAuthoredDescription(item.description),
-      attributes: {
-        Category: categoryLabel
-      },
-      hierarchy: parentClassId
-        ? {
-            level: 1,
-            parentId: parentClassId,
-            parentLabel
-          }
-        : undefined,
-      filterValues: {
-        category,
-        source: item.provenance.kind
-      },
-      sortValues: {
-        category: categoryLabel,
-        name: item.label
-      },
-      searchText: `${summarizeAuthoredDescription(item.description)} ${categoryLabel}`,
-      sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-      sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: item.permissions
-    }
-  })
-}
-
-export function buildClassListFilters(response: ClassListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(
-    new Set(
-      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
-        (category) => category.id
-      )
-    )
-  ).sort()
-
+export function buildClassListFilters(
+  categories: AuthoredCatalogueSummary['categories']
+): AuthoredListFilter[] {
   return [
     {
       key: 'category',
@@ -95,7 +46,3 @@ export const classListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
   { value: 'category', label: 'Category' }
 ]
-
-export function summarizeClassList(response: ClassListResponseDto) {
-  return `${response.summary.activeCount} classes / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
-}

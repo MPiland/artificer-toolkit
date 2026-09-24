@@ -1,7 +1,7 @@
 import { Button } from '@mantine/core'
 import { Coffee, Moon } from 'lucide-react'
 import { useCallback, useRef } from 'react'
-import type { CharacterRestPreviewRequestDto } from '#app/lib/api'
+import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as rowStyles from '../shared/rows.css'
 import * as vitalsStyles from '../vitals/vitals.css'
@@ -29,18 +29,22 @@ export function CharacterSheetRestControl({
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const title = restKind === 'SHORT' ? 'Short Rest' : 'Long Rest'
-  const closeRest = useCallback(() => {
-    onClose()
-    requestAnimationFrame(() => triggerRef.current?.focus())
-  }, [onClose])
   const restPreview = useCharacterRestPreviewState({
-    onComplete: closeRest,
+    onComplete: () => {
+      onClose()
+      requestAnimationFrame(() => triggerRef.current?.focus())
+    },
     onOpen,
     pending,
     restKind,
     sheet,
     submitCommand
   })
+  const closeRest = useCallback(() => {
+    restPreview.cancelPreview()
+    onClose()
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }, [onClose, restPreview])
 
   const trigger = (
     <Button

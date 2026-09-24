@@ -6,6 +6,8 @@ export {
   isAuthEmailAction
 } from './authEmailContent.js'
 export type { AuthEmailAction, AuthEmailContent, AuthEmailProps } from './authEmailContent.js'
+export { renderAuthEmail } from './renderAuthEmail.js'
+export type { RenderedAuthEmail } from './renderAuthEmail.js'
 export { SocialEmail } from './SocialEmailTemplate.js'
 export { getSocialEmailContent } from './socialEmailContent.js'
 export { renderSocialNotificationEmail } from './renderSocialNotificationEmail.js'

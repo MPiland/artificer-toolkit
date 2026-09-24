@@ -3,7 +3,17 @@ import { afterAll, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { server } from '#test/msw/server'
 
-if (!window.matchMedia) {
+for (const method of ['scrollIntoView', 'scrollTo'] as const) {
+  if (typeof Element !== 'undefined' && !Element.prototype[method]) {
+    Object.defineProperty(Element.prototype, method, {
+      configurable: true,
+      writable: true,
+      value: () => undefined
+    })
+  }
+}
+
+if (typeof window !== 'undefined' && !window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string) => ({
@@ -27,7 +37,7 @@ if (!globalThis.ResizeObserver) {
   }
 }
 
-if (!document.fonts) {
+if (typeof document !== 'undefined' && !document.fonts) {
   const fonts = {
     addEventListener: () => {},
     removeEventListener: () => {},

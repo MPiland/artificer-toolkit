@@ -5,18 +5,20 @@ import { SignOutPage } from './SignOutPage'
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
+  invalidate: vi.fn(),
   signOut: vi.fn()
 }))
 
 vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => mocks.navigate
+  useNavigate: () => mocks.navigate,
+  useRouter: () => ({ invalidate: mocks.invalidate })
 }))
 
 vi.mock('../authClient', () => ({
   browserAuthClient: { signOut: mocks.signOut }
 }))
 
-vi.mock('../components', () => ({
+vi.mock('../components/AuthPageShell', () => ({
   AuthPageShell: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
@@ -45,6 +47,7 @@ describe('SignOutPage', () => {
 
     await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in' }))
     expect(queryClient.getQueryData(['user'])).toBeUndefined()
+    expect(mocks.invalidate).toHaveBeenCalledOnce()
   })
 
   it('does not clear cached user data or navigate after a failed sign out', async () => {
@@ -56,6 +59,7 @@ describe('SignOutPage', () => {
 
     await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(1))
     expect(mocks.navigate).not.toHaveBeenCalled()
+    expect(mocks.invalidate).not.toHaveBeenCalled()
     expect(queryClient.getQueryData(['user'])).toEqual({ id: 'user-1' })
   })
 })

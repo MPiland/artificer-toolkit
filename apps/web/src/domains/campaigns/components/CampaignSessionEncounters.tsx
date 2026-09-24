@@ -1,13 +1,15 @@
 import { Alert, Badge, Button, Group, Select, Stack, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { getCampaignEncounters, getEncounterBlueprints } from '#app/data/encounters/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
@@ -27,13 +29,14 @@ export function CampaignSessionEncounters({
   mode: 'PREPARE' | 'RUN'
 }) {
   const navigate = useNavigate()
+  const convex = useConvex()
   const queryClient = useQueryClient()
-  const encounters = useQuery(getCampaignEncounters(campaign.id))
+  const encounters = useQuery(getCampaignEncounters(campaign.id, convex))
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string | null>(null)
   const blueprints = useQuery({
-    ...getEncounterBlueprints(campaign.gameSystemId),
+    ...getEncounterBlueprints(campaign.gameSystemId, convex),
     enabled: campaign.status === 'ACTIVE' && encounterAdderOpen
   })
   const sessionEncounters = (encounters.data ?? []).flatMap((candidate) => {
@@ -50,7 +53,7 @@ export function CampaignSessionEncounters({
   const selected = ordered.find((candidate) => candidate.id === selectedEncounterId) ?? ordered[0]
   const addEncounter = useMutation({
     mutationFn: (blueprintId: string) =>
-      api.encounters.create({
+      convex.mutation(convexApi.encounters.runs.create, {
         campaignId: campaign.id,
         sessionId: session.id,
         blueprintId,

@@ -1,12 +1,11 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HttpResponse } from 'msw'
 import { vi } from 'vitest'
 import type {
   CharacterRestPreviewRequestDto,
-  CharacterRestPreviewResponseDto,
-  CharacterSheetResponseDto
-} from '#app/lib/api'
+  CharacterRestPreviewResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 
 export function createSheet(): CharacterSheetResponseDto {
   return {
@@ -231,10 +230,6 @@ export function createSheet(): CharacterSheetResponseDto {
   }
 }
 
-export function trpcJson(data: unknown) {
-  return HttpResponse.json([{ result: { data } }])
-}
-
 export function createRestPreview(
   request: CharacterRestPreviewRequestDto
 ): CharacterRestPreviewResponseDto {
@@ -295,33 +290,6 @@ export function createRestPreview(
     canApply:
       request.restKind === 'LONG' || selected === 0 || (rollEvidence !== undefined && manualReady)
   }
-}
-
-export function trpcErrorJson(message: string, status: number) {
-  return HttpResponse.json(
-    [
-      {
-        error: {
-          code: -32009,
-          data: {
-            code: 'CONFLICT',
-            httpStatus: status,
-            path: 'characters.command'
-          },
-          message
-        }
-      }
-    ],
-    { status }
-  )
-}
-
-export function readBatchedInput<TInput>(body: unknown): TInput {
-  if (typeof body !== 'object' || body === null || !('0' in body)) {
-    throw new Error('Expected batched tRPC input.')
-  }
-
-  return (body as { 0: TInput })[0]
 }
 
 export async function openHpControls(user: ReturnType<typeof userEvent.setup>) {

@@ -1,0 +1,75 @@
+import {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  EFFECT_KIND,
+  RANGE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  type SpellAuthored,
+  SPELL_COMPONENT
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+export const heroesFeast: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.HEROES_FEAST,
+  label: "Heroes' Feast",
+  description:
+    "<p>You bring forth a great feast, including magnificent food and drink. The feast takes 1 hour to consume and disappears at the end of that time, and the beneficial effects don't set in until this hour is over. Up to twelve other creatures can partake of the feast. A creature that partakes of the feast gains several benefits. The creature is cured of all diseases and poison, becomes immune to poison and being frightened, and makes all Wisdom saving throws with advantage. Its hit point maximum also increases by 2d10, and it gains the same number of hit points. These benefits last for 24 hours.</p>",
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 10 },
+  level: 6,
+  classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
+  components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+  materialDescription: 'a gem---encrusted bowl worth at least 1,000 gp, which the spell consumes',
+  magicSchoolId: schoolId('CONJURATION'),
+  effects: [
+    {
+      id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x210, 1),
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x211, 1),
+          rangeKind: RANGE_KIND.SPECIAL
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          maxTargets: 12
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x212, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x212, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x212, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'HEROES_FEAST' as const
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

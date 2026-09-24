@@ -17,7 +17,12 @@ export function canonicalizeRuleDocument(value: unknown): string {
 }
 
 export function checksumRuleDocument(document: unknown): string {
-  return bytesToHex(sha256(utf8ToBytes(canonicalizeRuleDocument(document))))
+  return checksumCanonicalRuleDocument(canonicalizeRuleDocument(document))
+}
+
+/** Hashes already canonical rules JSON; callers must preserve canonicalizeRuleDocument's bytes. */
+export function checksumCanonicalRuleDocument(canonicalJson: string): string {
+  return bytesToHex(sha256(utf8ToBytes(canonicalJson)))
 }
 
 export function equalCanonicalJson(left: unknown, right: unknown): boolean {

@@ -1,39 +1,39 @@
 import { notifications } from '@mantine/notifications'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
 import {
   buildClassListFilters,
   classListAttributeColumns,
-  classListSortOptions,
-  formatClassCategory,
-  mapClassListToAuthoredItems,
-  summarizeClassList
+  classListSortOptions
 } from '#app/data/classes/classListMapper'
-import { useDuplicateClassMutation } from '#app/data/classes/mutations'
-import { getClass, getClassList, useGetClassList } from '#app/data/classes/queries'
-import { createServerApi } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
+import { getClass } from '#app/data/classes/queries'
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
-import type { ClassListRequestDto } from '#app/lib/api'
 
 const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'skills']
-const classCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies ClassListRequestDto
-
 export const Route = createFileRoute('/_authed/classes/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getClassList(classCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'CLASS',
+          sort: 'family',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, { subjectKind: 'CLASS' })
+      )
+    ])
   },
   component: ClassesRoute
 })
@@ -41,32 +41,11 @@ export const Route = createFileRoute('/_authed/classes/')({
 function ClassesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildClassListFilters,
-    buildRequest: ({ filterValues, query, sort }): ClassListRequestDto => ({
-      ...classCatalogueRequest,
-      category: filterValues.category ?? undefined,
-      query: query || undefined,
-      sort: sort === 'category' ? 'category' : 'name',
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) =>
-      mapDraftSummariesToAuthoredItems(response.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatClassCategory
-      }),
-    mapItems: mapClassListToAuthoredItems,
-    summarize: summarizeClassList,
-    useList: useGetClassList
-  })
-  const duplicateMutation = useDuplicateClassMutation()
+  const listing = useNativeAuthoredCatalogWindow('CLASS')
+  const operations = createAuthoredOperations('CLASS', useConvex())
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.classes.deleteActive,
-    deleteDraft: api.content.classes.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.classes.detailRoot,
     domainLabel: 'Class',
     domainQueryKey: queryKeys.content.classes.all(),
@@ -75,7 +54,7 @@ function ClassesRoute() {
 
   async function handleDuplicate(classId: string) {
     try {
-      const response = await duplicateMutation.mutateAsync(classId)
+      const response = await operations.duplicate(classId)
       notifications.show({
         color: 'green',
         message: 'Class duplicated as an owned draft.'
@@ -98,11 +77,16 @@ function ClassesRoute() {
     <>
       <AuthoredListPage
         title='Classes'
-        summary={listing.summary ?? 'Loading classes...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} classes / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading classes...'
+        }
         createLabel='Create Class'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildClassListFilters(listing.summary?.categories ?? [])}
         attributeColumns={classListAttributeColumns}
         sortOptions={classListSortOptions}
         catalog={listing.catalog}

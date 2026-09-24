@@ -1,30 +1,25 @@
-import type { Api, AuthoredDetailRequestDto, RaceListRequestDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
+import { convexQuery } from '@convex-dev/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  authoredDetailReadInputSchema,
+  raceResponseDtoSchema,
+  type AuthoredDetailRequestDto
+} from '@artificer-toolkit/schema/api/content'
 
 type DetailInput = string | AuthoredDetailRequestDto
 
-const raceQueries = createAuthoredContentQueries(
-  (client) => client.content.races,
-  queryKeys.content.races
-)
-
-export function getRaceList(input: RaceListRequestDto, client?: Api) {
-  return raceQueries.getList(input, client)
-}
-
-export function useGetRaceList(input: RaceListRequestDto) {
-  return raceQueries.useList(input)
-}
-
-export function getRace(input: DetailInput, client?: Api) {
-  return raceQueries.getDetail(input, client)
+export function getRace(input: DetailInput) {
+  const args = authoredDetailReadInputSchema.parse({
+    ...(typeof input === 'string' ? { id: input } : input),
+    subjectKind: 'RACE'
+  })
+  return queryOptions({
+    ...convexQuery(convexApi.content.details.get, args),
+    select: (result) => raceResponseDtoSchema.parse(result)
+  })
 }
 
 export function useGetRace(input: DetailInput) {
-  return raceQueries.useDetail(input)
-}
-
-export function getRaceDraft(id: string, client?: Api) {
-  return raceQueries.getDraft(id, client)
+  return useSuspenseQuery(getRace(input))
 }

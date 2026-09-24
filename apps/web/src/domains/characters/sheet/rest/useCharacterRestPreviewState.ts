@@ -1,5 +1,8 @@
-import { useState } from 'react'
-import type { CharacterRestPreviewRequestDto, CharacterRestPreviewResponseDto } from '#app/lib/api'
+import { useRef, useState } from 'react'
+import type {
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { useCharacterRestPreviewMutation } from '#app/data/characters/mutations'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { useCharacterSheetRoll } from '../dice/rollContext'
@@ -19,7 +22,11 @@ export function useCharacterRestPreviewState({
   sheet: CharacterSheet
   submitCommand: SubmitSheetCommand
 }) {
-  const previewMutation = useCharacterRestPreviewMutation(sheet.meta.characterId)
+  const previewMutation = useCharacterRestPreviewMutation(
+    sheet.meta.characterId,
+    sheet.meta.campaignId
+  )
+  const previewRequestSequence = useRef(0)
   const rollController = useCharacterSheetRoll()
   const [preview, setPreview] = useState<CharacterRestPreviewResponseDto>()
   const [selectedHitDice, setSelectedHitDice] = useState<
@@ -34,11 +41,15 @@ export function useCharacterRestPreviewState({
   const [previewError, setPreviewError] = useState<string>()
   const [applyError, setApplyError] = useState<string>()
   const interactionPending =
-    pending || previewMutation.isPending || Boolean(rollController?.pending)
+    pending ||
+    previewMutation.isPending ||
+    Boolean(rollController?.pending) ||
+    Boolean(rollController?.presentationPending)
 
   async function requestPreview(
     overrides: Partial<CharacterRestPreviewRequestDto> = {}
   ): Promise<CharacterRestPreviewResponseDto | undefined> {
+    const requestSequence = ++previewRequestSequence.current
     const request = {
       restKind,
       expectedVersion: sheet.meta.streamVersion,
@@ -57,6 +68,7 @@ export function useCharacterRestPreviewState({
     setApplyError(undefined)
     try {
       const nextPreview = await previewMutation.mutateAsync(request)
+      if (requestSequence !== previewRequestSequence.current) return undefined
       setPreview(nextPreview)
       setSelectedHitDice(
         nextPreview.hitDice.flatMap((pool) =>
@@ -73,7 +85,9 @@ export function useCharacterRestPreviewState({
       )
       return nextPreview
     } catch {
-      setPreviewError('Rest preview could not be updated. Refresh the preview and try again.')
+      if (requestSequence === previewRequestSequence.current) {
+        setPreviewError('Rest preview could not be updated. Refresh the preview and try again.')
+      }
       return undefined
     }
   }
@@ -164,6 +178,15 @@ export function useCharacterRestPreviewState({
       return
     }
 
+    setRollId(undefined)
+    setPreview(undefined)
+    void requestPreview({
+      rollId: undefined,
+      rollEvidence: undefined,
+      requestRoll: false,
+      manualHealingAccepted: false
+    })
+    const rollRequestSequence = previewRequestSequence.current
     const roll = await rollController.executeRoll({
       expression: preview.canonicalExpression,
       source: {
@@ -171,7 +194,7 @@ export function useCharacterRestPreviewState({
         label: `${restKind === 'SHORT' ? 'Short' : 'Long'} rest hit dice`
       }
     })
-    if (!roll) return
+    if (!roll || rollRequestSequence !== previewRequestSequence.current) return
 
     const terms = selectedHitDice.flatMap((selection) => {
       const pool = preview.hitDice.find((candidate) => candidate.die === selection.die)
@@ -217,6 +240,12 @@ export function useCharacterRestPreviewState({
     void requestPreview({ selectedCompanionInstanceIds: nextIds })
   }
 
+  function cancelPreview() {
+    previewRequestSequence.current += 1
+    setRollId(undefined)
+    if (rollController?.presentationPending) rollController.dismissRoll(true)
+  }
+
   return {
     acceptManualHealing,
     applyError,
@@ -224,6 +253,7 @@ export function useCharacterRestPreviewState({
     changeHealingMode,
     changeHitDie,
     changeMaximumHitPointReset,
+    cancelPreview,
     completeRest,
     healingMode,
     interactionPending,

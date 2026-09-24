@@ -1,27 +1,25 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { accountEmailConfirmationSearchSchema } from '@artificer-toolkit/schema/api/account'
 import { AccountSettingsPage } from '#app/settings/AccountSettingsPage'
 import { getAccountEntitlementsQuery } from '#app/settings/accountQueries'
-import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/settings/account')({
-  validateSearch: z.object({
-    emailChanged: z.literal('1').optional()
-  }),
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(getAccountEntitlementsQuery(createServerApi())),
+  validateSearch: accountEmailConfirmationSearchSchema,
+  loader: ({ context }) => context.queryClient.ensureQueryData(getAccountEntitlementsQuery()),
   component: AccountSettingsRoute
 })
 
 function AccountSettingsRoute() {
   const { user } = Route.useRouteContext()
-  const { emailChanged } = Route.useSearch()
-  const entitlements = Route.useLoaderData()
+  const { emailChanged, error } = Route.useSearch()
+  const { data: entitlements } = useSuspenseQuery(getAccountEntitlementsQuery())
 
   return (
     <AccountSettingsPage
       email={user?.email ?? ''}
       emailChanged={emailChanged === '1'}
+      emailConfirmationFailed={error !== undefined}
       entitlements={entitlements}
     />
   )

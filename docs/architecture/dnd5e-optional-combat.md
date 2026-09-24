@@ -101,12 +101,12 @@ revision, checksum, and capability validation path.
 
 ## Gate ownership
 
-- Gate 2 proves contracts, source pins, policy execution, persistence, authorization, concurrency,
+- Gate 2 proves contracts, current source/capability checks, policy execution, persistence, authorization, concurrency,
   receipts, replay, rollback, and privacy for representative combinations.
 - Gate 3 owns Campaign settings, Encounter overrides, initiative/action controls, and accessible
   selectors.
 - Gate 4 owns facing indicators, marks, positional previews, and token presentation.
-- Gate 5 owns the local PostgreSQL lifecycle, WebSocket/multi-client behavior, browser journeys,
+- Gate 5 owns the local Convex lifecycle, transient WebSocket/multi-client behavior, browser journeys,
   replay/privacy/performance, and exact cleanup.
 
 The fixed Phase 8 acceptance ledger remains the quantitative source of completion. Adding a

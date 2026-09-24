@@ -1,6 +1,9 @@
 import { Button, Checkbox, Text } from '@mantine/core'
 import { Dices, Minus, Plus } from 'lucide-react'
-import type { CharacterRestPreviewRequestDto, CharacterRestPreviewResponseDto } from '#app/lib/api'
+import type {
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as coreStyles from '../core/sheetShell.css'
 import { CharacterSheetRestRecoverySummary } from './CharacterSheetRestRecoverySummary'

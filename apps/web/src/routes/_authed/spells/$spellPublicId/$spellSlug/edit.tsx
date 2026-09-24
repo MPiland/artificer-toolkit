@@ -1,16 +1,14 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { getSpell, getSpellDraft } from '#app/data/spells/queries'
+import { spellResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import { getSpell } from '#app/data/spells/queries'
 import type { SpellEditLoaderData } from '#app/routes/-routeLoaderData'
 import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -20,21 +18,18 @@ import {
 export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/edit')({
   context: () => createAuthoredFormRouteContext('spell', 'edit'),
   loader: async ({ context, params }): Promise<SpellEditLoaderData> => {
-    const client = createServerApi()
-    const spellId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.spells.list(),
-      publicId: params.spellPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'SPELL'
-    })
-    const [response, draft] = await Promise.all([
-      ensureOptionalActiveContent(context.queryClient, getSpell(spellId, client)),
-      context.queryClient.ensureQueryData(getSpellDraft(spellId, client))
+    const [active, working] = await Promise.all([
+      context.queryClient.ensureQueryData(getSpell(params.spellPublicId)),
+      context.queryClient.ensureQueryData(getSpell({ id: params.spellPublicId, view: 'draft' }))
     ])
+    const response = spellResponseDtoSchema.parse(active)
+    const draft = spellResponseDtoSchema.parse(working)?.draft ?? null
+    const spellId = response?.item?.id ?? draft?.subjectId ?? params.spellPublicId
     const routeSubject = getAuthoredRouteSubject(spellId, response, draft)
-    const systemId = response?.item?.systemId ?? draft?.systemId
-    const system = await loadAuthoredRouteSystem(context.queryClient, client, systemId)
+    const parsedDraft = spellAuthoringInputDtoSchema.safeParse(draft?.payload)
+    const currentSpell = parsedDraft.success ? parsedDraft.data : response?.item
+    const systemId = currentSpell?.systemId ?? draft?.systemId
+    const system = await loadAuthoredRouteSystem(context.queryClient, systemId)
 
     if (
       routeSubject &&

@@ -14,19 +14,13 @@
       "path": "./packages/shared"
     },
     {
-      "path": "./packages/db"
-    },
-    {
-      "path": "./packages/functions"
+      "path": "./packages/source-data"
     },
     {
       "path": "./apps/web"
     },
     {
       "path": "./apps/apis"
-    },
-    {
-      "path": "./apps/session-host"
     }
   ],
   "extends": "./tsconfig.base.json"

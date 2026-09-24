@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { measurementUnitCodeSchema } from '../shared/enums.js'
 import {
@@ -16,7 +16,7 @@ export const movementRuleDtoSchema = z.discriminatedUnion('ruleKind', [
     id: authoredIdentifierSchema,
     effectKind: z.literal('MOVEMENT_RULE'),
     ruleKind: z.literal('MOVEMENT_COST_MULTIPLIER'),
-    multiplier: z.number().positive()
+    multiplier: z.number().check(z.positive())
   }),
   z.object({
     id: authoredIdentifierSchema,

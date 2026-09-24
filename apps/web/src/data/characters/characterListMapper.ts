@@ -1,4 +1,4 @@
-import type { CharacterListResponseDto } from '#app/lib/api'
+import type { CharacterListResponseDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type {
   AuthoredListAttributeColumn,
   AuthoredListFilter,
@@ -14,6 +14,9 @@ function formatStatus(status: string | undefined): string {
 }
 
 function characterDescription(item: CharacterListResponseDto['items'][number]): string {
+  if (item.status === 'DRAFT' && item.streamVersion > 0) {
+    return 'Character requires Builder repair before play.'
+  }
   if (item.draft?.draftState === 'ACTIVE_WITH_DRAFT') {
     return 'Draft changes saved. Active character stays unchanged until finalized.'
   }
@@ -26,10 +29,6 @@ function characterDescription(item: CharacterListResponseDto['items'][number]): 
 }
 
 type CharacterListItem = CharacterListResponseDto['items'][number]
-
-function isDraftOnlyCharacterListItem(item: CharacterListItem) {
-  return item.draft?.draftState === 'DRAFT_ONLY'
-}
 
 function hasCharacterDraftWork(item: CharacterListItem) {
   return item.status === 'DRAFT' || item.draft != null
@@ -76,7 +75,7 @@ export function mapCharacterListToActiveAuthoredItems(
   response: CharacterListResponseDto
 ): AuthoredListItem[] {
   return response.items
-    .filter((item) => !isDraftOnlyCharacterListItem(item))
+    .filter((item) => item.status === 'ACTIVE' && item.draft?.draftState !== 'DRAFT_ONLY')
     .map(mapCharacterListItemToAuthoredItem)
 }
 

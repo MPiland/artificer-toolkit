@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/get-convex/convex-backend/main/npm-packages/convex/schemas/convex.schema.json",
+  "functions": "convex/",
+  "codegen": { "staticApi": true },
+  "node": { "nodeVersion": "24", "externalPackages": ["sharp"] }
+}

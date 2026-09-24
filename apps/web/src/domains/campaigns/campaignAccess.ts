@@ -1,4 +1,4 @@
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 
 export type CampaignTab =
   | 'sessions'

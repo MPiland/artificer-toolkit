@@ -1,11 +1,11 @@
 import { Accordion, Badge, Button, Text } from '@mantine/core'
 import clsx from 'clsx'
 
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import type {
-  CharacterPreparationOptionsResponseDto,
   CharacterSheetPanelDto,
   CharacterSheetPanelTargetDto
-} from '#app/lib/api'
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
@@ -234,6 +234,7 @@ export function CharacterSheetSpellsPanelContent({
                               disabled={
                                 pending ||
                                 !preparationOptionsCurrent ||
+                                (source.canManageKnown && !source.known) ||
                                 !panel.editable ||
                                 !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
                               }

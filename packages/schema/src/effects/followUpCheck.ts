@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { activationDtoSchema } from './activation.js'
 import { abilityCodeSchema } from '../shared/enums.js'
@@ -8,7 +8,7 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 
-export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
+export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('END') }),
     z.object({ kind: z.literal('CONTINUE') }),
@@ -26,10 +26,12 @@ export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
     label: authoredShortTextSchema,
     activation: activationDtoSchema,
     ability: abilityCodeSchema,
-    fixedDc: z.number().int().positive(),
-    skillId: authoredIdentifierSchema.optional(),
-    toolEquipmentId: authoredIdentifierSchema.optional(),
-    actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).min(1),
+    fixedDc: z.number().check(z.int()).check(z.positive()),
+    skillId: z.optional(authoredIdentifierSchema),
+    toolEquipmentId: z.optional(authoredIdentifierSchema),
+    actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
+      z.minLength(1)
+    ),
     repeatable: z.boolean(),
     onSuccess: branchDtoSchema,
     onFailure: branchDtoSchema

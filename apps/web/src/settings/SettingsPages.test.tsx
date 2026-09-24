@@ -1,14 +1,17 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
+import { ConvexReactClient } from 'convex/react'
+import { getFunctionName } from 'convex/server'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { TestRouterProvider } from '#test/TestRouterProvider'
 
 const mocks = vi.hoisted(() => ({
   deleteAccount: vi.fn(),
   requestPasswordReset: vi.fn(),
-  updateAuthUser: vi.fn(),
   updateEmail: vi.fn(),
   updatePassword: vi.fn(),
-  getSocialEligibility: vi.fn(),
   updateSocialContentPreference: vi.fn()
 }))
 
@@ -20,34 +23,52 @@ vi.mock('#app/auth/authClient', () => ({
     requestPasswordReset: mocks.requestPasswordReset
   }
 }))
-vi.mock('#supabase/client', () => ({
-  getSupabaseBrowserClient: () => ({
-    auth: { updateUser: mocks.updateAuthUser }
-  })
-}))
-vi.mock('#app/lib/api', () => ({
-  api: {
-    socialHub: {
-      eligibility: { get: mocks.getSocialEligibility },
-      preferences: { update: mocks.updateSocialContentPreference }
+vi.mock('@convex-dev/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@convex-dev/react-query')>()
+  return {
+    ...actual,
+    convexQuery: (reference: Parameters<typeof actual.convexQuery>[0], args: unknown) => {
+      const options = actual.convexQuery(reference, args)
+      if (getFunctionName(reference) !== 'social/profiles:getEligibility') return options
+      return {
+        ...options,
+        queryFn: async () => ({
+          eligible: false,
+          profilePublicId: null,
+          adultAttestedAt: null,
+          contentPreference: 'STANDARD' as const,
+          status: null
+        })
+      }
     }
   }
-}))
+})
+vi.mock('convex/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('convex/react')>()
+  return {
+    ...actual,
+    useMutation: (reference: Parameters<typeof actual.useMutation>[0]) =>
+      getFunctionName(reference) === 'social/profiles:updatePreference'
+        ? mocks.updateSocialContentPreference
+        : actual.useMutation(reference)
+  }
+})
 
 import { AccountSettingsPage } from './AccountSettingsPage'
 import { PreferencesSettingsPage } from './PreferencesSettingsPage'
 
+const authoringUser: AuthSessionUserDto = {
+  userId: '13c13d4a-1a19-4cdc-8dc8-a9cac3492b1e',
+  role: 'user',
+  email: 'author@example.invalid',
+  username: 'advanced_author',
+  registrationCompleted: true,
+  authoringExperience: 'guided'
+}
+
 describe('settings pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.updateAuthUser.mockResolvedValue({ error: null })
-    mocks.getSocialEligibility.mockResolvedValue({
-      eligible: false,
-      profilePublicId: null,
-      adultAttestedAt: null,
-      contentPreference: 'STANDARD',
-      status: null
-    })
     mocks.updateSocialContentPreference.mockResolvedValue({
       eligible: false,
       profilePublicId: '00000000-0000-4000-8000-000000000001',
@@ -59,24 +80,45 @@ describe('settings pages', () => {
   })
 
   it('persists the account authoring experience', async () => {
-    renderWithAppProviders(<PreferencesSettingsPage />)
+    const client = new ConvexReactClient('https://settings-test.convex.cloud', { logger: false })
+    const mutation = vi.spyOn(client, 'mutation').mockResolvedValue(null)
+    render(
+      <TestRouterProvider convexClient={client} user={authoringUser}>
+        <PreferencesSettingsPage />
+      </TestRouterProvider>
+    )
 
     fireEvent.click(screen.getByText('Advanced'))
 
     await waitFor(() =>
-      expect(mocks.updateAuthUser).toHaveBeenCalledWith({
-        data: { authoring_experience: 'advanced' }
+      expect(mutation).toHaveBeenCalledWith(api.account.setAuthoringExperience, {
+        experience: 'advanced'
       })
     )
+    await client.close()
   })
 
   it('keeps the selected authoring experience when persistence fails', async () => {
-    mocks.updateAuthUser.mockResolvedValueOnce({ error: new Error('unavailable') })
-    renderWithAppProviders(<PreferencesSettingsPage />)
+    const client = new ConvexReactClient('https://settings-test.convex.cloud', { logger: false })
+    const mutation = vi.spyOn(client, 'mutation').mockRejectedValueOnce(new Error('unavailable'))
+    render(
+      <TestRouterProvider convexClient={client} user={authoringUser}>
+        <PreferencesSettingsPage />
+      </TestRouterProvider>
+    )
 
     fireEvent.click(screen.getByText('Advanced'))
 
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'Advanced' })).toBeChecked())
+    await waitFor(() => {
+      expect(mutation).toHaveBeenCalledWith(api.account.setAuthoringExperience, {
+        experience: 'advanced'
+      })
+      expect(screen.getByRole('radio', { name: 'Advanced' })).toBeChecked()
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Your choice works for now, but it could not be saved for next time.'
+      )
+    })
+    await client.close()
   })
 
   it('persists appearance changes through Mantine local storage', async () => {
@@ -106,10 +148,18 @@ describe('settings pages', () => {
 
     await waitFor(() =>
       expect(mocks.updateSocialContentPreference).toHaveBeenCalledWith({
-        contentPreference: 'MATURE',
-        birthDate: '2000-01-01'
+        input: {
+          contentPreference: 'MATURE',
+          birthDate: '2000-01-01'
+        }
       })
     )
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'Mature' })).toBeChecked()
+      expect(
+        screen.queryByRole('dialog', { name: 'Confirm you are 18 or older' })
+      ).not.toBeInTheDocument()
+    })
   })
 
   it('requests a confirmed email change', async () => {
@@ -137,6 +187,19 @@ describe('settings pages', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows a fixed failure status instead of the neutral email confirmation status', () => {
+    renderWithAppProviders(
+      <AccountSettingsPage email='player@example.com' emailChanged emailConfirmationFailed />
+    )
+
+    expect(screen.getByText('Email confirmation failed')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'This confirmation link could not be used. Request another email change from your account settings.'
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Email confirmation received')).not.toBeInTheDocument()
+  })
   it('does not submit mismatched new passwords', async () => {
     const { container } = renderWithAppProviders(<AccountSettingsPage email='player@example.com' />)
     expect(container.querySelector('input[name="currentPassword"]')).toBeNull()

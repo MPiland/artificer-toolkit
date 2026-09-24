@@ -1,7 +1,11 @@
 import { Button, Group, Stack, Text, Title } from '@mantine/core'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { getCampaignInventory, getCampaignInventoryAudit } from '#app/data/campaigns/queries'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { InventoryDto } from '@artificer-toolkit/schema/api/campaignInventory'
+import { decodeCampaignInventoryAuditPage } from '@artificer-toolkit/schema/api/campaignInventoryPages'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { useQuery } from 'convex/react'
+import { useEffect, useState } from 'react'
 import * as sharedStyles from '../campaigns.css'
 
 const inventoryEventLabels: Record<string, string> = {
@@ -14,11 +18,22 @@ const inventoryEventLabels: Record<string, string> = {
 }
 
 export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailDto }) {
-  const audit = useInfiniteQuery(getCampaignInventoryAudit(campaign.id))
-  const partyInventory = useQuery(
-    getCampaignInventory(campaign.id, { kind: 'CAMPAIGN', campaignId: campaign.id })
+  const items = usePaginatedQuery(
+    convexApi.campaigns.partyInventory.items,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
   )
-  const events = audit.data?.pages.flatMap((page) => page.events) ?? []
+  const currencies = usePaginatedQuery(
+    convexApi.campaigns.partyInventory.currencies,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  useEffect(() => {
+    if (items.status === 'CanLoadMore') items.loadMore(48)
+  }, [items.loadMore, items.status])
+  useEffect(() => {
+    if (currencies.status === 'CanLoadMore') currencies.loadMore(48)
+  }, [currencies.loadMore, currencies.status])
 
   return (
     <section className={sharedStyles.panel} aria-labelledby='inventory-audit-title'>
@@ -30,9 +45,42 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
           GM-only custody history retained for 180 days.
         </Text>
       </div>
+      <InventoryAuditPage
+        campaign={campaign}
+        items={items.results}
+        currencies={currencies.results}
+      />
+    </section>
+  )
+}
+
+function InventoryAuditPage({
+  campaign,
+  items,
+  currencies,
+  cursor
+}: {
+  campaign: CampaignDetailDto
+  items: InventoryDto['items']
+  currencies: InventoryDto['currencies']
+  cursor?: string
+}) {
+  const [showOlder, setShowOlder] = useState(false)
+  const transport = useQuery(convexApi.campaigns.inventoryAudit.list, {
+    campaignId: campaign.id,
+    limit: 48,
+    ...(cursor ? { cursor } : {})
+  })
+  const audit = transport === undefined ? undefined : decodeCampaignInventoryAuditPage(transport)
+  const events = audit?.events ?? []
+
+  return (
+    <>
       <Stack gap='xs'>
-        {audit.isPending ? <Text c='dimmed'>Loading activity…</Text> : null}
-        {!audit.isPending && events.length === 0 ? <Text c='dimmed'>No activity yet.</Text> : null}
+        {audit === undefined ? <Text c='dimmed'>Loading activity…</Text> : null}
+        {audit !== undefined && events.length === 0 ? (
+          <Text c='dimmed'>No activity yet.</Text>
+        ) : null}
         {events.map((event) => {
           const actor = campaign.memberships.find((member) => member.userId === event.actorUserId)
           const payload: Record<string, unknown> =
@@ -47,8 +95,8 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
             payload.afterAmount ??
             payload.afterSourceQuantity ??
             payload.afterSourceAmount
-          const currentItem = partyInventory.data?.items.find((item) => item.id === payload.itemId)
-          const currentCurrency = partyInventory.data?.currencies.find(
+          const currentItem = items.find((item) => item.id === payload.itemId)
+          const currentCurrency = currencies.find(
             (currency) => currency.denominationId === payload.denominationId
           )
           const assetLabel =
@@ -59,7 +107,12 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
           const eventLabel =
             inventoryEventLabels[event.kind] ?? event.kind.replaceAll('_', ' ').toLowerCase()
           return (
-            <Group className={sharedStyles.memberRow} key={event.id} justify='space-between'>
+            <Group
+              className={sharedStyles.memberRow}
+              key={event.id}
+              data-audit-event-id={event.id}
+              justify='space-between'
+            >
               <div>
                 <Text fw={600}>{assetLabel ? `${eventLabel}: ${assetLabel}` : eventLabel}</Text>
                 <Text c='dimmed' size='sm'>
@@ -76,16 +129,21 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
           )
         })}
       </Stack>
-      {audit.hasNextPage ? (
-        <Button
-          loading={audit.isFetchingNextPage}
-          variant='subtle'
-          onClick={() => void audit.fetchNextPage()}
-        >
-          Load older activity
-        </Button>
+      {audit?.nextCursor ? (
+        showOlder ? (
+          <InventoryAuditPage
+            campaign={campaign}
+            items={items}
+            currencies={currencies}
+            cursor={audit.nextCursor}
+          />
+        ) : (
+          <Button variant='subtle' onClick={() => setShowOlder(true)}>
+            Load older activity
+          </Button>
+        )
       ) : null}
-    </section>
+    </>
   )
 }
 

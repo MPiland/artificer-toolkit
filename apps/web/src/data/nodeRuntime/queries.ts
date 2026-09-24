@@ -1,6 +1,15 @@
 import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query'
-import { api, type Api, type NodeRuntimeResolveRequestDto } from '#lib/api'
-import { queryKeys } from '#lib/queryKeys'
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeResolveRequestDto,
+  type NodeRuntimeResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  expandNodeRuntimeResponse,
+  type NodeRuntimeCompactResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 
 const runtimeCopyFieldNames = new Set([
   'body',
@@ -20,19 +29,39 @@ export function fingerprintNodeRuntimeRequest(input: NodeRuntimeResolveRequestDt
   return stableStringify(stripCopyOnlyFields(input))
 }
 
-export function getNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.nodeRuntime.resolve(input.mapId, fingerprintNodeRuntimeRequest(input)),
-    queryFn: async () => await client.nodeRuntime.resolve(input)
+export function getNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabled = true) {
+  const { queryKey } = convexQuery(
+    convexApi.authoring.nodeRuntime.resolve,
+    enabled && input.systemId
+      ? nodeRuntimeResolveRequestDtoSchema.parse(JSON.parse(JSON.stringify(input)))
+      : 'skip'
+  )
+  return queryOptions<NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto>({
+    queryKey,
+    enabled: enabled && Boolean(input.systemId),
+    staleTime: Infinity
   })
 }
 
 export function useNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabled = true) {
-  return useQuery({
-    ...getNodeRuntimeResolve(input),
-    enabled,
-    placeholderData: keepPreviousData
+  const resolveEnabled = enabled && Boolean(input.systemId)
+  return useQuery<
+    NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto,
+    Error,
+    NodeRuntimeResolveResponseDto
+  >({
+    ...getNodeRuntimeResolve(input, resolveEnabled),
+    enabled: resolveEnabled,
+    placeholderData: keepPreviousData,
+    select: selectNodeRuntimeResponse
   })
+}
+
+// Stable identity lets React Query reuse decoded scopes across unrelated form rerenders.
+function selectNodeRuntimeResponse(
+  result: NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto
+): NodeRuntimeResolveResponseDto {
+  return 'models' in result ? expandNodeRuntimeResponse(result) : result
 }
 
 function stableStringify(value: unknown): string {

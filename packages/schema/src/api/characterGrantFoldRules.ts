@@ -1,13 +1,15 @@
-import { z } from 'zod'
-import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
+import { z } from '../zod.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
 
-const identitySchema = z.string().trim().min(1).max(240)
-const codeSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,79}$/)
+const identitySchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+const codeSchema = z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/))
 const boundedJsonSchema = z
   .json()
-  .refine((value) => JSON.stringify(value).length <= 8_192, 'Mechanic facts are too large.')
+  .check(
+    z.refine((value) => JSON.stringify(value).length <= 8_192, 'Mechanic facts are too large.')
+  )
 
 export const characterMechanicSourceSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -60,57 +62,59 @@ const restrictionConditionSchema = z.strictObject({
     'UNAVAILABLE',
     'UNSUPPORTED'
   ]),
-  mode: z.enum(['ALL', 'SELECTED']).nullable(),
-  abilityId: identitySchema.nullable(),
-  classIds: z.array(identitySchema).max(20),
-  requiredIds: z.array(identitySchema).max(200),
-  secondaryRequiredIds: z.array(identitySchema).max(200),
-  min: z.number().finite().nullable(),
-  max: z.number().finite().nullable(),
-  proficiencyKind: codeSchema.nullable(),
-  minimumRank: z.enum(['HALF', 'FULL', 'DOUBLE']).nullable(),
-  category: codeSchema.nullable(),
-  requiredProperties: z.array(codeSchema).max(100),
-  sourceState: z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED']).nullable()
+  mode: z.nullable(z.enum(['ALL', 'SELECTED'])),
+  abilityId: z.nullable(identitySchema),
+  classIds: z.array(identitySchema).check(z.maxLength(20)),
+  requiredIds: z.array(identitySchema).check(z.maxLength(200)),
+  secondaryRequiredIds: z.array(identitySchema).check(z.maxLength(200)),
+  min: z.nullable(z.number()),
+  max: z.nullable(z.number()),
+  proficiencyKind: z.nullable(codeSchema),
+  minimumRank: z.nullable(z.enum(['HALF', 'FULL', 'DOUBLE'])),
+  category: z.nullable(codeSchema),
+  requiredProperties: z.array(codeSchema).check(z.maxLength(100)),
+  sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED']))
 })
 
 export const characterGrantFoldRestrictionSchema = z
   .array(
     z.strictObject({
-      conditions: z.array(restrictionConditionSchema).max(100)
+      conditions: z.array(restrictionConditionSchema).check(z.maxLength(100))
     })
   )
-  .max(50)
+  .check(z.maxLength(50))
 
 const proficiencyOperationSchema = z
   .strictObject({
     grantId: identitySchema,
     proficiencyKind: codeSchema,
-    targetIds: z.array(identitySchema).max(200),
-    matchIds: z.array(identitySchema).max(200),
-    category: codeSchema.nullable(),
+    targetIds: z.array(identitySchema).check(z.maxLength(200)),
+    matchIds: z.array(identitySchema).check(z.maxLength(200)),
+    category: z.nullable(codeSchema),
     scaling: z.enum(['HALF', 'FULL', 'DOUBLE'])
   })
-  .refine(
-    ({ targetIds, matchIds }) => targetIds.length === matchIds.length,
-    'Proficiency targets and match identities must align.'
+  .check(
+    z.refine(
+      ({ targetIds, matchIds }) => targetIds.length === matchIds.length,
+      'Proficiency targets and match identities must align.'
+    )
   )
 
 const scalingTargetsSchema = z.strictObject({
-  level: z.number().int().min(1).max(20),
-  targetIds: z.array(identitySchema).max(200)
+  level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+  targetIds: z.array(identitySchema).check(z.maxLength(200))
 })
 
 const scalingOperationSchema = z.strictObject({
   grantId: identitySchema,
   scalingKind: z.enum(['NONE', 'PER_LEVEL']),
-  targetIds: z.array(identitySchema).max(200),
-  levels: z.array(scalingTargetsSchema).max(20)
+  targetIds: z.array(identitySchema).check(z.maxLength(200)),
+  levels: z.array(scalingTargetsSchema).check(z.maxLength(20))
 })
 
-const senseOperationSchema = scalingOperationSchema.extend({
+const senseOperationSchema = z.extend(scalingOperationSchema, {
   grantId: identitySchema,
-  range: boundedJsonSchema.nullable()
+  range: z.nullable(boundedJsonSchema)
 })
 
 const modifierOperationSchema = z.strictObject({
@@ -120,40 +124,40 @@ const modifierOperationSchema = z.strictObject({
   domain: boundedJsonSchema,
   grant: boundedJsonSchema,
   restrictions: characterGrantFoldRestrictionSchema,
-  scopeSpellIds: z.array(identitySchema).max(500)
+  scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
 })
 
 export const characterGrantFoldSourceSchema = z.strictObject({
   sourceId: identitySchema,
   mechanicSource: characterMechanicSourceSchema,
-  sourceState: z
-    .strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
-    .nullable(),
+  sourceState: z.nullable(
+    z.strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
+  ),
   restrictions: characterGrantFoldRestrictionSchema,
-  proficiencies: z.array(proficiencyOperationSchema).max(200),
-  senses: z.array(senseOperationSchema).max(200),
-  modifiers: z.array(modifierOperationSchema).max(200),
-  feats: z.array(scalingOperationSchema).max(200),
-  spells: z.array(scalingOperationSchema).max(200)
+  proficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200)),
+  senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+  modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+  feats: z.array(scalingOperationSchema).check(z.maxLength(200)),
+  spells: z.array(scalingOperationSchema).check(z.maxLength(200))
 })
 
 const classSourceSchema = z.strictObject({
   classId: identitySchema,
-  level: z.number().int().min(1).max(20),
-  base: z
-    .strictObject({
+  level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+  base: z.nullable(
+    z.strictObject({
       category: z.enum(['BASE', 'SUBCLASS']),
       source: characterGrantFoldSourceSchema,
-      multiclassProficiencies: z.array(proficiencyOperationSchema).max(200)
+      multiclassProficiencies: z.array(proficiencyOperationSchema).check(z.maxLength(200))
     })
-    .nullable(),
-  subclass: z
-    .strictObject({
+  ),
+  subclass: z.nullable(
+    z.strictObject({
       category: z.enum(['BASE', 'SUBCLASS']),
-      parentClassId: identitySchema.nullable(),
+      parentClassId: z.nullable(identitySchema),
       source: characterGrantFoldSourceSchema
     })
-    .nullable()
+  )
 })
 
 const featureSourceSchema = z.strictObject({
@@ -169,11 +173,11 @@ const featureSourceSchema = z.strictObject({
     'SUBCLASS',
     'MANUAL'
   ]),
-  sourceClassLevel: z.number().int().min(1).max(20).nullable(),
-  timingLevel: z.number().int().min(1).max(20).nullable(),
-  definition: characterGrantFoldSourceSchema.nullable(),
-  selectedOptions: z.array(characterGrantFoldSourceSchema).max(100),
-  featDefinition: characterGrantFoldSourceSchema.nullable()
+  sourceClassLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
+  timingLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
+  definition: z.nullable(characterGrantFoldSourceSchema),
+  selectedOptions: z.array(characterGrantFoldSourceSchema).check(z.maxLength(100)),
+  featDefinition: z.nullable(characterGrantFoldSourceSchema)
 })
 
 const equipmentItemSchema = z.strictObject({
@@ -184,22 +188,22 @@ const equipmentItemSchema = z.strictObject({
   attuned: z.boolean(),
   restrictions: characterGrantFoldRestrictionSchema,
   rootSourceId: identitySchema,
-  rootModifiers: z.array(modifierOperationSchema).max(200),
-  chargeId: identitySchema.nullable(),
+  rootModifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+  chargeId: z.nullable(identitySchema),
   features: z
     .array(
       z.strictObject({
         source: characterGrantFoldSourceSchema,
-        sourceChargeUse: z
-          .strictObject({
+        sourceChargeUse: z.nullable(
+          z.strictObject({
             featureId: identitySchema,
             limitKind: codeSchema,
-            cost: z.number().finite()
+            cost: z.number()
           })
-          .nullable()
+        )
       })
     )
-    .max(100)
+    .check(z.maxLength(100))
 })
 
 export const characterGrantFoldInputSchema = z
@@ -207,49 +211,51 @@ export const characterGrantFoldInputSchema = z
     contractVersion: z.literal(1),
     base: z.strictObject({
       systemId: identitySchema,
-      totalLevel: z.number().int().min(0).max(20),
-      raceId: identitySchema.nullable(),
-      subraceId: identitySchema.nullable(),
-      abilities: z.record(identitySchema, z.number().finite()),
-      heritageIds: z.array(identitySchema).max(200),
-      featureIds: z.array(identitySchema).max(500),
-      optionIds: z.array(identitySchema).max(500),
-      featIds: z.array(identitySchema).max(500),
+      totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
+      raceId: z.nullable(identitySchema),
+      subraceId: z.nullable(identitySchema),
+      abilities: z.record(identitySchema, z.number()),
+      heritageIds: z.array(identitySchema).check(z.maxLength(200)),
+      featureIds: z.array(identitySchema).check(z.maxLength(500)),
+      optionIds: z.array(identitySchema).check(z.maxLength(500)),
+      featIds: z.array(identitySchema).check(z.maxLength(500)),
       classes: z
         .array(
           z.strictObject({
             classId: identitySchema,
-            level: z.number().int().min(1).max(20),
+            level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
             spellcasting: z.boolean()
           })
         )
-        .max(20),
+        .check(z.maxLength(20)),
       equipment: z
         .array(
           z.strictObject({
             equipmentId: identitySchema,
-            category: codeSchema.nullable(),
-            properties: z.array(codeSchema).max(100),
+            category: z.nullable(codeSchema),
+            properties: z.array(codeSchema).check(z.maxLength(100)),
             equipped: z.boolean(),
             attuned: z.boolean()
           })
         )
-        .max(500)
+        .check(z.maxLength(500))
     }),
-    upstreamSpellIds: z.array(identitySchema).max(5000),
-    classes: z.array(classSourceSchema).max(20),
-    background: characterGrantFoldSourceSchema.nullable(),
-    features: z.array(featureSourceSchema).max(500),
-    equipmentItems: z.array(equipmentItemSchema).max(500)
+    upstreamSpellIds: z.array(identitySchema).check(z.maxLength(5000)),
+    classes: z.array(classSourceSchema).check(z.maxLength(20)),
+    background: z.nullable(characterGrantFoldSourceSchema),
+    features: z.array(featureSourceSchema).check(z.maxLength(500)),
+    equipmentItems: z.array(equipmentItemSchema).check(z.maxLength(500))
   })
-  .refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold facts are too large.')
+  .check(
+    z.refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold facts are too large.')
+  )
 
 const proficiencyResultSchema = z.strictObject({
-  acceptedProficiencyIndex: z.number().int().min(0).max(9_999),
+  acceptedProficiencyIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
   kind: codeSchema,
   subjectId: identitySchema,
   matchId: identitySchema,
-  category: codeSchema.optional(),
+  category: z.optional(codeSchema),
   scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
   source: characterMechanicSourceSchema,
   grantId: identitySchema
@@ -257,8 +263,8 @@ const proficiencyResultSchema = z.strictObject({
 
 const senseResultSchema = z.strictObject({
   senseDefinitionId: serverUuidIdentityDtoSchema,
-  range: boundedJsonSchema.optional(),
-  acceptedSenseIndex: z.number().int().min(0).max(9_999),
+  range: z.optional(boundedJsonSchema),
+  acceptedSenseIndex: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
   grantId: identitySchema,
   source: characterMechanicSourceSchema
 })
@@ -268,7 +274,7 @@ const modifierResultSchema = z.strictObject({
   modifierKind: codeSchema,
   grant: boundedJsonSchema,
   source: characterMechanicSourceSchema,
-  scopeSpellIds: z.array(identitySchema).max(500).optional()
+  scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500)))
 })
 
 const equipmentChargeUseSchema = z.strictObject({
@@ -276,19 +282,19 @@ const equipmentChargeUseSchema = z.strictObject({
   equipmentId: identitySchema,
   itemInstanceId: identitySchema,
   chargeId: identitySchema,
-  cost: z.number().finite()
+  cost: z.number()
 })
 
 export const characterGrantFoldOutputSchema = z
   .strictObject({
-    proficiencies: z.array(proficiencyResultSchema).max(10_000),
-    senses: z.array(senseResultSchema).max(10_000),
-    modifiers: z.array(modifierResultSchema).max(10_000),
-    unlockedFeatIds: z.array(identitySchema).max(10_000),
-    unlockedSpellIds: z.array(identitySchema).max(10_000),
-    activeSourceIds: z.array(identitySchema).max(10_000),
-    activeEquipmentInstanceIds: z.array(identitySchema).max(500),
-    equipmentFeatureChargeUses: z.array(equipmentChargeUseSchema).max(10_000),
+    proficiencies: z.array(proficiencyResultSchema).check(z.maxLength(10_000)),
+    senses: z.array(senseResultSchema).check(z.maxLength(10_000)),
+    modifiers: z.array(modifierResultSchema).check(z.maxLength(10_000)),
+    unlockedFeatIds: z.array(identitySchema).check(z.maxLength(10_000)),
+    unlockedSpellIds: z.array(identitySchema).check(z.maxLength(10_000)),
+    activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
+    activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(500)),
+    equipmentFeatureChargeUses: z.array(equipmentChargeUseSchema).check(z.maxLength(10_000)),
     modifierGroups: z
       .array(
         z.strictObject({
@@ -298,18 +304,24 @@ export const characterGrantFoldOutputSchema = z
           contributions: z
             .array(
               z.strictObject({
-                acceptedModifierIndex: z.number().int().min(0).max(9_999),
+                acceptedModifierIndex: z
+                  .number()
+                  .check(z.int())
+                  .check(z.gte(0))
+                  .check(z.lte(9_999)),
                 sourceId: identitySchema,
                 grantId: identitySchema,
                 grant: boundedJsonSchema
               })
             )
-            .max(10_000)
+            .check(z.maxLength(10_000))
         })
       )
-      .max(10_000)
+      .check(z.maxLength(10_000))
   })
-  .refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold result is too large.')
+  .check(
+    z.refine((value) => JSON.stringify(value).length <= 240_000, 'Grant-fold result is too large.')
+  )
 
 export type CharacterGrantFoldInput = z.infer<typeof characterGrantFoldInputSchema>
 export type CharacterGrantFoldOutput = z.infer<typeof characterGrantFoldOutputSchema>

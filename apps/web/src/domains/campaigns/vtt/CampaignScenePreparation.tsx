@@ -12,11 +12,20 @@ import {
   TextInput,
   Title
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  useAction,
+  useConvex,
+  useMutation as useConvexMutation,
+  usePaginatedQuery
+} from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useBlocker } from '@tanstack/react-router'
 import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
-import { api, type CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CreateSceneDefinitionInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { loadSceneDefinition, saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   acceptedMapType,
@@ -28,6 +37,7 @@ import {
 import {
   clearVttMapUploadIdempotencyKey,
   getOrCreateVttMapUploadIdempotencyKey,
+  getUploadedVttMapAssetId,
   uploadVttMap
 } from './vttMapUpload'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
@@ -43,12 +53,17 @@ export function CampaignScenePreparation({
   currentUserId: string
   memberships: CampaignDetailDto['memberships']
 }) {
-  const queryClient = useQueryClient()
+  const convex = useConvex()
+  const createUpload = useConvexMutation(convexApi.media.vttMapAssets.createUpload)
+  const finalizeMap = useAction(convexApi.media.vttMapActions.finalize)
+  const getMapDelivery = useAction(convexApi.media.vttMapActions.getDelivery)
   const gridPatternId = useId()
-  const scenes = useQuery({
-    queryFn: () => api.campaigns.scenes.list(campaignId),
-    queryKey: queryKeys.campaigns.scenes(campaignId)
-  })
+  const scenes = usePaginatedQuery(
+    convexApi.scenes.definitionReads.list,
+    { campaignId },
+    { initialNumItems: 8 }
+  )
+  const createAttempt = useRef<{ input: string; commandId: string } | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState('')
   const [gridKind, setGridKind] = useState<'GRIDLESS' | 'SQUARE'>('SQUARE')
@@ -71,8 +86,24 @@ export function CampaignScenePreparation({
     withResolver: true
   })
   const fileError = validateMapFile(file)
-  const selectedScene =
-    scenes.data?.find((scene) => scene.id === selectedSceneId) ?? scenes.data?.[0] ?? null
+  const activeSceneId = selectedSceneId ?? scenes.results[0]?.id ?? null
+  const selectedScene = scenes.results.find((scene) => scene.id === activeSceneId) ?? null
+  const definition = useQuery({
+    queryKey: queryKeys.campaigns.sceneDefinition(campaignId, activeSceneId),
+    queryFn: ({ signal }) => {
+      if (!activeSceneId) throw new Error('Choose a Scene.')
+      return loadSceneDefinition(convex, { campaignId, sceneId: activeSceneId }, signal)
+    },
+    enabled: activeSceneId !== null,
+    staleTime: Number.POSITIVE_INFINITY
+  })
+  useEffect(() => {
+    if (activeSceneId && selectedSceneId === null) setSelectedSceneId(activeSceneId)
+  }, [activeSceneId, selectedSceneId])
+  useEffect(() => {
+    if (definition.data && selectedScene && definition.data.version !== selectedScene.version)
+      void definition.refetch()
+  }, [selectedScene?.version, definition.data?.version, definition.refetch])
 
   const upload = useMutation({
     mutationFn: async () => {
@@ -80,26 +111,32 @@ export function CampaignScenePreparation({
       const mimeType = acceptedMapType(file.type)
       if (!mimeType) throw new Error('Maps must be JPEG, PNG, or WebP images.')
       setUploadProgress(0)
-      const intent = await api.media.createVttMapUpload({
-        declaredBytes: file.size,
-        declaredMimeType: mimeType,
-        idempotencyKey: getOrCreateVttMapUploadIdempotencyKey(campaignId, file),
-        originalFileName: file.name,
-        profile: 'VTT_MAP',
-        target: { campaignId, type: 'VTT_MAP' }
-      })
-      const parts = await uploadVttMap({
-        file,
-        intent,
-        onProgress: setUploadProgress
-      })
-      await api.media.completeVttMapUpload({ assetId: intent.assetId, parts })
-      const finalized = await api.media.finalizeVttMapUpload({ assetId: intent.assetId })
-      clearVttMapUploadIdempotencyKey(campaignId, file, intent.assetId)
+      let assetId = getUploadedVttMapAssetId(campaignId, file)
+      if (!assetId) {
+        const intent = await createUpload({
+          declaredBytes: file.size,
+          declaredMimeType: mimeType,
+          idempotencyKey: getOrCreateVttMapUploadIdempotencyKey(campaignId, file),
+          originalFileName: file.name,
+          profile: 'VTT_MAP',
+          target: { campaignId, type: 'VTT_MAP' }
+        })
+        await uploadVttMap({
+          campaignId,
+          file,
+          intent,
+          onProgress: setUploadProgress
+        })
+        assetId = intent.assetId
+      }
+      const finalized = await finalizeMap({ assetId })
       if (finalized.status !== 'READY') {
+        if (finalized.status === 'REJECTED') clearVttMapUploadIdempotencyKey(campaignId, file)
         throw new Error('That map could not be processed. Check its dimensions and try again.')
       }
-      return api.media.getVttMapDelivery({ assetId: intent.assetId })
+      const delivery = await getMapDelivery({ assetId })
+      clearVttMapUploadIdempotencyKey(campaignId, file)
+      return delivery
     },
     onSuccess: (delivery) => {
       setUploadedMap(delivery)
@@ -111,7 +148,7 @@ export function CampaignScenePreparation({
     mutationFn: async () => {
       if (!uploadedMap) throw new Error('Upload and calibrate a map first.')
       if (!name.trim()) throw new Error('Name this scene.')
-      return api.campaigns.scenes.create({
+      const input: CreateSceneDefinitionInputDto = {
         annotations: [],
         ambientIllumination: 'BRIGHT',
         barriers: [],
@@ -139,14 +176,19 @@ export function CampaignScenePreparation({
         },
         name: name.trim(),
         tokens: []
-      })
+      }
+      const inputKey = JSON.stringify(input)
+      if (createAttempt.current?.input !== inputKey)
+        createAttempt.current = { input: inputKey, commandId: crypto.randomUUID() }
+      return saveSceneDefinition(convex, input, createAttempt.current.commandId)
     },
-    onSuccess: async () => {
+    onSuccess: (saved) => {
+      createAttempt.current = null
+      if (!editorDirty) setSelectedSceneId(saved.id)
       setFile(null)
       setName('')
       setUploadProgress(0)
       setUploadedMap(null)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.scenes(campaignId) })
     }
   })
 
@@ -199,18 +241,18 @@ export function CampaignScenePreparation({
           </Text>
         </div>
         <Text c='dimmed' size='sm'>
-          {scenes.data?.length ?? 0} scene{scenes.data?.length === 1 ? '' : 's'}
+          {scenes.results.length} scene{scenes.results.length === 1 ? '' : 's'}
         </Text>
       </div>
 
-      {scenes.data?.length ? (
+      {scenes.results.length ? (
         <div className={styles.sceneList} aria-label='Prepared scenes'>
-          {scenes.data.map((scene) => (
+          {scenes.results.map((scene) => (
             <button
-              aria-pressed={selectedScene?.id === scene.id}
+              aria-pressed={activeSceneId === scene.id}
               className={styles.sceneRow}
-              data-selected={selectedScene?.id === scene.id || undefined}
-              disabled={editorDirty && selectedScene?.id !== scene.id}
+              data-selected={activeSceneId === scene.id || undefined}
+              disabled={editorDirty && activeSceneId !== scene.id}
               key={scene.id}
               type='button'
               onClick={() => setSelectedSceneId(scene.id)}
@@ -229,19 +271,34 @@ export function CampaignScenePreparation({
           ))}
         </div>
       ) : null}
+      {scenes.status === 'CanLoadMore' || scenes.status === 'LoadingMore' ? (
+        <Button
+          variant='subtle'
+          loading={scenes.status === 'LoadingMore'}
+          onClick={() => scenes.loadMore(8)}
+        >
+          Load more scenes
+        </Button>
+      ) : null}
+      {scenes.status === 'LoadingFirstPage' || (activeSceneId && definition.isPending) ? (
+        <Text role='status' size='sm'>
+          Loading scene…
+        </Text>
+      ) : null}
+      {definition.error ? <Alert color='red'>{definition.error.message}</Alert> : null}
       {editorDirty ? (
         <Text c='dimmed' size='xs'>
           Save or reset the current scene before switching maps.
         </Text>
       ) : null}
 
-      {selectedScene ? (
+      {definition.data ? (
         <CampaignSceneEditor
           campaignId={campaignId}
           currentUserId={currentUserId}
           memberships={memberships}
-          key={selectedScene.id}
-          scene={selectedScene}
+          key={definition.data.id}
+          scene={definition.data}
           onDirtyChange={setEditorDirty}
         />
       ) : null}
@@ -262,6 +319,7 @@ export function CampaignScenePreparation({
             label='Map image'
             value={file}
             onChange={(next) => {
+              if (file && file !== next) clearVttMapUploadIdempotencyKey(campaignId, file)
               setFile(next)
               setUploadedMap(null)
               setUploadProgress(0)
@@ -284,7 +342,12 @@ export function CampaignScenePreparation({
             </Text>
           </Stack>
         ) : null}
-        {upload.error ? <Alert color='red'>{upload.error.message}</Alert> : null}
+        {upload.error ? (
+          <Alert color='red'>
+            {upload.error.message}
+            <Text size='sm'>To start over, clear the map file and select it again.</Text>
+          </Alert>
+        ) : null}
 
         {uploadedMap ? (
           <>

@@ -1,0 +1,269 @@
+import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import type {
+  LiveSessionEncounterRulesRequest,
+  LiveSessionEncounterRulesResponse
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
+  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import type { MovementMaintenanceProjection } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import type { ProjectableCharacterFacts } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import * as z from 'zod/mini'
+
+export type NativeLiveMovementMaintenanceProjection = MovementMaintenanceProjection<
+  NonNullable<
+    Extract<LiveSessionEncounterRulesResponse, { kind: 'MAINTENANCE_OWNER' }>['character']
+  >
+>
+
+const characterDocument = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
+export function readNativeLiveMaintenanceCharacter(
+  row: NonNullable<
+    Extract<LiveSessionEncounterRulesResponse, { kind: 'MAINTENANCE_OWNER' }>['character']
+  >,
+  gameSystemId: string
+) {
+  const raw: unknown = JSON.parse(row.documentJson)
+  if (checksumRuleDocument(raw) !== row.checksum)
+    throw new Error('Movement Character checksum mismatch.')
+  const character = characterDocument.parse(raw)
+  if (
+    character.id !== row.id ||
+    character.systemId !== gameSystemId ||
+    character.userId !== row.userId ||
+    character.label !== row.label ||
+    character.status !== row.status
+  )
+    throw new Error('Movement Character identity mismatch.')
+  return character
+}
+
+type Capture = (
+  request: LiveSessionEncounterRulesRequest
+) => Promise<LiveSessionEncounterRulesResponse>
+
+export async function readNativeLiveMaintenanceSlot(input: {
+  encounterId: string
+  actorId: string
+  definitionId: string
+  capture: Capture
+}) {
+  const { encounterId, actorId, definitionId, capture } = input
+  const response = await capture({ kind: 'MAINTENANCE_SLOT', actorId, definitionId })
+  if (response.kind !== 'MAINTENANCE_SLOT') throw new Error('Maintenance slot is unavailable.')
+  const state = response.state
+  if (!state) return { state: null, dependents: [] }
+  if (
+    state.encounterId !== encounterId ||
+    state.ownerActorId !== actorId ||
+    state.maintenanceDefinitionId !== definitionId
+  )
+    throw new Error('Maintenance slot identity mismatch.')
+  const pages = await Promise.all(
+    (['CHARACTER', 'ENCOUNTER_ACTOR'] as const).map(async (ownerKind) => {
+      const effects: ActiveRuleEffectRecord[] = []
+      const cursors = new Set<string>()
+      let cursor: string | null = null
+      do {
+        const page = await capture({
+          kind: 'MAINTENANCE_DEPENDENTS',
+          actorId,
+          definitionId,
+          stateId: state.id,
+          ownerKind,
+          cursor
+        })
+        if (page.kind !== 'MAINTENANCE_DEPENDENTS')
+          throw new Error('Maintenance dependents are unavailable.')
+        for (const effect of page.effects) {
+          if (
+            effect.maintainedEffectStateId !== state.id ||
+            effect.owner.kind !== ownerKind ||
+            (effect.owner.kind === 'CHARACTER' && effect.sourceEncounterId !== encounterId) ||
+            (effect.owner.kind === 'ENCOUNTER_ACTOR' && effect.owner.encounterId !== encounterId)
+          )
+            throw new Error('Maintenance dependent identity mismatch.')
+          effects.push(effect)
+        }
+        if (effects.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+          throw new Error('Maintained effect dependents exceed the supported bound.')
+        cursor = page.continueCursor
+        if (cursor !== null) {
+          if (cursors.has(cursor)) throw new Error('Maintenance capture cursor repeated.')
+          cursors.add(cursor)
+        }
+      } while (cursor !== null)
+      return effects
+    })
+  )
+  const dependents = pages.flat()
+  if (dependents.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+    throw new Error('Maintained effect dependents exceed the supported bound.')
+  return { state, dependents }
+}
+
+export async function readNativeLiveMaintenanceOwners(input: {
+  gameSystemId: string
+  actors: readonly EncounterRunActorState[]
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  removed: readonly ActiveRuleEffectRecord[]
+  slot: { actorId: string; definitionId: string; stateId: string }
+  capture: Capture
+  targets?: ReadonlyMap<string, MovementTarget<ProjectableCharacterFacts>>
+  projection?: NativeLiveMovementMaintenanceProjection
+}) {
+  const { gameSystemId, actors, activeEffectsByActorId, removed, slot, capture } = input
+  const owners: Array<{
+    owner: ActiveRuleEffectRecord['owner']
+    effects: ActiveRuleEffectRecord[]
+    character: Extract<
+      LiveSessionEncounterRulesResponse,
+      { kind: 'MAINTENANCE_OWNER' }
+    >['character']
+  }> = []
+  const characterVersions: Array<{ characterId: string; beforeStreamVersion: number }> = []
+  const uniqueOwners = new Map(
+    removed.map((effect) => [checksumCanonicalJson(effect.owner), effect.owner])
+  )
+  for (const [ownerKey, owner] of uniqueOwners) {
+    const scope = { ...slot, owner }
+    const target = [...(input.targets?.values() ?? [])].find((candidate) =>
+      owner.kind === 'CHARACTER'
+        ? candidate.actor.kind === 'CHARACTER' && candidate.actor.sourceId === owner.characterId
+        : candidate.actor.id === owner.targetActorId
+    )
+    const projected = input.projection?.owners.get(ownerKey)
+    const response =
+      target || projected ? null : await capture({ kind: 'MAINTENANCE_OWNER', ...scope })
+    if (
+      response &&
+      (response.kind !== 'MAINTENANCE_OWNER' || checksumCanonicalJson(response.owner) !== ownerKey)
+    )
+      throw new Error('Maintenance owner identity mismatch.')
+    const actor = actors.find((candidate) =>
+      owner.kind === 'CHARACTER'
+        ? candidate.kind === 'CHARACTER' && candidate.sourceId === owner.characterId
+        : candidate.id === owner.targetActorId
+    )
+    const captured =
+      target?.activeEffects ??
+      projected?.effects ??
+      (actor ? activeEffectsByActorId.get(actor.id) : undefined)
+    const effects = captured ? [...captured] : []
+    if (!captured) {
+      let afterEffectId: string | null = null
+      for (;;) {
+        const page = await capture({
+          kind: 'MAINTENANCE_OWNER_EFFECTS',
+          ...scope,
+          afterEffectId
+        })
+        if (
+          page.kind !== 'MAINTENANCE_OWNER_EFFECTS' ||
+          checksumCanonicalJson(page.owner) !== ownerKey
+        )
+          throw new Error('Maintenance owner effect scope mismatch.')
+        let lastId: string | null = afterEffectId
+        for (const effect of page.effects) {
+          if (
+            checksumCanonicalJson(effect.owner) !== ownerKey ||
+            (lastId !== null && effect.id <= lastId)
+          )
+            throw new Error('Maintenance owner effect page mismatch.')
+          effects.push(effect)
+          lastId = effect.id
+        }
+        if (effects.length > MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)
+          throw new Error('Active rule effects exceed the supported bound.')
+        if (page.continueAfter === null) break
+        if (page.effects.length !== 4 || page.continueAfter !== lastId || lastId === afterEffectId)
+          throw new Error('Maintenance owner effect cursor mismatch.')
+        afterEffectId = page.continueAfter
+      }
+      effects.sort((a, b) => a.createdOrdinal - b.createdOrdinal || a.id.localeCompare(b.id))
+    }
+    const character =
+      owner.kind === 'CHARACTER' && (target || projected)
+        ? characterStoredRowSchema.parse({
+            ...projected?.character,
+            ...target?.characterFacts?.active
+          })
+        : response?.kind === 'MAINTENANCE_OWNER'
+          ? response.character
+          : null
+    if (owner.kind === 'CHARACTER') {
+      if (
+        !character ||
+        character.id !== owner.characterId ||
+        character.status !== 'ACTIVE' ||
+        character.systemId !== gameSystemId
+      )
+        throw new Error('Maintained-effect Character owner is unavailable.')
+      characterVersions.push({
+        characterId: character.id,
+        beforeStreamVersion: character.streamVersion
+      })
+    } else if (character) throw new Error('Maintenance actor owner contains Character state.')
+    owners.push({ owner, effects, character })
+  }
+  characterVersions.sort((a, b) => a.characterId.localeCompare(b.characterId))
+  return { owners, characterVersions }
+}
+
+/** Captures only the current slot and its authorized owners; policy preparation stays in the DO. */
+export async function prepareNativeLiveActionMaintenance(input: {
+  prepared: Parameters<typeof prepareEncounterActionMaintenance>[0]['prepared'] & {
+    actors: readonly EncounterRunActorState[]
+  }
+  activeEffectsByActorId: ReadonlyMap<string, ActiveRuleEffectRecord[]>
+  capture: Capture
+  targets?: ReadonlyMap<string, MovementTarget<ProjectableCharacterFacts>>
+  projection?: NativeLiveMovementMaintenanceProjection
+}) {
+  const { prepared, capture } = input
+  let slot: { definitionId: string; stateId: string } | null = null
+  return prepareEncounterActionMaintenance({
+    prepared,
+    readDefinition: async (definitionId) => {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (response.kind !== 'DEFINITION') throw new Error('Maintenance definition is unavailable.')
+      return response.definition
+    },
+    readSlot: async (definitionId) => {
+      const result =
+        input.projection?.slots.get(`${prepared.actor.id}:${definitionId}`) ??
+        (await readNativeLiveMaintenanceSlot({
+          encounterId: prepared.state.id,
+          actorId: prepared.actor.id,
+          definitionId,
+          capture
+        }))
+      if (result.state) slot = { definitionId, stateId: result.state.id }
+      return result
+    },
+    readOwners: async (removed) => {
+      if (!slot) {
+        if (removed.length) throw new Error('Maintenance slot is unavailable.')
+        return { owners: [], characterVersions: [] }
+      }
+      return readNativeLiveMaintenanceOwners({
+        gameSystemId: prepared.state.gameSystemId,
+        actors: prepared.actors,
+        activeEffectsByActorId: input.activeEffectsByActorId,
+        removed,
+        slot: { ...slot, actorId: prepared.actor.id },
+        capture,
+        targets: input.targets,
+        projection: input.projection
+      })
+    }
+  })
+}

@@ -1,27 +1,33 @@
 import { Alert, Button, Modal, Stack, Textarea } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { type SubmitEvent, useState } from 'react'
-import type { SocialListingDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 
-export function SocialApplicationDialog({ listing }: { listing: SocialListingDto }) {
-  const queryClient = useQueryClient()
+export function SocialApplicationDialog({
+  listing
+}: {
+  listing: Pick<
+    SocialListingDto,
+    'listingPublicId' | 'version' | 'title' | 'status' | 'audience' | 'availableSeats'
+  >
+}) {
   const [opened, { close, open }] = useDisclosure(false)
   const [message, setMessage] = useState('')
+  const submitApplication = useConvexMutation(convexApi.social.applications.submit)
   const application = useMutation({
     mutationFn: () =>
-      api.socialHub.applications.submit({
+      submitApplication({
         listingPublicId: listing.listingPublicId,
         message,
         expectedListingVersion: listing.version
       }),
     onSuccess: () => {
       notifications.show({ color: 'green', message: 'Application sent to the host.' })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.applicationsMine() })
       setMessage('')
       close()
     }

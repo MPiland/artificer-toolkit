@@ -1,0 +1,82 @@
+import { describe, expect, it } from 'vitest'
+
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import {
+  authoredNodeRuntimeSourceFactsSchema,
+  nodeRuntimeSourceManifest
+} from '@artificer-toolkit/schema/api/nodeRuntimeSources'
+import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
+
+import { authoredSourceFacts } from './authoredSourceFacts.js'
+
+const checksum = 'a'.repeat(64)
+const subjectKinds = {
+  backgrounds: 'BACKGROUND',
+  classes: 'CLASS',
+  creatures: 'CREATURE',
+  equipment: 'EQUIPMENT',
+  feats: 'FEAT',
+  races: 'RACE',
+  spells: 'SPELL',
+  vehicles: 'VEHICLE'
+} as const
+
+function version(subjectKind: AuthoredDocumentVersion['subjectKind'], document: unknown) {
+  return { subjectKind, document, checksum } as Pick<
+    AuthoredDocumentVersion,
+    'subjectKind' | 'document' | 'checksum'
+  >
+}
+
+describe('authoredSourceFacts', () => {
+  it('projects nested feature, grant, and effect source rows with manifest-exact columns', () => {
+    const documents = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
+      subjects.map((document) =>
+        authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
+      )
+    )
+    const rows = documents.flatMap((facts) => Object.entries(facts.rows))
+
+    expect(rows.some(([table]) => table === 'features')).toBe(true)
+    expect(rows.some(([table]) => table === 'effect_paths')).toBe(true)
+    expect(rows.some(([table]) => table === 'effect_result_block_outcomes')).toBe(true)
+    for (const [table, tableRows] of rows) {
+      expect(
+        tableRows.every(
+          (row) =>
+            Object.keys(row).sort().join(',') ===
+            [...nodeRuntimeSourceManifest[table as keyof typeof nodeRuntimeSourceManifest]]
+              .sort()
+              .join(',')
+        )
+      ).toBe(true)
+      expect(JSON.stringify(tableRows)).not.toContain('"description"')
+      expect(JSON.stringify(tableRows)).not.toContain('"userId"')
+    }
+  })
+
+  it('projects every SRD authored subject into compact schema-valid facts', () => {
+    const facts = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
+      subjects.map((document) =>
+        authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
+      )
+    )
+
+    expect(facts).not.toHaveLength(0)
+    expect(
+      facts.every((fact) => authoredNodeRuntimeSourceFactsSchema.safeParse(fact).success)
+    ).toBe(true)
+    const sourceBytes = facts.reduce((size, fact) => size + JSON.stringify(fact.rows).length, 0)
+    const documentBytes = JSON.stringify(srdBaselineContent.subjects).length
+    expect(sourceBytes).toBeLessThan(documentBytes)
+  })
+
+  it('rejects rows with unsupported columns', () => {
+    expect(() =>
+      authoredNodeRuntimeSourceFactsSchema.parse({
+        checksum,
+        rows: { backgrounds: [{ id: 'background', label: 'Background', prose: 'not source data' }] }
+      })
+    ).toThrow('closed manifest')
+  })
+})

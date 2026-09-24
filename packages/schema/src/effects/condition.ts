@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 export const conditionDtoSchema = z.object({

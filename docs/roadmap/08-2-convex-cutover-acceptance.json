@@ -4,6 +4,7 @@
   "title": "Complete Convex cutover",
   "fixedTotal": 75,
   "denominatorPolicy": "Frozen by explicit user approval on 2026-09-03. Defects attach to an existing case. Any denominator change requires explicit user approval.",
+  "developmentRuntimePolicy": "User-approved 2026-09-03: local coding, generation, builds, typechecks, pure tests and convex-test; actual backend integration/E2E may use verified cloud dev. Project artificertoolkit/artificer-toolkit: personal dev flexible-goshawk-837 selected, non-default staging beaming-pig-820 created at user request, default production unchanged. No source uploaded during setup. User reports old separate staging project deleted. Historical LOCAL_INTEGRATION and LOCAL_E2E tier names mean development proof, not a required local backend process. Preserve previous local evidence. Complete final-source development lifecycle remains mandatory before bounded staging promotion. No production secrets, unapproved target changes, or reduced scenarios; fixed total remains 75. See ADR 0029.",
   "statusVocabulary": ["NOT_STARTED", "IN_PROGRESS", "READY_FOR_ACCEPTANCE", "ACCEPTED", "BLOCKED"],
   "gates": [
     {
@@ -15,91 +16,306 @@
           "id": "F01",
           "title": "Local Convex development and code generation",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-03",
+          "evidence": [
+            ".codex/validation/phase82-foundation/local-final-dev.log",
+            ".codex/validation/phase82-foundation/typecheck.log",
+            ".codex/validation/phase82-foundation/local-http-smoke-2.log"
+          ],
+          "notes": "Original acceptance: isolated local deployment on 3220/3221 with official codegen, indexed profile table, shared-schema typecheck, public query and anonymous denial. Under the approved cloud-dev amendment, personal dev flexible-goshawk-837 now also passes official push/codegen/typecheck and real public-query, anonymous-session/identity denial and closed-signup HTTP smoke. Staging/production code remains untouched.",
+          "cloudDevEvidence": [
+            ".codex/validation/phase82-foundation/cloud-dev-first-push.log",
+            ".codex/validation/phase82-foundation/cloud-dev-foundation-smoke.log"
+          ]
         },
         {
           "id": "F02",
           "title": "Schema, validators, indexes, and bounded contracts",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-03",
+          "notes": "Foundation schema/validator/index review completed. Static API generation isolates client types without backend casts. The sole review finding (multiple Systems admitted with one platform source) is closed by requiring exactly one paired System per bootstrap; 17 focused import/query tests and the Convex typecheck pass. Existing multi-System pagination still works through separate paired imports. Future domain contracts remain subject to these boundaries and their own acceptance cases. Browser hydration and full-release proof are not claimed here.",
+          "evidence": [
+            ".codex/validation/phase82-foundation/foundation-contract-review.md",
+            ".codex/validation/phase82-foundation/platform-source-pairing-schema-build.log",
+            ".codex/validation/phase82-foundation/platform-source-pairing-focused-2.log",
+            ".codex/validation/phase82-foundation/platform-source-pairing-typecheck.log",
+            ".codex/validation/phase82-foundation/cloud-dev-static-codegen.log",
+            ".codex/validation/phase82-foundation/cloud-dev-bounded-import-push.log",
+            ".codex/validation/phase82-foundation/cloud-dev-static-api-web-typecheck.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-focused-2.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-typecheck.log"
+          ]
         },
         {
           "id": "F03",
           "title": "Better Auth SSR and native-compatible bearer authentication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-04",
+          "evidence": [
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log",
+            ".codex/validation/phase82-foundation/auth-proxy-focused.log",
+            ".codex/validation/phase82-foundation/session-local-http.log",
+            ".codex/validation/phase82-foundation/web-auth-integrated-focused.log",
+            ".codex/validation/phase82-foundation/web-auth-typecheck.log",
+            ".codex/validation/phase82-foundation/auth-proxy-review.md",
+            ".codex/validation/phase82-foundation/ssr-auth-focused.log",
+            ".codex/validation/phase82-foundation/ssr-auth-typecheck-3.log",
+            ".codex/validation/phase82-foundation/ssr-auth-authoring-focused.log",
+            ".codex/validation/phase82-foundation/ssr-auth-review.md",
+            ".codex/validation/phase82-foundation/convex-web-bridge-focused-2.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-typecheck.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-browser.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-dev-server.log",
+            ".codex/validation/phase82-foundation/hydration-retry-browser.log",
+            ".codex/validation/phase82-foundation/hydration-retry-dev-server.log",
+            ".codex/validation/phase82-foundation/netlify-static-regression-after.log",
+            ".codex/validation/phase82-foundation/auth-node-request-after-3.log",
+            ".codex/validation/phase82-foundation/auth-node-request-typecheck-2.log",
+            ".codex/validation/phase82-foundation/auth-proxy-exact-browser.log",
+            ".codex/validation/phase82-foundation/auth-proxy-exact-server.log",
+            ".codex/validation/phase82-foundation/startup-anonymous-proof.md",
+            ".codex/validation/phase82-foundation/invitation-loading-proof.md",
+            ".codex/validation/phase82-foundation/avatar-auth-shell-proof.md",
+            ".codex/validation/phase82-foundation/avatar-authenticated-browser-dev-2.log",
+            ".codex/validation/phase82-foundation/private-ssr-proof.md",
+            ".codex/validation/phase82-foundation/invitation-import-proof.md",
+            ".codex/validation/phase82-foundation/invitation-ssr-fields-proof.md",
+            ".codex/validation/phase82-foundation/background-auth-startup-review.md"
+          ],
+          "notes": "Accepted SSR and native-compatible bearer authentication: retained signed-context/security proof plus a real localhost-browser/personal-cloud-dev journey now pass authenticated server rendering, hydration/reload, native notification feed, HttpOnly/Lax session cookie, sign-out, revoked-JWT denial and protected-route redirect. The shared avatar adapter no longer sends legacy tRPC/Supabase requests; the zero-legacy-request assertion and exact disposable-account cleanup pass. No auth/session policy was weakened. The earlier optimized bundled invitation diagnostic reached an editable form in 766/324/273ms; that was not Vite evidence. The subsequent SSR-field repair makes the current Vite form editable in 323/256/247ms versus 3981/2064/2553ms before it; JavaScript/registration readiness still takes 2089/2019/2160ms. A blocked-hydration browser test proves early typing survives, premature submission is blocked, and fragment cleanup completes without warnings. These three samples do not accept cold-host or gameplay performance. Managed ingress spoof resistance remains R09. F14 remains in progress for other media profiles."
         },
         {
           "id": "F04",
           "title": "Server-controlled signup defaults closed",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-03",
+          "evidence": [
+            ".codex/validation/phase82-foundation/convex-auth-test.log",
+            ".codex/validation/phase82-foundation/local-http-smoke-2.log"
+          ],
+          "notes": "Unset signup flag reports false; real local Better Auth email/password signup rejects with EMAIL_PASSWORD_SIGN_UP_DISABLED. No test bypass."
         },
         {
           "id": "F05",
           "title": "Verified signup",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log",
+            ".codex/validation/phase82-signup/progress.md",
+            ".codex/validation/phase82-f05-final/auth-email-focused.log",
+            ".codex/validation/phase82-f05-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08: retained real local HTTP proof covers signup, loopback email/link capture, verification, email/username login, protected native bearer/JWT reads, recovery, revocation and signup-bypass denial. Current-source auth/email tests pass 16/16 and cover the repaired `/auth/confirmed` callback plus rendered local delivery; confirmation page/route/browser hashes match the retained three-browser-test packet, and the current Convex typecheck passes. This compositional local proof avoids duplicating R08's complete final-source lifecycle. No external mailbox or managed Resend delivery is required; F13 and R09 own those boundaries."
         },
         {
           "id": "F06",
           "title": "Initial account invitations",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "Accepted 2026-09-03: internal CLI issuance, hashed recipient-bound 256-bit tokens, expiry/rotation, atomic ordinary-account creation and token consumption. Five focused Convex tests cover invalid/expired/wrong-recipient, replay, late rollback and username collision; affected web tests/typechecks and targeted security review pass. Deployed HTTP proves private issuer/redeemer and foreign-origin denial. User confirmed actual delivered-link registration and the intentional sign-in redirect; browser checks prove hydration and fragment cleanup. Real personal-dev concurrent redemption succeeds exactly once for each of two fixtures, followed by email/password login and native bearer/JWT protected calls; signup stays closed and exact fixtures are cleaned. Test fixture setup sends no email. General authenticated SSR journeys and startup performance remain F03/V15/R08 work, not inferred from this acceptance.",
+          "evidence": [
+            ".codex/validation/phase82-foundation/invitations-schema-build.log",
+            ".codex/validation/phase82-foundation/invitations-focused-2.log",
+            ".codex/validation/phase82-foundation/invitations-security-review.md",
+            ".codex/validation/phase82-foundation/invitations-web-focused.log",
+            ".codex/validation/phase82-foundation/invitations-web-client-focused-2.log",
+            ".codex/validation/phase82-foundation/invitations-web-typecheck.log",
+            ".codex/validation/phase82-foundation/invitations-dev-push.log",
+            ".codex/validation/phase82-foundation/invitations-final-dev-push.log",
+            ".codex/validation/phase82-foundation/invitations-dev-http-boundary.log",
+            ".codex/validation/phase82-foundation/auth-proxy-exact-browser.log",
+            ".codex/validation/phase82-foundation/dev-invitation-delivery-status.md",
+            ".codex/validation/phase82-foundation/invitation-startup-final-browser.log",
+            ".codex/validation/phase82-foundation/content-drafts-authenticated-dev-final.log",
+            ".codex/validation/phase82-foundation/content-drafts-development-proof.md"
+          ]
         },
         {
           "id": "F07",
           "title": "Login",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-04",
+          "evidence": [
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log",
+            ".codex/validation/phase82-foundation/profile-browser-closure-proof.md",
+            ".codex/validation/phase82-foundation/profile-browser-closure-dev.log",
+            ".codex/validation/phase82-foundation/login-navigation-green.log",
+            ".codex/validation/phase82-feat/native-feat-browser.log",
+            ".codex/validation/phase82-feat/native-feat-browser-diagnostic.log",
+            ".codex/validation/phase82-feat/feat-frontend-proof.md",
+            ".codex/validation/phase82-feat/session-convergence-proof.md"
+          ],
+          "notes": "Reaccepted 2026-09-04 after fixing the reproduced blank-home race: overlapping session convergence invalidation cleared a rendered pending match's shared promise. The real-router test caught exact undefined before the fix; the root now defers only invalidation until navigation is idle while clearing identity-bound cache immediately. Regression tests prove eventual convergence and revocation/preference behavior; independent review's test gap is addressed. Final 57 tests, web/driver types, full two-account login/profile browser journey and the original Feat browser reproduction pass on 58 unchanged source entries, with exact cleanup. Email/username login, return path, account isolation, SSR/reload, HttpOnly/Lax cookie, sign-out, revoked-JWT and protected-route denial remain verified. Failed runs are retained; reacceptance is based on the regression-backed fix, not a passing retry. Full release/performance gates remain separate."
         },
         {
           "id": "F08",
           "title": "Password reset and session revocation",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-04",
+          "evidence": [
+            ".codex/validation/phase82-foundation/auth-final-focused.log",
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log",
+            ".codex/validation/phase82-foundation/auth-security-review.md",
+            ".codex/validation/phase82-auth-closure/recovery-proof.md",
+            ".codex/validation/phase82-auth-closure/final-source-files.json",
+            ".codex/validation/phase82-auth-closure/final-auth-media-tests.log",
+            ".codex/validation/phase82-auth-closure/final-web-types.log",
+            ".codex/validation/phase82-auth-closure/final-recovery-driver-types-corrected.log",
+            ".codex/validation/phase82-auth-closure/final-recovery-browser.log"
+          ],
+          "notes": "Accepted: retained atomic recovery, resend/exhaustion, concurrent reset, revocation and cookie-origin proof plus the real localhost/personal-dev browser journey now pass. Hydration-gated submission and nonthrowing avatar revocation handling close the observed UI failures without weakening authorization. Wrong-code rejection, secret-free URL/reload, password mismatch/reset, old password/JWT denial, consumed-code replay rejection, second-account isolation, new login/SSR and logout pass with zero legacy requests/unexpected browser errors. Fifty affected tests, both web typechecks, isolated driver typecheck, focused independent review and exact fixture cleanup pass. Fixture OTP injection reuses retained mail-delivery proof; no new real email or managed-ingress guarantee is claimed."
         },
         {
           "id": "F09",
           "title": "Usernames",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-04",
+          "evidence": [
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log",
+            ".codex/validation/phase82-foundation/profile-web-focused.log",
+            ".codex/validation/phase82-foundation/profile-web-focused-final.log",
+            ".codex/validation/phase82-foundation/profile-browser-closure-proof.md",
+            ".codex/validation/phase82-foundation/profile-browser-closure-dev.log",
+            ".codex/validation/phase82-foundation/profile-root-final-focused.log"
+          ],
+          "notes": "Accepted retained normalization/moderation/uniqueness proof plus real browser collision rejection, rename, case-only display preservation, reload, and login through the new canonical username. Better Auth remains the uniqueness authority; availability is advisory. The profile regression now uses the real Convex subscription hook and verifies subscription updates and auth-loss unsubscription. Final web app/test typechecks pass."
         },
         {
           "id": "F10",
           "title": "Profile privacy",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-04",
+          "evidence": [
+            ".codex/validation/phase82-foundation/account-profile-final-checks.log",
+            ".codex/validation/phase82-foundation/account-profile-review.md",
+            ".codex/validation/phase82-foundation/profile-web-focused-final.log",
+            ".codex/validation/phase82-foundation/profile-web-typecheck.log",
+            ".codex/validation/phase82-foundation/profile-web-test-typecheck-final.log",
+            ".codex/validation/phase82-foundation/profile-web-review.md",
+            ".codex/validation/phase82-foundation/profile-browser-closure-proof.md",
+            ".codex/validation/phase82-foundation/profile-browser-closure-dev.log",
+            ".codex/validation/phase82-foundation/profile-root-final-focused.log",
+            ".codex/validation/phase82-foundation/account-menu-hydration-typecheck.log"
+          ],
+          "notes": "Accepted caller-only query/update with retained backend authorization/security-review/rollback proof and the complete two-account browser journey. Same browser storage is reused across accounts without leaking the first bio or username. Real native requests deny anonymous access and extra/spoofed user IDs, then verify both exact persisted profiles. Twelve profile component tests cover the real subscription hook, auth loss, draft isolation and unsaved/in-flight edits. Desktop/mobile screenshots were inspected. No legacy backend requests occurred. Avatar/media scope remains F14."
         },
         {
           "id": "F11",
           "title": "Superadmin authorization",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/superadmin-schema-generation.log",
+            ".codex/validation/phase82-foundation/superadmin-focused.log",
+            ".codex/validation/phase82-foundation/superadmin-focused-final.log",
+            ".codex/validation/phase82-foundation/superadmin-typecheck.log",
+            ".codex/validation/phase82-foundation/superadmin-review.md",
+            ".codex/validation/phase82-f11-final/acceptance.md",
+            ".codex/validation/phase82-f11-final/backend.log"
+          ],
+          "notes": "Accepted at AUTHORIZATION. The pinned official Better Auth generator owns role/ban fields. Internal-only UUID role provisioning resolves the profile-to-provider mapping and requires a verified active promotion target. Product checks read the live stored role/session, reject bans and revocation, and have no second role authority. Every provider-admin endpoint is disabled and returns 404, including impersonation and arbitrary updates. Social moderation list/open/review operations use the shared superadmin guard and deny ordinary users. Fresh current-source auth/admin/moderation proof passes 30 tests; retained official cloud-dev codegen and typecheck prove the generated bindings. Pre-existing provider ID preservation across promotion remains with R09. No F11-owned invariant remains open.",
+          "cloudDevEvidence": [
+            ".codex/validation/phase82-foundation/cloud-dev-first-push.log",
+            ".codex/validation/phase82-foundation/cloud-dev-bindings-typecheck.log",
+            ".codex/validation/phase82-foundation/cloud-dev-bindings-focused.log"
+          ]
         },
         {
           "id": "F12",
           "title": "Account deletion",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-19",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.manifest.json",
+            ".codex/validation/local-convex-linux-20260915/deploy90.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/f12-account-deletion-browser12.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/f12-account-deletion-browser12.native-executions.jsonl",
+            ".codex/validation/local-convex-linux-20260915/f12-account-deletion-browser12.source-parity.json",
+            ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.evidence/diagnostics.json"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. One native account-settings browser journey proves exact wrong-password and owned ACTIVE/ARCHIVED Campaign refusals with complete no-write captures, then deletes through Better Auth, revokes both sessions and stale JWT access, removes private Characters/authored/Profile/Social/notification/usage/media state, and preserves shared chat, rolls, finished Session/Run history and retained handout delivery with Deleted user attribution. Complete deferred state converges twice identically; native logs show successful media, notification and Social cleanup execution. The injected native rollback preserves the complete captured persisted catalogue. Retained Campaign attachments remain deletable after storage ownership transfers away from a deleted uploader. Strict diagnostics contain only the two expected 400 responses, source parity matches, fixture cleanup is complete, and no legacy product request is present."
         },
         {
           "id": "F13",
           "title": "React Email and Resend delivery",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-03",
+          "evidence": [
+            ".codex/validation/phase82-foundation/auth-final-focused.log",
+            ".codex/validation/phase82-foundation/local-auth-final-proof-2.log"
+          ],
+          "notes": "Existing React Email templates render in the internal Node action; real local sink receives verification/recovery email. Four focused tests cover closed input, configured-origin and loopback guards, and official Resend component enqueue. Zero external email calls; real Resend credentials/delivery belong to R09 promotion."
         },
         {
           "id": "F14",
           "title": "R2 upload, authorized read, and deletion",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-foundation/r2-transport-focused.log",
+            ".codex/validation/phase82-foundation/r2-zod-peer-typecheck-tests.log",
+            ".codex/validation/phase82-foundation/r2-media-import-focused.log",
+            ".codex/validation/phase82-foundation/r2-local-backend-output-diagnostic.log",
+            ".codex/validation/phase82-foundation/avatar-auth-shell-proof.md",
+            ".codex/validation/phase82-foundation/avatar-corrections-focused.log",
+            ".codex/validation/phase82-foundation/avatar-corrections-typecheck.log",
+            ".codex/validation/phase82-foundation/avatar-authenticated-browser-dev-2.log",
+            ".codex/validation/phase82-foundation/authored-media-proof.md",
+            ".codex/validation/phase82-campaign-file-actions/local-progress.md",
+            ".codex/validation/phase82-campaign-file-web/local-progress.md",
+            ".codex/validation/phase82-character-portrait/local-progress.md",
+            ".codex/validation/phase82-f14-final/acceptance.md",
+            ".codex/validation/phase82-f14-final/api-tests-final.log",
+            ".codex/validation/phase82-f14-final/web-tests-final.log",
+            ".codex/validation/phase82-f14-final/typecheck-convex-after-format.log",
+            ".codex/validation/phase82-f14-final/typecheck-web-after-format.log",
+            ".codex/validation/phase82-f14-final/lint-focused.log",
+            ".codex/validation/phase82-f14-final/format-focused-final.log",
+            ".codex/validation/phase82-f14-final/file-finalize-after-format.log",
+            ".codex/validation/phase82-f14-final/campaign-files-after-format.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. The shared Convex/R2 transport covers every current non-Scene profile: account avatars, Character portraits, authored images for all eight authored domains, Campaign files and Campaign handout maps. Upload claims bind caller, target, profile, type, size and expiry; finalization reauthorizes, validates bytes, applies shared Node processing and quotas, and attaches only current fenced results. Signed reads enforce current ownership or membership. Reference-aware cleanup retries provider failures and retains keys until acknowledgement. Fresh final-source checks pass 43 backend and 18 web tests, 8/8 Convex and 2/2 web typecheck tasks, focused format and lint, plus 16 post-format tests. Independent review found no F14-owned defect or missing non-Scene profile. Scene VTT_MAP, managed provider enforcement and release remain V04/R09/R08."
         },
         {
           "id": "F15",
+          "cloudDevEvidence": [
+            ".codex/validation/phase82-foundation/cloud-dev-srd-seed-audit.log",
+            ".codex/validation/phase82-foundation/cloud-dev-seed-diagnostic.jsonl",
+            ".codex/validation/phase82-foundation/import-batch-focused.log",
+            ".codex/validation/phase82-foundation/cloud-dev-srd-seed-audit-bounded.log",
+            ".codex/validation/phase82-foundation/cloud-dev-import-privacy.log"
+          ],
+          "cloudDevResult": "Full cloud-dev read-back passes: 1 System, 1051 subjects, 50 definitions; 1101 inserted and 3 bootstrap records reused. Manifest checksum remains a3b7dfea0de330e0c62952bc11d1c72a6b56c7f888baf040a867389662a7456a. First count-only Class batch exceeded 1s mutation CPU with zero writes; 128 KiB input-target batching plus the existing ten-record bound passes without weakening validation. Nine local batching/import regressions and denial of all eight internal endpoints pass. The notes below retain original local acceptance evidence; no staging/production code was uploaded.",
           "title": "Deterministic source-data import and audit",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-03",
+          "evidence": [
+            ".codex/validation/phase82-source-data/head-blob-proof.log",
+            ".codex/validation/phase82-foundation/source-import-final.log",
+            ".codex/validation/phase82-foundation/source-import-inventory.log",
+            ".codex/validation/phase82-foundation/source-import-db-typecheck.log",
+            ".codex/validation/phase82-foundation/content-import-encoded-focused.log",
+            ".codex/validation/phase82-foundation/content-import-local-seed-encoded.log",
+            ".codex/validation/phase82-foundation/content-import-local-repeat-audit.log",
+            ".codex/validation/phase82-foundation/content-import-public-denial.log",
+            ".codex/validation/phase82-foundation/content-import-review.md"
+          ],
+          "notes": "All 1083 original files preserved in packages/source-data/src; original inventory has zero missing/unexpected paths or unreviewed blob differences, 1051 root UUIDs retained, 165 affected extraction tests green. Local Convex imports 1 System, 1051 authored roots/versions, 50 reusable definitions and original catalogue/source UUIDs. Identical rerun inserts 0 and reuses all 1104 logical records; complete read-back matches manifest a3b7dfea0de330e0c62952bc11d1c72a6b56c7f888baf040a867389662a7456a. Authored payloads use lossless canonical JSON text because 13 existing documents exceed Convex nesting16 (maximum23); full domain validation/checksums remain mandatory. Seven focused import tests prove exact reuse, atomic rollback, identity/System/duplicate rejection, bounds, pointer integrity, and corruption detection; eight affected definition-contract tests and Convex typecheck pass. Independent security/persistence reviews have no findings; real local HTTP denies all eight internal import/audit endpoints. No hosted work. Source import acceptance does not accept publication, homebrew copying, or runtime rules cases."
         }
       ]
     },
@@ -112,97 +328,348 @@
           "id": "C01",
           "title": "Game Systems and Rules Catalogues",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/systems-schema-build.log",
+            ".codex/validation/phase82-foundation/systems-focused-final.log",
+            ".codex/validation/phase82-foundation/systems-typecheck-final.log",
+            ".codex/validation/phase82-foundation/system-list-web-test.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-focused-2.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-typecheck.log",
+            ".codex/validation/phase82-foundation/convex-web-bridge-browser.log",
+            ".codex/validation/phase82-foundation/system-summary-focused.log",
+            ".codex/validation/phase82-foundation/system-detail-web-focused.log",
+            ".codex/validation/phase82-foundation/system-detail-typecheck.log",
+            ".codex/validation/phase82-foundation/system-detail-story.log",
+            ".codex/validation/phase82-foundation/content-source-proof.md",
+            ".codex/validation/phase82-native-system-selectors/local-progress.md",
+            ".codex/validation/phase82-approved-system-retirement/local-progress.md",
+            ".codex/validation/phase82-c01-final/acceptance.md",
+            ".codex/validation/phase82-c01-final/backend.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Public native capability, detail, summary and paginated System reads preserve canonical UUID/checksum identity and fail closed for malformed, unavailable or corrupt records and invalid catalogue-source bindings. Indexed Rules Catalogue browse/search/category/count queries preserve stable continuation, System filtering, owner/master isolation and materialized total integrity. Fresh current-source proof passes 40 tests across six suites. Per-domain authoring/selectors retain their domain cases, Rules Kernel execution retains C16, and backend retirement/full lifecycle remain release work. No C01-owned invariant remains open.",
+          "cloudDevEvidence": [
+            ".codex/validation/phase82-foundation/cloud-dev-system-queries.log",
+            ".codex/validation/phase82-foundation/system-summary-dev-codegen.log",
+            ".codex/validation/phase82-foundation/system-summary-dev-readback.log"
+          ]
         },
         {
           "id": "C02",
           "title": "Public UUID and checksum stability",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-foundation/systems-focused-final.log",
+            ".codex/validation/phase82-c02-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08 at LOCAL_INTEGRATION. Local and personal-development System reads prove canonical UUID/DTO/checksum round-trip and corruption/identity rejection without storage metadata. Fresh current-source tests prove authored copy, publication, read and replacement preserve public identity, recompute and verify checksums, leave the canonical source unchanged, and retain the prior active version after rejected publication. Per-domain browser lifecycles, deep reference cloning and release deployment proof remain with their owning cases.",
+          "cloudDevEvidence": [".codex/validation/phase82-foundation/cloud-dev-system-queries.log"]
         },
         {
           "id": "C03",
           "title": "Background authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-foundation/equipment-options-proof.md",
+            ".codex/validation/phase82-foundation/catalogue-proof.md",
+            ".codex/validation/phase82-global-catalogue/local-progress.md",
+            ".codex/validation/phase82-catalogue-counters/local-progress.md",
+            ".codex/validation/phase82-catalogue-ui/local-progress.md",
+            ".codex/validation/phase82-foundation/private-ssr-proof.md",
+            ".codex/validation/phase82-foundation/background-native-actions-proof.md",
+            ".codex/validation/phase82-foundation/authoring-sources-proof.md",
+            ".codex/validation/phase82-foundation/authored-media-proof.md",
+            ".codex/validation/phase82-foundation/guided-equipment-proof.md",
+            ".codex/validation/phase82-foundation/guided-copy-proof.md",
+            ".codex/validation/phase82-foundation/publication-managed-proof.md",
+            ".codex/validation/phase82-foundation/publication-browser-proof.md",
+            ".codex/validation/phase82-export/export-proof.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/local-progress.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/query-adapter-source.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/phase82-c03-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08 at LOCAL_INTEGRATION. Retained personal-development proof covers the complete Background authoring/publication browser lifecycle through copy, save/reload, export, activation/replacement, search/filter, deletion preserving the draft, discard, zero legacy requests/errors and exact cleanup. Native backend and rendered-client catalogue proofs cover deterministic bounded pagination, filtered counts, forward windows, backward reload and scope/search cursor resets. Shared atomic authored-deletion proof covers Background source-loss reconciliation across personal, create-only and Campaign-assigned Characters. Fresh current-source checks pass 47 backend tests and 20 web tests. R08 owns the complete final-source release lifecycle and worst-case managed capacity."
         },
         {
           "id": "C04",
           "title": "Class authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-class-resume/class-backend-proof.md",
+            ".codex/validation/phase82-class-frontend/class-frontend-proof.md",
+            ".codex/validation/phase82-class-catalogue/local-progress.md",
+            ".codex/validation/phase82-export/export-proof.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/local-progress.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/deletion-memory-investigation.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/phase82-c04-final/acceptance.md",
+            ".codex/validation/phase82-class-spell-deletion/verification.md",
+            ".codex/validation/phase82-class-spell-final/verification.md",
+            ".codex/validation/phase82-class-spell-final/c04-acceptance.md"
+          ],
+          "notes": "Acceptance restored 2026-09-10 at LOCAL_INTEGRATION. The indexed Class/Spell guard preserves restrictive catalogue references and atomic rollback. Canonical replay/index repair and full 1051-root local backfill rehearsal pass. The frozen final source passes 159 files/960 native tests, native/web/driver typechecks, lint and loader checks, and is deployed to personal development. Managed backfill completes all 1051 roots. The publication/privacy/invalid/stale/replacement/copy/discard/retained-edit deletion proof, parent races, exact surviving-Spell rejection and concurrent Spell publication/Class deletion all pass with exact fixture cleanup. All 821 managed completions are classified: 21 expected negative-path errors, zero unexpected resource/runtime failures. Historical Class browser, catalogue and Character source-loss evidence remains retained. See phase82-class-spell-final/c04-acceptance.md. R08 owns final release lifecycle and workload capacity."
         },
         {
           "id": "C05",
           "title": "Creature authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-creature/publication-progress.md",
+            ".codex/validation/phase82-creature-web/local-progress.md",
+            ".codex/validation/phase82-catalogue-category/local-progress.md",
+            ".codex/validation/phase82-creature-vehicle-import/local-progress.md",
+            ".codex/validation/phase82-c05-c10-final/c05-acceptance.md",
+            ".codex/validation/phase82-c05-c10-final/backend-final.log",
+            ".codex/validation/phase82-c05-c10-final/source-data.log",
+            ".codex/validation/phase82-c05-c10-final/web-final.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Creature authoring/publication covers canonical and custom records, authored references, privacy, Guided copy, normalization, save, publish, replacement, delete, export and artwork. Canonical import compiles/audits every Creature, preserves UUID/source/checksum/version identity, backfills only missing compilation and rolls back conflicts. Fresh shared current-source proof passes 11 native, 5 source-data and 99 web tests. Encounter/Character consumers and release promotion retain their owning cases. No C05-owned invariant remains open."
         },
         {
           "id": "C06",
           "title": "Equipment authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-foundation/catalogue-proof.md",
+            ".codex/validation/phase82-equipment/equipment-backend-proof.md",
+            ".codex/validation/phase82-equipment-frontend/local-progress.md",
+            ".codex/validation/phase82-equipment-acceptance/progress.md",
+            ".codex/validation/phase82-equipment-acceptance/capacity-proof.md",
+            ".codex/validation/phase82-equipment-acceptance/character-proof.md",
+            ".codex/validation/phase82-equipment-acceptance/catalogue-performance-proof.md",
+            ".codex/validation/phase82-catalogue-category/local-progress.md",
+            ".codex/validation/phase82-c06-final/acceptance.md",
+            ".codex/validation/phase82-c06-final/backend-vitest.log",
+            ".codex/validation/phase82-c06-final/web-vitest.log",
+            ".codex/validation/phase82-c06-final/typecheck-convex.log",
+            ".codex/validation/phase82-c06-final/typecheck-web.log",
+            ".codex/validation/phase82-c06-final/oxfmt.log",
+            ".codex/validation/phase82-c06-final/oxlint.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Equipment base/variant authoring, current same-System inheritance, publication, replacement, deletion, detail, copy, export and catalogue reads preserve exact identity and fail closed on stale or conflicting input. Descendants recompile atomically while retaining source identity and drafts; published children and Campaign custody block deletion. Canonical import handles unordered parents, exact replay and missing-derived backfill. Native coverage spans all 371 canonical UUIDs, category totals, stable pagination, prefix search and the 500-item inheritance ceiling; retained browser proof covers the complete Equipment authoring and catalogue lifecycle. P07 proves deleted Equipment contributions disappear from active and saved Characters while unrelated private state survives. Fresh current-source checks pass 45 native and 51 web tests, 8/8 Convex and 2/2 web typecheck tasks, format and lint. Independent review found no C06-owned gap. Builder completion, Character concurrency, Campaign/Vehicle custody, performance and release remain P02/P08/P12/P13/V15/R08."
         },
         {
           "id": "C07",
           "title": "Feat authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-feat/feat-backend-proof.md",
+            ".codex/validation/phase82-feat/feat-frontend-proof.md",
+            ".codex/validation/phase82-catalogue-ui/local-progress.md",
+            ".codex/validation/phase82-export/export-proof.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/local-progress.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/phase82-c07-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08 at LOCAL_INTEGRATION. Retained personal-development proof covers Feat copy, resolution, save/reload, export, activation/replacement, search/filter, deletion preserving the draft, discard, zero legacy requests/errors and exact cleanup. Feat uses the shared catalogue and atomic authored-deletion paths whose current-source proof covers bounded pagination, filtered behavior, forward/backward windows, scope resets and the full deletion transaction. Feat-specific source-loss tests cover create-only and canonical/edit Character drafts while preserving unrelated options and private edits. Fresh checks pass 7 Feat backend and 7 Feat web tests, alongside the shared 47-backend/20-web C03 packet. R08 owns the complete final-source release lifecycle and worst-case managed capacity."
         },
         {
           "id": "C08",
           "title": "Race authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-race/approval-pending.md",
+            ".codex/validation/phase82-race/local-progress.md",
+            ".codex/validation/phase82-race-web/local-progress.md",
+            ".codex/validation/phase82-race-catalogue/local-progress.md",
+            ".codex/validation/phase82-c08-final/acceptance.md",
+            ".codex/validation/phase82-c08-final/01-backend.log",
+            ".codex/validation/phase82-c08-final/02-web-tests.log",
+            ".codex/validation/phase82-c08-final/03-convex-typecheck.log",
+            ".codex/validation/phase82-c08-final/04-web-typecheck.log",
+            ".codex/validation/phase82-c08-final/06b-oxlint-focused.log",
+            ".codex/validation/phase82-c08-final/07-race-route-format-final.log",
+            ".codex/validation/phase82-c08-final/08-route-test-after-format.log",
+            ".codex/validation/phase82-c08-final/09-web-typecheck-after-format.log",
+            ".codex/validation/phase82-c08-final/10-route-diff-check.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Race base/subrace authoring, current same-System inheritance, publication, replacement, deletion, detail, copy, artwork, export and node resolution preserve exact identity and fail closed on stale or conflicting parents, metadata and compilations. Canonical seed/replay covers all 13 Races. Native family catalogue reads group by UUID, preserve playable-selection facts, filter and paginate deterministically, enforce owner privacy, resolve duplicate parent labels safely, and backfill only exact missing metadata. The /races list and detail/edit loaders use native reads. Fresh final-source checks pass 9 native and 48 focused web tests, 8/8 Convex and 2/2 web typecheck tasks, warning-free focused lint, plus 28 post-format route tests and a fresh web typecheck. Independent audit found the prior import/catalogue gaps were stale. Builder/Sheet/Encounter consumers, concurrency, performance and release retain their owning cases."
         },
         {
           "id": "C09",
           "title": "Spell authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-spell/spell-publication.log",
+            ".codex/validation/phase82-spell/typecheck-convex.log",
+            ".codex/validation/phase82-spell-web/local-progress.md",
+            ".codex/validation/phase82-spell-import/local-progress.md",
+            ".codex/validation/phase82-json-depth/local-progress.md",
+            ".codex/validation/phase82-c09-final/acceptance.md"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Spell form/detail/edit, UUID mutations, Guided copying, node resolution/normalization, publication/replacement, artwork, portable export and canonical import/replay preserve exact authored documents, checksums, compilation and Class dependencies, including depth-22 Prismatic Wall within the approved JSON/facet bounds. The native root catalogue projection atomically maintains level, verified school identity, sorted Class UUIDs and casting time; global/exact-System owner indexes support name/level/school ordering, and merged-stream Class/level/school filters run before pagination. Rows and bounded summary facets resolve current authorized Class/System labels and fail closed on missing/stale projection or source identity; anonymous OWNED reads return no rows or totals. The web /spells route consumes the native list and summary. Fresh proof passes 6 native and 14 web tests, 8/8 Convex and 2/2 web typecheck tasks, format and lint; final independent review has no findings. Builder/preparation consumers, managed backfill/deployment, concurrency, performance and release proof retain their owning cases. No deployment."
         },
         {
           "id": "C10",
           "title": "Vehicle authoring and publication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-vehicle/publication-progress.md",
+            ".codex/validation/phase82-vehicle-web/approval-pending.md",
+            ".codex/validation/phase82-vehicle-web/local-progress.md",
+            ".codex/validation/phase82-race-web/local-progress.md",
+            ".codex/validation/phase82-catalogue-category/local-progress.md",
+            ".codex/validation/phase82-creature-vehicle-import/local-progress.md",
+            ".codex/validation/phase82-c05-c10-final/c10-acceptance.md",
+            ".codex/validation/phase82-c05-c10-final/backend-final.log",
+            ".codex/validation/phase82-c05-c10-final/source-data.log",
+            ".codex/validation/phase82-c05-c10-final/web-final.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Vehicle authoring/publication covers canonical and custom records, privacy, Guided copy, normalization, save, publish, replacement, delete, export and artwork. Canonical import compiles/audits every Vehicle, preserves UUID/source/checksum/version identity, backfills only missing compilation and rolls back conflicts. Fresh shared current-source proof passes 11 native, 5 source-data and 99 web tests. Campaign Vehicle instances/custody and release promotion retain P13 and release cases. No C10-owned invariant remains open."
         },
         {
           "id": "C11",
           "title": "Effects, grants, modifiers, and reusable definitions",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-definition-publisher/local-progress.md",
+            ".codex/validation/phase82-canonical-json/local-progress.md",
+            ".codex/validation/phase82-system-modules/local-progress.md",
+            ".codex/validation/phase82-system-capability/local-progress.md",
+            ".codex/validation/phase82-native-definitions/local-progress.md",
+            ".codex/validation/phase82-c11-final/acceptance.md",
+            ".codex/validation/phase82-c11-final/backend-final.log",
+            ".codex/validation/phase82-c11-final/runtime-final.log",
+            ".codex/validation/phase82-c11-final/web-final.log",
+            ".codex/validation/phase82-c11-final/story-final.log",
+            ".codex/validation/phase82-c11-final/typecheck-final.log",
+            ".codex/validation/phase82-c11-final/review.md"
+          ],
+          "notes": "Accepted at REVIEW. The neutral publisher owns all seven reusable-definition families with schema-validated documents, deterministic checksums, current dependency pins and installed System capabilities. Native authenticated create/get/list/save/publish preserves one current publication and one owner-private draft, derives identity, enforces exact versions and fails closed on corrupt roots, publications, dependencies and drafts. The live System workspace uses native pagination/mutations, preserves local edits across reactive changes and excludes compiler-generated Effect actions from standalone authoring. Final review found and closed one stale-base integrity gap: the decoder now requires the draft base to equal the current root version, and get/save/publish reject an older-base draft without changing rows. Fresh proof passes 58 native, 7 installed-runtime, 10 web and 1 Storybook interaction tests plus 11/11 uncached typecheck tasks. C16 owns execution/pause/resume, P02/P04 Builder/Sheet consumers, V10 Encounter Effect execution, R01-R05 legacy retirement and R08-R10 promotion."
         },
         {
           "id": "C12",
           "title": "Draft create, save, discard, and recovery",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "recoveryEvidence": ".codex/validation/phase82-foundation/draft-recovery-proof.md",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-drafts-boundary-checks.log",
+            ".codex/validation/phase82-foundation/content-drafts-review.md",
+            ".codex/validation/phase82-foundation/content-drafts-dev-push.log",
+            ".codex/validation/phase82-foundation/content-drafts-anonymous-dev.log",
+            ".codex/validation/phase82-foundation/content-drafts-route-backfill.log",
+            ".codex/validation/phase82-foundation/content-drafts-routes-dev.json",
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-foundation/content-drafts-authenticated-dev-final.log",
+            ".codex/validation/phase82-foundation/content-source-proof.md",
+            ".codex/validation/phase82-foundation/authored-media-proof.md",
+            ".codex/validation/phase82-native-authoring-browser-closure/local-progress.md",
+            ".codex/validation/phase82-c12-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08 at LOCAL_INTEGRATION. Retained personal-development proof covers authenticated copy/get/save/recovery/discard for all eight authored domains with exact round trips, privacy, stable routes and exact cleanup. The shared web path is exercised by complete Background, Class and Feat browser journeys through list-to-detail editing, save/reload, retained draft-only recovery, final discard and list return with zero legacy requests/errors. Focused authored-image integration proves draft/active slot isolation, discard and active-deletion separation, reference-aware cleanup and stale-settlement fencing. Fresh checks pass 27 backend and 60 web tests. R08 owns the complete final-source release lifecycle; F14 owns managed provider performance."
         },
         {
           "id": "C13",
           "title": "Publication validation and mechanics compilation",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/background-publication-proof.md",
+            ".codex/validation/phase82-foundation/background-publication-review.md",
+            ".codex/validation/phase82-foundation/publication-managed-proof.md",
+            ".codex/validation/phase82-class-resume/class-backend-proof.md",
+            ".codex/validation/phase82-feat/feat-backend-proof.md",
+            ".codex/validation/phase82-acceptance-closure/c13-proof.md",
+            ".codex/validation/phase82-acceptance-closure/c13-publication-tests.log",
+            ".codex/validation/phase82-blueprints/commands-typecheck.log"
+          ],
+          "notes": "Accepted publication validation and mechanics compilation for all eight authored domains. Current shared publisher and Class action/commit enforce ownership, saved-draft/base preconditions, authorized normalization, shared subject compilation and mechanics-index validation, and atomic normalized document/compilation replacement. Class compiles the same normalized ACTIVE document that it commits; its original mismatch and the depth-22 Spell regression are resolved. Equipment/Race preserve current-parent compilation and transactional descendant recompilation. Fresh serial integrated proof passes 8 suites/58 tests; current Convex typecheck passes 8 tasks. Independent cross-module review has no findings, and the primary inspected the owning seams and completed logs. The retained proof identifies the accepted source by SHA-256. Earlier partial-domain evidence remains historical. Domain browser journeys, dependent Character reconciliation, managed workload/performance and gate/release lifecycle retain their separate cases; they are not prerequisites for this completed REVIEW case."
         },
         {
           "id": "C14",
           "title": "Deep UUID-safe duplication",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-foundation/content-drafts-boundary-checks.log",
+            ".codex/validation/phase82-foundation/content-drafts-dev-push.log",
+            ".codex/validation/phase82-foundation/content-drafts-authenticated-dev-final.log",
+            ".codex/validation/phase82-foundation/guided-copy-proof.md",
+            ".codex/validation/phase82-acceptance-closure/c14-clone-conformance.log",
+            ".codex/validation/phase82-acceptance-closure/c14-guided-routing.log",
+            ".codex/validation/phase82-acceptance-closure/c14-native-copy.log",
+            ".codex/validation/phase82-c14-final/acceptance.md"
+          ],
+          "notes": "Accepted 2026-09-08 at LOCAL_INTEGRATION. Shared clone conformance passes all 1,051 canonical records across eight authored domains with fresh owned UUIDs, stable internal remapping, preserved external references and unchanged sources. Native Convex duplication passes all eight domains; authenticated development proof covers one deepest record per domain, and Guided copy routing passes. Other-domain browser lifecycle breadth belongs to C03-C10 and is not duplicated here."
         },
         {
           "id": "C15",
           "title": "Owner, Campaign-share, and master-content authorization",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-foundation/content-source-proof.md",
+            ".codex/validation/phase82-foundation/content-detail-proof.md",
+            ".codex/validation/phase82-foundation/content-drafts-review.md",
+            ".codex/validation/phase82-foundation/content-drafts-boundary-checks.log",
+            ".codex/validation/phase82-foundation/content-drafts-anonymous-dev.log",
+            ".codex/validation/phase82-foundation/content-drafts-authenticated-dev-final.log",
+            ".codex/validation/phase82-c15-final/acceptance.md",
+            ".codex/validation/phase82-c15-final/backend-final.log"
+          ],
+          "notes": "Accepted at AUTHORIZATION. Authored drafts, publication and deletion use current authenticated identity, keep drafts owner-private, reject supplied owner/status spoofing and protect master records while allowing independent owned copies. Campaign sharing accepts only active homebrew owned by the active member and matching Campaign System; visibility remains Campaign-scoped and maturity-masked, disappears on source/root/member revocation, and never grants global access. Share removal enforces the recorded author, current authority/version and exact actor-bound replay. Anonymous callers, outsiders, foreign owners, master/inactive/wrong-kind content, archived writes, corrupt checksums and different-author replacement fail closed. Fresh proof passes 4 native suites/49 tests. Campaign membership lifecycle and dependent reconciliation retain P03/P09/P10/P11; browser, concurrency and release proof retain their declared cases."
         },
         {
           "id": "C16",
           "title": "Node runtime and Rules Kernel execution, pause, and resume",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "2026-09-10 accepted at REVIEW. Native authenticated node runtime uses the single neutral resolver/normalizer with current System/source, ownership, bounds and checksum validation. The native Encounter command composes the installed Rules Runtime and authenticated definition store; Assisted START persists a sealed pause without exposing partial Run state, resumes through a second pause, then atomically settles initiative state and receipts. Stored snapshot/version/request/policy/actor bindings, private player reads and terminal replay are covered. Current native source matches the complete serial 158-file/952-test pass; 26 fresh neutral runtime tests prove exact-System admission, frozen execution, source-independent resume, re-pause, canonical HMAC compatibility and tamper/invalid-evidence rejection. Primary and independent deep review found no remaining C16 gap. See phase82-c16-review/verification.md. Wider Encounter, concurrency, browser, performance and release gates remain separate.",
+          "evidence": [
+            ".codex/validation/phase82-foundation/authoring-extraction-tests.log",
+            ".codex/validation/phase82-foundation/native-authoring-focused-final.log",
+            ".codex/validation/phase82-foundation/native-authoring-typecheck-final.log",
+            ".codex/validation/phase82-foundation/native-authoring-generated-typecheck.log",
+            ".codex/validation/phase82-foundation/native-authoring-dev-push.log",
+            ".codex/validation/phase82-foundation/native-authoring-dev.log",
+            ".codex/validation/phase82-foundation/native-authoring-proof.md",
+            ".codex/validation/phase82-foundation/equipment-options-proof.md",
+            ".codex/validation/phase82-foundation/content-source-proof.md",
+            ".codex/validation/phase82-foundation/authoring-sources-proof.md",
+            ".codex/validation/phase82-foundation/authored-media-proof.md",
+            ".codex/validation/phase82-foundation/guided-equipment-proof.md",
+            ".codex/validation/phase82-class-frontend/compact-resolver-proof.md",
+            ".codex/validation/phase82-class-frontend/class-frontend-proof.md",
+            ".codex/validation/phase82-resolver-recovery/proof.md",
+            ".codex/validation/phase82-native-node-retirement/local-progress.md",
+            ".codex/validation/phase82-rules-runtime/local-progress.md",
+            ".codex/validation/phase82-system-modules/local-progress.md",
+            ".codex/validation/phase82-native-definitions/local-progress.md",
+            ".codex/validation/phase82-c16-review/verification.md"
+          ]
         }
       ]
     },
@@ -215,115 +682,436 @@
           "id": "P01",
           "title": "Character drafts",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-character-drafts/local-progress.md",
+            ".codex/validation/phase82-character-list/local-progress.md",
+            ".codex/validation/phase82-character-list-web/local-progress.md",
+            ".codex/validation/phase82-character-system/local-progress.md",
+            ".codex/validation/phase82-builder-write-web/local-progress.md",
+            ".codex/validation/phase82-builder-browser/verification.md",
+            ".codex/validation/phase82-p01-final/acceptance.md",
+            ".codex/validation/phase82-p01-final/backend.log",
+            ".codex/validation/phase82-p01-final/web.log",
+            ".codex/validation/phase82-p01-final/typecheck.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native authenticated Character drafts cover create/reopen, save, UUID/alias read, private paginated recovery and discard. Draft and route writes share one mutation; generation and active-baseline guards prevent stale writes; System binding is immutable; union quota counting and Sheet-owned state are preserved. Active Character pages join only the owner's current edit-draft summary, while draft-only recovery remains bounded and separate. Generated Convex web bindings and the visible Discard draft action have focused coverage. An exploratory personal-development browser run created the draft but then hit the separate full-corpus characters/builder:get one-second limit; exact cleanup passed. Builder performance remains with C06/P02/V15 and complete lifecycle proof with R08."
         },
         {
           "id": "P02",
           "title": "Character Builder choices, readiness, and commit",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/accepted-proof.json",
+            ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/builder-browser-03-completed-audit.json",
+            ".codex/validation/phase82-p02-cleric-finalization/verification.md",
+            ".codex/validation/phase82-social-discovery-web/selection-audit.md",
+            ".codex/validation/phase82-p02-resolution-wait/verification.md",
+            ".codex/validation/phase82-native-character-policies/local-progress.md",
+            ".codex/validation/phase82-native-character-policy/local-progress.md",
+            ".codex/validation/phase82-character-fact-boundary/local-progress.md",
+            ".codex/validation/phase82-character-context/local-progress.md",
+            ".codex/validation/phase82-builder-resolution/local-progress.md",
+            ".codex/validation/phase82-builder-reconciliation/local-progress.md",
+            ".codex/validation/phase82-builder-commit/local-progress.md",
+            ".codex/validation/phase82-feat-assembly/local-progress.md",
+            ".codex/validation/phase82-builder-read-web/local-progress.md",
+            ".codex/validation/phase82-character-system/local-progress.md",
+            ".codex/validation/phase82-builder-write-web/local-progress.md",
+            ".codex/validation/phase82-builder-browser/verification.md",
+            ".codex/validation/phase82-p02-preview/verification.md",
+            ".codex/validation/phase82-p02-resolution/verification.md",
+            ".codex/validation/phase82-p02-json/verification.md",
+            ".codex/validation/phase82-p02-react/verification.md",
+            ".codex/validation/phase82-p02-cleric/verification.md"
+          ],
+          "notes": "2026-09-17 ACCEPTED: all three complete Builder-to-Sheet journeys pass serially on the exact 5842-entry local source after official guarded deployment. Fighter/Rogue, Life Cleric preparation/slot use and choice-heavy Dragonborn pass with strict clean browser diagnostics. All 673 native completions contain only three expected auth negatives; no functional backend abort. Exact fixture cleanup and stale JWT denial pass. Transaction-local source compilation retains full current dynamic validation; browser root refresh uses the shared authenticated native client while SSR retains cookie verification. Accepted count is 60/75. See .codex/validation/movement-replay-duplicates-20260916/p02-root-session/accepted-proof.json. Earlier evidence follows. 2026-09-17 local Builder03: transaction-local immutable source compilation preserves full dynamic validation and removes the Cleric Sheet-command CPU abort. All 840 native completions contain only three expected authentication negatives; Fighter/Rogue and all Cleric functional assertions pass. Strict browser diagnostics fail on two root-session HTTP requests cancelled by reload, so Dragonborn is not run and P02 remains IN_PROGRESS at 59/75. Exact fixture cleanup and stale JWT denial pass. The shared browser root-auth read correction is under focused validation; SSR cookie verification is retained. See .codex/validation/movement-replay-duplicates-20260916/p02-root-session/builder-browser-03-completed-audit.json. Earlier evidence follows. 2026-09-10 bounded follow-up: an isolated invocation-order probe over 714 SRD Class/Spell/Equipment publications showed overlapping baseline/reordered timings, without sufficient reliable gain. The probe was discarded; no production/backend change or managed retry followed. The optional derived-Spell projection ruling remains unresolved. Selection evidence is in phase82-social-discovery-web/selection-audit.md. 2026-09-10 finalization follow-up: the 30-second functional resolution wait advances Cleric through choices, save/reload and preview. Finalization then hits the actual managed CPU limit. All 1309 server completions contain two expected auth negatives plus resolve (1.0020s CPU,1484docs/9.06MB) and commit (1.00075s CPU,1470docs/9.29MB) timeouts, both zero writes and no OCC retry. Fighter/Rogue passes, Cleric fails, Dragonborn does not run; exact cleanup and stale JWT denial pass. P02 remains IN_PROGRESS at 46/75. The isolated local timing and CPU profiles pass; catalogue validation dominates pure resolution. No backend correction follows yet; see phase82-p02-cleric-finalization/verification.md. Earlier checkpoints follow. 2026-09-10 functional-wait follow-up: Fighter/Rogue passes on the union-order CPU correction. All 47 backend resolves succeed; Cleric stops at the browser 10-second aria-busy wait after one query takes 9.201 seconds elapsed and completes near the assertion deadline. Dragonborn does not run. Exact cleanup and stale JWT denial pass; all 1031 server completions have only two expected auth negatives. The resolution assertion now allows 30 seconds, with ordinary control waits unchanged. The one-line helper change passes E2E configuration typecheck and strict lint; all runtime source matches the deployed 961-test source. Complete three-case retry is running under PID 27516; see phase82-p02-resolution-wait/verification.md. P02 remains IN_PROGRESS. Earlier evidence follows. 2026-09-10 checksum update: all 1051 SRD documents preserve canonical bytes with guarded native serialization. All 952 native tests, 228 shared tests and eight native build/typecheck tasks pass; six full-SRD resolves pass, with warm Cleric improved from 481.41 to 451.11 ms locally. Guarded development upload passes, and Fighter/Rogue again passes the browser journey cleanly; Cleric still hits 1.00028 seconds reading 1479 documents/8.74 MB. Third case skipped; exact cleanup and revoked JWT denial pass. Full catalogue loading needs further work; see phase82-p02-cleric/verification.md. P02 remains IN_PROGRESS. 2026-09-10 navigation update: stable empty navigation targets and pre-reload request completion remove the React loop and fetch diagnostic. All 60 focused web tests and three Turbo tasks pass. The complete Fighter/Rogue browser case passes with clean diagnostics. Cleric fails adding its base class: native resolve hits 1.00068 seconds while reading 1479 documents/8.74 MB; the third case is skipped. Exact cleanup and revoked JWT denial pass. Backend still matches the 952-test uploaded source. P02 remains IN_PROGRESS; next work profiles the Cleric load. See phase82-p02-react/verification.md. 2026-09-10 JSON-reader update: 158 native files / 952 tests, native and E2E Turbo typechecks, style checks and guarded development upload pass. The complete Human Fighter/Rogue browser UI journey now passes through Sheet reload with zero native Character errors. Strict diagnostics fail on a React update-depth warning during save navigation and an auth server-function request aborted during reload; the other two cases are skipped. Exact cleanup and revoked JWT denial pass. P02 remains IN_PROGRESS; phase82-p02-json/verification.md retains the proof and phase82-p02-react isolates the browser failures. 2026-09-10 latest: parser and same-query source reuse pass 124 affected native tests, eight Turbo tasks and guarded development upload. Preview and commit pass at 0.67/0.71 seconds, but the browser fails its five-second Sheet assertion and ordinary resolve still times out once; 30 noncached resolves average 0.92 seconds. Two browser cases did not run. Exact cleanup and revoked JWT denial pass. P02 remains IN_PROGRESS; read-volume/parsing diagnosis continues in phase82-p02-resolution/verification.md. 2026-09-10 update: preview now uses the existing resolution scope and stripped result, with eight full-SRD equivalence candidates and a public preview regression; 17 native tests and eight final Turbo tasks pass. The guarded browser retry failed earlier in ordinary builder.resolve: adding Rogue hit the one-second limit twice after prior resolves at roughly 0.90-0.95 seconds. Only the first case ran; exact cleanup and revoked JWT denial passed. The failed proof and metrics are retained in phase82-p02-preview/verification.md. P02 remains IN_PROGRESS while shared selector loading is profiled. 2026-09-09 update: the real native Builder browser journey completes full multiclass choices, readiness, draft save/reload and persisted-choice assertions, then native preview rejects at the one-second execution cap. The first case fails and the other two are skipped; exact fixture cleanup passes. Fresh focused builder/choices/commit proof passes 15 tests and native/web/E2E/driver typechecks pass. P02 remains IN_PROGRESS; see phase82-builder-browser/verification.md. Re-score lower-effort cases before further performance work. The following implementation history predates this update. The typed D&D Character policy, snapshot/fact assembly, canonical roll projection, spell-context decisions and existing pure Builder algorithms now live in neutral rules-runtime. Native get/resolve/preview use current authorized sources and server-owned Sheet state. Native commit reuses preparation, checks the server draft baseline and generation, requires readiness, materializes starting equipment only on first activation, then atomically persists the active document/stream and consumes the draft. Explicit current feature acquisitions reuse option eligibility/count/replacement rules. Characters may share names per the user's clarification. Full selectors remain separate from selected mechanics. Browser candidate queries and reviewed-candidate commit now use native generation-bound references, without a precommit save or client baseline. Focused local implementation proof is retained; Campaign overlays, complete source-loss/dependency reconciliation, Sheet lifecycle, interactive browser journeys, managed limits and the complete same-source local journey remain unimplemented or unproven. No deployment; not accepted."
         },
         {
           "id": "P03",
           "title": "Character reconciliation",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-builder-reconciliation/local-progress.md",
+            ".codex/validation/phase82-option-cascade/local-progress.md",
+            ".codex/validation/phase82-builder-commit/local-progress.md",
+            ".codex/validation/phase82-feat-assembly/local-progress.md",
+            ".codex/validation/phase82-source-loss/local-progress.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/phase82-p03-final/acceptance.md",
+            ".codex/validation/phase82-p03-final/backend-final.log",
+            ".codex/validation/phase82-p03-final/rules-final.log",
+            ".codex/validation/phase82-p03-final/typecheck-final.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Builder preview and commit reconcile current authorized publications through the shared removal-only rules runtime while preserving authoritative Sheet state. Canonical repair rows retain identity, history and private state, cannot use Sheet play until ready, and return to ACTIVE only through a ready commit. Same-source publication replacement is observed on the next resolution: fresh proof removes a revision-invalid chosen grant in read-only preview, leaves the saved edit draft unchanged, and commits the repair while preserving UUID, route, damaged hit points and materialized inventory. Native direct unshare, owned authored deletion, membership departure and assignment replacement cover personal, assigned and create-only state and containing-transaction rollback. Fresh final-source checks pass 9 native suites/42 tests, 3 shared suites/20 tests and 8/8 uncached Convex typecheck tasks. Interactive Builder/Sheet journeys retain P02/P04, command contention and reconnect P08, Campaign lifecycle/authority/settings/custody P09-P13, and managed workload/release V15/R08."
         },
         {
           "id": "P04",
           "title": "Character Sheet projection and commands",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-10",
+          "evidence": [
+            ".codex/validation/phase82-spell-cpu-profile/p04-acceptance.md",
+            ".codex/validation/phase82-sheet-commands/local-progress.md",
+            ".codex/validation/phase82-sheet-projection/local-progress.md",
+            ".codex/validation/phase82-sheet-read/local-progress.md",
+            ".codex/validation/phase82-sheet-receipts/local-progress.md",
+            ".codex/validation/phase82-sheet-adjustments/local-progress.md",
+            ".codex/validation/phase82-sheet-resources/local-progress.md",
+            ".codex/validation/phase82-sheet-spells/local-progress.md",
+            ".codex/validation/phase82-sheet-spell-customization/local-progress.md",
+            ".codex/validation/phase82-sheet-inventory/local-progress.md",
+            ".codex/validation/phase82-sheet-extras/local-progress.md",
+            ".codex/validation/phase82-sheet-rest-rolls/local-progress.md",
+            ".codex/validation/phase82-sheet-history/local-progress.md",
+            ".codex/validation/phase82-sheet-panels/local-progress.md",
+            ".codex/validation/phase82-sheet-preparation/local-progress.md",
+            ".codex/validation/phase82-sheet-extra-options/local-progress.md",
+            ".codex/validation/phase82-roll-web/local-progress.md",
+            ".codex/validation/phase82-sheet-web/local-progress.md",
+            ".codex/validation/phase82-sheet-extras-web/local-progress.md",
+            ".codex/validation/phase82-gm-sheet/local-progress.md",
+            ".codex/validation/phase82-gm-writes/local-progress.md",
+            ".codex/validation/phase82-p04-browser-draft/verification.md",
+            ".codex/validation/phase82-p04-complete/verification.md",
+            ".codex/validation/phase82-p04-spell-performance/verification.md",
+            ".codex/validation/phase82-p04-rest-cancellation/verification.md",
+            ".codex/validation/phase82-commit-spell-reuse/verification.md",
+            ".codex/validation/phase82-class-spell-final/verification.md",
+            ".codex/validation/phase82-media-canonical-ids/verification.md",
+            ".codex/validation/phase82-spell-cpu-profile/verification.md"
+          ],
+          "notes": "Accepted 2026-09-10 at LOCAL_E2E. Source 9f361c54224591dce0560947152ab9b9ba90f8c1cf49015a2d1f5c4e469796fb passes all 159 files/961 native tests, 425 schema tests, 11 Turbo tasks, lint, complete SRD activation/Learn/Prepare and differential compatibility checks. Both managed personal Sheet and Spell browser journeys pass on that source with strict empty diagnostics, exact cleanup and stale JWT denial. Personal Sheet covers HP/inspiration/conditions, inventory/currency, notes, rests, reload and Owl/Sailing Ship extras; Spell covers Learn/Prepare/Cast/reload/slot recovery/Unprepare/Forget/final reload. All server errors are classified expected: five personal and two Spell; no unexpected resource failures. Commands peak at 0.754 and 0.804 seconds user CPU respectively. See phase82-spell-cpu-profile/p04-acceptance.md. Earlier implementation and failed-proof history follows; open/pending statements below describe those earlier checkpoints. 2026-09-10 CPU diagnosis: full-catalogue profiling identified failed union-branch decoding. Common effect and Equipment predicate branches now run first without changing validation. All 425 schema tests, native/web Turbo typechecks, lint, complete SRD activation/Learn/Prepare and differential compatibility checks pass. Final source 9f361c54224591dce0560947152ab9b9ba90f8c1cf49015a2d1f5c4e469796fb passes the complete 159-file/961-test native suite and guarded personal-development upload; the managed Spell proof is running. See phase82-spell-cpu-profile/verification.md. Prior managed Sheet proof on source manifest 79853c6f21e0be7b3f4c4f3522f74f65cb7c10032e49f09300277ca692f6ecdc passes HP/inspiration/conditions, inventory/currency, notes, rests, persisted reload, and the full Owl/Sailing Ship extra path with exact cleanup; only expected auth and stale removed-panel errors remain. The newer same-source managed Spell run fails during Learn at characters/sheetCommands:execute after the one-second limit (userExecutionTime 1.001113644 seconds, executionTime 3.357683909, 1,409 documents, 5,190,613 bytes read, zero writes, occInfo null); exact cleanup passes. The earlier Spell pass on a prior source remains historical evidence and does not override the current failure. The bounded shared media correction, canonical/master-lock regressions, and helper label correction are complete. C04 guard/backfill/race acceptance is restored. Prior frozen source passes 159 files/960 native tests, types/lint and loader checks. P04 remains IN_PROGRESS and is not accepted. Pure Sheet transitions, adjustment/resource identity and validation, spell eligibility, summaries, responsibility classification and synchronous projection live in neutral rules-runtime. The native personal query authenticates the owner, ignores draft contents and evaluates current authorized sources. Native commands locally enable inspiration, HP setting/damage/healing, hit-die use, exhaustion/condition tracking, note/group CRUD, typed adjustments/panel reset, movement preference, resource use/recovery, spell slots, known/prepared selection and rule-approved casting and source-specific display/mechanic customization, inventory/equipment/attunement, currency, Creature/Vehicle extras and short/long rest completion with indexed receipts, exact replay matching, current-Sheet replay responses and atomic state/version/receipt writes. Supplemental state is checksummed and preserved by Builder commit; HP adjustment changes clamp stored current HP atomically. Resource commands share canonical owner keys, preserve raw usage above display capacity and validate action costs/recovery triggers. Spell selection preserves Builder intent; casts charge slots or spell-source pools according to current policy. Composite resource keys now accept valid UUID-based identities without changing their values. Display fields merge/clear independently, while mechanic categories replace typed adjustments. Sheet reference hydration includes additional policy-visible spells. Inventory uses the current authorized catalogue and policy attunement limit; full item deletion atomically removes only its ITEM adjustments and ITEM_INSTANCE usage, matching old cascades. Currency preserves zero balances and rejects invalid container movement. Extras use authorized active published defaults, validate exclusive owned-equipment assignment across both rosters, and remove only the selected Creature's adjustments/usage/assignments while retaining inventory. Retired rule-upgrade commands explicitly reject. Exhaustion preserves the transitional tracking-only policy; automatic penalties are not claimed. Native rolls now supply authoritative caller-owned latest-20 history; rest preview/completion shares current policy and consumes accepted evidence atomically, with original results retained in command receipts. The pure inspector resolver and affected-target mapper now live in neutral rules-runtime; native owner-only panel reads reuse current Sheet calculations and stored adjustments, with all 15 previously supported target kinds locally exercised. Native owner-only chronological history pages reuse the existing receipt decoder and remain available when current sources cannot render a Sheet. Native preparation options now reuse the authorized current spell summaries and neutral response composer, preserving spellbook/full-list eligibility, class limits and current prepared/committed flags without a new catalogue or query writes. The personal web Sheet now uses generated native Sheet/draft/panel/preparation subscriptions, native command routing and read-only rest preview. Convex owns optimistic rebasing/rollback and pushed state across UUID/alias caches; legacy socket attendance/connection state no longer routes or gates Sheet writes. Reopened rest flows reject obsolete preview successes, failures and delayed dice results. Builder orchestration now uses native draft-generation writes; complete Builder journey proof remains pending. Extra-option discovery now uses a drawer-scoped native subscription, retains the existing Creature/Vehicle search and removes the retired web HTTP Character facade. Focused tests and a read-only Storybook picker check are local implementation evidence, not complete Sheet acceptance. Dependent backend behavior is covered by the separately accepted P03/P05/P06/P08/C16/P14/P15 cases. Complete P04 browser proof remains open after the current-source managed Spell timeout; personal development is deployed and the case is not accepted."
         },
         {
           "id": "P05",
           "title": "Hit points, resources, and rests",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-sheet-rest-rolls/local-progress.md",
+            ".codex/validation/phase82-gm-sheet/local-progress.md",
+            ".codex/validation/phase82-gm-private-rest/local-progress.md",
+            ".codex/validation/phase82-p05-final/acceptance.md",
+            ".codex/validation/phase82-p05-final/backend-final.log",
+            ".codex/validation/phase82-p05-final/typecheck.log",
+            ".codex/validation/phase82-p05-final/review.md"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native personal and scoped Campaign short/long rest preview and completion share current policy, exact fingerprints and authoritative caller-owned hit-die evidence. One mutation persists HP, hit dice, exhaustion, eligible slots/resources, selected companions, requested maximum-HP modifier removal, roll consumption, history and the replay receipt while preserving Builder intent and unrelated private state. Completed rests delete only Character schema-version-two scalar-reduction effects whose recovery triggers match: SHORT_REST for short rests, and SHORT_REST or LONG_REST for long rests. Other effects remain; versioned deletion rolls back with every Character/roll write and exact replay performs no second deletion. Fresh serial proof passes 4 suites/19 tests, 8/8 Convex typecheck tasks and focused style checks; independent persistence review found no findings. Campaign browser journeys, concurrent schedules, Encounter consumption, active-effect execution/projection and release lifecycle retain P04/P14, P08/P15, VTT, C16 and R08."
         },
         {
           "id": "P06",
           "title": "Authoritative rolls and evidence",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-sheet-rest-rolls/local-progress.md",
+            ".codex/validation/phase82-campaign-rolls/local-progress.md",
+            ".codex/validation/phase82-collaboration-web/verification.md",
+            ".codex/validation/phase82-gm-private-rest/local-progress.md",
+            ".codex/validation/phase82-p06/final/acceptance.md",
+            ".codex/validation/phase82-p06/final/backend-final.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native personal, Campaign TABLE, private GM and scoped Character-private rolls use current Character/Campaign/System authority, current Sheet mechanics and server-side unbiased randomness. Immutable evidence persists only in the caller's bounded private history or the bounded TABLE conversation; current authority precedes replay, public rate/retention rules apply, masking preserves raw storage, and private rolls create no conversation writes. Focused tests cover forgery and foreign denial, history isolation/trimming, replay, discard/clear, consumption by rest receipts and transaction rollback. Fresh current-source proof passes 3 suites/21 tests. Campaign browser cohort, Encounter consumption, concurrency and release lifecycle retain P14, V03-V15, P08/P15/V10 and R08."
         },
         {
           "id": "P07",
           "title": "Equipment, inventory state, and grants",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-08",
+          "evidence": [
+            ".codex/validation/phase82-character-inventory/local-progress.md",
+            ".codex/validation/phase82-p07-proof/test.log",
+            ".codex/validation/phase82-p07-final/acceptance.md",
+            ".codex/validation/phase82-p07-final/backend-final.log",
+            ".codex/validation/phase82-p07-final/typecheck.log",
+            ".codex/validation/phase82-p07-final/format.log",
+            ".codex/validation/phase82-p07-final/lint.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native Builder commit materializes authorized starting Equipment/currency once; Sheet inventory, equip, attune and currency commands use current sources/policy with atomic state/version/actor-bound replay receipts. Removal cleans item adjustments/resources while preserving surviving stacks and unrelated private state. Owned Equipment deletion atomically reconciles active and saved Character inventory, equipped/attuned and starting-choice references, detaches surviving nested items and preserves working drafts/notes/play state. Current Sheet recomputation removes the deleted source's action, item charge resource, fixed proficiency and equipped-only modifier while retaining surviving sources. Anonymous/foreign denial and Campaign-custody rollback are proven. Fresh proof passes 5 native suites/17 tests and 8/8 Convex typecheck tasks. Campaign/Vehicle custody and transfers retain P12/P13; contention, browser and release proof retain P08/P14/P15 and R08."
         },
         {
           "id": "P08",
           "title": "Character replay, concurrency, and rollback",
           "proofTier": "CONCURRENCY",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-character-concurrency/acceptance.md",
+            ".codex/validation/phase82-character-concurrency/native-proof-complete.log",
+            ".codex/validation/phase82-character-concurrency/typecheck-final.log",
+            ".codex/validation/phase82-character-concurrency/typecheck-fixture-fix.log",
+            ".codex/validation/phase82-character-concurrency/managed-proof-retry.log",
+            ".codex/validation/phase82-character-concurrency/managed-command-events.json"
+          ],
+          "notes": "Accepted at CONCURRENCY. Two independently authenticated clients for one owner prove exactly one Builder create/edit commit, one starting-Equipment materialization, convergent Sheet receipt replay, one winner for conflicting same-version commands, and independent Character streams. Stale baselines/generations, mismatched replay and anonymous/foreign calls reject with their expected errors and preserve state. Exact replay after later writes retains original history and returns the current Sheet. The actual SDK recovers its subscription after a forced WebSocket close and replays without advancing the stream. Managed execution records four real OCC retries across draft consumption, receipt insertion and Character writes. Native post-write failure tests prove rollback of state, version, receipts, rest/resource/inventory/spell changes and nested Encounter updates. Final focused proof passes 12 suites/58 tests and all 25 typecheck tasks; the corrected two-Character fixture additionally passes eight Turbo typecheck tasks. Exact fixtures are removed and revoked JWTs denied. Builder/Sheet browser journeys, Encounter player projection, frozen workload performance and full release lifecycle remain P02/P04, V09/V12, V15 and R08."
         },
         {
           "id": "P09",
           "title": "Campaign lifecycle",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-20",
+          "evidence": [
+            ".codex/validation/phase82-campaign-read/local-progress.md",
+            ".codex/validation/phase82-archive-admission/local-progress.md",
+            ".codex/validation/phase82-campaign-update/local-progress.md",
+            ".codex/validation/phase82-p09-copy/verification.md",
+            ".codex/validation/phase82-gate-progress-20260917/p09-browser-select-20260919/completed-p09-checks-01.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.native-capture-status.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.source-parity.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.evidence/campaign-lifecycle-proof.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.evidence/campaign-lifecycle-stages.jsonl",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.evidence/browser/campaign-lifecycle-browser-native.jsonl",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.evidence/browser/campaign-lifecycle-diagnostics.json",
+            ".codex/validation/local-convex-linux-20260915/campaign-lifecycle-browser24.native-executions.jsonl"
+          ],
+          "notes": "Accepted 2026-09-20 at LOCAL_INTEGRATION. campaign-lifecycle-browser24 completes the ACTIVE and ARCHIVED native catalogues and the real browser create, persisted update, default and selected copy, archive, archived copy and four-root deletion journey. Selectable background copying keeps metadata automatic and notebook categories opt-in. Exact staged publication, current authority, replay, cleanup, privacy, rollback, quota, custody, Character, Scene, Run, admission and personal-retention contracts passed. Proof exit 0; the native collector completed without timeout; all 6,001 source entries match; browser diagnostics are empty; all four fixture accounts and descendants were removed and stale JWTs denied. Release and managed evidence remain under their own gates.",
+          "nativeAdmissionEvidence": ".codex/validation/phase82-social-admission/local-progress.md"
         },
         {
           "id": "P10",
           "title": "Campaign membership and authority",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-19",
+          "evidence": [
+            ".codex/validation/phase82-campaign-read/local-progress.md",
+            ".codex/validation/phase82-campaign-sheet-projection/local-progress.md",
+            ".codex/validation/phase82-p14-clock/verification.md",
+            ".codex/validation/phase82-gm-reads/local-progress.md",
+            ".codex/validation/phase82-gm-sheet/local-progress.md",
+            ".codex/validation/phase82-gm-writes/local-progress.md",
+            ".codex/validation/phase82-membership-departure/local-progress.md",
+            ".codex/validation/phase82-owner-transfer/local-progress.md",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.source-parity.json",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.native-capture-status.json",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.evidence/membership-lifecycle-proof.json",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.evidence/membership-browser/diagnostics.json",
+            ".codex/validation/local-convex-linux-20260915/membership-browser-local-34.native-executions.jsonl"
+          ],
+          "notes": "Initial native reads require active membership and consistent owner/role authority, preserve owner-only raw settings and shared capability policy, and project only validated assigned Character summaries. Focused tests cover outsider/left-member denial, current username projection, assignment ownership/uniqueness and roster bounds. Native GM adjustment/condition reads validate the current assigned player's membership, Character/route/System ownership, checksummed aggregate scope and unique identities/semantic slots. Owners receive all records; assigned players receive only VISIBLE records without internal attribution. Explicit Campaign/Character Sheet get, panel, preparation, rest and execute endpoints recheck that authority without widening personal Character or Builder access. GM commands reject private-note fields and player-only changes before receipt replay; archived/revoked GM writes reject. Receipts retain the actual actor and owner history excludes GM events before pagination. Native supplemental adjustment/condition save/delete now validates active owner authority, current targets and exact record versions, committing state and actor-attributed Campaign audit events atomically. History applies the existing owner/subject/table visibility before bounded UUID-cursor pagination and strips internal metadata. Native member leave/removal now checks actor, ACTIVE PLAYER target, Campaign version and membership epoch; assignment/overlay/currency departure, author-share and descendant removal, remaining Character repair, Vehicle evacuation, one OWNER replay receipt and LEFT membership commit atomically. Exact actor-bound replay after departure or rejoin writes nothing and grants no reads; chat/session history is retained. Native ownership transfer now validates a seven-day recipient offer and hosting capacity, detaches the incoming owner's Character, closes listing admission/cancels pending notifications, atomically switches roles and strictly advances access epochs; chat and public-roll headers align with those epochs. Consumed-offer retries reject. Native application/invitation acceptance now shares current authority, eligibility, symmetric block, source/listing version, publication, seat and tier checks. New or LEFT players receive a strictly newer access epoch; accepted replay cannot resurrect departed membership, and a second source for an active PLAYER preserves its epoch. Focused local implementation proof is not acceptance. Population/migration, held-Equipment custody policy, maximum atomic workload, complete source/currency and multi-client privacy proofs, generated client/native browser integration and full native authorization acceptance remain pending. Approved 2026-09-18 oversized-inventory scope (implementation/proof pending): bounded background cleanup, with a spinner and read/write restriction only on affected bags, Vehicle cargo or currency groups; unrelated inventory remains usable. Ordinary transfer/cleanup atomicity, complete custody, validation, privacy, exact replay and resumable recovery remain required. ADR 0031 supersedes the uncapped aggregate atomic-workload guarantee; no product cap or gate acceptance is introduced. Accepted 2026-09-19 at AUTHORIZATION. membership-browser-local-34 completed all eight native/browser stages across four independent accounts: leave, rejoin, OWNER removal, rejoin, ownership transfer and restoration; current subscriptions, denials, retained-history privacy, reload/reconnect, actor/epoch replay and exact cleanup all passed. Guarded deploy107 and the final proof retained exact 6,001-source parity, collector completion, zero unexpected browser diagnostics and stale-token denial. Four transient read-only Character Sheet executions timed out under local host pressure but recovered within the same proof; no mutation, required operation, final comparison or cleanup was prevented. V15 owns performance thresholds. P10-11 and P10-12 close; earlier pending statements above are superseded.",
+          "nativeAdmissionEvidence": ".codex/validation/phase82-social-admission/local-progress.md"
         },
         {
           "id": "P11",
           "title": "Campaign content and settings",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-campaign-settings/local-progress.md",
+            ".codex/validation/phase82-campaign-options/local-progress.md",
+            ".codex/validation/phase82-content-shares/local-progress.md",
+            ".codex/validation/phase82-campaign-sources/local-progress.md",
+            ".codex/validation/phase82-gm-sheet/local-progress.md",
+            ".codex/validation/phase82-gm-writes/local-progress.md",
+            ".codex/validation/phase82-native-unshare/local-progress.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/phase82-campaign-update/local-progress.md",
+            ".codex/validation/phase82-p11-final/review-open.md",
+            ".codex/validation/phase82-campaign-native-detail/acceptance.md",
+            ".codex/validation/phase82-campaign-native-detail/native-final-test.log",
+            ".codex/validation/phase82-campaign-native-detail/web-final-typecheck.log",
+            ".codex/validation/phase82-campaign-native-detail/browser-proof-retry.log"
+          ],
+          "notes": "Native Campaign play-settings get/save use current member/owner authority, raw-owner and STANDARD-member presentation, settings versions and enabled same-System policy sources. Native option discovery reads indexed current definitions through the shared neutral projection. Share/list preserves identity-only storage, current-author/ownership checks, idempotent timestamps and masked candidate pagination. The 2026-09-07 user ruling requires same-System Campaign shares, explicit Homebrew parent shares and enabled official parents. Assigned Character source consumers use Campaign catalogue restrictions, owned Homebrew and exact current shared roots across Builder selectors, mechanics discovery, Sheet extras and extra-add commands, without source-wide grants or global GM Character access. Disabled System sources no longer consume the assigned source limit. Owner-facing Builder, Sheet, command, inspector, preparation, rest and history projections apply current Campaign text presentation; private notes, their note/group history and authorized edit values retain originals. Roll validation matches displayed labels against raw authoritative candidates, retains original roll snapshots and presents current history without rewriting storage. Scoped native GM Sheet integration preserves GM-visible/editable custom names while removing player-private notes. Current Campaign adjustments override matching personal slots without rewriting player storage; projections omit secret sources while retaining totals, and current attunement settings gate commands. Native GM adjustment/condition writers and audit now preserve slot versions, sibling records, original creator metadata and atomic state/event rollback; adjustment writes validate resulting Sheet evaluation. Audit payload JSON uses a shared native wire codec that restores the existing domain event DTO. Native unshare removes dependent shared children with exact actor-bound replay, reconciles assigned Characters and evacuates Vehicle cargo atomically. Owned authored deletion removes exact shares across active or archived Campaigns, accepts the deleting author's retained LEFT membership for lifecycle cleanup, reconciles personal/assigned/create-only Character state once and uses the same Vehicle evacuation/finalization. Held Equipment remains fail-closed pending its retention policy. Native Campaign catalogue updates reject removal used by canonical Characters, saved drafts, shared official-parent chains, Campaign Equipment/Vehicle custody, effective initiative policy/graphs or optional combat definitions; attunement updates validate assigned ACTIVE Sheets without rewriting streams. Settings, table settings and content now have native web bindings, and candidate pagination proves repeated loading. The prior parent-version defect is resolved: native Campaign detail and five route loaders now feed the current version to content removal. Two real browser removals, exact native version increments and reload persistence passed. P11 is accepted at LOCAL_INTEGRATION with fresh native tests/typechecks and independent follow-up review. The complete browser command still failed final diagnostics on legacy Campaign shell realtime/clock/session/conversation calls; those failures remain in the owning transport and release cases. Encounter/frozen-source guard integration, managed transaction-budget proof and the complete same-source development lifecycle also remain pending. There is no approved product count bound to encode. Official codegen is restricted to authorized personal dev; no staging/production promotion or acceptance."
         },
         {
           "id": "P12",
           "title": "Campaign inventory",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-19",
+          "evidence": [
+            ".codex/validation/phase82-party-inventory/local-progress.md",
+            ".codex/validation/phase82-campaign-currency/local-progress.md",
+            ".codex/validation/phase82-inventory-audit-window/local-progress.md",
+            ".codex/validation/phase82-vehicle-custody/local-progress.md",
+            ".codex/validation/phase82-vehicle-inventory/local-progress.md",
+            ".codex/validation/phase82-native-unshare/local-progress.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/local-convex-linux-20260915/custody-browser-local-23.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10-recovery-03.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10-account-recovery-01.metadata.json",
+            ".codex/validation/phase82-gate-progress-20260917/final-custody-group-20260919/vehicle-cleanup-api-tests-01.log"
+          ],
+          "notes": "Accepted 15/15 on 2026-09-19. Native Character, party and Vehicle item/currency custody has complete producer, privacy, fence, rollback, exact replay, source-loss and lifecycle coverage. The grouped real-backend proof exercised a 32-item authored Vehicle source-loss workload and a 33-item-plus-currency manual Vehicle cleanup workload, including safe overflow failure, localized affected-inventory locking, unrelated party writes, OWNER retry and exact convergence. The approved bounded background cleanup satisfies oversized inventories while ordinary transfers remain atomic. Exact fixture cleanup completed through the public Campaign deletion/background purge path and native account hook without rerunning passed product stages. Managed performance and the complete release lifecycle remain owned by V15 and R08."
         },
         {
           "id": "P13",
           "title": "Campaign vehicles",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-19",
+          "evidence": [
+            ".codex/validation/phase82-campaign-vehicles/local-progress.md",
+            ".codex/validation/phase82-vehicle-custody/local-progress.md",
+            ".codex/validation/phase82-vehicle-inventory/local-progress.md",
+            ".codex/validation/phase82-native-unshare/local-progress.md",
+            ".codex/validation/phase82-native-authored-deletion/local-progress.md",
+            ".codex/validation/local-convex-linux-20260915/vehicle-producers-local-03.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-browser-local-23.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10-recovery-03.metadata.json",
+            ".codex/validation/local-convex-linux-20260915/custody-local-10-account-recovery-01.metadata.json",
+            ".codex/validation/phase82-gate-progress-20260917/final-custody-group-20260919/vehicle-cleanup-api-tests-01.log"
+          ],
+          "notes": "Accepted 10/10 on 2026-09-19. Vehicle creation, unavailable/restore, cargo return, destroy, source-loss evacuation, definition selection, privacy, current-version fences, rollback and exact replay have complete focused and real-backend evidence. The final grouped workload crossed the ordinary-operation boundary for source-loss and manual cleanup, kept unaffected inventory usable, failed safely under contention, retried and converged exactly once. The approved background lifecycle satisfies oversized cargo while focused cleanup/source-loss tests prove late-apply rollback and recovery. Exact fixture cleanup completed without rerunning passed product stages. Managed performance and the complete release lifecycle remain owned by V15 and R08."
         },
         {
           "id": "P14",
           "title": "Campaign collaboration",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-10",
+          "evidence": [
+            ".codex/validation/phase82-chat/local-progress.md",
+            ".codex/validation/phase82-notebooks/local-progress.md",
+            ".codex/validation/phase82-campaign-file-upload/local-progress.md",
+            ".codex/validation/phase82-campaign-file-finalize/local-progress.md",
+            ".codex/validation/phase82-campaign-file-delivery/local-progress.md",
+            ".codex/validation/phase82-notebook-cleanup/local-progress.md",
+            ".codex/validation/phase82-campaign-attachments/local-progress.md",
+            ".codex/validation/phase82-campaign-rolls/local-progress.md",
+            ".codex/validation/phase82-collaboration-web/verification.md",
+            ".codex/validation/phase82-p14-clock/verification.md",
+            ".codex/validation/phase82-media-csp/verification.md",
+            ".codex/validation/phase82-p14-complete/verification.md"
+          ],
+          "notes": "Accepted at LOCAL_E2E. Two authenticated browser clients and the actual personal-development Convex/R2 backend pass TABLE send/edit/tombstone, PARTY and DIRECT privacy, shared notebook create/update/delete, signed file upload/download/name/byte checks, removal and delivery denial, private GM isolation and TABLE roll convergence. Native postchecks pass notebook version contention, matching chat-nonce replay, unread reconciliation and unauthorized writes. All 12 browser checkpoints, zero unexpected diagnostics, exact fixture cleanup and revoked JWT denial pass together. Successful transfer-specific Chromium abort events remain retained separately only after exact byte proof. Fresh focused native checks pass five suites/26 tests; native Clock/Session dependency checks, 21 CSP tests, scoped web typechecks/lint and guarded development upload also pass. Source hashes, failed attempts and ordered evidence are retained in phase82-p14-complete/verification.md. Campaign lifecycle/account deletion retain P09/F12; complete Session/control contention retains P15; full release lifecycle and staging/production promotion retain R08."
         },
         {
           "id": "P15",
           "title": "Sessions and control",
           "proofTier": "CONCURRENCY",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-sessions/local-progress.md",
+            ".codex/validation/phase82-session-notes/local-progress.md",
+            ".codex/validation/phase82-session-references/local-progress.md",
+            ".codex/validation/phase82-notebook-cleanup/local-progress.md",
+            ".codex/validation/phase82-campaign-attachments/local-progress.md",
+            ".codex/validation/phase82-clock-calculations/local-progress.md",
+            ".codex/validation/phase82-campaign-sheet-projection/local-progress.md",
+            ".codex/validation/phase82-p14-clock/verification.md",
+            ".codex/validation/phase82-p15-complete/verification.md",
+            ".codex/validation/phase82-p15-performance/verification.md"
+          ],
+          "notes": "Accepted at CONCURRENCY. Complete personal-development proof passes concurrent Session numbering/metadata, RSVP uniqueness, attendance authority, note privacy, reference pins, finish replay/locks and the shared Clock command namespace; Clock version contention, exact replay, once-only DAILY recovery and watermark; GM adjustment/condition contention, effective projection, secret masking and removal; archived authorization before replay, member reads and anonymous denial. Exact fixture/account cleanup and stale JWT denial pass. The first managed Clock attempt timed out at one second; local profiling led to mutation-scoped reuse of Character-bound authored sources while mutable state, authority and overlays are reread. Final local proof passes 18 suites/71 tests, eight Turbo tasks, scoped style and loader checks; transaction review finds no remaining findings. The corrected managed recovery reads 813 documents and uses 0.733 seconds. Source hashes, ordered commands, failed attempts and metrics are retained in phase82-p15-performance/verification.md. Native Session/Clock web bindings retain phase82-p14-clock evidence. Frozen workload performance remains V15; complete release lifecycle and staging/production remain R08-R10.",
+          "acceptedAt": "2026-09-10"
         },
         {
           "id": "P16",
           "title": "Announcements",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-announcements/local-progress.md",
+            ".codex/validation/phase82-chat/local-progress.md",
+            ".codex/validation/phase82-p16-final/acceptance.md",
+            ".codex/validation/phase82-p16-final/backend-final.log",
+            ".codex/validation/phase82-p16-final/web-final.log",
+            ".codex/validation/phase82-p16-final/typecheck-convex-final.log",
+            ".codex/validation/phase82-p16-final/typecheck-web-final.log"
+          ],
+          "notes": "Accepted at LOCAL_INTEGRATION. Native immutable publication derives current owner authority, rejects archived writes and commits the source plus fixed-summary notification intents atomically. Exact command fingerprints make matching retries read-only and changed input conflict. TABLE and PARTY targets are derived from the Campaign; a foreign supplied room ID cannot redirect delivery. Indexed list/get reads preserve PARTY exclusion from owner page metadata, current conversation membership, departure denial and Standard text masking. The Campaign page uses native reactive pagination, authorized direct-link reads and native create mutations; an unavailable deep link leaves the list usable. Fresh final-source proof passes 6 backend and 2 web tests plus 8/8 Convex and 2/2 web typecheck tasks. Independent privacy review found and closed one deep-link route failure, then reported no findings. Campaign deletion cleanup remains P09, conversation lifecycle P14, managed delivery P18 and promotion the release cases."
         },
         {
           "id": "P17",
           "title": "Social profiles, listings, applications, and blocks",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-10",
+          "evidence": [
+            ".codex/validation/phase82-social-eligibility/local-progress.md",
+            ".codex/validation/phase82-social-listings/local-progress.md",
+            ".codex/validation/phase82-social-rate-limits/local-progress.md",
+            ".codex/validation/phase82-listing-publication/local-progress.md",
+            ".codex/validation/phase82-listing-management/local-progress.md",
+            ".codex/validation/phase82-social-shared-reads/local-progress.md",
+            ".codex/validation/phase82-listing-republication/local-progress.md",
+            ".codex/validation/phase82-campaign-update/local-progress.md",
+            ".codex/validation/phase82-social-inboxes/local-progress.md",
+            ".codex/validation/phase82-social-unblock/local-progress.md",
+            ".codex/validation/phase82-social-discovery/local-progress.md",
+            ".codex/validation/phase82-social-reports/local-progress.md",
+            ".codex/validation/phase82-social-evidence/local-progress.md",
+            ".codex/validation/phase82-social-account-references/local-progress.md",
+            ".codex/validation/phase82-social-block-create/integration.md",
+            ".codex/validation/phase82-social-block-web/integration.md",
+            ".codex/validation/phase82-social-invitation-web/integration.md",
+            ".codex/validation/phase82-social-discovery-web/integration.md",
+            ".codex/validation/phase82-social-editor-web/integration.md",
+            ".codex/validation/phase82-social-preference-web/integration.md",
+            ".codex/validation/phase82-listing-moderation/integration.md",
+            ".codex/validation/phase82-profile-moderation/integration.md",
+            ".codex/validation/phase82-social-moderation-web/integration.md",
+            ".codex/validation/phase82-social-retention-preview/integration.md",
+            ".codex/validation/phase82-social-retention-apply/integration.md",
+            ".codex/validation/phase82-social-operator/integration.md",
+            ".codex/validation/phase82-social-account-cascade/integration.md",
+            ".codex/validation/phase82-social-live/integration.md",
+            ".codex/validation/phase82-social-live/acceptance-checklist.md",
+            ".codex/validation/phase82-social-live/acceptance.md",
+            ".codex/validation/phase82-social-live/attempt13/browser-result.json"
+          ],
+          "notes": "Accepted at LOCAL_E2E. Complete four-account attempt 13 passed at 2026-09-10T23:50:11Z on source 184f1161471fd5b54acfabed366c39f54e78a37ed7e5a140fe0c2d3a63deb7a1: all 22 browser checkpoints, empty strict diagnostics, private access denials, Standard API/SSR/mutation/realtime/log masking, mobile discovery/inboxes/host review/moderation, indexed pagination during concurrent updates, and both actual capacity races with concurrent replay. Each race has one winner and a managed OCC retry; replay preserves access epochs. Native moderation and block invalidations preserve accepted membership. Guarded retention preserves active/recent applications, purges eligible application/invitation/report/rate rows and completes scheduled audit/account cleanup. Exact temporary and primary Campaigns, all accounts/sessions/credentials/profiles are removed and all stale JWTs denied. Final explicit disclosure-rejection and accepted-disclosure assertions pass in 39 native files / 281 tests; all nine backend/web typecheck tasks and strict lint pass. Source manifests prove only the two strengthened native test files changed after the live pass; runtime code is identical. All 12 canonical Social gates are reconciled in phase82-social-live/acceptance-checklist.md and acceptance.md. Earlier failures are archived and all interrupted fixtures recovered. All eight legacy Social tables were empty at the recorded source inventory; recheck at cutover. Complete release lifecycle, staging/production, Supabase retirement and full product account deletion remain their owning downstream cases.",
+          "nativeAdmissionEvidence": ".codex/validation/phase82-social-admission/local-progress.md"
         },
         {
           "id": "P18",
           "title": "Notifications and preferences",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-foundation/notifications-backend-tests.log",
+            ".codex/validation/phase82-foundation/notifications-web-tests.log",
+            ".codex/validation/phase82-foundation/notifications-provider-test.log",
+            ".codex/validation/phase82-foundation/notifications-packet-final-typecheck.log",
+            ".codex/validation/phase82-foundation/notifications-order-tests.log",
+            ".codex/validation/phase82-foundation/notifications-packet-final-dev-deploy.log",
+            ".codex/validation/phase82-foundation/notifications-auth-shell-proof.md",
+            ".codex/validation/phase82-notification-delivery/local-progress.md",
+            ".codex/validation/phase82-announcements/local-progress.md",
+            ".codex/validation/phase82-social-inboxes/local-progress.md",
+            ".codex/validation/phase82-notification-source/acceptance.md",
+            ".codex/validation/phase82-notification-source/native-final.log",
+            ".codex/validation/phase82-notification-source/feed-final.log",
+            ".codex/validation/phase82-notification-source/typecheck-final.log",
+            ".codex/validation/phase82-notification-source/managed-proof.log"
+          ],
+          "notes": "Accepted LOCAL_INTEGRATION: native recipient feed, first-seen/read and profile-owned preferences use Convex subscriptions. Safe Social/Campaign source intents, current source/counterpart/block/membership checks, bounded dispatch/recovery, latest-25 retention, React Email and atomic Resend enqueue/provider-handle persistence are covered by 39 fresh native tests and eight Turbo tasks. Actual dev cron delivered one command-replayed announcement once with one feed item and provider status sent; disabling both channels suppressed the next event. Recipient isolation, first-read preservation and exact fixture cleanup passed. The approved boundary counts component enqueue as in flight; future handoffs stop on source loss and explicit cancellation attempts queued-mail cancellation. Existing native web evidence is retained; no new browser or inbox/webhook delivery claim. Full same-source release and complete account cleanup remain in R08/F12.",
+          "nativeAdmissionEvidence": ".codex/validation/phase82-social-admission/local-progress.md"
         },
         {
           "id": "P19",
           "title": "Entitlements and capacity enforcement",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-entitlements/verification.md",
+            ".codex/validation/phase82-entitlements/native-final.log",
+            ".codex/validation/phase82-entitlements/native-campaign-final.log",
+            ".codex/validation/phase82-entitlements/backfill-audit.json",
+            ".codex/validation/phase82-entitlements/managed-final.log",
+            ".codex/validation/phase82-entitlements/managed-final-draft-attempts.json"
+          ],
+          "notes": "Native Account projection subscribes to server-owned tier, shared policy, five exact transactional usage counters and media bytes. User-approved counters use unique resource/source entries; guarded expand/backfill/audit/tighten completed on personal development. Operator tier assignment is internal-only. Focused capacity proof covers homebrew, Characters, active hosted Campaigns, accepted seats, listings, storage and Blueprints. Final managed browser/authorization proof passes reactive tier and usage changes, hydrated reload, cross-user isolation, over-limit downgrade preservation, exact replay, quota rejection and cleanup. A genuine parallel final-slot race has one winner, one OCC retry and one quota loser. Full native attempts each passed 934/936; unrelated explicit-timeout and pagination-test defects were corrected and both affected files pass ten tests. Neither broad run is claimed green; complete final-source lifecycle remains R08. Future billing/commerce and F12 account cleanup remain separately owned."
         }
       ]
     },
@@ -336,91 +1124,215 @@
           "id": "V01",
           "title": "Encounter Blueprints",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-blueprints/system-vocabulary-tests.log",
+            ".codex/validation/phase82-blueprints/commands-final-tests.log",
+            ".codex/validation/phase82-blueprints/commands-contract-tests.log",
+            ".codex/validation/phase82-blueprints/list-proof.md",
+            ".codex/validation/phase82-v01-final/local-progress.md",
+            ".codex/validation/phase82-v01-final/target-final.log",
+            ".codex/validation/phase82-v01-final/dev-push-final.log",
+            ".codex/validation/phase82-v01-final/acceptance.md",
+            ".codex/validation/phase82-static-api-never/blueprint-acceptance-local.log",
+            ".codex/validation/phase82-static-api-never/blueprint-development-proof.log"
+          ],
+          "notes": "Accepted 2026-09-09. Fresh local proof passes seven tests for private System-scoped pagination, authorization, capacity, immutable update replay, stale versions, rollback, checksum validation and pinned Creature/Equipment vocabulary provenance. After the module-loader corrections and same-version Convex static API generator patch, the guarded personal-development deployment succeeds. The authenticated actual-backend Blueprint driver passes anonymous/foreign denial, create replay/conflict, private listing, update replay/stale rejection and exact fixture cleanup with stale-JWT denial. Browser Run wiring and full Character/Encounter workload suitability remain with their owning cases."
         },
         {
           "id": "V02",
           "title": "Campaign Scenes independent of Encounters",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "nativeWebSelectorEvidence": ".codex/validation/phase82-ultra-continuation-20260911/v02-list-patch/validation-01/",
+          "notes": "Accepted at unchanged LOCAL_E2E: browser-26 passes native owner map upload, Scene create/edit/reload, immutable initial live snapshot, independent GM/player hydration, live-edit convergence, private-token exclusion, offline update recovery and reload. Exact fixture/account cleanup, stale-JWT refusal and physical R2 deletion pass. Runtime and generated source match the activation; only documentation and a separately validated decision-access test changed during the journey. No unexpected browser diagnostics or legacy requests. Static JWKS preserves the existing signing identity and all rate limits; the managed journey has no JWKS fetches or limiter failures. R08 final-source lifecycle and R09 packaging remain open.",
+          "evidence": [
+            ".codex/validation/phase82-scene-assessment/assessment.md",
+            ".codex/validation/phase82-scene-live-acceptance-20260913/acceptance.md",
+            ".codex/validation/phase82-scene-owner-live/integration.md",
+            ".codex/validation/phase82-scene-presentation/integration.md",
+            ".codex/validation/phase82-scene-presentation/tests-result.json",
+            ".codex/validation/phase82-scene-save/integration.md",
+            ".codex/validation/phase82-scene-web/integration.md"
+          ]
         },
         {
           "id": "V03",
           "title": "Scene entities, geometry, and visibility facts",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-11",
+          "evidence": ".codex/validation/phase82-ultra-continuation-20260911/v03-integration.md",
+          "notes": "Accepted at LOCAL_INTEGRATION. All six entity collections, persisted geometry, recipient privacy, independent definition/live Scene state, exact replay, competing writes, stale versions and actual entity/fog/head/receipt rollback pass through the shared local and authenticated personal-development verifier. Existing maximum-polygon and full fog-capacity coverage is retained without smaller Scene limits. The final affected lifecycle passes fresh build, all web types, lint, 1,296 web tests, 206 stories and 23 Playwright journeys; unchanged native/core/worker evidence is verified by source hashes. Real owner map upload/create/edit/reload and private-read denials pass with zero browser diagnostics. Exact fixture/account cleanup, revoked-JWT denial and post-fence physical R2 absence pass for every proof asset. Complete live hydration/reconnect, movement, exhaustive privacy/contention/performance and release promotion retain their separate cases."
         },
         {
           "id": "V04",
           "title": "R2-backed maps and Scene media lifecycle",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-10",
+          "notes": "Accepted at LOCAL_INTEGRATION. All ten map lifecycle gates pass: 152 native tests across 22 files, 11 backend/web static tasks, proof TypeScript, strict lint, schema evaluation, official generation and loader headroom. Actual personal-development proof passes signed map upload/finalization and decoded delivery, Scene save/reload, real Campaign transfer preserving uploader ownership and 2086-byte charge, three atomic deletion-restriction probes including live-only protection, exact fixture/account cleanup and stale-JWT denial. Browser diagnostics and unexpected managed errors are empty. The final fixture had four provider objects before the unchanged fence and empty exact pending/ready prefixes at 2026-09-11T04:01:44.707Z afterward. Activated/proof source a9e05de004d08723f65582a251fa6e0808ed3302e8b4b17c98582717dbb5b080; subsequent changes are canonical status documentation only. Complete checklist and ordered evidence: .codex/validation/phase82-v04-retention/acceptance.md. F12 retains its full product deletion flow; V02/V03 own remaining live Scene work. No staging/production promotion.",
+          "evidence": [
+            ".codex/validation/phase82-vtt-map-upload/integration.md",
+            ".codex/validation/phase82-vtt-map-upload/review.md",
+            ".codex/validation/phase82-vtt-map-upload/vtt-tests-final-result.json",
+            ".codex/validation/phase82-vtt-map-upload/typecheck-final.log",
+            ".codex/validation/phase82-scene-presentation/integration.md",
+            ".codex/validation/phase82-scene-presentation/review.md",
+            ".codex/validation/phase82-scene-web/integration.md",
+            ".codex/validation/phase82-scene-owner-live/integration.md",
+            ".codex/validation/phase82-v04-retention/acceptance.md",
+            ".codex/validation/phase82-v04-retention/integration.md",
+            ".codex/validation/phase82-v04-retention/verification.json",
+            ".codex/validation/phase82-scene-presentation/tests-result.json",
+            ".codex/validation/phase82-scene-presentation/typecheck-result.json"
+          ]
         },
         {
           "id": "V05",
           "title": "Session admission and presence",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-09",
+          "evidence": [
+            ".codex/validation/phase82-v05-final/acceptance.md",
+            ".codex/validation/phase82-v05-final/functions-ticket.log",
+            ".codex/validation/phase82-v05-final/functions-service-auth.log",
+            ".codex/validation/phase82-v05-final/apis-campaign-ticket.log",
+            ".codex/validation/phase82-v05-final/session-worker-ticket.log",
+            ".codex/validation/phase82-v05-final/session-worker-auth.log"
+          ],
+          "notes": "Accepted at AUTHORIZATION. The authenticated Campaign API checks current Campaign authority, writable state, open Session identity and role before issuing a signed single-use one-minute room-bound ticket. The Durable Object rejects invalid origins, signatures, claims, rooms and replay, then performs a locked current-authority renewal before READY. Renewal closes removed or stale-role sockets while preserving valid users and rotates authority to another current member. Fresh current-source checks pass 12 focused assertions across Functions, the API seam and the session worker; independent security review found no V05-owned defect and confirmed the locked renewal closes the stale-ticket window. Native Session control, browser/reconnect, broad concurrency/performance and release proof retain their owning cases."
         },
         {
           "id": "V06",
           "title": "Transient collaboration through the Durable Object",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "Accepted at unchanged LOCAL_E2E: the real owner and player use the native Durable Object on port 8787 with the existing binding and protocol. Bidirectional previews pass before and after actual JWT expiration/renewal, followed by native socket disconnect/reconnect, durable rehydration, reload and departed-player refusal with no new admission. Existing native proofs cover privacy, deadline expiry, hibernation, queued previews and membership/authentication races. Browser-26 and exact fixture/account/provider cleanup pass with no unexpected diagnostics or legacy requests. Static JWKS removes routine key-fetch contention while retaining all rate limits. V07 owns committed movement/reaction convergence; R08 and managed Worker packaging in R09 remain open.",
+          "evidence": [
+            ".codex/validation/phase82-scene-live-acceptance-20260913/acceptance.md",
+            ".codex/validation/phase82-ultra-continuation-20260911/v06-character-proof-01/completion.md",
+            ".codex/validation/phase82-ultra-continuation-20260911/v06-deadline-proof-01/",
+            ".codex/validation/phase82-ultra-continuation-20260911/v06-worker-test-integration-01/completion.md"
+          ]
         },
         {
           "id": "V07",
           "title": "Committed token movement and multi-client convergence",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
+            ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/gameplay-completed-audit.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/native-integrity.json"
+          ],
+          "notes": "Local standalone native movement now publishes validated sampled-path movement and fog atomically, with current member/owner authority, canonical token control, Scene/Session/Character fences and replay. Thirteen new movement cases pass within 29 native tests; 45 legacy/shared tests, Convex and Functions types, and focused lint pass. Native standalone undo now passes 52 combined native movement/geometry/fog/Session tests, Convex types and focused lint, with no independent persistence review findings; evidence is retained in .codex/validation/phase82-ultra-continuation-20260911/v07-undo-01/completion.md. The local Passage integration packet adds native Overrun/Tumble choice/decline, Automatic and Assisted two-d20 continuation, ordered spatial/reaction/Legendary Resistance continuation, exact replay and rollback/retry proofs. Browser Passage/combined frozen journeys, multi-client convergence and generated API refresh remain pending for V07 LOCAL_E2E acceptance. The complete final-source local lifecycle belongs to R08 RELEASE and remains mandatory before staging promotion, as required by the frozen proof tiers and top-level development runtime policy. LOCAL_E2E acceptance is not claimed; fixed total remains 75. Accepted LOCAL_E2E on 2026-09-17: movement-browser-29 and passage-browser-23 pass bound/standalone movement, reactions and Passage continuation, stopped-path fog, GM undo, exact replay, peer convergence, actual reconnect/reload, current departure refusal, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md."
         },
         {
           "id": "V08",
           "title": "Encounter lifecycle and optional Scene binding",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-11",
+          "evidence": [
+            ".codex/validation/phase82-blueprints/reminder-proof.md",
+            ".codex/validation/phase82-native-optional-combat-final/local-progress.md",
+            ".codex/validation/phase82-v08-automation-proof/integration.md",
+            ".codex/validation/phase82-v08-rollback-proof/integration.md",
+            ".codex/validation/phase82-v08-auth/integration.md",
+            ".codex/validation/phase82-v08-auth/acceptance.md",
+            ".codex/validation/phase82-v08-lifecycle/acceptance-checklist.md"
+          ],
+          "notes": "Accepted 2026-09-11 at LOCAL_INTEGRATION. All eleven complete-case gates pass: 100 native tests/13 files, official codegen, ten backend/web Turbo tasks, full proof-driver TypeScript, strict lint, exact Unicode CLI transport checks and independent auth/transaction review. Guarded personal-development attempt04 proves six Runs, Manual and four Automatic/Assisted policy/cadence scenarios, frozen snapshots, normalized corrections and later progression, immutable Run/Scene and versioned actor-token bindings, successive token reuse, historical receipts, three forced rollbacks, real command/binding/presentation/ownership/Session-finish races and exact record/account cleanup. All 48 errors among 2,796 managed completions reconcile to expected denials or injected rollback failures; all three rollback actions succeeded. The final map exact pending/ready provider prefixes are empty after the unchanged 2026-09-11T09:04:13.468Z fence; both earlier fixture maps are also absent. Current source/generated hashes, ordered commands, complete logs, reviews and final acceptance evidence are retained in .codex/validation/phase82-v08-auth/acceptance.md. The fixture verifier uses real session auth and keeps development-origin, reserved-account, owner, exact-target and bounded-read guards; its write helper remains internal and always rolls back. Other actor/action/player projection/privacy/browser cases retain their ownership. No staging or production promotion."
         },
         {
           "id": "V09",
           "title": "Encounter actors and initiative",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-blueprints/native-run-proof.md",
+            ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/v09-acceptance.md",
+            ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/validated-stage.json",
+            ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/lifecycle-completed-audit.json",
+            ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/native-source-before.json",
+            ".codex/validation/local-convex-linux-20260915/encounter-lifecycle-01.native-executions.jsonl"
+          ],
+          "nativeWebEvidence": ".codex/validation/phase82-ultra-encounter-web/final-20260912-01/",
+          "notes": "Accepted LOCAL_INTEGRATION on 2026-09-17: current owner/open-Session actor removal, immediate remaining-turn reorder and initiative-position custom/Creature reinforcement preserve normalized current cursor/history, pending-decision requirements, source authority, privacy and checksums. Seven projection tests, 83 native tests, six UI tests, eight fresh native and two web typecheck tasks pass. Official local codegen60 and deploy-53 are guarded, environments restored, and the complete real native lifecycle/collector matches the same 5,839-entry source. Manual and all four Automatic/Assisted actor/side/cadence scenarios pass current-round and next-round eligibility, same-version reinforcement races, exact historical replay, rollback/privacy, Character/Scene preservation and exact account/data cleanup. All 1,081 native completions were audited: 89 expected authorization/stale/replay/forced-rollback negatives, zero retained writes from refusals and zero execution aborts. Existing native web evidence plus current control tests cover owner/player interaction and SIDE boundaries. R08 final-source release, managed performance and external promotion/retirement remain separate requirements. Earlier notes below are historical checkpoints. Native Run creation, actor updates, normalized initiative, recipient projection and timeline paging retain the prior evidence packets. REMOVE_ACTOR is implemented locally with current owner/open-Session authority, checksummed actor/Run state, maintained-effect cleanup, one affected Character stream/mirror advance, exact pending initiative or concentration supersession, actor/reminder/token-binding removal, and initiative reconciliation without rerolling. Local proof covers prepared/active Runs, empty sides/Runs, subsequent initiative commands, historical replay, anonymous/player/outsider/revoked-owner refusal, and rollback. Scene/token identities remain intact. The complete shared local lifecycle now also passes active actor and side removal across all four initiative scenarios, explicit survivor selection, next-round advancement, historical replay, Character/Scene preservation and exact fixture cleanup. Current evidence: .codex/validation/actor-removal-lifecycle-20260913/evidence.json; earlier implementation evidence remains in .codex/validation/container-transfers-20260913/evidence.json and the approved actor-removal workstream. Active REORDER and reinforcement timing await existing product rulings. Real-backend transaction/concurrency proof and the final-source lifecycle remain open. IN_PROGRESS only; no new case acceptance or promotion.",
+          "acceptedAt": "2026-09-17"
         },
         {
           "id": "V10",
           "title": "Actions, reactions, effects, and selected optional combat rules",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/phase82-native-optional-combat-final/local-progress.md",
+            ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/gameplay-completed-audit.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/native-integrity.json"
+          ],
+          "notes": "Native enemy Feature action rolls evaluate immutable authored definitions once, apply exact charge costs atomically, retain PRIVATE Encounter evidence or TABLE conversation evidence, and replay without rerolling or recharging. Optional-combat selections can now be replaced with checksum-protected same-System Campaign-enabled definitions on prepared or active Runs. The local Passage integration packet adds native Overrun/Tumble choice/decline, Automatic and Assisted two-d20 continuation, exact replay and same-mutation rollback/retry proofs. General RESOLVE_ACTION execution, complete optional-rule/effect producer coverage, native browser controls and complete local E2E proof remain pending. No deployment or acceptance claimed. Accepted LOCAL_E2E on 2026-09-17: movement-browser-29, passage-browser-23, disarm-browser-08, and effects-browser-03 pass actions/reactions, selected optional combat rules, Assisted Disarm evidence and held-item transition, effect save outcomes and privacy, exact receipts/replay, stale/refusal checks, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md."
         },
         {
           "id": "V11",
           "title": "Decisions, pause, and resume",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "Accepted at the frozen LOCAL_INTEGRATION tier. Current audiences and private pending projections, authority changes, paused-state preservation, validated sequential evidence, Automatic/Assisted resume, existing DECLINE cancellation, exact replay and rollback are covered by native decision/Passage/effect proofs and authenticated final-source Disarm03. Disarm03 proves owner/player participant evidence, nonparticipant and stale refusal, terminal contention, one ACTION and one Character item transition, unchanged replay and exact fixture/account cleanup. The final root-receipt correction passes targeted movement/initiative/turn regressions. Acceptance packet: .codex/validation/v11-acceptance-20260916/acceptance.md. V07/V13 browser scope, V12 cross-product privacy, V14 terminal reaction contention and R08 release lifecycle remain separate open cases.",
+          "evidence": [
+            ".codex/validation/movement-decision-privacy-20260913/evidence.json",
+            ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
+            ".codex/validation/v11-acceptance-20260916/acceptance.md"
+          ]
         },
         {
           "id": "V12",
           "title": "Player and GM privacy and redaction",
           "proofTier": "AUTHORIZATION",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "Accepted at the frozen AUTHORIZATION tier. All 89 current-source native tests in 13 files pass serially with unchanged backend/domain source. The complete current recipient matrix covers GM full data, Character-controller decisions, other-player redaction, hidden actor/target and server-snapshot exclusion, private timeline filtering, anonymous/outsider/departed/revoked refusal, and ownership-transfer audience changes. General actions, movement/reaction/Passage, initiative declarations, Recharge, active effects, Legendary choices, Concentration, Cleaving and Disarm use the reviewed current-authority dispatcher. Public Disarm03, reaction12 and retained Scene/action/effect evidence supplement the native matrix. Acceptance packet: .codex/validation/v12-authorization-20260916/acceptance.md. Browser completion, measured workload and final release lifecycle remain with their owning cases.",
+          "evidence": [
+            ".codex/validation/movement-decision-privacy-20260913/evidence.json",
+            ".codex/validation/v12-authorization-20260916/acceptance.md"
+          ]
         },
         {
           "id": "V13",
           "title": "Receipts, replay, and reconnect",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "evidence": [
+            ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/gameplay-completed-audit.json",
+            ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/native-integrity.json"
+          ],
+          "notes": "Local native Passage integration proves retained exact replay, no-spend-before-terminal and same-mutation rollback/retry across Automatic and Assisted two-d20 continuation. Browser reconnect and the complete frozen receipt workload remain open; no acceptance or promotion is claimed. Accepted LOCAL_E2E on 2026-09-17: all four current gameplay journeys pass retained exact root/terminal/evidence comparisons, applicable retry/refusal and no double spend/reroll/recharge, GM undo, actual reconnect/reload, current authority/privacy, strict diagnostics, and exact account/data cleanup. The guarded official local deployment and all four proofs match the same 5,830-entry validated source; 59 affected native cases, strict lint, and eight fresh Turbo build/typecheck tasks pass. Native collectors are ready/completed, exits are zero, and no execution timeout remains. Earlier notes above describe historical intermediate state. Physical media deletion remains governed by the existing provider fence; R08 final-source release and external promotion/retirement gates remain required. Scope clarification 2026-09-24: this feature retains its established acceptance. The missing DO-to-Convex live Encounter movement route is a new authority integration gap tracked under R06; the upstream refusal alone does not invalidate this scoped proof. The complete final-source combined journeys remain required under R08 and V15. See .codex/validation/phase82-goal-20260923/movement-acceptance-reopen.md."
         },
         {
           "id": "V14",
           "title": "Same-aggregate contention and unrelated concurrency",
           "proofTier": "CONCURRENCY",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "notes": "Accepted at the frozen CONCURRENCY tier. Retained real09 lifecycle/binding/presentation/ownership/Session-finish and rollback schedules, same-Scene movement contention, distinct-Scene writes, and action02 same-Run/independent-Run proofs are joined by final-source Disarm03 and reaction12 terminal contention. Reaction12 races every outcome request: one winner, one recognized stale loser, one reaction spend and one mechanics receipt; winner/root replay and loser retry preserve complete Run, timeline, Character and recipient Scene state. A completed-response receipt lookup bug found by reaction11 was corrected and passes targeted native regressions plus the actual rerun. Exact fixture/account cleanup and unchanged source pass; reaction12 provider deletion remains tracked behind its normal fence. Acceptance packet: .codex/validation/v14-acceptance-20260916/acceptance.md. V15 measured workload, V07/V13 browser/reconnect and R08 release lifecycle remain open.",
+          "evidence": [
+            ".codex/validation/phase82-ultra-continuation-20260911/workstreams/v14-real-20260913/real-09/evidence.json",
+            ".codex/validation/v14-acceptance-20260916/acceptance.md"
+          ]
         },
         {
           "id": "V15",
           "title": "Local and managed performance simulation",
           "proofTier": "PERFORMANCE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md"],
+          "notes": "V15-20260924-05 exited 1 with complete native capture and exact parity across 6031 source entries. The workload remained incomplete: only one preview sample, no durable samples, and 11 reactive-query timeouts. Convex geometry staging rejected movement under active DO authority; the production DO path also rejects Encounter-bound movement. Full local and managed workload proofs remain required."
         }
       ]
     },
@@ -433,47 +1345,82 @@
           "id": "R01",
           "title": "All product data flows through Convex",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+          ],
+          "notes": "The local legacy runtime removal is complete and the retained subscriptions/ticket/Worker path passes focused contract tests, affected typecheck, fresh package builds and a zero-consumer scan. Complete same-source R08 product journeys and release audit remain required."
         },
         {
           "id": "R02",
           "title": "Zero Supabase runtime dependency",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+          ],
+          "notes": "Supabase runtime source, workspace dependencies and lockfile requirements are removed locally. Final same-source R08 auth/session/SSR/realtime/media journeys and complete release audit remain required; external service retirement remains R09/R10."
         },
         {
           "id": "R03",
           "title": "Zero Kysely, PostgreSQL application SQL, migrations, and generated Supabase types",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+          ],
+          "notes": "Accepted F15 preservation remains retained. The DB workspace, SQL/Kysely runtime, migrations and consumers are removed locally; all protected source-data corpus files match their pre-removal hashes. Final native seed/import/audit and same-source R08 lifecycle remain required."
         },
         {
           "id": "R04",
           "title": "Zero GoRules runtime dependency",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+          ],
+          "notes": "GoRules runtime source, Rule Studio, dependencies and configuration are removed locally. Final complete native rule-corpus/gameplay proof in the same R08 source state remains required."
         },
         {
           "id": "R05",
           "title": "Zero tRPC and product Netlify functions",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
+          ],
+          "notes": "tRPC routers/clients, product Netlify functions and durable-command compatibility are removed locally. Static/SSR web packaging remains. Final complete native journeys and same-source R08 packaging/request audit remain required."
         },
         {
           "id": "R06",
-          "title": "Durable Object is transient-only",
+          "title": "Session Durable Object is the active live-command authority",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "IN_PROGRESS",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-worker",
+            ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-convex",
+            ".codex/validation/local-convex-linux-20260915/vtt-rule-convergence-session-do-12.*",
+            ".codex/validation/phase82-goal-20260923/r06-amended-acceptance.md"
+          ],
+          "notes": "Ownership review is reopened after V15-20260924-05 exposed a missing live Encounter movement path. The user reaffirmed that heavy live rule evaluation and fact preparation belong in the DO; earlier options retaining that computation in Convex are superseded. The Character-in-Convex write amendment remains approved. R06 must complete ordered DO evaluation with authorized capture and validated atomic Convex commits, preserving replay, version checks and required Character/Encounter/Scene atomicity. The fixed 75-case denominator and scoped feature acceptance are unchanged; combined verification remains R08/V15."
         },
         {
           "id": "R07",
           "title": "Canonical docs, ADRs, ERDs, deployment guides, and runbooks match the final system",
           "proofTier": "REVIEW",
-          "status": "NOT_STARTED"
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-20",
+          "evidence": [
+            ".codex/validation/phase82-gate-progress-20260917/r07-final-source-reconciliation-20260920/link-audit-result.json",
+            ".codex/validation/phase82-gate-progress-20260917/r07-native-adrs-complete-20260920/completed-checks.json",
+            ".codex/validation/phase82-gate-progress-20260917/r07-native-persistence-docs-20260920/evidence-manifest.json",
+            ".codex/validation/phase82-gate-progress-20260917/r07-release-runbook-20260920/completed-checks.json"
+          ],
+          "notes": "Accepted at REVIEW after the local R01-R05 source removal. Canonical ownership/package-direction guides and ADR status text match the native Convex, transient Worker, authoring, rules-runtime and source-data boundaries; no approval-pending removal wording remains. The refreshed anchor-aware audit checks 436 links across 98 Markdown files, including 54 anchors, with zero failures."
         },
         {
           "id": "R08",
-          "title": "Complete local lifecycle passes from a fresh local Convex deployment",
+          "title": "Complete development lifecycle passes from a fresh isolated Convex development deployment",
           "proofTier": "RELEASE",
           "status": "NOT_STARTED"
         },

@@ -7,11 +7,15 @@ import {
   canMoveBetween,
   createUniformSceneFogLayer,
   deriveSceneExplorationPatch,
+  deriveSceneCommandExplorationDeltas,
   deriveSceneTokenPathExplorationPatch,
   extendSceneMovementPath,
   isSceneTokenVisibleToViewer,
   isSceneFogCellExplored,
+  isScenePointExplored,
+  isSceneSegmentExplored,
   materializeCampaignScene,
+  planSceneCommandExploration,
   projectSceneDeltaForViewer,
   projectSceneTokenPreviewForViewer,
   measureSceneDistance,
@@ -28,6 +32,7 @@ import {
   visibilityPolygon,
   visibilityPolygonForLight,
   type SceneDefinition,
+  type SceneExplorationState,
   type SceneEvent
 } from '../domains/vtt/index.js'
 
@@ -112,6 +117,171 @@ function definition(): SceneDefinition {
     visionRevealMode: 'ON_DRAG'
   }
 }
+
+it('derives command fog from geometry alone while preserving pinned and explicit token vision', () => {
+  const full = materializeCampaignScene(definition(), ids.scene)
+  const state: SceneExplorationState = {
+    map: full.map,
+    grid: full.grid,
+    tokens: full.tokens,
+    barriers: full.barriers,
+    doorStates: full.doorStates,
+    fogMode: full.fogMode,
+    fogLayers: full.fogLayers
+  }
+  const before = structuredClone(state)
+  const context = {
+    encounterCharacterBindings: [
+      { actorId: ids.encounter, characterId: ids.user, tokenId: ids.token }
+    ],
+    characterVisions: [{ characterId: ids.user, dimRange: { amount: 30, unit: 'FEET' as const } }]
+  }
+  const after = { ...state, barriers: state.barriers.filter((barrier) => barrier.id !== ids.door) }
+  const deltas = deriveSceneCommandExplorationDeltas(
+    state,
+    after,
+    { kind: 'BARRIER_REMOVED', barrierId: ids.door },
+    context
+  )
+  expect(deltas).toHaveLength(1)
+  expect(deltas[0]).toMatchObject({
+    kind: 'FOG_CHUNKS_PATCHED',
+    layer: { ownerUserId: ids.player }
+  })
+  expect(deltas).toEqual(
+    deriveSceneCommandExplorationDeltas(
+      full,
+      { ...full, barriers: after.barriers },
+      { kind: 'BARRIER_REMOVED', barrierId: ids.door },
+      context
+    )
+  )
+  expect(state).toEqual(before)
+  const disabled = {
+    ...after,
+    tokens: after.tokens.map((token) => ({
+      ...token,
+      vision: {
+        enabled: false,
+        brightRange: 0,
+        dimRange: 0,
+        angleDegrees: 360,
+        directionDegrees: 0
+      }
+    }))
+  }
+  expect(
+    deriveSceneCommandExplorationDeltas(
+      state,
+      disabled,
+      { kind: 'TOKEN_UPSERTED', token: disabled.tokens[0]! },
+      context
+    )
+  ).toEqual([])
+  expect(
+    deriveSceneCommandExplorationDeltas(
+      state,
+      after,
+      { kind: 'TOKEN_REMOVED', tokenId: ids.token },
+      context
+    )
+  ).toEqual([])
+})
+
+it('plans recipients without fog and matches command exploration one recipient at a time', () => {
+  const full = materializeCampaignScene(definition(), ids.scene)
+  const geometry = {
+    map: full.map,
+    grid: full.grid,
+    tokens: full.tokens.map((token) => ({
+      ...token,
+      controlledByUserIds: [ids.player, ids.user, ids.player]
+    })),
+    barriers: full.barriers,
+    doorStates: full.doorStates,
+    fogMode: full.fogMode
+  }
+  const before = structuredClone(geometry)
+  const context = {
+    encounterCharacterBindings: [
+      { actorId: ids.encounter, characterId: ids.user, tokenId: ids.token }
+    ],
+    characterVisions: [{ characterId: ids.user, dimRange: { amount: 30, unit: 'FEET' as const } }]
+  }
+  const delta = { kind: 'DOOR_STATE_SET' as const, barrierId: ids.door, state: 'OPEN' as const }
+  const opened = { ...geometry, doorStates: { ...geometry.doorStates, [ids.door]: delta.state } }
+  const plan = planSceneCommandExploration(geometry, opened, delta, context)
+  expect(plan.owners).toEqual([ids.player, ids.user])
+  expect(plan.tokenIds).toEqual([ids.token])
+  expect(plan.state).not.toHaveProperty('fogLayers')
+  const explored = deriveSceneExplorationPatch(
+    { ...plan.state, fogLayers: [] },
+    { ownerUserId: ids.player, tokenIds: plan.tokenIds }
+  )!
+  expect(explored.chunks.length).toBeGreaterThan(0)
+  const fogLayers = [explored]
+  const withFog = { ...full, ...opened, fogLayers }
+  const fromFullState = planSceneCommandExploration(geometry, withFog, delta, context)
+  expect(fromFullState.state).not.toHaveProperty('fogLayers')
+  expect(fromFullState.state).not.toHaveProperty('annotations')
+  expect(fromFullState).toEqual(plan)
+  const separatelyDerived = plan.owners.flatMap((ownerUserId) => {
+    const layer = deriveSceneExplorationPatch(
+      { ...plan.state, fogLayers: fogLayers.filter((layer) => layer.ownerUserId === ownerUserId) },
+      { ownerUserId, tokenIds: plan.tokenIds }
+    )
+    return layer ? [{ kind: 'FOG_CHUNKS_PATCHED', layer }] : []
+  })
+  expect(separatelyDerived).toHaveLength(1)
+  expect(separatelyDerived[0]?.layer.ownerUserId).toBe(ids.user)
+  expect(separatelyDerived).toEqual(
+    deriveSceneCommandExplorationDeltas(geometry, { ...opened, fogLayers }, delta, context)
+  )
+  expect(
+    planSceneCommandExploration(geometry, { ...opened, fogMode: 'SHARED_PARTY' }, delta, context)
+      .owners
+  ).toEqual([null])
+  expect(
+    planSceneCommandExploration(
+      geometry,
+      opened,
+      { kind: 'TOKEN_REMOVED', tokenId: ids.token },
+      context
+    ).owners
+  ).toEqual([])
+  expect(geometry).toEqual(before)
+})
+
+it('selects tokens near both the previous and replacement barrier', () => {
+  const state = materializeCampaignScene(definition(), ids.scene)
+  state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+  const wall = state.barriers.find((barrier) => barrier.id === ids.wall)!
+  const priorBarrier = { ...wall, a: { x: 35, y: 20 }, b: { x: 35, y: 40 } }
+  const replacement = { ...wall, a: { x: 305, y: 20 }, b: { x: 305, y: 40 } }
+  state.barriers = [priorBarrier]
+  state.tokens = [
+    { id: ids.token, x: 30 },
+    { id: ids.user, x: 300 }
+  ].map(({ id, x }) => ({
+    ...state.tokens[0]!,
+    id,
+    position: { x, y: 30 },
+    vision: {
+      enabled: true,
+      brightRange: 0,
+      dimRange: 10,
+      angleDegrees: 360,
+      directionDegrees: 0
+    }
+  }))
+  const plan = planSceneCommandExploration(
+    state,
+    { ...state, barriers: [replacement] },
+    { kind: 'BARRIER_UPSERTED', barrier: replacement }
+  )
+  expect(plan.tokenIds).toEqual([ids.token, ids.user])
+  expect(plan.owners).toEqual([ids.player])
+})
 
 describe('VTT scene conflict keys', () => {
   it('retains every unique atomic resource in a batch', () => {
@@ -548,6 +718,73 @@ describe('VTT scene geometry', () => {
     )
   })
 
+  it('preserves visibility samples while bounding off-map segments and full-map fog reads', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    state.map = { ...state.map, width: 1, height: 1 }
+    state.fogLayers = [
+      {
+        ownerUserId: null,
+        width: 4,
+        height: 4,
+        chunks: [{ index: 0, x: 0, y: 0, width: 4, height: 4, data: 'IQA=' }]
+      }
+    ]
+    const points = [
+      { x: -2, y: -1 },
+      { x: -0.125, y: 0.25 },
+      { x: 0, y: 0 },
+      { x: 0.5, y: 0.5 },
+      { x: 1.125, y: 0.25 },
+      { x: 2, y: 1 }
+    ]
+    for (const a of points)
+      for (const b of points) {
+        const steps = Math.max(
+          1,
+          Math.ceil(Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) * 512)
+        )
+        let expected = false
+        for (let index = 0; index <= steps && !expected; index++) {
+          const x = a.x + ((b.x - a.x) * index) / steps
+          const y = a.y + ((b.y - a.y) * index) / steps
+          expected = [
+            { x, y },
+            { x: x - 0.125, y },
+            { x: x + 0.125, y },
+            { x, y: y - 0.125 },
+            { x, y: y + 0.125 }
+          ].some((point) => isScenePointExplored(state, ids.player, point))
+        }
+        expect(isSceneSegmentExplored(state, ids.player, a, b)).toBe(expected)
+      }
+    expect(
+      isSceneSegmentExplored(state, ids.player, { x: -1_000_000, y: -1 }, { x: 1_000_000, y: -1 })
+    ).toBe(false)
+    expect(
+      isSceneSegmentExplored(state, ids.player, { x: -1_000_000, y: 0.1 }, { x: 1_000_000, y: 0.1 })
+    ).toBe(true)
+    const bytes = Uint8Array.from({ length: (512 * 512) / 8 }, (_, index) => index % 251)
+    const layer = {
+      ownerUserId: null,
+      width: 512,
+      height: 512,
+      chunks: [
+        {
+          index: 0,
+          x: 0,
+          y: 0,
+          width: 512,
+          height: 512,
+          data: btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
+        }
+      ]
+    }
+    for (const cell of [0, 7, 8, 15, 16, 23, 24, 25, 31, 255, 256, 262143])
+      expect(isSceneFogCellExplored(layer, cell % 512, Math.floor(cell / 512))).toBe(
+        (bytes[Math.floor(cell / 8)]! & (1 << (cell % 8))) !== 0
+      )
+  })
+
   it('retains a legal routed drag path and rejects a segment through a wall', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
@@ -609,6 +846,35 @@ describe('VTT scene geometry', () => {
     })
     expect(patch && isSceneFogCellExplored(patch, 20, 50)).toBe(true)
     expect(patch && isSceneFogCellExplored(patch, 40, 50)).toBe(true)
+
+    const routedPath = [
+      { x: 20, y: 50 },
+      { x: 20, y: 10 },
+      { x: 80, y: 10 }
+    ]
+    const moved = {
+      ...state,
+      tokens: state.tokens.map((token) => ({
+        ...token,
+        position: routedPath[2]!,
+        vision: { ...token.vision!, dimRange: 8 }
+      }))
+    }
+    const moveDelta = { kind: 'TOKEN_MOVED' as const, tokenId: ids.token, position: routedPath[2]! }
+    const commandPatch = deriveSceneCommandExplorationDeltas(
+      state,
+      moved,
+      moveDelta,
+      undefined,
+      routedPath
+    )[0]
+    const endpointPatch = deriveSceneCommandExplorationDeltas(state, moved, moveDelta)[0]
+    expect(commandPatch?.kind).toBe('FOG_CHUNKS_PATCHED')
+    expect(endpointPatch?.kind).toBe('FOG_CHUNKS_PATCHED')
+    if (commandPatch?.kind !== 'FOG_CHUNKS_PATCHED' || endpointPatch?.kind !== 'FOG_CHUNKS_PATCHED')
+      throw new Error('Expected movement exploration patches.')
+    expect(isSceneFogCellExplored(commandPatch.layer, 20, 10)).toBe(true)
+    expect(isSceneFogCellExplored(endpointPatch.layer, 20, 10)).toBe(false)
 
     const preview = projectSceneTokenPreviewForViewer(state, {
       path,

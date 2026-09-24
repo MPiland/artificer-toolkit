@@ -5,7 +5,7 @@ import {
   characterBuilderDraftPayloadFixture,
   characterBuilderPayloadFixture
 } from '../fixtures/characterBuilder.fixtures'
-import { toCharacterFormValues } from '../shared/formNormalization'
+import { normalizeCharacterForDraft, toCharacterFormValues } from '../shared/formNormalization'
 import { useLatestCharacterResolution } from './useLatestCharacterResolution'
 
 const mocks = vi.hoisted(() => ({
@@ -27,6 +27,7 @@ describe('useLatestCharacterResolution', () => {
     mocks.mutateAsync.mockReturnValueOnce(pending.promise)
     const { result } = renderHook(() =>
       useLatestCharacterResolution({
+        expectedDraftId: 'draft-generation',
         mode: 'edit',
         onResolved
       })
@@ -49,13 +50,14 @@ describe('useLatestCharacterResolution', () => {
     expect(onResolved).toHaveBeenCalledWith(characterBuilderPayloadFixture)
   })
 
-  it('aborts superseded resolutions and ignores their late responses', async () => {
+  it('sends native generation-bound inputs and ignores superseded responses', async () => {
     const first = deferred<CharacterBuilderPayloadDto>()
     const second = deferred<CharacterBuilderPayloadDto>()
     const onResolved = vi.fn()
     mocks.mutateAsync.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const { result } = renderHook(() =>
       useLatestCharacterResolution({
+        expectedDraftId: 'draft-generation',
         mode: 'edit',
         onResolved
       })
@@ -71,10 +73,11 @@ describe('useLatestCharacterResolution', () => {
       secondPromise = result.current(changedCharacter)
     })
 
-    const firstRequest = mocks.mutateAsync.mock.calls[0]?.[0] as {
-      signal?: AbortSignal
-    }
-    expect(firstRequest.signal?.aborted).toBe(true)
+    expect(mocks.mutateAsync).toHaveBeenNthCalledWith(1, {
+      character: normalizeCharacterForDraft(character),
+      mode: 'edit',
+      expectedDraftId: 'draft-generation'
+    })
 
     second.resolve(characterBuilderDraftPayloadFixture)
     await act(async () => await secondPromise)
@@ -83,6 +86,36 @@ describe('useLatestCharacterResolution', () => {
 
     expect(onResolved).toHaveBeenCalledTimes(1)
     expect(onResolved).toHaveBeenCalledWith(characterBuilderDraftPayloadFixture)
+  })
+
+  it('ignores prior generations and responses received after unmount', async () => {
+    const first = deferred<CharacterBuilderPayloadDto>()
+    const second = deferred<CharacterBuilderPayloadDto>()
+    const onResolved = vi.fn()
+    mocks.mutateAsync.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { result, rerender, unmount } = renderHook(
+      ({ expectedDraftId }) =>
+        useLatestCharacterResolution({ expectedDraftId, mode: 'edit', onResolved }),
+      { initialProps: { expectedDraftId: 'first-generation' } }
+    )
+    const character = toCharacterFormValues(characterBuilderPayloadFixture)
+    let firstPromise!: Promise<void>
+    let secondPromise!: Promise<void>
+    act(() => {
+      firstPromise = result.current(character)
+    })
+    rerender({ expectedDraftId: 'second-generation' })
+    act(() => {
+      secondPromise = result.current(character)
+    })
+    expect(mocks.mutateAsync).toHaveBeenCalledTimes(2)
+    first.resolve(characterBuilderPayloadFixture)
+    await act(async () => await firstPromise)
+    expect(onResolved).not.toHaveBeenCalled()
+    unmount()
+    second.resolve(characterBuilderDraftPayloadFixture)
+    await act(async () => await secondPromise)
+    expect(onResolved).not.toHaveBeenCalled()
   })
 })
 

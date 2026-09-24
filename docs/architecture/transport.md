@@ -1,6 +1,58 @@
-# Transport and tRPC
+# Transport
 
-> Status: canonical (current working-tree baseline)
+> Status: canonical current Phase 8.2 boundary
+>
+> Scope: web product requests, Session DO commands/publications, and native Convex functions
+>
+> Update when: a public function, live-command DTO, authority fence, publication HTTP action, authorization rule, or error boundary changes
+>
+> Verification: `apps/web/src/data`, `apps/apis/convex`, generated Convex bindings, shared schemas, and focused owning tests
+
+Convex is the durable product-data transport and persistence boundary. The browser and SSR loaders use
+generated queries, mutations and actions for ordinary product work; active supported live commands use
+the Session DO path below. No client chooses an account identity, database connection, storage key, or
+internal function name.
+
+```mermaid
+flowchart LR
+  Web["apps/web"] -->|generated query / mutation / action| Api["apps/apis/convex"]
+  Web <-->|supported live commands + previews| Worker["Session Durable Object"]
+  Worker -->|protected bootstrap / ordered publish / release| Api
+  Worker --> Live[("SQLite live state + receipts + outbox")]
+  Api --> Contracts["packages/schema DTOs"]
+  Api --> Db[("Convex transaction + scheduler")]
+  Api --> External["R2 / Resend when action-owned"]
+  Db --> Subscription["reactive Convex subscription"] --> Web
+```
+
+Queries return bounded, recipient-authorized projections. Mutations derive the authenticated identity
+from `ctx.auth`, validate shared inputs, and commit canonical state, projections, receipts and scheduled
+continuations in one Convex transaction. Actions own Node or external-service work and re-enter through
+validated internal mutations. Internal functions stay behind generated server references.
+
+Better Auth routes and the small audited HTTP-action surface preserve same-origin/authentication and
+secret boundaries. The Session Worker supplies both its private shared secret and the signed-in user's
+bearer token. Convex rechecks Campaign, Session, role, membership and authority epoch during capture,
+bootstrap and every ordered publication. The room accepts only the supported Door, standalone token
+move/undo command contracts. All Character Sheet and Encounter rule commands keep their owning Convex
+boundary, including during live Sessions.
+
+Unexpected provider, storage and validation failures return generic product errors. Credentials,
+private mechanics, object keys and raw provider responses do not cross the public boundary. Generated
+bindings and `packages/schema` contracts are the reusable wire shapes; frontend code does not invent
+local DTOs.
+
+Portable import, media upload/finalization, account lifecycle and durable cleanup use the same native
+boundary. Each owning guide defines its transaction, replay and privacy invariants.
+
+## Historical transport record
+
+The remainder of this file preserves the phased native build notes and the retired request stack. It
+is not current deployment guidance or acceptance status.
+
+### Original transport and tRPC guide
+
+> Status: historical (retired tRPC/Supabase transport; runtime source removed)
 >
 > Scope: web → tRPC → schema → application services
 >
@@ -9,6 +61,277 @@
 > Verification: `apps/apis/src/trpc/router.ts`, `apps/apis/src/trpc/procedures.ts`, the owning `apps/apis/src/trpc/*Router.ts`, `apps/apis/src/trpc/dbContext.ts`, `apps/apis/src/trpc/handler.ts`, `apps/web/src/lib/api.ts`, and the owning `apps/web/src/lib/api/*.ts` modules
 
 `apps/apis` is the product-data boundary for the web app. Its domain routers are deliberately thin: each selects a schema, requires authentication where appropriate, opens a user-scoped DB context, and calls a function/query/repository service. Declared tRPC output schemas validate the completed callback result before the response leaves the boundary.
+
+Shared DTOs use Zod Mini to reduce schema construction memory. Mini and remaining classic schemas
+share core `$ZodType` contracts; generic transport parsers use free `parse`/`safeParse` functions,
+and error mapping recognizes core `$ZodError`. The schema package initializes the existing English
+messages from every focused entry path. Refinements, transformations, defaults and strict-object
+behavior remain authoritative at the same input/output boundaries.
+
+[ADR 0029](../adr/0029-convex-backend-cutover.md) defines the Convex replacement. The migrated
+profile surface now calls `apps/apis/convex/account.ts` through native Convex subscriptions and
+mutations, not the tRPC account adapter. Its query has no arguments; the update accepts only the
+shared username/bio intent, derives the account from authenticated context, and returns the closed
+profile projection. The [web guide](../../apps/web/README.md#phase-82-transition) records the current
+client behavior and remaining avatar/browser proof. The rest of this guide describes unmigrated
+transport, not a parallel backend required by the target architecture.
+
+Native identity reads use `convex/lib/authUserReads.ts`. The app derives the subject and Session ID
+from the verified Convex identity, then calls `betterAuth/sessionUser:get` once in the existing auth
+component. That query reads the current Session and matching user directly, preserving expiry and
+revocation checks without loading the generic adapter's HTTP plugin graph. The app then checks the
+current ban, profile and role. Component functions do not receive `ctx.auth`; caller-provided product
+arguments never supply these identifiers. Other account lookups retain the generic adapter. The shared
+Better Auth client and account lifecycle triggers remain in `authClient.helper.ts` and
+`authTriggers.helper.ts`; deletion restrictions and purge scheduling are unchanged.
+
+Native Encounter commands call the private Character functions
+`characters/encounterCommands:execute` and `characters/encounterInitiative:read` through
+`ctx.runMutation`/`ctx.runQuery`. These calls inherit authenticated context and participate in the
+owning Encounter transaction. They return only the Character receipt/health fields or initiative
+mechanics consumed by Encounter; full Sheet responses stay in the Character boundary. Both sides
+retain shared schema validation. Nested errors propagate, and a later Encounter failure rolls back
+the Character write and both receipt streams. The separate JavaScript contexts bound module
+dependencies; they do not introduce an action, scheduler, or separate commit.
+
+These internal references use the existing typed `makeFunctionReference` pattern; generated client
+references remain owned by Convex codegen. The pinned CLI has a same-version patch that renders empty
+unions as `never`, preserving static API types without weakening validators. Code generation and the
+personal-development deployment now pass. Managed Character/Encounter transaction and performance
+proof remain Phase 8.2 gates.
+
+SSR session loading validates the trusted request context first. Requests with neither a Cookie
+nor Authorization header skip the Better Auth token exchange, but still query the anonymous Convex
+session for current server-owned feature flags. Either credential header retains the full token
+verification path; verification errors propagate, and only the verified token authenticates the
+Convex client. This is not a cached session or an authorization bypass.
+
+Native account email changes use the installed Better Auth current-session endpoint. Confirmation goes
+to the stored current address first, then to the new address. The stored email changes only after both
+confirmations; credentials, profiles and existing sessions are preserved. As approved, final confirmation
+in a signed-out browser also creates its native Better Auth session and signs that browser in. Both
+provider verification URLs
+retain their signed tokens and use the configured site's neutral `/settings/account?emailChanged=1`
+callback. Provider errors take precedence over that neutral status and display fixed failure/retry copy;
+the bounded shared search contract never renders provider error values. Email-change and signup
+deliveries share the native sender and strict delivery contract.
+
+Native signup and sign-in verification emails use the configured site's `/auth/confirmed` callback. The existing
+Better Auth email sender sets it for signup and sign-in resends while preserving the provider's
+verification URL and token. Browser sign-in must not set `callbackURL`: Better Auth also treats it
+as a successful-login document redirect, which would compete with the router-owned return path.
+The confirmation route is informational only. Its shared search schema bounds provider errors,
+and the page shows fixed recovery copy without rendering the error value or creating a session.
+Only Better Auth's `403 EMAIL_NOT_VERIFIED` result gets verification guidance; other credential
+failures remain generic. Supabase invite-token confirmation is removed; native invitation
+redemption remains the separate fragment-based setup flow. Full verified-signup HTTP/SSR
+acceptance is still tracked by F05, not inferred from focused browser or sender tests.
+
+The signed-in shell, notification feed, and channel-preference controls now use native Convex
+queries/mutations (`apps/apis/convex/notifications.ts`). Subscription startup waits for verified
+Convex authentication; no Supabase listener, polling, or tRPC notification adapter remains in
+the web. Feed items retain the existing latest-25 limit, safe shared DTO, first-seen/read
+timestamps, and recipient-only access. Preferences live on the private profile, defaulting both
+channels on for older profiles; account deletion removes that profile and its bounded feed.
+Delivery must prune to 25 in the same transaction; readers reject retention drift rather than
+report an incorrect unseen count. Native Social admission and Campaign announcement producers,
+cancellation and email delivery now have local implementation; complete source revalidation and
+managed delivery proof remain pending, so this consumer migration does not complete `P18`.
+
+Native `social/admissionLists` exposes recipient/applicant-private and current-listing-owner inbox
+queries. `schema/api/socialAdmissionLists` owns their strict shared input/page contracts; callers
+cannot supply account identities. Request separate PENDING and HISTORY cursor groups and render them
+in that order. Invitation inputs also require a fixed ISO `asOf` horizon across all pages: refresh it
+and reset both groups at the next pending expiry and on resume, since clock passage alone cannot
+invalidate a Convex subscription. The timestamp changes presentation only, never authorization or
+mutation eligibility. Empty pages can retain continuation after eligibility filtering. Existing DTO
+privacy/masking and current symmetric blocks apply in both directions. Native Social browser binding
+is still pending; see [inbox persistence](persistence.md#native-social-admission-inboxes--local-implementation).
+
+The System list is the first TanStack Query/Convex loader tracer. The request-local router owns
+both clients, and `@convex-dev/react-query` supplies query hashing, consistent public SSR reads,
+and pushed browser results. The Better Auth provider uses the same Convex client as the query
+adapter. No auth token or Convex client instance is included in serialized route context. The list
+uses bounded cursor pages. System detail/summary and authored-route System reads also use Convex;
+selectors and authored-domain web adapters remain transitional. See
+[the web transition guide](../../apps/web/README.md#phase-82-transition).
+
+Internal System document readers import `convex/content/systemDocuments.ts`, not the public
+`content/systems.ts` query module. Checksum/identity validation and indexed reads stay shared,
+without making authoring load the capability query's full play execution registry and schemas.
+The platform Rules registry remains the single source of installed capabilities/operations.
+`convex/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph; public
+System query contracts and authorization are unchanged by this module separation.
+
+Character receipt readers import `schema/api/characterHistory`, whose entry/page contracts depend
+only on shared pagination and Sheet value schemas. The bounded Character read input is owned by
+`schema/api/characterSheet`; full Sheet data/command modules retain their existing exports of these
+same contracts. Stored Character validation and source-loss reconciliation therefore do not load
+Sheet response/panel/command schemas merely to validate a receipt. The storage-reader entry point
+is covered by `convex/schemaBoundary.test.ts`; payloads, authorization and atomic writes are unchanged.
+The same test covers the authored deletion entry point. Its installed rules policy reads the shared
+Encounter actor cap from `schema/shared/authoredLimits`, not the Encounter API module that imports
+Sheet commands. `api/encounters` re-exports the same cap; actor and Cleaving limits do not change.
+
+The native `content/details:get` backend now serves the existing eight authored detail DTOs from
+indexed UUID/compact-route lookups. Master reads are public only with a valid same-System platform
+source; working drafts and owned roots are owner-private. Default active reads omit draft payloads.
+Explicit draft reads retain structured invalid-draft recovery and active fallback. Requested metadata
+resolves only the item's referenced IDs, with current read access and System checks on referenced
+authored labels. Convex validates the JSON envelope and the handler parses the exact full domain
+response before returning it. These backend reads do not yet replace the authored web adapters.
+
+### Native Campaign Character roll transport
+
+Native `campaigns/characterSheet:executeRoll` uses
+`campaignCharacterSheetRollInputSchema`: the existing strict/refined roll request extended with
+explicit Campaign/Character UUID scope. Expression/mode validation is retained, not reconstructed
+from field validators. It returns the unchanged `RollRecordDto` and writes only caller-owned private
+history; public TABLE generation remains a separate Campaign roll endpoint. Personal `rolls:execute`
+does not accept Campaign scope or GM authority. Scoped rest preview/completion continue to use their
+existing shared contracts and actor-owned evidence. Native Campaign browser bindings remain pending.
+See [Campaign roll persistence](persistence.md#native-campaign-rolls--partial-local-implementation).
+
+### Native Campaign audit transport
+
+`campaigns/events:list` accepts the existing Campaign/Character UUID scope, optional UUID cursor and
+1–100 limit. It returns `campaignEventPageTransportDtoSchema`: the existing page metadata and event
+fields, with the recursive JSON payload encoded as `payloadJson`. The Convex validator converter
+cannot expand recursive JSON; this is a lossless payload encoding, not a weaker domain validator.
+The native query validates the decoded page before returning the wire response, and native clients
+must call `decodeCampaignEventPage` from `schema/api/campaignEventTransport` before consuming events.
+The helper parses both the wire envelope and the unchanged `campaignEventPageDtoSchema`; malformed
+payload JSON rejects. UUID identity, cursor ordering and domain visibility semantics are unchanged.
+
+GM supplemental-state writes use the existing shared save/delete inputs and return existing record
+DTOs or `{ ok: true }`. Current Campaign owner/assignment authority and record versions are checked
+inside the mutation, with state and audit writes in that same transaction. Native subscriptions own
+delivery; no SQL, Broadcast or Durable Object invalidation is added. Browser Campaign binding remains
+pending. [Persistence and visibility](persistence.md#native-gm-character-state-and-audit--partial-local-implementation)
+own the audit read projections and bounded scan details.
+
+### Native Campaign settings and content transport
+
+The Campaign parent detail and its route loaders use `campaigns/queries:get` through the shared
+Convex query adapter, accepting a UUID or public handle. The subscription supplies the current
+Campaign version to consecutive content removals. Settings, table-settings and shared-content
+panels call native Convex functions directly.
+`campaigns/queries:settings`, `campaigns/update:update` and `campaigns/playSettings:{get,options,save}`
+own the settings path. `campaigns/contentShares:{list,share,unshare}` owns shared-content pagination and
+writes, while `content/catalogue:list` supplies active owned candidates. Native subscriptions replace
+the retired per-panel tRPC query caches. Campaign lifecycle, membership and Vehicles retain their
+transitional transports until their owning cases close. The legacy Campaign realtime hook is mounted
+only while the remaining Inventory tab needs it; native collaboration and Session surfaces subscribe
+through Convex directly.
+
+### Native Campaign collaboration transport
+
+```mermaid
+flowchart LR
+  chat["CampaignChat"] --> open["conversations:open mutation"]
+  open --> history["chat:list subscriptions for requested cursor pages"]
+  chat --> writes["chat:send / edit / unsend; conversations:markRead"]
+  notes["Notebook editors and note pickers"] --> pages["notebooks:list native pagination, eight rows per request"]
+  notes --> edits["notebooks:create / update / remove"]
+```
+
+Chat opens the selected room before reading it. Its scope includes Campaign, room, DIRECT peer and
+current membership access epoch. Requested history pages subscribe through the existing Convex
+TanStack Query adapter; a changed cursor boundary discards the old tail before loading its replacement.
+Changing membership authority withholds cached history until opening succeeds, and an authority error
+clears displayed messages. The public chat contract retains UUID cursors and a 50-entry page.
+
+Notebook editors, the notes drawer and Session/file note pickers use Convex native pagination with
+explicit Load more controls. Shared/private visibility is enforced by the backend query. Native
+mutations preserve the existing optimistic version and local dirty-text behavior. GM and Character
+Sheet TABLE rolls call `campaigns/rolls:execute`; private GM rolls use `executePrivate`.
+Chat, room unread counts and notebook updates no longer depend on Broadcast invalidation or DIRECT
+Broadcast channels. File pickers/lists and upload, finalize, attachment and signed-delivery operations
+use native functions too. Session workspace loaders, notes, references, RSVP, attendance and Session
+pickers now use generated Convex endpoints with explicit pagination controls. The tabletop launcher
+subscribes to the indexed latest OPEN Session rather than truncating history to its newest row.
+Clock reads use `campaigns/clock:get`; owner commands use the corresponding atomic mutations. The
+client displays elapsed time between updates and only an active owner requests reconciliation.
+These bindings do not establish P14/P15 acceptance without their required browser/concurrency proof.
+
+The web server's `VITE_MEDIA_STORAGE_ORIGIN` must match the exact origin of native signed storage
+URLs. It permits browser uploads and image delivery through CSP without exposing R2 credentials or
+allowing every R2 bucket. The storage service still enforces signed authorization and bucket CORS.
+
+### Native Encounter and Scene transport
+
+```mermaid
+flowchart LR
+  Encounter["Encounter workspace and tabletop"] --> Reads["encounters/projectionReads: get, active, list, pendingPrepared, actorSides"]
+  Encounter --> Session["encounters/sessionReads:active<br/>active Run and pending decision in one snapshot"]
+  Encounter --> Pending["encounters/pendingReads: pendingRuleOccurrence"]
+  Encounter --> Timeline["encounters/timelineReads: timeline"]
+  Encounter --> Writes["encounters/blueprints:create, runs:create, commands:execute"]
+  Blueprints["Blueprint picker"] --> Pages["encounters/blueprints:list cursor pages"]
+  Selector["GM presented-Scene selector"] --> Scenes["scenes/definitionReads:listLive cursor pages"]
+  Tabletop["Presented Scene"] --> Presentation["scenes/presentations:get subscription and setLive action"]
+  Tabletop --> Header["scenes/recipientReads:header subscription"]
+  Tabletop --> Room["Open Session: DO recipient Scene and entity deltas"]
+  Header --> Hydration["Closed Session: recipientActions:entities and fogReads bounded pages"]
+```
+
+Each Encounter read is registered directly in its owning module, with current identity, Campaign
+authority, shared argument/return validation, and recipient redaction. There is no public forwarding
+query invocation. Projection, pending-decision, and timeline modules retain separate import graphs;
+the prepared-Encounter read uses an internal pending registration sharing the public handler.
+
+The web adapters validate native responses with shared schemas and retain existing query keys,
+polling intervals, command IDs and expected versions. Blueprint and live Scene selectors exhaust
+cursor pages, including empty continuation pages, and reject repeated cursors. Scene list requests
+retain cancellation and owner-only enablement. The tabletop subscribes to the exact Session's
+presentation and recipient-safe Scene header. Open Sessions request `includeSnapshot:false` and use
+the DO's recipient Scene and entity deltas. Closed Sessions assemble all six entity collections and fog through
+bounded native pages, checking versions, continuation progress and the opaque recipient revision.
+The final header read fences the complete assembly against authority changes. A changed recipient
+revision or presentation clears the previous Scene while its replacement hydrates; partial pages
+are never rendered. Hydration retries only the client's transient interrupted-action error, at most
+twice; authority and consistency failures are not retried. Native presentation writes retain command
+IDs and presentation CAS.
+
+Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
+live Door commands and standalone token move/undo travel through the Session Durable Object; direct
+overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.
+The room validates the admitted actor, executes against its minimum live projection, and commits the
+next SQLite state, replay receipt and ordered publication outbox entry before returning
+`COMMAND_COMMITTED`. Encounter turn changes, rule-occurrence decisions, actor-token bindings and other
+Encounter rule commands remain on their owning Convex paths unless separately added to the live
+contract.
+
+Live-session tickets use `liveSessions/tickets:issue`; identity and current Campaign membership come
+from inherited authentication, and the exact open Session is required. The signed ticket retains its
+60-second, one-use HS256 contract. The protected Worker HTTP surface captures authority, bootstraps the
+minimum live projection, publishes outbox entries in sequence, and performs drain/release. Each
+publication rechecks the Worker secret, current authority epoch, membership/role, expected durable
+state and result semantics before committing Convex state and advancing the persisted sequence.
+Subscriptions then expose the durable result. On release or eviction, a fresh authority epoch rebuilds
+from Convex.
+
+The same room carries recipient-filtered ephemeral previews. Capture and hydration require the signed-in
+user JWT plus `LIVE_SESSION_WORKER_SECRET`; responses use `no-store` and generic errors. Hydration pages
+remain fenced by exact revisions before fanout. Preview frames never enter the SQLite command journal or
+publication outbox.
+
+Raw hydration readers are internal. Current Session members may hydrate assigned Character vision
+using owner-derived Character facts, while private Sense source reads retain the caller's identity.
+Internal fog readers can assemble all layers for host projection; public fog reads retain recipient
+filtering. No public owner-only Scene preparation read was widened.
+
+Native paged fog commands may include the current Session ID and expected Session/presentation
+versions in their shared input. That context is retained in the fog save and command checksum.
+Begin, append and publication verify that the Session is open and still presents the Scene;
+unpublished work also requires the captured version counters. An already published exact replay
+retains authorization and presentation checks while tolerating later version counters. Existing
+authored-editor saves without Session context retain their original contract. This fence is local
+implementation evidence. Tabletop fog changes supply this Session context, append at most eight
+chunks per call, and publish using the same command ID. Current-source generation and complete
+local lifecycle acceptance remain pending.
+
+### Transitional tRPC request flow
 
 ```mermaid
 sequenceDiagram
@@ -27,7 +350,7 @@ sequenceDiagram
   T-->>UI: typed response or mapped TRPCError
 ```
 
-## Router shape
+### Router shape
 
 `procedures.ts` owns the shared tRPC setup, error formatter, authentication middleware, and base procedures. Each domain router owns only its procedure wiring, and `router.ts` directly composes those routers without a compatibility or merge layer.
 
@@ -47,7 +370,7 @@ Notification payloads and links carry public source IDs only. One safe event pay
 
 Campaign Realtime is a private invalidation channel, not a second mutation or history transport. Services commit Postgres first and then attempt a best-effort Broadcast containing only the Campaign scope, entity/event identity, cursor, and version. A Campaign metadata hint invalidates both Campaign and Social query roots so maturity and indexed projections refetch immediately. The web falls back to polling/cursor recovery after disconnect.
 
-## Authoritative live-session coordination
+### Historical authoritative live-session coordination
 
 The local Session Host and managed Session Worker use the same server-only coordinator snapshot and executor-result contracts. The snapshot carries the Session-presented Campaign Scene, current aggregate versions, Character vision facts, optional Encounter-to-Scene and actor-to-token bindings, and the exact binding for each pending Encounter rule occurrence. That occurrence binding is derived from the occurrence's sealed pending snapshot rather than inferred from the Encounter or Scene catalogue:
 
@@ -91,26 +414,30 @@ Authored detail responses may include structured draft validation issues (`code`
 
 Authored `saveDraft`, `activateDraft`, and `activate` input failures also expose those structured issues through the tRPC error shape. The formatter is intentionally restricted to the eight authored-domain mutation paths and known validation error codes; unrelated and internal errors remain opaque. The web retains the issues on `ApiError`, routes each path to the deepest owning authoring target, and clears only issues related to a field the author changes.
 
-## Error and security boundary
+### Error and security boundary
 
 Zod input errors become `UNPROCESSABLE_CONTENT`; ownership, Campaign access/validation, not-found, dependency, entitlement, concurrency, node-runtime input, and Sheet command failures map to `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, or `BAD_REQUEST` as appropriate. An exhausted authored-root creation window maps to `TOO_MANY_REQUESTS`/HTTP 429. tRPC POST bodies over 1 MiB are rejected from their actual streamed bytes with HTTP 413 before authentication and JSON parsing; authored mutation schemas independently enforce the same total limit after domain parsing. Node-runtime inputs are also schema-parsed at the functions service seam with bounded encoded size, nesting depth, and array fanout, so a direct service caller cannot bypass the API parser. Declared output parsing runs after the procedure callback, so invalid server output remains an internal failure rather than a client validation error. Unknown failures return a generic internal error and never expose provider, database, configuration, credential, or token details.
 
 The browser may know route names and DTOs, but it must not bypass the router to read/write product rows. Supabase client/server helpers in web are authentication infrastructure; product mutations belong in API procedures. Public sign-up, credential changes, appearance metadata, and account deletion are auth-lifecycle exceptions. Account deletion runs through a same-origin server function, requires the exact account email and current password, rejects users who still own Campaigns, then uses the server-only admin client for hard deletion and global refresh-session revocation; notification feed/preferences cascade with the account. A client-visible flag or user-metadata value is never an authorization decision.
 
-## Authored-domain orchestration
+### Authored-domain orchestration
 
 The eight authored-domain procedures share functions-owned list/detail/draft/activate/duplicate use cases. The tRPC router supplies authentication, schemas, and the domain configuration only. Active detail hydrates the canonical domain aggregate; draft detail reads and validates the separate JSON payload. Active detail responses expose `hasDraft` without loading the draft payload; the full draft is returned only for an explicit draft view or its invalid-draft recovery response. Nested features, options, grants, and effects are saved through their owning root payload; they do not have competing product endpoints.
 
 Duplicating authored content is a deep fork of that owned aggregate. The root and every nested entity identity are regenerated, references to identities owned by the copied graph are remapped to the corresponding replacements, and references to external canonical records remain unchanged. A copied draft must therefore have no mutable object or owned UUID identity in common with its source, and later edits to either aggregate cannot affect the other.
 
-## Import and portable export
+### Import and portable export
 
 Authenticated `/api/imports/preview`, `/api/imports/commit`, and `/api/imports/export` are the product-data REST handlers. `preview` and `commit` are mutation handlers; `export` is read-only. Preview and commit accept the versioned import contracts from `packages/schema` and sit outside the 1 MiB tRPC JSON limit because a batch may contain up to 25 MiB of source files, while retaining the same-origin, authentication, size, schema, ownership, and error boundaries. Shared import limits also bound Foundry item fanout and portable reference count, array fanout, nesting depth, and total nodes before database preparation or recursive normalization. Preview is stateless and performs no writes; commit reparses the original batch, schema-validates each normalized authored payload before persistence, and applies only the selected entries plus their explicit collision resolutions transactionally. Expected D&D Beyond failures use approved import messages; unexpected provider, parser, configuration, and database failures remain generic internal errors. Invalid normalized content returns the generic authored-content error and writes nothing. Deselected entries are reported as skipped.
 
 D&D Beyond inputs are ordinary character-sheet URLs. The server extracts the numeric ID and fetches only the allowlisted public character endpoint without forwarding browser credentials. Foundry and Artificer inputs are JSON text. Portable export is limited to an owned active item or its draft and omits ownership, timestamps, and internal lifecycle metadata.
 
+Equipment `parentEquipmentId` is an external Equipment reference, like the existing parent Class
+and Race references. Shared portable reference collection includes it in active and draft exports,
+and import normalization remaps it only through the matching Equipment reference map.
+
 The client interface is manually composed in `apps/web/src/lib/api.ts`. Shared transport lives in `apps/web/src/lib/api/transport.ts`, while account, Campaign, character, authored-content, and platform modules own their procedure adapters. Procedure renames therefore require updating both the router and the owning client module until generated inference replaces that mirror.
 
-## Local development build boundary
+### Local development build boundary
 
 The web server imports the published package entrypoints, so `apps/apis` resolves through its compiled `dist` output during local development. The root `yarn dev` command runs `yarn dev:prepare` first to rebuild that output before starting Vite. If Vite is started directly from `apps/web`, run the root `yarn dev:prepare` command first; otherwise a changed API router or procedure can appear broken while the browser is still executing an older build artifact.

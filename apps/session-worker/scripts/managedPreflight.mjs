@@ -2,17 +2,13 @@ import assert from 'node:assert/strict'
 
 const appOrigin = requiredHttpsOrigin('MANAGED_VTT_BASE_URL')
 const workerOrigin = requiredHttpsOrigin('MANAGED_LIVE_SESSION_ENDPOINT')
-const executorUrl = `${appOrigin}/.netlify/functions/live-session-executor`
 
-const [appResponse, executorResponse, healthResponse] = await Promise.all([
+const [appResponse, healthResponse] = await Promise.all([
   fetch(appOrigin),
-  fetch(executorUrl),
   fetch(`${workerOrigin}/health`)
 ])
 
 assert.equal(appResponse.status, 200, `Managed app returned ${appResponse.status}.`)
-assert.equal(executorResponse.status, 405, `Private executor returned ${executorResponse.status}.`)
-assert.match(executorResponse.headers.get('allow') ?? '', /\bPOST\b/)
 assert.equal(healthResponse.status, 200, `Session Worker returned ${healthResponse.status}.`)
 assert.deepEqual(await healthResponse.json(), { ok: true })
 
@@ -28,7 +24,6 @@ console.info(
   JSON.stringify({
     application: appOrigin,
     applicationCsp: 'verified',
-    executor: 'verified',
     worker: workerOrigin,
     workerHealth: 'verified'
   })

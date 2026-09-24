@@ -1,4 +1,4 @@
-import type { CharacterRestPreviewResponseDto } from '#app/lib/api'
+import type { CharacterRestPreviewResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 
 export function formatRestRecoveryLabels(
   recoveries: CharacterRestPreviewResponseDto['automaticRecoveries']

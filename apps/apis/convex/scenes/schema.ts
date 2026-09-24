@@ -1,0 +1,74 @@
+import { defineTable } from 'convex/server'
+import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
+import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
+import {
+  sceneStoredFogSaveSchema,
+  sceneStoredFogChunkSchema,
+  sceneStoredFogLayerSchema
+} from '@artificer-toolkit/schema/projections/sceneFogPersistence'
+import {
+  sceneStoredLiveStateSchema,
+  sceneStoredLiveEntitySchema,
+  sceneStoredLiveCommandSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import {
+  sceneStoredDefinitionSchema,
+  sceneStoredDefinitionSaveSchema,
+  sceneStoredDefinitionEntitySchema,
+  sceneStoredInitialStateSchema,
+  sceneStoredPresentationSchema
+} from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+
+export const sceneTables = {
+  sceneVisionRevisions: defineTable(zodToConvexFields(sceneVisionRevisionSchema.shape)).index(
+    'by_scope_id',
+    ['scope', 'id']
+  ),
+  sceneGeometrySaves: defineTable(zodToConvexFields(sceneStoredGeometrySaveSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_sceneId_commandId', ['sceneId', 'commandId']),
+  sceneFogSaves: defineTable(zodToConvexFields(sceneStoredFogSaveSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_sceneId_commandId', ['sceneId', 'commandId']),
+  sceneFogChunks: defineTable(zodToConvexFields(sceneStoredFogChunkSchema.shape)).index(
+    'by_saveId_ordinal',
+    ['saveId', 'ordinal']
+  ),
+  sceneFogLayers: defineTable(zodToConvexFields(sceneStoredFogLayerSchema.shape)).index(
+    'by_sceneId_ownerUserId',
+    ['sceneId', 'ownerUserId']
+  ),
+  sceneLiveStates: defineTable(zodToConvexFields(sceneStoredLiveStateSchema.shape)).index(
+    'by_sceneId',
+    ['sceneId']
+  ),
+  sceneLiveEntities: defineTable(zodToConvexFields(sceneStoredLiveEntitySchema.shape))
+    .index('by_sceneId_collection_entityId', ['sceneId', 'collection', 'entityId'])
+    .index('by_sceneId_collection_ordinal', ['sceneId', 'collection', 'ordinal']),
+  sceneLiveCommands: defineTable(zodToConvex(sceneStoredLiveCommandSchema))
+    .index('by_sceneId_commandId', ['sceneId', 'commandId'])
+    .index('by_sceneId_type_version', ['sceneId', 'input.type', 'result.version'])
+    .index('by_sceneId_undoneCommandId', ['sceneId', 'undoneCommandId']),
+  campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
+    .index('by_campaignId_sessionId', ['campaignId', 'sessionId'])
+    .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),
+  sceneDefinitions: defineTable(zodToConvexFields(sceneStoredDefinitionSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_campaignId_updatedAt_id', ['campaignId', 'updatedAt', 'id'])
+    .index('by_saveId', ['saveId'])
+    .index('by_mapAssetId', ['map.assetId']),
+  sceneDefinitionSaves: defineTable(zodToConvexFields(sceneStoredDefinitionSaveSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_ownerUserId_commandId', ['ownerUserId', 'commandId'])
+    .index('by_campaignId_commandId', ['settings.campaignId', 'commandId']),
+  sceneDefinitionEntities: defineTable(zodToConvexFields(sceneStoredDefinitionEntitySchema.shape))
+    .index('by_saveId_collection_ordinal', ['saveId', 'value.collection', 'ordinal'])
+    .index('by_saveId_collection_entityId', ['saveId', 'value.collection', 'entityId'])
+    .index('by_saveId', ['saveId']),
+  campaignScenes: defineTable(zodToConvexFields(sceneStoredInitialStateSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id'])
+    .index('by_definitionSaveId', ['definitionSaveId'])
+    .index('by_mapAssetId', ['map.assetId'])
+}

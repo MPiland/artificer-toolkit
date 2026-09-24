@@ -1,5 +1,6 @@
 import { type SubmitEvent, useRef, useState } from 'react'
 import { Anchor, Button, PinInput, TextInput } from '@mantine/core'
+import { useHydrated } from '@tanstack/react-router'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
@@ -24,8 +25,13 @@ import { AuthFormProps } from './authForm.types'
 export function VerifyPasswordResetForm({
   authClient = browserAuthClient,
   initialEmail = '',
+  onVerified,
   onSuccess
-}: AuthFormProps & { initialEmail?: string }) {
+}: AuthFormProps & {
+  initialEmail?: string
+  onVerified?: (recovery: { email: string; token: string }) => void | Promise<void>
+}) {
+  const hydrated = useHydrated()
   const [email, setEmail] = useState(initialEmail)
   const [token, setToken] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,6 +57,8 @@ export function VerifyPasswordResetForm({
         return
       }
 
+      const recovery = { email: email.trim(), token: code }
+      await onVerified?.(recovery)
       await onSuccess?.(result)
     } finally {
       isVerifying.current = false
@@ -77,7 +85,7 @@ export function VerifyPasswordResetForm({
           setEmail(event.currentTarget.value)
           setError(null)
         }}
-        disabled={isSubmitting}
+        disabled={!hydrated || isSubmitting}
         required
       />
       <div className={fieldGroup}>
@@ -88,7 +96,7 @@ export function VerifyPasswordResetForm({
         <PinInput
           aria-labelledby='verification-code-label'
           classNames={{ pinInput: verificationCodeDigit, root: verificationCodeGroup }}
-          disabled={isSubmitting}
+          disabled={!hydrated || isSubmitting}
           error={Boolean(error)}
           getInputProps={(index) => ({
             'aria-label': `Verification code digit ${index + 1}`
@@ -109,7 +117,7 @@ export function VerifyPasswordResetForm({
       <Button
         className={authButton}
         type='submit'
-        disabled={token.length !== 6}
+        disabled={!hydrated || token.length !== 6}
         loading={isSubmitting}
       >
         Continue

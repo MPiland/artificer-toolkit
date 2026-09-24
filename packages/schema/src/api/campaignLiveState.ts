@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { characterSheetAdjustmentCommandDtoSchema } from './characterSheet.js'
 import {
@@ -39,14 +39,14 @@ export const listCampaignAdjustmentsInputSchema = z.strictObject({
 export const campaignAdjustmentsDtoSchema = z.array(campaignAdjustmentDtoSchema)
 export const campaignConditionValueDtoSchema = z.strictObject({
   conditionTypeId: uuidSchema,
-  notes: z.string().trim().max(2000).optional()
+  notes: z.optional(z.string().check(z.trim()).check(z.maxLength(2000)))
 })
 export const campaignConditionDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
   characterId: uuidSchema,
   conditionTypeId: uuidSchema,
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.optional(z.string().check(z.trim()).check(z.maxLength(2000))),
   visibility: campaignAdjustmentVisibilityDtoSchema,
   version: versionSchema,
   createdAt: timestampSchema,
@@ -56,7 +56,7 @@ export const saveCampaignConditionInputSchema = z.strictObject({
   campaignId: uuidSchema,
   characterId: uuidSchema,
   conditionTypeId: uuidSchema,
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.optional(z.string().check(z.trim()).check(z.maxLength(2000))),
   visibility: campaignAdjustmentVisibilityDtoSchema,
   expectedVersion: versionSchema
 })
@@ -71,21 +71,21 @@ export const campaignEventVisibilityDtoSchema = z.enum(['TABLE', 'OWNER', 'SUBJE
 export const campaignEventDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
-  type: z.string().trim().min(1).max(80),
+  type: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
   visibility: campaignEventVisibilityDtoSchema,
-  subjectCharacterId: uuidSchema.nullable(),
+  subjectCharacterId: z.nullable(uuidSchema),
   payload: jsonSchema,
   createdAt: timestampSchema
 })
 export const listCampaignEventsInputSchema = z.strictObject({
   campaignId: uuidSchema,
   characterId: uuidSchema,
-  cursor: uuidSchema.optional(),
-  limit: z.number().int().min(1).max(100).default(50)
+  cursor: z.optional(uuidSchema),
+  limit: z._default(z.number().check(z.int()).check(z.gte(1)).check(z.lte(100)), 50)
 })
 export const campaignEventPageDtoSchema = z.strictObject({
   events: z.array(campaignEventDtoSchema),
-  nextCursor: uuidSchema.nullable()
+  nextCursor: z.nullable(uuidSchema)
 })
 
 export type CampaignAdjustmentInput = z.input<typeof campaignAdjustmentInputSchema>

@@ -11,12 +11,28 @@ import {
 } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { getSystemList } from '#app/data/systems/queries'
+import { useState, useTransition } from 'react'
+import { getSystemListPage } from '#app/data/systems/queries'
 import { PageHeader } from '#app/shell'
 
 export function SystemListPage() {
-  const { data: systems } = useSuspenseQuery(getSystemList())
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null])
+  const [isPending, startTransition] = useTransition()
+  const cursor = cursorHistory[cursorHistory.length - 1]
+  const { data } = useSuspenseQuery(getSystemListPage(cursor))
   const navigate = useNavigate()
+
+  const goToPreviousPage = () => {
+    startTransition(() => {
+      setCursorHistory((history) => history.slice(0, -1))
+    })
+  }
+
+  const goToNextPage = () => {
+    startTransition(() => {
+      setCursorHistory((history) => [...history, data.continueCursor])
+    })
+  }
 
   return (
     <Container size='xl' py='xl'>
@@ -26,13 +42,13 @@ export function SystemListPage() {
           title='Game Systems'
           description='Browse each System’s vocabulary, Rules Catalogues, and installed rules capabilities.'
         />
-        {systems.length === 0 ? (
+        {data.page.length === 0 ? (
           <Card withBorder>
             <Text c='dimmed'>No Game Systems are available.</Text>
           </Card>
         ) : (
           <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }}>
-            {systems.map((system) => (
+            {data.page.map((system) => (
               <Card key={system.id} padding='lg' radius='md' withBorder>
                 <Stack gap='md'>
                   <div>
@@ -63,6 +79,24 @@ export function SystemListPage() {
             ))}
           </SimpleGrid>
         )}
+        <Group justify='space-between'>
+          <Button
+            aria-label='Previous page'
+            disabled={cursorHistory.length === 1 || isPending}
+            variant='default'
+            onClick={goToPreviousPage}
+          >
+            Previous page
+          </Button>
+          <Button
+            aria-label='Next page'
+            disabled={data.isDone || isPending}
+            loading={isPending}
+            onClick={goToNextPage}
+          >
+            Next page
+          </Button>
+        </Group>
       </Stack>
     </Container>
   )

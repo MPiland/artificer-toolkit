@@ -1,5 +1,6 @@
-import { useNavigate } from '@tanstack/react-router'
-import { AuthPageShell, SignInForm } from '../components'
+import { useQueryClient } from '@tanstack/react-query'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { SignInForm } from '../components/SignInForm'
 
 export function SignInPage({
   publicSignUpEnabled = false,
@@ -8,18 +9,15 @@ export function SignInPage({
   publicSignUpEnabled?: boolean
   redirectTo?: string
 }) {
-  const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return (
     <AuthPageShell title='Sign in' description='Sign in to continue.'>
       <SignInForm
         publicSignUpEnabled={publicSignUpEnabled}
         onSuccess={() => {
-          if (redirectTo) {
-            window.location.assign(redirectTo)
-            return
-          }
-          return navigate({ to: '/home' })
+          queryClient.clear()
+          window.location.assign(redirectTo ?? '/home')
         }}
       />
     </AuthPageShell>

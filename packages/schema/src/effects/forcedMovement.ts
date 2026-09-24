@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   effectKindSchema,
   forcedMovementActionEconomySchema,
@@ -8,24 +8,23 @@ import {
 } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
-export const forcedMovementDtoSchema = z
-  .object({
+export const forcedMovementDtoSchema = z.intersection(
+  z.object({
     id: authoredIdentifierSchema,
-    effectKind: z.literal(effectKindSchema.enum.FORCED_MOVEMENT),
+    effectKind: z.literal(effectKindSchema._zod.def.entries.FORCED_MOVEMENT),
     direction: forcedMovementDirectionSchema,
     actionEconomy: forcedMovementActionEconomySchema
-  })
-  .and(
-    z.discriminatedUnion('distanceMode', [
-      z.object({
-        distanceMode: z.literal(forcedMovementDistanceModeSchema.enum.UP_TO_SPEED)
-      }),
-      z.object({
-        distanceMode: z.literal(forcedMovementDistanceModeSchema.enum.FIXED_DISTANCE),
-        amount: z.number(),
-        unit: measurementUnitCodeSchema
-      })
-    ])
-  )
+  }),
+  z.discriminatedUnion('distanceMode', [
+    z.object({
+      distanceMode: z.literal(forcedMovementDistanceModeSchema._zod.def.entries.UP_TO_SPEED)
+    }),
+    z.object({
+      distanceMode: z.literal(forcedMovementDistanceModeSchema._zod.def.entries.FIXED_DISTANCE),
+      amount: z.number(),
+      unit: measurementUnitCodeSchema
+    })
+  ])
+)
 
 export type ForcedMovementDto = z.infer<typeof forcedMovementDtoSchema>

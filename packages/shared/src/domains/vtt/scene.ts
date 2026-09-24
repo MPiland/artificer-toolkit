@@ -20,6 +20,12 @@ export const VTT_SCENE_LIMITS = {
   transientPathPoints: 256
 } as const
 
+/** Bounds for pure spatial calculations; persisted coordinates use VTT_SCENE_LIMITS. */
+export const VTT_SPATIAL_LIMITS = {
+  minimumDistance: 1e-6,
+  relativeCoordinateMagnitude: VTT_SCENE_LIMITS.coordinateMagnitude * 2
+} as const
+
 export interface ScenePoint {
   x: number
   y: number
@@ -159,6 +165,14 @@ export interface SceneAnnotation {
 
 export type SceneFogMode = 'SHARED_PARTY' | 'PER_PLAYER'
 export type SceneVisionRevealMode = 'ON_DRAG' | 'ON_DROP'
+
+export type SceneEntity =
+  | { collection: 'annotations'; entity: SceneAnnotation }
+  | { collection: 'barriers'; entity: SceneBarrier }
+  | { collection: 'darknessZones'; entity: SceneDarknessZone }
+  | { collection: 'lights'; entity: SceneLight }
+  | { collection: 'measurements'; entity: SceneMeasurement }
+  | { collection: 'tokens'; entity: SceneToken }
 
 export interface SceneDefinition {
   annotations: SceneAnnotation[]

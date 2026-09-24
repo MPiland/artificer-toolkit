@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
@@ -11,15 +11,17 @@ export const hitPointMaximumReductionDtoSchema = z.strictObject({
   }),
   recoveryTags: z
     .array(z.literal('RESTORE_HIT_POINT_MAXIMUM'))
-    .min(1)
-    .max(1)
-    .superRefine((value, context) => {
-      if (value[0] !== 'RESTORE_HIT_POINT_MAXIMUM')
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Hit point maximum reduction recovery tags must be canonical.'
-        })
-    })
+    .check(z.minLength(1))
+    .check(z.maxLength(1))
+    .check(
+      z.superRefine((value, context) => {
+        if (value[0] !== 'RESTORE_HIT_POINT_MAXIMUM')
+          context.addIssue({
+            code: 'custom',
+            message: 'Hit point maximum reduction recovery tags must be canonical.'
+          })
+      })
+    )
 })
 
 export type HitPointMaximumReductionDto = z.infer<typeof hitPointMaximumReductionDtoSchema>

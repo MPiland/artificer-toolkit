@@ -1,82 +1,32 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
 import {
   buildRaceListFilters,
-  formatRaceCategory,
-  mapRaceListToAuthoredItems,
   raceListAttributeColumns,
-  raceListSortOptions,
-  summarizeRaceList
+  raceListSortOptions
 } from '#app/data/races/raceListMapper'
-import { getRace, useGetRaceList } from '#app/data/races/queries'
-import { api } from '#app/lib/api'
+import { getRace } from '#app/data/races/queries'
+import { useDuplicateRaceMutation } from '#app/data/races/mutations'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
-import type { RaceListRequestDto } from '#app/lib/api'
 
 const raceDetailMeta = ['heritages', 'races', 'speeds']
-const raceCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies RaceListRequestDto
-
 export function RaceCataloguePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildRaceListFilters,
-    buildRequest: ({ filterValues, query, sort }): RaceListRequestDto => ({
-      ...raceCatalogueRequest,
-      category: filterValues.category ?? undefined,
-      query: query || undefined,
-      sort: sort === 'category' ? 'category' : 'name',
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) =>
-      mapDraftSummariesToAuthoredItems(response.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatRaceCategory
-      }),
-    mapItems: mapRaceListToAuthoredItems,
-    summarize: summarizeRaceList,
-    useList: useGetRaceList
-  })
-  const duplicateMutation = useMutation({
-    mutationFn: (id: string) => api.content.races.duplicate(id),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      notifications.show({
-        color: 'green',
-        message: 'Race duplicated as owned content.'
-      })
-      if (response?.subjectId) {
-        await navigate({
-          params: buildRaceRouteParams(response.publicId, response.label),
-          to: '/races/$racePublicId/$raceSlug/edit'
-        })
-      }
-    },
-    onError: () => {
-      notifications.show({
-        color: 'red',
-        message: 'Could not duplicate that race yet.'
-      })
-    }
-  })
+  const listing = useNativeAuthoredCatalogWindow('RACE')
+  const duplicateMutation = useDuplicateRaceMutation()
+  const operations = createAuthoredOperations('RACE', useConvex())
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.races.deleteActive,
-    deleteDraft: api.content.races.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.races.detailRoot,
     domainLabel: 'Race',
     domainQueryKey: queryKeys.content.races.all(),
@@ -87,11 +37,16 @@ export function RaceCataloguePage() {
     <>
       <AuthoredListPage
         title='Races'
-        summary={listing.summary ?? 'Loading races...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} races / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading races...'
+        }
         createLabel='Create Race'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildRaceListFilters(listing.summary?.categories ?? [])}
         attributeColumns={raceListAttributeColumns}
         sortOptions={raceListSortOptions}
         catalog={listing.catalog}
@@ -120,7 +75,22 @@ export function RaceCataloguePage() {
             to: '/races/$racePublicId/$raceSlug/edit'
           })
         }
-        onCopy={(item) => duplicateMutation.mutate(item.id)}
+        onCopy={(item) =>
+          void duplicateMutation
+            .mutateAsync(item.id)
+            .then(async (response) => {
+              notifications.show({ color: 'green', message: 'Race duplicated as owned content.' })
+              if (response?.subjectId) {
+                await navigate({
+                  params: buildRaceRouteParams(response.publicId, response.label),
+                  to: '/races/$racePublicId/$raceSlug/edit'
+                })
+              }
+            })
+            .catch(() =>
+              notifications.show({ color: 'red', message: 'Could not duplicate that race yet.' })
+            )
+        }
         onDelete={(item) =>
           deleteAction.requestDelete({
             id: item.id,

@@ -1,8 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getBackground } from '#app/data/backgrounds/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { backgroundResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getBackground, useGetBackground } from '#app/data/backgrounds/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
@@ -12,7 +10,6 @@ import {
   validateAuthoredDetailSearch
 } from '#app/routing/authoredDetailSearch'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { BackgroundDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { BackgroundDetailPage } from '#domains/backgrounds/pages/BackgroundDetailPage'
 
@@ -27,27 +24,18 @@ export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$
     location,
     params
   }): Promise<BackgroundDetailLoaderData> => {
-    const client = createServerApi()
-    const backgroundId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.backgrounds.list(),
-      publicId: params.backgroundPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'BACKGROUND'
-    })
     const view = resolveAuthoredDetailView(search, location.pathname)
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getBackground(
-        {
-          id: backgroundId,
+    const response = backgroundResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(
+        getBackground({
+          id: params.backgroundPublicId,
           meta: backgroundDetailMeta,
           view
-        },
-        client
+        })
       )
     )
     const draft = response?.draft ?? null
+    const backgroundId = response?.item?.id ?? draft?.subjectId ?? params.backgroundPublicId
     const references = {
       currencies: response?.meta?.currencies ?? [],
       equipment: response?.meta?.equipment ?? [],
@@ -77,13 +65,24 @@ export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$
 })
 
 function BackgroundDetailRoute() {
-  const { backgroundId, draft, references, response, view } = Route.useLoaderData()
+  const { backgroundId, view } = Route.useLoaderData()
+  const { backgroundPublicId } = Route.useParams()
+  const { data: response } = useGetBackground({
+    id: backgroundPublicId,
+    meta: backgroundDetailMeta,
+    view
+  })
 
   return (
     <BackgroundDetailPage
       backgroundId={backgroundId}
-      draft={draft}
-      references={references}
+      draft={response?.draft ?? null}
+      references={{
+        currencies: response?.meta?.currencies ?? [],
+        equipment: response?.meta?.equipment ?? [],
+        languages: response?.meta?.languages ?? [],
+        skills: response?.meta?.skills ?? []
+      }}
       response={response}
       view={view}
     />

@@ -1,19 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { RaceCataloguePage } from '#domains/races/pages/RaceCataloguePage'
-import { getRaceList } from '#app/data/races/queries'
-import { createServerApi, type RaceListRequestDto } from '#app/lib/api'
-
-const raceCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies RaceListRequestDto
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 
 export const Route = createFileRoute('/_authed/races/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getRaceList(raceCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'RACE',
+          sort: 'family',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, { subjectKind: 'RACE' })
+      )
+    ])
   },
   component: RaceCataloguePage
 })

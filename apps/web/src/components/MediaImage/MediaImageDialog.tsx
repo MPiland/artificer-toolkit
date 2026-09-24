@@ -1,9 +1,7 @@
 import { Button, FileButton, Modal } from '@mantine/core'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { Crop } from 'react-image-crop'
-import { api } from '#app/lib/api'
-import { getSupabaseBrowserClient } from '#supabase/client'
+import { useMediaImage, useMediaImageActions } from '#app/data/media'
 import type { ImageCropSelection, MediaImageDialogProps } from './MediaImage.types'
 import { createCenteredSquareCrop, toNormalizedCrop, validateImageFile } from './mediaImageUtils'
 import * as styles from './MediaImage.css'
@@ -21,21 +19,16 @@ export function MediaImageDialog({
   label,
   mode,
   opened,
-  profile,
   target,
   onClose
 }: MediaImageDialogProps) {
-  const queryClient = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [crop, setCrop] = useState<ImageCropSelection | null>(current?.crop ?? null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const sourceQuery = useQuery({
-    queryKey: ['media', target.lookup, 'SOURCE'],
-    queryFn: () => api.media.getImage({ target: target.lookup, variantKind: 'SOURCE' }),
-    enabled: opened && Boolean(current)
-  })
+  const sourceQuery = useMediaImage(target, 'SOURCE', opened && Boolean(current))
+  const mediaActions = useMediaImageActions(target)
   const sourceLoading = Boolean(current) && sourceQuery.isFetching
   const editableCurrent = sourceQuery.data ?? current
   const requiresCrop = mode === 'square' || mode === 'decorative'
@@ -61,18 +54,6 @@ export function MediaImageDialog({
     },
     [previewUrl]
   )
-
-  useEffect(() => {
-    if (!opened || sourceLoading) return
-    setFile(null)
-    setPreviewUrl(null)
-    setCrop(editableCurrent?.crop ?? null)
-    setError(null)
-  }, [editableCurrent, opened, sourceLoading])
-
-  function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: ['media', target.lookup] })
-  }
 
   function handleFile(nextFile: File | null) {
     if (!nextFile) return
@@ -108,42 +89,18 @@ export function MediaImageDialog({
     setError(null)
     try {
       await beforeChange?.()
-      let assetId = editableCurrent?.assetId
-      if (file) {
-        const intent = await api.media.createImageUpload({
-          profile,
-          target: target.attach,
-          originalFileName: file.name,
-          declaredMimeType: file.type as 'image/jpeg' | 'image/png' | 'image/webp',
-          declaredBytes: file.size,
-          idempotencyKey: crypto.randomUUID()
-        })
-        const { error: uploadError } = await getSupabaseBrowserClient()
-          .storage.from(intent.bucket)
-          .uploadToSignedUrl(intent.objectKey, intent.token, file)
-        if (uploadError) throw new Error('Upload did not finish. Try again.')
-        const finalized = await api.media.finalizeImageUpload({ assetId: intent.assetId })
-        if (finalized.status === 'REJECTED') {
-          throw new Error('That image could not be processed. Choose another image and try again.')
-        }
-        if (finalized.status !== 'READY')
-          throw new Error('Image processing is still running. Try again shortly.')
-        assetId = intent.assetId
-      }
-      if (!assetId) {
+      if (!file && !editableCurrent?.assetId) {
         setError('Choose an image before saving.')
         return
       }
-      await api.media.attachImage({
-        assetId,
-        target: target.attach,
-        ...(requiresCrop && crop ? { crop } : {}),
-        ...(mode === 'decorative' ? { isDecorative: true } : {})
+      await mediaActions.save.mutateAsync({
+        assetId: editableCurrent?.assetId,
+        crop: crop!,
+        file
       })
-      invalidate()
       onClose()
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save the image. Try again.')
+    } catch {
+      setError('Could not save the image. Try again.')
     } finally {
       setPending(false)
     }
@@ -154,8 +111,7 @@ export function MediaImageDialog({
     setError(null)
     try {
       await beforeChange?.()
-      await api.media.removeImage({ target: target.attach })
-      invalidate()
+      await mediaActions.remove.mutateAsync()
       onClose()
     } catch {
       setError('Could not remove the image. Try again.')

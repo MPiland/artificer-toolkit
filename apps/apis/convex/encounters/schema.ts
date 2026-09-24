@@ -1,0 +1,82 @@
+import { defineTable } from 'convex/server'
+import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import {
+  encounterStoredBlueprintSchema,
+  encounterStoredBlueprintUpdateSchema
+} from '@artificer-toolkit/schema/projections/encounterBlueprintPersistence'
+import {
+  encounterStoredRunSchema,
+  encounterStoredRunActorSchema,
+  encounterSceneBindingSchema,
+  encounterActorTokenBindingSchema,
+  encounterStoredRunCommandSchema,
+  encounterStoredRuleOccurrenceSchema,
+  encounterStoredRuleReceiptSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  encounterInitiativeParticipantDtoSchema,
+  encounterInitiativeRoundDtoSchema,
+  encounterInitiativeSideDtoSchema
+} from '@artificer-toolkit/schema/shared/initiativeState'
+
+export const encounterTables = {
+  encounterRuns: defineTable(zodToConvexFields(encounterStoredRunSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_campaignId_status', ['campaignId', 'status'])
+    .index('by_campaignId_sessionId_status', ['campaignId', 'sessionId', 'status'])
+    .index('by_campaignId_sessionId_createdAt_id', ['campaignId', 'sessionId', 'createdAt', 'id']),
+  encounterRunActors: defineTable(zodToConvexFields(encounterStoredRunActorSchema.shape)).index(
+    'by_encounterId_id',
+    ['encounterId', 'id']
+  ),
+  encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape))
+    .index('by_encounterId', ['encounterId'])
+    .index('by_sceneId', ['sceneId']),
+  encounterActorTokenBindings: defineTable(
+    zodToConvexFields(encounterActorTokenBindingSchema.shape)
+  )
+    .index('by_encounterId_actorId', ['encounterId', 'actorId'])
+    .index('by_encounterId_tokenId', ['encounterId', 'tokenId'])
+    .index('by_sceneId_tokenId', ['sceneId', 'tokenId']),
+  encounterInitiativeRounds: defineTable(
+    zodToConvexFields(encounterInitiativeRoundDtoSchema.shape)
+  ).index('by_encounterId_round', ['encounterId', 'round']),
+  encounterInitiativeParticipants: defineTable(
+    zodToConvexFields(encounterInitiativeParticipantDtoSchema.shape)
+  )
+    .index('by_encounterId_round_actorId', ['encounterId', 'round', 'actorId'])
+    .index('by_encounterId_actorId_round', ['encounterId', 'actorId', 'round']),
+  encounterInitiativeSides: defineTable(
+    zodToConvexFields(encounterInitiativeSideDtoSchema.shape)
+  ).index('by_encounterId_round_sideId', ['encounterId', 'round', 'sideId']),
+  encounterRunCommands: defineTable(zodToConvex(encounterStoredRunCommandSchema))
+    .index('by_campaignId_commandId', ['campaignId', 'commandId'])
+    .index('by_encounterId', ['encounterId'])
+    .index('by_encounterId_id', ['encounterId', 'id'])
+    .index('by_encounterId_version', ['encounterId', 'version'])
+    .index('by_encounterId_visibility_version', ['encounterId', 'visibility', 'version']),
+  encounterRuleOccurrences: defineTable(
+    zodToConvexFields(encounterStoredRuleOccurrenceSchema.shape)
+  )
+    .index('by_publicId', ['id'])
+    .index('by_campaignId_rootCommandId', ['campaignId', 'rootCommandId'])
+    .index('by_encounterId_state', ['encounterId', 'state']),
+  encounterRuleReceipts: defineTable(zodToConvexFields(encounterStoredRuleReceiptSchema.shape))
+    .index('by_campaignId_commandId', ['campaignId', 'commandId'])
+    .index('by_encounterId_commandId', ['encounterId', 'commandId'])
+    .index('by_occurrenceId', ['occurrenceId']),
+  encounterBlueprints: defineTable(zodToConvexFields(encounterStoredBlueprintSchema.shape))
+    .index('by_publicId', ['id'])
+    .index('by_ownerUserId_commandId', ['ownerUserId', 'commandId'])
+    .index('by_ownerUserId_gameSystemId_createdAt_id', [
+      'ownerUserId',
+      'gameSystemId',
+      'createdAt',
+      'id'
+    ]),
+  encounterBlueprintUpdates: defineTable(
+    zodToConvexFields(encounterStoredBlueprintUpdateSchema.shape)
+  )
+    .index('by_ownerUserId_commandId', ['ownerUserId', 'commandId'])
+    .index('by_blueprintId', ['blueprintId'])
+}

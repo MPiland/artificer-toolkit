@@ -1,24 +1,20 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { getCharacterSheet } from '#app/data/characters/queries'
+import { getCharacterDraft, getCharacterSheet } from '#app/data/characters/queries'
 import { CharacterSheetDraftOnlyState } from '../../sheet/core/CharacterSheetDraftOnlyState'
 import { CharacterSheetView } from '../../sheet/core/CharacterSheetView'
 
 export function CharacterSheetPage() {
   const route = getRouteApi('/_authed/characters/$characterPublicId/$characterSlug/')
-  const { characterId, characterPublicId, draft, fallbackCharacter } = route.useLoaderData()
+  const { characterPublicId } = route.useLoaderData()
   const { user } = route.useRouteContext()
   const navigate = useNavigate()
-  const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterId))
+  const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterPublicId))
+  const { data: draft } = useSuspenseQuery(getCharacterDraft(characterPublicId))
 
-  if (!sheet && (draft || fallbackCharacter)) {
-    return (
-      <CharacterSheetDraftOnlyState
-        characterPublicId={draft?.publicId ?? fallbackCharacter?.publicId ?? characterPublicId}
-        label={draft?.label ?? fallbackCharacter?.character.label}
-      />
-    )
+  if (!sheet && draft) {
+    return <CharacterSheetDraftOnlyState characterPublicId={draft.publicId} label={draft.label} />
   }
 
   if (!sheet) {
@@ -30,11 +26,14 @@ export function CharacterSheetPage() {
     )
   }
 
+  const characterPublicIdForView = sheet.publicId ?? characterPublicId
+  const hasDraftForView = Boolean(draft ?? sheet.meta.hasBuilderDraft)
   return (
     <CharacterSheetView
-      characterPublicId={sheet.publicId ?? characterPublicId}
-      currentUserId={user?.id}
-      hasDraft={Boolean(draft ?? sheet.meta.hasBuilderDraft)}
+      key={sheet.meta.characterId}
+      characterPublicId={characterPublicIdForView}
+      currentUserId={user?.userId}
+      hasDraft={hasDraftForView}
       rollerName={sheet.identity.label}
       sheet={sheet}
     />

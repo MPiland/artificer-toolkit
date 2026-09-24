@@ -1,13 +1,9 @@
-import { segmentsIntersect } from './geometry.js'
-import { VTT_SCENE_LIMITS, type ScenePoint, type SceneToken } from './scene.js'
+import { segmentsIntersect } from './segments.js'
+import { VTT_SCENE_LIMITS, VTT_SPATIAL_LIMITS, type ScenePoint, type SceneToken } from './scene.js'
+
+export { VTT_SPATIAL_LIMITS } from './scene.js'
 
 const EPSILON = 1e-8
-
-/** Bounds for pure spatial calculations; persisted Scene coordinates use VTT_SCENE_LIMITS. */
-export const VTT_SPATIAL_LIMITS = {
-  minimumDistance: 1e-6,
-  relativeCoordinateMagnitude: VTT_SCENE_LIMITS.coordinateMagnitude * 2
-} as const
 
 export type SpatialAnchorKind = 'FIXED' | 'TOKEN'
 export type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
@@ -580,23 +576,50 @@ export function collectTokenFootprintPathCrossings(input: {
         kind: 'POLYGON',
         points: footprintCorners(footprint(stationaryToken))
       }
-      if (
-        footprintIntersectsSpatialGeometry(footprint(input.movingToken, start), geometry) ||
-        footprintIntersectsSpatialGeometry(footprint(input.movingToken, end), geometry)
-      )
-        return []
-      const entry = candidateContact({
-        geometry,
-        path: input.path,
-        token: input.movingToken,
-        trigger: 'ENTER'
-      })
-      const exit = candidateContact({
-        geometry,
-        path: input.path,
-        token: input.movingToken,
-        trigger: 'EXIT'
-      })
+      const movingFootprint = footprint(input.movingToken)
+      const stationaryFootprint = footprint(stationaryToken)
+      const overlaps = (position: ScenePoint) =>
+        Math.abs(position.x - stationaryFootprint.center.x) <
+          movingFootprint.halfWidth + stationaryFootprint.halfWidth - EPSILON &&
+        Math.abs(position.y - stationaryFootprint.center.y) <
+          movingFootprint.halfHeight + stationaryFootprint.halfHeight - EPSILON
+      if (overlaps(start) || overlaps(end)) return []
+      let entry: { contact: ScenePoint; pathDistance: number } | null = null
+      let exit: { contact: ScenePoint; pathDistance: number } | null = null
+      let totalDistance = 0
+      for (let index = 1; index < input.path.length; index += 1) {
+        const from = input.path[index - 1]!
+        const to = input.path[index]!
+        const length = Math.hypot(to.x - from.x, to.y - from.y)
+        const times = candidateTimes(from, to, geometry, movingFootprint)
+        for (let timeIndex = 1; timeIndex < times.length; timeIndex += 1) {
+          const intervalStart = times[timeIndex - 1]!
+          const intervalEnd = times[timeIndex]!
+          if (intervalEnd - intervalStart <= EPSILON) continue
+          if (overlaps(interpolate(from, to, (intervalStart + intervalEnd) / 2))) {
+            if (!entry)
+              entry = {
+                contact: interpolate(from, to, intervalStart),
+                pathDistance: totalDistance + length * intervalStart
+              }
+            exit = {
+              contact: interpolate(from, to, intervalEnd),
+              pathDistance: totalDistance + length * intervalEnd
+            }
+          } else if (entry && exit) {
+            return [
+              {
+                entry: entry.contact,
+                entryPathDistance: entry.pathDistance,
+                exit: exit.contact,
+                exitPathDistance: exit.pathDistance,
+                stationaryTokenId: stationaryToken.id
+              }
+            ]
+          }
+        }
+        totalDistance += length
+      }
       return entry && exit && entry.pathDistance + EPSILON < exit.pathDistance
         ? [
             {

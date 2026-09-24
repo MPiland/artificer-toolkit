@@ -1,11 +1,11 @@
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMemo, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation } from '#app/data/rolls'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { CharacterSheetManualRoll } from '#domains/characters/sheet/dice/CharacterSheetManualRoll'
 import { CharacterSheetRollPresentation } from '#domains/characters/sheet/dice/CharacterSheetRollPresentation'
@@ -17,7 +17,8 @@ import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollCo
 import * as liveStyles from './campaignLive.css'
 
 export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
-  const queryClient = useQueryClient()
+  const executePrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
+  const executeTableRoll = useConvexMutation(convexApi.campaigns.rolls.execute)
   const discard = useDiscardRollMutation()
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
@@ -25,13 +26,19 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
   const [roll, setRoll] = useState<RollRecordDto>()
   const [rollPrivate, setRollPrivate] = useState(true)
   const mutation = useMutation({
-    mutationFn: async (request: CharacterSheetRollRequest) => {
+    mutationFn: async ({
+      request,
+      destination: target
+    }: {
+      request: CharacterSheetRollRequest
+      destination: 'PRIVATE' | 'TABLE'
+    }) => {
       const input = {
         campaignId,
         roll: { characterId: null, ...request }
       }
-      if (destination === 'PRIVATE') return api.campaigns.chat.privateRoll(input)
-      const entry = await api.campaigns.chat.roll({
+      if (target === 'PRIVATE') return executePrivateRoll(input)
+      const entry = await executeTableRoll({
         ...input,
         room: 'TABLE',
         clientNonce: crypto.randomUUID()
@@ -39,14 +46,9 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       if (!entry.roll) throw new Error('The table roll did not return roll evidence.')
       return entry.roll
     },
-    onSuccess: async (record) => {
-      setRollPrivate(destination === 'PRIVATE')
+    onSuccess: (record, variables) => {
+      setRollPrivate(variables.destination === 'PRIVATE')
       setRoll(record)
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.rolls.history() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.chat(campaignId, 'TABLE') }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.conversations(campaignId) })
-      ])
     }
   })
 
@@ -75,7 +77,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
               .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
               .catch(() => undefined)
           }
-          return await mutation.mutateAsync(request)
+          return await mutation.mutateAsync({ request, destination })
         } catch (error) {
           notifications.show({
             color: 'red',
@@ -86,9 +88,11 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       },
       hasManualRoll: Boolean(roll),
       pending: mutation.isPending,
-      pendingRequest: mutation.variables,
+      pendingRequest: mutation.variables?.request,
+      presentationPending: false,
       presentedRoll: roll,
       presentedRollPrivate: rollPrivate,
+      revealRoll: () => undefined,
       setDestination
     }),
     [destination, discard, mutation, preferences.animate3d, reducedMotion, roll, rollPrivate]

@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
 import type { FacetDto } from '@artificer-toolkit/schema/shared/facet'
 import { type AuthoredDraftDto, type FeatResponseDto } from '@artificer-toolkit/schema/api/content'
@@ -21,7 +22,7 @@ import {
   useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -37,6 +38,7 @@ export function FeatDetailPage({
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('FEAT', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
@@ -45,13 +47,13 @@ export function FeatDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.feats.deleteActive,
-    discard: api.content.feats.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.feats.detailRoot(featId),
     domainLabel: 'Feat',
     domainQueryKey: queryKeys.content.feats.all(),
     draftQueryKey: queryKeys.content.feats.draft(featId),
-    duplicate: api.content.feats.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: featId,
     navigateEdit: async (subject) =>
@@ -60,6 +62,14 @@ export function FeatDetailPage({
         to: '/feats/$featPublicId/$featSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/feats' })
+  })
+
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: featId,
+    label: detailState.item?.label ?? 'Feat',
+    subjectKind: 'FEAT',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -102,26 +112,26 @@ export function FeatDetailPage({
     draft?.publicId ?? response?.publicId ?? featId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: featId,
-    label: item.label,
-    subjectKind: 'FEAT',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
           label: 'Resume Draft',
           tone: 'primary',
-          onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams })
+          onClick: () =>
+            navigate({
+              to: '/feats/$featPublicId/$featSlug/edit',
+              params: featParams
+            })
         }
       : detailState.permissions.canEdit
         ? {
             label: 'Edit',
             tone: 'primary',
             onClick: () =>
-              navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams })
+              navigate({
+                to: '/feats/$featPublicId/$featSlug/edit',
+                params: featParams
+              })
           }
         : null,
     detailState.mode === 'active' && detailState.draft
@@ -160,7 +170,11 @@ export function FeatDetailPage({
         }
       : null,
     exportAction,
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/feats/new' }) }
+    {
+      label: 'Create New',
+      tone: 'secondary',
+      onClick: () => navigate({ to: '/feats/new' })
+    }
   ])
 
   return (
@@ -175,7 +189,11 @@ export function FeatDetailPage({
             subjectId: featId,
             scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
           },
-          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'FEAT', subjectId: featId }
+          attach: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'FEAT',
+            subjectId: featId
+          }
         }}
         eyebrow='Feat'
         facts={[]}
@@ -187,7 +205,10 @@ export function FeatDetailPage({
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
           onViewActive: () =>
-            navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams }),
+            navigate({
+              to: '/feats/$featPublicId/$featSlug',
+              params: featParams
+            }),
           onViewDraft: () =>
             navigate({
               to: '/feats/$featPublicId/$featSlug',

@@ -1,10 +1,12 @@
 # ADR 0005: Pure, policy-injected D&D 5e-family character engine
 
-- **Status:** historical; superseded by [ADR 0019](0019-versioned-cross-domain-rules-runtime.md)
+- **Status:** historical; superseded by [ADRs 0023](0023-shared-rules-kernel-and-system-capabilities.md) and [0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-07-24
 - **Scope:** character assembly, engine resolution, and rules-system contracts
 - **Update when:** engine inputs/outputs, resolution ordering, side effects, or rules-system responsibilities change
-- **Verification:** repository history for the removed implementation; current replacement in [ADR 0019](0019-versioned-cross-domain-rules-runtime.md) and the [D&D 5e 2014 rule-order contract](../../packages/functions/src/services/rules/systems/dnd5e/2014/RULE_ORDER.md)
+- **Verification:** repository history for the removed implementation; current replacement in [ADR 0023](0023-shared-rules-kernel-and-system-capabilities.md)
+
+> Everything below records historical engine and migration context. The TypeScript Rules Kernel in ADR 0023 is the current mechanics authority.
 
 ## Context
 
@@ -16,7 +18,7 @@ The character creator needs a predictable preview and the Sheet needs repeatable
 
 `RulesSystem` supplied D&D-5e-family policy: proficiency and ability calculations, modifier stacking, grant application order, and feature source order. Application orchestration resolved an explicit ruleset code/version through a fail-closed registry. `dnd5e2014RulesSystem` was its D&D 5e 2014 implementation.
 
-During migration this implementation served as the parity oracle, not the production mechanical authority. After the required parity and lifecycle gates, `RulesSystem`, `runEngine`, and the duplicated mechanical resolvers were deleted. The versioned embedded Zen evaluator in [ADR 0019](0019-versioned-cross-domain-rules-runtime.md) is the sole current mechanical authority.
+During migration this implementation served as the parity oracle, not the production mechanical authority. It was then replaced by the embedded Zen evaluator described in ADR 0019, which was itself superseded by the TypeScript Rules Kernel in ADR 0023.
 
 The engine consumes an assembled snapshot/registry rather than authored or database rows directly. Application orchestration is responsible for loading and compiling content, assembling those inputs, selecting a rules system, and persisting any resulting character state. The engine returns derived sheet data; it does not mutate the persisted Builder or Sheet state.
 
@@ -26,4 +28,4 @@ The same pure calculation returns both the effective value and its source-aware 
 
 ## Consequences
 
-This ADR remains as the historical rationale for deterministic fact/result boundaries. Current ordering tests and fixtures live with the versioned Zen policies. A feature that requires I/O, user authorization, labels/notes, event persistence, or panel presentation belongs in an orchestrator/service around the evaluator; game-system mechanics belong in the pinned rule model.
+This ADR remains as the historical rationale for deterministic fact/result boundaries. Current ordering tests and fixtures live with the TypeScript Rules Kernel. A feature that requires I/O, user authorization, labels/notes, event persistence, or panel presentation belongs around the kernel; game-system mechanics belong in reviewed Game System operations.

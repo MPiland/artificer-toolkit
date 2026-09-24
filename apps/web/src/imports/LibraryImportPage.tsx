@@ -1,15 +1,15 @@
 import { Alert, Stack } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { useConvex } from 'convex/react'
+import type { ImportPreviewResult } from '@artificer-toolkit/schema/api/importJobs'
 import {
   type ImportCommitRequestDto,
-  type ImportPreviewResponseDto,
   type ImportResultReportDto,
   type ImportSourceDto
 } from '@artificer-toolkit/schema/api/imports'
 import { commitImport, previewImport } from '#app/data/imports/importClient'
 import { PageHeader } from '#app/shell/Shell'
-import { getSystemList } from '#app/data/systems/queries'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import {
   getDefaultImportCustomContentChoice,
   getImportCustomContentKey,
@@ -23,12 +23,13 @@ import { buildBatch, parseLinks } from './libraryImport.model'
 type ImportStage = 'input' | 'preview' | 'result'
 
 export function LibraryImportPage() {
-  const systems = useQuery(getSystemList())
+  const client = useConvex()
+  const systems = useSystemList()
   const [source, setSource] = useState<ImportSourceDto>('DND_BEYOND')
   const [links, setLinks] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [stage, setStage] = useState<ImportStage>('input')
-  const [preview, setPreview] = useState<ImportPreviewResponseDto | null>(null)
+  const [preview, setPreview] = useState<ImportPreviewResult | null>(null)
   const [result, setResult] = useState<ImportResultReportDto | null>(null)
   const [resolutions, setResolutions] = useState<Record<string, 'COPY' | 'UPDATE_DRAFT'>>({})
   const [selectedEntryIds, setSelectedEntryIds] = useState<Record<string, boolean>>({})
@@ -72,7 +73,7 @@ export function LibraryImportPage() {
               primaryRulesCatalogueId: effectivePrimaryRulesCatalogueId
             }
       )
-      const nextPreview = await previewImport(batch)
+      const nextPreview = await previewImport(batch, client)
       setPreview(nextPreview)
       setResolutions(
         Object.fromEntries(
@@ -153,7 +154,7 @@ export function LibraryImportPage() {
             : []
         )
       }
-      const nextResult = await commitImport(commit)
+      const nextResult = await commitImport(commit, preview.previewId, client)
       setResult(nextResult)
       setStage('result')
     } catch (caught) {

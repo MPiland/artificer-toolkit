@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { abilityCodeSchema } from '../shared/enums.js'
 import {
@@ -7,6 +7,7 @@ import {
   characterProficiencyLevelDtoSchema,
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
+  characterSheetReadInputSchema,
   characterSheetAdjustmentStateDtoSchema,
   characterSheetSourceNoteDtoSchema,
   characterSpellSourceRefDtoSchema
@@ -14,16 +15,20 @@ import {
 
 // PostgreSQL accepts UUID-shaped deterministic SRD IDs whose version bits are zero.
 const uuidSchema = z.guid()
-const identifierSchema = z.string().trim().min(1)
+const stringSchema = z.string()
+const numberSchema = z.number()
+const integerSchema = z.number().check(z.int())
+const booleanSchema = z.boolean()
+const identifierSchema = stringSchema.check(z.trim()).check(z.minLength(1))
 
 const sensesPanelTargetDtoSchema = z.object({
   kind: z.literal('SENSES'),
-  entry: z
-    .discriminatedUnion('kind', [
+  entry: z.optional(
+    z.discriminatedUnion('kind', [
       z.object({ kind: z.literal('PASSIVE'), skillId: identifierSchema }),
       z.object({ kind: z.literal('SENSE'), senseId: identifierSchema })
     ])
-    .optional()
+  )
 })
 
 export const characterSheetPanelTargetDtoSchema = z.discriminatedUnion('kind', [
@@ -39,7 +44,7 @@ export const characterSheetPanelTargetDtoSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('SPELL'),
     source: characterSpellSourceRefDtoSchema,
-    castLevel: z.number().int().nonnegative().optional()
+    castLevel: z.optional(integerSchema.check(z.nonnegative()))
   }),
   z.object({ kind: z.literal('SPELLS') }),
   z.object({
@@ -80,171 +85,171 @@ export const characterSheetPanelAllowedCommandDtoSchema = z.enum([
 ])
 
 const adjustmentEditorMetadataDtoSchema = z.object({
-  adjustmentId: uuidSchema.optional(),
-  sourceNote: characterSheetSourceNoteDtoSchema.optional()
+  adjustmentId: z.optional(uuidSchema),
+  sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
 })
 
-const numericAdjustmentEditorBaseDtoSchema = adjustmentEditorMetadataDtoSchema.extend({
+const numericAdjustmentEditorBaseDtoSchema = z.extend(adjustmentEditorMetadataDtoSchema, {
   kind: z.literal('NUMBER'),
-  label: z.string().min(1),
-  value: z.number().nullable(),
+  label: stringSchema.check(z.minLength(1)),
+  value: z.nullable(numberSchema),
   commitIntent: z.literal('ON_BLUR_OR_ENTER'),
   validation: z.object({
-    integer: z.boolean(),
-    minimum: z.number().optional(),
-    maximum: z.number().optional()
+    integer: booleanSchema,
+    minimum: z.optional(numberSchema),
+    maximum: z.optional(numberSchema)
   })
 })
 
-const selectAdjustmentEditorBaseDtoSchema = adjustmentEditorMetadataDtoSchema.extend({
+const selectAdjustmentEditorBaseDtoSchema = z.extend(adjustmentEditorMetadataDtoSchema, {
   kind: z.literal('SELECT'),
-  label: z.string().min(1),
-  value: z.string().nullable(),
+  label: stringSchema.check(z.minLength(1)),
+  value: z.nullable(stringSchema),
   options: z.array(
     z.object({
-      value: z.string(),
-      label: z.string()
+      value: stringSchema,
+      label: stringSchema
     })
   ),
   commitIntent: z.literal('IMMEDIATE')
 })
 
-const booleanAdjustmentEditorBaseDtoSchema = adjustmentEditorMetadataDtoSchema.extend({
+const booleanAdjustmentEditorBaseDtoSchema = z.extend(adjustmentEditorMetadataDtoSchema, {
   kind: z.literal('BOOLEAN'),
-  label: z.string().min(1),
-  value: z.boolean(),
+  label: stringSchema.check(z.minLength(1)),
+  value: booleanSchema,
   commitIntent: z.literal('IMMEDIATE')
 })
 
 const textEditorDtoSchema = z.object({
   kind: z.literal('TEXT'),
   field: z.enum(['CUSTOM_NAME', 'NOTES']),
-  label: z.string().min(1),
-  value: z.string().nullable(),
-  multiline: z.boolean(),
-  maximumLength: z.number().int().positive(),
+  label: stringSchema.check(z.minLength(1)),
+  value: z.nullable(stringSchema),
+  multiline: booleanSchema,
+  maximumLength: integerSchema.check(z.positive()),
   commitIntent: z.literal('ON_BLUR_OR_ENTER')
 })
 
 const panelFactDtoSchema = z.object({
-  label: z.string().min(1),
-  value: z.string()
+  label: stringSchema.check(z.minLength(1)),
+  value: stringSchema
 })
 
 const calculationContributionDtoSchema = z.object({
-  id: z.string().min(1),
+  id: stringSchema.check(z.minLength(1)),
   source: characterMechanicSourceRefDtoSchema,
-  sourceLabel: z.string().min(1),
-  sourceNote: characterSheetSourceNoteDtoSchema.optional(),
-  value: z.number(),
+  sourceLabel: stringSchema.check(z.minLength(1)),
+  sourceNote: z.optional(characterSheetSourceNoteDtoSchema),
+  value: numberSchema,
   state: z.enum(['APPLIED', 'SUPPRESSED'])
 })
 
 export const characterSheetPanelNumericCalculationDtoSchema = z.object({
-  base: z.number(),
+  base: numberSchema,
   contributions: z.array(calculationContributionDtoSchema),
-  override: z
-    .object({
+  override: z.optional(
+    z.object({
       adjustmentId: uuidSchema,
-      value: z.number(),
-      sourceLabel: z.string().min(1),
-      sourceNote: characterSheetSourceNoteDtoSchema.optional()
+      value: numberSchema,
+      sourceLabel: stringSchema.check(z.minLength(1)),
+      sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
     })
-    .optional(),
-  effective: z.number()
+  ),
+  effective: numberSchema
 })
 
 const characterSheetPanelCommonDtoSchema = z.object({
-  panelId: z.string().min(1),
+  panelId: stringSchema.check(z.minLength(1)),
   characterId: uuidSchema,
-  title: z.string().min(1),
-  description: z.string().optional(),
+  title: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema),
   state: characterSheetAdjustmentStateDtoSchema,
-  editable: z.boolean(),
+  editable: booleanSchema,
   allowedCommands: z.array(characterSheetPanelAllowedCommandDtoSchema)
 })
 
-const abilityPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const abilityPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('ABILITY'),
   target: z.object({ kind: z.literal('ABILITY'), ability: abilityCodeSchema }),
   ability: abilityCodeSchema,
-  score: z.number().int(),
-  modifier: z.number().int(),
+  score: integerSchema,
+  modifier: integerSchema,
   scoreCalculation: characterSheetPanelNumericCalculationDtoSchema,
   editors: z.array(
-    numericAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(numericAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['OTHER_MODIFIER', 'SCORE_OVERRIDE'])
     })
   )
 })
 
-const savingThrowPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const savingThrowPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SAVING_THROW'),
   target: z.object({ kind: z.literal('SAVING_THROW'), ability: abilityCodeSchema }),
   ability: abilityCodeSchema,
-  total: z.number().int(),
+  total: integerSchema,
   proficiency: characterProficiencyLevelDtoSchema,
   calculation: characterSheetPanelNumericCalculationDtoSchema,
   numericEditors: z.array(
-    numericAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(numericAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE'])
     })
   ),
-  proficiencyEditor: selectAdjustmentEditorBaseDtoSchema.extend({
+  proficiencyEditor: z.extend(selectAdjustmentEditorBaseDtoSchema, {
     field: z.literal('PROFICIENCY_OVERRIDE')
   })
 })
 
-const skillPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const skillPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SKILL'),
   target: z.object({ kind: z.literal('SKILL'), skillId: uuidSchema }),
   skillId: uuidSchema,
-  code: z.string().min(1),
+  code: stringSchema.check(z.minLength(1)),
   ability: abilityCodeSchema,
-  total: z.number().int(),
+  total: integerSchema,
   proficiency: characterProficiencyLevelDtoSchema,
   calculation: characterSheetPanelNumericCalculationDtoSchema,
   numericEditors: z.array(
-    numericAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(numericAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE'])
     })
   ),
-  proficiencyEditor: selectAdjustmentEditorBaseDtoSchema.extend({
+  proficiencyEditor: z.extend(selectAdjustmentEditorBaseDtoSchema, {
     field: z.literal('PROFICIENCY_OVERRIDE')
   }),
-  abilityEditor: selectAdjustmentEditorBaseDtoSchema.extend({
+  abilityEditor: z.extend(selectAdjustmentEditorBaseDtoSchema, {
     field: z.literal('GOVERNING_ABILITY_OVERRIDE')
   })
 })
 
-const skillsPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const skillsPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SKILLS'),
   target: z.object({ kind: z.literal('SKILLS') }),
   skills: z.array(
     z.object({
       target: z.object({ kind: z.literal('SKILL'), skillId: uuidSchema }),
       skillId: uuidSchema,
-      code: z.string().min(1),
-      label: z.string().min(1),
+      code: stringSchema.check(z.minLength(1)),
+      label: stringSchema.check(z.minLength(1)),
       ability: abilityCodeSchema,
-      total: z.number().int(),
+      total: integerSchema,
       proficiency: characterProficiencyLevelDtoSchema,
       state: characterSheetAdjustmentStateDtoSchema
     })
   )
 })
 
-const sensesPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const sensesPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SENSES'),
   target: sensesPanelTargetDtoSchema,
   passiveChecks: z.array(
     z.object({
       skillId: uuidSchema,
-      label: z.string().min(1),
-      total: z.number().int(),
+      label: stringSchema.check(z.minLength(1)),
+      total: integerSchema,
       state: characterSheetAdjustmentStateDtoSchema,
       calculation: characterSheetPanelNumericCalculationDtoSchema,
-      editor: numericAdjustmentEditorBaseDtoSchema.extend({
+      editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
         field: z.literal('TOTAL_OVERRIDE')
       })
     })
@@ -252,171 +257,171 @@ const sensesPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   senses: z.array(
     z.object({
       senseId: uuidSchema,
-      label: z.string().min(1),
-      range: z.number().int().nonnegative(),
-      unitLabel: z.string().min(1),
+      label: stringSchema.check(z.minLength(1)),
+      range: integerSchema.check(z.nonnegative()),
+      unitLabel: stringSchema.check(z.minLength(1)),
       state: characterSheetAdjustmentStateDtoSchema,
       calculation: characterSheetPanelNumericCalculationDtoSchema,
-      editor: numericAdjustmentEditorBaseDtoSchema.extend({
+      editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
         field: z.literal('RANGE_OVERRIDE')
       })
     })
   )
 })
 
-const movementPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const movementPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('MOVEMENT'),
   target: z.object({ kind: z.literal('MOVEMENT') }),
-  primarySpeedId: uuidSchema.optional(),
+  primarySpeedId: z.optional(uuidSchema),
   preference: characterMovementDisplayPreferenceDtoSchema,
   preferenceOptions: z.array(
     z.object({
-      value: z.string(),
-      label: z.string()
+      value: stringSchema,
+      label: stringSchema
     })
   ),
   speeds: z.array(
     z.object({
       speedId: uuidSchema,
-      label: z.string().min(1),
-      amount: z.number().int().nonnegative(),
-      unitLabel: z.string().min(1),
+      label: stringSchema.check(z.minLength(1)),
+      amount: integerSchema.check(z.nonnegative()),
+      unitLabel: stringSchema.check(z.minLength(1)),
       state: characterSheetAdjustmentStateDtoSchema,
       calculation: characterSheetPanelNumericCalculationDtoSchema,
-      editor: numericAdjustmentEditorBaseDtoSchema.extend({
+      editor: z.extend(numericAdjustmentEditorBaseDtoSchema, {
         field: z.literal('SPEED_OVERRIDE')
       })
     })
   )
 })
 
-const defensePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const defensePanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('DEFENSES'),
   target: z.object({ kind: z.literal('DEFENSES') }),
   defenses: z.array(
     z.object({
       kind: z.enum(['IMMUNITY', 'RESISTANCE', 'VULNERABILITY']),
       damageTypeId: uuidSchema,
-      label: z.string().min(1),
-      sourceLabel: z.string().min(1),
-      adjustmentId: uuidSchema.optional()
+      label: stringSchema.check(z.minLength(1)),
+      sourceLabel: stringSchema.check(z.minLength(1)),
+      adjustmentId: z.optional(uuidSchema)
     })
   ),
   additionOptions: z.array(
     z.object({
       defenseKind: z.enum(['IMMUNITY', 'RESISTANCE', 'VULNERABILITY']),
       damageTypeId: uuidSchema,
-      label: z.string().min(1)
+      label: stringSchema.check(z.minLength(1))
     })
   )
 })
 
-const proficiencyPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const proficiencyPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('PROFICIENCIES'),
   target: z.object({ kind: z.literal('PROFICIENCIES') }),
   proficiencies: z.array(
     z.object({
       kind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
       targetId: identifierSchema,
-      label: z.string().min(1),
-      sourceLabel: z.string().min(1),
-      adjustmentId: uuidSchema.optional()
+      label: stringSchema.check(z.minLength(1)),
+      sourceLabel: stringSchema.check(z.minLength(1)),
+      adjustmentId: z.optional(uuidSchema)
     })
   ),
   additionOptions: z.array(
     z.object({
       kind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
       targetId: identifierSchema,
-      label: z.string().min(1)
+      label: stringSchema.check(z.minLength(1))
     })
   )
 })
 
-const spellPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const spellPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SPELL'),
   target: z.object({
     kind: z.literal('SPELL'),
     source: characterSpellSourceRefDtoSchema,
-    castLevel: z.number().int().nonnegative().optional()
+    castLevel: z.optional(integerSchema.check(z.nonnegative()))
   }),
   source: characterSpellSourceRefDtoSchema,
-  sourceLabel: z.string().min(1),
+  sourceLabel: stringSchema.check(z.minLength(1)),
   spellId: uuidSchema,
-  displayName: z.string().min(1),
-  authoredName: z.string().min(1),
-  description: z.string().optional(),
+  displayName: stringSchema.check(z.minLength(1)),
+  authoredName: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema),
   facts: z.array(panelFactDtoSchema),
   effects: z.array(panelFactDtoSchema),
   references: z.array(panelFactDtoSchema),
-  prepared: z.boolean(),
-  canPrepare: z.boolean(),
-  preparationClassId: uuidSchema.optional(),
-  known: z.boolean(),
-  canManageKnown: z.boolean(),
-  knownClassId: identifierSchema.optional(),
-  displayAsAttack: z.boolean(),
+  prepared: booleanSchema,
+  canPrepare: booleanSchema,
+  preparationClassId: z.optional(uuidSchema),
+  known: booleanSchema,
+  canManageKnown: booleanSchema,
+  knownClassId: z.optional(identifierSchema),
+  displayAsAttack: booleanSchema,
   legalCastModes: z.array(
     z.object({
       kind: z.enum(['AT_WILL', 'SPELL_SLOT', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
-      label: z.string().min(1),
-      slotKey: identifierSchema.optional(),
-      castLevel: z.number().int().nonnegative().optional(),
-      available: z.boolean(),
-      unavailableReason: z.string().optional()
+      label: stringSchema.check(z.minLength(1)),
+      slotKey: z.optional(identifierSchema),
+      castLevel: z.optional(integerSchema.check(z.nonnegative())),
+      available: booleanSchema,
+      unavailableReason: z.optional(stringSchema)
     })
   ),
   calculations: z.object({
-    attackBonus: characterSheetPanelNumericCalculationDtoSchema.optional(),
-    saveDC: characterSheetPanelNumericCalculationDtoSchema.optional(),
-    damageBonus: characterSheetPanelNumericCalculationDtoSchema.optional()
+    attackBonus: z.optional(characterSheetPanelNumericCalculationDtoSchema),
+    saveDC: z.optional(characterSheetPanelNumericCalculationDtoSchema),
+    damageBonus: z.optional(characterSheetPanelNumericCalculationDtoSchema)
   }),
   customizationOptions: z.array(
     z.object({
       category: z.enum(['TO_HIT', 'SAVE_DC', 'DAMAGE']),
-      label: z.string().min(1),
-      supportedModes: z.array(z.enum(['BONUS', 'OVERRIDE'])).min(1),
-      configured: z
-        .object({
+      label: stringSchema.check(z.minLength(1)),
+      supportedModes: z.array(z.enum(['BONUS', 'OVERRIDE'])).check(z.minLength(1)),
+      configured: z.optional(
+        z.object({
           adjustmentId: uuidSchema,
           mode: z.enum(['BONUS', 'OVERRIDE']),
-          value: z.number().int(),
-          sourceNote: characterSheetSourceNoteDtoSchema.optional()
+          value: integerSchema,
+          sourceNote: z.optional(characterSheetSourceNoteDtoSchema)
         })
-        .optional()
+      )
     })
   ),
   textEditors: z.array(textEditorDtoSchema)
 })
 
-const spellsPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const spellsPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('SPELLS'),
   target: z.object({ kind: z.literal('SPELLS') }),
   slots: z.array(
     z.object({
       slotKey: identifierSchema,
-      label: z.string().min(1),
-      used: z.number().int().nonnegative(),
-      maximum: z.number().int().nonnegative(),
-      remaining: z.number().int().nonnegative()
+      label: stringSchema.check(z.minLength(1)),
+      used: integerSchema.check(z.nonnegative()),
+      maximum: integerSchema.check(z.nonnegative()),
+      remaining: integerSchema.check(z.nonnegative())
     })
   ),
   groups: z.array(
     z.object({
-      level: z.number().int().nonnegative(),
-      label: z.string().min(1),
+      level: integerSchema.check(z.nonnegative()),
+      label: stringSchema.check(z.minLength(1)),
       sources: z.array(
         z.object({
           target: z.object({ kind: z.literal('SPELL'), source: characterSpellSourceRefDtoSchema }),
           source: characterSpellSourceRefDtoSchema,
           spellId: uuidSchema,
-          label: z.string().min(1),
-          sourceLabel: z.string().min(1),
-          prepared: z.boolean(),
-          canPrepare: z.boolean(),
-          preparationClassId: uuidSchema.optional(),
-          known: z.boolean(),
-          canManageKnown: z.boolean(),
-          knownClassId: identifierSchema.optional(),
+          label: stringSchema.check(z.minLength(1)),
+          sourceLabel: stringSchema.check(z.minLength(1)),
+          prepared: booleanSchema,
+          canPrepare: booleanSchema,
+          preparationClassId: z.optional(uuidSchema),
+          known: booleanSchema,
+          canManageKnown: booleanSchema,
+          knownClassId: z.optional(identifierSchema),
           state: characterSheetAdjustmentStateDtoSchema
         })
       )
@@ -424,7 +429,7 @@ const spellsPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   )
 })
 
-const featurePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const featurePanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('FEATURE'),
   target: z.object({
     kind: z.literal('FEATURE'),
@@ -433,42 +438,42 @@ const featurePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   }),
   featureId: uuidSchema,
   sourceInstanceId: identifierSchema,
-  sourceLabel: z.string().min(1),
-  description: z.string().optional(),
+  sourceLabel: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema),
   facts: z.array(panelFactDtoSchema),
   resources: z.array(
     z.object({
       target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
-      label: z.string().min(1),
-      remaining: z.number().int().nonnegative(),
-      maximum: z.number().int().nonnegative()
+      label: stringSchema.check(z.minLength(1)),
+      remaining: integerSchema.check(z.nonnegative()),
+      maximum: integerSchema.check(z.nonnegative())
     })
   )
 })
 
-const itemPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const itemPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('ITEM'),
   target: z.object({ kind: z.literal('ITEM'), itemInstanceId: uuidSchema }),
   itemInstanceId: uuidSchema,
   equipmentId: uuidSchema,
-  authoredName: z.string().min(1),
-  displayName: z.string().min(1),
-  description: z.string().optional(),
+  authoredName: stringSchema.check(z.minLength(1)),
+  displayName: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema),
   facts: z.array(panelFactDtoSchema),
-  equipped: z.boolean(),
-  attuned: z.boolean(),
-  requiresAttunement: z.boolean(),
+  equipped: booleanSchema,
+  attuned: booleanSchema,
+  requiresAttunement: booleanSchema,
   features: z.array(
     z.object({
-      id: z.string().min(1),
-      label: z.string().min(1),
-      description: z.string().optional(),
-      resourceCost: z.number().int().positive().optional(),
-      resourceGrantId: z.string().min(1).optional()
+      id: stringSchema.check(z.minLength(1)),
+      label: stringSchema.check(z.minLength(1)),
+      description: z.optional(stringSchema),
+      resourceCost: z.optional(integerSchema.check(z.positive())),
+      resourceGrantId: z.optional(stringSchema.check(z.minLength(1)))
     })
   ),
   numericEditors: z.array(
-    numericAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(numericAdjustmentEditorBaseDtoSchema, {
       field: z.enum([
         'ATTACK_BONUS',
         'ATTACK_OVERRIDE',
@@ -479,28 +484,28 @@ const itemPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
     })
   ),
   propertyEditors: z.array(
-    booleanAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(booleanAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['ADAMANTINE', 'DISPLAY_AS_ATTACK', 'DUAL_WIELD', 'SILVERED'])
     })
   ),
   textEditors: z.array(textEditorDtoSchema),
   resources: z.array(
     z.object({
-      id: z.string().min(1),
+      id: stringSchema.check(z.minLength(1)),
       target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
-      label: z.string().min(1),
-      remaining: z.number().int().nonnegative(),
-      maximum: z.number().int().nonnegative(),
+      label: stringSchema.check(z.minLength(1)),
+      remaining: integerSchema.check(z.nonnegative()),
+      maximum: integerSchema.check(z.nonnegative()),
       recoveries: z.array(characterResourceRecoveryDtoSchema)
     })
   )
 })
 
-const backgroundPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const backgroundPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('BACKGROUND'),
   target: z.object({ kind: z.literal('BACKGROUND') }),
   backgroundId: uuidSchema,
-  description: z.string().optional(),
+  description: z.optional(stringSchema),
   facts: z.array(panelFactDtoSchema),
   features: z.array(
     z.object({
@@ -509,92 +514,96 @@ const backgroundPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
         featureId: uuidSchema,
         sourceInstanceId: identifierSchema
       }),
-      label: z.string().min(1),
-      description: z.string().optional()
+      label: stringSchema.check(z.minLength(1)),
+      description: z.optional(stringSchema)
     })
   )
 })
 
-const resourcePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const resourcePanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('RESOURCE'),
   target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
   owner: characterResourceOwnerRefDtoSchema,
-  sourceLabel: z.string().min(1),
-  used: z.number().int().nonnegative(),
-  maximum: z.number().int().nonnegative(),
-  remaining: z.number().int().nonnegative(),
+  sourceLabel: stringSchema.check(z.minLength(1)),
+  used: integerSchema.check(z.nonnegative()),
+  maximum: integerSchema.check(z.nonnegative()),
+  remaining: integerSchema.check(z.nonnegative()),
   recoveries: z.array(characterResourceRecoveryDtoSchema)
 })
 
 const extraActionDtoSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().optional()
+  id: stringSchema.check(z.minLength(1)),
+  label: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema)
 })
 
 const extraFeatureDtoSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().optional()
+  id: stringSchema.check(z.minLength(1)),
+  label: stringSchema.check(z.minLength(1)),
+  description: z.optional(stringSchema)
 })
 
 const companionHitDiceDtoSchema = z
   .array(
     z
       .object({
-        die: z.number().int().positive(),
-        total: z.number().int().nonnegative(),
-        used: z.number().int().nonnegative(),
-        remaining: z.number().int().nonnegative()
+        die: integerSchema.check(z.positive()),
+        total: integerSchema.check(z.nonnegative()),
+        used: integerSchema.check(z.nonnegative()),
+        remaining: integerSchema.check(z.nonnegative())
       })
-      .refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
-        message: 'Hit dice usage and remaining count must be consistent.'
-      })
-  )
-  .superRefine((hitDice, context) => {
-    const seen = new Set<number>()
-
-    hitDice.forEach(({ die }, index) => {
-      if (seen.has(die)) {
-        context.addIssue({
-          code: 'custom',
-          path: [index, 'die'],
-          message: 'Hit dice denominations must be unique.'
+      .check(
+        z.refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
+          message: 'Hit dice usage and remaining count must be consistent.'
         })
-      }
-      seen.add(die)
-    })
-  })
+      )
+  )
+  .check(
+    z.superRefine((hitDice, context) => {
+      const seen = new Set<number>()
 
-const extrasPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+      hitDice.forEach(({ die }, index) => {
+        if (seen.has(die)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'die'],
+            message: 'Hit dice denominations must be unique.'
+          })
+        }
+        seen.add(die)
+      })
+    })
+  )
+
+const extrasPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('EXTRAS'),
   target: z.object({ kind: z.literal('EXTRAS') }),
-  companionCount: z.number().int().nonnegative(),
-  mountCount: z.number().int().nonnegative(),
-  ownedCreatureCount: z.number().int().nonnegative(),
-  vehicleCount: z.number().int().nonnegative()
+  companionCount: integerSchema.check(z.nonnegative()),
+  mountCount: integerSchema.check(z.nonnegative()),
+  ownedCreatureCount: integerSchema.check(z.nonnegative()),
+  vehicleCount: integerSchema.check(z.nonnegative())
 })
 
-const companionPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const companionPanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('COMPANION'),
   target: z.object({ kind: z.literal('COMPANION'), companionInstanceId: uuidSchema }),
   companionInstanceId: uuidSchema,
   creatureId: uuidSchema,
   relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
-  relationshipLabel: z.string().min(1),
+  relationshipLabel: stringSchema.check(z.minLength(1)),
   originKind: z.enum(['WORLD', 'SUMMONED']),
-  originLabel: z.string().min(1),
-  size: z.string().min(1).optional(),
-  alignmentId: uuidSchema.optional(),
-  creatureTypeId: uuidSchema.optional(),
-  authoredName: z.string().min(1),
-  displayName: z.string().min(1),
-  isActive: z.boolean(),
-  armorClass: z.number().int().nonnegative(),
+  originLabel: stringSchema.check(z.minLength(1)),
+  size: z.optional(stringSchema.check(z.minLength(1))),
+  alignmentId: z.optional(uuidSchema),
+  creatureTypeId: z.optional(uuidSchema),
+  authoredName: stringSchema.check(z.minLength(1)),
+  displayName: stringSchema.check(z.minLength(1)),
+  isActive: booleanSchema,
+  armorClass: integerSchema.check(z.nonnegative()),
   hitPoints: z.object({
-    current: z.number().int().nonnegative(),
-    temp: z.number().int().nonnegative(),
-    maximum: z.number().int().nonnegative()
+    current: integerSchema.check(z.nonnegative()),
+    temp: integerSchema.check(z.nonnegative()),
+    maximum: integerSchema.check(z.nonnegative())
   }),
   hitDice: companionHitDiceDtoSchema,
   facts: z.array(panelFactDtoSchema),
@@ -604,37 +613,37 @@ const companionPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   resources: z.array(
     z.object({
       target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
-      label: z.string().min(1),
-      remaining: z.number().int().nonnegative(),
-      maximum: z.number().int().nonnegative(),
+      label: stringSchema.check(z.minLength(1)),
+      remaining: integerSchema.check(z.nonnegative()),
+      maximum: integerSchema.check(z.nonnegative()),
       recoveries: z.array(characterResourceRecoveryDtoSchema)
     })
   ),
   numericEditors: z.array(
-    numericAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(numericAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE'])
     })
   ),
   selectEditors: z.array(
-    selectAdjustmentEditorBaseDtoSchema.extend({
+    z.extend(selectAdjustmentEditorBaseDtoSchema, {
       field: z.enum(['ALIGNMENT_OVERRIDE', 'CREATURE_TYPE_OVERRIDE', 'SIZE_OVERRIDE'])
     })
   ),
   textEditors: z.array(textEditorDtoSchema)
 })
 
-const vehiclePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+const vehiclePanelDtoSchema = z.extend(characterSheetPanelCommonDtoSchema, {
   kind: z.literal('VEHICLE'),
   target: z.object({ kind: z.literal('VEHICLE'), vehicleInstanceId: uuidSchema }),
   vehicleInstanceId: uuidSchema,
   vehicleId: uuidSchema,
-  authoredName: z.string().min(1),
-  displayName: z.string().min(1),
-  categoryLabel: z.string().min(1),
-  isActive: z.boolean(),
+  authoredName: stringSchema.check(z.minLength(1)),
+  displayName: stringSchema.check(z.minLength(1)),
+  categoryLabel: stringSchema.check(z.minLength(1)),
+  isActive: booleanSchema,
   hitPoints: z.object({
-    current: z.number().int().nonnegative(),
-    maximum: z.number().int().nonnegative()
+    current: integerSchema.check(z.nonnegative()),
+    maximum: integerSchema.check(z.nonnegative())
   }),
   facts: z.array(panelFactDtoSchema),
   actions: z.array(extraActionDtoSchema),
@@ -663,6 +672,11 @@ export const characterSheetPanelDtoSchema = z.discriminatedUnion('kind', [
   vehiclePanelDtoSchema
 ])
 
+export const characterSheetPanelInputSchema = z.extend(characterSheetReadInputSchema, {
+  target: characterSheetPanelTargetDtoSchema
+})
+
+export type CharacterSheetPanelInput = z.infer<typeof characterSheetPanelInputSchema>
 export type CharacterSheetPanelTargetDto = z.infer<typeof characterSheetPanelTargetDtoSchema>
 export type CharacterSheetPanelDto = z.infer<typeof characterSheetPanelDtoSchema>
 export type CharacterSheetPanelNumericCalculationDto = z.infer<

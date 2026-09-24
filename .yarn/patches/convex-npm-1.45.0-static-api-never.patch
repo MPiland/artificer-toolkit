@@ -1,0 +1,38 @@
+diff --git a/src/cli/codegen_templates/validator_helpers.ts b/src/cli/codegen_templates/validator_helpers.ts
+--- a/src/cli/codegen_templates/validator_helpers.ts
++++ b/src/cli/codegen_templates/validator_helpers.ts
+@@ -47,6 +47,7 @@
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value
+       .map((v) => validatorToType(v, useIdType))
+       .join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/dist/cjs/cli/codegen_templates/validator_helpers.js b/dist/cjs/cli/codegen_templates/validator_helpers.js
+--- a/dist/cjs/cli/codegen_templates/validator_helpers.js
++++ b/dist/cjs/cli/codegen_templates/validator_helpers.js
+@@ -58,4 +58,5 @@
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/dist/esm/cli/codegen_templates/validator_helpers.js b/dist/esm/cli/codegen_templates/validator_helpers.js
+--- a/dist/esm/cli/codegen_templates/validator_helpers.js
++++ b/dist/esm/cli/codegen_templates/validator_helpers.js
+@@ -35,4 +35,5 @@
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/dist/cli.bundle.cjs b/dist/cli.bundle.cjs
+--- a/dist/cli.bundle.cjs
++++ b/dist/cli.bundle.cjs
+@@ -116911,4 +116911,5 @@
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);

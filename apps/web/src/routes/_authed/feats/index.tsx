@@ -1,36 +1,39 @@
 import { notifications } from '@mantine/notifications'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
 import {
   featListAttributeColumns,
   featListSortOptions,
-  buildFeatListFilters,
-  mapFeatListToAuthoredItems,
-  summarizeFeatList
+  buildFeatListFilters
 } from '#app/data/feats/featListMapper'
-import { getFeat, getFeatList, useGetFeatList } from '#app/data/feats/queries'
-import { createServerApi } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { getFeat } from '#app/data/feats/queries'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
-import type { FeatListRequestDto } from '#app/lib/api'
-
-const featCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies FeatListRequestDto
 
 export const Route = createFileRoute('/_authed/feats/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getFeatList(featCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'FEAT',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, {
+          subjectKind: 'FEAT'
+        })
+      )
+    ])
   },
   component: FeatsRoute
 })
@@ -38,26 +41,14 @@ export const Route = createFileRoute('/_authed/feats/')({
 function FeatsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildFeatListFilters,
-    buildRequest: ({ filterValues, query }): FeatListRequestDto => ({
-      ...featCatalogueRequest,
-      query: query || undefined,
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) => mapDraftSummariesToAuthoredItems(response.drafts),
-    mapItems: mapFeatListToAuthoredItems,
-    summarize: summarizeFeatList,
-    useList: useGetFeatList
-  })
+  const operations = createAuthoredOperations('FEAT', useConvex())
+  const listing = useNativeAuthoredCatalogWindow('FEAT')
   const duplicateMutation = useMutation({
-    mutationFn: (id: string) => api.content.feats.duplicate(id),
+    mutationFn: operations.duplicate,
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.feats.all()
+      })
       notifications.show({
         color: 'green',
         message: 'Feat duplicated as owned content.'
@@ -77,8 +68,8 @@ function FeatsRoute() {
     }
   })
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.feats.deleteActive,
-    deleteDraft: api.content.feats.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.feats.detailRoot,
     domainLabel: 'Feat',
     domainQueryKey: queryKeys.content.feats.all(),
@@ -89,11 +80,16 @@ function FeatsRoute() {
     <>
       <AuthoredListPage
         title='Feats'
-        summary={listing.summary ?? 'Loading feats...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} feats / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading feats...'
+        }
         createLabel='Create Feat'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildFeatListFilters()}
         attributeColumns={featListAttributeColumns}
         sortOptions={featListSortOptions}
         catalog={listing.catalog}

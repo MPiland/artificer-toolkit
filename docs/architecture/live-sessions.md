@@ -1,212 +1,498 @@
 # Live-session coordination
 
-> Status: native remote/local backend and retained production client implemented; the deployed remote gate remains Phase 08 work, while the headed three-hour hardware soak has passed.
+> Status: canonical current partial Phase 8.2 implementation; DO rules execution remains incomplete
 >
-> Scope: remote Durable Object coordinator, local Node host, authoritative command execution, synchronization, and deployment ownership
+> Scope: active Session Durable Object authority, ordered Convex publication, transient fanout, fencing, and recovery
 >
-> Update when: admission, native WebSocket contracts, conflict scheduling, persistence, prediction, or deployment changes
+> Update when: ticket admission, supported live commands, SQLite state/receipts/outbox, Convex publication, transient projection, fencing, recovery, or deployment configuration changes
 >
-> Verification: `apps/session-worker`, `apps/session-host`, private Netlify executor tests, authenticated local integration, and ADRs 0020–0021 plus 0027
+> Verification: `apps/session-worker/src/nativeLiveSessionRoom.ts`, `apps/session-worker/src/durableCommandJournal.ts`, `apps/apis/convex/liveSessions/{authority,state,bootstrap}.ts`, `apps/web/src/domains/campaigns/vtt/liveSessionClient.ts`, and [ADR 0029](../adr/0029-convex-backend-cutover.md)
 
-Managed remote rooms run in `apps/session-worker`: a Cloudflare Worker routes each Campaign session to one hibernatable Durable Object. Local rooms run in `apps/session-host`: a Node process invokes the same application services and native Zen evaluator directly. Both expose the same Zod-validated native WebSocket protocol and use Supabase aggregate versions as canonical gameplay state. Cold room hydration reads bounded aggregate version metadata plus checksum-verified Character, Encounter, and Campaign Scene projections; it does not reconstruct normalized Encounter mechanics or run Zen before a command requires it. The Session's presented Scene is hydrated independently from the optional Encounter overlay. Ordinary Encounter API reads use the same current Encounter projection for both owner and player contracts; the player view is derived by strict server-side redaction rather than a second aggregate hydration path.
+A live Session has one temporary live-command authority and one durable product store. While an
+authority epoch is active, its Session Durable Object is the single authority for the supported Door
+and standalone token move/undo paths. It also streams recipient-filtered ephemeral previews.
+Convex owns every Character Sheet mutation, including adjustments, HP, resources, and roll state,
+and remains authentication/current-membership authority, the durable cross-session/system store,
+the subscription source, and recovery authority.
+
+The following flow describes the current narrow Scene lane. The approved target in
+[ADR 0029](../adr/0029-convex-backend-cutover.md#live-rules-execution-clarification--2026-09-24)
+also places heavy live rule evaluation and fact preparation in the DO, reusing the existing Rules
+Kernel and rules-runtime. Convex supplies authorized stored inputs and validates atomic commits and
+receipts. Sheet write ownership remains in Convex. This remaining R06 work must preserve the room's
+command order, source/version checks, replay, and required Character/Encounter/Scene atomicity;
+commands relying on a Convex transaction cannot acknowledge success before that transaction commits.
+
+The private `/live-sessions/character-rules` and `/live-sessions/encounter-rules` captures now supply
+authorized stored inputs to Worker preparation. Each response includes compact System, Campaign,
+Session and relevant Character revisions read in the same transaction as its payload. Preparation
+merges these observations and rejects a changed revision across pages or Character/Encounter reads.
+The existing `sceneVisionRevisions` table tracks source publications, authority inputs, Run actors,
+active effects, maintained/spatial effects, normalized initiative rounds/sides/participants and pending
+occurrences; empty ranges are covered by their
+owner's revision. Import completion also refreshes published root metadata in the same transaction
+that makes staged publications visible; this supplies its System revision change. The bounded
+`assertLiveSessionRulesRevisions` guard requires the complete authorized scope and compares its
+observations before settlement writes. Commit callers must still perform fresh identity,
+authority epoch, aggregate and any Scene-version checks. Rehydrating every captured payload
+inside the commit would defeat paging and repeat the Convex read-limit problem. Command dispatch,
+pending-response and complete contextual coordination remain unfinished.
+
+Ordinary action preparation starts with `ACTION_COMMAND` on the private Encounter capture route.
+It shares the native command's admission and complete receipt verification, including Character
+concentration cleanup. Current GM access, open Session and live epoch remain mandatory. An exact
+completed or pending retry returns its stored result before checking the latest Run version or
+loading Character inputs. A fresh command must pass the existing version, turn and pending-occurrence
+checks before preparation starts. Admission returns its normalized command and fingerprint, reads no
+dice and performs no writes. This replay path is connected to Worker planning; room command dispatch
+is still incomplete.
+
+Preparation also captures the exact bound Scene token geometry and the acting actor's current
+maintenance slot. The DO resolves grid/target policy and maintenance replacement using the same
+runtime functions as native execution. Maintenance dependents and detached-owner effects page four
+records at a time. A detached Character is readable only through a real dependent of that current
+slot; its Character revision joins the commit fence. Existing issued pending checksums include the
+stored Character owner record, so this private capture preserves those fields and native ordering.
+The shared currentness hash preserves pending-action identity across native and DO preparation.
+These captures perform no rule evaluation or writes. `planNativeLiveEncounterAction` runs the existing
+graph evaluator after preflight, then the existing effect and mechanics planners. It returns a stored
+replay, sealed pending evidence, or an uncommitted plan. Completed plans include HP/resource changes,
+exact effect records, action economy and maintenance cleanup. They rebuild the selected Character
+facts from the planned resulting state using the same projector and effect constructors as native
+execution. Maintenance cleanup shares the mechanics Character increment and preserves conditions
+owned by another effect or the original Character state. Completed plans also compute concentration
+children from that post-action state. They then rebuild actor rule output and the final GM projection,
+and construct the root command result and stored execution receipt. The native path and DO share the
+same initiative cursor checks, maintenance transitions and receipt constructors.
+The function accepts the existing runtime service internally; production continuation-key provisioning
+remains unresolved, and the room does not yet call this planning path.
+
+The `INITIATIVE_ROUND` capture reads only the authorized Run's current round, using the same bounded
+indexed reader as native projection. Active projections require that stored round, the Run's policy
+snapshot and its exact actor/side cursor. The capture adds its Session revision to the final plan;
+changes to any normalized initiative table invalidate a plan captured before that change.
+
+The read-only `SYSTEM_VOCABULARY` capture exposes the existing persisted snapshot used by native
+concentration checks, including its identity, version and checksum. It verifies the snapshot checksum
+and agreement with the current System, and refuses a missing snapshot. System import and Encounter
+Blueprint preparation initialize that snapshot; live capture performs no initialization. Snapshot
+writes also refresh the System revision used to fence DO planning.
+
+Concentration context construction, d20 evidence evaluation, result construction and deterministic
+child identities now live in focused rules-runtime modules. Native callers supply their existing
+runtime and random source; their database reads, cleanup, receipt writes and ordering are unchanged.
+Worker concentration orchestration consumes projected post-action targets and the authorized raw
+definitions, vocabulary, slots and owners. Automatic checks produce child receipts; a failed save
+plans dependent removal and condition cleanup with the Character's post-action version as its
+baseline. Assisted checks retain a sealed child snapshot while the parent action remains complete.
+The final plan carries revisions captured during these checks, including detached owners. These
+results enter the completed-root terminal transaction; the initial pending-action endpoint cannot
+publish a completed parent with a concentration child.
+
+Completed ordinary action plans also compute optional Cleaving from the resulting actor and effect
+state. The shared native choice and candidate calculations consume authorized `CLEAVING_BINDINGS`
+and exact per-candidate `ACTION_SCENE` geometry. Additional Character facts load only after a retained
+overkill result, bound Scene, melee action and optional-combat snapshot qualify the branch. Candidate
+preparation overlays any planned maintenance/concentration Character changes before calculating
+currentness and armor class. Unchanged targets are reused, and independent geometry captures run in
+parallel while retaining candidate order. A pending concentration child carries the deferred Cleaving
+context; otherwise the terminal transaction inserts a standalone choice. Concentration responses now
+use the private DO path below; contextual choice responses remain unfinished.
+
+The private `/live-sessions/encounter-action-pending` mutation accepts the Worker-computed sealed
+ordinary action request. It requires both the Worker secret and the current GM's authenticated
+identity, rechecks the open Session, live epoch, Run, root fingerprint, System and bound Scene, then
+compares all captured revisions before inserting or advancing the pending occurrence. Detached maintenance owners
+must still have a real dependent in the acting actor's current stored slot. The mutation advances no
+Run or Character version and spends no resources. It returns only the existing recipient-safe result;
+executable graphs and facts remain in the private stored snapshot. A retry returns the previously
+stored command result before checking changed revisions. For an ordinary Assisted response, private
+`ACTION_RESPONSE` capture reuses native initiator, evidence receipt, root and occurrence admission.
+The Worker checks the sealed request and currentness, then resumes the existing Kernel continuation.
+Each accepted evidence advances the same occurrence by one; a further pause stores its evidence receipt
+without applying mechanics. Retrying an earlier evidence returns the current pending or completed root
+result, matching native behavior, before preparing facts or rolling again. The Worker adapters are
+available independently of room dispatch; production key provisioning remains outstanding.
+
+The private `/live-sessions/encounter-action` terminal accepts an ordinary completed root. It requires
+the Worker secret and current GM identity, repeats native admission/replay and current live-epoch,
+Scene and complete revision checks, then applies all writes in one Convex mutation. Its strict payload
+contains normalized receipt outcomes, resource/economy consumption, and bounded effect/child records;
+it contains no Character or Run document patches. Raw stored Character/Sheet/campaign state supplies
+the existing mechanics fold and CAS writer. The mutation validates exact effect provenance and receipt
+projections, reconciles maintenance conditions, persists concentration children and Cleaving, and stores
+the root occurrence, rule receipt, command receipt and final GM projection together. A late failure
+rolls back every write; an exact retry returns the stored result before checking consumed revisions.
+Source Character resources and target mechanics share one increment when source and target coincide.
+Maintenance replacement shares that increment; failed concentration uses the post-action version as its
+new baseline. Rule evaluation and Character fact preparation remain in the DO. The commit imports
+focused pure mechanics, receipt, identity and projection modules, with no Kernel/runtime initialization.
+The terminal also completes admitted ordinary Assisted responses, updating the existing occurrence and
+inserting the response evidence receipt in that same transaction. Room dispatch and contextual command
+coordination remain unfinished.
+
+The private `/live-sessions/encounter-concentration` transaction completes an admitted Assisted
+concentration response for the GM or the assigned Character's player. Private captures require the
+Worker secret, current user identity, open Session, active DO epoch and that exact pending child.
+The DO prepares current facts, checks the sealed continuation and parent damage envelope, resumes
+the existing Kernel, and plans any cleanup or next decision. A successful save preserves the Run
+version and stored projection. A failed save atomically removes the exact maintained slot and
+dependents, reconciles Character/actor conditions, advances the Run once, and stores the new projection.
+Both outcomes store the response command, completed child and evidence receipt together; exact
+replay precedes consumed revisions and returns a recipient-safe result. Subsequent concentration
+checks retain their ordered parent damage, while deferred Cleaving is rebuilt after cleanup before
+becoming the next pending choice. Raw receipt-chain proofs remain in Convex; fact preparation and
+rules evaluation stay in the DO. Room dispatch and real continuation-key provisioning still gate use.
+
+Turn planning now lives in shared `rules-runtime` modules used by the native adapters and the DO
+`nativeEncounterTurn` planner. `prepareEncounterTurn` preserves the existing order: outgoing effects, Legendary owner
+decisions, new-round initiative when required, incoming resource refresh and Recharge, then incoming
+effects. It carries staged Character facts across phases and returns pending evidence before any
+aggregate writes. Effect perception, Recharge, initiative source preparation and Legendary execution
+use authorized domain-read callbacks; none emulates a database or introduces another rules engine.
+Legendary execution constructs its runtime only when an action executes. New-round initiative and its
+later evidence responses retain the projected Character facts from outgoing effects; they must not
+reload an uncommitted Character version from storage. Private `TURN_COMMAND` admission shares native
+terminal and pending receipt checks. A pending initiative retry reconstructs its retained outgoing
+decisions in the DO before returning its original result, without new initiative rolls.
+
+Turn captures expose bounded maintained state and the Run's bound Scene geometry/spatial effects.
+The planner retains the Scene version and definition save as well as the merged source revisions,
+because Scene geometry changes do not advance the rules revision markers. Private Character inputs
+retain the stored timestamp and use the authorized owner already on the Character; publication reads include their stored version
+number for initiative declaration provenance. These fields do not transfer write authority.
+The private `/live-sessions/encounter-turn-pending` transaction stores a fresh or resumed paused turn after
+checking authority, normalized initiative, revisions and any Scene fence. The terminal route
+`/live-sessions/encounter-turn` applies bounded effect, resource and concentration outcomes in one
+Convex transaction, sharing native initiative validation and receipt persistence. Kernel evaluation,
+Character fact preparation and derived actor rules remain in the DO. The private authenticated DO is
+the trusted computation boundary; Convex validates scope, current revisions and domain writes rather
+than repeating that computation. Turn capture requests are reused within one command, and no result
+is acknowledged before its transaction commits. Direct Recharge, active-effect and Legendary choice/evidence
+responses reuse the native response guards and the same DO turn planner. Each accepted response advances
+the retained occurrence once; a further pause leaves aggregate state untouched. Commits recheck the stored
+occurrence and exact response history, and completed retries use the native receipt proof before consumed
+revision fences. Initial START now uses the same DO initiative preparation and private turn writers:
+it admits a PREPARED Run, creates round 1 with an INITIAL_START pin, skips outgoing effects, and uses
+incoming effect ordinal 0. Its initial pending occurrence leaves aggregate state unchanged. The
+shared settlement guard rejects any proposed initial round other than 1; the native indexed check
+prevents two ACTIVE Runs in one Campaign. Local transaction tests cover initial commit, exact replay,
+late rollback, pending-state retention and continuation through two incoming Recharge responses.
+Initial and each-round initiative evidence and order responses now resume the sealed staged round
+through the existing lifecycle in the DO. Outgoing effects and decisions are restored before new
+initiative consumes those facts; accepted history is replayed before applying restrictions to a new
+response. Pending responses retain aggregate state, and the terminal transaction completes the prior
+round and inserts the next round once. The initiative declaration patch uses that same lifecycle
+(its focused private tests pass locally; see the
+[declaration checkpoint](../validation/phase-08-2/initiative-declarations.md#resolution)): the DO
+rechecks the issued options against captured sources, records the selected declaration, and either
+issues the next actor's request or continues initiative scoring. The private `turnResponse` scope
+admits the currently assigned PLAYER for their Character's declaration and permits the command's
+bounded Run and Character captures. Each capture and write rechecks membership, assignment and the
+issued occurrence; it cannot combine with movement or Concentration scope. START, ADVANCE_TURN,
+score/order responses and other turn decisions remain OWNER-only. The root receipt identifies the
+GM who initiated the turn; declaration response history identifies the actual responder. Current
+assignment is required even for a completed response retry. The actual room caller remains unfinished;
+native routing remains current. Focused parity and rollback tests are implementation evidence, not
+release or frozen V15 acceptance.
+
+The movement integration in progress uses the existing staged Scene save. Private
+`/live-sessions/encounter-movement-begin` rechecks the DO authority epoch before staging a bound move
+or a response to its sealed pending occurrence;
+public Scene staging remains fenced. Each movement capture checks the receiving save, current
+Session/presentation/Scene/Run, and the moving token's binding and control. A response instead requires
+authority over its issued decision. Character preparation pins a current actor's source and version.
+These internal captures require the Worker secret and authenticated caller and never enter client
+responses. The DO needs the authorized Run cohort to discover movement reactions.
+
+`nativeEncounterMovementInputs.ts` reuses the room's complete Scene after publication has drained,
+checks its version and counts, and computes target facts, reaction discovery and perception in the DO.
+Identical captures share one promise within the command. `nativeEncounterMovement.ts` prepares an
+move or issued response using shared spatial, reaction, passage and concentration coordination.
+Uncommitted target and maintenance projections feed later contacts in order. Movement Character
+inputs include the original private row so existing maintenance checksums survive that projection;
+they stay inside the trusted Worker boundary. The planner serializes ordered, bounded
+spatial, reaction, passage-allowance and concentration outcomes and computes final actor rules in the DO. Private
+preparation checks captured revisions and freezes the existing Scene save without gameplay writes.
+The private movement commit coordinator reuses the native Scene, pending and terminal
+publication writers, applying those closed outcomes in their original order within one Convex
+transaction. Completed retries verify stored receipts before checking consumed source revisions.
+Pending publication settles only the explicit applied spatial prefix and completed reactions. A
+spatial dice pause may retain evaluated contacts that have not changed gameplay state; that evidence
+must remain unsettled. Native pending publication shares its persistence writer through evaluation,
+settlement and projection callbacks; native adapters retain their existing computation. The private
+`encounter-movement-prepare` and `encounter-movement` HTTP routes require both the Worker secret and
+the initiating user's identity, then use the same epoch, membership, save and revision checks as the
+internal mutations. Initial pending, terminal and response publication share this commit route.
+Response publication preserves prior contact evidence and commits only newly applied contacts and
+new Concentration children; an already committed damage contact is not applied again when its child
+check finishes. A completed passage consumes its validated allowance once before the remaining move.
+Native response adapters reuse the same rules coordinators; the Convex publication layer imports
+only the persistence and projection pieces. Local transaction tests cover response authority, retained
+one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. Durable
+room dispatch/recovery remains unfinished. These private routes alone do not establish command acceptance.
+
+An admitted movement can apply rules to another assigned Character. The private mechanics helper
+validates that Character's current Campaign assignment using the Campaign owner, matching the existing
+persistence writer. It retains the authenticated initiator in Character and Encounter receipts. Token
+control is checked again at commit, so revoking control rejects a previously prepared move atomically.
+
+Raw Run actor/effect captures retain current Character assignment, ownership, System and ACTIVE checks.
+An unrelated Character's newer stream version does not invalidate its stored actor snapshot. Selected
+source/target Character facts still require the exact expected stream version on `character-rules`;
+the merged revision vector also fences changes occurring during capture.
+
+Character source indexes page at most four raw roots or shares through one native Convex pagination
+call per capture, including empty pages. They distinguish feature matches from other readable roots
+so the existing 500-per-kind catalogue bound is enforced before loading matching document bodies.
+Publication pages inspect at most four IDs and target 4 MiB of stored body data, allowing one existing
+large publication. A shared source's parents are fetched on separate pages. Capture still verifies
+each root's source ownership, import visibility, active sharing member, and ACTIVE document status;
+the Worker validates the complete inheritance chain before consuming the publication. Every shared
+ancestor requires an enabled platform source or its own current Campaign share. Character-private
+ownership cannot substitute for that share. Race/Equipment parent metadata, kind, System, base
+category, cycle and depth checks retain the native reader's meaning. The final revision vector covers
+these parent reads. These local implementation changes still require real backend size-limit proof.
+
+```mermaid
+flowchart LR
+  Browser["Browser tabletop"] <-->|Scene commands + transient previews| Room["NativeLiveSessionRoom<br/>Session Durable Object"]
+  Sheet["Character Sheet"] -->|all Sheet mutations| Api["apps/apis/convex"]
+  Room --> Sqlite[("SQLite Scene state<br/>receipts + publication outbox")]
+  Room -->|protected bootstrap, publish, drain, release| Api["apps/apis/convex"]
+  Browser -->|ordinary queries, mutations, actions| Api
+  Api --> State[("Convex durable product state")]
+  State -->|reactive subscriptions| Browser
+```
+
+Direct Convex mutations that overlap the active Scene projection are fenced until the Session DO
+drains and releases authority. Character and Encounter commands use their owning Convex functions.
+One Character version and its receipt are committed in the same Convex transaction. The current
+Scene command lane does not publish Character mutations; the new preparation path reads authorized
+Character inputs for the approved DO rules integration.
+
+Scene presentation uses `scenes/presentations:setLive`. With active room authority, its authenticated
+owner request enters the same DO command order as moves and Scene synchronization. The room finishes
+all pending publications before the protected Convex setter checks the epoch, published sequence,
+checksum, and presentation version. It then invalidates the old Scene cache and reauthenticates the
+sockets. The epoch, command sequence, and replay receipts remain intact. A failed publication leaves
+the presentation unchanged. The direct `set` mutation remains available only without active authority.
+This ordering permits A → B → A switching without hydrating a Scene whose prior moves are unpublished.
+
+## Supported live-command flow
+
+```mermaid
+sequenceDiagram
+  participant Client as Browser client
+  participant Room as Session Durable Object
+  participant SQLite as Durable Object SQLite
+  participant Convex as Convex publication
+  participant Peers as Other clients
+
+  Client->>Room: COMMAND with expected version and command ID
+  Room->>Room: Recheck admission, authority epoch, scope and recipient rights
+  Room->>Room: Execute against the minimum live projection
+  Room->>SQLite: Atomic live state + replay receipt + ordered outbox commit
+  SQLite-->>Room: Committed sequence and checksum
+  Room-->>Client: COMMAND_COMMITTED or exact replay
+  Room-->>Peers: Recipient-filtered committed projection
+  Room->>Convex: Ordered publication from outbox
+  Convex->>Convex: Verify epoch, committed actor role, ordering, versions and exact result
+  Convex-->>Peers: Reactive durable-state update
+```
+
+The room broadcasts success only after the SQLite transaction commits. A retry with the same valid
+command identity and input returns the stored receipt; reuse with different input rejects. Outbox
+publication is ordered and retryable, and an entry is acknowledged only after Convex returns the
+matching authority epoch, sequence, state checksum, and result. Convex publication failure never
+causes the room to bypass ordering or accept an overlapping direct write.
+
+Publication finishes a command already authorized and committed by the room. Its protected payload
+records the actor's command-time role. Only the internal publication scope may use retained historical
+membership after departure or a role change, or publish after Session finish or Campaign archive.
+Campaign, membership, Scene, and Session identity must still match; deletion permits publication only
+while draining the room. Door and undo require the recorded OWNER role; movement requires that role
+or control of the token. Epoch, contiguous sequence, checksums, Scene versions, and exact results remain
+mandatory. Public access and new commands continue to require current permissions. Scene presentation
+changes use the ordered control above, so prior commands publish before their presentation is replaced.
+
+Current DO command coverage is incomplete: Door state, standalone token movement and its undo.
+Character Sheet commands use Convex. Other Encounter rule commands still compute there, and
+Encounter-bound movement is rejected by both the DO and the active-authority Convex fence. These
+are remaining R06 integration gaps. Frozen decisions, rolls, effects, and receipts retain their
+issued evidence while subscriptions expose the latest published durable state.
+
+## Ticket and authentication flow
+
+`liveSessions/tickets:issue` authorizes the current Campaign member and open Session before signing a
+60-second HS256 ticket. The ticket issuer is `artificer-convex`; its subject, Campaign, Session, role,
+unique ticket ID, audience, version, issue time, and expiry are signed. A room consumes each ticket ID
+once and binds its persisted room identity to the exact Campaign and Session.
+
+The signing key is checked before reserving authority. An `ACTIVATING` reservation expires at the
+latest ticket expiry issued for that epoch; issuing another ticket extends that deadline without
+changing the epoch. Once the reservation expires, direct Convex writes are available again and a new
+join claims a fresh epoch. Expired tickets and epochs cannot activate it. `DO_ACTIVE` and `DRAINING`
+authority never expires through this admission deadline. For transitional records without a deadline,
+the last stored update plus the ticket lifetime is used; an obsolete pending join must request a new
+ticket.
+
+If a failed activation left an initial SQLite snapshot, a replacement epoch verified by Convex may
+discard that snapshot only while its sequence and published sequence are zero and it has no receipts
+or outbox entries. Committed state continues through the normal drain and release protocol.
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Convex
+  participant Room as Durable Object room
+
+  Browser->>Convex: issue ticket with Better Auth Convex identity
+  Convex-->>Browser: 60-second one-use ticket
+  Browser->>Room: WebSocket upgrade with protocol and signed ticket
+  Room->>Room: Verify signature, room identity, expiry, and unused ticket ID
+  Browser->>Room: AUTHENTICATE with Better Auth Convex JWT
+  Room->>Convex: POST /live-sessions/capture with JWT and Worker secret
+  Convex-->>Room: Current member, Session, recipient, Scene, and revision authority
+  Room->>Convex: Bootstrap or verify the active authority epoch
+  Convex-->>Room: Activation fingerprint, persisted sequence, and checksum
+  Room-->>Browser: TRANSIENT_READY
+```
+
+The browser authenticates once after the socket opens. There is no periodic authentication heartbeat;
+the admitted socket remains valid until its JWT expires, an explicit lifecycle invalidation arrives, or
+the socket closes. At expiry or after `AUTHENTICATION_REQUIRED`, the browser obtains current
+authentication and Convex recaptures product authority before transient readiness resumes.
+`LIVE_SESSION_WORKER_SECRET` independently authenticates the Worker HTTP caller.
+
+Lifecycle producers invalidate rooms immediately. Campaign leave/removal evicts that membership
+generation. Account deletion, auth-account suspension/deactivation, and administrative auth-session
+revocation evict the exact user from active rooms. Session finish and Campaign archive/delete close the
+affected rooms. Sign-out and password/security actions close the browser's live socket; a later explicit
+reconnect authenticates normally when the underlying auth session remains valid. Social profile
+suspension is separate and continues to preserve Campaign access.
+
+## Transient previews
+
+The native WebSocket protocol separates command and transient traffic:
+
+- browser messages: `AUTHENTICATE`, `COMMAND`, `TRANSIENT`;
+- server messages: `AUTHENTICATION_REQUIRED`, `TRANSIENT_READY`, `COMMAND_COMMITTED`, `COMMAND_REJECTED`, `TRANSIENT`.
+
+Pointer, measurement, fog-area, and token-drag previews remain ephemeral. Shared-party fog is the
+default for local and remote play, so one player's accepted exploration is visible to the party. The
+recipient-specific projection remains available for the GM preview tool and a future explicit remote
+Campaign setting. The Worker captures current authority, hydrates the exact current Scene and
+Character-vision inputs when needed, validates bounded movement geometry, and projects private state
+for each current recipient. Hidden tokens, unrevealed barriers, GM annotations, DM-preview fog, and
+other recipient-private state never enter a broader broadcast.
+
+Durable Object SQLite stores the active authority epoch, minimum live projection, sequence/checksum,
+replay receipts, undo evidence, and ordered publication outbox in addition to room/ticket state. The
+live projection is authoritative only for that active Session epoch. Large Scene snapshots use bounded
+SQLite chunk rows within the same transaction; recovery rejects incomplete chunks. This preserves
+accepted Scene sizes without exceeding the platform's per-row limit. New movement undo receipts store
+only the Scene identity/version and moved token's previous position; older full-Scene undo remains readable.
+
+Hibernatable socket attachments retain connection identity and membership epoch. Transient sequence
+high-water marks and drag paths use one indexed SQLite row per socket and stream, so attachments stay
+within their 16 KiB limit. Each accepted sample updates only its stream; a path is reusable only for its
+matching Scene and baseline version. Legacy attachment maps migrate before incoming traffic is handled.
+Socket close, error, and eviction remove this temporary state; reconstruction removes orphan socket rows.
+Preview frames never enter the command journal or publication outbox and disappear with their connection.
+
+Fresh journal state contains only the Scene. Recovery verifies the complete stored checksum before
+reading the Scene from older snapshots that also contain Character fields. Before promoting this
+authority change over an older Worker, drain and release its active epochs and verify their outboxes
+are empty. Pending Character publications must complete under the previous version; committed
+receipts or outbox entries must never be discarded to force the change through.
+The command-time actor role is also required for new publication payloads; drain older outboxes with
+their existing Worker before promoting this protocol.
+
+## Reconnect and convergence
+
+The browser reconnects with exponential backoff capped at 30 seconds. Every connection attempt asks
+Convex for a fresh one-use ticket; tickets and WebSocket admission are never resumed across sockets.
+After the new socket authenticates and current capture succeeds, `TRANSIENT_READY` resets the backoff.
+
+A reconnect to the active room can replay a matching SQLite receipt and resume ordered publication.
+After authority release or eviction, a fresh epoch bootstraps its minimum live projection from current
+Convex state; stale SQLite epochs cannot publish into the new authority. Convex subscriptions reconnect
+independently and return current authorized durable projections. Transient previews may disappear
+during reconnect because they are intentionally not durable.
 
 ## Browser surface ownership
 
-```mermaid
-flowchart LR
-  Session["Campaign Session workspace"] -->|"Open tabletop"| Tabletop["Dedicated tabletop window"]
-  Sheet["Character Sheet<br/>latest open Session"] -->|"Open tabletop"| Tabletop
-  CampaignScene["Campaign live Scene"] -->|"Session presents"| Tabletop
-  Encounter["Optional Encounter overlay"] -->|"actor–token binding"| CampaignScene
-  Tabletop --> Canvas["Imperative PixiJS Scene"]
-  Tabletop --> Controls["React play controls"]
-  Owner["GM"] -->|"Play or Edit"| Controls
-  Player["Player"] -->|"Play only"| Controls
+The Campaign Session workspace and Character Sheet can open a dedicated authenticated tabletop window.
+React owns accessible controls and inspectors; PixiJS owns frame-rate Scene rendering. The GM may edit
+or present current Campaign Scenes. Players receive play controls and recipient-private projections.
+Connection-local camera, zoom, selected tool, and previews stay local or transient. While room
+authority is active, supported Door and standalone token move/undo commands use the Session DO.
+The Sheet uses ordinary Convex mutations and subscriptions without a second socket or projection
+merge. Scene publications and all other durable product state converge in Convex.
+
+An open tabletop subscribes to the authorized presentation and recipient header for Scene identity and
+version with `includeSnapshot:false`, and renders the room's recipient Scene. The header request
+skips compact entity hydration as well as the full Convex loading path. Closed Sessions retain normal
+Convex hydration. Header reads used only to fence a completed hydration also skip the compact
+snapshot; their recipient revision is unchanged. Ordered command deltas update individual
+tokens or door states while preserving unchanged objects; Pixi retains their graphics. Visibility
+changes still recompute the affected fog and recipient-visible objects. Rejection corrections are
+projected only when needed, and door delta visibility uses the canonical barrier predicate directly.
+
+Encounter Scene-binding reads use the shared recipient context without importing Scene entity
+hydration endpoints. They reuse the identity already authenticated in the current invocation while
+retaining Scene Campaign membership, source snapshot, presentation, version, and revision checks.
+
+The tabletop subscribes to `encounters/sessionReads:active` for its active Encounter and
+pending decision together. One identity check, Campaign authorization, and active Run lookup supply
+both recipient-filtered results from the same Convex snapshot. A different Session or no active Run
+returns both values as null. Scene bindings and prepared Encounter decisions retain their own reads.
+
+## Configuration
+
+| Owner               | Name                              | Purpose                                                                                     |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
+| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                             |
+| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                             |
+| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                                 |
+| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                                |
+| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                                  |
+| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                 |
+| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                          |
+| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker |
+| Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                           |
+| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                       |
+| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                         |
+| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching capture/hydrate caller secret                                                      |
+| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                            |
+
+Browser variables must never contain either secret. Staging and production bind each Worker to the
+matching Convex deployment and web origin.
+
+## Verification and release gates
+
+Use the existing local Convex deployment and the Worker command documented in
+[`apps/session-worker/README.md`](../../apps/session-worker/README.md). Focused package checks are:
+
+```powershell
+yarn workspace @artificer-toolkit/session-worker typecheck
+yarn workspace @artificer-toolkit/session-worker test
+yarn workspace @artificer-toolkit/session-worker build
 ```
 
-The tabletop is a separate authenticated browser surface so the Campaign workspace or Character Sheet can remain open independently. A stable Campaign/session window name reuses the same tabletop window, which may be tiled, moved to another display, or screen-shared. Navigation is one-way: the Session workspace or the latest open Session associated with a Character Sheet launches the tabletop; the tabletop does not become a launcher for workspace or Sheet windows. The GM may present and switch Campaign Scenes before, during, or after combat. Starting an Encounter binds its actors to tokens on the already-presented Scene; ending it removes the combat overlay without replacing the Scene.
+Focused checks are implementation feedback. The final local release source must pass
+`yarn validate:pre-staging:local`, including native transaction/replay/rollback/privacy proofs and the
+complete browser journeys. The frozen V15 workload keeps the original thresholds: transient delivery
+at or below `150 ms`; durable browser p95 at or below `250 ms` and p99 at or below `500 ms`;
+authoritative completion at or below `1,000 ms`; Scene-only host p95 below `100 ms`; and rule-bound
+host p95 below `250 ms`. Managed verification runs only after the complete local lifecycle is green.
+The [Phase 8.2 acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) controls acceptance.
 
-One admitted user may keep multiple devices connected to the same Session. Each connection receives its own short-lived ticket and private projection; opening a tablet tabletop does not displace that user's desktop workspace or phone Character Sheet. Camera, zoom, selected tool, mode, and open panels are connection-local, while token positions, doors, fog, Character play state, and other committed gameplay remain shared through room authority. The server derives permissions from Campaign membership rather than trusting a device-selected role. Managed play supports this composition directly. The local host protocol also supports concurrent connections, but the current developer endpoint does not provide secure LAN discovery or browser delivery; a future launcher must supply that trusted local origin before local multi-device play is presented as an end-user workflow.
+## Historical boundary
 
-Tablet landscape is a first-class map surface. Player tablet play is map-first and keeps permanent chrome minimal; GM tablet play uses collapsible drawers for live and editing tools. Phone play is Character-Sheet-first. During an Encounter, the phone tabletop remains a focused, usable player surface for locating and moving the bound token, panning/zooming, measurement, and authorized Scene interactions, but it is not treated as a compressed full-map editor. Outside an Encounter, Phase 08 provides the authorized projected Scene without inventing exploration-actor control. Responsive behavior follows available space and input capability rather than device sniffing or separate client implementations.
-
-When that open Session marks the displayed Character present, Sheet play-state commands use the same live-session WebSocket as the tabletop instead of the ordinary HTTP mutation path. The Sheet may project an existing optimistic UI update locally, but it treats the command as successful only after the coordinator returns the persisted `COMMAND_COMMITTED` result. The high-frequency `ADJUST_HIT_POINTS` lane returns a compact public receipt with no Sheet payload; the originating Sheet retains its optimistic value and immediately refetches its bounded canonical Sheet query. Character commits from another admitted client likewise carry no private response payload and invalidate the relevant Sheet caches. A Character that is not present in an open Session continues to use the ordinary HTTP path. This keeps the independently open Sheet responsive without allowing HTTP mutations to race the room's command-authority lease.
-
-The transitional live maximum-HP policy lane follows the same public receipt contract while evaluating
-the currently committed Character mechanics input. Its old exact rule-revision pin is not a target
-contract: ADRs 0023-0025 replace it with current capability discovery and a frozen occurrence snapshot
-when execution starts. It locks Campaign before Session authority and Character ownership state,
-validates the checksum-bound base and Campaign mechanics projections, and commits the adjustment,
-clamped HP, both projections, stream version, and idempotency receipt atomically. Campaign overlay
-provenance distinguishes a Character-owned modifier from a Campaign-owned override without
-reconstructing Campaign adjustment lists. Replays do not rerun mechanics, and no private mechanics
-document is returned to the Worker or browser.
-
-React owns the window header, mode controls, accessible alternatives, Scene selector, and editor inspectors. PixiJS owns only frame-rate Scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized Character actions and interactive Scene elements. Reusable definitions supply initial structure; committed live edits belong to the Campaign Scene aggregate.
-
-The tabletop performs one bounded HTTP read for initial Encounter and pending-decision state, then applies the authoritative Encounter projection and pending summary carried by root WebSocket command responses. Reconnect snapshots and non-root aggregate changes invalidate the affected reads; the mounted tabletop does not poll them. Its action drawer requests only the authorized active Character's compact action choices rather than the full Character Sheet. Failed admission attempts use exponential backoff capped at 30 seconds and reset only after an authoritative `READY`, preventing an unavailable room host from amplifying ticket and API traffic.
-
-## Remote command flow
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant API as Netlify API
-  participant DO as Session Durable Object
-  participant Exec as Private Netlify executor
-  participant DB as Supabase/Postgres
-
-  Client->>API: Authenticated ticket request
-  API->>DB: Authorize Campaign/session membership
-  API-->>Client: Single-use 60-second ticket
-  Client->>DO: Native WebSocket + signed ticket
-  DO->>Exec: Claim authority and load snapshot
-  Exec->>DB: Authorize + load aggregate versions/private state
-  DO-->>Client: Private READY snapshot + delivery high-water
-  Client->>DO: Durable command(commandId, expected versions)
-  DO->>DO: Journal PENDING; atomically claim conflict keys
-  DO->>Exec: Signed private command request
-  Exec->>DB: Reauthorize, evaluate pinned native Zen, commit transaction
-  DB-->>Exec: Persisted result and aggregate version
-  Exec-->>DO: Idempotent command result
-  DO->>DO: Journal terminal result and delivery sequence
-  DO-->>Client: Private caller result + projected committed broadcast
-```
-
-The DO-to-Netlify hop applies only to durable commands. Pointer movement, drag previews, selection, and measurement previews are bounded transient envelopes handled directly between admitted WebSockets. Token drag segments are checked against the authoritative scene geometry in the room coordinator before relay. When the scene uses on-drag reveal, the coordinator derives recipient-private temporary fog and newly visible scene objects from the accepted path; none of this touches Netlify, Zen, or Postgres.
-
-Netlify remains viable because native Zen runs during an ordinary on-demand Node invocation. It does not require an always-on process. Warm invocations may reuse loaded modules, but correctness never depends on process memory or a warm evaluator cache.
-
-Managed Scene commands use a dedicated bounded lane: one locked Postgres read verifies active membership, exact Campaign and Session identity, the open Session, the current room lease, the checksum-verified Campaign Scene projection, any optional Encounter binding, and any prior command receipt. Scene-only commands take locks in `Session → lease → Scene` order. Encounter-bound movement takes `Session → lease → Encounter → Scene → actor-token binding` before rule state and receipts. Presentation and binding changes follow the same roots but omit mechanics that they do not execute. TypeScript reduces the validated projection, then one dependent CTE appends the immutable Campaign Scene event and compare-and-swap publishes the next checksum-verified projection. Missing context, a lost lease, or a checksum/version mismatch fails closed; ordinary non-live GM Scene editing retains its direct Campaign authorization path.
-
-## Local command flow
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Host as Local Node session host
-  participant Rules as Pinned native Zen runtime
-  participant DB as Supabase/Postgres
-
-  Client->>Host: Native WebSocket + signed ticket
-  Host->>DB: Claim expiring command authority and load snapshot
-  Host-->>Client: Private READY snapshot
-  Client->>Host: Durable command
-  Host->>Host: Atomically claim conflict keys
-  Host->>Rules: Evaluate only the selected rule lane
-  Host->>DB: Persist event/projection transactionally
-  DB-->>Host: Commit
-  Host-->>Client: Private result + projected committed broadcast
-```
-
-Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol, current capability
-discovery, frozen occurrence semantics, reducers, command identity, private projection, and
-persistence semantics. It is online local hosting, not offline-first: Supabase still provides identity
-and durable state unless a later product decision changes that boundary.
-
-## Deployment ownership
-
-| Surface                                         | Process                                       | Initial deployment                   |
-| ----------------------------------------------- | --------------------------------------------- | ------------------------------------ |
-| Web, SSR, ordinary tRPC, ticket issue           | `apps/web` + `apps/apis`                      | Netlify                              |
-| Remote WebSocket rooms and transient fanout     | `apps/session-worker`                         | Cloudflare Worker + Durable Objects  |
-| Remote durable command execution and native Zen | `netlify/functions/live-session-executor.mts` | Netlify Functions                    |
-| Local WebSocket rooms and native Zen            | `apps/session-host`                           | Headless local Node process          |
-| Identity and canonical gameplay state           | Supabase/Postgres                             | Isolated staging/production projects |
-
-No separate repository is required. Named Wrangler environments isolate the staging and production Workers and Durable Object storage. Netlify Deploy Preview configuration points at the staging Supabase project and staging Worker; the Production context points at production. Render is not part of the initial managed architecture. A future launcher can start the local host invisibly; a polished self-hosting installer remains out of scope.
-
-The private `live-session-executor` is pinned to Netlify's `cmh` region in `netlify.toml`, colocated with the current US East (Ohio) Supabase environments. A database-region move must update that deployment setting in the same cutover.
-
-## Admission and authority
-
-The authenticated Campaign-session API issues a signed ticket containing exact Campaign ID, session ID, user ID, membership role, unique ticket ID, and one-minute expiry. Browsers offer the application protocol and ticket as WebSocket subprotocols. The coordinator returns only the application protocol, consumes the ticket once, and rejects origin or room mismatches before admission.
-
-The remote Worker and local host claim the existing expiring Postgres command-authority lease. Character, Encounter, and scene transactions verify that authority under lock so ordinary HTTP mutations cannot race a participating live aggregate. Each 10-second lease renewal also returns the Campaign's current active membership roles. A removed member or a socket whose ticket role no longer matches receives a connection-level `UNAUTHORIZED` rejection and closes with policy code `1008`; unaffected members remain connected, and the revoked client must obtain a fresh ticket. If the member whose identity last renewed the room has left, the coordinator retries through another connected identity before treating authority as lost. The Durable Object persists its renewal deadline and uses one multiplexed alarm to renew through the private executor while sockets, authoritative work, or reconnect grace remain. It never holds an outbound database connection. Retryable renewal failures pause durable command draining and schedule a bounded retry; terminal authority loss closes attached sockets and requires a fresh ticket and canonical hydration.
-
-When renewal reports changed aggregate versions, the local host drains its existing conflict-key scheduler before replacing the canonical snapshot and coordinator. Commands already accepted finish under the old scheduler; commands arriving during refresh wait for the replacement. The Durable Object retains its single journal-backed scheduler while it refreshes canonical state. Neither adapter may split one room's durable work across independent conflict-key domains.
-
-## Conflict-key scheduler
-
-The scheduler is dependency-aware, not a room-wide queue and not three coarse type lanes.
-
-```mermaid
-flowchart LR
-  A["Character A command\ncharacter:A"] --> Run1["execute"]
-  B["Character B command\ncharacter:B"] --> Run2["execute concurrently"]
-  Door["Open door 17\nscene:S:barrier:17"] --> Run3["execute concurrently"]
-  Attack["A attacks B\ncharacter:A + character:B + encounter:E"] --> Wait["wait for all claimed keys"]
-```
-
-- The server derives a conservative dependency and mutation set from the validated command; the client does not declare authority.
-- Keys are acquired atomically as a set. A command never accumulates partial claims.
-- `scene:<id>` conflicts with every descendant; resource keys conflict only with the same resource or a broad ancestor.
-- Earlier overlapping work keeps conflict-local FIFO. Unrelated work may pass it.
-- At most eight authoritative commands execute concurrently per room.
-- Encounter actions claim the Encounter plus every bound Character they may read or mutate. If a future rule can affect an unknown participant set, it must claim the broader Encounter key before evaluation.
-- Postgres row locks for multi-aggregate transactions use sorted canonical keys.
-
-Scene events retain every recursively derived changed conflict key, including fog chunks inside batch deltas. A stale scene command rebases only when every change since its base version is disjoint from its requested keys; otherwise it fails as stale. This permits two token/door resources to commit concurrently without treating the scene's monotonic version as a global mutex while preventing derived exploration from being overwritten.
-
-## Delivery, replay, and hibernation
-
-Each durable command has a stable command ID and fingerprint. The DO stores `PENDING`, execution attempts, and terminal result in SQLite. It retains every nonterminal command and the newest 10,000 terminal receipts per room. A result is assigned the next global `deliverySequence` when it becomes journaled delivery truth, not when accepted. Aggregate versions remain independent and canonical in Postgres.
-
-An ambiguous executor timeout remains pending and keeps its conflict-local fence. Retrying the same command ID is safe because the application services return the persisted result. A delayed replay remains valid even when later commands have advanced the aggregate. Browser Character caches apply requester results monotonically against the latest `READY`, committed broadcast, and cached stream versions; an older historical receipt triggers canonical refetch instead of replacing newer Sheet state.
-
-Reconnect receives a full private `READY` snapshot with the global delivery high-water, then statuses only for pending command IDs originally submitted by that authenticated user. The high-water does not imply the client was authorized to see every lower delivery. Hibernation or isolate eviction restores the journal, lease-renewal deadline, and retry schedule from SQLite; a new connection cycle reloads canonical gameplay state through the executor. In-memory locks are never recovery truth.
-
-The room may retain an exact Character mechanics payload only after the executor has loaded and
-checksum-verified its durable projection. On each eligible host command it rechecks the compact
-durable projection identity (stream, current capability/source identity, whole-projection checksum,
-and command-lane checksum); a missing or mismatched identity falls back to the full verified read.
-Once a command creates an occurrence, its frozen execution snapshot—not a consumer rule pin—governs
-resume and replay. This server-only payload is stripped at the executor boundary and never enters a
-browser `READY`, transient, or Durable Object journal; authorized receipts expose only their redacted
-evidence contract.
-
-## Private state
-
-Scene snapshots, deltas, and token-drag previews are projected separately for each admitted viewer. Hidden or unexplored tokens, unrevealed barriers and doors, unrevealed lights and darkness, GM annotations, and other players' fog are withheld server-side. An owner may explicitly request one player's transient projection while using player-preview mode; this affects only that owner socket and does not broaden any player delivery. Character and Encounter response payloads are returned only to command requesters; peers receive committed aggregate/version information. Full reusable scene-definition APIs remain owner-only.
-
-Token movement persists the validated sampled path, final position, and derived exploration as one append-only scene event. `Undo last token move` is owner-only and briefly claims the scene-wide conflict key while the server finds the latest eligible move. It appends a provenance-bearing inverse movement plus exact affected fog-layer replacements; it never rewrites or deletes prior events. Later overlapping token or fog changes make an undo fail closed, while unrelated state such as a door change remains intact.
-
-A primary scene change and its automatically derived exploration chunks commit as one `BATCH` delta under one scene version. Players receive a fresh authoritative private scene snapshot after durable scene commits so newly explored entities appear without leaking the structural delta that revealed them. GMs may receive the compact committed delta. Reconnect and idempotent replay use the same current private snapshot path.
-
-Token vision is resolved from the pinned Character output unless the scene token has an explicit vision override. For an assigned Character, scene-only hydration requires the checksum-verified Campaign mechanics overlay and reads its exact policy output; it never applies a second ad hoc Campaign adjustment or rebuilds a Sheet. The resolved mechanics remain command context, not scene-definition state. Token movement recalculates only that token's exploration. Door and barrier changes recalculate only tokens whose current sight radius intersects the changed segment; this keeps exploration deterministic without turning every structural edit into a full-table visibility pass.
-
-## Current measurements and gates
-
-The authenticated six-client native local integration currently measures approximately:
-
-- warm Character round-trip p95: `156.15 ms`;
-- rule-bound resource round trip: `160.61 ms` (`145.41 ms` host service, including `11.11 ms` native Zen);
-- rule-bound spell-slot round trip: `180.38 ms` (`165.27 ms` host service, including `13.06 ms` native Zen);
-- Encounter usage round trip with no rules lane: `34 ms` (`19 ms` host service);
-- Scene host processing p95: `20.73 ms`;
-- disconnect, new ticket, reconnect, READY recovery, and buffered command: `196 ms`.
-
-These are local Supabase measurements, not production-region SLAs. The remote Worker is verified under real workerd/Miniflare for six distinct identities, private projections and transients, ticket admission, bounded SQLite journaling, actor-bound replay, concurrent disjoint scene commands, alarm-driven lease renewal, Durable Object eviction, hibernatable socket wake, and snapshot recovery. The real local-Supabase journey admits Player A first while Player B's distinct Character is present, verifies private response redaction, runs one GM plus five distinct players, and enforces a cold-command-ready budget below `500 ms` (latest `125.23 ms`), scene-only p95 below `100 ms` (latest `9.76 ms`), and rule-bound host p95 below `250 ms` (latest `136.21 ms`). Protocol-backed browser stories exercise the actual live-session client and scene reducer: the GM receives the editable scene, while the player receives a private READY projection with no editor chrome or unrevealed door. The retained browser fixture mounts an 8192×8192 map, 65 loaded map assets, 100 tokens, 200 barriers, 12 lights, darkness, fog, measurements, 25 Hz transient previews, and 4 Hz durable scene updates. Headless SwiftShader runs enforce fixture correctness, transient cleanup, and sampled-heap gates while retaining frame-pacing and real canvas wheel-gesture response as diagnostic evidence only. The headed hardware project rejects SwiftShader and requires sustained `45 FPS`, no Long Task or foreground-valid frame gap above `100 ms`, and real canvas wheel-gesture response no slower than `100 ms`. Raw RAF gaps remain bounded fixture diagnostics with timestamped focus, visibility, update-count, and observed-Long-Task attribution. A hardware run is valid only while its document stays continuously visible and focused: an external focus or visibility loss invalidates the run rather than being excluded from its result. The recorded three-hour full-mode soak passed at `60 FPS`, with a `17.7 ms` maximum frame gap, no Long Tasks, and about `7.8 MiB` peak sampled heap growth. The deployed remote journey is the remaining production tracer gate. Transient movement is evaluated separately because it never takes the durable path.
-
-`yarn validate:pre-staging:local` is the required parent gate for every local live-session command: it resets and reseeds local Supabase, proves generated artifact parity, runs all workspace and Netlify tests serially, executes every real Postgres integration lane, provisions the VTT fixture, then runs the host and browser journeys. Staging cannot be used to discover a missing local lifecycle step. `yarn test:web:e2e:vtt-local` first builds the Functions runtime and its Turbo dependencies, then executes the full authenticated browser journey through Vite, local Wrangler Durable Objects, `apps/session-host/integration/localExecutorServer.ts`, and local Supabase. It is the behavioral and topology-parity gate: ticket issuance, private projections, asset delivery, the same reversible door and Max-HP workload, reconnect, recovery, and origin-correlated timing receipts. Because Vite, three rendered Chromium contexts, Wrangler, the executor, Docker, and Postgres share one PC, browser p95 samples use a fixed subsecond sanity ceiling; they are not an isolated-host performance claim. The direct Node-host integration is the strict local performance and transaction/concurrency gate: cold command below `500 ms`, Scene-only p95 below `100 ms`, and rule-bound p95 below `250 ms`. `yarn test:web:e2e:vtt-managed:release` uses the same workload against deployed credentials/endpoints and is the real connection, deployment, and performance gate with Scene-only p95 below `100 ms` and rule-bound p95 below `250 ms`. These fixed gates end investigation; no open-ended optimization loop follows a passing result.
-
-Run the default browser diagnostic with `yarn test:web:e2e:vtt-load`. Run the hardware gate in PowerShell with `$env:VTT_HARDWARE_FPS_GATE='1'; yarn test:web:e2e:vtt-load:hardware`. Add `$env:VTT_SOAK_MINUTES='180'` for the required three-hour soak. The hardware project rejects SwiftShader explicitly rather than misreporting software-rendered CI throughput as product performance.
-
-The deployed managed gate is `yarn test:web:e2e:vtt-managed:release`. It deliberately reuses one dedicated, non-concurrent production smoke Campaign so test runs do not accumulate Durable Object rooms or delayed media cleanup. Three dedicated accounts—one GM and two players—exercise real authenticated ticket issuance, the exact preflighted Cloudflare Worker, private Netlify executor, Supabase authority, a GM-only private-snapshot sentinel, exact signed VTT map bytes and renderer readiness for both players, two warmup plus ten measured reversible door commands delivered to all three clients, and the first player's reversible rule-bound Max HP adjustment (two warmup set/restore pairs plus ten measured pairs). The Netlify executor measures the successful authoritative application—including rules and persistence—not Durable Object or browser time. It labels Scene work `SCENE_ONLY`; Character and Encounter work is `RULE_BOUND` only when their service timing proves a rule-evaluation lane ran, otherwise `NON_RULE_BOUND`. The timing receipt is persisted with the command and delivered only to its authenticated origin, including replay/resume. The gate uses nearest-rank p95 limits of `100 ms` scene-only and `250 ms` rule-bound; click-to-render timing is diagnostic only. The test then disconnects every client through the authority-release grace period before reconnecting all three, forcing a new authoritative snapshot instead of accepting an already-hydrated room cache. It records sanitized timings with trace/video disabled and restores the door/adjustment state from its current authoritative state. Its required environment names and fixture contract are documented in `apps/session-worker/README.md`; credentials and paths remain uncommitted.
-
-The retained Node geometry kernel benchmark uses an 8192×8192 map, 100 tokens with 60-foot vision, 200 barriers, and a 512×512 canonical fog mask. Full-table exploration currently measures `18.4 ms` p95; a changed barrier affecting 20 tokens measures `3.0 ms` p95. These are kernel measurements, not a substitute for the end-to-end managed host gate.
-
-## Current foundation and remaining work
-
-Implemented backend foundation being retained through the Campaign Scene cutover:
-
-- native WebSocket ticket admission for remote and local play;
-- hibernatable Durable Object room routing, alarm-driven authority renewal, bounded SQLite journal, conflict scheduler, retry/replay, and private fanout;
-- private Netlify executor using existing application services, the shared rules runtime, frozen
-  occurrences, and Supabase transactions;
-- local Node host using the same wire protocol and direct application execution;
-- renderer-neutral scene contracts, pure reconstruction, semantic scene rebase, persistence, and VTT map media profile/tiles;
-- atomic scene/exploration batches, Character-derived vision, bounded deterministic exploration, and server-side private scene projection;
-- focused workerd, local multi-client, authority, replay, reconnect, migration, and latency gates.
-
-The standalone tabletop, launch points, live GM Play/Edit boundary, Scene authoring, map calibration, accessible controls, and Pixi renderer all exist and remain reusable. The previous local discovery lifecycle proved those surfaces against the transitional Encounter-owned Scene contract. ADR 0027 reopened only the affected ownership, presentation, binding, reconnect, and browser cases; they are not final acceptance evidence until the Campaign-owned Scene cutover and one final local lifecycle pass. Socket.IO, Colyseus, Redis, and a custom Worker Zen build are not compatibility paths.
+Before ADR 0029, remote durable commands flowed through a Worker journal and a private Netlify
+executor into Supabase, while a local Node session host executed an equivalent path. That executor,
+local-host, tRPC/Kysely, Supabase, and GoRules topology is retired. The current Session DO executes the
+bounded live paths above and publishes directly to Convex; it does not revive the removed executor or
+SQL stack.

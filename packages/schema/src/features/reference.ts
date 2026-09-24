@@ -1,0 +1,39 @@
+import { z } from '../zod.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import { diceExpressionDtoSchema } from '../shared/dice.js'
+
+export const featureRollDefinitionDtoSchema = z.strictObject({
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  kind: z.enum(['ATTACK', 'DAMAGE', 'HEALING', 'ABILITY_CHECK', 'SAVING_THROW']),
+  expression: diceExpressionDtoSchema,
+  rollMode: z._default(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']), 'NORMAL'),
+  chargeCost: z._default(z.nullable(z.number().check(z.int()).check(z.positive())), null),
+  order: z.number().check(z.int()).check(z.nonnegative())
+})
+export type FeatureRollDefinitionDto = z.infer<typeof featureRollDefinitionDtoSchema>
+
+/** Exact authored fields used by Encounter Feature references. */
+export const featureReferenceDtoSchema = z.object({
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema,
+  section: z.optional(
+    z.enum([
+      'TRAIT',
+      'ACTION',
+      'BONUS_ACTION',
+      'REACTION',
+      'LEGENDARY_ACTION',
+      'LAIR_ACTION',
+      'REGIONAL_EFFECT',
+      'OTHER'
+    ])
+  ),
+  rollDefinitions: z.optional(authoredNestedCollectionSchema(featureRollDefinitionDtoSchema))
+})

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   characterRulePolicyInputSchema,
@@ -25,14 +25,19 @@ import {
 } from './identity.js'
 import {
   serverPublishedRuleDefinitionDtoSchema,
-  ruleGraphSourceIdentityDtoSchema,
-  serverUuidIdentityDtoSchema
-} from '../shared/rulesExecution.js'
-import { equipmentPropertyCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+  ruleGraphSourceIdentityDtoSchema
+} from '../shared/ruleExecutionCore.js'
+import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
+import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
+import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
-const nonNegativeStreamVersionSchema = z.number().int().min(0)
-const compiledActionResourceIdentitySchema = z.string().trim().min(1).max(240)
+const nonNegativeStreamVersionSchema = z.number().check(z.int()).check(z.gte(0))
+const compiledActionResourceIdentitySchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(240))
 
 /**
  * Server-only source retained by a freshly compiled Character action.  It is
@@ -43,173 +48,129 @@ const compiledActionResourceIdentitySchema = z.string().trim().min(1).max(240)
 const compiledActionCompilerSourceSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
-    sourceId: z.string().trim().min(1).max(240),
+    sourceId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     entryPointDefinitionId: serverUuidIdentityDtoSchema,
     effectId: serverUuidIdentityDtoSchema,
-    conditionDefinitionIds: z.array(serverUuidIdentityDtoSchema).max(1_000),
-    savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema.nullable(),
+    conditionDefinitionIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(1_000)),
+    savingThrowAbilityDefinitionId: z.nullable(serverUuidIdentityDtoSchema),
     /** The exact compiler-normalized Effect; never exposed by a recipient projection. */
     compiledEffect: jsonValueSchema,
     compiledEffectChecksum: projectionChecksumSchema,
-    capabilityContractVersion: z.number().int().positive().max(10_000),
+    capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
     compilerSourceChecksum: projectionChecksumSchema
   })
-  .superRefine((source, context) => {
-    const sortedIds = [...source.conditionDefinitionIds].sort((left, right) =>
-      left.localeCompare(right)
-    )
-    if (
-      source.conditionDefinitionIds.some((id, index) => id !== sortedIds[index]) ||
-      new Set(source.conditionDefinitionIds).size !== source.conditionDefinitionIds.length
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['conditionDefinitionIds'],
-        message: 'Compiled action condition definition identities must be sorted and unique.'
-      })
-    }
-    if (source.entryPointDefinitionId !== source.effectId) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['entryPointDefinitionId'],
-        message: 'Compiled action source entry point must equal its authored Effect identity.'
-      })
-    }
-    if (checksumRuleDocument(source.compiledEffect) !== source.compiledEffectChecksum) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['compiledEffectChecksum'],
-        message: 'Compiled action source effect checksum is invalid.'
-      })
-    }
-    const { compilerSourceChecksum: _checksum, ...checksummed } = source
-    if (checksumRuleDocument(checksummed) !== source.compilerSourceChecksum) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['compilerSourceChecksum'],
-        message: 'Compiled action compiler-source checksum is invalid.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((source, context) => {
+      const sortedIds = [...source.conditionDefinitionIds].sort((left, right) =>
+        left.localeCompare(right)
+      )
+      if (
+        source.conditionDefinitionIds.some((id, index) => id !== sortedIds[index]) ||
+        new Set(source.conditionDefinitionIds).size !== source.conditionDefinitionIds.length
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['conditionDefinitionIds'],
+          message: 'Compiled action condition definition identities must be sorted and unique.'
+        })
+      }
+      if (source.entryPointDefinitionId !== source.effectId) {
+        context.addIssue({
+          code: 'custom',
+          path: ['entryPointDefinitionId'],
+          message: 'Compiled action source entry point must equal its authored Effect identity.'
+        })
+      }
+      if (checksumRuleDocument(source.compiledEffect) !== source.compiledEffectChecksum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['compiledEffectChecksum'],
+          message: 'Compiled action source effect checksum is invalid.'
+        })
+      }
+      const { compilerSourceChecksum: _checksum, ...checksummed } = source
+      if (checksumRuleDocument(checksummed) !== source.compilerSourceChecksum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['compilerSourceChecksum'],
+          message: 'Compiled action compiler-source checksum is invalid.'
+        })
+      }
+    })
+  )
 export type CompiledActionCompilerSource = z.infer<typeof compiledActionCompilerSourceSchema>
 
 export const pinnedSenseDefinitionSchema = z.strictObject({
   senseDefinitionId: serverUuidIdentityDtoSchema,
-  definitionVersion: z.number().int().positive(),
-  definitionContractVersion: z.number().int().positive().max(10_000),
-  definitionChecksum: z.string().regex(/^[a-f0-9]{64}$/),
+  definitionVersion: z.number().check(z.int()).check(z.positive()),
+  definitionContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
+  definitionChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
   document: senseReusableDefinitionDocumentDtoSchema,
   range: characterRuleSenseRangeSchema
 })
 export type PinnedSenseDefinition = z.infer<typeof pinnedSenseDefinitionSchema>
 
-/**
- * Server-derived facts retained with the immutable Character projection for
- * System policy that needs an actor's physical source data. These are source
- * identities/codes, never display labels or VTT-token inference.
- */
-export const characterInitiativeActorFactsSchema = z
-  .strictObject({
-    effectiveSize: sizeCodeSchema.nullable(),
-    checkTotals: z.record(serverUuidIdentityDtoSchema, z.number().int()).default({}),
-    equippedItems: z
-      .array(
-        z.strictObject({
-          itemInstanceId: projectionIdentifierSchema,
-          equipmentDefinitionId: projectionIdentifierSchema,
-          properties: z.array(equipmentPropertyCodeSchema).max(64)
-        })
-      )
-      .max(500)
-  })
-  .superRefine((value, context) => {
-    const itemIds = new Set<string>()
-    for (const [index, item] of value.equippedItems.entries()) {
-      if (itemIds.has(item.itemInstanceId)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['equippedItems', index, 'itemInstanceId'],
-          message: 'Initiative item facts must use unique item instances.'
-        })
-      }
-      itemIds.add(item.itemInstanceId)
-      if (
-        item.properties.some(
-          (property, propertyIndex) =>
-            propertyIndex > 0 && item.properties[propertyIndex - 1]! >= property
-        )
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['equippedItems', index, 'properties'],
-          message: 'Initiative item property codes must be unique and sorted.'
-        })
-      }
-    }
-    if (
-      value.equippedItems.some(
-        (item, index) =>
-          index > 0 && value.equippedItems[index - 1]!.itemInstanceId >= item.itemInstanceId
-      )
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['equippedItems'],
-        message: 'Initiative item facts must use ascending item identity order.'
-      })
-    }
-  })
-export type CharacterInitiativeActorFacts = z.infer<typeof characterInitiativeActorFactsSchema>
+export {
+  characterInitiativeActorFactsSchema,
+  type CharacterInitiativeActorFacts
+} from './characterInitiativeFacts.js'
 
 const compiledActionResourceBindingSchema = z.strictObject({
-  poolId: compiledActionResourceIdentitySchema,
+  poolId: characterResourcePoolIdentitySchema,
   chargeId: compiledActionResourceIdentitySchema,
-  cost: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)
+  cost: z.number().check(z.int()).check(z.gte(1)).check(z.lte(Number.MAX_SAFE_INTEGER))
 })
 const compiledActionActiveEffectPlanSchema = z.strictObject({
   authoredEffectId: serverUuidIdentityDtoSchema,
   compiledEntryId: serverUuidIdentityDtoSchema,
-  frozenGraphNodeId: z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/),
+  frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
   frozenGraph: serverPublishedRuleDefinitionDtoSchema,
-  capabilityContractVersion: z.number().int().positive().max(10_000),
+  capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
   recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-  initialRemaining: z.number().int().min(1).max(10_000).nullable(),
-  adapterFacts: z.record(z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/), ruleValueDtoSchema),
+  initialRemaining: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000))),
+  adapterFacts: z.record(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)), ruleValueDtoSchema),
   perceptionContributions: combatPerceptionContributionsDtoSchema,
-  conditionContribution: z
-    .strictObject({ conditionId: serverUuidIdentityDtoSchema })
-    .nullable()
-    .default(null),
-  actorRelationshipContribution: z
-    .strictObject({
-      relationshipOutcomeId: serverUuidIdentityDtoSchema,
-      modules: z.array(actorRelationshipModuleDtoSchema).min(1).max(32),
-      conditionIds: z.array(serverUuidIdentityDtoSchema).max(32),
-      capabilitySuppressions: z
-        .array(
-          z.strictObject({
-            contributionId: serverUuidIdentityDtoSchema,
-            capabilityDefinitionIds: z.array(serverUuidIdentityDtoSchema).min(1).max(32)
-          })
-        )
-        .max(32)
-    })
-    .nullable()
-    .default(null),
-  maintenance: z
-    .strictObject({
-      definitionId: serverUuidIdentityDtoSchema,
-      /** Resolved under the Encounter transaction before any aggregate mutation. */
-      definitionChecksum: z
-        .string()
-        .regex(/^[a-f0-9]{64}$/)
-        .nullable(),
-      owner: z.literal('SOURCE_ACTOR'),
-      replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
-      emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
-    })
-    .nullable()
-    .default(null)
+  conditionContribution: z._default(
+    z.nullable(z.strictObject({ conditionId: serverUuidIdentityDtoSchema })),
+    null
+  ),
+  actorRelationshipContribution: z._default(
+    z.nullable(
+      z.strictObject({
+        relationshipOutcomeId: serverUuidIdentityDtoSchema,
+        modules: z
+          .array(actorRelationshipModuleDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(32)),
+        conditionIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(32)),
+        capabilitySuppressions: z
+          .array(
+            z.strictObject({
+              contributionId: serverUuidIdentityDtoSchema,
+              capabilityDefinitionIds: z
+                .array(serverUuidIdentityDtoSchema)
+                .check(z.minLength(1))
+                .check(z.maxLength(32))
+            })
+          )
+          .check(z.maxLength(32))
+      })
+    ),
+    null
+  ),
+  maintenance: z._default(
+    z.nullable(
+      z.strictObject({
+        definitionId: serverUuidIdentityDtoSchema,
+        /** Resolved under the Encounter transaction before any aggregate mutation. */
+        definitionChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
+        owner: z.literal('SOURCE_ACTOR'),
+        replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
+        emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
+      })
+    ),
+    null
+  )
 })
 
 const compiledActionTemplateIdentitySchema = ruleGraphSourceIdentityDtoSchema
@@ -229,45 +190,47 @@ const compiledActionTestOutcomePlanSchema = z
           template: compiledActionTemplateIdentitySchema
         })
       )
-      .min(1)
-      .max(32)
+      .check(z.minLength(1))
+      .check(z.maxLength(32))
   })
-  .superRefine((plan, context) => {
-    if (
-      plan.test.published.id !== plan.test.template.definitionId ||
-      plan.test.published.gameSystemId !== plan.test.template.gameSystemId ||
-      plan.test.published.definitionFamilyKey !== plan.test.template.definitionFamilyKey ||
-      plan.test.published.checksum !== plan.test.template.checksum
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['test'],
-        message: 'The TEST template must identify its exact published graph.'
-      })
-    }
-    const paths = new Set<string>()
-    for (const [index, outcome] of plan.outcomes.entries()) {
-      if (paths.has(outcome.pathCode)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['outcomes', index, 'pathCode'],
-          message: 'TEST_OUTCOME paths must be unique.'
-        })
-      }
-      paths.add(outcome.pathCode)
+  .check(
+    z.superRefine((plan, context) => {
       if (
-        outcome.template.definitionId !== plan.compilerSource.effectId ||
-        outcome.template.gameSystemId !== plan.test.published.gameSystemId ||
-        outcome.template.definitionFamilyKey !== plan.test.published.definitionFamilyKey
+        plan.test.published.id !== plan.test.template.definitionId ||
+        plan.test.published.gameSystemId !== plan.test.template.gameSystemId ||
+        plan.test.published.definitionFamilyKey !== plan.test.template.definitionFamilyKey ||
+        plan.test.published.checksum !== plan.test.template.checksum
       ) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['outcomes', index, 'template'],
-          message: 'An OUTCOME template must remain in the TEST action family.'
+          code: 'custom',
+          path: ['test'],
+          message: 'The TEST template must identify its exact published graph.'
         })
       }
-    }
-  })
+      const paths = new Set<string>()
+      for (const [index, outcome] of plan.outcomes.entries()) {
+        if (paths.has(outcome.pathCode)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['outcomes', index, 'pathCode'],
+            message: 'TEST_OUTCOME paths must be unique.'
+          })
+        }
+        paths.add(outcome.pathCode)
+        if (
+          outcome.template.definitionId !== plan.compilerSource.effectId ||
+          outcome.template.gameSystemId !== plan.test.published.gameSystemId ||
+          outcome.template.definitionFamilyKey !== plan.test.published.definitionFamilyKey
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['outcomes', index, 'template'],
+            message: 'An OUTCOME template must remain in the TEST action family.'
+          })
+        }
+      }
+    })
+  )
 
 const compiledActionExecutionPlanSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -284,21 +247,21 @@ const compiledActionExecutionPlanSchema = z.discriminatedUnion('kind', [
  */
 export const compiledActionTargetPolicySchema = z.strictObject({
   range: rangeDtoSchema,
-  targeting: targetingDtoSchema.nullable(),
-  shape: shapeDtoSchema.nullable(),
+  targeting: z.nullable(targetingDtoSchema),
+  shape: z.nullable(shapeDtoSchema),
   pathOverrides: z
     .array(
       z.strictObject({
         entryId: projectionIdentifierSchema,
         pathGroupId: projectionIdentifierSchema,
         pathCode: projectionIdentifierSchema,
-        pathOrder: z.number().int().min(0).max(9_999),
-        entryOrder: z.number().int().min(0).max(9_999_999),
-        range: rangeDtoSchema.nullable(),
-        targeting: targetingDtoSchema.nullable()
+        pathOrder: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
+        entryOrder: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999_999)),
+        range: z.nullable(rangeDtoSchema),
+        targeting: z.nullable(targetingDtoSchema)
       })
     )
-    .max(1_000)
+    .check(z.maxLength(1_000))
 })
 export type CompiledActionTargetPolicy = z.infer<typeof compiledActionTargetPolicySchema>
 
@@ -306,9 +269,9 @@ const compiledActionEntryPointSchema = z.union([
   z.strictObject({
     schemaVersion: z.literal(1),
     kind: z.literal('CHARACTER_ACTION'),
-    actionId: z.string().trim().min(1).max(240),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     effectId: serverUuidIdentityDtoSchema,
-    targetPolicy: compiledActionTargetPolicySchema.optional(),
+    targetPolicy: z.optional(compiledActionTargetPolicySchema),
     compilation: z.strictObject({
       kind: z.literal('COMPILED'),
       published: serverPublishedRuleDefinitionDtoSchema
@@ -318,7 +281,7 @@ const compiledActionEntryPointSchema = z.union([
     schemaVersion: z.literal(4),
     kind: z.literal('CHARACTER_SPELL_CAST'),
     /** The exact current Character spell-cast candidate identity. */
-    actionId: z.string().trim().min(1).max(1_000),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
     effectId: serverUuidIdentityDtoSchema,
     spell: z.strictObject({
       spellId: projectionIdentifierSchema,
@@ -336,65 +299,65 @@ const compiledActionEntryPointSchema = z.union([
         'SUBCLASS'
       ]),
       sourceInstanceId: projectionIdentifierSchema,
-      castLevel: z.number().int().min(0).max(9),
+      castLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9)),
       castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
-      slotKey: projectionIdentifierSchema.nullable(),
-      resourceOwnerKey: projectionIdentifierSchema.nullable()
+      slotKey: z.nullable(projectionIdentifierSchema),
+      resourceOwnerKey: z.nullable(characterResourcePoolIdentitySchema)
     }),
     targetPolicy: compiledActionTargetPolicySchema,
     compilation: z.strictObject({
       kind: z.literal('COMPILED'),
-      activeEffectPlan: compiledActionActiveEffectPlanSchema.nullable(),
+      activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
       executionPlan: compiledActionExecutionPlanSchema
     })
   }),
   z.strictObject({
     schemaVersion: z.literal(4),
     kind: z.literal('CHARACTER_ACTION'),
-    actionId: z.string().trim().min(1).max(240),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     effectId: serverUuidIdentityDtoSchema,
-    targetPolicy: compiledActionTargetPolicySchema.optional(),
+    targetPolicy: z.optional(compiledActionTargetPolicySchema),
     compilation: z.strictObject({
       kind: z.literal('COMPILED'),
-      resourceBinding: compiledActionResourceBindingSchema.nullable(),
-      activeEffectPlan: compiledActionActiveEffectPlanSchema.nullable(),
+      resourceBinding: z.nullable(compiledActionResourceBindingSchema),
+      activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
       executionPlan: compiledActionExecutionPlanSchema
     })
   }),
   z.strictObject({
     schemaVersion: z.literal(2),
     kind: z.literal('CHARACTER_ACTION'),
-    actionId: z.string().trim().min(1).max(240),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     effectId: serverUuidIdentityDtoSchema,
-    targetPolicy: compiledActionTargetPolicySchema.optional(),
+    targetPolicy: z.optional(compiledActionTargetPolicySchema),
     compilation: z.strictObject({
       kind: z.literal('COMPILED'),
       published: serverPublishedRuleDefinitionDtoSchema,
-      resourceBinding: compiledActionResourceBindingSchema.nullable(),
-      activeEffectPlan: compiledActionActiveEffectPlanSchema.nullable()
+      resourceBinding: z.nullable(compiledActionResourceBindingSchema),
+      activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema)
     })
   }),
   z.strictObject({
     schemaVersion: z.literal(3),
     kind: z.literal('CHARACTER_ACTION'),
-    actionId: z.string().trim().min(1).max(240),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     effectId: serverUuidIdentityDtoSchema,
-    targetPolicy: compiledActionTargetPolicySchema.optional(),
+    targetPolicy: z.optional(compiledActionTargetPolicySchema),
     compilation: z.strictObject({
       kind: z.literal('COMPILED'),
       /** Legacy compiled graph retained for non-phased fixed/recurring actions. */
       published: serverPublishedRuleDefinitionDtoSchema,
-      resourceBinding: compiledActionResourceBindingSchema.nullable(),
-      activeEffectPlan: compiledActionActiveEffectPlanSchema.nullable(),
+      resourceBinding: z.nullable(compiledActionResourceBindingSchema),
+      activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
       compilerSource: compiledActionCompilerSourceSchema
     })
   }),
   z.strictObject({
     schemaVersion: z.literal(1),
     kind: z.literal('CHARACTER_ACTION'),
-    actionId: z.string().trim().min(1).max(240),
+    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     effectId: serverUuidIdentityDtoSchema,
-    targetPolicy: compiledActionTargetPolicySchema.optional(),
+    targetPolicy: z.optional(compiledActionTargetPolicySchema),
     compilation: z.strictObject({
       kind: z.literal('MANUAL'),
       reasonCode: z.enum(['SYSTEM_CAPABILITY_UNAVAILABLE', 'NOT_NORMALIZED'])
@@ -402,7 +365,9 @@ const compiledActionEntryPointSchema = z.union([
   })
 ])
 
-export const compiledActionEntryPointsSchema = z.array(compiledActionEntryPointSchema).max(1_000)
+export const compiledActionEntryPointsSchema = z
+  .array(compiledActionEntryPointSchema)
+  .check(z.maxLength(1_000))
 export type CompiledActionEntryPoint = z.infer<typeof compiledActionEntryPointSchema>
 
 const characterMechanicsContentRefSchema = z.strictObject({
@@ -423,7 +388,7 @@ export const characterMechanicsRuleSnapshotSchema = z.strictObject({
   classes: z.array(
     z.strictObject({
       classId: projectionIdentifierSchema,
-      subclassId: projectionIdentifierSchema.optional()
+      subclassId: z.optional(projectionIdentifierSchema)
     })
   ),
   features: z.array(
@@ -437,7 +402,7 @@ export const characterMechanicsRuleSnapshotSchema = z.strictObject({
       instanceId: projectionIdentifierSchema,
       contentRef: characterMechanicsContentRefSchema,
       compiledItem: z.strictObject({
-        category: z.string().trim().min(1).max(80)
+        category: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))
       })
     })
   )
@@ -459,27 +424,27 @@ const characterMechanicsProjectionObjectSchema = z.strictObject({
   systemVocabularySnapshotChecksum: projectionChecksumSchema,
   ruleRevisionId: projectionIdentifierSchema,
   ruleRevisionChecksum: projectionChecksumSchema,
-  evaluatorVersion: z.string().trim().min(1).max(80),
-  modelContractVersion: z.number().int().min(1).max(10_000),
+  evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
+  modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
   ruleSnapshot: characterMechanicsRuleSnapshotSchema,
   rulePolicyInput: characterRulePolicyInputSchema,
   rulePolicyOutput: characterRulePolicyOutputSchema,
-  initiativeActorFacts: characterInitiativeActorFactsSchema.default({
+  initiativeActorFacts: z._default(characterInitiativeActorFactsSchema, {
     effectiveSize: null,
     checkTotals: {},
     equippedItems: []
   }),
-  pinnedSenseDefinitions: z.array(pinnedSenseDefinitionSchema).max(100),
+  pinnedSenseDefinitions: z.array(pinnedSenseDefinitionSchema).check(z.maxLength(100)),
   ruleRegistry: z.record(z.string(), jsonValueSchema),
   compiledActionEntryPoints: compiledActionEntryPointsSchema
 })
 
-export const characterMechanicsProjectionSchema =
-  characterMechanicsProjectionObjectSchema.superRefine((projection, ctx) => {
+export const characterMechanicsProjectionSchema = characterMechanicsProjectionObjectSchema.check(
+  z.superRefine((projection, ctx) => {
     const senses = projection.rulePolicyOutput.senses
     if (projection.pinnedSenseDefinitions.length !== senses.length) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Pinned sense definitions must align with final Character senses.',
         path: ['pinnedSenseDefinitions']
       })
@@ -491,7 +456,7 @@ export const characterMechanicsProjectionSchema =
     )
     if (pinnedSenseIds.some((id, index) => id !== sortedPinnedSenseIds[index])) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Pinned sense definitions must use canonical identity order.',
         path: ['pinnedSenseDefinitions']
       })
@@ -505,7 +470,7 @@ export const characterMechanicsProjectionSchema =
       [...expectedSenseIdSet].some((id) => !pinnedSenseIdSet.has(id))
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Pinned sense definition identities must exactly match final Character senses.',
         path: ['pinnedSenseDefinitions']
       })
@@ -522,7 +487,7 @@ export const characterMechanicsProjectionSchema =
         checksumRuleDocument(pin.range) !== checksumRuleDocument(sense.range)
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Pinned sense definition must match its Character System and final sense range.',
           path: ['pinnedSenseDefinitions', index]
         })
@@ -534,7 +499,7 @@ export const characterMechanicsProjectionSchema =
     const spellEntries = entries.filter((entry) => entry.kind === 'CHARACTER_SPELL_CAST')
     if (actionEntries.length !== candidates.length) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Compiled action entries must align with action candidates.',
         path: ['compiledActionEntryPoints']
       })
@@ -549,14 +514,14 @@ export const characterMechanicsProjectionSchema =
         entry.effectId !== candidate.effectId
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Compiled action entry identity must match its ordered action candidate.',
           path: ['compiledActionEntryPoints', index]
         })
       }
       if (seenActionIds.has(entry.actionId)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Compiled action entry identities must be unique.',
           path: ['compiledActionEntryPoints', index]
         })
@@ -576,7 +541,7 @@ export const characterMechanicsProjectionSchema =
           published.gameSystemId !== projection.commandState.systemId)
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Compiled action graph identity must match its Effect and Character System.',
           path: ['compiledActionEntryPoints', index, 'compilation']
         })
@@ -595,7 +560,7 @@ export const characterMechanicsProjectionSchema =
             binding.cost === resourceUse.cost)
         if (!bindingMatches) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'Compiled action resource binding must match its exact action candidate.',
             path: ['compiledActionEntryPoints', index, 'compilation', 'resourceBinding']
           })
@@ -606,7 +571,7 @@ export const characterMechanicsProjectionSchema =
             (activeEffectPlan.initialRemaining !== null && activeEffectPlan.initialRemaining < 1))
         ) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'Compiled active-effect plan must match its exact Effect.',
             path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
           })
@@ -619,7 +584,7 @@ export const characterMechanicsProjectionSchema =
           )
         )
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'Compiled active-effect sense grants must belong to the action Game System.',
             path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
           })
@@ -630,7 +595,7 @@ export const characterMechanicsProjectionSchema =
         candidate.resourceUse !== null
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message:
             'Historical compiled action entries are resource-free and cannot align with a resource-bound action candidate.',
           path: ['compiledActionEntryPoints', index]
@@ -667,7 +632,7 @@ export const characterMechanicsProjectionSchema =
         published.gameSystemId !== projection.commandState.systemId
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message:
             'Compiled spell action entry must match one current spell-cast candidate, decision, and Effect.',
           path: ['compiledActionEntryPoints', actionEntries.length + index]
@@ -676,6 +641,7 @@ export const characterMechanicsProjectionSchema =
       expectedSpellEntries.delete(entry.actionId)
     }
   })
+)
 
 export type CharacterMechanicsProjection = z.infer<typeof characterMechanicsProjectionSchema>
 
@@ -683,8 +649,9 @@ export type CharacterMechanicsProjection = z.infer<typeof characterMechanicsProj
  * The bounded durable identity required to reuse a room's already-validated
  * mechanics snapshot without reading its large rule payload on every command.
  */
-export const characterMechanicsProjectionMetadataSchema =
-  characterMechanicsProjectionObjectSchema.pick({
+export const characterMechanicsProjectionMetadataSchema = z.pick(
+  characterMechanicsProjectionObjectSchema,
+  {
     characterId: true,
     commandState: true,
     commandStateChecksum: true,
@@ -700,7 +667,8 @@ export const characterMechanicsProjectionMetadataSchema =
     ruleRevisionChecksum: true,
     evaluatorVersion: true,
     modelContractVersion: true
-  })
+  }
+)
 
 export type CharacterMechanicsProjectionMetadata = z.infer<
   typeof characterMechanicsProjectionMetadataSchema

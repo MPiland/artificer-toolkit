@@ -1,11 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getCampaignList } from '#app/data/campaigns/queries'
-import { createServerApi } from '#app/lib/api'
 import { CampaignListPage } from '#domains/campaigns'
+import { campaignListSearchSchema } from '#domains/campaigns/campaignListSearch'
 
 export const Route = createFileRoute('/_authed/campaigns/')({
-  loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getCampaignList(createServerApi()))
-  },
-  component: CampaignListPage
+  validateSearch: campaignListSearchSchema,
+  component: CampaignListRoute
 })
+
+function CampaignListRoute() {
+  const { campaignId } = Route.useSearch()
+  return <CampaignListPage deletingCampaignId={campaignId} />
+}

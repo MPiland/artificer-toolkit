@@ -1,0 +1,1916 @@
+import { makeFunctionReference } from 'convex/server'
+import { describe, expect, it, vi } from 'vitest'
+import type { z } from 'zod'
+import type {
+  CampaignDetailDto,
+  CreateCampaignInput
+} from '@artificer-toolkit/schema/api/campaignCore'
+import type {
+  CampaignSessionDto,
+  createCampaignSessionInputSchema
+} from '@artificer-toolkit/schema/api/campaignSessions'
+import type {
+  CreateEncounterBlueprintInputDto,
+  CreateEncounterInputDto,
+  EncounterBlueprintDto,
+  EncounterCommandResultDto,
+  EncounterGmProjectionDto,
+  ResolveEncounterActionInputDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  encounterCommandResultDtoSchema,
+  encounterGmProjectionDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import {
+  sceneStoredDefinitionEntitySchema,
+  sceneStoredDefinitionSaveSchema,
+  sceneStoredInitialStateSchema,
+  sceneStoredPresentationSchema
+} from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+import {
+  sceneStoredLiveStateSchema,
+  sceneStoredLiveEntitySchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+import {
+  encounterRuleUsageUsed,
+  featureChargeUsed,
+  withEncounterRuleUsageUsed,
+  withFeatureChargeUsed
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import {
+  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_RULE_STATE_DEFINITIONS
+} from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { fixture } from '../../tests/fixtures/characters'
+import { importedSubject } from '../../tests/fixtures/publication'
+import { api, internal } from '../_generated/api'
+import * as rollRandom from '../lib/rollRandom'
+import { loadMovementTargets } from './movementTargets'
+
+const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
+  'campaigns/create:create'
+)
+const createSession = makeFunctionReference<
+  'mutation',
+  z.input<typeof createCampaignSessionInputSchema>,
+  CampaignSessionDto
+>('campaigns/sessions:create')
+const createBlueprint = makeFunctionReference<
+  'mutation',
+  CreateEncounterBlueprintInputDto,
+  EncounterBlueprintDto
+>('encounters/blueprints:create')
+const createRun = makeFunctionReference<
+  'mutation',
+  CreateEncounterInputDto,
+  EncounterGmProjectionDto
+>('encounters/runs:create')
+const creature = {
+  ...wolf,
+  features: wolf.features?.map((feature) =>
+    feature.label !== 'Bite'
+      ? feature
+      : {
+          ...feature,
+          effects: feature.effects?.map((effect) => ({
+            ...effect,
+            invocation: {
+              ...effect.invocation,
+              triggerCode: 'ACTIVATED' as const,
+              range: {
+                id: effect.invocation.range.id,
+                rangeKind: 'UNLIMITED' as const
+              },
+              targeting: {
+                selectionKind: 'SINGLE_TARGET' as const,
+                dispositionKind: 'ANY' as const
+              }
+            },
+            paths: effect.paths?.slice(0, 1).map((path) => {
+              if (!('resultBlock' in path)) return path
+              return {
+                ...path,
+                pathCode: 'ON_USE' as const,
+                resultBlock: {
+                  ...path.resultBlock,
+                  outcomes: path.resultBlock.outcomes.map((outcome) => {
+                    if (outcome.effectKind !== 'DAMAGE')
+                      throw new Error('Expected Bite damage fixture.')
+                    return {
+                      id: outcome.id,
+                      effectKind: 'DAMAGE' as const,
+                      damageTypeId: outcome.damageTypeId,
+                      valueKind: 'FIXED' as const,
+                      scalingKind: 'NONE' as const,
+                      amount: 1
+                    }
+                  })
+                }
+              }
+            })
+          }))
+        }
+  )
+}
+
+function nativeCreature(
+  charged: boolean,
+  self = false,
+  recurring = false,
+  phased = false,
+  nestedForced = false,
+  outcomeDice = false,
+  distance = false,
+  condition = false,
+  directRepeatSave = false,
+  conditionImmune = false
+) {
+  const strengthAbilityDefinitionId = srdSystemRecord.abilities?.find(
+    (ability) => ability.code === 'STRENGTH'
+  )?.id
+  if (!strengthAbilityDefinitionId) throw new Error('Missing Strength ability definition.')
+  return {
+    ...creature,
+    ...(conditionImmune
+      ? {
+          conditionImmunities: [
+            srdSystemRecord.conditionTypes.find((condition) => condition.code === 'FRIGHTENED')!.id
+          ]
+        }
+      : {}),
+    features: creature.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            ...(phased
+              ? {
+                  rollDefinitions: [
+                    {
+                      id: '00000000-0000-4000-8000-000000000095',
+                      label: 'Bite attack',
+                      kind: 'ATTACK' as const,
+                      expression: { count: 1, die: 20, modifier: 4 },
+                      rollMode: 'NORMAL' as const,
+                      chargeCost: null,
+                      order: 1
+                    }
+                  ]
+                }
+              : {}),
+            ...(charged
+              ? {
+                  charges: {
+                    id: '00000000-0000-4000-8000-000000000099',
+                    limitKind: 'FIXED_AMOUNT' as const,
+                    scalingKind: 'NONE' as const,
+                    resetKind: 'MANUAL' as const,
+                    amount: 1
+                  }
+                }
+              : {}),
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              invocation: directRepeatSave
+                ? {
+                    ...effect.invocation,
+                    triggerCode: 'SAVING_THROW' as const,
+                    savingThrow: {
+                      id: '00000000-0000-4000-8000-000000000060',
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId:
+                        srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')
+                          ?.id ??
+                        (() => {
+                          throw new Error('Missing Dexterity ability fixture.')
+                        })(),
+                      baseDc: 10
+                    },
+                    range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
+                    targeting: {
+                      selectionKind: 'SINGLE_TARGET' as const,
+                      dispositionKind: 'ANY' as const
+                    }
+                  }
+                : phased
+                  ? {
+                      ...effect.invocation,
+                      triggerCode: 'MELEE_WEAPON_ATTACK' as const,
+                      range: distance
+                        ? {
+                            id: effect.invocation.range.id,
+                            rangeKind: 'DISTANCE' as const,
+                            amount: 10,
+                            unit: 'FEET' as const
+                          }
+                        : {
+                            id: effect.invocation.range.id,
+                            rangeKind: 'UNLIMITED' as const
+                          },
+                      targeting: {
+                        selectionKind: 'SINGLE_TARGET' as const,
+                        dispositionKind: 'ANY' as const
+                      },
+                      ...(charged
+                        ? {
+                            resourceUse: {
+                              chargeId: '00000000-0000-4000-8000-000000000099',
+                              cost: 1
+                            }
+                          }
+                        : {})
+                    }
+                  : distance
+                    ? {
+                        ...effect.invocation,
+                        range: {
+                          id: effect.invocation.range.id,
+                          rangeKind: 'DISTANCE' as const,
+                          amount: 10,
+                          unit: 'FEET' as const
+                        },
+                        targeting: {
+                          selectionKind: 'SINGLE_TARGET' as const,
+                          dispositionKind: 'ANY' as const
+                        }
+                      }
+                    : charged
+                      ? {
+                          ...effect.invocation,
+                          ...(self
+                            ? {
+                                range: {
+                                  id: effect.invocation.range.id,
+                                  rangeKind: 'SELF' as const
+                                },
+                                targeting: { selectionKind: 'SELF' as const }
+                              }
+                            : {}),
+                          resourceUse: {
+                            chargeId: '00000000-0000-4000-8000-000000000099',
+                            cost: 1
+                          }
+                        }
+                      : self
+                        ? {
+                            ...effect.invocation,
+                            range: {
+                              id: effect.invocation.range.id,
+                              rangeKind: 'SELF' as const
+                            },
+                            targeting: { selectionKind: 'SELF' as const }
+                          }
+                        : effect.invocation,
+              ...(directRepeatSave
+                ? {
+                    paths: [
+                      {
+                        id: '00000000-0000-4000-8000-000000000061',
+                        order: 1,
+                        pathCode: 'ON_SAVE_FAIL' as const,
+                        groupType: 'SEQUENTIAL' as const,
+                        originKind: 'SOURCE' as const,
+                        selectionKind: 'FIXED' as const,
+                        resultBlock: {
+                          id: '00000000-0000-4000-8000-000000000062',
+                          resultKind: 'SEQUENCE' as const,
+                          duration: {
+                            id: '00000000-0000-4000-8000-000000000063',
+                            durationKind: 'ROUND' as const,
+                            amount: 10
+                          },
+                          outcomes: [
+                            {
+                              id: '00000000-0000-4000-8000-000000000064',
+                              effectKind: 'CONDITION' as const,
+                              conditionId:
+                                srdSystemRecord.conditionTypes.find(
+                                  (value) => value.code === 'FRIGHTENED'
+                                )?.id ??
+                                (() => {
+                                  throw new Error('Missing frightened condition fixture.')
+                                })()
+                            },
+                            {
+                              id: '00000000-0000-4000-8000-000000000065',
+                              effectKind: 'FOLLOW_UP_SAVE' as const,
+                              timing: 'TARGET_TURN_END' as const,
+                              savingThrow: {
+                                id: '00000000-0000-4000-8000-000000000066',
+                                dcMethod: 'FIXED_DC' as const,
+                                abilityDefinitionId:
+                                  srdSystemRecord.abilities?.find(
+                                    (ability) => ability.code === 'DEXTERITY'
+                                  )?.id ??
+                                  (() => {
+                                    throw new Error('Missing Dexterity ability fixture.')
+                                  })(),
+                                baseDc: 10
+                              },
+                              attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                              onSuccess: { kind: 'END' as const },
+                              onFailure: { kind: 'CONTINUE' as const },
+                              onDurationComplete: { kind: 'END' as const }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                : nestedForced
+                  ? {
+                      paths: effect.paths?.slice(0, 1).map((path) => {
+                        if (!('resultBlock' in path)) return path
+                        const damage = path.resultBlock.outcomes.find(
+                          (outcome): outcome is Extract<typeof outcome, { effectKind: 'DAMAGE' }> =>
+                            outcome.effectKind === 'DAMAGE'
+                        )
+                        if (!damage)
+                          throw new Error('Missing nested forced-movement damage fixture.')
+                        return {
+                          ...path,
+                          pathCode: 'ON_HIT' as const,
+                          groupType: 'SEQUENTIAL' as const,
+                          resultBlock: {
+                            ...path.resultBlock,
+                            id: '00000000-0000-4000-8000-000000000094',
+                            resultKind: 'SEQUENCE' as const,
+                            outcomes: [
+                              {
+                                id: '00000000-0000-4000-8000-000000000093',
+                                effectKind: 'DAMAGE' as const,
+                                damageTypeId: damage.damageTypeId,
+                                valueKind: 'DICE' as const,
+                                scalingKind: 'NONE' as const,
+                                diceConfig: '1d6'
+                              },
+                              {
+                                id: '00000000-0000-4000-8000-000000000092',
+                                effectKind: 'FOLLOW_UP_SAVE' as const,
+                                timing: 'IMMEDIATE' as const,
+                                savingThrow: {
+                                  id: '00000000-0000-4000-8000-000000000091',
+                                  dcMethod: 'FIXED_DC' as const,
+                                  abilityDefinitionId: strengthAbilityDefinitionId,
+                                  baseDc: 10
+                                },
+                                attempts: { kind: 'ONCE' as const },
+                                onFailure: {
+                                  kind: 'OUTCOMES' as const,
+                                  endCurrent: false,
+                                  resultKind: 'SINGLE' as const,
+                                  outcomes: [
+                                    {
+                                      id: '00000000-0000-4000-8000-000000000090',
+                                      effectKind: 'FORCED_MOVEMENT' as const,
+                                      direction: 'TOWARD_SOURCE' as const,
+                                      actionEconomy: 'NONE' as const,
+                                      distanceMode: 'FIXED_DISTANCE' as const,
+                                      amount: 25,
+                                      unit: 'FEET' as const
+                                    }
+                                  ]
+                                },
+                                onSuccess: { kind: 'END' as const }
+                              }
+                            ]
+                          }
+                        }
+                      })
+                    }
+                  : recurring
+                    ? {
+                        paths: effect.paths?.map((path) => {
+                          if (!('resultBlock' in path)) return path
+                          const frightened = srdSystemRecord.conditionTypes.find(
+                            (value) => value.code === 'FRIGHTENED'
+                          )
+                          if (!frightened) throw new Error('Missing frightened condition fixture.')
+                          return {
+                            ...path,
+                            resultBlock: {
+                              ...path.resultBlock,
+                              id: '00000000-0000-4000-8000-000000000096',
+                              duration: {
+                                id: '00000000-0000-4000-8000-000000000098',
+                                durationKind: 'ROUND' as const,
+                                amount: 2
+                              },
+                              lifecycle: { recurringKind: 'START_OF_TURN' as const },
+                              outcomes: condition
+                                ? [
+                                    {
+                                      id: '00000000-0000-4000-8000-0000000000aa',
+                                      effectKind: 'CONDITION' as const,
+                                      conditionId: frightened.id
+                                    }
+                                  ]
+                                : [
+                                    {
+                                      id: '00000000-0000-4000-8000-000000000097',
+                                      effectKind: 'HEAL' as const,
+                                      valueKind: 'FIXED' as const,
+                                      scalingKind: 'NONE' as const,
+                                      amount: 1
+                                    }
+                                  ]
+                            }
+                          }
+                        })
+                      }
+                    : phased
+                      ? {
+                          paths: effect.paths?.slice(0, 1).map((path) =>
+                            'resultBlock' in path
+                              ? {
+                                  ...path,
+                                  pathCode: 'ON_HIT' as const,
+                                  resultBlock: outcomeDice
+                                    ? {
+                                        ...path.resultBlock,
+                                        outcomes: path.resultBlock.outcomes.map((outcome) => {
+                                          if (outcome.effectKind !== 'DAMAGE')
+                                            throw new Error('Expected Bite damage.')
+                                          return {
+                                            id: outcome.id,
+                                            effectKind: 'DAMAGE' as const,
+                                            damageTypeId: outcome.damageTypeId,
+                                            valueKind: 'DICE' as const,
+                                            scalingKind: 'NONE' as const,
+                                            diceConfig: '1d6'
+                                          }
+                                        })
+                                      }
+                                    : path.resultBlock
+                                }
+                              : path
+                          )
+                        }
+                      : {})
+            }))
+          }
+    )
+  }
+}
+
+async function setup({
+  charged = false,
+  self = false,
+  recurring = false,
+  phased = false,
+  nestedForced = false,
+  targetCreature = false,
+  automationMode = 'AUTOMATIC',
+  distance = false,
+  uppercaseTokens = false,
+  condition = false,
+  directRepeatSave = false,
+  conditionImmune = false
+}: {
+  charged?: boolean
+  self?: boolean
+  recurring?: boolean
+  phased?: boolean
+  nestedForced?: boolean
+  targetCreature?: boolean
+  automationMode?: 'AUTOMATIC' | 'ASSISTED'
+  distance?: boolean
+  uppercaseTokens?: boolean
+  condition?: boolean
+  directRepeatSave?: boolean
+  conditionImmune?: boolean
+} = {}) {
+  const base = await fixture()
+  const actionCreature = nativeCreature(
+    charged,
+    self,
+    recurring,
+    phased,
+    nestedForced,
+    automationMode === 'ASSISTED',
+    distance,
+    condition,
+    directRepeatSave,
+    conditionImmune
+  )
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: SRD_RULE_STATE_DEFINITIONS.filter(
+      (definition) =>
+        definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
+        (directRepeatSave &&
+          definition.id ===
+            srdSystemRecord.conditionTypes.find((condition) => condition.code === 'FRIGHTENED')?.id)
+    )
+  })
+  await base.t.mutation(internal.content.import.importSubjects, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    subjects: [
+      importedSubject({
+        ...actionCreature,
+        subjectKind: 'CREATURE',
+        document: actionCreature
+      })
+    ]
+  })
+  const campaign = await base.owner.caller.mutation(createCampaign, {
+    name: 'Native action fixture',
+    format: 'ONGOING',
+    toneTags: ['HEROIC'],
+    contentMaturity: 'STANDARD',
+    gameSystemId: srdSystemRecord.id,
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+  })
+  const session = await base.owner.caller.mutation(createSession, {
+    campaignId: campaign.id
+  })
+  const blueprint = await base.owner.caller.mutation(createBlueprint, {
+    gameSystemId: campaign.gameSystemId,
+    name: 'Native action fixture',
+    commandId: crypto.randomUUID(),
+    enemies: [
+      { kind: 'CREATURE', sourceId: creature.id },
+      ...(targetCreature ? [{ kind: 'CREATURE' as const, sourceId: creature.id }] : []),
+      { kind: 'CUSTOM', label: 'Target', maxHitPoints: 100 }
+    ]
+  })
+  const run = await base.owner.caller.mutation(createRun, {
+    campaignId: campaign.id,
+    sessionId: session.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  const creatures = run.actors.filter((candidate) => candidate.kind === 'CREATURE')
+  const actor = creatures[0]
+  const target = targetCreature
+    ? creatures[1]
+    : run.actors.find((candidate) => candidate.kind === 'CUSTOM')
+  if (!actor || !target) throw new Error('Missing native action fixture actors.')
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (query) => query.eq('id', run.id))
+      .unique()
+    if (!row) throw new Error('Missing native action fixture run.')
+    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
+    const active = encounterRunStateSchema.parse({
+      ...state,
+      status: 'ACTIVE',
+      automationMode,
+      round: 1,
+      currentActorId: actor.id
+    })
+    const projection = encounterGmProjectionDtoSchema.parse({
+      ...JSON.parse(row.projectionJson),
+      status: 'ACTIVE',
+      automationMode,
+      round: 1,
+      currentActorId: actor.id
+    })
+    await ctx.db.patch(row._id, {
+      status: 'ACTIVE',
+      stateJson: JSON.stringify(active),
+      stateChecksum: checksumCanonicalJson(active),
+      projectionJson: JSON.stringify(projection),
+      projectionChecksum: checksumCanonicalJson(projection)
+    })
+    await seedActiveInitiative(ctx, active, [
+      actor.id,
+      ...run.actors
+        .filter((candidate) => candidate.id !== actor.id)
+        .map((candidate) => candidate.id)
+    ])
+  })
+  const actionId = await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (query) => query.eq('encounterId', run.id).eq('id', actor.id))
+      .unique()
+    if (!row) throw new Error('Missing native action fixture actor.')
+    const capability = discoverEncounterFeatureActionCapabilities({
+      actor: encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)),
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
+        id: ability.id,
+        code: ability.code
+      }))
+    }).find(
+      (candidate) =>
+        candidate.mechanicFacts.invocation.triggerCode ===
+        (directRepeatSave ? 'SAVING_THROW' : phased ? 'MELEE_WEAPON_ATTACK' : 'ACTIVATED')
+    )
+    if (!capability) throw new Error('Missing native action fixture capability.')
+    return capability.actionId
+  })
+  if (distance) {
+    const sceneId = crypto.randomUUID()
+    const definitionId = crypto.randomUUID()
+    const saveId = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const tokens = [actor.id, target.id].map((_, index) => ({
+      id: uppercaseTokens ? crypto.randomUUID().toUpperCase() : crypto.randomUUID(),
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      label: index === 0 ? 'Source token' : 'Target token',
+      locked: false,
+      position: { x: index * 100, y: 0 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }))
+    await base.t.run(async (ctx) => {
+      const settings = {
+        campaignId: campaign.id,
+        name: 'Distance action Scene',
+        ambientIllumination: 'BRIGHT' as const,
+        fogMode: 'SHARED_PARTY' as const,
+        visionRevealMode: 'ON_DRAG' as const,
+        grid: {
+          kind: 'SQUARE' as const,
+          origin: { x: 0, y: 0 },
+          cellSize: 100,
+          distancePerCell: 5,
+          diagonalPolicy: 'EQUAL' as const,
+          unit: 'FEET' as const
+        },
+        map: { assetId: crypto.randomUUID(), width: 500, height: 500, tileManifestAssetId: null }
+      }
+      const materializationCommandId = crypto.randomUUID()
+      await ctx.db.insert(
+        'campaignScenes',
+        sceneStoredInitialStateSchema.parse({
+          ...settings,
+          id: sceneId,
+          definitionId,
+          definitionVersion: 1,
+          definitionSaveId: saveId,
+          version: 0,
+          materializationCommandId,
+          materializationCommandFingerprint: '0'.repeat(64),
+          createdAt: now,
+          updatedAt: now
+        })
+      )
+      await ctx.db.insert(
+        'sceneDefinitionSaves',
+        sceneStoredDefinitionSaveSchema.parse({
+          id: saveId,
+          commandId: materializationCommandId,
+          commandFingerprint: '0'.repeat(64),
+          ownerUserId: base.owner.userId,
+          definitionId,
+          expectedVersion: null,
+          settings,
+          counts: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 2 },
+          received: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 2 },
+          status: 'PUBLISHED',
+          liveSceneId: sceneId,
+          entitiesRemoved: false,
+          createdAt: now,
+          expiresAt: Date.now() + 60_000
+        })
+      )
+      for (const [ordinal, entity] of tokens.entries()) {
+        const value = { collection: 'tokens' as const, entity }
+        await ctx.db.insert(
+          'sceneDefinitionEntities',
+          sceneStoredDefinitionEntitySchema.parse({
+            saveId,
+            entityId: entity.id,
+            ordinal,
+            value,
+            checksum: checksumCanonicalJson(value)
+          })
+        )
+      }
+      await ctx.db.insert(
+        'campaignScenePresentations',
+        sceneStoredPresentationSchema.parse({
+          campaignId: campaign.id,
+          sessionId: run.sessionId,
+          sceneId,
+          version: 0,
+          activeMapAssetId: null,
+          createdAt: now,
+          updatedAt: now
+        })
+      )
+      await ctx.db.insert('encounterSceneBindings', {
+        encounterId: run.id,
+        campaignId: campaign.id,
+        sceneId,
+        commandId: crypto.randomUUID(),
+        commandFingerprint: checksumCanonicalJson({ sceneId }),
+        createdAt: now
+      })
+    })
+    const bind = makeFunctionReference<
+      'mutation',
+      { input: EncounterActorTokenBindingCommandInputDto },
+      EncounterCommandResultDto
+    >('encounters/actorTokenBindings:execute')
+    let expectedEncounterVersion: number = run.version
+    for (const [index, actorId] of [actor.id, target.id].entries()) {
+      const result = await base.owner.caller.mutation(bind, {
+        input: {
+          type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+          commandId: crypto.randomUUID(),
+          encounterId: run.id,
+          expectedEncounterVersion,
+          actorId,
+          sceneId,
+          tokenId: tokens[index]!.id
+        }
+      })
+      expectedEncounterVersion = result.projection.version
+    }
+    return {
+      ...base,
+      campaign,
+      blueprint,
+      run: { ...run, version: expectedEncounterVersion },
+      actor,
+      target,
+      actionId,
+      sceneId,
+      saveId,
+      tokens
+    }
+  }
+  return { ...base, campaign, blueprint, run, actor, target, actionId }
+}
+
+type DistanceSetup = Extract<Awaited<ReturnType<typeof setup>>, { sceneId: string }>
+
+async function distanceSetup(options: Parameters<typeof setup>[0] = {}): Promise<DistanceSetup> {
+  const value = await setup({ phased: true, targetCreature: true, ...options, distance: true })
+  if (!('sceneId' in value) || !('tokens' in value) || !('saveId' in value))
+    throw new Error('Distance Scene fixture was not created.')
+  return value
+}
+
+async function advanceSceneVersion(t: Awaited<ReturnType<typeof fixture>>['t'], sceneId: string) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert(
+      'sceneLiveStates',
+      sceneStoredLiveStateSchema.parse({
+        sceneId,
+        version: 1,
+        fogLayerCount: 0,
+        nextFogOrdinal: 0,
+        counts: {
+          annotations: 0,
+          barriers: 0,
+          darknessZones: 0,
+          lights: 0,
+          tokens: 2,
+          measurements: 0
+        },
+        nextOrdinals: {
+          annotations: 0,
+          barriers: 0,
+          darknessZones: 0,
+          lights: 0,
+          tokens: 2,
+          measurements: 0
+        },
+        settings: {
+          ambientIllumination: { value: 'BRIGHT', version: 0 },
+          visionRevealMode: { value: 'ON_DRAG', version: 0 }
+        }
+      })
+    )
+  })
+}
+
+async function replaceTargetToken(base: DistanceSetup, position: { x: number; y: number } | null) {
+  await advanceSceneVersion(base.t, base.sceneId)
+  await base.t.run(async (ctx) => {
+    const token = base.tokens[1]!
+    const change = {
+      sceneId: base.sceneId,
+      collection: 'tokens' as const,
+      entityId: token.id.toLowerCase(),
+      value: position
+        ? {
+            collection: 'tokens' as const,
+            entity: { ...token, id: token.id.toLowerCase(), position }
+          }
+        : null,
+      ordinal: position ? 1 : null,
+      version: 1
+    }
+    await ctx.db.insert(
+      'sceneLiveEntities',
+      sceneStoredLiveEntitySchema.parse({
+        ...change,
+        checksum: checksumCanonicalJson(change)
+      })
+    )
+    if (!position) {
+      const head = await ctx.db
+        .query('sceneLiveStates')
+        .withIndex('by_sceneId', (q) => q.eq('sceneId', base.sceneId))
+        .unique()
+      if (!head) throw new Error('Missing live Scene fixture.')
+      await ctx.db.patch(head._id, { counts: { ...head.counts, tokens: 1 } })
+    }
+  })
+}
+
+function command(
+  input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'actionId'> & {
+    encounterId: string
+    commandId?: string
+    expectedVersion?: number
+    sceneContext?: ResolveEncounterActionInputDto['sceneContext']
+  }
+): ResolveEncounterActionInputDto {
+  return {
+    type: 'RESOLVE_ACTION',
+    encounterId: input.encounterId,
+    commandId: input.commandId ?? crypto.randomUUID(),
+    expectedVersion: input.expectedVersion ?? 0,
+    actorId: input.actorId,
+    targetActorId: input.targetActorId,
+    actionId: input.actionId,
+    optionalCombatIntent: null,
+    sceneContext: input.sceneContext ?? null
+  }
+}
+
+async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
+  return t.run(async (ctx) => ({
+    run: await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+      .unique(),
+    actors: await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
+      .collect(),
+    occurrences: await ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
+      .collect(),
+    receipts: await ctx.db
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+      .collect(),
+    commands: await ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      .collect(),
+    activeEffects: await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', encounterId)
+      )
+      .collect()
+  }))
+}
+
+describe('native encounter actions', () => {
+  it('pauses Assisted evidence without spending, then settles, replays and rolls back through the public endpoint', async () => {
+    const base = await setup({
+      charged: true,
+      phased: true,
+      targetCreature: true,
+      automationMode: 'ASSISTED'
+    })
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: base.campaign.id,
+        userId: base.other.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: base.campaign.createdAt,
+        joinedAt: base.campaign.createdAt,
+        leftAt: null
+      })
+    )
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const before = await records(base.t, base.run.id)
+    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    expect(result.occurrence?.status).toBe('PENDING')
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).resolves.toEqual(result)
+    const responses: ResolveRuleOccurrenceInputDto[] = []
+    while (result.occurrence?.status === 'PENDING') {
+      expect(responses.length).toBeLessThan(20)
+      const pending = result.occurrence.pending
+      if (
+        !pending ||
+        (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+      )
+        throw new Error('Expected bounded Assisted action evidence.')
+      const staged = await records(base.t, base.run.id)
+      expect(staged.run).toEqual(before.run)
+      expect(staged.actors).toEqual(before.actors)
+      expect(staged.commands).toEqual(before.commands)
+      await expect(
+        base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })
+      ).resolves.toEqual(pending)
+      await expect(
+        base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })
+      ).resolves.toBeNull()
+      const response: ResolveRuleOccurrenceInputDto = {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 0,
+        correlationId: null,
+        occurrenceId: result.occurrence.occurrenceId,
+        expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
+        resolution:
+          pending.kind === 'D20_EVIDENCE'
+            ? {
+                kind: 'ENTER_DICE',
+                requestId: pending.request.requestId,
+                rawFaces: pending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
+              }
+            : {
+                kind: 'ENTER_INTEGER',
+                requestId: pending.request.requestId,
+                value: pending.request.max
+              }
+      }
+      if (responses.length === 0) {
+        for (const actorId of [base.actor.id, base.target.id]) {
+          await expect(
+            base.owner.caller.run(async (ctx) => {
+              const row = staged.actors.find((actor) => actor.id === actorId)!
+              const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+              const changed = { ...actor, currentHitPoints: actor.currentHitPoints! - 1 }
+              await ctx.db.patch(row._id, {
+                stateJson: JSON.stringify(changed),
+                stateChecksum: checksumCanonicalJson(changed)
+              })
+              await expect(
+                ctx.runMutation(api.encounters.commands.execute, { command: response })
+              ).rejects.toThrow('pending action source or target changed')
+              throw new Error('restore changed actor')
+            })
+          ).rejects.toThrow('restore changed actor')
+          expect(await records(base.t, base.run.id)).toEqual(staged)
+        }
+      }
+      await expect(
+        base.other.caller.mutation(api.encounters.commands.execute, {
+          command: response
+        })
+      ).rejects.toThrow('Campaign not found')
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: {
+            ...response,
+            resolution: { kind: 'SYSTEM_ROLL', requestId: 'stale-request' }
+          }
+        })
+      ).rejects.toThrow()
+      expect(await records(base.t, base.run.id)).toEqual(staged)
+      await expect(
+        base.owner.caller.run(async (ctx) => {
+          await ctx.runMutation(api.encounters.commands.execute, {
+            command: response
+          })
+          throw new Error('rollback Assisted action')
+        })
+      ).rejects.toThrow('rollback Assisted action')
+      expect(await records(base.t, base.run.id)).toEqual(staged)
+      result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: response
+      })
+      const settledResponse = await records(base.t, base.run.id)
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: { ...response, correlationId: crypto.randomUUID() }
+        })
+      ).rejects.toThrow('evidence receipt mismatch')
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: { ...response, commandId: crypto.randomUUID() }
+        })
+      ).rejects.toThrow('occurrence version is stale')
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: response
+        })
+      ).resolves.toEqual(result)
+      expect(await records(base.t, base.run.id)).toEqual(settledResponse)
+      responses.push(response)
+    }
+    expect(responses.length).toBeGreaterThanOrEqual(2)
+    expect(result.projection.version).toBe(1)
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const settled = await records(base.t, base.run.id)
+    const source = settled.actors.find((actor) => actor.id === base.actor.id)
+    const target = settled.actors.find((actor) => actor.id === base.target.id)
+    if (!source || !target) throw new Error('Missing settled action actors.')
+    const featureId = nativeCreature(true, false, false, true).features?.find(
+      (feature) => feature.label === 'Bite'
+    )?.id
+    if (!featureId) throw new Error('Missing action Feature.')
+    const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
+    expect(featureChargeUsed(sourceState, featureId)).toBe(1)
+    expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
+    ).toBeLessThan(base.target.currentHitPoints!)
+    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).resolves.toEqual(result)
+    for (const response of responses)
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: response
+        })
+      ).resolves.toEqual(result)
+    expect(await records(base.t, base.run.id)).toEqual(settled)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: { ...input, expectedVersion: 1, commandId: responses[0]!.commandId }
+      })
+    ).rejects.toThrow('Command ID was already used with different input.')
+    expect(await records(base.t, base.run.id)).toEqual(settled)
+    const secondRun = await base.owner.caller.mutation(createRun, {
+      campaignId: base.campaign.id,
+      sessionId: base.run.sessionId,
+      blueprintId: base.blueprint.id,
+      commandId: crypto.randomUUID()
+    })
+    for (const run of [result.projection, secondRun]) {
+      const beforeCollision = await records(base.t, run.id)
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: {
+            type: 'UPSERT_REMINDER',
+            encounterId: run.id,
+            expectedVersion: run.version,
+            commandId: responses[0]!.commandId,
+            reminder: {
+              label: 'Reused evidence command',
+              timing: 'ROUND_START',
+              round: null,
+              actorId: null,
+              public: false,
+              notes: null,
+              order: 0
+            }
+          }
+        })
+      ).rejects.toThrow('Command ID was already used with different input.')
+      expect(await records(base.t, run.id)).toEqual(beforeCollision)
+    }
+  }, 30000)
+
+  it('settles an allowed Creature action once, replays it exactly, and rejects stale or unauthorized commands', async () => {
+    const base = await setup()
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const before = await records(base.t, base.run.id)
+    await expect(
+      base.owner.caller.run((ctx) =>
+        ctx.runMutation(api.encounters.commands.execute, {
+          command: command({ ...input, targetActorId: base.actor.id })
+        })
+      )
+    ).rejects.toThrow('target')
+    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    expect(result.projection.version).toBe(1)
+    const settled = await records(base.t, base.run.id)
+    expect(settled.run?.version).toBe(1)
+    const target = settled.actors.find((actor) => actor.id === base.target.id)
+    if (!target) throw new Error('Missing settled target.')
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
+    ).toBeLessThan(100)
+    expect(settled.occurrences).toHaveLength(before.occurrences.length + 1)
+    expect(settled.receipts).toHaveLength(before.receipts.length + 1)
+    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).resolves.toEqual(result)
+    expect(await records(base.t, base.run.id)).toEqual(settled)
+    await expect(
+      base.owner.caller.run((ctx) =>
+        ctx.runMutation(api.encounters.commands.execute, {
+          command: command({ ...input, commandId: crypto.randomUUID() })
+        })
+      )
+    ).rejects.toThrow('stale')
+    await expect(
+      base.other.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).rejects.toThrow('Campaign not found')
+    await base.t.run(async (ctx) => {
+      const receipt = await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) =>
+          q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
+        )
+        .unique()
+      if (!receipt) throw new Error('Missing native action receipt.')
+      await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
+    })
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).rejects.toThrow('receipt mismatch')
+  }, 30000)
+
+  it.each([false, true])(
+    'settles and rolls back distance actions, then replays after movement (uppercase token IDs: %s)',
+    async (uppercaseTokens) => {
+      const base = await distanceSetup({ uppercaseTokens, charged: true })
+      const input = command({
+        encounterId: base.run.id,
+        expectedVersion: base.run.version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          sceneId: base.sceneId,
+          expectedSceneVersion: 0,
+          sourceTokenId: base.tokens[0]!.id,
+          targetTokenId: base.tokens[1]!.id
+        }
+      })
+      const before = await records(base.t, base.run.id)
+      const random = vi
+        .spyOn(rollRandom, 'nextRollInt')
+        .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
+      let result: EncounterCommandResultDto
+      try {
+        await expect(
+          base.owner.caller.run(async (ctx) => {
+            await ctx.runMutation(api.encounters.commands.execute, { command: input })
+            throw new Error('abort contextual action')
+          })
+        ).rejects.toThrow('abort contextual action')
+        expect(await records(base.t, base.run.id)).toEqual(before)
+        result = encounterCommandResultDtoSchema.parse(
+          await base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+        )
+        expect(random).toHaveBeenCalled()
+      } finally {
+        random.mockRestore()
+      }
+      const settled = await records(base.t, base.run.id)
+      expect(settled.run?.version).toBe(base.run.version + 1)
+      expect(settled.commands).toHaveLength(before.commands.length + 1)
+      const source = settled.actors.find((actor) => actor.id === base.actor.id)!
+      const target = settled.actors.find((actor) => actor.id === base.target.id)!
+      expect(
+        featureChargeUsed(
+          encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)),
+          creature.features!.find((feature) => feature.label === 'Bite')!.id
+        )
+      ).toBe(1)
+      expect(
+        encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
+      ).toBeLessThan(base.target.currentHitPoints)
+      await replaceTargetToken(base, { x: 450, y: 450 })
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+      ).resolves.toEqual(result)
+      expect(await records(base.t, base.run.id)).toEqual(settled)
+    },
+    30000
+  )
+
+  it.each(['moved', 'removed'] as const)(
+    'uses live target state instead of the in-range base token when %s',
+    async (change) => {
+      const base = await distanceSetup()
+      await replaceTargetToken(base, change === 'moved' ? { x: 450, y: 450 } : null)
+      const before = await records(base.t, base.run.id)
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: command({
+            encounterId: base.run.id,
+            expectedVersion: base.run.version,
+            actorId: base.actor.id,
+            targetActorId: base.target.id,
+            actionId: base.actionId,
+            sceneContext: {
+              sceneId: base.sceneId,
+              expectedSceneVersion: 1,
+              sourceTokenId: base.tokens[0]!.id,
+              targetTokenId: base.tokens[1]!.id
+            }
+          })
+        })
+      ).rejects.toThrow(change === 'moved' ? 'does not permit this target' : 'token is unavailable')
+      expect(await records(base.t, base.run.id)).toEqual(before)
+    },
+    30000
+  )
+
+  it('rejects bounded distance actions before writes for missing, mismatched, out-of-range, and stale Scene context', async () => {
+    const missing = await distanceSetup()
+    const missingInput = command({
+      encounterId: missing.run.id,
+      expectedVersion: missing.run.version,
+      actorId: missing.actor.id,
+      targetActorId: missing.target.id,
+      actionId: missing.actionId,
+      sceneContext: {
+        sceneId: crypto.randomUUID(),
+        expectedSceneVersion: 0,
+        sourceTokenId: missing.tokens[0]!.id,
+        targetTokenId: missing.tokens[1]!.id
+      }
+    })
+    const beforeMissing = await records(missing.t, missing.run.id)
+    await expect(
+      missing.owner.caller.mutation(api.encounters.commands.execute, { command: missingInput })
+    ).rejects.toThrow()
+    expect(await records(missing.t, missing.run.id)).toEqual(beforeMissing)
+
+    const wrongBinding = await distanceSetup()
+    const wrongBindingInput = command({
+      encounterId: wrongBinding.run.id,
+      expectedVersion: wrongBinding.run.version,
+      actorId: wrongBinding.actor.id,
+      targetActorId: wrongBinding.target.id,
+      actionId: wrongBinding.actionId,
+      sceneContext: {
+        sceneId: wrongBinding.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: wrongBinding.tokens[1]!.id,
+        targetTokenId: wrongBinding.tokens[0]!.id
+      }
+    })
+    const beforeWrongBinding = await records(wrongBinding.t, wrongBinding.run.id)
+    await expect(
+      wrongBinding.owner.caller.mutation(api.encounters.commands.execute, {
+        command: wrongBindingInput
+      })
+    ).rejects.toThrow()
+    expect(await records(wrongBinding.t, wrongBinding.run.id)).toEqual(beforeWrongBinding)
+
+    const outOfRange = await distanceSetup()
+    await outOfRange.t.run(async (ctx) => {
+      const entity = (await ctx.db.query('sceneDefinitionEntities').collect()).filter(
+        (row) => row.value.collection === 'tokens'
+      )
+      const target = entity.find((row) => row.ordinal === 1)
+      if (!target) throw new Error('Missing target Scene token.')
+      if (target.value.collection !== 'tokens') throw new Error('Expected target token entity.')
+      const value = {
+        ...target.value,
+        entity: { ...target.value.entity, position: { x: 300, y: 0 } }
+      }
+      await ctx.db.patch(target._id, { value, checksum: checksumCanonicalJson(value) })
+    })
+    const outOfRangeInput = command({
+      encounterId: outOfRange.run.id,
+      expectedVersion: outOfRange.run.version,
+      actorId: outOfRange.actor.id,
+      targetActorId: outOfRange.target.id,
+      actionId: outOfRange.actionId,
+      sceneContext: {
+        sceneId: outOfRange.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: outOfRange.tokens[0]!.id,
+        targetTokenId: outOfRange.tokens[1]!.id
+      }
+    })
+    const beforeOutOfRange = await records(outOfRange.t, outOfRange.run.id)
+    await expect(
+      outOfRange.owner.caller.mutation(api.encounters.commands.execute, {
+        command: outOfRangeInput
+      })
+    ).rejects.toThrow()
+    expect(await records(outOfRange.t, outOfRange.run.id)).toEqual(beforeOutOfRange)
+
+    const stale = await distanceSetup()
+    const staleInput = command({
+      encounterId: stale.run.id,
+      expectedVersion: stale.run.version,
+      actorId: stale.actor.id,
+      targetActorId: stale.target.id,
+      actionId: stale.actionId,
+      sceneContext: {
+        sceneId: stale.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: stale.tokens[0]!.id,
+        targetTokenId: stale.tokens[1]!.id
+      }
+    })
+    await advanceSceneVersion(stale.t, stale.sceneId)
+    const beforeStale = await records(stale.t, stale.run.id)
+    await expect(
+      stale.owner.caller.mutation(api.encounters.commands.execute, { command: staleInput })
+    ).rejects.toThrow()
+    expect(await records(stale.t, stale.run.id)).toEqual(beforeStale)
+  }, 30000)
+
+  it('pauses an Assisted distance action without mechanics and rejects changed Scene geometry', async () => {
+    const base = await distanceSetup({
+      phased: true,
+      targetCreature: true,
+      automationMode: 'ASSISTED'
+    })
+    const input = command({
+      encounterId: base.run.id,
+      expectedVersion: base.run.version,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      sceneContext: {
+        sceneId: base.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: base.tokens[0]!.id,
+        targetTokenId: base.tokens[1]!.id
+      }
+    })
+    const before = await records(base.t, base.run.id)
+    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    expect(result.occurrence?.status).toBe('PENDING')
+    const paused = await records(base.t, base.run.id)
+    expect(paused.run).toEqual(before.run)
+    expect(paused.actors).toEqual(before.actors)
+    expect(paused.commands).toEqual(before.commands)
+    expect(paused.occurrences).toHaveLength(before.occurrences.length + 1)
+    const pending = result.occurrence?.pending
+    if (!pending || (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE'))
+      throw new Error('Expected Assisted distance evidence.')
+    await advanceSceneVersion(base.t, base.sceneId)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.run.version,
+          correlationId: null,
+          occurrenceId: result.occurrence!.occurrenceId,
+          expectedOccurrenceVersion: result.occurrence!.occurrenceVersion,
+          resolution:
+            pending.kind === 'D20_EVIDENCE'
+              ? { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [15] }
+              : {
+                  kind: 'ENTER_INTEGER',
+                  requestId: pending.request.requestId,
+                  value: pending.request.max
+                }
+        }
+      })
+    ).rejects.toThrow()
+    const afterRejected = await records(base.t, base.run.id)
+    expect(afterRejected.run).toEqual(before.run)
+    expect(afterRejected.actors).toEqual(before.actors)
+    expect(afterRejected.commands).toEqual(before.commands)
+    expect(afterRejected.occurrences).toHaveLength(before.occurrences.length + 1)
+  }, 30000)
+
+  it('completes Assisted distance evidence atomically and replays every response once', async () => {
+    const base = await distanceSetup({ automationMode: 'ASSISTED', charged: true })
+    const input = command({
+      encounterId: base.run.id,
+      expectedVersion: base.run.version,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      sceneContext: {
+        sceneId: base.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: base.tokens[0]!.id,
+        targetTokenId: base.tokens[1]!.id
+      }
+    })
+    const before = await records(base.t, base.run.id)
+    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    const random = vi.spyOn(rollRandom, 'nextRollInt').mockImplementation((maximum) => maximum - 1)
+    try {
+      for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
+        expect(step).toBeLessThan(4)
+        const pending = result.occurrence.pending
+        if (
+          !pending ||
+          (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+        )
+          throw new Error('Unexpected Assisted distance decision.')
+        const retained = await records(base.t, base.run.id)
+        expect(retained.run).toEqual(before.run)
+        expect(retained.actors).toEqual(before.actors)
+        expect(retained.commands).toEqual(before.commands)
+        const response: ResolveRuleOccurrenceInputDto = {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.run.version,
+          correlationId: null,
+          occurrenceId: result.occurrence.occurrenceId,
+          expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
+          resolution:
+            pending.kind === 'D20_EVIDENCE'
+              ? {
+                  kind: 'ENTER_DICE',
+                  requestId: pending.request.requestId,
+                  rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20]
+                }
+              : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+        }
+        if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
+          await expect(
+            base.owner.caller.run(async (ctx) => {
+              await ctx.runMutation(api.encounters.commands.execute, { command: response })
+              throw new Error('abort contextual outcome')
+            })
+          ).rejects.toThrow('abort contextual outcome')
+          expect(await records(base.t, base.run.id)).toEqual(retained)
+        }
+        result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: response
+        })
+        const after = await records(base.t, base.run.id)
+        await expect(
+          base.owner.caller.mutation(api.encounters.commands.execute, { command: response })
+        ).resolves.toEqual(result)
+        expect(await records(base.t, base.run.id)).toEqual(after)
+      }
+    } finally {
+      random.mockRestore()
+    }
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const settled = await records(base.t, base.run.id)
+    expect(settled.run?.version).toBe(base.run.version + 1)
+    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+    ).resolves.toEqual(result)
+    expect(await records(base.t, base.run.id)).toEqual(settled)
+  }, 30000)
+
+  it('rolls native action writes back when its transaction aborts', async () => {
+    const base = await setup()
+    const before = await records(base.t, base.run.id)
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    await expect(
+      base.owner.caller.run(async (ctx) => {
+        await ctx.runMutation(api.encounters.commands.execute, {
+          command: input
+        })
+        throw new Error('abort')
+      })
+    ).rejects.toThrow('abort')
+    expect(await records(base.t, base.run.id)).toEqual(before)
+  }, 30000)
+
+  it('refuses a completed phased action with an authorized nested forced movement before writes', async () => {
+    const base = await setup({
+      phased: true,
+      nestedForced: true,
+      targetCreature: true
+    })
+    const before = await records(base.t, base.run.id)
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const random = vi
+      .spyOn(rollRandom, 'nextRollInt')
+      .mockReturnValueOnce(14)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+    try {
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: input
+        })
+      ).rejects.toThrow('complete contextual action coordinator')
+      expect(random).toHaveBeenCalled()
+    } finally {
+      random.mockRestore()
+    }
+    expect(await records(base.t, base.run.id)).toEqual(before)
+  }, 30000)
+
+  it('commits phased TEST and OUTCOME receipts once, then replays the exact settled action', async () => {
+    const base = await setup({
+      charged: true,
+      phased: true,
+      targetCreature: true
+    })
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const random = vi
+      .spyOn(rollRandom, 'nextRollInt')
+      .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
+    let result: EncounterCommandResultDto
+    try {
+      result = encounterCommandResultDtoSchema.parse(
+        await base.owner.caller.mutation(api.encounters.commands.execute, {
+          command: input
+        })
+      )
+      expect(random).toHaveBeenCalled()
+    } finally {
+      random.mockRestore()
+    }
+
+    expect(result.projection.version).toBe(1)
+    const settled = await records(base.t, base.run.id)
+    const source = settled.actors.find((actor) => actor.id === base.actor.id)
+    const target = settled.actors.find((actor) => actor.id === base.target.id)
+    const receipt = settled.receipts.find((entry) => entry.commandId === input.commandId)
+    if (!source || !target || !receipt) throw new Error('Missing phased native action settlement.')
+    const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
+    const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
+    const featureId = nativeCreature(true, false, false, true).features?.find(
+      (feature) => feature.label === 'Bite'
+    )?.id
+    if (!featureId) throw new Error('Missing phased native action feature.')
+    expect(targetState.currentHitPoints).toBe(10)
+    expect(featureChargeUsed(sourceState, featureId)).toBe(1)
+    expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+
+    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    if (
+      stored.status !== 'COMPLETE' ||
+      stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    ) {
+      throw new Error('Expected completed phased native action receipt.')
+    }
+    expect(stored.phaseReceipts?.map((phase) => phase.phase)).toEqual(['TEST', 'OUTCOME'])
+    expect(stored.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_HIT')
+    expect(stored.applicationOutputs).toMatchObject({
+      occurrenceId: receipt.occurrenceId,
+      sourceActorId: base.actor.id,
+      targetActorId: base.target.id
+    })
+
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).resolves.toEqual(result)
+    const replayed = await records(base.t, base.run.id)
+    expect(replayed).toEqual(settled)
+    expect(replayed.run?.version).toBe(1)
+
+    const commandRecord = replayed.commands.find((entry) => entry.commandId === input.commandId)
+    const phaseReceipts = stored.phaseReceipts
+    if (!commandRecord || !phaseReceipts)
+      throw new Error('Missing phased native action receipt linkage.')
+    const tampered = storedRuleExecutionResultDtoSchema.parse({
+      ...stored,
+      phaseReceipts: phaseReceipts.map((phase, index) =>
+        index === 0 ? { ...phase, boundFactsChecksum: '0'.repeat(64) } : phase
+      )
+    })
+    const tamperedChecksum = checksumRuleDocument(tampered)
+    await base.t.run(async (ctx) => {
+      await ctx.db.patch(receipt._id, {
+        resultJson: JSON.stringify(tampered),
+        resultChecksum: tamperedChecksum
+      })
+      await ctx.db.patch(commandRecord._id, {
+        ruleResultChecksum: tamperedChecksum
+      })
+    })
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).rejects.toThrow('receipt mismatch')
+  }, 30000)
+
+  it('settles a self action on the source actor once', async () => {
+    const base = await setup({ self: true, charged: true })
+    const before = await records(base.t, base.run.id)
+    const sourceBefore = before.actors.find((actor) => actor.id === base.actor.id)
+    if (!sourceBefore) throw new Error('Missing self-action source actor.')
+    const initial = encounterRunActorStateSchema.parse(JSON.parse(sourceBefore.stateJson))
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.actor.id,
+      actionId: base.actionId
+    })
+    await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    const after = await records(base.t, base.run.id)
+    const sourceAfter = after.actors.find((actor) => actor.id === base.actor.id)
+    if (!sourceAfter) throw new Error('Missing settled self-action source actor.')
+    const settled = encounterRunActorStateSchema.parse(JSON.parse(sourceAfter.stateJson))
+    expect(settled.currentHitPoints).toBe(initial.currentHitPoints - 1)
+    const featureId = nativeCreature(true, true).features?.find(
+      (feature) => feature.label === 'Bite'
+    )?.id
+    if (!featureId) throw new Error('Missing self-action feature.')
+    expect(featureChargeUsed(settled, featureId)).toBe(1)
+    expect(encounterRuleUsageUsed(settled, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+    const receipt = after.receipts.find((entry) => entry.commandId === input.commandId)
+    if (!receipt) throw new Error('Missing self-action receipt.')
+    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    if (
+      stored.status !== 'COMPLETE' ||
+      stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    ) {
+      throw new Error('Expected completed self-action receipt.')
+    }
+    const transition = stored.applicationOutputs.targetTransition
+    expect(
+      checksumRuleDocument({
+        targetActorId: base.actor.id,
+        currentHitPoints: transition.before.currentHitPoints,
+        temporaryHitPoints: transition.before.temporaryHitPoints,
+        maximumHitPoints: transition.before.maximumHitPoints,
+        scalarValues: transition.before.scalarValues,
+        conditionIds: transition.before.conditionIds
+      })
+    ).toBe(stored.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY])
+  }, 30000)
+
+  it('settles a charged Feature once and refuses an exhausted source', async () => {
+    const base = await setup({ charged: true })
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    const source = await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.actor.id)
+        )
+        .unique()
+      if (!row) throw new Error('Missing charged source actor.')
+      return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    })
+    const featureId = nativeCreature(true).features?.find((feature) => feature.label === 'Bite')?.id
+    if (!featureId) throw new Error('Missing charged Feature fixture.')
+    expect(featureChargeUsed(source, featureId)).toBe(1)
+    expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+    await expect(
+      base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+    ).resolves.toEqual(result)
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.actor.id)
+        )
+        .unique()
+      if (!row) throw new Error('Missing charged source actor.')
+      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const exhausted = encounterRunActorStateSchema.parse({
+        ...actor,
+        resources: withEncounterRuleUsageUsed(
+          { ...actor, resources: withFeatureChargeUsed(actor, featureId, 1) },
+          SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+          0
+        )
+      })
+      await ctx.db.patch(row._id, {
+        stateJson: JSON.stringify(exhausted),
+        stateChecksum: checksumCanonicalJson(exhausted)
+      })
+    })
+    await expect(
+      base.owner.caller.run((ctx) =>
+        ctx.runMutation(api.encounters.commands.execute, {
+          command: command({
+            ...input,
+            commandId: crypto.randomUUID(),
+            expectedVersion: 1
+          })
+        })
+      )
+    ).rejects.toThrow('resource is unavailable')
+  }, 30000)
+  it.each(['AUTOMATIC', 'ASSISTED'] as const)(
+    'creates one recurring condition effect atomically and replays its typed receipt (%s)',
+    async (automationMode) => {
+      const base = await setup({ self: true, recurring: true, condition: true, automationMode })
+      const input = command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.actor.id,
+        actionId: base.actionId
+      })
+      const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+      expect(result.occurrence?.status).toBe('COMPLETE')
+      const stored = await base.t.run(async (ctx) => {
+        const effect = await ctx.db
+          .query('encounterActiveRuleEffects')
+          .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
+          )
+          .unique()
+        const receipt = await ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_encounterId_commandId', (q) =>
+            q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
+          )
+          .unique()
+        return { effect, receipt }
+      })
+      expect(stored.effect).toBeTruthy()
+      if (!stored.receipt) throw new Error('Missing native action receipt.')
+      const execution = storedRuleExecutionResultDtoSchema.parse(
+        JSON.parse(stored.receipt.resultJson)
+      )
+      if (
+        execution.status !== 'COMPLETE' ||
+        !execution.applicationOutputs ||
+        execution.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+      )
+        throw new Error('Missing completed native action outputs.')
+      expect(execution.applicationOutputs.activeEffectTransitions).toHaveLength(1)
+      expect(execution.applicationOutputs.activeEffectTransitions[0]?.activeEffectId).toBe(
+        stored.effect?.id
+      )
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+      ).resolves.toEqual(result)
+      const replayed = await base.t.run(async (ctx) =>
+        ctx.db
+          .query('encounterActiveRuleEffects')
+          .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
+          )
+          .collect()
+      )
+      expect(replayed).toHaveLength(1)
+    },
+    30000
+  )
+
+  it.each([
+    { face: 1, effects: 1, label: 'failed save' },
+    { face: 20, effects: 0, label: 'successful save' }
+  ])(
+    'settles repeated-save condition effects only on $label',
+    async ({ face, effects }) => {
+      const base = await setup({
+        directRepeatSave: true,
+        targetCreature: true,
+        automationMode: 'ASSISTED'
+      })
+      const input = command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId
+      })
+      const pending = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: input
+      })
+      expect(pending.occurrence?.status).toBe('PENDING')
+      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(0)
+      const request = pending.occurrence?.pending
+      if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
+        throw new Error('Expected initial save evidence.')
+      const response: ResolveRuleOccurrenceInputDto = {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        correlationId: null,
+        occurrenceId: pending.occurrence.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: request.request.requestId,
+          rawFaces: request.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        }
+      }
+      const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        command: response
+      })
+      expect(result.occurrence?.status).toBe('COMPLETE')
+      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
+      await expect(
+        base.owner.caller.mutation(api.encounters.commands.execute, { command: response })
+      ).resolves.toEqual(result)
+      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
+    },
+    30000
+  )
+
+  it('refuses a failed repeated-save condition against an immune Creature target', async () => {
+    const base = await setup({
+      directRepeatSave: true,
+      targetCreature: true,
+      conditionImmune: true,
+      automationMode: 'ASSISTED'
+    })
+    const frightened = srdSystemRecord.conditionTypes.find((value) => value.code === 'FRIGHTENED')
+    if (!frightened) throw new Error('Missing frightened condition fixture.')
+    const conditionImmunityIds = await base.owner.caller.run(async (ctx) => {
+      const targets = await loadMovementTargets(ctx, {
+        encounterId: base.run.id,
+        expectedEncounterVersion: base.run.version,
+        targetActorIds: [base.target.id]
+      })
+      return targets.get(base.target.id)?.conditionImmunityIds ?? []
+    })
+    expect(conditionImmunityIds).toContain(frightened.id)
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    const pending = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: input
+    })
+    const request = pending.occurrence?.pending
+    if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected initial save evidence.')
+    await base.owner.caller.mutation(api.encounters.commands.execute, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        correlationId: null,
+        occurrenceId: pending.occurrence.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: request.request.requestId,
+          rawFaces: request.request.rollMode === 'NORMAL' ? [1] : [1, 1]
+        }
+      }
+    })
+    expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(0)
+  }, 30000)
+})

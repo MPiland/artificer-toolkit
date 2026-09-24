@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getCampaignDetail, getCampaignRouteIdentity } from '#app/data/campaigns/queries'
-import { createServerApi } from '#app/lib/api'
+import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { normalizeAuthoredRouteSlug } from '#app/routing/authoredRouteHandles'
 import { CampaignEncounterBuilderPage } from '#domains/campaigns'
@@ -9,14 +8,8 @@ export const Route = createFileRoute(
   '/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters'
 )({
   loader: async ({ context, params }) => {
-    const client = createServerApi()
-    const identity = await context.queryClient.ensureQueryData(
-      getCampaignRouteIdentity(params.campaignPublicId, client)
-    )
-    if (!identity) throw new Error('Campaign not found.')
-
     const campaign = await context.queryClient.ensureQueryData(
-      getCampaignDetail(identity.subjectId, client)
+      getCampaignDetail(params.campaignPublicId)
     )
 
     if (normalizeAuthoredRouteSlug(campaign.name) !== params.campaignSlug) {

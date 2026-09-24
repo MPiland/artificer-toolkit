@@ -1,0 +1,47 @@
+import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import {
+  normalizeNodeRuntimeValues,
+  resolveNodeRuntime
+} from '@artificer-toolkit/authoring/nodeRuntime'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  type NodeRuntimeNormalizeValuesResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  compactNodeRuntimeResponse,
+  nodeRuntimeCompactResolveResponseDtoSchema,
+  type NodeRuntimeCompactResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { query } from '../_generated/server'
+import { requireIdentity } from '../lib/identity'
+import { createSystemSourceReader } from './systemSources'
+
+export const resolve = query({
+  args: zodToConvexFields(nodeRuntimeResolveRequestDtoSchema.shape),
+  returns: zodToConvex(nodeRuntimeCompactResolveResponseDtoSchema),
+  handler: async (ctx, args): Promise<NodeRuntimeCompactResolveResponseDto> => {
+    const identity = await requireIdentity(ctx)
+    const input = nodeRuntimeResolveRequestDtoSchema.parse(args)
+    const reader = await createSystemSourceReader(ctx, input.systemId, identity.userId)
+    const result = await resolveNodeRuntime(reader, input)
+    // Omit optional undefined properties before crossing the JSON-only product boundary.
+    return nodeRuntimeCompactResolveResponseDtoSchema.parse(
+      JSON.parse(JSON.stringify(compactNodeRuntimeResponse(result)))
+    )
+  }
+})
+
+// Pure normalization is a query: it neither saves a draft nor authorizes publication.
+export const normalizeValues = query({
+  args: zodToConvexFields(nodeRuntimeNormalizeValuesRequestDtoSchema.shape),
+  returns: zodToConvex(nodeRuntimeNormalizeValuesResponseDtoSchema),
+  handler: async (ctx, args): Promise<NodeRuntimeNormalizeValuesResponseDto> => {
+    const identity = await requireIdentity(ctx)
+    const input = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(args)
+    const reader = await createSystemSourceReader(ctx, input.systemId, identity.userId)
+    const result = await normalizeNodeRuntimeValues(reader, input)
+    return nodeRuntimeNormalizeValuesResponseDtoSchema.parse(JSON.parse(JSON.stringify(result)))
+  }
+})

@@ -1,8 +1,8 @@
 import type {
   CreatureListResponseDto,
-  CreatureResponseDto,
-  NodeRuntimeResolveResponseDto
-} from '#app/lib/api'
+  CreatureResponseDto
+} from '@artificer-toolkit/schema/api/content'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 

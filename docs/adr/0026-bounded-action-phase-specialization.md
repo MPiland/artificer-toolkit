@@ -26,3 +26,8 @@ resource consumption, and event writes occur only after the terminal phase succe
 This supports real fixed and scaled authored dice without client formulas, runtime topology mutation,
 or a second engine. It deliberately does not create a general workflow engine: the maximum is two
 phases for this action contract, and concentration or other follow-ups remain separate occurrences.
+
+The 2026-09-15 Concentration ruling retains this boundary. Published maintenance definition c3 links
+the published damage-check graph c2; spells reference c3 and feature save modifiers may qualify by c3.
+Damage checks remain deterministic child occurrences. A sealed Cleaving choice may wait for those
+children to finish, without introducing a third action phase or a general workflow engine.

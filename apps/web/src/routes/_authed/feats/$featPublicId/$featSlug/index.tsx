@@ -1,8 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getFeat } from '#app/data/feats/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { featResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getFeat, useGetFeat } from '#app/data/feats/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
@@ -12,7 +10,6 @@ import {
   validateAuthoredDetailSearch
 } from '#app/routing/authoredDetailSearch'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { FeatDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { FeatDetailPage } from '#domains/feats/pages/FeatDetailPage'
 
@@ -20,26 +17,12 @@ export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug/')(
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps: search, location, params }): Promise<FeatDetailLoaderData> => {
-    const client = createServerApi()
-    const featId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.feats.list(),
-      publicId: params.featPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'FEAT'
-    })
     const view = resolveAuthoredDetailView(search, location.pathname)
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getFeat(
-        {
-          id: featId,
-          view
-        },
-        client
-      )
+    const response = featResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(getFeat({ id: params.featPublicId, view }))
     )
     const draft = response?.draft ?? null
+    const featId = response?.item?.id ?? draft?.subjectId ?? params.featPublicId
     const routeSubject = getAuthoredRouteSubject(featId, response, draft)
 
     if (
@@ -53,13 +36,28 @@ export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug/')(
       })
     }
 
-    return { breadcrumbLabel: routeSubject?.label, draft, featId, response, view }
+    return {
+      breadcrumbLabel: routeSubject?.label,
+      draft,
+      featId,
+      response,
+      view
+    }
   },
   component: FeatDetailRoute
 })
 
 function FeatDetailRoute() {
-  const { draft, featId, response, view } = Route.useLoaderData()
+  const { featId, view } = Route.useLoaderData()
+  const { featPublicId } = Route.useParams()
+  const { data: response } = useGetFeat({ id: featPublicId, view })
 
-  return <FeatDetailPage draft={draft} featId={featId} response={response} view={view} />
+  return (
+    <FeatDetailPage
+      draft={response?.draft ?? null}
+      featId={featId}
+      response={response}
+      view={view}
+    />
+  )
 }

@@ -11,14 +11,14 @@ import {
   Title,
   UnstyledButton
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useNavigate } from '@tanstack/react-router'
 import { IconChevronRight } from '@tabler/icons-react'
 import { type SubmitEvent, useState } from 'react'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignSessionRsvps, getCampaignSessions } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import {
   browserTimeZone,
@@ -35,22 +35,22 @@ export function CampaignSessions({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const queryClient = useQueryClient()
+  const convex = useConvex()
   const navigate = useNavigate()
-  const sessions = useQuery(getCampaignSessions(campaign.id))
+  const sessions = usePaginatedQuery(
+    convexApi.campaigns.sessions.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 8 }
+  )
   const [editorOpen, setEditorOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [scheduledStartAt, setScheduledStartAt] = useState('')
   const [scheduledEndAt, setScheduledEndAt] = useState('')
   const [timeZone, setTimeZone] = useState(browserTimeZone)
 
-  const refresh = () =>
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.campaigns.sessions(campaign.id)
-    })
   const create = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.create({
+      convex.mutation(convexApi.campaigns.sessions.create, {
         campaignId: campaign.id,
         title: title.trim() || null,
         scheduledStartAt:
@@ -68,7 +68,6 @@ export function CampaignSessions({
       setTitle('')
       setScheduledStartAt('')
       setScheduledEndAt('')
-      await refresh()
     }
   })
   const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
@@ -91,10 +90,6 @@ export function CampaignSessions({
           <Button onClick={() => setEditorOpen(true)}>Add session</Button>
         ) : null}
       </Group>
-
-      {sessions.error ? (
-        <Alert color='red'>Sessions couldn’t be loaded. Refresh the page to try again.</Alert>
-      ) : null}
 
       {editorOpen ? (
         <form
@@ -152,8 +147,8 @@ export function CampaignSessions({
         </form>
       ) : null}
 
-      {sessions.isPending ? <Text c='dimmed'>Loading sessions…</Text> : null}
-      {sessions.data?.length === 0 ? (
+      {sessions.status === 'LoadingFirstPage' ? <Text c='dimmed'>Loading sessions…</Text> : null}
+      {sessions.status === 'Exhausted' && sessions.results.length === 0 ? (
         <div className={sharedStyles.emptyState}>
           <Text fw={600}>No sessions yet.</Text>
           <Text c='dimmed' size='sm'>
@@ -164,7 +159,7 @@ export function CampaignSessions({
         </div>
       ) : null}
       <Stack className={sessionsStyles.sessionList} gap={0}>
-        {sessions.data?.map((session) => (
+        {sessions.results.map((session) => (
           <SessionRow
             campaign={campaign}
             currentUserId={currentUserId}
@@ -182,6 +177,11 @@ export function CampaignSessions({
           />
         ))}
       </Stack>
+      {sessions.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => sessions.loadMore(8)}>
+          Load more sessions
+        </Button>
+      ) : null}
     </section>
   )
 }
@@ -197,24 +197,26 @@ function SessionRow({
   session: CampaignSessionDto
   onOpen: () => void
 }) {
-  const queryClient = useQueryClient()
-  const rsvps = useQuery({
-    ...getCampaignSessionRsvps(campaign.id, session.id),
-    enabled: session.status === 'OPEN'
-  })
+  const convex = useConvex()
+  const rsvps = usePaginatedQuery(
+    convexApi.campaigns.sessionRsvps.list,
+    campaign.role === 'OWNER' && session.status === 'OPEN'
+      ? { campaignId: campaign.id, sessionId: session.id }
+      : 'skip',
+    { initialNumItems: 32 }
+  )
+  const [submittedRsvp, setSubmittedRsvp] = useState<'YES' | 'NO' | 'MAYBE' | null>(null)
   const setRsvp = useMutation({
     mutationFn: (response: 'YES' | 'NO' | 'MAYBE') =>
-      api.campaigns.sessions.rsvps.set({
+      convex.mutation(convexApi.campaigns.sessionRsvps.set, {
         campaignId: campaign.id,
         sessionId: session.id,
         response
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionRsvps(campaign.id, session.id)
-      })
+    onSuccess: (rsvp) => setSubmittedRsvp(rsvp.response)
   })
-  const currentRsvp = rsvps.data?.find((entry) => entry.userId === currentUserId)?.response ?? null
+  const currentRsvp =
+    rsvps.results.find((entry) => entry.userId === currentUserId)?.response ?? submittedRsvp
   const identity = (
     <div>
       <Group gap='xs'>

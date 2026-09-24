@@ -15,6 +15,18 @@ describe('character routes', () => {
     expectRouteTreeToDeclare(['/_authed/characters/new'])
   })
 
+  it('keeps the create loader read-only and defers draft opening to the mounted client', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/routes/_authed/characters/new.tsx'),
+      'utf8'
+    )
+    expect(source).toContain('loadSystemList(context.queryClient)')
+    expect(source).not.toContain('createServerApi')
+    expect(source).not.toContain('randomUUID')
+    expect(source).not.toContain('.mutation(')
+    expect(source).not.toContain('characters.resolve')
+  })
+
   it('declares the edit builder route', () => {
     expectRouteTreeToDeclare(['/_authed/characters/$characterPublicId/$characterSlug/edit'])
   })
@@ -27,12 +39,32 @@ describe('character routes', () => {
     expectRouteTreeToDeclare(['/_authed/characters/$characterPublicId'])
   })
 
-  it('populates Sheet cache only under the canonical character identity', () => {
+  it('loads native Sheet and draft queries without manually rewriting subscription caches', () => {
     const source = readFileSync(join(process.cwd(), characterSheetRouteSource), 'utf8')
 
-    expect(source).toContain('routeUsesCanonicalId')
-    expect(source).toContain('client.characters.sheet(routeCharacterId)')
-    expect(source).toContain('getCharacterSheet(characterId, client).queryKey')
-    expect(source).toContain('getCharacterSheet(routeCharacterId, client).queryKey')
+    expect(source).toContain('ensureQueryData(getCharacterSheet(routeCharacterId))')
+    expect(source).toContain('ensureQueryData(getCharacterDraft(routeCharacterId))')
+    expect(source).not.toContain('createServerApi')
+    expect(source).not.toContain('setQueryData')
+    expect(source).not.toContain('removeQueries')
+  })
+
+  it('loads the native working Builder payload without a second legacy resolution', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'src/routes/_authed/characters/$characterPublicId/$characterSlug/edit.tsx'
+      ),
+      'utf8'
+    )
+
+    expect(source).toContain('ensureQueryData(getCharacter(routeCharacterId))')
+    expect(source).toContain('ensureQueryData(getCharacterDraft(routeCharacterId))')
+    expect(source).toContain(
+      'z.nullable(characterBuilderPayloadDtoSchema).parse(serializedPayload)'
+    )
+    expect(source).not.toContain('createServerApi')
+    expect(source).not.toContain('characters.resolve')
+    expect(source).not.toContain('setQueryData')
   })
 })

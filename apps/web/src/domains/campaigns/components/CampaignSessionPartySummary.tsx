@@ -1,9 +1,10 @@
-import { Alert, Badge, Button, Group, Loader, Modal, SimpleGrid, Text } from '@mantine/core'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { Badge, Button, Group, Loader, Modal, SimpleGrid, Text } from '@mantine/core'
+import { useQueries } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCharacterSheet } from '#app/data/characters/queries'
-import { getCampaignSessionAttendance } from '#app/data/campaigns/queries'
+import { usePaginatedQuery } from 'convex/react'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import * as sessionsStyles from '../campaignSessions.css'
 
@@ -16,7 +17,11 @@ export function CampaignSessionPartySummary({
   currentUserId: string
   sessionId: string
 }) {
-  const attendance = useQuery(getCampaignSessionAttendance(campaign.id, sessionId))
+  const attendance = usePaginatedQuery(
+    convexApi.campaigns.sessionAttendance.list,
+    { campaignId: campaign.id, sessionId },
+    { initialNumItems: 32 }
+  )
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
   const assigned = campaign.memberships.flatMap((membership) =>
     membership.assignedCharacter ? [{ membership, character: membership.assignedCharacter }] : []
@@ -49,7 +54,7 @@ export function CampaignSessionPartySummary({
             {assigned.map(({ membership, character }, index) => {
               const sheet = sheets[index]?.data
               const present =
-                attendance.data?.find((entry) => entry.characterId === character.id)?.present ??
+                attendance.results.find((entry) => entry.characterId === character.id)?.present ??
                 true
               return (
                 <article
@@ -100,10 +105,10 @@ export function CampaignSessionPartySummary({
             No Characters are assigned to this Campaign.
           </Text>
         )}
-        {attendance.error ? (
-          <Alert color='red' mt='md'>
-            Attendance couldn’t be loaded.
-          </Alert>
+        {attendance.status === 'CanLoadMore' ? (
+          <Button mt='md' variant='subtle' onClick={() => attendance.loadMore(32)}>
+            Load more attendance
+          </Button>
         ) : null}
       </div>
       <Modal

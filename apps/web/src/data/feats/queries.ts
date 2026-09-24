@@ -1,30 +1,25 @@
-import type { Api, AuthoredDetailRequestDto, FeatListRequestDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
+import { convexQuery } from '@convex-dev/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  authoredDetailReadInputSchema,
+  featResponseDtoSchema,
+  type AuthoredDetailRequestDto
+} from '@artificer-toolkit/schema/api/content'
 
 type DetailInput = string | AuthoredDetailRequestDto
 
-const featQueries = createAuthoredContentQueries(
-  (client) => client.content.feats,
-  queryKeys.content.feats
-)
-
-export function getFeatList(input: FeatListRequestDto, client?: Api) {
-  return featQueries.getList(input, client)
-}
-
-export function useGetFeatList(input: FeatListRequestDto) {
-  return featQueries.useList(input)
-}
-
-export function getFeat(input: DetailInput, client?: Api) {
-  return featQueries.getDetail(input, client)
+export function getFeat(input: DetailInput) {
+  const args = authoredDetailReadInputSchema.parse({
+    ...(typeof input === 'string' ? { id: input } : input),
+    subjectKind: 'FEAT'
+  })
+  return queryOptions({
+    ...convexQuery(convexApi.content.details.get, args),
+    select: (result) => featResponseDtoSchema.parse(result)
+  })
 }
 
 export function useGetFeat(input: DetailInput) {
-  return featQueries.useDetail(input)
-}
-
-export function getFeatDraft(id: string, client?: Api) {
-  return featQueries.getDraft(id, client)
+  return useSuspenseQuery(getFeat(input))
 }

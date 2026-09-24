@@ -1,21 +1,34 @@
 import { Button, Loader, TextInput, Textarea } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type SubmitEvent, useEffect, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
+import {
+  type RequestForQueries,
+  useConvexAuth,
+  useMutation as useConvexMutation,
+  useQueries
+} from 'convex/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { type SubmitEvent, useEffect, useMemo, useState } from 'react'
 import { usernameInputSchema } from '@artificer-toolkit/schema/api/auth'
-import type {
-  AccountProfileDto,
-  AccountProfileUpdateInput
+import {
+  accountProfileDtoSchema,
+  type AccountProfileDto
 } from '@artificer-toolkit/schema/api/account'
-import { ApiError, api } from '#app/lib/api'
 import { MediaImageControl } from '#app/components/MediaImage'
-import { getAccountProfileQuery } from './accountQueries'
+import { getUsernameStatus } from '#app/auth/usernameStatus'
 import * as styles from './settings.css'
 
 export function ProfileSettingsPage({ userId }: { userId: string }) {
-  const profileQuery = useQuery(getAccountProfileQuery(userId))
+  const { isAuthenticated, isLoading } = useConvexAuth()
+  // useQueries keys its subscription by request-map identity, including the skipped map.
+  const queries = useMemo((): RequestForQueries => {
+    if (!isAuthenticated) return {}
+    return { profile: { query: api.account.profile, args: {} } }
+  }, [isAuthenticated])
+  const profile: unknown = useQueries(queries).profile
 
-  if (profileQuery.isPending) {
+  if (isLoading || !isAuthenticated || profile === undefined) {
     return (
       <div className={styles.loadingState} aria-label='Loading profile'>
         <Loader size='sm' />
@@ -23,7 +36,8 @@ export function ProfileSettingsPage({ userId }: { userId: string }) {
     )
   }
 
-  if (profileQuery.isError) {
+  const parsedProfile = accountProfileDtoSchema.safeParse(profile)
+  if (!parsedProfile.success) {
     return (
       <div className={styles.errorState} role='alert'>
         <h2>Profile unavailable</h2>
@@ -32,25 +46,20 @@ export function ProfileSettingsPage({ userId }: { userId: string }) {
     )
   }
 
-  if (!profileQuery.data) return null
-
-  return <ProfileForm initialProfile={profileQuery.data} userId={userId} />
+  return <ProfileForm key={userId} initialProfile={parsedProfile.data} />
 }
 
-function ProfileForm({
-  initialProfile,
-  userId
-}: {
-  initialProfile: AccountProfileDto
-  userId: string
-}) {
-  const queryClient = useQueryClient()
-  const [username, setUsername] = useState(initialProfile.username ?? '')
+function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) {
+  const router = useRouter()
+  const saveProfile = useConvexMutation(api.account.updateProfile)
+  const [usernameDraft, setUsername] = useState<string>()
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [usernameAvailability, setUsernameAvailability] = useState<
     'available' | 'checking' | 'taken' | 'not_allowed' | 'unavailable'
   >('available')
-  const [bio, setBio] = useState(initialProfile.bio ?? '')
+  const [bioDraft, setBio] = useState<string>()
+  const username = usernameDraft ?? initialProfile.username ?? ''
+  const bio = bioDraft ?? initialProfile.bio ?? ''
   const usernameChanged = initialProfile.username !== username.trim()
   const usernameNeedsAvailabilityCheck =
     initialProfile.username?.toLowerCase() !== username.trim().toLowerCase()
@@ -71,8 +80,7 @@ function ProfileForm({
     setUsernameAvailability('checking')
     let active = true
     const timeout = window.setTimeout(() => {
-      void api.account
-        .usernameStatus({ username: parsedUsername.data })
+      void getUsernameStatus(parsedUsername.data)
         .then(({ status }) => {
           if (!active) return
           setUsernameAvailability(status)
@@ -98,23 +106,15 @@ function ProfileForm({
   }, [username, usernameNeedsAvailabilityCheck])
 
   const updateProfile = useMutation({
-    mutationFn: (input: AccountProfileUpdateInput) => api.account.updateProfile(input),
-    onSuccess: (profile) => {
-      queryClient.setQueryData(getAccountProfileQuery(userId).queryKey, profile)
-      setUsername(profile.username ?? '')
-      setBio(profile.bio ?? '')
+    mutationFn: saveProfile,
+    onSuccess: (profile, input) => {
+      setUsername((current) => (current?.trim() === profile.username ? undefined : current))
+      setBio((current) => (current === input.bio ? undefined : current))
       setUsernameError(null)
       notifications.show({ color: 'green', message: 'Profile saved.' })
+      void router.invalidate()
     },
-    onError: (error) => {
-      if (
-        error instanceof ApiError &&
-        (error.status === 409 || error.message.toLowerCase().includes('username'))
-      ) {
-        setUsernameAvailability('taken')
-        setUsernameError(error.message)
-        return
-      }
+    onError: () => {
       notifications.show({
         color: 'red',
         message: 'Could not save your profile. Try again.'

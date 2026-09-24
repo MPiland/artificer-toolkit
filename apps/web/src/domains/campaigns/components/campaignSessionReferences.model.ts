@@ -1,4 +1,5 @@
-import type { CampaignDetailDto, CampaignSessionReferencePinDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionReferencePinDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   buildBackgroundRouteParams,
   buildCampaignRouteParams,

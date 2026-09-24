@@ -4,12 +4,17 @@ import {
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandDto,
-  type LiveSessionTicketDto,
+  type LiveSessionCommandRejectionCodeDto,
+  type LiveSessionCorrectionDto,
+  type LiveSessionRecipientDeltaDto,
+  type LiveSessionRecipientStateDto,
   type LiveSessionTransientBroadcastDto,
-  type LiveSessionWebSocketClientMessageDto,
-  type LiveSessionWebSocketServerMessageDto
+  type LiveSessionWebSocketServerMessageDto,
+  type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 
 export type LiveSessionConnectionStatus =
   | 'CONNECTING'
@@ -17,23 +22,51 @@ export type LiveSessionConnectionStatus =
   | 'RECONNECTING'
   | 'DISCONNECTED'
 
-export type LiveSessionCommittedMessage = Extract<
+export interface LiveSessionConnection {
+  close: () => void
+  sendCommand: (command: LiveSessionCommandDto) => boolean
+  submitCommand: (command: LiveSessionCommandDto) => Promise<LiveSessionCommandCommit>
+  sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
+  synchronizeScene: (
+    sceneId: string,
+    version: number,
+    expectedSessionVersion: number,
+    expectedPresentationVersion: number
+  ) => void
+}
+
+export type LiveSessionCommandCommit = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'COMMAND_COMMITTED' }
 >
 
-export interface LiveSessionConnection {
-  close: () => void
-  executeCommand: (command: LiveSessionCommandDto) => Promise<LiveSessionCommittedMessage>
-  sendCommand: (command: LiveSessionCommandDto) => boolean
-  sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
+export interface LiveSessionDurableState {
+  commandReady: boolean
+  recipientState: LiveSessionRecipientStateDto | null
+  sequence: number | null
 }
+
+export interface LiveSessionCommandRejection {
+  code: LiveSessionCommandRejectionCodeDto
+  commandId: string
+  correction?: LiveSessionCorrectionDto
+  currentSequence: number
+  message: string
+}
+
+type LiveSessionClientMessage = Extract<
+  LiveSessionWebSocketClientMessageDto,
+  { type: 'AUTHENTICATE' | 'COMMAND' | 'RESUME' | 'SYNCHRONIZE_SCENE' | 'TRANSIENT' }
+>
+type SceneSynchronizationMessage = Extract<LiveSessionClientMessage, { type: 'SYNCHRONIZE_SCENE' }>
 
 interface LiveSessionConnectionOptions {
   createSocket?: (url: string, protocols: string[]) => LiveSessionSocket
+  getAccessToken: () => Promise<string>
   getTicket: () => Promise<LiveSessionTicketDto>
   onError: (error: Error) => void
-  onMessage: (message: LiveSessionWebSocketServerMessageDto) => void
+  onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
+  onDurableState?: (state: LiveSessionDurableState) => void
   onStatus: (status: LiveSessionConnectionStatus) => void
   onTransient: (message: LiveSessionTransientBroadcastDto) => void
   url: string
@@ -49,8 +82,28 @@ interface LiveSessionSocket {
 const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_000)
 const webSocketOpenState = 1
 
-function commandId(command: LiveSessionCommandDto): string {
-  return command.command.commandId
+function applyRecipientDelta(
+  state: LiveSessionRecipientStateDto,
+  delta: LiveSessionRecipientDeltaDto | null
+): LiveSessionRecipientStateDto | null {
+  if (delta === null) return state
+  if (delta.scope === 'SCENE_VERSION') {
+    if (state.scene?.id !== delta.sceneId || delta.version !== state.scene.version + 1) return null
+    return { ...state, scene: { ...state.scene, version: delta.version } }
+  }
+  if (delta.result.delta === null) return state
+  if (state.scene?.id !== delta.result.sceneId) return null
+  return {
+    ...state,
+    scene: applySceneDelta(state.scene, delta.result.delta, delta.result.version)
+  }
+}
+
+function applyCorrection(
+  state: LiveSessionRecipientStateDto,
+  correction: LiveSessionCorrectionDto
+): LiveSessionRecipientStateDto {
+  return { ...state, scene: correction.state }
 }
 
 export function resolveLiveSessionWebSocketUrl(baseUrl: string, sessionId: string): string {
@@ -70,31 +123,54 @@ export function createLiveSessionConnection(
   options: LiveSessionConnectionOptions
 ): LiveSessionConnection {
   const createSocket = options.createSocket ?? ((url, protocols) => new WebSocket(url, protocols))
-  const pendingCommands = new Map<string, LiveSessionCommandDto>()
-  const pendingExecutions = new Map<
-    string,
-    {
-      reject: (error: Error) => void
-      resolve: (message: LiveSessionCommittedMessage) => void
-    }
-  >()
   let attempt = 0
   let generation = 0
-  let lastSeenDeliverySequence = 0
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let socket: LiveSessionSocket | null = null
   let stopped = false
+  let ready = false
+  let commandReady = false
+  let recipientState: LiveSessionRecipientStateDto | null = null
+  let sequence: number | null = null
+  const pendingCommands = new Map<
+    string,
+    {
+      command: LiveSessionCommandDto
+      expectedSessionSequence: number
+      lastSentSequence: number | null
+      reject: (error: Error) => void
+      resolve: (commit: LiveSessionCommandCommit) => void
+    }
+  >()
+  let requestedScene: SceneSynchronizationMessage | null = null
+  let synchronizedScene: SceneSynchronizationMessage | null = null
 
-  const rejectPendingExecutions = (error: Error) => {
-    for (const pendingExecution of pendingExecutions.values()) pendingExecution.reject(error)
-    pendingCommands.clear()
-    pendingExecutions.clear()
-  }
-
-  const send = (message: LiveSessionWebSocketClientMessageDto): boolean => {
+  const send = (message: LiveSessionClientMessage): boolean => {
     if (socket?.readyState !== webSocketOpenState) return false
     socket.send(JSON.stringify(message))
     return true
+  }
+
+  const emitDurableState = () =>
+    options.onDurableState?.({ commandReady, recipientState, sequence })
+
+  const requestResume = () => {
+    if (sequence !== null) send({ lastAppliedSequence: sequence, type: 'RESUME' })
+  }
+
+  const synchronizeRequestedScene = () => {
+    if (
+      !ready ||
+      !requestedScene ||
+      (requestedScene.sceneId === synchronizedScene?.sceneId &&
+        requestedScene.version === synchronizedScene.version &&
+        requestedScene.expectedSessionVersion === synchronizedScene.expectedSessionVersion &&
+        requestedScene.expectedPresentationVersion ===
+          synchronizedScene.expectedPresentationVersion)
+    ) {
+      return
+    }
+    if (send(requestedScene)) synchronizedScene = requestedScene
   }
 
   const scheduleReconnect = () => {
@@ -111,7 +187,6 @@ export function createLiveSessionConnection(
   const connect = async (reconnecting: boolean) => {
     const currentGeneration = ++generation
     options.onStatus(reconnecting ? 'RECONNECTING' : 'CONNECTING')
-    const resumeFromSequence = lastSeenDeliverySequence
     try {
       const ticket = await options.getTicket()
       if (stopped || currentGeneration !== generation) return
@@ -120,11 +195,42 @@ export function createLiveSessionConnection(
         `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${ticket.ticket}`
       ])
       socket = nextSocket
-      let resumeSent = false
+      ready = false
+      commandReady = false
+      emitDurableState()
+      synchronizedScene = null
+      let authentication: Promise<void> | null = null
+
+      const sendAuthentication = () => {
+        if (authentication) return
+        const currentAuthentication = (async () => {
+          const token = await options.getAccessToken()
+          if (
+            stopped ||
+            currentGeneration !== generation ||
+            nextSocket !== socket ||
+            nextSocket.readyState !== webSocketOpenState
+          ) {
+            return
+          }
+          if (!token.trim()) throw new Error('Unable to authenticate live play.')
+          send({ accessToken: token, type: 'AUTHENTICATE' })
+        })()
+        authentication = currentAuthentication
+        void currentAuthentication
+          .catch(() => {
+            if (stopped || currentGeneration !== generation || nextSocket !== socket) return
+            options.onError(new Error('Unable to authenticate live play.'))
+            nextSocket.close(4001, 'Live-session authentication failed.')
+          })
+          .finally(() => {
+            if (authentication === currentAuthentication) authentication = null
+          })
+      }
 
       nextSocket.addEventListener('open', () => {
         if (nextSocket !== socket || stopped) return
-        options.onStatus('CONNECTED')
+        sendAuthentication()
       })
       nextSocket.addEventListener('message', (event) => {
         if (
@@ -145,53 +251,106 @@ export function createLiveSessionConnection(
         )
         if (!parsed.success) {
           options.onError(new Error('The live-session host returned an invalid message.'))
-          nextSocket.close(1008, 'Invalid live-session message.')
+          nextSocket.close(4002, 'Invalid live-session message.')
           return
         }
         const message = parsed.data
-        if (message.type === 'TRANSIENT') {
-          options.onTransient(message.message)
-          return
-        }
-        if (message.type === 'COMMAND_COMMITTED') {
-          pendingCommands.delete(message.originCommandId)
-          const pendingExecution = pendingExecutions.get(message.originCommandId)
-          if (pendingExecution) {
-            pendingExecutions.delete(message.originCommandId)
-            pendingExecution.resolve(message)
-          }
-          lastSeenDeliverySequence = Math.max(lastSeenDeliverySequence, message.deliverySequence)
-        } else if (message.type === 'COMMAND_REJECTED') {
-          if (message.commandId) {
-            pendingCommands.delete(message.commandId)
-            const pendingExecution = pendingExecutions.get(message.commandId)
-            if (pendingExecution) {
-              pendingExecutions.delete(message.commandId)
-              pendingExecution.reject(new Error(message.message))
-            }
-          } else if (message.code === 'UNAUTHORIZED') {
-            rejectPendingExecutions(new Error(message.message))
-          }
-        } else if (message.type === 'READY') {
+        if (message.type === 'TRANSIENT_READY') {
           attempt = 0
-          if (reconnecting && !resumeSent) {
-            resumeSent = true
-            send({
-              lastSeenDeliverySequence: resumeFromSequence,
-              pendingCommandIds: [...pendingCommands.keys()],
-              type: 'RESUME'
-            })
-            for (const command of pendingCommands.values()) {
-              send({ command, type: 'COMMAND' })
+          ready = true
+          synchronizeRequestedScene()
+          requestResume()
+          options.onStatus('CONNECTED')
+        } else if (message.type === 'AUTHENTICATION_REQUIRED') {
+          ready = false
+          commandReady = false
+          emitDurableState()
+          synchronizedScene = null
+          for (const pending of pendingCommands.values()) pending.lastSentSequence = null
+          options.onStatus('RECONNECTING')
+          sendAuthentication()
+        } else if (message.type === 'TRANSIENT') {
+          options.onTransient(message.message)
+        } else if (message.type === 'STATE_SYNC') {
+          sequence = message.sequence
+          recipientState = message.state
+          commandReady =
+            !requestedScene ||
+            (message.state.scene?.id === requestedScene.sceneId &&
+              message.state.scene.version >= requestedScene.version)
+          emitDurableState()
+          if (commandReady) {
+            for (const pending of pendingCommands.values()) {
+              if (pending.lastSentSequence === message.sequence) continue
+              if (
+                send({
+                  command: pending.command,
+                  expectedSessionSequence: pending.expectedSessionSequence,
+                  type: 'COMMAND'
+                })
+              )
+                pending.lastSentSequence = message.sequence
             }
           }
-          lastSeenDeliverySequence = Math.max(lastSeenDeliverySequence, message.deliverySequence)
+        } else if (message.type === 'COMMAND_COMMITTED') {
+          if (sequence === null || recipientState === null) {
+            commandReady = false
+            emitDurableState()
+            requestResume()
+            return
+          }
+          if (message.sequence <= sequence) {
+            pendingCommands.get(message.commandId)?.resolve(message)
+            pendingCommands.delete(message.commandId)
+            return
+          }
+          if (message.sequence !== sequence + 1) {
+            commandReady = false
+            emitDurableState()
+            options.onError(new Error('Live play received commands out of order.'))
+            requestResume()
+            return
+          }
+          const nextState = applyRecipientDelta(recipientState, message.delta)
+          if (nextState === null) {
+            commandReady = false
+            emitDurableState()
+            options.onError(new Error('Live play could not apply the next command.'))
+            requestResume()
+            return
+          }
+          recipientState = nextState
+          sequence = message.sequence
+          pendingCommands.get(message.commandId)?.resolve(message)
+          pendingCommands.delete(message.commandId)
+          emitDurableState()
+        } else if (message.type === 'COMMAND_REJECTED') {
+          if (recipientState && message.correction) {
+            const correctedState = applyCorrection(recipientState, message.correction)
+            if (correctedState) {
+              recipientState = correctedState
+              emitDurableState()
+            } else {
+              commandReady = false
+              emitDurableState()
+              options.onError(new Error('Live play received a correction for another recipient.'))
+              requestResume()
+            }
+          }
+          pendingCommands.get(message.commandId)?.reject(new Error(message.message))
+          pendingCommands.delete(message.commandId)
+          options.onCommandRejected?.(message)
         }
-        options.onMessage(message)
       })
       nextSocket.addEventListener('close', () => {
         if (nextSocket !== socket) return
+
         socket = null
+        ready = false
+        commandReady = false
+        emitDurableState()
+        synchronizedScene = null
+        for (const pending of pendingCommands.values()) pending.lastSentSequence = null
         if (stopped) {
           options.onStatus('DISCONNECTED')
           return
@@ -220,32 +379,58 @@ export function createLiveSessionConnection(
       reconnectTimer = null
       const current = socket
       socket = null
+      commandReady = false
+      emitDurableState()
+
       current?.close(1000, 'Live session closed.')
-      rejectPendingExecutions(new Error('The live-session connection closed.'))
+      for (const pending of pendingCommands.values()) {
+        pending.reject(new Error('Live session closed.'))
+      }
+      pendingCommands.clear()
       options.onStatus('DISCONNECTED')
     },
-    executeCommand(command) {
-      const id = commandId(command)
-      if (pendingCommands.has(id)) {
-        return Promise.reject(new Error('This live-session command is already pending.'))
+    sendCommand(command) {
+      if (!commandReady || sequence === null) return false
+      return send({ command, expectedSessionSequence: sequence, type: 'COMMAND' })
+    },
+    submitCommand(command) {
+      const commandId = command.command.commandId
+      if (pendingCommands.has(commandId)) {
+        return Promise.reject(new Error('This live command is already pending.'))
       }
-      return new Promise<LiveSessionCommittedMessage>((resolve, reject) => {
-        pendingCommands.set(id, command)
-        pendingExecutions.set(id, { reject, resolve })
-        if (send({ command, type: 'COMMAND' })) return
-        pendingCommands.delete(id)
-        pendingExecutions.delete(id)
-        reject(new Error('Live play is reconnecting. Try that action again in a moment.'))
+      return new Promise<LiveSessionCommandCommit>((resolve, reject) => {
+        if (!commandReady || sequence === null) {
+          reject(new Error('Live play is not ready for commands.'))
+          return
+        }
+        const pending = {
+          command,
+          expectedSessionSequence: sequence,
+          lastSentSequence: null as number | null,
+          reject,
+          resolve
+        }
+        pendingCommands.set(commandId, pending)
+        if (send({ command, expectedSessionSequence: sequence, type: 'COMMAND' })) {
+          pending.lastSentSequence = sequence
+        } else {
+          pendingCommands.delete(commandId)
+          reject(new Error('Live play is not connected.'))
+        }
       })
     },
-    sendCommand(command) {
-      const id = commandId(command)
-      if (pendingCommands.has(id) || !send({ command, type: 'COMMAND' })) return false
-      pendingCommands.set(id, command)
-      return true
-    },
     sendTransient(envelope) {
-      return send({ envelope, type: 'TRANSIENT' })
+      return ready && send({ envelope, type: 'TRANSIENT' })
+    },
+    synchronizeScene(sceneId, version, expectedSessionVersion, expectedPresentationVersion) {
+      requestedScene = {
+        expectedPresentationVersion,
+        expectedSessionVersion,
+        sceneId,
+        type: 'SYNCHRONIZE_SCENE',
+        version
+      }
+      synchronizeRequestedScene()
     }
   }
 }

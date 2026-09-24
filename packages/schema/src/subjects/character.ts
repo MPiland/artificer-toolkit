@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { authoredRecordStatusSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
@@ -12,13 +12,14 @@ export type { CharacterStateDto } from './characterState.js'
 const characterAuthoredDtoSchemaRaw = z.object({
   id: z.string(),
   label: z.string(),
-  description: z.string().optional(),
-  status: authoredRecordStatusSchema.optional(),
+  description: z.optional(z.string()),
+  status: z.optional(authoredRecordStatusSchema),
   profile: characterProfileAuthoredDtoSchema,
   intent: characterIntentDtoSchema,
   state: characterStateDtoSchema,
   systemId: postgresUuidSchema,
-  primaryRulesCatalogueId: postgresUuidSchema,
+  // Accepted only by the transitional SQL contract; native inputs omit this retired binding.
+  primaryRulesCatalogueId: z.optional(postgresUuidSchema),
   userId: z.string()
 })
 

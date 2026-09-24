@@ -3,7 +3,7 @@ import {
   LIVE_SESSION_TICKET_ISSUER,
   liveSessionTicketClaimsDtoSchema,
   type LiveSessionTicketClaimsDto
-} from '@artificer-toolkit/schema/api/liveSessions'
+} from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import { jwtVerify } from 'jose'
 
 function signingKey(secret: string): Uint8Array {

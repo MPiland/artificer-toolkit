@@ -1,7 +1,5 @@
-import type {
-  CompleteVttMapMultipartUploadInput,
-  CreateVttMapUploadIntentOutput
-} from '@artificer-toolkit/schema/api/media'
+import type { z } from 'zod/mini'
+import type { mediaSinglePutUploadSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 
 const retryDelays = [0, 1_000, 3_000, 5_000]
 const idempotencyKeyPattern =
@@ -32,123 +30,55 @@ export function getOrCreateVttMapUploadIdempotencyKey(
   return idempotencyKey
 }
 
-export function clearVttMapUploadIdempotencyKey(
-  campaignId: string,
-  file: File,
-  assetId?: string
-): void {
+export function clearVttMapUploadIdempotencyKey(campaignId: string, file: File): void {
   sessionStorage.removeItem(mapUploadStorageKey(campaignId, file))
-  if (assetId) sessionStorage.removeItem(completedPartsStorageKey(assetId))
+  sessionStorage.removeItem(`${mapUploadStorageKey(campaignId, file)}:uploaded`)
 }
 
-export function createVttMapUploadFingerprint(
-  intent: Pick<CreateVttMapUploadIntentOutput, 'storageProvider' | 'objectKey'>
-): string {
-  return `vtt-map:${intent.storageProvider}:${intent.objectKey}`
-}
-
-function completedPartsStorageKey(assetId: string): string {
-  return `vtt-map-r2-parts:${assetId}`
-}
-
-function readCompletedParts(assetId: string): CompleteVttMapMultipartUploadInput['parts'] {
-  const stored = sessionStorage.getItem(completedPartsStorageKey(assetId))
-  if (!stored) return []
-  try {
-    const parsed: unknown = JSON.parse(stored)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (part): part is CompleteVttMapMultipartUploadInput['parts'][number] =>
-        typeof part === 'object' &&
-        part !== null &&
-        'partNumber' in part &&
-        Number.isInteger(part.partNumber) &&
-        'etag' in part &&
-        typeof part.etag === 'string' &&
-        part.etag.length > 0
-    )
-  } catch {
-    return []
-  }
-}
-
-function retainCompletedParts(
-  assetId: string,
-  parts: CompleteVttMapMultipartUploadInput['parts']
-): void {
-  sessionStorage.setItem(completedPartsStorageKey(assetId), JSON.stringify(parts))
-}
-
-async function uploadPart(
-  url: string,
-  body: Blob,
-  onProgress: (uploadedBytes: number) => void
-): Promise<string> {
-  let lastError: unknown
-  for (const delay of retryDelays) {
-    if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
-    try {
-      return await new Promise<string>((resolve, reject) => {
-        const request = new XMLHttpRequest()
-        request.open('PUT', url)
-        request.upload.onprogress = (event) => onProgress(event.loaded)
-        request.onerror = () => reject(new Error('R2 map part upload failed.'))
-        request.onload = () => {
-          if (request.status < 200 || request.status >= 300) {
-            reject(new Error(`R2 map part upload failed (${request.status}).`))
-            return
-          }
-          const etag = request.getResponseHeader('etag')?.trim()
-          if (!etag) {
-            reject(new Error('R2 map part upload did not return an ETag.'))
-            return
-          }
-          resolve(etag)
-        }
-        request.send(body)
-      })
-    } catch (error) {
-      lastError = error
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error('R2 map part upload failed.')
+export function getUploadedVttMapAssetId(campaignId: string, file: File): string | null {
+  const value = sessionStorage.getItem(`${mapUploadStorageKey(campaignId, file)}:uploaded`)
+  return value && idempotencyKeyPattern.test(value) ? value : null
 }
 
 export async function uploadVttMap({
+  campaignId,
   file,
   intent,
   onProgress
 }: {
+  campaignId: string
   file: File
-  intent: CreateVttMapUploadIntentOutput
+  intent: z.infer<typeof mediaSinglePutUploadSchema>
   onProgress: (percentage: number) => void
-}): Promise<CompleteVttMapMultipartUploadInput['parts']> {
-  const completed = new Map(
-    readCompletedParts(intent.assetId).map((part) => [part.partNumber, part.etag])
-  )
-  let completedBytes = intent.resumable.parts.reduce((total, part) => {
-    if (!completed.has(part.partNumber)) return total
-    const start = (part.partNumber - 1) * intent.resumable.chunkBytes
-    return total + Math.min(intent.resumable.chunkBytes, file.size - start)
-  }, 0)
-  onProgress((completedBytes / file.size) * 100)
-
-  for (const part of intent.resumable.parts) {
-    if (completed.has(part.partNumber)) continue
-    const start = (part.partNumber - 1) * intent.resumable.chunkBytes
-    const body = file.slice(start, Math.min(file.size, start + intent.resumable.chunkBytes))
-    const etag = await uploadPart(part.url, body, (uploadedBytes) =>
-      onProgress(((completedBytes + uploadedBytes) / file.size) * 100)
-    )
-    completed.set(part.partNumber, etag)
-    completedBytes += body.size
-    retainCompletedParts(
-      intent.assetId,
-      [...completed].map(([partNumber, retainedEtag]) => ({ etag: retainedEtag, partNumber }))
-    )
+}): Promise<void> {
+  let lastError: unknown
+  for (const delay of retryDelays) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
+    try {
+      onProgress(0)
+      await new Promise<void>((resolve, reject) => {
+        const request = new XMLHttpRequest()
+        request.open(intent.method, intent.url)
+        request.setRequestHeader('Content-Type', file.type)
+        request.upload.onprogress = (event) =>
+          onProgress(Math.min(100, (event.loaded / file.size) * 100))
+        request.onerror = () => reject(new Error('Map upload failed. Try again.'))
+        request.onabort = () => reject(new Error('Map upload was cancelled.'))
+        request.onload = () => {
+          if (request.status < 200 || request.status >= 300) {
+            reject(new Error(`Map upload failed (${request.status}).`))
+            return
+          }
+          resolve()
+        }
+        request.send(file)
+      })
+      sessionStorage.setItem(`${mapUploadStorageKey(campaignId, file)}:uploaded`, intent.assetId)
+      onProgress(100)
+      return
+    } catch (error) {
+      lastError = error
+    }
   }
-  onProgress(100)
-  return [...completed]
-    .map(([partNumber, etag]) => ({ etag, partNumber }))
-    .sort((left, right) => left.partNumber - right.partNumber)
+  throw lastError instanceof Error ? lastError : new Error('Map upload failed.')
 }

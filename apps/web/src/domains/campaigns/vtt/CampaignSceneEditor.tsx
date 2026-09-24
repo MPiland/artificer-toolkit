@@ -1,9 +1,12 @@
 import { ActionIcon, Alert, Button, Group, Switch, Text, Tooltip } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAction, useConvex } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Crosshair, Eye, RotateCcw, Save, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { api, type CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
 import {
@@ -41,6 +44,9 @@ export function CampaignSceneEditor({
   scene: SceneDefinitionDto
 }) {
   const queryClient = useQueryClient()
+  const convex = useConvex()
+  const getMapDelivery = useAction(convexApi.media.vttMapActions.getDelivery)
+  const saveCommandId = useRef<string | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
@@ -57,6 +63,8 @@ export function CampaignSceneEditor({
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
   useEffect(() => {
+    if (dirty || savingRef.current) return
+    saveCommandId.current = null
     setDraft(structuredClone(scene))
     setDirty(false)
     setPlayerPreview(false)
@@ -64,8 +72,10 @@ export function CampaignSceneEditor({
   }, [scene.id, scene.version])
 
   const mapDelivery = useQuery({
-    queryFn: () => api.media.getVttMapDelivery({ assetId: scene.map.assetId }),
-    queryKey: queryKeys.media.vttMap(scene.map.assetId),
+    queryFn: () => getMapDelivery({ assetId: draft.map.assetId }),
+    queryKey: queryKeys.media.vttMap(draft.map.assetId),
+    refetchInterval: 4 * 60_000,
+    refetchIntervalInBackground: true,
     refetchOnReconnect: 'always',
     refetchOnWindowFocus: false,
     staleTime: 4 * 60_000
@@ -89,6 +99,7 @@ export function CampaignSceneEditor({
 
   const changeDraft = useCallback((change: (current: SceneDefinitionDto) => SceneDefinitionDto) => {
     if (savingRef.current) return
+    saveCommandId.current = null
     setDraft((current) => updateSceneEditorDraft(current, change, savingRef.current))
     setDirty(true)
   }, [])
@@ -191,7 +202,7 @@ export function CampaignSceneEditor({
 
   useEffect(() => {
     setMapLoadStatus(null)
-  }, [scene.id])
+  }, [scene.id, draft.map.assetId])
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
@@ -203,13 +214,19 @@ export function CampaignSceneEditor({
   const save = useMutation({
     mutationFn: (submitted: SceneDefinitionDto) => {
       const { id, version, ...definition } = submitted
-      return api.campaigns.scenes.update({
-        ...definition,
-        expectedVersion: version,
-        sceneId: id
-      })
+      saveCommandId.current ??= crypto.randomUUID()
+      return saveSceneDefinition(
+        convex,
+        {
+          ...definition,
+          expectedVersion: version,
+          sceneId: id
+        },
+        saveCommandId.current
+      )
     },
     onSuccess: async (saved) => {
+      saveCommandId.current = null
       setDraft(structuredClone(saved))
       setDirty(false)
       await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.scenes(campaignId) })
@@ -269,6 +286,7 @@ export function CampaignSceneEditor({
             size='xs'
             variant='default'
             onClick={() => {
+              saveCommandId.current = null
               setDraft(structuredClone(scene))
               setDirty(false)
             }}

@@ -9,6 +9,47 @@ import { createSheet } from '../tests/sheetTestHarness'
 import { CharacterSheetSpells } from './CharacterSheetSpells'
 
 describe('Character Sheet spells', () => {
+  it('keeps preparation disabled until a spellbook spell is learned', async () => {
+    const submitCommand = vi.fn()
+    const group = spellsPanelFixture.groups[0]!
+    const source = group.sources[0]!
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={{
+          ...spellsPanelFixture,
+          groups: [
+            {
+              ...group,
+              sources: [
+                {
+                  ...source,
+                  prepared: false,
+                  known: false,
+                  canManageKnown: true,
+                  knownClassId: source.preparationClassId
+                }
+              ]
+            }
+          ]
+        }}
+        pending={false}
+        preparationOptions={{
+          characterId: spellsPanelFixture.characterId,
+          streamVersion: 4,
+          classes: []
+        }}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+    const prepare = screen.getByRole('button', { name: 'Prepare' })
+    expect(prepare).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Learn' })).toBeEnabled()
+    await userEvent.setup().click(prepare)
+    expect(submitCommand).not.toHaveBeenCalled()
+  })
+
   it('prepares and unprepares spell sources in the manage panel', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(true)

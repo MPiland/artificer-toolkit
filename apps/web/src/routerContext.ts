@@ -1,11 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { ApplicationFeatureFlagsDto } from '@artificer-toolkit/schema/api/applicationConfig'
-import type { User } from '@supabase/supabase-js'
+import type { AuthSessionSnapshotDto, AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 
 export interface AppRouterContext {
   featureFlags?: ApplicationFeatureFlagsDto
   isSuperAdmin?: boolean
   nonce?: string
+  loadCurrentSession?: () => Promise<AuthSessionSnapshotDto>
   queryClient: QueryClient
-  user: User | null
+  user: AuthSessionUserDto | null
 }

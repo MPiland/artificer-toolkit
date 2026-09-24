@@ -1,5 +1,5 @@
 import type { CampaignSessionAttendanceDto } from '@artificer-toolkit/schema/api/campaignSessions'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { attendanceCanSupplyEncounterSystem } from './campaignSessionEncounterSystem'
 
 const memberships = [

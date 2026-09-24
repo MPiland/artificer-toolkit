@@ -1,0 +1,339 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import * as S from './shared.js'
+export const kraken: CreatureAuthored = {
+  id: S.CREATURE_IDS.KRAKEN,
+  label: 'Kraken',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  category: S.CREATURE_CATEGORY_CODE.MONSTER,
+  creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
+  size: S.SIZE_CODE.GARGANTUAN,
+  alignmentId: '00000000-0000-0000-0001-000900000000',
+  abilityScores: {
+    STRENGTH: 30,
+    DEXTERITY: 11,
+    CONSTITUTION: 25,
+    INTELLIGENCE: 22,
+    WISDOM: 18,
+    CHARISMA: 20
+  },
+  armorClass: 18,
+  armorClassNote: 'natural armor',
+  hitPoints: 472,
+  hitDice: {
+    count: 27,
+    die: 20,
+    modifier: 189
+  },
+  speeds: [...S.swim(60)],
+  proficiencies: [
+    S.grantedSaveProficiency(9001, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+    S.grantedSkillProficiency(9001, 2, 'ATHLETICS', 'PERCEPTION', 'STEALTH'),
+    S.grantedLanguageProficiency(9001, 3, 'AQUAN')
+  ],
+  senses: ['truesight 120 ft.'],
+  passivePerception: 14,
+  challengeRatingId: S.CR.CR_23,
+  xp: 50000,
+  features: [
+    {
+      id: S.featureId(180, 1),
+      label: 'Amphibious',
+      description: 'Amphibious. The kraken can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(180, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_AMPHIBIOUS
+        })
+      ],
+      order: 1
+    },
+    {
+      id: S.featureId(180, 2),
+      label: 'Freedom of Movement',
+      description:
+        "Freedom of Movement. The kraken ignores difficult terrain, and magical effects can't reduce its speed or cause it to be restrained. It can spend 5 feet of movement to escape from nonmagical restraints or being grappled.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(180, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_FREEDOM_OF_MOVEMENT
+        })
+      ],
+      order: 2
+    },
+    {
+      id: S.featureId(180, 4),
+      label: 'Siege Monster',
+      description: 'Siege Monster. The kraken deals double damage to objects and structures.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(180, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+        })
+      ],
+      order: 4
+    },
+    {
+      id: S.featureId(180, 5),
+      label: 'Multiattack',
+      description:
+        'Multiattack. The kraken makes three tentacle attacks, each of which it can replace with one use of Fling.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(180, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_MULTIATTACK
+        })
+      ],
+      order: 5
+    },
+    {
+      id: S.featureId(180, 6),
+      label: 'Tentacle',
+      description:
+        'Tentacle. Melee Weapon Attack: +17 to hit, reach 30 ft., one target. Hit: 20 (3d6 + 10) bludgeoning damage, and the target is grappled (escape DC 18).',
+      effects: [
+        {
+          id: S.actionId(9001, 1),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(9001, 2),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(9001, 3),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(9001, 3) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(9001, 3),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d6',
+                    bonuses: [
+                      {
+                        id: S.actionId(9001, 4),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      order: 6
+    },
+    {
+      id: S.featureId(180, 7),
+      label: 'Bite',
+      description:
+        "Bite. Melee Weapon Attack: +17 to hit, reach 5 ft., one target. Hit: 23 (3d8 + 10) piercing damage. If the target is a Large or smaller creature grappled by the kraken, that creature is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, it has total cover against attacks and other effects outside the kraken, and it takes 42 (12d6) acid damage at the start of each of the kraken's turns. If the kraken takes 50 damage or more on a single turn from a creature inside it, the kraken must succeed on a DC 25 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the kraken. If the kraken dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone.",
+      effects: [
+        {
+          id: S.actionId(9001, 5),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(9001, 6),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(9001, 7),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(9001, 7) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(9001, 7),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d8',
+                    bonuses: [
+                      {
+                        id: S.actionId(9001, 8),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        S.closedRuleEffect({
+          id: S.actionId(180, 505),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(180, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_BITE
+        })
+      ],
+      order: 7
+    },
+    {
+      id: S.featureId(180, 8),
+      label: 'Lightning Storm',
+      description:
+        'Lightning Storm. The kraken magically creates three bolts of lightning, each of which can strike a target the kraken can see within 120 feet of it. A target must make a DC 23 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.',
+      effects: [
+        {
+          id: S.actionId(180, 506),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(180, 606),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
+              baseDc: 23
+            },
+            range: {
+              id: S.actionId(180, 607),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(180, 806),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(180, 806) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(180, 960),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(180, 807),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(180, 807) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(180, 970),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10',
+                    multiplier: 0.5
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      order: 8
+    }
+  ]
+}

@@ -1,11 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Stack } from '@mantine/core'
-import { HttpResponse, http } from 'msw'
-import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import { getFunctionName } from 'convex/server'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { getSystemListPage } from '#app/data/systems/queries'
+import { expect, mocked, userEvent, waitFor, within } from 'storybook/test'
 import type {
   CampaignPlaySettingsDto,
   CampaignPlaySettingsOptionsDto
-} from '@artificer-toolkit/schema/api/campaigns'
+} from '@artificer-toolkit/schema/api/campaignSettings'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { createTabletopCampaign } from '../vtt/CampaignTabletop.stories.fixtures'
 import { CampaignSettings } from './CampaignSettings'
@@ -67,39 +72,7 @@ const playSettingsOptions = {
   optionalCombatRules: [{ definitionId: optionalRuleId, label: 'Flanking', kind: 'FLANKING' }]
 } satisfies CampaignPlaySettingsOptionsDto
 
-function trpcJson(data: unknown) {
-  return HttpResponse.json([{ result: { data } }])
-}
-
-const handlers = [
-  http.get('*/api/trpc/*', ({ request }) => {
-    const procedures = new URL(request.url).pathname.split('/').at(-1)?.split(',') ?? []
-    return HttpResponse.json(
-      procedures.map((procedure) => ({
-        result: {
-          data:
-            procedure === 'campaigns.getSettings'
-              ? campaign
-              : procedure === 'systems.list'
-                ? systems
-                : procedure === 'campaigns.playSettings.get'
-                  ? playSettings
-                  : procedure === 'campaigns.playSettings.options'
-                    ? playSettingsOptions
-                    : null
-        }
-      }))
-    )
-  }),
-  http.post('*/api/trpc/campaigns.playSettings.save*', () =>
-    trpcJson({
-      ...playSettings,
-      automationMode: 'MANUAL',
-      version: 2,
-      updatedAt: '2026-08-30T00:01:00.000Z'
-    })
-  )
-]
+let savedTableSettingsInput: unknown
 
 function CampaignSettingsFixture() {
   return (
@@ -113,9 +86,57 @@ function CampaignSettingsFixture() {
 const meta = {
   title: 'Domains/Campaigns/Settings',
   component: CampaignSettingsFixture,
+  beforeEach: () => {
+    savedTableSettingsInput = undefined
+  },
+  decorators: [
+    (Story) => {
+      const queryClient = useQueryClient()
+      queryClient.setQueryDefaults(getSystemListPage().queryKey, {
+        queryFn: async () => ({ page: systems, isDone: true, continueCursor: '' })
+      })
+      queryClient.setQueryDefaults(
+        convexQuery(convexApi.campaigns.queries.settings, { id: campaign.id }).queryKey,
+        { queryFn: async () => campaign }
+      )
+      queryClient.setQueryDefaults(
+        convexQuery(convexApi.campaigns.playSettings.get, { campaignId: campaign.id }).queryKey,
+        { queryFn: async () => playSettings }
+      )
+      queryClient.setQueryDefaults(
+        convexQuery(convexApi.campaigns.playSettings.options, { campaignId: campaign.id }).queryKey,
+        { queryFn: async () => playSettingsOptions }
+      )
+      mocked(useConvexMutation).mockImplementation((reference) => {
+        const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+          async (input?: unknown) => {
+            if (getFunctionName(reference) === 'campaigns/playSettings:save') {
+              savedTableSettingsInput = input
+              const updated = {
+                ...playSettings,
+                automationMode: 'MANUAL' as const,
+                version: 2,
+                updatedAt: '2026-08-30T00:01:00.000Z'
+              }
+              queryClient.setQueryData(
+                convexQuery(convexApi.campaigns.playSettings.get, { campaignId: campaign.id })
+                  .queryKey,
+                updated
+              )
+              return updated
+            }
+            if (getFunctionName(reference) === 'campaigns/update:update') return campaign
+            throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
+          },
+          { withOptimisticUpdate: () => mutate }
+        )
+        return mutate
+      })
+      return <Story />
+    }
+  ],
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers },
     tanstack: { router: { context: { user: authoredRouteStoryUser } } }
   }
 } satisfies Meta<typeof CampaignSettingsFixture>
@@ -143,6 +164,11 @@ export const RulesAndAutomation: Story = {
     await userEvent.click(canvas.getByLabelText('Automation mode'))
     await userEvent.click(await page.findByRole('option', { name: 'Manual' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Save table settings' }))
+    await expect(savedTableSettingsInput).toMatchObject({
+      campaignId: campaign.id,
+      expectedVersion: playSettings.version,
+      automationMode: 'MANUAL'
+    })
     await waitFor(async () =>
       expect(await canvas.findByLabelText('Automation mode')).toHaveValue('Manual')
     )

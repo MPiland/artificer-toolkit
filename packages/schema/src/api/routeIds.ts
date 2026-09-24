@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const routeSubjectKindDtoSchema = z.enum([
   'BACKGROUND',
@@ -21,12 +21,12 @@ export const routeIdentityDtoSchema = z.object({
 
 export const routeIdentityResolveRequestDtoSchema = z.object({
   subjectKind: routeSubjectKindDtoSchema,
-  publicId: z.string().min(1)
+  publicId: z.string().check(z.minLength(1))
 })
 
 export const routeIdentityBySubjectRequestDtoSchema = z.object({
   subjectKind: routeSubjectKindDtoSchema,
-  subjectId: z.string().min(1)
+  subjectId: z.string().check(z.minLength(1))
 })
 
 export type RouteSubjectKindDto = z.infer<typeof routeSubjectKindDtoSchema>

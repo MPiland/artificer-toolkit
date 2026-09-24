@@ -1,0 +1,326 @@
+import { z } from '../zod.js'
+
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+
+import { AUTHORED_LIMITS } from './authoredLimits.js'
+import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
+import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
+import {
+  ruleExecutionChecksumSchema as checksumSchema,
+  ruleExecutionIdentifierSchema as identifierSchema,
+  ruleExecutionIntegerSchema as integerSchema,
+  ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema,
+  ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
+  ruleExecutionUuidSchema as uuidSchema
+} from './ruleExecutionPrimitives.js'
+
+/** A persisted Recharge plan is bounded by the authored Feature collection limit. */
+export const MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES = AUTHORED_LIMITS.nestedCollectionItems
+
+export type CompletedTurnRechargePlanDto = z.infer<typeof completedTurnRechargePlanDtoSchema>
+export type TurnLegendaryActionEvidenceDto = z.infer<typeof turnLegendaryActionEvidenceDtoSchema>
+
+export type TurnLegendaryActionRefreshDto = {
+  ordinal: number
+  actorId: string
+  actorCurrentnessChecksum: string
+  ownerFeatureId: string
+  chargeId: string
+  lifecycleDefinitionId: string
+  lifecycleDefinitionVersion: number
+  lifecycleDefinitionChecksum: string
+  beforeUsed: number
+  afterUsed: number
+}
+
+export type TurnActionEconomyRefreshDto = {
+  ordinal: number
+  actorId: string
+  capabilityDefinitionId: string
+  definitionVersion: number
+  definitionChecksum: string
+  beforeUsed: number
+  afterUsed: 0
+}
+
+export const turnLegendaryActionRefreshDtoSchema: z.ZodMiniType<TurnLegendaryActionRefreshDto> =
+  z.strictObject({
+    ordinal: z
+      .number()
+      .check(z.int())
+      .check(z.gte(0))
+      .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1)),
+    actorId: uuidSchema,
+    actorCurrentnessChecksum: checksumSchema,
+    ownerFeatureId: uuidSchema,
+    chargeId: uuidSchema,
+    lifecycleDefinitionId: uuidSchema,
+    lifecycleDefinitionVersion: positiveIntegerSchema,
+    lifecycleDefinitionChecksum: checksumSchema,
+    beforeUsed: positiveIntegerSchema,
+    afterUsed: z.literal(0)
+  })
+
+export const turnActionEconomyRefreshDtoSchema: z.ZodMiniType<TurnActionEconomyRefreshDto> =
+  z.strictObject({
+    ordinal: z
+      .number()
+      .check(z.int())
+      .check(z.gte(0))
+      .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1)),
+    actorId: uuidSchema,
+    capabilityDefinitionId: uuidSchema,
+    definitionVersion: positiveIntegerSchema,
+    definitionChecksum: checksumSchema,
+    beforeUsed: positiveIntegerSchema,
+    afterUsed: z.literal(0)
+  })
+
+export const turnRechargeCandidateDtoSchema = z.strictObject({
+  ordinal: z
+    .number()
+    .check(z.int())
+    .check(z.gte(0))
+    .check(z.lte(MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES - 1)),
+  actorId: uuidSchema,
+  featureId: uuidSchema,
+  featureVersionChecksum: checksumSchema,
+  beforeUsed: integerSchema.check(z.gte(1)),
+  maximum: positiveIntegerSchema,
+  policy: z.strictObject({
+    gameSystemId: uuidSchema,
+    definitionId: uuidSchema,
+    definitionVersion: positiveIntegerSchema,
+    definitionChecksum: checksumSchema,
+    graphDefinitionId: uuidSchema,
+    graphDefinitionVersion: positiveIntegerSchema,
+    graphDefinitionChecksum: checksumSchema,
+    rechargedOutput: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(128))
+  })
+})
+
+export const turnRechargeExecutionDtoSchema = z.strictObject({
+  ordinal: z
+    .number()
+    .check(z.int())
+    .check(z.gte(0))
+    .check(z.lte(MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES - 1)),
+  candidate: turnRechargeCandidateDtoSchema,
+  execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+  recharged: z.boolean(),
+  beforeUsed: integerSchema.check(z.gte(1)),
+  afterUsed: integerSchema.check(z.gte(0)),
+  rawDie: integerSchema.check(z.gte(1)).check(z.lte(6))
+})
+
+export const completedTurnRechargePlanDtoSchema = z
+  .strictObject({
+    selectionChecksum: checksumSchema,
+    executions: z
+      .array(turnRechargeExecutionDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES))
+  })
+  .check(
+    z.superRefine((value, context) => {
+      const identities = new Set<string>()
+      for (const [index, execution] of value.executions.entries()) {
+        const candidate = execution.candidate
+        const identity = `${candidate.actorId}:${candidate.featureId}`
+        if (
+          execution.ordinal !== index ||
+          candidate.ordinal !== index ||
+          identities.has(identity) ||
+          execution.beforeUsed !== candidate.beforeUsed ||
+          execution.afterUsed > execution.beforeUsed ||
+          execution.afterUsed !== (execution.recharged ? 0 : execution.beforeUsed)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['executions', index],
+            message:
+              'Completed Recharge plans must retain canonical complete Feature execution evidence.'
+          })
+        }
+        identities.add(identity)
+      }
+    })
+  )
+
+export const legendaryActionChoiceOptionDtoSchema = z
+  .strictObject({
+    optionId: checksumSchema,
+    ownerActorId: uuidSchema,
+    ownerFeatureId: uuidSchema,
+    actionId: identifierSchema,
+    targetActorId: uuidSchema,
+    actionSourceChecksum: checksumSchema,
+    chargeId: uuidSchema,
+    featureCost: positiveIntegerSchema,
+    poolBefore: nonNegativeIntegerSchema,
+    poolRemaining: nonNegativeIntegerSchema,
+    lifecycle: z.strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: positiveIntegerSchema,
+      definitionChecksum: checksumSchema,
+      eligibilityGraphDefinitionId: uuidSchema,
+      eligibilityGraphDefinitionVersion: positiveIntegerSchema,
+      eligibilityGraphDefinitionChecksum: checksumSchema,
+      eligibleOutput: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(128))
+    }),
+    eligibilityEvidenceChecksum: checksumSchema
+  })
+  .check(
+    z.superRefine((option, refinement) => {
+      if (
+        option.featureCost > option.poolBefore ||
+        option.poolRemaining !== option.poolBefore - option.featureCost
+      ) {
+        refinement.addIssue({
+          code: 'custom',
+          path: ['poolRemaining'],
+          message: 'Legendary Action choice resource evidence must retain exact cost arithmetic.'
+        })
+      }
+    })
+  )
+
+export const legendaryActionChoiceGroupDtoSchema = z
+  .strictObject({
+    ownerActorId: uuidSchema,
+    options: z
+      .array(legendaryActionChoiceOptionDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
+  })
+  .check(
+    z.superRefine((group, refinement) => {
+      const optionIds = new Set<string>()
+      let prior = ''
+      for (const [index, option] of group.options.entries()) {
+        const identity = `${option.ownerFeatureId}:${option.actionId}`
+        if (
+          option.ownerActorId !== group.ownerActorId ||
+          option.targetActorId !== group.ownerActorId ||
+          optionIds.has(option.optionId) ||
+          (index > 0 && identity <= prior)
+        ) {
+          refinement.addIssue({
+            code: 'custom',
+            path: ['options', index],
+            message: 'Legendary Action choices must retain one canonical SELF-targeted owner group.'
+          })
+        }
+        optionIds.add(option.optionId)
+        prior = identity
+      }
+    })
+  )
+
+export const legendaryActionCharacterTransitionDtoSchema = z
+  .strictObject({
+    characterId: uuidSchema,
+    beforeStreamVersion: integerSchema.check(z.gte(0)),
+    afterStreamVersion: integerSchema.check(z.gte(0))
+  })
+  .check(
+    z.refine((value) => value.afterStreamVersion === value.beforeStreamVersion + 1, {
+      message: 'Legendary Action Character transitions must advance exactly once.'
+    })
+  )
+
+export const turnLegendaryActionEvidenceDtoSchema = z
+  .strictObject({
+    choice: legendaryActionChoiceGroupDtoSchema,
+    selectionChecksum: checksumSchema,
+    resolution: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('DECLINED') }),
+      z.strictObject({
+        kind: z.literal('EXECUTED'),
+        selectedOptionId: checksumSchema,
+        execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+        application: z.lazy(() => serverRuleExecutionApplicationOutputsDtoSchema),
+        characterTransitions: z
+          .array(legendaryActionCharacterTransitionDtoSchema)
+          .check(z.maxLength(2))
+      })
+    ])
+  })
+  .check(
+    z.superRefine((value, context) => {
+      if (checksumRuleDocument(value.choice) !== value.selectionChecksum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['selectionChecksum'],
+          message: 'Legendary Action terminal evidence must bind its exact issued choice.'
+        })
+      }
+      const resolution = value.resolution
+      if (!('selectedOptionId' in resolution)) return
+      const option = value.choice.options.find(
+        (candidate) => candidate.optionId === resolution.selectedOptionId
+      )
+      if (!option) {
+        context.addIssue({
+          code: 'custom',
+          path: ['resolution', 'selectedOptionId'],
+          message: 'Legendary Action terminal evidence must select one issued option.'
+        })
+        return
+      }
+      if (resolution.kind !== 'EXECUTED') return
+      const application = resolution.application
+      if (
+        application.kind !== 'CHARACTER_MECHANICS_BATCH' &&
+        application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['resolution', 'application'],
+          message: 'Legendary Action execution must retain one mechanics application batch.'
+        })
+        return
+      }
+      if (
+        resolution.execution.evidence.source.checksum !== option.actionSourceChecksum ||
+        application.sourceActorId !== option.ownerActorId ||
+        application.targetActorId !== option.targetActorId
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['resolution'],
+          message:
+            'Legendary Action execution evidence must match its exact selected source and target.'
+        })
+      }
+      const feature = application.featureResourceConsumption
+      if (
+        !feature ||
+        feature.ownerActorId !== option.ownerActorId ||
+        feature.ownerFeatureId !== option.ownerFeatureId ||
+        feature.chargeId !== option.chargeId ||
+        feature.cost !== option.featureCost ||
+        feature.beforeRemaining !== option.poolBefore ||
+        feature.afterRemaining !== option.poolRemaining ||
+        feature.afterUsed !== feature.beforeUsed + feature.cost
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['resolution', 'application', 'featureResourceConsumption'],
+          message: 'Legendary Action Feature resource evidence must match the selected option.'
+        })
+      }
+      let previous = ''
+      for (const [index, transition] of resolution.characterTransitions.entries()) {
+        if (transition.characterId <= previous) {
+          context.addIssue({
+            code: 'custom',
+            path: ['resolution', 'characterTransitions', index],
+            message: 'Legendary Action Character transitions must be unique and canonical.'
+          })
+        }
+        previous = transition.characterId
+      }
+    })
+  )

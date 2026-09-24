@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
 import {
@@ -15,35 +15,38 @@ import {
 
 const senseGrantTargetDtoSchema = z.union([
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
+    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
   }),
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
+    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
     senseIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 const senseGrantProgressionFieldsDtoSchema =
   createGrantProgressionFieldsDtoSchema(senseGrantTargetDtoSchema)
 
-export const senseGrantDtoSchema = scalingGrantBaseDtoSchema
-  .extend({
-    grantKind: z.literal('SENSE_GRANT'),
-    charges: chargeUseDtoSchema.optional(),
-    range: rangeDtoSchema.optional()
-  })
-  .and(senseGrantTargetDtoSchema)
-  .and(
+export const senseGrantDtoSchema = z
+  .intersection(
+    z.intersection(
+      z.extend(scalingGrantBaseDtoSchema, {
+        grantKind: z.literal('SENSE_GRANT'),
+        charges: z.optional(chargeUseDtoSchema),
+        range: z.optional(rangeDtoSchema)
+      }),
+      senseGrantTargetDtoSchema
+    ),
     z.union([
       z.object({
         scalingKind: z.literal('NONE')
       }),
-      z
-        .object({
+      z.intersection(
+        z.object({
           scalingKind: z.literal('PER_LEVEL')
-        })
-        .and(senseGrantProgressionFieldsDtoSchema)
+        }),
+        senseGrantProgressionFieldsDtoSchema
+      )
     ])
   )
-  .superRefine(validateGrantProgressionSelectionFields)
+  .check(z.superRefine(validateGrantProgressionSelectionFields))
 
 export type SenseGrantDto = z.infer<typeof senseGrantDtoSchema>

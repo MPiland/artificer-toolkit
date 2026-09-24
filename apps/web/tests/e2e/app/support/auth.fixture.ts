@@ -19,6 +19,22 @@ export const test = base.extend<{
   },
   authenticatedPage: async ({ characterCleanup: _characterCleanup, page }, use, testInfo) => {
     assertLocalApplication(testInfo.project.use.baseURL)
+    const diagnostics: string[] = []
+    const record = (detail: string) => {
+      for (const name of ['MVP_AUDIT_EMAIL', 'MVP_AUDIT_PASSWORD', 'CONVEX_E2E_SESSION']) {
+        const secret = process.env[name]
+        if (secret) detail = detail.replaceAll(secret, '[fixture credential]')
+      }
+      diagnostics.push(detail.slice(0, 3000))
+    }
+    page.on('pageerror', (error) => record(`pageerror: ${error.message}`))
+    page.on('console', (message) => {
+      if (message.type() === 'error') record(`console: ${message.text()}`)
+    })
+    page.on('response', (response) => {
+      if (response.status() >= 400)
+        record(`response: ${response.status()} ${new URL(response.url()).pathname}`)
+    })
     await installDevtoolLauncherHiding(page)
     await page.goto('/characters', { waitUntil: 'networkidle' })
 
@@ -30,7 +46,12 @@ export const test = base.extend<{
     try {
       await use(page)
     } finally {
+      await testInfo.attach('browser-diagnostics', {
+        body: JSON.stringify(diagnostics, null, 2),
+        contentType: 'application/json'
+      })
       await page.close()
+      if (testInfo.status === testInfo.expectedStatus) expect(diagnostics).toEqual([])
     }
   }
 })

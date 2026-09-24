@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   abilityCodeSchema,
   chargeBonusKindSchema,
@@ -15,35 +15,35 @@ import {
 export const chargeBonusDtoSchema = z.union([
   z.object({
     id: authoredIdentifierSchema,
-    bonusKind: z.literal(chargeBonusKindSchema.enum.ABILITY_MODIFIER),
+    bonusKind: z.literal(chargeBonusKindSchema._zod.def.entries.ABILITY_MODIFIER),
     ability: abilityCodeSchema,
-    min: authoredNonnegativeNumberSchema.optional(),
-    max: authoredNonnegativeNumberSchema.optional(),
-    multiplier: authoredNonnegativeNumberSchema.optional(),
-    order: z.number().int()
+    min: z.optional(authoredNonnegativeNumberSchema),
+    max: z.optional(authoredNonnegativeNumberSchema),
+    multiplier: z.optional(authoredNonnegativeNumberSchema),
+    order: z.number().check(z.int())
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('SKILL_BONUS'),
     skillId: authoredIdentifierSchema,
-    min: authoredNonnegativeNumberSchema.optional(),
-    max: authoredNonnegativeNumberSchema.optional(),
-    multiplier: authoredNonnegativeNumberSchema.optional(),
-    order: z.number().int()
+    min: z.optional(authoredNonnegativeNumberSchema),
+    max: z.optional(authoredNonnegativeNumberSchema),
+    multiplier: z.optional(authoredNonnegativeNumberSchema),
+    order: z.number().check(z.int())
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    min: authoredNonnegativeNumberSchema.optional(),
-    max: authoredNonnegativeNumberSchema.optional(),
-    multiplier: authoredNonnegativeNumberSchema.optional(),
-    order: z.number().int()
+    min: z.optional(authoredNonnegativeNumberSchema),
+    max: z.optional(authoredNonnegativeNumberSchema),
+    multiplier: z.optional(authoredNonnegativeNumberSchema),
+    order: z.number().check(z.int())
   })
 ])
 
 const chargeFixedPerLevelDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  level: z.number().int(),
+  level: z.number().check(z.int()),
   amount: z.number()
 })
 
@@ -52,61 +52,63 @@ export const chargeDtoSchema = z.union([
     .object({
       id: authoredIdentifierSchema,
       resetKind: chargeResetKindSchema,
-      bonuses: authoredNestedCollectionSchema(chargeBonusDtoSchema).optional(),
+      bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
       limitKind: z.enum([
-        chargeLimitKindSchema.enum.CHARACTER_LEVEL,
-        chargeLimitKindSchema.enum.CLASS_LEVEL,
-        chargeLimitKindSchema.enum.PARENT_CLASS_LEVEL,
-        chargeLimitKindSchema.enum.SPELL_CAST_LEVEL
+        chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
       ]),
-      scalingKind: z.literal(scalingKindSchema.enum.NONE),
-      classId: authoredIdentifierSchema.optional(),
-      multiplier: z.number().optional(),
-      min: z.number().optional(),
-      max: z.number().optional()
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      classId: z.optional(authoredIdentifierSchema),
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
     })
-    .superRefine((value, ctx) => {
-      if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'classId is required for CLASS_LEVEL charge limits'
-        })
-      }
-    }),
+    .check(
+      z.superRefine((value, ctx) => {
+        if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'classId is required for CLASS_LEVEL charge limits'
+          })
+        }
+      })
+    ),
   z.object({
     id: authoredIdentifierSchema,
     resetKind: chargeResetKindSchema,
-    bonuses: authoredNestedCollectionSchema(chargeBonusDtoSchema).optional(),
-    limitKind: z.literal(chargeLimitKindSchema.enum.ABILITY_MODIFIER),
-    scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
+    limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.ABILITY_MODIFIER),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
     ability: abilityCodeSchema,
-    multiplier: z.number().optional(),
-    min: z.number().optional(),
-    max: z.number().optional()
+    multiplier: z.optional(z.number()),
+    min: z.optional(z.number()),
+    max: z.optional(z.number())
   }),
   z.object({
     id: authoredIdentifierSchema,
     resetKind: chargeResetKindSchema,
-    bonuses: authoredNestedCollectionSchema(chargeBonusDtoSchema).optional(),
-    limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
-    scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
+    limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.FIXED_AMOUNT),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
     amount: z.number()
   }),
   z.object({
     id: authoredIdentifierSchema,
     resetKind: chargeResetKindSchema,
-    bonuses: authoredNestedCollectionSchema(chargeBonusDtoSchema).optional(),
-    limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+    bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
+    limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.FIXED_AMOUNT),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
     levels: authoredNestedCollectionSchema(chargeFixedPerLevelDtoSchema)
   })
 ])
 
 export const sourceChargeDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  limitKind: z.literal(chargeLimitKindSchema.enum.SOURCE_CHARGES),
-  scalingKind: z.literal(scalingKindSchema.enum.NONE),
-  cost: z.number().int().positive()
+  limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.SOURCE_CHARGES),
+  scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+  cost: z.number().check(z.int()).check(z.positive())
 })
 
 export const chargeUseDtoSchema = z.union([chargeDtoSchema, sourceChargeDtoSchema])

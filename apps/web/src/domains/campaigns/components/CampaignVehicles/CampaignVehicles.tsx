@@ -1,66 +1,145 @@
-import { Alert, Button, Loader, Select, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import type { CampaignContentShareDto, CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
-import { getCampaignContent, getCampaignVehicles } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import {
+  Alert,
+  Badge,
+  Button,
+  Group,
+  Loader,
+  Modal,
+  Select,
+  Stack,
+  Text,
+  Title
+} from '@mantine/core'
+import { useMutation } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import type {
+  CampaignVehicleDto,
+  CampaignVehicleLifecycleInput
+} from '@artificer-toolkit/schema/api/campaignVehicles'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { usePaginatedQuery as useCandidatePaginatedQuery } from 'convex-helpers/react'
+import { useConvex, useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import { campaignVehicleShareLabel } from './campaignVehicleLabels'
 import * as styles from './CampaignVehicles.css'
 
 export function CampaignVehicles({ campaign }: { campaign: CampaignDetailDto }) {
-  const queryClient = useQueryClient()
-  const vehicles = useQuery(getCampaignVehicles(campaign.id))
-  const content = useQuery(getCampaignContent(campaign.id))
-  const masterVehicles = useQuery({
-    queryKey: [...queryKeys.content.vehicles.list(), 'campaign-master-options'],
-    queryFn: async () =>
-      (
-        await loadPagedAuthoredCatalogItems(api.content.vehicles.list, {
-          direction: 'FORWARD',
-          limit: 48,
-          sort: 'name'
-        })
-      )
-        .filter((vehicle) => vehicle.provenance.kind === 'MASTER')
-        .map((vehicle) => ({ value: vehicle.id, label: vehicle.label }))
-  })
+  const convex = useConvex()
+  const vehicles = usePaginatedQuery(
+    convexApi.campaigns.vehicles.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  const definitionOptions = useCandidatePaginatedQuery(
+    convexApi.campaigns.vehicles.definitionOptions,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  const sharedVehicles = useCandidatePaginatedQuery(
+    convexApi.campaigns.contentShares.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  const createVehicle = useConvexMutation(convexApi.campaigns.vehicles.create)
+  const lifecycleVehicle = useConvexMutation(convexApi.campaigns.vehicles.lifecycle)
   const [vehicleDefinitionId, setVehicleDefinitionId] = useState<string | null>(null)
-  const sharedVehicles = (content.data ?? []).filter((share) => share.subjectKind === 'VEHICLE')
+  const [selectedVehicle, setSelectedVehicle] = useState<CampaignVehicleDto | null>(null)
+  const [lifecycleRequest, setLifecycleRequest] = useState<CampaignVehicleLifecycleInput | null>(
+    null
+  )
+  const [preparingLifecycle, setPreparingLifecycle] = useState(false)
+  const [requestError, setRequestError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (definitionOptions.status === 'CanLoadMore') definitionOptions.loadMore(48)
+  }, [definitionOptions.loadMore, definitionOptions.status])
+
+  useEffect(() => {
+    if (sharedVehicles.status === 'CanLoadMore') sharedVehicles.loadMore(48)
+  }, [sharedVehicles.loadMore, sharedVehicles.status])
+
   const vehicleOptions = [
-    ...(masterVehicles.data ?? []),
-    ...sharedVehicles.map((share) => ({
-      value: share.subjectId,
-      label: contentLabel(share)
-    }))
+    ...definitionOptions.results.map((vehicle) => ({ value: vehicle.id, label: vehicle.label })),
+    ...sharedVehicles.results
+      .filter((share) => share.subjectKind === 'VEHICLE')
+      .map((share) => ({
+        value: share.subjectId,
+        label: campaignVehicleShareLabel(share)
+      }))
   ]
   const create = useMutation({
     mutationFn: () =>
-      api.campaigns.vehicles.create({
+      createVehicle({
         campaignId: campaign.id,
         vehicleDefinitionId: vehicleDefinitionId!,
         label: null
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setVehicleDefinitionId(null)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.vehicles(campaign.id)
-      })
     }
   })
-  const remove = useMutation({
-    mutationFn: ({ id, version }: { id: string; version: number }) =>
-      api.campaigns.vehicles.delete({
-        campaignId: campaign.id,
-        vehicleId: id,
-        expectedVersion: version
-      }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.vehicles(campaign.id)
-      })
+  const lifecycle = useMutation({
+    mutationFn: (input: CampaignVehicleLifecycleInput) => lifecycleVehicle({ input }),
+    onSuccess: () => {
+      setLifecycleRequest(null)
+      setRequestError(null)
+      setSelectedVehicle(null)
+    }
   })
   const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const pickerReady =
+    definitionOptions.status === 'Exhausted' && sharedVehicles.status === 'Exhausted'
+
+  async function startLifecycle(
+    vehicle: CampaignVehicleDto,
+    action: CampaignVehicleLifecycleInput['action']
+  ) {
+    if (preparingLifecycle || lifecycle.isPending) return
+    setPreparingLifecycle(true)
+    setRequestError(null)
+    try {
+      const inventoryVersion =
+        action === 'REMOVE_RETURN_CARGO' || action === 'REMOVE_DESTROY_CARGO'
+          ? (
+              await convex.query(convexApi.campaigns.vehicleInventory.items, {
+                campaignId: campaign.id,
+                vehicleId: vehicle.id,
+                paginationOpts: { cursor: null, numItems: 1 }
+              })
+            ).version
+          : undefined
+      const common = {
+        campaignId: campaign.id,
+        vehicleId: vehicle.id,
+        expectedVersion: vehicle.version,
+        idempotencyKey: crypto.randomUUID()
+      }
+      const input =
+        action === 'REMOVE_RETURN_CARGO'
+          ? {
+              ...common,
+              action,
+              expectedInventoryVersion: inventoryVersion!,
+              expectedPartyInventoryVersion: (
+                await convex.query(convexApi.campaigns.partyInventory.items, {
+                  campaignId: campaign.id,
+                  paginationOpts: { cursor: null, numItems: 1 }
+                })
+              ).version
+            }
+          : action === 'REMOVE_DESTROY_CARGO'
+            ? { ...common, action, expectedInventoryVersion: inventoryVersion! }
+            : { ...common, action }
+      setLifecycleRequest(input)
+      lifecycle.mutate(input)
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : 'Vehicle change couldn’t be prepared.'
+      )
+    } finally {
+      setPreparingLifecycle(false)
+    }
+  }
 
   return (
     <section className={styles.panel} aria-labelledby='campaign-vehicles-title'>
@@ -72,47 +151,95 @@ export function CampaignVehicles({ campaign }: { campaign: CampaignDetailDto }) 
           Campaign vehicles have their own inventory custody.
         </Text>
       </div>
-      {vehicles.isPending ? <Loader aria-label='Loading Campaign vehicles' size='sm' /> : null}
-      {vehicles.error ? <Alert color='red'>Campaign vehicles couldn’t be loaded.</Alert> : null}
+      {vehicles.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading Campaign vehicles' size='sm' />
+      ) : null}
       <Stack gap={0}>
-        {vehicles.data?.map((vehicle) => (
+        {vehicles.results.map((vehicle) => (
           <div className={styles.row} key={vehicle.id}>
-            <Text fw={700}>
-              {vehicle.label ??
-                vehicleOptions.find((option) => option.value === vehicle.vehicleDefinitionId)
-                  ?.label ??
-                'Campaign Vehicle'}
-            </Text>
+            <div>
+              <Group gap='xs'>
+                <Text fw={700}>
+                  {vehicle.label ??
+                    vehicleOptions.find((option) => option.value === vehicle.vehicleDefinitionId)
+                      ?.label ??
+                    'Campaign Vehicle'}
+                </Text>
+                {vehicle.availability === 'UNAVAILABLE' ? (
+                  <Badge color='yellow'>Unavailable</Badge>
+                ) : null}
+              </Group>
+              {vehicle.availability === 'UNAVAILABLE' ? (
+                <Text c='dimmed' size='sm'>
+                  Unavailable vehicles remain visible to the Campaign owner and cannot be accessed
+                  by players.
+                </Text>
+              ) : null}
+            </div>
             {editable ? (
-              <Button
-                color='red'
-                disabled={remove.isPending}
-                size='compact-sm'
-                variant='subtle'
-                onClick={() => remove.mutate(vehicle)}
-              >
-                Remove
-              </Button>
+              <Group gap='xs'>
+                {vehicle.availability === 'UNAVAILABLE' ? (
+                  <Button
+                    disabled={preparingLifecycle || lifecycle.isPending}
+                    size='compact-sm'
+                    variant='subtle'
+                    onClick={() => void startLifecycle(vehicle, 'RESTORE')}
+                  >
+                    Restore
+                  </Button>
+                ) : (
+                  <Button
+                    disabled={preparingLifecycle || lifecycle.isPending}
+                    size='compact-sm'
+                    variant='subtle'
+                    onClick={() => void startLifecycle(vehicle, 'MAKE_UNAVAILABLE')}
+                  >
+                    Mark unavailable
+                  </Button>
+                )}
+                <Button
+                  color='red'
+                  disabled={preparingLifecycle || lifecycle.isPending}
+                  size='compact-sm'
+                  variant='subtle'
+                  onClick={() => {
+                    setLifecycleRequest(null)
+                    setRequestError(null)
+                    setSelectedVehicle(vehicle)
+                  }}
+                >
+                  Remove
+                </Button>
+              </Group>
             ) : null}
           </div>
         ))}
       </Stack>
-      {!vehicles.isPending && vehicles.data?.length === 0 ? (
+      {vehicles.status === 'Exhausted' && vehicles.results.length === 0 ? (
         <Text c='dimmed'>No Campaign vehicles.</Text>
+      ) : null}
+      {vehicles.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => vehicles.loadMore(48)}>
+          Load more vehicles
+        </Button>
+      ) : null}
+      {vehicles.status === 'LoadingMore' ? (
+        <Loader aria-label='Loading more Campaign vehicles' size='sm' />
       ) : null}
       {editable ? (
         <div className={styles.picker}>
           <Select
             className={styles.select}
             data={vehicleOptions}
+            disabled={!pickerReady}
             label='Current Vehicle'
-            placeholder={vehicleOptions.length ? 'Choose a Vehicle' : 'No available Vehicles'}
+            placeholder={pickerReady ? 'Choose a Vehicle' : 'Loading available Vehicles'}
             searchable
             value={vehicleDefinitionId}
             onChange={setVehicleDefinitionId}
           />
           <Button
-            disabled={!vehicleDefinitionId}
+            disabled={!vehicleDefinitionId || !pickerReady}
             loading={create.isPending}
             onClick={() => create.mutate()}
           >
@@ -120,22 +247,62 @@ export function CampaignVehicles({ campaign }: { campaign: CampaignDetailDto }) 
           </Button>
         </div>
       ) : null}
-      {masterVehicles.error || create.error || remove.error ? (
-        <Alert color='red'>The Vehicle change couldn’t be saved.</Alert>
+      {create.error || lifecycle.error || requestError ? (
+        <Alert color='red'>
+          {requestError ?? create.error?.message ?? lifecycle.error?.message}
+          {lifecycleRequest && !preparingLifecycle && !lifecycle.isPending ? (
+            <Button
+              ml='sm'
+              size='compact-sm'
+              variant='subtle'
+              onClick={() => lifecycle.mutate(lifecycleRequest)}
+            >
+              Retry vehicle change
+            </Button>
+          ) : null}
+        </Alert>
       ) : null}
+      <Modal
+        centered
+        opened={selectedVehicle !== null}
+        title='Remove Campaign vehicle'
+        onClose={() => {
+          if (preparingLifecycle || lifecycle.isPending) return
+          setLifecycleRequest(null)
+          setRequestError(null)
+          setSelectedVehicle(null)
+        }}
+      >
+        <Stack gap='sm'>
+          <Text>
+            Choose what happens to every item and coin carried by this vehicle before it is removed.
+          </Text>
+          <Button
+            disabled={!selectedVehicle || preparingLifecycle || lifecycle.isPending}
+            loading={lifecycle.isPending}
+            onClick={() => {
+              const vehicle = vehicles.results.find((item) => item.id === selectedVehicle?.id)
+              if (vehicle) void startLifecycle(vehicle, 'REMOVE_RETURN_CARGO')
+            }}
+          >
+            Remove and return cargo to Party
+          </Button>
+          <Button
+            color='red'
+            disabled={!selectedVehicle || preparingLifecycle || lifecycle.isPending}
+            loading={lifecycle.isPending}
+            onClick={() => {
+              const vehicle = vehicles.results.find((item) => item.id === selectedVehicle?.id)
+              if (vehicle) void startLifecycle(vehicle, 'REMOVE_DESTROY_CARGO')
+            }}
+          >
+            Remove and destroy all cargo and coins
+          </Button>
+          <Text c='red' size='sm'>
+            Destroying cargo permanently removes every item and coin held by this vehicle.
+          </Text>
+        </Stack>
+      </Modal>
     </section>
   )
-}
-
-function contentLabel(share: CampaignContentShareDto) {
-  const document = share.document
-  if (
-    document &&
-    typeof document === 'object' &&
-    !Array.isArray(document) &&
-    'label' in document &&
-    typeof document.label === 'string'
-  )
-    return document.label
-  return 'Campaign Vehicle'
 }

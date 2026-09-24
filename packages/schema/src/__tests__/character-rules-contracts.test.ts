@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
 import {
   characterRulePolicyInputSchema,
@@ -7,6 +9,7 @@ import {
 import { characterGrantFoldInputSchema } from '../api/characterGrantFoldRules.js'
 import {
   characterResourceUsageFactsSchema,
+  characterResourcePoolCandidatesSchema,
   characterResourcesSchema
 } from '../api/characterResourceRules.js'
 import {
@@ -15,6 +18,85 @@ import {
 } from '../api/characterActionRules.js'
 
 describe('Character rule contracts', () => {
+  it('preserves bounded composite pool identities built from full UUID spell sources', () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    const sourceInstanceId = `SUBCLASS:${id}:${id}:${id}:${id}`
+    const accessId = `${sourceInstanceId}:${id}`
+    const poolId = createCharacterResourceOwnerKey({
+      kind: 'SPELL_SOURCE',
+      resourceGrantId: accessId,
+      spellId: id,
+      sourceKind: 'FEATURE',
+      sourceInstanceId
+    })
+    expect(poolId).toHaveLength(426)
+    expect(characterResourcePoolIdentitySchema.parse(poolId)).toBe(poolId)
+    expect(characterResourcePoolIdentitySchema.safeParse('x'.repeat(1_001)).success).toBe(false)
+    expect(characterResourcePoolIdentitySchema.safeParse(' ').success).toBe(false)
+    const candidate = {
+      sequence: 0,
+      poolId,
+      resourceDefinitionId: id,
+      chargeId: id,
+      chargeCalculationId: poolId,
+      baseResetKind: 'LONG_REST' as const,
+      ownerKind: 'SPELL_SOURCE' as const,
+      accessId,
+      sourceInstanceId,
+      spellId: id
+    }
+    expect(characterResourcePoolCandidatesSchema.parse([candidate])[0]!.poolId).toBe(poolId)
+    expect(characterResourceUsageFactsSchema.parse([{ poolId, rawUsed: 1 }])[0]!.poolId).toBe(
+      poolId
+    )
+    const maximum = {
+      calculationId: poolId,
+      sourceId: id,
+      state: 'RESOLVED' as const,
+      maximum: 2,
+      reasonCode: 'CALCULATED' as const,
+      baseContribution: { sourceId: id, value: 2 },
+      bonusContributions: []
+    }
+    expect(
+      characterRulePolicyOutputSchema.shape.chargeMaximums.parse([maximum])[0]!.calculationId
+    ).toBe(poolId)
+    expect(
+      characterRulePolicyInputSchema.shape.chargeCalculations.parse([
+        {
+          calculationId: poolId,
+          sourceId: id,
+          base: {
+            kind: 'ABILITY_MODIFIER',
+            abilityId: 'INTELLIGENCE',
+            multiplier: null,
+            minimum: null,
+            maximum: null
+          },
+          bonuses: []
+        }
+      ])[0]!.calculationId
+    ).toBe(poolId)
+    const { baseResetKind, ...outputCandidate } = candidate
+    expect(
+      characterResourcesSchema.parse([
+        {
+          ...outputCandidate,
+          state: 'RESOLVED',
+          maximum: 2,
+          rawUsed: 1,
+          effectiveUsed: 1,
+          remaining: 1,
+          reasonCode: 'CALCULATED',
+          baseContribution: maximum.baseContribution,
+          bonusContributions: [],
+          resetKind: baseResetKind,
+          resetResolution: { baseResetKind, appliedGrantId: null, source: null }
+        }
+      ])[0]!.poolId
+    ).toBe(poolId)
+  })
+
   it('defaults the bounded action model spell lane for historical inputs and outputs', () => {
     const input = characterActionModelInputSchema.parse({
       candidates: [],

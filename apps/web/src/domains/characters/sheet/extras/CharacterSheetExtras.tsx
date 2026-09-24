@@ -44,14 +44,13 @@ export function CharacterSheetExtras({
   const priorExtraIds = useRef<Set<string> | undefined>(undefined)
   const isCreature = kind !== null && CREATURE_KINDS.has(kind)
   const sourceKind = isCreature ? 'CREATURE' : 'VEHICLE'
-  const extraOptions = useQuery({
-    ...getCharacterSheetExtraOptions(sheet.meta.characterId, {
+  const extraOptions = useQuery(
+    getCharacterSheetExtraOptions(opened && kind !== null ? sheet.meta.characterId : undefined, {
       kind: sourceKind,
       limit: 25,
       ...(sourceQuery ? { query: sourceQuery } : {})
-    }),
-    enabled: opened && kind !== null
-  })
+    })
+  )
   const sourceOptions = extraOptions.data?.items ?? []
 
   useEffect(() => {

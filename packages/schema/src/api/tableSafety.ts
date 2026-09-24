@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const tableSafetyPracticeDtoSchema = z.enum([
   'SESSION_ZERO',

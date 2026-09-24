@@ -1,11 +1,7 @@
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import type { SpellDetailReferenceData } from '#app/data/spells/referenceData'
 import type {
   AuthoredDraftDto,
   BackgroundResponseDto,
-  CharacterBuilderDraftDto,
-  CharacterBuilderPayloadDto,
-  CharacterSheetResponseDto,
   ClassResponseDto,
   CreatureResponseDto,
   EquipmentResponseDto,
@@ -13,7 +9,12 @@ import type {
   RaceResponseDto,
   SpellResponseDto,
   VehicleResponseDto
-} from '#app/lib/api'
+} from '@artificer-toolkit/schema/api/content'
+import type {
+  CharacterBuilderDraftDto,
+  CharacterBuilderPayloadDto
+} from '@artificer-toolkit/schema/api/characterBuilder'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type {
   SystemListResponseDto,
   SystemResponseDto
@@ -60,10 +61,6 @@ export interface CreatureDetailLoaderData {
   breadcrumbLabel: string | undefined
   creatureId: string
   draft: AuthoredDraftDto | null
-  references: Pick<
-    AuthoredContentReferenceData,
-    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
-  >
   response: CreatureResponseDto | null
   view: AuthoredRouteView
 }
@@ -91,9 +88,7 @@ export interface FeatDetailLoaderData {
 export interface RaceDetailLoaderData {
   breadcrumbLabel: string | undefined
   draft: AuthoredDraftDto | null
-  parentResponse: RaceResponseDto | null
   raceId: string
-  references: Pick<AuthoredContentReferenceData, 'heritages' | 'races' | 'speeds'>
   response: RaceResponseDto | null
   view: AuthoredRouteView
 }
@@ -101,7 +96,6 @@ export interface RaceDetailLoaderData {
 export interface SpellDetailLoaderData {
   breadcrumbLabel: string | undefined
   draft: AuthoredDraftDto | null
-  references: SpellDetailReferenceData
   response: SpellResponseDto | null
   spellId: string
   view: AuthoredRouteView
@@ -150,7 +144,6 @@ export type VehicleEditLoaderData = AuthoredFormRouteLoaderData<
 >
 
 export interface CharacterCreateAuthoringData {
-  payload: CharacterBuilderPayloadDto | null
   systems: SystemListResponseDto
 }
 
@@ -161,7 +154,6 @@ export interface CharacterSheetLoaderData {
   characterId: string
   characterPublicId: string
   draft: CharacterBuilderDraftDto | null
-  fallbackCharacter: CharacterBuilderPayloadDto | null
   response: CharacterSheetResponseDto | null
 }
 
@@ -169,8 +161,7 @@ export interface CharacterEditAuthoringData {
   breadcrumbLabel: string | null
   characterId: string
   draft: CharacterBuilderDraftDto | null
-  draftPayload: CharacterBuilderPayloadDto | null
-  response: CharacterBuilderPayloadDto | null
+  payload: CharacterBuilderPayloadDto | null
 }
 
 export type CharacterEditLoaderData = AuthoredFormRouteLoaderData<CharacterEditAuthoringData>

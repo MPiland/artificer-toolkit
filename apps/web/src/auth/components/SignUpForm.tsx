@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/auth'
 import type { AccountUsernameStatusDto } from '@artificer-toolkit/schema/api/account'
 import IArrowRight from '#assets/icons/IArrowRight'
-import { api } from '#app/lib/api'
+import { getUsernameStatus as readUsernameStatus } from '../usernameStatus'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
@@ -28,7 +28,7 @@ import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 
 export function SignUpForm({
   authClient = browserAuthClient,
-  getUsernameStatus = (username) => api.account.usernameStatus({ username }),
+  getUsernameStatus = readUsernameStatus,
   onSuccess
 }: AuthFormProps & {
   getUsernameStatus?: (username: string) => Promise<AccountUsernameStatusDto>
@@ -95,14 +95,9 @@ export function SignUpForm({
         return
       }
 
-      if (result.session) {
-        const message = 'Account created.'
-        setFeedback({ tone: 'success', message })
-      } else {
-        const message =
-          "If we can create an account with that email, we'll send a confirmation link. Check your inbox."
-        setFeedback({ tone: 'success', message })
-      }
+      const message =
+        "If we can create an account with that email, we'll send a confirmation link. Check your inbox."
+      setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
     } catch {
       setFeedback({ tone: 'error', message: 'Could not create your account. Try again.' })

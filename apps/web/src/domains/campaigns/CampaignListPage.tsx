@@ -1,47 +1,38 @@
-import { Badge, Button, Group, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Loader, Text, Title } from '@mantine/core'
+import { convexQuery } from '@convex-dev/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { getCampaignList } from '#app/data/campaigns/queries'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { useState } from 'react'
+import { useGetCampaignList } from '#app/data/campaigns/queries'
 import {
   buildCampaignRouteParams,
   buildCharacterRouteParams
 } from '#app/routing/authoredRouteParams'
 import { richHtmlToPlainText } from '#app/lib/richText'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { CampaignCopy } from './components/CampaignCopy'
 import * as sharedStyles from './campaigns.css'
 
-export function CampaignListPage() {
+export function CampaignListPage({ deletingCampaignId }: { deletingCampaignId?: string }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getCampaignList())
-  const campaigns = [...data].sort((left, right) => {
+  const [copySource, setCopySource] = useState<CampaignSummaryDto | null>(null)
+  const { data, isLoading } = useGetCampaignList()
+  const campaigns = [...(data ?? [])].sort((left, right) => {
     if (left.status !== right.status) return left.status === 'ACTIVE' ? -1 : 1
     return Date.parse(right.createdAt) - Date.parse(left.createdAt)
   })
-  const copyCampaign = useMutation({
-    retry: 1,
-    mutationFn: ({
-      campaign,
-      commandId
-    }: {
-      campaign: (typeof campaigns)[number]
-      commandId: string
-    }) =>
-      api.campaigns.copy({
-        campaignId: campaign.id,
-        commandId,
-        expectedVersion: campaign.version
-      }),
-    onSuccess: async (campaign) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
-      await navigate({
-        to: '/campaigns/$campaignPublicId/$campaignSlug',
-        params: buildCampaignRouteParams(campaign.publicId, campaign.name)
-      })
-    }
-  })
+
+  if (isLoading) {
+    return (
+      <main className={sharedStyles.page}>
+        {deletingCampaignId ? <CampaignDeletionProgress campaignId={deletingCampaignId} /> : null}
+        <Text role='status'>Loading Campaigns…</Text>
+      </main>
+    )
+  }
 
   return (
     <main className={sharedStyles.page}>
@@ -55,6 +46,8 @@ export function CampaignListPage() {
         </Button>
       </header>
 
+      {deletingCampaignId ? <CampaignDeletionProgress campaignId={deletingCampaignId} /> : null}
+
       {campaigns.length === 0 ? (
         <section className={sharedStyles.panel} aria-label='No Campaigns'>
           <Title order={2}>Start your first table</Title>
@@ -64,6 +57,7 @@ export function CampaignListPage() {
         <section className={sharedStyles.cards} aria-label='Campaign list'>
           {campaigns.map((campaign) => (
             <article
+              data-testid={`campaign-${campaign.publicId}`}
               className={clsx(
                 sharedStyles.card,
                 campaign.status === 'ARCHIVED' && sharedStyles.archivedCard
@@ -157,16 +151,7 @@ export function CampaignListPage() {
                       : 'View Campaign'}
                 </Button>
                 {campaign.role === 'OWNER' ? (
-                  <Button
-                    loading={
-                      copyCampaign.isPending && copyCampaign.variables?.campaign.id === campaign.id
-                    }
-                    onClick={() =>
-                      copyCampaign.mutate({ campaign, commandId: crypto.randomUUID() })
-                    }
-                    size='sm'
-                    variant='subtle'
-                  >
+                  <Button onClick={() => setCopySource(campaign)} size='sm' variant='subtle'>
                     Copy
                   </Button>
                 ) : null}
@@ -181,6 +166,66 @@ export function CampaignListPage() {
           ))}
         </section>
       )}
+      <CampaignCopy
+        campaigns={campaigns}
+        source={copySource}
+        onClose={() => setCopySource(null)}
+        onOpen={setCopySource}
+      />
     </main>
+  )
+}
+
+function CampaignDeletionProgress({ campaignId }: { campaignId: string }) {
+  const status = useQuery({
+    ...convexQuery(convexApi.campaigns.deletion.status, { campaignId }),
+    retry: false
+  })
+  const remove = useConvexMutation(convexApi.campaigns.deletion.remove)
+  const retry = useMutation({
+    mutationFn: () => {
+      if (!status.data) throw new Error('Campaign deletion status is unavailable.')
+      return remove({
+        campaignId,
+        expectedVersion: status.data.expectedVersion,
+        confirmation: 'DELETE'
+      })
+    }
+  })
+
+  return (
+    <section className={sharedStyles.panel} aria-label='Campaign deletion progress'>
+      <Group gap='xs'>
+        <Title order={2} size='h3'>
+          Campaign deletion
+        </Title>
+        {status.data ? (
+          <Badge color={status.data.status === 'FAILED' ? 'red' : 'gray'}>
+            {status.data.status === 'DELETING'
+              ? 'Deleting'
+              : status.data.status === 'FAILED'
+                ? 'Failed'
+                : 'Deleted'}
+          </Badge>
+        ) : null}
+        {status.isPending || status.data?.status === 'DELETING' ? (
+          <Loader aria-label='Deleting Campaign' size='sm' />
+        ) : null}
+      </Group>
+      {status.data?.status === 'DELETING' ? (
+        <Text c='dimmed'>The Campaign is inaccessible while its data is removed.</Text>
+      ) : null}
+      {status.data?.status === 'DELETED' ? <Text>Campaign deleted.</Text> : null}
+      {status.data?.status === 'FAILED' ? (
+        <>
+          <Text c='red'>{status.data.error}</Text>
+          <Button loading={retry.isPending} size='sm' onClick={() => retry.mutate()}>
+            Retry deletion
+          </Button>
+        </>
+      ) : null}
+      {status.isError ? <Alert color='red'>Campaign deletion status is unavailable.</Alert> : null}
+      {retry.error ? <Alert color='red'>{retry.error.message}</Alert> : null}
+    </section>
   )
 }

@@ -58,7 +58,28 @@
       "outputs": []
     },
     "typecheck": {
+      "dependsOn": ["^build"],
       "outputs": [".cache/tsc/*.tsbuildinfo", "tsconfig*.tsbuildinfo"]
+    },
+    "typecheck:convex": {
+      "dependsOn": [
+        "@artificer-toolkit/authoring#build",
+        "@artificer-toolkit/rules-runtime#build",
+        "@artificer-toolkit/schema#build",
+        "@artificer-toolkit/emails#build",
+        "@artificer-toolkit/source-data#build"
+      ],
+      "outputs": []
+    },
+    "test:convex": {
+      "dependsOn": [
+        "@artificer-toolkit/authoring#build",
+        "@artificer-toolkit/rules-runtime#build",
+        "@artificer-toolkit/schema#build",
+        "@artificer-toolkit/emails#build",
+        "@artificer-toolkit/source-data#build"
+      ],
+      "outputs": []
     },
     "typecheck:app": {
       "outputs": [".cache/tsc/typecheck.app.tsbuildinfo"]

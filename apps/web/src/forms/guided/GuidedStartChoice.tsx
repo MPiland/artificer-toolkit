@@ -1,23 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AppSelect } from '#ui/primitives/Select'
 import { Badge, Button, Group, Loader, Stack, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
+import { CatchBoundary } from '@tanstack/react-router'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { usePaginatedQuery } from 'convex-helpers/react'
 import { Copy, Sparkles } from 'lucide-react'
+import { getSpell } from '#app/data/spells/queries'
 import { useAuthoringForm } from '../layout/AuthoringFormContext'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from './GuidedAuthoringFrame'
-import {
-  getGuidedCopySourceQueryKey,
-  getGuidedCopySources,
-  toGuidedCopySources,
-  type GuidedCopySource
-} from './guidedCopySources'
+import { toGuidedCopySources, type GuidedCopySource } from './guidedCopySources'
 import * as styles from './guidedAuthoring.css'
 
 type GuidedStartChoiceProps = {
   domain: AuthoredFormDomain
   domainLabel: string
-  onAdvanced: () => void
+  systemId?: string
+  onAdvanced: (() => void) | undefined
   onFresh: () => void
 }
 
@@ -35,47 +35,14 @@ const DOMAIN_NOUNS: Record<AuthoredFormDomain, { singular: string; plural: strin
 export function GuidedStartChoice({
   domain,
   domainLabel,
+  systemId,
   onAdvanced,
   onFresh
 }: GuidedStartChoiceProps) {
   const nouns = DOMAIN_NOUNS[domain]
   const [existingMode, setExistingMode] = useState(false)
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
-  const [copying, setCopying] = useState(false)
-  const { copySource } = useAuthoringForm()
-  const sources = useQuery({
-    enabled: existingMode,
-    queryFn: () => getGuidedCopySources(domain),
-    queryKey: getGuidedCopySourceQueryKey(domain),
-    select: toGuidedCopySources
-  })
-  const selectedSource = useMemo(
-    () => sources.data?.find((source) => source.id === selectedSourceId),
-    [selectedSourceId, sources.data]
-  )
-  const sourceOptions = useMemo(
-    () =>
-      (sources.data ?? []).map((source) => ({
-        label: source.label,
-        value: source.id
-      })),
-    [sources.data]
-  )
-
   const chooseExisting = () => {
     setExistingMode(true)
-    setSelectedSourceId(null)
-  }
-
-  const createCopy = async () => {
-    if (!selectedSourceId) return
-
-    setCopying(true)
-    try {
-      await copySource(selectedSourceId)
-    } finally {
-      setCopying(false)
-    }
   }
 
   return (
@@ -123,52 +90,207 @@ export function GuidedStartChoice({
       </div>
 
       {existingMode ? (
-        <section className={styles.copyPanel} aria-label={`Use an existing ${nouns.singular}`}>
-          <Stack gap='md'>
-            <Text size='sm' c='dimmed'>
-              Choose a source first. Nothing is copied until you confirm with Create copy.
-            </Text>
-            <AppSelect
-              autoFocus
-              disabled={sources.isLoading || sources.isError}
-              label={`Search ${nouns.plural}`}
-              placeholder='Search by name'
-              data={sourceOptions}
-              value={selectedSourceId}
-              searchable
-              onChange={setSelectedSourceId}
-            />
-            {sources.isLoading ? (
-              <Group justify='center' py='xl'>
-                <Loader size='sm' />
-              </Group>
-            ) : null}
-            {sources.isError ? (
-              <Text c='red' size='sm'>
-                Could not load active content. Try again.
-              </Text>
-            ) : null}
-            {!sources.isLoading && !sources.isError && sourceOptions.length === 0 ? (
-              <Text c='dimmed' size='sm'>
-                No copyable {nouns.plural} are available.
-              </Text>
-            ) : null}
-            {selectedSource ? <CopySourceSummary domain={domain} source={selectedSource} /> : null}
-            <Group justify='flex-end'>
-              <Button
-                className={styles.navigationAction}
-                disabled={!selectedSourceId || copying}
-                loading={copying}
-                type='button'
-                onClick={() => void createCopy()}
-              >
-                Create copy
-              </Button>
-            </Group>
-          </Stack>
-        </section>
+        <CatchBoundary
+          getResetKey={() => `${domain}:${systemId ?? 'missing-system'}`}
+          errorComponent={GuidedCopySourceUnavailable}
+        >
+          <GuidedNativeCopySourceLoader
+            domain={domain}
+            key={systemId ?? 'missing-system'}
+            systemId={systemId}
+          />
+        </CatchBoundary>
       ) : null}
     </GuidedAuthoringFrame>
+  )
+}
+
+function GuidedNativeCopySourceLoader({
+  domain,
+  systemId
+}: {
+  domain: 'background' | 'class' | 'feat' | 'creature' | 'equipment' | 'race' | 'spell' | 'vehicle'
+  systemId?: string
+}) {
+  const catalogue = usePaginatedQuery(
+    convexApi.content.catalogue.list,
+    systemId
+      ? {
+          subjectKind:
+            domain === 'background'
+              ? 'BACKGROUND'
+              : domain === 'class'
+                ? 'CLASS'
+                : domain === 'feat'
+                  ? 'FEAT'
+                  : domain === 'creature'
+                    ? 'CREATURE'
+                    : domain === 'equipment'
+                      ? 'EQUIPMENT'
+                      : domain === 'race'
+                        ? 'RACE'
+                        : domain === 'spell'
+                          ? 'SPELL'
+                          : 'VEHICLE',
+          systemId
+        }
+      : 'skip',
+    { initialNumItems: 48 }
+  )
+
+  useEffect(() => {
+    if (catalogue.status === 'CanLoadMore') catalogue.loadMore(48)
+  }, [catalogue.loadMore, catalogue.status])
+
+  if (!systemId) return <GuidedCopySourceSystemRequired domain={domain} />
+
+  return (
+    <GuidedCopySourcePicker
+      domain={domain}
+      error={false}
+      loading={catalogue.status !== 'Exhausted'}
+      sources={toGuidedCopySources(catalogue.results)}
+    />
+  )
+}
+
+function GuidedCopySourceUnavailable() {
+  return (
+    <section className={styles.copyPanel} aria-label='Use an existing source'>
+      <Text c='red' size='sm'>
+        Sources are unavailable. Try again.
+      </Text>
+    </section>
+  )
+}
+
+function GuidedCopySourceSystemRequired({
+  domain
+}: {
+  domain: 'background' | 'class' | 'feat' | 'creature' | 'equipment' | 'race' | 'spell' | 'vehicle'
+}) {
+  return (
+    <section
+      className={styles.copyPanel}
+      aria-label={`Use an existing ${DOMAIN_NOUNS[domain].singular}`}
+    >
+      <Text c='red' size='sm'>
+        A System is required before {DOMAIN_NOUNS[domain].plural} can be copied.
+      </Text>
+    </section>
+  )
+}
+
+function GuidedCopySourcePicker({
+  domain,
+  error,
+  loading,
+  sources
+}: {
+  domain: AuthoredFormDomain
+  error: boolean
+  loading: boolean
+  sources: readonly GuidedCopySource[]
+}) {
+  const nouns = DOMAIN_NOUNS[domain]
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [copying, setCopying] = useState(false)
+  const { copySource } = useAuthoringForm()
+  const selectedSource = useMemo(
+    () => sources.find((source) => source.id === selectedSourceId),
+    [selectedSourceId, sources]
+  )
+  const sourceOptions = useMemo(
+    () => sources.map((source) => ({ label: source.label, value: source.id })),
+    [sources]
+  )
+
+  const createCopy = async () => {
+    if (!selectedSource) return
+
+    setCopying(true)
+    try {
+      await copySource(selectedSource.id)
+    } finally {
+      setCopying(false)
+    }
+  }
+
+  return (
+    <section className={styles.copyPanel} aria-label={`Use an existing ${nouns.singular}`}>
+      <Stack gap='md'>
+        <Text size='sm' c='dimmed'>
+          Choose a source first. Nothing is copied until you confirm with Create copy.
+        </Text>
+        <AppSelect
+          autoFocus
+          disabled={loading || error}
+          label={`Search ${nouns.plural}`}
+          placeholder='Search by name'
+          data={sourceOptions}
+          value={selectedSourceId}
+          searchable
+          onChange={setSelectedSourceId}
+        />
+        {loading ? (
+          <Group justify='center' py='xl'>
+            <Loader size='sm' />
+          </Group>
+        ) : null}
+        {error ? (
+          <Text c='red' size='sm'>
+            Could not load active content. Try again.
+          </Text>
+        ) : null}
+        {!loading && !error && sourceOptions.length === 0 ? (
+          <Text c='dimmed' size='sm'>
+            No copyable {nouns.plural} are available.
+          </Text>
+        ) : null}
+        {selectedSource ? <CopySourceSummary domain={domain} source={selectedSource} /> : null}
+        <Group justify='flex-end'>
+          <Button
+            className={styles.navigationAction}
+            disabled={!selectedSource || loading || error || copying}
+            loading={copying}
+            type='button'
+            onClick={() => void createCopy()}
+          >
+            Create copy
+          </Button>
+        </Group>
+      </Stack>
+    </section>
+  )
+}
+
+function GuidedSpellCopySourceMetadata({ sourceId }: { sourceId: string }) {
+  const detail = useQuery(getSpell(sourceId))
+  const spell = detail.data?.item
+
+  if (detail.isPending) {
+    return (
+      <Text size='sm' c='dimmed'>
+        Loading spell details…
+      </Text>
+    )
+  }
+
+  if (detail.isError || !spell) {
+    return (
+      <Text size='sm' c='dimmed'>
+        Spell details are unavailable. You can still create a copy.
+      </Text>
+    )
+  }
+
+  const level = spell.level === 0 ? 'Cantrip' : `Level ${spell.level}`
+  const castingTime = `${spell.castingTime.amount} ${spell.castingTime.unit.toLowerCase().replaceAll('_', ' ')}`
+
+  return (
+    <Text size='sm' c='dimmed'>
+      {level} · {castingTime}
+    </Text>
   )
 }
 
@@ -197,6 +319,7 @@ function CopySourceSummary({
           {metadata.join(' · ')}
         </Text>
       ) : null}
+      {domain === 'spell' ? <GuidedSpellCopySourceMetadata sourceId={source.id} /> : null}
     </div>
   )
 }

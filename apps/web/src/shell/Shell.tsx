@@ -10,8 +10,7 @@ import {
   useMantineColorScheme
 } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useHydrated } from '@tanstack/react-router'
 import { Fragment, type ReactNode, useMemo, useRef, useState } from 'react'
 import {
   BookOpen,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
-import { api } from '#app/lib/api'
+import { useMediaImage } from '#app/data/media'
 import { ShellHeaderSupplementContext, type ShellHeaderSupplement } from './headerSupplement'
 import type { AppShellNavGroup, AppShellNavItem } from './navigation'
 import { isNavItemActive } from './navigation'
@@ -50,7 +49,6 @@ export interface ShellProps {
   currentPath: string
   currentHref?: string
   isAuthenticated?: boolean
-  isSuperAdmin?: boolean
   libraryImportEnabled?: boolean
   publicSignUpEnabled?: boolean
   userEmail?: string | null
@@ -77,7 +75,6 @@ export function Shell({
   currentPath,
   currentHref = currentPath,
   isAuthenticated,
-  isSuperAdmin = false,
   libraryImportEnabled = false,
   publicSignUpEnabled = false,
   userEmail,
@@ -115,13 +112,13 @@ export function Shell({
   const mobileFooterItems = useMemo(
     () =>
       toMobileFooterItems({
-        accountMenuContent: <AccountMenuItems isSuperAdmin={isSuperAdmin} />,
+        accountMenuContent: <AccountMenuItems />,
         createItems,
         libraryItems,
         onSearchOpen: openSearch,
         socialHubActive
       }),
-    [openSearch, createItems, isSuperAdmin, libraryItems, socialHubActive]
+    [openSearch, createItems, libraryItems, socialHubActive]
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
   const authoring = isAuthoringPath(currentPath)
@@ -171,7 +168,7 @@ export function Shell({
           <Header
             accountControl={
               isSignedIn ? (
-                <UserMenu isSuperAdmin={isSuperAdmin} />
+                <UserMenu />
               ) : (
                 <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />
               )
@@ -206,12 +203,12 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
   )
 }
 
-function UserMenu({ isSuperAdmin }: { isSuperAdmin: boolean }) {
-  const avatarQuery = useQuery({
-    queryKey: ['media', { type: 'ACCOUNT_AVATAR' }, 'THUMBNAIL'],
-    queryFn: () =>
-      api.media.getImage({ target: { type: 'ACCOUNT_AVATAR' }, variantKind: 'THUMBNAIL' })
-  })
+function UserMenu() {
+  const hydrated = useHydrated()
+  const avatarQuery = useMediaImage(
+    { lookup: { type: 'ACCOUNT_AVATAR' }, attach: { type: 'ACCOUNT_AVATAR' } },
+    'THUMBNAIL'
+  )
 
   return (
     <Menu position='bottom-end' width={180} withinPortal>
@@ -220,6 +217,7 @@ function UserMenu({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           className={styles.userIconButton}
           variant='default'
           aria-label='Open account menu'
+          disabled={!hydrated}
         >
           {avatarQuery.data ? (
             <img alt='' className={styles.userAvatarImage} src={avatarQuery.data.url} />
@@ -229,13 +227,13 @@ function UserMenu({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <AccountMenuItems isSuperAdmin={isSuperAdmin} />
+        <AccountMenuItems />
       </Menu.Dropdown>
     </Menu>
   )
 }
 
-function AccountMenuItems({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+function AccountMenuItems() {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
 
   return (
@@ -274,11 +272,6 @@ function AccountMenuItems({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       >
         Settings
       </Menu.Item>
-      {isSuperAdmin ? (
-        <Menu.Item component={Link} to='/admin/rules'>
-          Rule Studio
-        </Menu.Item>
-      ) : null}
       <SentryFeedbackMenuItem />
       <Menu.Item
         component={Link}
@@ -498,7 +491,7 @@ function hasHref(item: AppShellNavItem): item is AppShellNavItem & { href: strin
 }
 
 function isAuthoringPath(pathname: string): boolean {
-  return pathname === '/admin/rules' || pathname.endsWith('/new') || pathname.endsWith('/edit')
+  return pathname.endsWith('/new') || pathname.endsWith('/edit')
 }
 
 function isCharacterSheetPath(pathname: string): boolean {

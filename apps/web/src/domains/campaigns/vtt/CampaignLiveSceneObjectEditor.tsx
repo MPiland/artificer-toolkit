@@ -6,7 +6,7 @@ import type {
   SceneCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { CampaignSceneObjectInspector } from './CampaignSceneObjectInspector'
 import {
   createLiveSceneObjectDraft,

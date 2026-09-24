@@ -1,10 +1,12 @@
-import { HttpResponse, http } from 'msw'
-import type { NodeRuntimeResolveRequestDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeResolveRequestDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { QueryClient } from '@tanstack/react-query'
 import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
 import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
 import {
-  authoredRouteStoryRecords,
   authoredRouteStorySystem,
   authoredRouteStorySystems,
   createEditLoaderData,
@@ -12,35 +14,23 @@ import {
   type AuthoredRouteStoryEditState
 } from './authoredRouteStory.fixtures'
 
-export const authoredRouteNodeRuntimeHandlers = [
-  http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
-    const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
+function resolveStoryNodes(input: NodeRuntimeResolveRequestDto) {
+  return (
+    createStaticResolvedFormModel(input.mapId, {
+      ancestors: input.ancestors,
+      parentValues: input.parentValues,
+      system: authoredRouteStorySystem,
+      values: input.values
+    }) ?? { mapId: input.mapId, steps: [], clearPaths: [] }
+  )
+}
 
-    return trpcBatchJson(
-      inputs.map(
-        (input) =>
-          createStaticResolvedFormModel(input.mapId, {
-            ancestors: input.ancestors,
-            parentValues: input.parentValues,
-            system: authoredRouteStorySystem,
-            values: input.values
-          }) ?? {
-            mapId: input.mapId,
-            steps: [],
-            clearPaths: []
-          }
-      )
-    )
-  }),
-  createCopySourceHandler('backgrounds', authoredRouteStoryRecords.background),
-  createCopySourceHandler('classes', authoredRouteStoryRecords.class),
-  createCopySourceHandler('creatures', authoredRouteStoryRecords.creature),
-  createCopySourceHandler('equipment', authoredRouteStoryRecords.equipment),
-  createCopySourceHandler('feats', authoredRouteStoryRecords.feat),
-  createCopySourceHandler('races', authoredRouteStoryRecords.race),
-  createCopySourceHandler('spells', authoredRouteStoryRecords.spell),
-  createCopySourceHandler('vehicles', authoredRouteStoryRecords.vehicle)
-]
+export function configureAuthoredRouteStoryQueries(queryClient: QueryClient) {
+  queryClient.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
+    queryFn: async ({ queryKey }) =>
+      resolveStoryNodes(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]))
+  })
+}
 
 export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: string) {
   const loader = async () =>
@@ -68,50 +58,4 @@ export function createAuthoredEditRouteOverrides<TDomain extends AuthoredFormDom
     [routeId]: { loader },
     [publicPath]: { loader }
   }
-}
-
-function trpcBatchJson(data: readonly unknown[]) {
-  return HttpResponse.json(data.map((item) => ({ result: { data: item } })))
-}
-
-function createCopySourceHandler(
-  endpoint: string,
-  record: { description?: string | null; id: string; label: string }
-) {
-  return http.get(`*/api/trpc/content.${endpoint}.list`, () =>
-    trpcBatchJson([
-      {
-        drafts: [],
-        items: [
-          {
-            ...record,
-            activeUpdatedAt: '2026-01-01T00:00:00.000Z',
-            description: record.description,
-            id: record.id,
-            label: record.label,
-            permissions: {
-              canCopy: true,
-              canDelete: false,
-              canEdit: false,
-              canView: true
-            },
-            provenance: { kind: 'MASTER', ownerUserId: null },
-            publicId: record.id,
-            status: 'ACTIVE'
-          }
-        ],
-        meta: {}
-      }
-    ])
-  )
-}
-
-function readBatchedInputs<TInput>(body: unknown): TInput[] {
-  if (typeof body !== 'object' || body === null || !('0' in body)) {
-    throw new Error('Expected batched tRPC input.')
-  }
-
-  return Object.entries(body as Record<string, TInput>)
-    .sort(([left], [right]) => Number(left) - Number(right))
-    .map(([, input]) => input)
 }

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
@@ -15,38 +15,38 @@ import {
 const manifestDestructionCriterionDtoSchema = z.discriminatedUnion('kind', [
   z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
+    order: z.number().check(z.int()),
     kind: z.literal('DAMAGE_THRESHOLD'),
     damageTypeId: authoredIdentifierSchema,
     amount: authoredNonnegativeNumberSchema
   }),
   z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
+    order: z.number().check(z.int()),
     kind: z.literal('STRONG_WIND')
   }),
   z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
+    order: z.number().check(z.int()),
     kind: z.literal('WIND_SPEED'),
-    minimumMilesPerHour: z.number().positive(),
-    afterRounds: z.number().int().positive()
+    minimumMilesPerHour: z.number().check(z.positive()),
+    afterRounds: z.number().check(z.int()).check(z.positive())
   }),
   z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
+    order: z.number().check(z.int()),
     kind: z.literal('SPELL_CAPABILITY'),
     capability: z.enum([
       'OPEN_PORTAL_ON_SOLID_SURFACE',
       'SHED_BRIGHT_LIGHT',
       'END_SPELL_OR_MAGICAL_EFFECT'
     ]),
-    minimumSpellLevel: authoredNonnegativeNumberSchema.int().max(9),
-    exampleSpellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
+    minimumSpellLevel: authoredNonnegativeNumberSchema.check(z.int()).check(z.lte(9)),
+    exampleSpellIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
   }),
   z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
+    order: z.number().check(z.int()),
     kind: z.literal('NAMED_OBJECT'),
     objectLabel: authoredShortTextSchema
   })
@@ -65,7 +65,9 @@ const manifestLightDtoSchema = z.object({
 
 const manifestProximityRuleDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  events: authoredReferenceCollectionSchema(z.enum(['MOVE_WITHIN', 'START_TURN'])).min(1),
+  events: authoredReferenceCollectionSchema(z.enum(['MOVE_WITHIN', 'START_TURN'])).check(
+    z.minLength(1)
+  ),
   distance: z.object({
     amount: authoredNonnegativeNumberSchema,
     unit: measurementUnitCodeSchema
@@ -81,33 +83,33 @@ const speedDtoSchema = z.object({
 })
 
 const summonAbilityScoresDtoSchema = z.object({
-  STRENGTH: numericExprSchema.optional(),
-  DEXTERITY: numericExprSchema.optional(),
-  CONSTITUTION: numericExprSchema.optional(),
-  INTELLIGENCE: numericExprSchema.optional(),
-  WISDOM: numericExprSchema.optional(),
-  CHARISMA: numericExprSchema.optional()
+  STRENGTH: z.optional(numericExprSchema),
+  DEXTERITY: z.optional(numericExprSchema),
+  CONSTITUTION: z.optional(numericExprSchema),
+  INTELLIGENCE: z.optional(numericExprSchema),
+  WISDOM: z.optional(numericExprSchema),
+  CHARISMA: z.optional(numericExprSchema)
 })
 
 const summonStatBlockDtoSchema = z.object({
-  size: authoredIdentifierSchema.optional(),
-  armorClass: numericExprSchema.optional(),
-  armorClassNote: authoredPlainTextSchema.optional(),
-  hitPoints: numericExprSchema.optional(),
-  speeds: authoredNestedCollectionSchema(speedDtoSchema).optional(),
-  abilityScores: summonAbilityScoresDtoSchema.optional(),
-  senses: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  passivePerception: numericExprSchema.optional(),
-  damageVulnerabilities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  damageResistances: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  damageImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  conditionImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  damageabilityKind: z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL']).optional(),
-  visibilityKind: z.enum(['VISIBLE', 'INVISIBLE', 'SPECIAL']).optional(),
-  occupiesSpace: z.boolean().optional()
+  size: z.optional(authoredIdentifierSchema),
+  armorClass: z.optional(numericExprSchema),
+  armorClassNote: z.optional(authoredPlainTextSchema),
+  hitPoints: z.optional(numericExprSchema),
+  speeds: z.optional(authoredNestedCollectionSchema(speedDtoSchema)),
+  abilityScores: z.optional(summonAbilityScoresDtoSchema),
+  senses: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  passivePerception: z.optional(numericExprSchema),
+  damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  damageabilityKind: z.optional(z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL'])),
+  visibilityKind: z.optional(z.enum(['VISIBLE', 'INVISIBLE', 'SPECIAL'])),
+  occupiesSpace: z.optional(z.boolean())
 })
 
-export const manifestDtoSchema: z.ZodTypeAny = z.lazy(() => {
+export const manifestDtoSchema: z.ZodMiniType = z.lazy(() => {
   const manifestInteractionKindSchema = z.enum([
     'ENTER_OR_PASS_THROUGH',
     'MOVE_ACROSS',
@@ -122,102 +124,108 @@ export const manifestDtoSchema: z.ZodTypeAny = z.lazy(() => {
   const baseSchema = z.object({
     id: authoredIdentifierSchema,
     effectKind: z.literal('MANIFEST'),
-    label: authoredShortTextSchema.optional(),
-    shape: shapeDtoSchema.optional(),
-    attachmentKind: z
-      .enum(['SOURCE', 'PRIMARY_TARGET', 'PLACED_SPACE', 'TOUCHED_OBJECT'])
-      .optional(),
-    maxApplicationsPerTurn: z.number().int().positive().optional(),
-    placementSurfaceKind: z.literal('LEVEL').optional(),
-    applicationTargetKind: z.enum(['WEAPON', 'AMMUNITION']).optional(),
-    applicationCount: z.number().int().positive().optional(),
-    qualifyingDamageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
+    label: z.optional(authoredShortTextSchema),
+    shape: z.optional(shapeDtoSchema),
+    attachmentKind: z.optional(
+      z.enum(['SOURCE', 'PRIMARY_TARGET', 'PLACED_SPACE', 'TOUCHED_OBJECT'])
+    ),
+    maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
+    placementSurfaceKind: z.optional(z.literal('LEVEL')),
+    applicationTargetKind: z.optional(z.enum(['WEAPON', 'AMMUNITION'])),
+    applicationCount: z.optional(z.number().check(z.int()).check(z.positive())),
+    qualifyingDamageTypeIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
   })
 
   return z.discriminatedUnion('manifestKind', [
-    baseSchema.extend({
+    z.extend(baseSchema, {
       manifestKind: z.literal('CREATURE'),
-      creatureId: authoredIdentifierSchema.optional()
+      creatureId: z.optional(authoredIdentifierSchema)
     }),
-    baseSchema.extend({
+    z.extend(baseSchema, {
       manifestKind: z.literal('SUMMON'),
-      statBlock: summonStatBlockDtoSchema.optional(),
-      behaviors: authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema).optional()
+      statBlock: z.optional(summonStatBlockDtoSchema),
+      behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
     }),
-    baseSchema.extend({
+    z.extend(baseSchema, {
       manifestKind: z.enum(['ZONE', 'SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION']),
-      behaviors: authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema).optional(),
-      components: authoredNestedCollectionSchema(
+      behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
+      components: z.optional(
+        authoredNestedCollectionSchema(
+          z.object({
+            id: authoredIdentifierSchema,
+            order: z.number().check(z.int()),
+            label: authoredShortTextSchema,
+            interactionKind: z.optional(manifestInteractionKindSchema),
+            interactionKinds: z.optional(
+              authoredReferenceCollectionSchema(manifestInteractionKindSchema)
+            ),
+            bypassAtHalfSpeed: z.optional(z.boolean()),
+            movementCostMultiplier: z.optional(z.number().check(z.positive())),
+            requiresFullyWithin: z.optional(z.boolean()),
+            automaticSaveSuccessConditions: z.optional(
+              authoredReferenceCollectionSchema(z.enum(['DOES_NOT_BREATHE', 'POISON_IMMUNE']))
+            ),
+            requiresIgnition: z.optional(z.boolean()),
+            maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
+            maxApplicationsTotal: z.optional(z.number().check(z.int()).check(z.positive())),
+            armorClass: z.optional(authoredNonnegativeNumberSchema),
+            hitPoints: z.optional(authoredNonnegativeNumberSchema),
+            behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
+            blockingRules: z.optional(
+              authoredReferenceCollectionSchema(
+                z.enum([
+                  'NONMAGICAL_RANGED_ATTACKS',
+                  'MAGICAL_RANGED_ATTACKS',
+                  'SPELLS',
+                  'THREE_QUARTERS_COVER'
+                ])
+              )
+            ),
+            destructionCriteria: z.optional(
+              authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+            ),
+            releaseCriteria: z.optional(
+              authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+            )
+          })
+        )
+      ),
+      componentsMustResolveInOrder: z.optional(z.boolean()),
+      destructionMustResolveInOrder: z.optional(z.boolean()),
+      destroyedComponentsRemainDestroyed: z.optional(z.boolean()),
+      placementMustBeUnoccupied: z.optional(z.boolean()),
+      invalidPlacementConsumesInvocation: z.optional(z.boolean()),
+      designatedCreatureImmunity: z.optional(z.boolean()),
+      maximumTargetSize: z.optional(sizeCodeSchema),
+      excludesFormlessTargets: z.optional(z.boolean()),
+      proximityRule: z.optional(manifestProximityRuleDtoSchema),
+      light: z.optional(manifestLightDtoSchema),
+      hollow: z.optional(z.boolean()),
+      wallThickness: z.optional(
         z.object({
-          id: authoredIdentifierSchema,
-          order: z.number().int(),
-          label: authoredShortTextSchema,
-          interactionKind: manifestInteractionKindSchema.optional(),
-          interactionKinds: authoredReferenceCollectionSchema(
-            manifestInteractionKindSchema
-          ).optional(),
-          bypassAtHalfSpeed: z.boolean().optional(),
-          movementCostMultiplier: z.number().positive().optional(),
-          requiresFullyWithin: z.boolean().optional(),
-          automaticSaveSuccessConditions: authoredReferenceCollectionSchema(
-            z.enum(['DOES_NOT_BREATHE', 'POISON_IMMUNE'])
-          ).optional(),
-          requiresIgnition: z.boolean().optional(),
-          maxApplicationsPerTurn: z.number().int().positive().optional(),
-          maxApplicationsTotal: z.number().int().positive().optional(),
-          armorClass: authoredNonnegativeNumberSchema.optional(),
-          hitPoints: authoredNonnegativeNumberSchema.optional(),
-          behaviors: authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema).optional(),
-          blockingRules: authoredReferenceCollectionSchema(
-            z.enum([
-              'NONMAGICAL_RANGED_ATTACKS',
-              'MAGICAL_RANGED_ATTACKS',
-              'SPELLS',
-              'THREE_QUARTERS_COVER'
-            ])
-          ).optional(),
-          destructionCriteria: authoredNestedCollectionSchema(
-            manifestDestructionCriterionDtoSchema
-          ).optional(),
-          releaseCriteria: authoredNestedCollectionSchema(
-            manifestDestructionCriterionDtoSchema
-          ).optional()
-        })
-      ).optional(),
-      componentsMustResolveInOrder: z.boolean().optional(),
-      destructionMustResolveInOrder: z.boolean().optional(),
-      destroyedComponentsRemainDestroyed: z.boolean().optional(),
-      placementMustBeUnoccupied: z.boolean().optional(),
-      invalidPlacementConsumesInvocation: z.boolean().optional(),
-      designatedCreatureImmunity: z.boolean().optional(),
-      maximumTargetSize: sizeCodeSchema.optional(),
-      excludesFormlessTargets: z.boolean().optional(),
-      proximityRule: manifestProximityRuleDtoSchema.optional(),
-      light: manifestLightDtoSchema.optional(),
-      hollow: z.boolean().optional(),
-      wallThickness: z
-        .object({
-          amount: z.number().positive(),
+          amount: z.number().check(z.positive()),
           unit: measurementUnitCodeSchema
         })
-        .optional(),
-      spreadsAroundCorners: z.boolean().optional(),
-      obscurementKind: z.enum(['LIGHT', 'HEAVY']).optional(),
-      properties: authoredReferenceCollectionSchema(
-        z.enum([
-          'NO_HEAT',
-          'NO_OXYGEN_USE',
-          'CANNOT_BE_SMOTHERED',
-          'CANNOT_BE_QUENCHED',
-          'CAN_BE_COVERED_OR_HIDDEN'
-        ])
-      ).optional(),
-      destructionCriteria: authoredNestedCollectionSchema(
-        manifestDestructionCriterionDtoSchema
-      ).optional(),
-      suppressionImmunities: authoredReferenceCollectionSchema(
-        z.literal('ANTIMAGIC_FIELD')
-      ).optional()
+      ),
+      spreadsAroundCorners: z.optional(z.boolean()),
+      obscurementKind: z.optional(z.enum(['LIGHT', 'HEAVY'])),
+      properties: z.optional(
+        authoredReferenceCollectionSchema(
+          z.enum([
+            'NO_HEAT',
+            'NO_OXYGEN_USE',
+            'CANNOT_BE_SMOTHERED',
+            'CANNOT_BE_QUENCHED',
+            'CAN_BE_COVERED_OR_HIDDEN'
+          ])
+        )
+      ),
+      destructionCriteria: z.optional(
+        authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)
+      ),
+      suppressionImmunities: z.optional(
+        authoredReferenceCollectionSchema(z.literal('ANTIMAGIC_FIELD'))
+      )
     })
   ])
 })

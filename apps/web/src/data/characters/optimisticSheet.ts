@@ -4,11 +4,9 @@ import {
   toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
 
-import type {
-  CharacterSheetCommandInputDto,
-  CharacterSheetPanelDto,
-  CharacterSheetResponseDto
-} from '#app/lib/api'
+import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 
 type SheetResource = CharacterSheetResponseDto['resources']['items'][number]
 type SheetSpellSlot = CharacterSheetResponseDto['spells']['slots'][number]

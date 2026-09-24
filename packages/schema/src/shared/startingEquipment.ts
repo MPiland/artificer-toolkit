@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   authoringModeKindSchema,
   authoringSelectionKindSchema,
@@ -14,57 +14,55 @@ import {
 
 export const startingEquipmentCurrencyDtoSchema = z.object({
   currencyId: authoredIdentifierSchema,
-  amount: z.number().int()
+  amount: z.number().check(z.int())
 })
 
 const startingEquipmentEquipmentItemBaseDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
+  order: z.number().check(z.int()),
   startingEquipmentKind: z.literal('EQUIPMENT'),
-  category: equipmentCategoryCodeSchema.optional(),
-  properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional(),
+  category: z.optional(equipmentCategoryCodeSchema),
+  properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
   selectionKind: authoringSelectionKindSchema
 })
 
-const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema
-  .extend({
-    selectionKind: z.literal(authoringSelectionKindSchema.enum.GRANTED),
-    quantity: z.number().int(),
-    authoringModeKind: authoringModeKindSchema.optional()
-  })
-  .and(
-    z.union([
-      z.object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
-      }),
-      z.object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-      })
-    ])
-  )
+const grantedEquipmentItemDtoSchema = z.intersection(
+  z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
+    selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.GRANTED),
+    quantity: z.number().check(z.int()),
+    authoringModeKind: z.optional(authoringModeKindSchema)
+  }),
+  z.union([
+    z.object({
+      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    }),
+    z.object({
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+      equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    })
+  ])
+)
 
-const chosenEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema
-  .extend({
-    selectionKind: z.literal(authoringSelectionKindSchema.enum.CHOSEN),
-    count: z.number().int(),
-    authoringModeKind: authoringModeKindSchema.optional()
-  })
-  .and(
-    z.union([
-      z.object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
-      }),
-      z.object({
-        authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-      })
-    ])
-  )
+const chosenEquipmentItemDtoSchema = z.intersection(
+  z.extend(startingEquipmentEquipmentItemBaseDtoSchema, {
+    selectionKind: z.literal(authoringSelectionKindSchema._zod.def.entries.CHOSEN),
+    count: z.number().check(z.int()),
+    authoringModeKind: z.optional(authoringModeKindSchema)
+  }),
+  z.union([
+    z.object({
+      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    }),
+    z.object({
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
+      equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    })
+  ])
+)
 
 const startingEquipmentCurrencyItemDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
+  order: z.number().check(z.int()),
   startingEquipmentKind: z.literal('CURRENCY'),
   currencies: authoredNestedCollectionSchema(startingEquipmentCurrencyDtoSchema)
 })
@@ -77,20 +75,20 @@ export const startingEquipmentItemDtoSchema = z.union([
 
 export const startingEquipmentOptionDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
-  eligibility: characterFacetDtoSchema.optional(),
+  order: z.number().check(z.int()),
+  eligibility: z.optional(characterFacetDtoSchema),
   items: authoredNestedCollectionSchema(startingEquipmentItemDtoSchema)
 })
 
 export const startingEquipmentGroupDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
+  order: z.number().check(z.int()),
   options: authoredNestedCollectionSchema(startingEquipmentOptionDtoSchema)
 })
 
 export const startingEquipmentSetDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
+  order: z.number().check(z.int()),
   groups: authoredNestedCollectionSchema(startingEquipmentGroupDtoSchema)
 })
 

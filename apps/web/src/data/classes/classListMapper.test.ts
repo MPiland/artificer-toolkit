@@ -1,104 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import type { ClassListResponseDto } from '#app/lib/api'
-import {
-  buildClassListFilters,
-  formatClassCategory,
-  mapClassListToAuthoredItems
-} from './classListMapper'
+import { mapAuthoredCatalogueItems } from '../authoredCatalogue'
+import { classListFixture } from '#domains/classes/class.fixtures'
+import { buildClassListFilters, formatClassCategory } from './classListMapper'
 
 describe('class list mapper', () => {
-  it('keeps uncategorized drafts distinct from base classes', () => {
-    const response = createClassListResponse([
-      createClassListItem({
-        id: 'draft-class',
-        category: undefined,
-        label: 'Untitled Draft'
-      }),
-      createClassListItem({
-        id: 'base-class',
-        category: 'BASE',
-        label: 'Fighter'
-      })
-    ])
+  it('maps catalogue rows with formatted categories and parent hierarchy', () => {
+    const parentId = classListFixture.items[0].id
+    const items = mapAuthoredCatalogueItems(
+      classListFixture.items.map((item) => ({
+        ...item,
+        status: 'ACTIVE',
+        description: item.description ?? null,
+        ...(item.category === 'SUBCLASS'
+          ? { parentClassId: parentId, parentClassLabel: 'Parent' }
+          : {})
+      })),
+      'CLASS'
+    )
 
-    const items = mapClassListToAuthoredItems(response)
-    const filters = buildClassListFilters(response)
-
-    expect(formatClassCategory(undefined)).toBe('Uncategorized')
-    expect(items.find((item) => item.id === 'draft-class')).toMatchObject({
-      attributes: { Category: 'Uncategorized' },
-      filterValues: { category: 'UNCATEGORIZED' }
+    expect(items[0]).toMatchObject({ attributes: { Category: 'Base Class' } })
+    expect(items[1]).toMatchObject({
+      attributes: { Category: 'Subclass' },
+      hierarchy: { level: 1, parentId, parentLabel: 'Parent' }
     })
-    expect(items.find((item) => item.id === 'base-class')).toMatchObject({
-      attributes: { Category: 'Base Class' },
-      filterValues: { category: 'BASE' }
-    })
-    expect(filters.find((filter) => filter.key === 'category')?.options).toEqual([
-      { value: 'BASE', label: 'Base Class' },
-      { value: 'UNCATEGORIZED', label: 'Uncategorized' }
-    ])
   })
 
-  it('marks subclasses as child rows under their parent class', () => {
-    const response = createClassListResponse([
-      createClassListItem({
-        id: 'fighter',
-        category: 'BASE',
-        label: 'Fighter'
-      }),
-      createClassListItem({
-        id: 'champion',
-        category: 'SUBCLASS',
-        label: 'Champion',
-        parentClassId: 'fighter',
-        parentClassLabel: 'Fighter'
-      })
+  it('builds filters from catalogue facets', () => {
+    expect(buildClassListFilters(['BASE', 'SUBCLASS'])[0]?.options).toEqual([
+      { value: 'BASE', label: 'Base Class' },
+      { value: 'SUBCLASS', label: 'Subclass' }
     ])
-
-    const items = mapClassListToAuthoredItems(response)
-
-    expect(items.find((item) => item.id === 'champion')).toMatchObject({
-      hierarchy: {
-        level: 1,
-        parentId: 'fighter',
-        parentLabel: 'Fighter'
-      }
-    })
+    expect(formatClassCategory(undefined)).toBe('Uncategorized')
   })
 })
-
-function createClassListResponse(items: ClassListResponseDto['items']): ClassListResponseDto {
-  return {
-    items,
-    drafts: [],
-    meta: { categories: [{ id: 'BASE' }, { id: 'UNCATEGORIZED' }] },
-    page: { nextCursor: null, previousCursor: null, totalCount: items.length },
-    summary: { activeCount: items.length, masterCount: 0, ownedCount: items.length }
-  }
-}
-
-function createClassListItem(
-  overrides: Partial<ClassListResponseDto['items'][number]>
-): ClassListResponseDto['items'][number] {
-  return {
-    id: 'class-id',
-    publicId: overrides.id ?? 'class-id',
-    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
-    label: 'Class',
-    status: 'DRAFT',
-    description: null,
-    userId: 'user-1',
-    systemId: 'system-1',
-    provenance: {
-      kind: 'OWNED',
-      ownerUserId: 'user-1'
-    },
-    permissions: {
-      canView: true,
-      canEdit: true,
-      canCopy: true,
-      canDelete: false
-    },
-    ...overrides
-  }
-}

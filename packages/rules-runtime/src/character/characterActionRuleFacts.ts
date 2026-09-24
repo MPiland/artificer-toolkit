@@ -1,0 +1,486 @@
+import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
+export type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type {
+  CharacterAssemblyRegistry,
+  CharacterBuildSnapshot
+} from '@artificer-toolkit/shared/core'
+
+import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
+
+type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
+type CharacterActionSource = ActionCandidate['source']
+type CharacterActionRestrictions = CharacterGrantFoldInput['equipmentItems'][number]['restrictions']
+type CharacterActionMechanicsOwner = ActionCandidate['mechanicsOwner']
+type ResourcePoolCandidate = CharacterRulePolicyInput['resourcePoolCandidates'][number]
+type ActionMechanicFacts = ActionCandidate['mechanicFacts']
+type ActionMechanicOutcome = ActionMechanicFacts['outcomes'][number]
+type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
+type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
+
+export interface CharacterActionRuleFacts {
+  actionCandidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
+}
+
+function actionId(sourceId: string, effectId: string): string {
+  const id = `${sourceId}:ACTION:${encodeURIComponent(effectId)}`
+  if (id.length > 240)
+    throw new Error(`Character action identity exceeds 240 characters: ${effectId}`)
+  return id
+}
+
+function sourceStateRequirements(restrictions: CharacterActionRestrictions): {
+  requiresEquipped: boolean
+  requiresAttuned: boolean
+} {
+  const included = restrictions
+    .flatMap((group) => group.conditions)
+    .filter((condition) => condition.kind === 'SOURCE_STATE' && condition.constraint === 'INCLUDE')
+  return {
+    requiresEquipped: included.some((condition) => condition.sourceState === 'EQUIPPED'),
+    requiresAttuned: included.some((condition) => condition.sourceState === 'ATTUNED')
+  }
+}
+
+function nullableNumber(value: number | undefined): number | null {
+  return value ?? null
+}
+
+function nullableLabel(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+function normalizeInvocation(
+  invocation: CompiledEffectGroup['invocation']
+): ActionMechanicFacts['invocation'] {
+  const activation =
+    'activation' in invocation
+      ? {
+          code: invocation.activation.code,
+          amount: 'amount' in invocation.activation ? invocation.activation.amount : null
+        }
+      : null
+  const range =
+    invocation.range.rangeKind === 'DISTANCE'
+      ? {
+          rangeKind: invocation.range.rangeKind,
+          amount: invocation.range.amount,
+          unit: invocation.range.unit
+        }
+      : {
+          rangeKind: invocation.range.rangeKind,
+          amount: null,
+          unit: null
+        }
+  const savingThrow =
+    invocation.triggerCode === 'SAVING_THROW'
+      ? {
+          dcMethod: invocation.savingThrow.dcMethod,
+          abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
+          baseDc: 'baseDc' in invocation.savingThrow ? invocation.savingThrow.baseDc : null,
+          bonuses:
+            'bonuses' in invocation.savingThrow
+              ? (invocation.savingThrow.bonuses ?? []).map((bonus) => {
+                  switch (bonus.bonusKind) {
+                    case 'ABILITY_MODIFIER':
+                      return {
+                        bonusKind: bonus.bonusKind,
+                        abilityDefinitionId: bonus.abilityDefinitionId
+                      }
+                    case 'PROFICIENCY_BONUS':
+                      return { bonusKind: bonus.bonusKind }
+                    case 'STATIC_BONUS':
+                      return { bonusKind: bonus.bonusKind, amount: bonus.amount }
+                  }
+                })
+              : []
+        }
+      : null
+
+  return {
+    triggerCode: invocation.triggerCode,
+    activation,
+    range,
+    savingThrow,
+    reactionMovementTrigger:
+      'reactionMovementTrigger' in invocation && invocation.reactionMovementTrigger
+        ? {
+            ...invocation.reactionMovementTrigger,
+            movementInterruption: invocation.reactionMovementTrigger.movementInterruption ?? null
+          }
+        : null
+  }
+}
+
+function normalizeHealOutcome(
+  outcome: Extract<CompiledEffectEntry['outcome'], { effectKind: 'HEAL' }>,
+  pathCode: string,
+  label: string | null
+): HealOutcome {
+  const values: HealOutcome['values'] = []
+  if (outcome.scalingKind === 'NONE') {
+    values.push({
+      level: null,
+      order: 0,
+      amount: 'amount' in outcome ? outcome.amount : null,
+      dice: 'diceConfig' in outcome ? outcome.diceConfig : null,
+      multiplier: null,
+      minimum: null,
+      maximum: null
+    })
+  } else if (outcome.valueKind === 'POOL') {
+    values.push({
+      level: null,
+      order: 0,
+      amount: outcome.amount ?? null,
+      dice: null,
+      multiplier: outcome.multiplier ?? null,
+      minimum: outcome.min ?? null,
+      maximum: outcome.max ?? null
+    })
+  } else if (outcome.scalingKind === 'BREAKPOINTS') {
+    for (const entry of outcome.breakpoints) {
+      values.push({
+        level: entry.level,
+        order: entry.order,
+        amount: 'amount' in entry.value ? entry.value.amount : null,
+        dice: 'diceConfig' in entry.value ? entry.value.diceConfig : null,
+        multiplier: null,
+        minimum: null,
+        maximum: null
+      })
+    }
+  } else {
+    for (const entry of outcome.levels) {
+      values.push({
+        level: entry.level,
+        order: entry.order,
+        amount: 'amount' in entry ? entry.amount : null,
+        dice: 'diceConfig' in entry ? entry.diceConfig : null,
+        multiplier: null,
+        minimum: null,
+        maximum: null
+      })
+    }
+  }
+
+  return {
+    kind: 'HEAL',
+    outcomeId: outcome.id,
+    pathCode,
+    label,
+    valueKind: outcome.valueKind,
+    scalingKind: outcome.scalingKind,
+    scalingSource: outcome.scalingKind === 'NONE' ? null : outcome.scalingSource,
+    classId: outcome.scalingKind !== 'NONE' && 'classId' in outcome ? outcome.classId : null,
+    temporary: outcome.temporary ?? false,
+    values,
+    bonuses: [...(outcome.bonuses ?? [])]
+      .sort((left, right) => left.order - right.order)
+      .map((bonus) => {
+        const bounds = {
+          order: bonus.order,
+          min: bonus.min ?? null,
+          max: bonus.max ?? null,
+          multiplier: bonus.multiplier ?? null
+        }
+        switch (bonus.bonusKind) {
+          case 'ABILITY_BONUS':
+            return { ...bounds, bonusKind: bonus.bonusKind, ability: bonus.ability }
+          case 'PROFICIENCY_BONUS':
+            return { ...bounds, bonusKind: bonus.bonusKind }
+          case 'CLASS_LEVEL':
+            return { ...bounds, bonusKind: bonus.bonusKind, classId: bonus.classId }
+        }
+      })
+  }
+}
+
+export function normalizeCharacterActionMechanicFacts(
+  effect: CompiledEffectGroup
+): ActionMechanicFacts {
+  const grouped = new Map<string, CompiledEffectEntry[]>()
+  const entries = effect.entries
+    .filter((entry): entry is CompiledEffectEntry => 'outcome' in entry)
+    .sort(
+      (left, right) =>
+        left.pathOrder - right.pathOrder ||
+        left.entryOrder - right.entryOrder ||
+        left.id.localeCompare(right.id)
+    )
+
+  for (const entry of entries) {
+    const key = [entry.pathGroupId, entry.entryId, entry.entryOrder, entry.outcome.effectKind].join(
+      '\u0000'
+    )
+    const existing = grouped.get(key) ?? []
+    existing.push(entry)
+    grouped.set(key, existing)
+  }
+
+  const outcomes: ActionMechanicOutcome[] = []
+  for (const group of grouped.values()) {
+    const entry = group[0]!
+    const outcome = entry.outcome
+    if (outcome.effectKind === 'DAMAGE') {
+      const values = group.flatMap((candidate) => {
+        const damage = candidate.outcome
+        if (damage.effectKind !== 'DAMAGE') return []
+        return [
+          {
+            level: 'level' in damage ? damage.level : null,
+            order: 'order' in damage ? damage.order : 0,
+            amount: 'amount' in damage ? nullableNumber(damage.amount) : null,
+            dice: 'dice' in damage ? (damage.dice ?? null) : null,
+            multiplier: 'multiplier' in damage ? nullableNumber(damage.multiplier) : null,
+            minimum: 'min' in damage ? nullableNumber(damage.min) : null,
+            maximum: 'max' in damage ? nullableNumber(damage.max) : null
+          }
+        ]
+      })
+      outcomes.push({
+        kind: 'DAMAGE',
+        outcomeId: outcome.id,
+        pathCode: entry.pathCode,
+        label: nullableLabel(entry.label),
+        damageTypeId: outcome.damageTypeId,
+        valueKind: outcome.valueKind,
+        scalingKind: outcome.scalingKind,
+        scalingSource: 'scalingSource' in outcome ? outcome.scalingSource : null,
+        classId: 'classId' in outcome ? outcome.classId : null,
+        amountKind: outcome.amountKind ?? null,
+        amountMultiplier: outcome.multiplier ?? null,
+        values,
+        bonuses: [...(outcome.bonuses ?? [])]
+          .sort((left, right) => left.order - right.order)
+          .map((bonus) => ({
+            ...bonus,
+            min: bonus.min ?? null,
+            max: bonus.max ?? null,
+            multiplier: bonus.multiplier ?? null
+          }))
+      })
+      continue
+    }
+    if (outcome.effectKind === 'HEAL') {
+      outcomes.push(normalizeHealOutcome(outcome, entry.pathCode, nullableLabel(entry.label)))
+      continue
+    }
+    if (outcome.effectKind === 'CONDITION') {
+      outcomes.push({
+        kind: 'CONDITION',
+        pathCode: entry.pathCode,
+        conditionId: outcome.conditionId
+      })
+      continue
+    }
+    outcomes.push({
+      kind: 'EFFECT',
+      pathCode: entry.pathCode,
+      effectKind: outcome.effectKind,
+      label: nullableLabel(entry.label) ?? nullableLabel('label' in outcome ? outcome.label : null)
+    })
+  }
+
+  return { invocation: normalizeInvocation(effect.invocation), outcomes }
+}
+
+function appendActions(params: {
+  candidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
+  effects: readonly CompiledEffectGroup[] | undefined
+  source: { sourceId: string; mechanicSource: CharacterActionSource }
+  label: string
+  mechanicsOwner: CharacterActionMechanicsOwner
+  activationSourceKind: ActionCandidate['activationSourceKind']
+  equipment: ActionCandidate['equipment']
+  resourcePoolCandidates: readonly ResourcePoolCandidate[]
+}): void {
+  for (const effect of params.effects ?? []) {
+    if (effect.invocation.kind === 'PASSIVE') continue
+    const resourceUse = effect.invocation.resourceUse
+    const mechanicSource = params.source.mechanicSource
+    const matchingPools = resourceUse
+      ? mechanicSource.kind === 'EQUIPMENT_INSTANCE'
+        ? params.resourcePoolCandidates.filter(
+            (pool) =>
+              pool.ownerKind === 'ITEM_INSTANCE' &&
+              pool.itemInstanceId === mechanicSource.itemInstanceId &&
+              pool.chargeId === resourceUse.chargeId
+          )
+        : (() => {
+            const sourceMatches = params.resourcePoolCandidates.filter(
+              (pool) =>
+                pool.ownerKind === 'AUTHORED_SOURCE' &&
+                pool.sourceId === params.source.sourceId &&
+                pool.chargeId === resourceUse.chargeId
+            )
+            if (sourceMatches.length > 0) return sourceMatches
+            return params.resourcePoolCandidates.filter(
+              (pool) =>
+                pool.ownerKind === 'AUTHORED_GRANT' &&
+                pool.chargeId === resourceUse.chargeId &&
+                pool.activeSourceLevel >= pool.availableAtLevel
+            )
+          })()
+      : []
+    const candidate = {
+      sequence: params.candidates.length,
+      actionId: actionId(params.source.sourceId, effect.id),
+      label: params.label,
+      effectId: effect.id,
+      sourceId: params.source.sourceId,
+      source: params.source.mechanicSource,
+      mechanicsOwner: params.mechanicsOwner,
+      activationSourceKind: params.activationSourceKind,
+      equipment: params.equipment,
+      resourceUse: resourceUse
+        ? {
+            chargeId: resourceUse.chargeId,
+            cost: resourceUse.cost,
+            poolId: matchingPools.length === 1 ? matchingPools[0]!.poolId : null
+          }
+        : null,
+      mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
+    }
+    params.candidates.push(candidate)
+    params.entryPoints.push({
+      actionId: candidate.actionId,
+      effectId: candidate.effectId,
+      sourceId: candidate.sourceId,
+      source: candidate.source,
+      mechanicsOwner: candidate.mechanicsOwner,
+      activationSourceKind: candidate.activationSourceKind,
+      compiledEffect: effect
+    })
+  }
+}
+
+export function buildCharacterActionRuleFacts(params: {
+  snapshot: CharacterBuildSnapshot
+  registry: CharacterAssemblyRegistry
+  grantFoldFacts: CharacterGrantFoldInput
+  resourcePoolCandidates: readonly ResourcePoolCandidate[]
+}): CharacterActionRuleFacts {
+  const { snapshot, registry, grantFoldFacts } = params
+  const actionCandidates: ActionCandidate[] = []
+  const entryPoints: CharacterActionRuleEntryPoint[] = []
+  for (const [index, feature] of snapshot.features.entries()) {
+    const definition = registry.features[feature.featureId]
+    const folded = grantFoldFacts.features[index]
+    if (!folded) continue
+    if (definition && folded.definition) {
+      appendActions({
+        candidates: actionCandidates,
+        entryPoints,
+        effects: definition.effects,
+        source: folded.definition,
+        label: definition.label ?? 'Feature action',
+        mechanicsOwner: { kind: 'FEATURE', id: feature.featureId },
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: null,
+        resourcePoolCandidates: params.resourcePoolCandidates
+      })
+    }
+    const selected = getCharacterGrantFoldSelectedOptionIds(feature)
+    for (const option of definition?.options ?? []) {
+      if (!selected.has(option.id)) continue
+      const source = folded.selectedOptions.find(
+        (candidate) =>
+          candidate.mechanicSource.kind === 'AUTHORED' &&
+          candidate.mechanicSource.definitionId === option.id
+      )
+      if (!source) continue
+      appendActions({
+        candidates: actionCandidates,
+        entryPoints,
+        effects: option.effects,
+        source,
+        label: option.label ?? 'Feature option action',
+        mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id },
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: null,
+        resourcePoolCandidates: params.resourcePoolCandidates
+      })
+    }
+    if (feature.source.kind === 'FEAT' && folded.featDefinition) {
+      appendActions({
+        candidates: actionCandidates,
+        entryPoints,
+        effects: registry.feats[feature.source.featId]?.effects,
+        source: folded.featDefinition,
+        label: registry.feats[feature.source.featId]?.label ?? 'Feat action',
+        mechanicsOwner: { kind: 'FEAT', id: feature.source.featId },
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: null,
+        resourcePoolCandidates: params.resourcePoolCandidates
+      })
+    }
+  }
+
+  for (const [itemIndex, item] of snapshot.equipmentItems.entries()) {
+    const folded = grantFoldFacts.equipmentItems[itemIndex]
+    if (!folded) continue
+    const rootRequirements = sourceStateRequirements(folded.restrictions)
+    const rootEquipment = {
+      itemInstanceId: item.instanceId,
+      equipmentId: item.contentRef.definitionId,
+      category: item.compiledItem.category ?? null,
+      properties: [...(item.compiledItem.properties ?? [])],
+      equipped: Boolean(item.equippedState),
+      attuned: item.attuned,
+      requiresAttunement: folded.requiresAttunement,
+      ...rootRequirements
+    }
+    const rootSource = {
+      sourceId: folded.rootSourceId,
+      mechanicSource: {
+        kind: 'EQUIPMENT_INSTANCE' as const,
+        equipmentId: folded.equipmentId,
+        itemInstanceId: folded.instanceId
+      }
+    }
+    appendActions({
+      candidates: actionCandidates,
+      entryPoints,
+      effects: item.compiledItem.effects,
+      source: rootSource,
+      label: item.compiledItem.label ?? 'Equipment action',
+      mechanicsOwner: { kind: 'EQUIPMENT', id: item.compiledItem.id },
+      activationSourceKind: 'ACTIVE_EQUIPMENT',
+      equipment: rootEquipment,
+      resourcePoolCandidates: params.resourcePoolCandidates
+    })
+    for (const [featureIndex, feature] of (item.compiledItem.features ?? []).entries()) {
+      const nested = folded.features[featureIndex]?.source
+      if (!nested) continue
+      const requirements = sourceStateRequirements(nested.restrictions)
+      appendActions({
+        candidates: actionCandidates,
+        entryPoints,
+        effects: feature.effects,
+        source: nested,
+        label: feature.label ?? 'Feature action',
+        mechanicsOwner: { kind: 'FEATURE', id: feature.id },
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: {
+          itemInstanceId: item.instanceId,
+          equipmentId: item.contentRef.definitionId,
+          category: item.compiledItem.category ?? null,
+          properties: [...(item.compiledItem.properties ?? [])],
+          equipped: Boolean(item.equippedState),
+          attuned: item.attuned,
+          requiresAttunement: folded.requiresAttunement,
+          requiresEquipped: rootRequirements.requiresEquipped || requirements.requiresEquipped,
+          requiresAttuned: rootRequirements.requiresAttuned || requirements.requiresAttuned
+        },
+        resourcePoolCandidates: params.resourcePoolCandidates
+      })
+    }
+  }
+
+  return { actionCandidates, entryPoints }
+}

@@ -36,6 +36,10 @@
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
     },
+    "./canonicalJson": {
+      "types": "./dist/utils/canonicalJson.d.ts",
+      "default": "./dist/utils/canonicalJson.js"
+    },
     "./utils/authoringLimits": {
       "types": "./dist/utils/authoringLimits.d.ts",
       "default": "./dist/utils/authoringLimits.js"
@@ -68,17 +72,45 @@
       "types": "./dist/domains/rules/index.d.ts",
       "default": "./dist/domains/rules/index.js"
     },
+    "./rules/*": {
+      "types": "./dist/domains/rules/*.d.ts",
+      "default": "./dist/domains/rules/*.js"
+    },
     "./vtt": {
       "types": "./dist/domains/vtt/index.d.ts",
       "default": "./dist/domains/vtt/index.js"
+    },
+    "./vtt/scene": {
+      "types": "./dist/domains/vtt/scene.d.ts",
+      "default": "./dist/domains/vtt/scene.js"
+    },
+    "./vtt/segments": {
+      "types": "./dist/domains/vtt/segments.d.ts",
+      "default": "./dist/domains/vtt/segments.js"
     },
     "./account/username": {
       "types": "./dist/domains/account/usernamePolicy.d.ts",
       "default": "./dist/domains/account/usernamePolicy.js"
     },
+    "./account/ageAttestation": {
+      "types": "./dist/domains/account/ageAttestation.d.ts",
+      "default": "./dist/domains/account/ageAttestation.js"
+    },
+    "./account/entitlements": {
+      "types": "./dist/domains/account/entitlementPolicy.d.ts",
+      "default": "./dist/domains/account/entitlementPolicy.js"
+    },
+    "./social/rateLimits": {
+      "types": "./dist/domains/social/rateLimitPolicy.d.ts",
+      "default": "./dist/domains/social/rateLimitPolicy.js"
+    },
     "./campaign/textPolicy": {
       "types": "./dist/domains/campaign/campaignTextPolicy.d.ts",
       "default": "./dist/domains/campaign/campaignTextPolicy.js"
+    },
+    "./campaign/capabilities": {
+      "types": "./dist/domains/campaign/campaignCapabilities.d.ts",
+      "default": "./dist/domains/campaign/campaignCapabilities.js"
     },
     "./subjects/authored": {
       "types": "./dist/domains/subjects/authored/index.d.ts",

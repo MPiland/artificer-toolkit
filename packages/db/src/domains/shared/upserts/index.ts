@@ -1,5 +1,0 @@
-export * from './characteristic.js'
-export * from './charge.js'
-export * from './detail.js'
-export * from './saving_throw.js'
-export * from './starting_equipment.js'

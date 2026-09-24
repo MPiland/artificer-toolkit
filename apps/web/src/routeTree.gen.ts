@@ -62,7 +62,6 @@ import { Route as AuthedCampaignsNewRouteImport } from './routes/_authed/campaig
 import { Route as AuthedCampaignsCampaignPublicIdRouteImport } from './routes/_authed/campaigns/$campaignPublicId'
 import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
 import { Route as AuthedBackgroundsBackgroundPublicIdRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId'
-import { Route as AuthedAdminRulesRouteImport } from './routes/_authed/admin/rules'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 import { Route as AuthedVehiclesVehiclePublicIdEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/edit'
 import { Route as AuthedSpellsSpellPublicIdEditRouteImport } from './routes/_authed/spells/$spellPublicId/edit'
@@ -377,11 +376,6 @@ const AuthedBackgroundsBackgroundPublicIdRoute =
     path: '/backgrounds/$backgroundPublicId',
     getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedAdminRulesRoute = AuthedAdminRulesRouteImport.update({
-  id: '/admin/rules',
-  path: '/admin/rules',
-  getParentRoute: () => AuthedRoute,
-} as any)
 const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
   id: '/auth/confirmed',
   path: '/auth/confirmed',
@@ -639,7 +633,6 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthedNotificationsRoute
   '/settings': typeof AuthedSettingsRouteWithChildren
   '/social': typeof AuthedSocialRouteWithChildren
-  '/admin/rules': typeof AuthedAdminRulesRoute
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/campaigns/$campaignPublicId': typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -731,7 +724,6 @@ export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
   '/notifications': typeof AuthedNotificationsRoute
-  '/admin/rules': typeof AuthedAdminRulesRoute
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/campaigns/$campaignPublicId': typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -823,7 +815,6 @@ export interface FileRoutesById {
   '/_authed/social': typeof AuthedSocialRouteWithChildren
   '/_guest/_auth': typeof GuestAuthRouteWithChildren
   '/_guest/': typeof GuestIndexRoute
-  '/_authed/admin/rules': typeof AuthedAdminRulesRoute
   '/_authed/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/_authed/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/_authed/campaigns/$campaignPublicId': typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -919,7 +910,6 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/settings'
     | '/social'
-    | '/admin/rules'
     | '/backgrounds/$backgroundPublicId'
     | '/backgrounds/new'
     | '/campaigns/$campaignPublicId'
@@ -1011,7 +1001,6 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/notifications'
-    | '/admin/rules'
     | '/backgrounds/$backgroundPublicId'
     | '/backgrounds/new'
     | '/campaigns/$campaignPublicId'
@@ -1102,7 +1091,6 @@ export interface FileRouteTypes {
     | '/_authed/social'
     | '/_guest/_auth'
     | '/_guest/'
-    | '/_authed/admin/rules'
     | '/_authed/backgrounds/$backgroundPublicId'
     | '/_authed/backgrounds/new'
     | '/_authed/campaigns/$campaignPublicId'
@@ -1568,13 +1556,6 @@ declare module '@tanstack/react-router' {
       path: '/backgrounds/$backgroundPublicId'
       fullPath: '/backgrounds/$backgroundPublicId'
       preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/admin/rules': {
-      id: '/_authed/admin/rules'
-      path: '/admin/rules'
-      fullPath: '/admin/rules'
-      preLoaderRoute: typeof AuthedAdminRulesRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_guest/_auth/auth/confirmed': {
@@ -2207,7 +2188,6 @@ interface AuthedRouteChildren {
   AuthedNotificationsRoute: typeof AuthedNotificationsRoute
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedSocialRoute: typeof AuthedSocialRouteWithChildren
-  AuthedAdminRulesRoute: typeof AuthedAdminRulesRoute
   AuthedBackgroundsBackgroundPublicIdRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
   AuthedCampaignsCampaignPublicIdRoute: typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -2249,7 +2229,6 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedNotificationsRoute: AuthedNotificationsRoute,
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedSocialRoute: AuthedSocialRouteWithChildren,
-  AuthedAdminRulesRoute: AuthedAdminRulesRoute,
   AuthedBackgroundsBackgroundPublicIdRoute:
     AuthedBackgroundsBackgroundPublicIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,

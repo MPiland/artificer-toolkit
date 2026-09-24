@@ -1,9 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { getSpell } from '#app/data/spells/queries'
-import type { SpellDetailReferenceData } from '#app/data/spells/referenceData'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { spellResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getSpell, useGetSpell } from '#app/data/spells/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
@@ -13,7 +10,6 @@ import {
   validateAuthoredDetailSearch
 } from '#app/routing/authoredDetailSearch'
 import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { SpellDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { SpellDetailPage } from '#domains/spells/pages/SpellDetailPage'
 
@@ -23,33 +19,14 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps: search, location, params }): Promise<SpellDetailLoaderData> => {
-    const client = createServerApi()
-    const spellId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.spells.list(),
-      publicId: params.spellPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'SPELL'
-    })
     const view = resolveAuthoredDetailView(search, location.pathname)
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getSpell(
-        {
-          id: spellId,
-          meta: spellDetailMeta,
-          view
-        },
-        client
+    const response = spellResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(
+        getSpell({ id: params.spellPublicId, meta: spellDetailMeta, view })
       )
     )
     const draft = response?.draft ?? null
-    const references: SpellDetailReferenceData = {
-      classes: response?.meta?.classes ?? [],
-      conditionTypes: response?.meta?.conditionTypes ?? [],
-      damageTypes: response?.meta?.damageTypes ?? [],
-      magicSchools: response?.meta?.magicSchools ?? []
-    }
+    const spellId = response?.item?.id ?? draft?.subjectId ?? params.spellPublicId
     const routeSubject = getAuthoredRouteSubject(spellId, response, draft)
 
     if (
@@ -63,18 +40,19 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
       })
     }
 
-    return { breadcrumbLabel: routeSubject?.label, draft, references, response, spellId, view }
+    return { breadcrumbLabel: routeSubject?.label, draft, response, spellId, view }
   },
   component: SpellDetailRoute
 })
 
 function SpellDetailRoute() {
-  const { draft, references, response, spellId, view } = Route.useLoaderData()
+  const { spellId, view } = Route.useLoaderData()
+  const { spellPublicId } = Route.useParams()
+  const { data: response } = useGetSpell({ id: spellPublicId, meta: spellDetailMeta, view })
 
   return (
     <SpellDetailPage
-      draft={draft}
-      references={references}
+      draft={response?.draft ?? null}
       response={response}
       spellId={spellId}
       view={view}

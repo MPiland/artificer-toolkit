@@ -1,17 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Route } from '#routes/_authed/vehicles/new'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { expectCreateEmptyAuthoringRoute } from '#domains/authoredRouteStory.play'
 import {
-  authoredRouteNodeRuntimeHandlers,
+  configureAuthoredRouteStoryQueries,
   createAuthoredCreateRouteOverrides
 } from '#domains/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Vehicles/Routes/Create',
+  decorators: [
+    (Story) => {
+      configureAuthoredRouteStoryQueries(useQueryClient())
+      return <Story />
+    }
+  ],
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers: authoredRouteNodeRuntimeHandlers },
     tanstack: {
       router: {
         route: Route,

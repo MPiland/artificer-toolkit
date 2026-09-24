@@ -1,4 +1,5 @@
 import { authoredFormFactories } from '../factories/authoredFormFactories'
+import type { ConvexReactClient } from 'convex/react'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
@@ -77,10 +78,12 @@ export function isSameSession(left: AuthoringFormSessionState, right: AuthoringF
 function getDomainRegistration(
   domain: AuthoredFormDomain,
   mode: AuthoringFormSessionState['mode'],
-  data: unknown
+  data: unknown,
+  convexClient?: ConvexReactClient
 ): AuthoringFormStatePatch {
   const factory = authoredFormFactories[domain]
-  const authoredSession = data === undefined ? undefined : factory.createSession?.({ data, mode })
+  const authoredSession =
+    data === undefined ? undefined : factory.createSession?.({ data, mode, convexClient })
 
   return {
     activeSectionId: undefined,
@@ -125,10 +128,16 @@ function getDomainRegistration(
 
 export function applyDomainRegistration(
   current: AuthoringFormSessionState,
-  registration: AuthoringDomainRegistration
+  registration: AuthoringDomainRegistration,
+  convexClient?: ConvexReactClient
 ): AuthoringFormSessionState {
   const nextMode = registration.mode ?? current.mode
-  const domainRegistration = getDomainRegistration(registration.domain, nextMode, registration.data)
+  const domainRegistration = getDomainRegistration(
+    registration.domain,
+    nextMode,
+    registration.data,
+    convexClient
+  )
   const subjectChanged =
     current.authoredSession?.key !== domainRegistration.authoredSession?.key ||
     current.domain !== registration.domain
@@ -246,7 +255,6 @@ export function getCharacterBuilderSessionSignature(
     session.payload?.character.label ?? '',
     session.systemId ?? '',
     session.formKey ?? '',
-    session.baseActiveUpdatedAt ?? '',
     String(session.hasActiveDraft),
     String(session.hasInvalidDraft),
     String(session.isDraft),
@@ -257,13 +265,16 @@ export function getCharacterBuilderSessionSignature(
   ].join('|')
 }
 
-export function createInitialSession(registration: {
-  data?: unknown
-  domain?: AuthoredFormDomain
-  kind?: 'authored-form' | 'character-builder'
-  mode?: AuthoringFormSessionState['mode']
-  requestedStepId?: string
-}): AuthoringFormSessionState {
+export function createInitialSession(
+  registration: {
+    data?: unknown
+    domain?: AuthoredFormDomain
+    kind?: 'authored-form' | 'character-builder'
+    mode?: AuthoringFormSessionState['mode']
+    requestedStepId?: string
+  },
+  convexClient?: ConvexReactClient
+): AuthoringFormSessionState {
   const session = createDefaultSession()
   if (registration.kind === 'character-builder') {
     return resolveRequestedNavigation(
@@ -277,11 +288,15 @@ export function createInitialSession(registration: {
   if (!registration.domain) return session
 
   return resolveRequestedNavigation(
-    applyDomainRegistration(session, {
-      data: registration.data,
-      domain: registration.domain,
-      mode: registration.mode
-    }),
+    applyDomainRegistration(
+      session,
+      {
+        data: registration.data,
+        domain: registration.domain,
+        mode: registration.mode
+      },
+      convexClient
+    ),
     registration.requestedStepId
   )
 }

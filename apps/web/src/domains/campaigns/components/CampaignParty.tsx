@@ -10,13 +10,21 @@ import {
   UnstyledButton
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCharacterList, getCharacterSheet } from '#app/data/characters/queries'
-import { getCampaignList } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { z } from 'zod'
+import type {
+  CampaignDetailDto,
+  assignCampaignCharacterInputSchema,
+  unassignCampaignCharacterInputSchema,
+  leaveCampaignInputSchema,
+  removeCampaignMemberInputSchema
+} from '@artificer-toolkit/schema/api/campaignCore'
+import { useGetCharacterList, getCharacterSheet } from '#app/data/characters/queries'
+import { useGetCampaignList } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import * as sharedStyles from '../campaigns.css'
 import * as partyStyles from './party.css'
@@ -30,7 +38,11 @@ export function CampaignParty({
   currentUserId: string
   openCharacterPicker?: boolean
 }) {
-  const queryClient = useQueryClient()
+  const assignCharacter = useConvexMutation(convexApi.campaigns.assignments.assign)
+  const unassignCharacter = useConvexMutation(convexApi.campaigns.assignments.unassign)
+  const leaveCampaign = useConvexMutation(convexApi.campaigns.membershipDeparture.leave)
+  const removeMember = useConvexMutation(convexApi.campaigns.membershipDeparture.removeMember)
+  const [membershipError, setMembershipError] = useState<string | null>(null)
   const [characterPickerOpened, characterPicker] = useDisclosure(false)
   const [inspectCharacterId, setInspectCharacterId] = useState<string | null>(null)
   const [membershipConfirm, setMembershipConfirm] = useState<
@@ -42,21 +54,23 @@ export function CampaignParty({
     member.assignedCharacter ? [{ member, character: member.assignedCharacter }] : []
   )
   const sheets = useQueries({
-    queries: assignedCharacters.map(({ character }) => getCharacterSheet(character.id))
+    queries: assignedCharacters.map(({ character }) =>
+      campaign.role === 'OWNER'
+        ? convexQuery(convexApi.campaigns.characterSheet.get, {
+            campaignId: campaign.id,
+            characterId: character.id
+          })
+        : getCharacterSheet(character.id)
+    )
   })
   const selectedIndex = assignedCharacters.findIndex(
     ({ character }) => character.id === inspectCharacterId
   )
   const selected = selectedIndex >= 0 ? assignedCharacters[selectedIndex] : null
   const selectedSheet = selectedIndex >= 0 ? sheets[selectedIndex]?.data : undefined
-  const characters = useQuery({
-    ...getCharacterList(),
-    enabled: campaign.capabilities.assignOwnCharacter
-  })
-  const campaigns = useQuery({
-    ...getCampaignList(),
-    enabled: campaign.capabilities.assignOwnCharacter
-  })
+  const pickerDataEnabled = campaign.capabilities.assignOwnCharacter && characterPickerOpened
+  const characters = useGetCharacterList(pickerDataEnabled)
+  const campaigns = useGetCampaignList(pickerDataEnabled)
   const assignedElsewhere = new Set(
     (campaigns.data ?? []).flatMap((item) =>
       item.id !== campaign.id && item.assignedCharacter ? [item.assignedCharacter.id] : []
@@ -70,49 +84,31 @@ export function CampaignParty({
     if (openCharacterPicker && campaign.capabilities.assignOwnCharacter) characterPicker.open()
   }, [campaign.capabilities.assignOwnCharacter, characterPicker, openCharacterPicker])
 
-  async function refreshCampaign() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.detail(campaign.id) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
-    ])
-  }
-
   const membershipAction = useMutation({
-    mutationFn: async (
+    retry: 1,
+    mutationFn: (
       action:
-        | { kind: 'REMOVE'; userId: string }
-        | { kind: 'UNASSIGN'; characterId?: string }
-        | { kind: 'LEAVE' }
-    ) => {
-      if (action.kind === 'REMOVE') {
-        const membership = campaign.memberships.find((entry) => entry.userId === action.userId)
-        if (!membership) throw new Error('Campaign membership is no longer available.')
-        return api.campaigns.removeMember(
-          campaign.id,
-          action.userId,
-          campaign.version,
-          membership.accessStartedAt
-        )
-      }
-      if (action.kind === 'LEAVE') {
-        const membership = campaign.memberships.find((entry) => entry.userId === currentUserId)
-        if (!membership) throw new Error('Campaign membership is no longer available.')
-        return api.campaigns.leave(campaign.id, campaign.version, membership.accessStartedAt)
-      }
-      return api.campaigns.unassignCharacter(campaign.id, action.characterId)
-    },
-    onSuccess: async (_result, action) => {
+        | {
+            kind: 'REMOVE'
+            input: z.infer<typeof removeCampaignMemberInputSchema>
+          }
+        | { kind: 'LEAVE'; input: z.infer<typeof leaveCampaignInputSchema> }
+    ) => (action.kind === 'REMOVE' ? removeMember(action.input) : leaveCampaign(action.input)),
+    onSuccess: (_result, action) => {
       setMembershipConfirm(null)
-      await refreshCampaign()
       if (action.kind === 'LEAVE') window.location.assign('/campaigns')
     }
   })
+  const unassign = useMutation({
+    retry: false,
+    mutationFn: (input: z.infer<typeof unassignCampaignCharacterInputSchema>) =>
+      unassignCharacter(input)
+  })
   const assign = useMutation({
-    mutationFn: (characterId: string) => api.campaigns.assignCharacter(campaign.id, characterId),
-    onSuccess: async () => {
-      characterPicker.close()
-      await refreshCampaign()
-    }
+    retry: false,
+    mutationFn: (input: z.infer<typeof assignCampaignCharacterInputSchema>) =>
+      assignCharacter(input),
+    onSuccess: () => characterPicker.close()
   })
 
   return (
@@ -137,6 +133,8 @@ export function CampaignParty({
             </Button>
           ) : null}
         </Group>
+
+        {unassign.error ? <Alert color='red'>{unassign.error.message}</Alert> : null}
 
         {rosterMembers.length ? (
           <SimpleGrid className={partyStyles.partyGrid} cols={{ base: 1, sm: 2, lg: 3 }}>
@@ -204,8 +202,8 @@ export function CampaignParty({
                           size='xs'
                           variant='subtle'
                           onClick={() =>
-                            membershipAction.mutate({
-                              kind: 'UNASSIGN',
+                            unassign.mutate({
+                              campaignId: campaign.id,
                               characterId: character.id
                             })
                           }
@@ -217,13 +215,15 @@ export function CampaignParty({
                         color='red'
                         size='xs'
                         variant='subtle'
-                        onClick={() =>
+                        onClick={() => {
+                          membershipAction.reset()
+                          setMembershipError(null)
                           setMembershipConfirm({
                             kind: 'REMOVE',
                             userId: member.userId,
                             username: member.username
                           })
-                        }
+                        }}
                       >
                         Remove player
                       </Button>
@@ -233,10 +233,10 @@ export function CampaignParty({
                   member.userId === currentUserId &&
                   character ? (
                     <Button
-                      loading={membershipAction.isPending}
+                      loading={unassign.isPending}
                       size='sm'
                       variant='default'
-                      onClick={() => membershipAction.mutate({ kind: 'UNASSIGN' })}
+                      onClick={() => unassign.mutate({ campaignId: campaign.id })}
                     >
                       Remove Character
                     </Button>
@@ -258,7 +258,11 @@ export function CampaignParty({
           <Button
             color='red'
             variant='subtle'
-            onClick={() => setMembershipConfirm({ kind: 'LEAVE' })}
+            onClick={() => {
+              membershipAction.reset()
+              setMembershipError(null)
+              setMembershipConfirm({ kind: 'LEAVE' })
+            }}
           >
             Leave Campaign
           </Button>
@@ -276,6 +280,9 @@ export function CampaignParty({
             ? `@${membershipConfirm.username} will lose Campaign access and their assigned Character will be removed from the roster. They must be invited again to return.`
             : 'You will lose Campaign access and your assigned Character will leave the roster. You must be invited again to return.'}
         </Text>
+        {membershipAction.error || membershipError ? (
+          <Alert color='red'>{membershipAction.error?.message ?? membershipError}</Alert>
+        ) : null}
         <Group justify='flex-end' mt='lg'>
           <Button variant='default' onClick={() => setMembershipConfirm(null)}>
             Cancel
@@ -284,14 +291,29 @@ export function CampaignParty({
             color='red'
             loading={membershipAction.isPending}
             onClick={() => {
-              if (membershipConfirm?.kind === 'REMOVE') {
-                membershipAction.mutate({
-                  kind: 'REMOVE',
-                  userId: membershipConfirm.userId
-                })
-              } else if (membershipConfirm?.kind === 'LEAVE') {
-                membershipAction.mutate({ kind: 'LEAVE' })
+              if (membershipAction.isError && membershipAction.variables) {
+                membershipAction.mutate(membershipAction.variables)
+                return
               }
+              if (!membershipConfirm) return
+              const userId =
+                membershipConfirm.kind === 'REMOVE' ? membershipConfirm.userId : currentUserId
+              const membership = campaign.memberships.find((member) => member.userId === userId)
+              if (!membership) {
+                setMembershipError('Campaign membership is no longer available.')
+                return
+              }
+              const input: z.infer<typeof leaveCampaignInputSchema> = {
+                campaignId: campaign.id,
+                expectedCampaignVersion: campaign.version,
+                expectedMembershipAccessStartedAt: membership.accessStartedAt,
+                commandId: crypto.randomUUID()
+              }
+              membershipAction.mutate(
+                membershipConfirm.kind === 'REMOVE'
+                  ? { kind: 'REMOVE', input: { ...input, userId } }
+                  : { kind: 'LEAVE', input }
+              )
             }}
           >
             {membershipConfirm?.kind === 'REMOVE' ? 'Remove player' : 'Leave Campaign'}
@@ -309,6 +331,7 @@ export function CampaignParty({
       >
         {selectedSheet && selected ? (
           <CharacterSheetView
+            key={selectedSheet.meta.characterId}
             characterPublicId={selected.character.publicId}
             currentUserId={currentUserId}
             hasDraft={Boolean(selectedSheet.meta.hasBuilderDraft)}
@@ -328,7 +351,9 @@ export function CampaignParty({
         onClose={characterPicker.close}
       >
         {assign.error ? <Alert color='red'>{assign.error.message}</Alert> : null}
-        {eligibleCharacters.length ? (
+        {characters.isLoading || campaigns.isLoading ? (
+          <Text role='status'>Loading eligible Characters…</Text>
+        ) : eligibleCharacters.length ? (
           <SimpleGrid className={partyStyles.characterPickerGrid} cols={{ base: 1, sm: 2 }}>
             {eligibleCharacters.map((character) => {
               const selectedCharacter = currentMembership?.assignedCharacter?.id === character.id
@@ -338,7 +363,12 @@ export function CampaignParty({
                   data-selected={selectedCharacter || undefined}
                   disabled={selectedCharacter || assign.isPending}
                   key={character.id}
-                  onClick={() => assign.mutate(character.id)}
+                  onClick={() =>
+                    assign.mutate({
+                      campaignId: campaign.id,
+                      characterId: character.id
+                    })
+                  }
                 >
                   <Group justify='space-between' gap='xs'>
                     <Text fw={700}>{character.label}</Text>

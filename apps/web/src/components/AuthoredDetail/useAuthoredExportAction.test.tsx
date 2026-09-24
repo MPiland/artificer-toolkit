@@ -1,9 +1,15 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
+import { ConvexReactClient } from 'convex/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { useAuthoredExportAction } from './useAuthoredExportAction'
 
 const mocks = vi.hoisted(() => ({ exportAuthoredContent: vi.fn() }))
+const client = new ConvexReactClient('https://unit-test.convex.cloud')
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useConvex: () => client
+}))
 vi.mock('#app/data/imports/importClient', () => mocks)
 
 describe('useAuthoredExportAction', () => {
@@ -24,11 +30,14 @@ describe('useAuthoredExportAction', () => {
     renderWithAppProviders(<ExportButton canExport view={view} />)
     fireEvent.click(screen.getByRole('button', { name: 'Export JSON' }))
     await waitFor(() =>
-      expect(mocks.exportAuthoredContent).toHaveBeenCalledWith({
-        id: 'spell-1',
-        subjectKind: 'SPELL',
-        view
-      })
+      expect(mocks.exportAuthoredContent).toHaveBeenCalledWith(
+        {
+          id: 'spell-1',
+          subjectKind: 'SPELL',
+          view
+        },
+        client
+      )
     )
   })
 

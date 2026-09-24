@@ -1,0 +1,409 @@
+import {
+  activeRuleEffectDefinitionDtoSchema,
+  activeRuleEffectLifecycleDtoSchema,
+  type ServerPublishedRuleDefinitionDto,
+  type ServerRuleExecutionD20EvidenceDto,
+  type ServerCompletedRuleExecutionDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
+import {
+  installedGameSystemRuleOperations,
+  requireInstalledGameSystemRuleCapability
+} from './platformRulesRuntime.js'
+import type {
+  CharacterRuleActionApplication,
+  CharacterRuleActionActiveEffectPlan
+} from './characterRuleActionSystemAdapter.js'
+
+export class EncounterActionEffectPlanError extends Error {}
+
+function compileEffectGraph(published: ServerPublishedRuleDefinitionDto, contractVersion: number) {
+  const graph = compileRuleGraph({
+    definition: published.definition,
+    sourceChecksum: published.checksum,
+    capability: requireInstalledGameSystemRuleCapability(published.gameSystemId),
+    operations: createRuleOperationRegistry(installedGameSystemRuleOperations)
+  })
+  if (!graph.ok)
+    throw new EncounterActionEffectPlanError(
+      graph.diagnostics.map((item) => item.message).join(' ')
+    )
+  if (graph.value.capabilityContractVersion !== contractVersion)
+    throw new EncounterActionEffectPlanError('Encounter effect capability contract is stale.')
+  return graph.value
+}
+
+type EffectPlan = {
+  definition: ReturnType<typeof activeRuleEffectDefinitionDtoSchema.parse>
+  lifecycle: ReturnType<typeof activeRuleEffectLifecycleDtoSchema.parse>
+}
+
+const sizeRank: Record<string, number> = {
+  FINE: 0,
+  DIMUNITIVE: 1,
+  TINY: 2,
+  SMALL: 3,
+  MEDIUM: 4,
+  LARGE: 5,
+  HUGE: 6,
+  GARGANTUAN: 7,
+  GIANT: 8,
+  COLOSSAL: 9
+}
+
+/** Builds immutable effect definitions from one already-completed Encounter action. */
+export function prepareEncounterActionEffectPlans(input: {
+  encounterId: string
+  occurrenceId: string
+  commandId: string
+  sourceActorId: string
+  target: {
+    actorId: string
+    conditionIds: readonly string[]
+    effectiveSize: string | null
+    lifetimeScope: 'OWNER' | 'ENCOUNTER'
+    activeEffects: readonly ActiveRuleEffectRecord[]
+  }
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  activeEffectPlan: CharacterRuleActionActiveEffectPlan | null
+  published: ServerPublishedRuleDefinitionDto
+  execution: ServerCompletedRuleExecutionDto
+  d20: ServerRuleExecutionD20EvidenceDto | null
+  applications: readonly CharacterRuleActionApplication[]
+}): {
+  stateEffect: EffectPlan | null
+  recurringEffect: EffectPlan | null
+  relationshipConditionApplications: readonly Extract<
+    CharacterRuleActionApplication,
+    { kind: 'CONDITION_APPLY' }
+  >[]
+} {
+  const stateEffect = prepareTargetStateEffect(input)
+  const recurringEffect = prepareRecurringActiveEffect(input)
+  const relationshipConditionApplications =
+    recurringEffect?.definition.schemaVersion === 2
+      ? (() => {
+          const relationshipContribution = input.activeEffectPlan?.actorRelationshipContribution
+          if (!relationshipContribution) return []
+          const authoredPath =
+            recurringEffect.definition.adapterFacts['dnd5e.relationship-authored-path']
+          if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
+            throw new EncounterActionEffectPlanError(
+              'Encounter relationship authored path is unavailable.'
+            )
+          const relationshipConditionIds = recurringEffect.definition.stateContributions.flatMap(
+            (contribution) =>
+              contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+          )
+          return recurringEffect.definition.stateContributions.flatMap((contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' &&
+            relationshipConditionIds.includes(contribution.conditionId) &&
+            !contribution.baselinePresent &&
+            !input.target.conditionIds.includes(contribution.conditionId)
+              ? [
+                  {
+                    kind: 'CONDITION_APPLY' as const,
+                    targetActorId: input.target.actorId,
+                    conditionId: contribution.conditionId,
+                    sourceNodeId:
+                      recurringEffect.definition.frozenGraph.sourceEntryBindings?.find(
+                        (binding) =>
+                          binding.sourceEntryId === recurringEffect.definition.compiledEntryId
+                      )?.nodeId ?? recurringEffect.definition.frozenGraphNodeId,
+                    sourceOperationKey: 'dnd5e.actor-relationship-state',
+                    authoredPath,
+                    resolvedPath: input.d20!.resultPath
+                  }
+                ]
+              : []
+          )
+        })()
+      : []
+  return { stateEffect, recurringEffect, relationshipConditionApplications }
+}
+
+function prepareRecurringActiveEffect(
+  input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
+): EffectPlan | null {
+  const plan = input.activeEffectPlan
+  if (!plan) return null
+  const frozenGraph = plan.frozenGraph
+  if (
+    plan.authoredEffectId !== input.published.id ||
+    frozenGraph.id !== plan.authoredEffectId ||
+    frozenGraph.definition.sourceEntryBindings?.filter(
+      (binding) =>
+        binding.sourceEntryId === plan.compiledEntryId && binding.nodeId === plan.frozenGraphNodeId
+    ).length !== 1
+  )
+    throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
+  const conditionContribution = plan.conditionContribution ?? null
+  const relationshipContribution = plan.actorRelationshipContribution ?? null
+  if (
+    relationshipContribution &&
+    input.d20?.resultPath !== 'ON_HIT' &&
+    input.d20?.resultPath !== 'ON_CRIT'
+  )
+    return null
+  if (relationshipContribution) {
+    const authoredPath = plan.adapterFacts['dnd5e.relationship-authored-path']
+    if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
+      throw new EncounterActionEffectPlanError(
+        'Encounter relationship authored path is unavailable.'
+      )
+    if (authoredPath === 'ON_CRIT' && input.d20?.resultPath !== 'ON_CRIT') return null
+    const maximum = relationshipContribution.modules.find(
+      (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
+    )
+    if (
+      maximum &&
+      (input.target.effectiveSize === null ||
+        sizeRank[input.target.effectiveSize] === undefined ||
+        sizeRank[maximum.sizeCode] === undefined ||
+        sizeRank[input.target.effectiveSize] > sizeRank[maximum.sizeCode])
+    )
+      return null
+    const sameSourceRelationships = [...input.activeEffectsByActorId.entries()].flatMap(
+      ([actorId, effects]) =>
+        effects.flatMap((effect) =>
+          effect.definition.schemaVersion === 2 &&
+          effect.definition.origin.kind === 'ENCOUNTER' &&
+          effect.definition.origin.sourceActorId === input.sourceActorId
+            ? effect.definition.stateContributions.flatMap((contribution) =>
+                contribution.kind === 'ACTOR_RELATIONSHIP' ? [{ actorId, contribution }] : []
+              )
+            : []
+        )
+    )
+    if (
+      relationshipContribution.modules.some(
+        (module) => module.kind === 'SOURCE_EXCLUSIVE_TARGET'
+      ) &&
+      sameSourceRelationships.some(({ actorId }) => actorId !== input.target.actorId)
+    )
+      return null
+    if (
+      relationshipContribution.modules.some(
+        (module) =>
+          module.kind === 'SOURCE_ACTION_TARGET_RESTRICTION' &&
+          module.actionEffectIds.includes(plan.authoredEffectId)
+      ) &&
+      sameSourceRelationships.some(
+        ({ actorId, contribution }) =>
+          actorId === input.target.actorId &&
+          contribution.modules.some(
+            (module) =>
+              module.kind === 'SOURCE_ACTION_TARGET_RESTRICTION' &&
+              module.actionEffectIds.includes(plan.authoredEffectId)
+          )
+      )
+    )
+      return null
+  }
+  const conditionBaselinePresent = (conditionId: string): boolean => {
+    const existingBaselines = input.target.activeEffects.flatMap((effect) =>
+      effect.definition.schemaVersion === 2
+        ? effect.definition.stateContributions.flatMap((contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
+              ? [contribution.baselinePresent]
+              : []
+          )
+        : []
+    )
+    const baselinePresent = existingBaselines[0] ?? input.target.conditionIds.includes(conditionId)
+    if (existingBaselines.some((existing) => existing !== baselinePresent))
+      throw new EncounterActionEffectPlanError(
+        'The target condition contribution baseline is inconsistent.'
+      )
+    return baselinePresent
+  }
+  const baselinePresent = conditionContribution
+    ? conditionBaselinePresent(conditionContribution.conditionId)
+    : null
+  const relationshipConditionIds = relationshipContribution
+    ? [
+        ...relationshipContribution.conditionIds,
+        ...(input.d20?.rollMode === 'ADVANTAGE'
+          ? relationshipContribution.modules.flatMap((module) =>
+              module.kind === 'CONDITIONAL_TARGET_STATE' ? module.conditionIds : []
+            )
+          : [])
+      ].filter((conditionId, index, values) => values.indexOf(conditionId) === index)
+    : []
+  const definition = activeRuleEffectDefinitionDtoSchema.parse({
+    schemaVersion: conditionContribution || relationshipContribution ? 2 : 1,
+    origin: {
+      kind: 'ENCOUNTER',
+      sourceAggregateId: input.encounterId,
+      sourceOccurrenceId: input.occurrenceId,
+      rootCommandId: input.commandId,
+      sourceActorId: input.sourceActorId
+    },
+    authoredEffectId: plan.authoredEffectId,
+    compiledEntryId: plan.compiledEntryId,
+    frozenGraphNodeId: plan.frozenGraphNodeId,
+    frozenGraph: compileEffectGraph(frozenGraph, plan.capabilityContractVersion),
+    adapterFacts: plan.adapterFacts,
+    perceptionContributions: plan.perceptionContributions,
+    recurrence: {
+      recurrenceStage: plan.recurrenceStage,
+      consumeOnFirstEvent: null,
+      endOnEvents: [],
+      lifetimeScope: 'ENCOUNTER',
+      expiration:
+        plan.initialRemaining === null
+          ? { kind: 'INDEFINITE' }
+          : {
+              kind: 'TICKS',
+              initialRemaining: plan.initialRemaining,
+              decrementStage: plan.recurrenceStage
+            }
+    },
+    ...(conditionContribution || relationshipContribution
+      ? {
+          stateContributions: [
+            ...(conditionContribution
+              ? [
+                  {
+                    kind: 'CONDITION_OWNERSHIP' as const,
+                    conditionId: conditionContribution.conditionId,
+                    baselinePresent
+                  }
+                ]
+              : []),
+            ...relationshipConditionIds.map((conditionId) => ({
+              kind: 'CONDITION_OWNERSHIP' as const,
+              conditionId,
+              baselinePresent: conditionBaselinePresent(conditionId)
+            })),
+            ...(relationshipContribution
+              ? [
+                  {
+                    kind: 'ACTOR_RELATIONSHIP' as const,
+                    relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
+                    modules: relationshipContribution.modules,
+                    conditionIds: relationshipConditionIds,
+                    capabilitySuppressions: [
+                      ...relationshipContribution.capabilitySuppressions,
+                      ...(input.d20?.rollMode === 'ADVANTAGE'
+                        ? relationshipContribution.modules.flatMap((module) =>
+                            module.kind === 'CONDITIONAL_TARGET_STATE'
+                              ? [
+                                  {
+                                    contributionId: module.id,
+                                    capabilityDefinitionIds: module.capabilityDefinitionIds
+                                  }
+                                ]
+                              : []
+                          )
+                        : [])
+                    ]
+                  }
+                ]
+              : [])
+          ]
+        }
+      : {})
+  })
+  return {
+    definition,
+    lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
+      schemaVersion: 1,
+      remainingTicks: plan.initialRemaining
+    })
+  }
+}
+
+function prepareTargetStateEffect(
+  input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
+): EffectPlan | null {
+  const contributions = input.applications.filter(
+    (
+      application
+    ): application is Extract<
+      CharacterRuleActionApplication,
+      { kind: 'HIT_POINT_MAXIMUM_REDUCTION' | 'SCALAR_REDUCTION' }
+    > =>
+      application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' || application.kind === 'SCALAR_REDUCTION'
+  )
+  if (!contributions.length) return null
+  if (contributions.length !== 1)
+    throw new EncounterActionEffectPlanError(
+      'An action may create at most one target state contribution.'
+    )
+  const contribution = contributions[0]!
+  const evidence = input.execution.evidence
+  if (
+    evidence.source.definitionId !== input.published.id ||
+    evidence.source.gameSystemId !== input.published.gameSystemId ||
+    evidence.source.definitionFamilyKey !== input.published.definitionFamilyKey ||
+    evidence.source.checksum !== input.published.checksum
+  )
+    throw new EncounterActionEffectPlanError(
+      'The active-effect source graph changed before settlement.'
+    )
+  const bindings = (evidence.sourceEntryBindings ?? []).filter(
+    (binding) => binding.nodeId === contribution.sourceNodeId
+  )
+  if (bindings.length !== 1)
+    throw new EncounterActionEffectPlanError(
+      'The target state contribution must retain one exact compiled source binding.'
+    )
+  const binding = bindings[0]!
+  const graphNode = input.published.definition.nodes.find((node) => node.id === binding.nodeId)
+  if (!graphNode || graphNode.operation.key !== contribution.sourceOperationKey)
+    throw new EncounterActionEffectPlanError(
+      'The target state contribution source binding is stale.'
+    )
+  const definition = activeRuleEffectDefinitionDtoSchema.parse({
+    schemaVersion: 2,
+    origin: {
+      kind: 'ENCOUNTER',
+      sourceAggregateId: input.encounterId,
+      sourceOccurrenceId: input.occurrenceId,
+      rootCommandId: input.commandId,
+      sourceActorId: input.sourceActorId
+    },
+    authoredEffectId: input.published.id,
+    compiledEntryId: binding.sourceEntryId,
+    frozenGraphNodeId: binding.nodeId,
+    frozenGraph: compileEffectGraph(input.published, evidence.capabilityContractVersion),
+    adapterFacts: {},
+    perceptionContributions: [],
+    recurrence: {
+      recurrenceStage: 'NONE',
+      consumeOnFirstEvent: null,
+      endOnEvents: [],
+      lifetimeScope: input.target.lifetimeScope,
+      expiration: { kind: 'INDEFINITE' }
+    },
+    stateContributions: [
+      contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION'
+        ? {
+            kind: 'HIT_POINT_MAXIMUM_REDUCTION' as const,
+            amount: contribution.reductionAmount,
+            sourceDamageOutcomeId: contribution.sourceDamageOutcomeId,
+            sourceDamageNodeId: contribution.sourceDamageNodeId,
+            sourceDamageOperationKey: contribution.sourceDamageOperationKey,
+            recoveryTags: contribution.recoveryTags
+          }
+        : {
+            kind: 'SCALAR_REDUCTION' as const,
+            valueDefinitionId: contribution.valueDefinitionId,
+            amount: contribution.reductionAmount,
+            stacking: contribution.stacking,
+            floor: contribution.floor,
+            recoveryTriggers: contribution.recoveryTriggers,
+            terminalConsequence: contribution.terminalConsequence,
+            sourceOutcomeId: contribution.sourceOutcomeId,
+            sourceNodeId: contribution.sourceNodeId,
+            sourceOperationKey: contribution.sourceOperationKey
+          }
+    ]
+  })
+  return {
+    definition,
+    lifecycle: activeRuleEffectLifecycleDtoSchema.parse({ schemaVersion: 1, remainingTicks: null })
+  }
+}

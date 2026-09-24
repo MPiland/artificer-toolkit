@@ -1,0 +1,86 @@
+import { z } from '../zod.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { characterSheetActionDtoSchema } from './characterSheetData.js'
+import { resolveEncounterActionInputDtoSchema } from './encounters.js'
+
+const versionSchema = z.number().check(z.int()).check(z.nonnegative())
+const labelSchema = z.string().check(z.trim()).check(z.minLength(1))
+const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+
+export const getEncounterActionChoicesInputDtoSchema = z.strictObject({
+  encounterId: postgresUuidSchema,
+  expectedVersion: versionSchema,
+  actorId: postgresUuidSchema
+})
+
+export const encounterActionChoiceDtoSchema = z.strictObject({
+  id: characterSheetActionDtoSchema.shape.id,
+  label: characterSheetActionDtoSchema.shape.label,
+  sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
+  rangeLabel: z.optional(labelSchema),
+  attackBonus: z.optional(z.number().check(z.int()))
+})
+
+export const encounterActionChoicesDtoSchema = z.strictObject({
+  encounterId: postgresUuidSchema,
+  encounterVersion: versionSchema,
+  actorId: postgresUuidSchema,
+  actions: z.array(encounterActionChoiceDtoSchema),
+  optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
+})
+
+/** A superseded reactive scope has no available choices; authority failures still reject. */
+export const encounterActionChoicesResponseDtoSchema = z.nullable(encounterActionChoicesDtoSchema)
+
+export const getEncounterOptionalActionChoicesInputDtoSchema = z.extend(
+  z.pick(resolveEncounterActionInputDtoSchema, {
+    encounterId: true,
+    expectedVersion: true,
+    actorId: true,
+    actionId: true,
+    targetActorId: true,
+    sceneContext: true
+  }),
+  {
+    encounterId: postgresUuidSchema,
+    actorId: postgresUuidSchema,
+    targetActorId: postgresUuidSchema,
+    definitionId: postgresUuidSchema
+  }
+)
+
+/** Display labels accompany the exact server-issued fields; clients submit only the selected IDs. */
+export const encounterOptionalActionChoicesDtoSchema = z.strictObject({
+  definitionId: postgresUuidSchema,
+  optionId: checksumSchema,
+  selectionContract: checksumSchema,
+  label: labelSchema,
+  fields: z
+    .array(
+      z.strictObject({
+        fieldId: checksumSchema,
+        kind: z.literal('ENTITY'),
+        label: labelSchema,
+        options: z
+          .array(z.strictObject({ id: postgresUuidSchema, label: labelSchema }))
+          .check(z.minLength(1))
+      })
+    )
+    .check(z.minLength(1))
+    .check(z.maxLength(4))
+})
+
+export type GetEncounterActionChoicesInputDto = z.infer<
+  typeof getEncounterActionChoicesInputDtoSchema
+>
+export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
+export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
+export type EncounterActionChoicesResponseDto = z.infer<
+  typeof encounterActionChoicesResponseDtoSchema
+>
+export type GetEncounterOptionalActionChoicesInputDto = z.infer<
+  typeof getEncounterOptionalActionChoicesInputDtoSchema
+>
+export type EncounterOptionalActionChoicesDto = z.infer<
+  typeof encounterOptionalActionChoicesDtoSchema
+>

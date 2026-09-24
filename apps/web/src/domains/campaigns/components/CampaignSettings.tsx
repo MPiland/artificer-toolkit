@@ -10,36 +10,56 @@ import {
   TextInput,
   Title
 } from '@mantine/core'
+import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
-import { api } from '#app/lib/api'
-import { getCampaignSettings as getCampaignSettingsQuery } from '#app/data/campaigns/queries'
-import { getSystemList } from '#app/data/systems/queries'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import * as sharedStyles from '../campaigns.css'
 import * as settingsStyles from './campaignSettings.css'
 import { CampaignMetadataFields } from './CampaignMetadataFields'
 
-export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) {
-  const settings = useQuery(getCampaignSettingsQuery(campaign.id))
-  const systems = useQuery(getSystemList())
+export function CampaignSettings({
+  campaign,
+  onDeleteConfirmed,
+  onDeleteFailed
+}: {
+  campaign: CampaignDetailDto
+  onDeleteConfirmed?: () => void
+  onDeleteFailed?: () => void
+}) {
+  const settings = useQuery(convexQuery(convexApi.campaigns.queries.settings, { id: campaign.id }))
+  const systems = useSystemList()
   if (settings.isPending || systems.isPending)
     return <Loader aria-label='Loading Campaign settings' size='sm' />
   if (settings.isError || systems.isError)
     return <Alert color='red'>Campaign settings are unavailable.</Alert>
-  return <CampaignSettingsForm campaign={settings.data} systems={systems.data} />
+  return (
+    <CampaignSettingsForm
+      campaign={settings.data}
+      systems={systems.data}
+      onDeleteConfirmed={onDeleteConfirmed}
+      onDeleteFailed={onDeleteFailed}
+    />
+  )
 }
 
 function CampaignSettingsForm({
   campaign,
-  systems
+  systems,
+  onDeleteConfirmed,
+  onDeleteFailed
 }: {
   campaign: CampaignDetailDto
   systems: SystemListItemDto[]
+  onDeleteConfirmed?: () => void
+  onDeleteFailed?: () => void
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -64,13 +84,13 @@ function CampaignSettingsForm({
     label: catalogue.label
   }))
   const editable = campaign.capabilities.edit && campaign.status === 'ACTIVE'
+  const updateCampaign = useConvexMutation(convexApi.campaigns.update.update)
+  const archiveCampaign = useConvexMutation(convexApi.campaigns.archive.archive)
+  const deleteCampaign = useConvexMutation(convexApi.campaigns.deletion.remove)
 
   async function refreshCampaign() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.detail(campaign.id) }),
-      queryClient.invalidateQueries({
-        queryKey: [...queryKeys.campaigns.detail(campaign.id), 'settings']
-      }),
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
     ])
@@ -78,7 +98,7 @@ function CampaignSettingsForm({
 
   const update = useMutation({
     mutationFn: () =>
-      api.campaigns.update({
+      updateCampaign({
         campaignId: campaign.id,
         expectedVersion: campaign.version,
         name: name.trim() || campaign.name,
@@ -96,12 +116,25 @@ function CampaignSettingsForm({
   })
   const lifecycle = useMutation({
     mutationFn: async (action: 'ARCHIVE' | 'DELETE') => {
-      if (action === 'ARCHIVE') await api.campaigns.archive(campaign.id, campaign.version)
-      else await api.campaigns.delete(campaign.id, campaign.version)
+      if (action === 'ARCHIVE')
+        await archiveCampaign({ campaignId: campaign.id, expectedVersion: campaign.version })
+      else
+        await deleteCampaign({
+          campaignId: campaign.id,
+          expectedVersion: campaign.version,
+          confirmation: 'DELETE'
+        })
     },
     onSuccess: async (_result, action) => {
-      await refreshCampaign()
-      if (action === 'DELETE') await navigate({ to: '/campaigns' })
+      if (action !== 'DELETE') return refreshCampaign()
+      await navigate({ to: '/campaigns', search: { campaignId: campaign.id } })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
+      ])
+    },
+    onError: (_error, action) => {
+      if (action === 'DELETE') onDeleteFailed?.()
     }
   })
   const error = update.error ?? lifecycle.error
@@ -216,7 +249,10 @@ function CampaignSettingsForm({
               color='red'
               variant='outline'
               onClick={() => {
-                if (window.confirm('Permanently delete this Campaign?')) lifecycle.mutate('DELETE')
+                if (window.confirm('Permanently delete this Campaign?')) {
+                  onDeleteConfirmed?.()
+                  lifecycle.mutate('DELETE')
+                }
               }}
             >
               Delete

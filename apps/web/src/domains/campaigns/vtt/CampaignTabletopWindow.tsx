@@ -2,7 +2,7 @@ import { Badge, Group, Text } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Gamepad2 } from 'lucide-react'
 import { useEffect } from 'react'
-import { getCampaignDetail, getCampaignSession } from '#app/data/campaigns/queries'
+import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
 import { CampaignGmRoller } from '../components/CampaignGmRoller'
 import { CampaignVttStage } from './CampaignVttStage'
 import * as styles from './CampaignTabletopWindow.css'
@@ -16,7 +16,7 @@ export function CampaignTabletopWindow({
   currentUserId: string
   sessionNumber: number
 }) {
-  const { data: campaign } = useSuspenseQuery(getCampaignDetail(campaignId))
+  const campaign = useCampaignDetail(campaignId)
   const { data: session } = useSuspenseQuery(getCampaignSession(campaignId, sessionNumber))
 
   useEffect(() => {

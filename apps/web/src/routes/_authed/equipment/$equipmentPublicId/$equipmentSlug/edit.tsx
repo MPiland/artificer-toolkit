@@ -1,13 +1,10 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getEquipment, getEquipmentDraft } from '#app/data/equipment/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { equipmentResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getEquipment } from '#app/data/equipment/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import type { EquipmentEditLoaderData } from '#app/routes/-routeLoaderData'
 import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
@@ -21,19 +18,15 @@ import {
 export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit')({
   context: () => createAuthoredFormRouteContext('equipment', 'edit'),
   loader: async ({ context, params }): Promise<EquipmentEditLoaderData> => {
-    const client = createServerApi()
-    const equipmentId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.equipment.list(),
-      publicId: params.equipmentPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'EQUIPMENT'
-    })
-    const activeEquipmentQuery = getEquipment(equipmentId, client)
-    const [response, draft] = await Promise.all([
-      ensureOptionalActiveContent(context.queryClient, activeEquipmentQuery),
-      context.queryClient.ensureQueryData(getEquipmentDraft(equipmentId, client))
+    const [active, working] = await Promise.all([
+      context.queryClient.ensureQueryData(getEquipment(params.equipmentPublicId)),
+      context.queryClient.ensureQueryData(
+        getEquipment({ id: params.equipmentPublicId, view: 'draft' })
+      )
     ])
+    const response = equipmentResponseDtoSchema.parse(active)
+    const draft = equipmentResponseDtoSchema.parse(working)?.draft ?? null
+    const equipmentId = response?.item?.id ?? draft?.subjectId ?? params.equipmentPublicId
     const routeSubject = getAuthoredRouteSubject(equipmentId, response, draft)
     if (
       routeSubject &&
@@ -48,18 +41,13 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
 
     const parsedDraft = equipmentAuthoringInputDtoSchema.safeParse(draft?.payload)
     const currentEquipment = parsedDraft.success ? parsedDraft.data : response?.item
-    const system = await loadAuthoredRouteSystem(
-      context.queryClient,
-      client,
-      currentEquipment?.systemId
-    )
-    const parentResponse =
+    const [system, parent] = await Promise.all([
+      loadAuthoredRouteSystem(context.queryClient, currentEquipment?.systemId ?? draft?.systemId),
       currentEquipment?.category === 'VARIANT'
-        ? await ensureOptionalActiveContent(
-            context.queryClient,
-            getEquipment(currentEquipment.parentEquipmentId, client)
-          )
+        ? context.queryClient.ensureQueryData(getEquipment(currentEquipment.parentEquipmentId))
         : null
+    ])
+    const parentResponse = equipmentResponseDtoSchema.parse(parent)
 
     return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,

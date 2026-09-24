@@ -1,6 +1,7 @@
 import {
   Alert,
   Badge,
+  Button,
   Group,
   SegmentedControl,
   Select,
@@ -9,12 +10,12 @@ import {
   Text,
   TextInput
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useEffect, useState } from 'react'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignSessionRsvps } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import {
   browserTimeZone,
   fromSessionLocalDateTime,
@@ -35,8 +36,12 @@ export function CampaignSessionSchedulePanel({
   session: CampaignSessionDto
   onUpdated: (session: CampaignSessionDto) => void
 }) {
-  const queryClient = useQueryClient()
-  const rsvps = useQuery(getCampaignSessionRsvps(campaign.id, session.id))
+  const convex = useConvex()
+  const rsvps = usePaginatedQuery(
+    convexApi.campaigns.sessionRsvps.list,
+    campaign.role === 'OWNER' ? { campaignId: campaign.id, sessionId: session.id } : 'skip',
+    { initialNumItems: 32 }
+  )
   const [scheduledStartAt, setScheduledStartAt] = useState(() =>
     toSessionLocalDateTime(session.scheduledStartAt, session.timeZone)
   )
@@ -44,12 +49,13 @@ export function CampaignSessionSchedulePanel({
     toSessionLocalDateTime(session.scheduledEndAt, session.timeZone)
   )
   const [timeZone, setTimeZone] = useState(session.timeZone ?? browserTimeZone())
+  const [submittedRsvp, setSubmittedRsvp] = useState<'YES' | 'NO' | 'MAYBE' | null>(null)
   const updateSchedule = useMutation({
     mutationFn: () => {
       const hasStart = scheduledStartAt.length > 0
       const hasEnd = scheduledEndAt.length > 0
       if (hasStart !== hasEnd) throw new Error('Add both a start and end, or leave both blank.')
-      return api.campaigns.sessions.update({
+      return convex.mutation(convexApi.campaigns.sessions.update, {
         campaignId: campaign.id,
         sessionId: session.id,
         expectedVersion: session.version,
@@ -60,20 +66,16 @@ export function CampaignSessionSchedulePanel({
     },
     onSuccess: (updated) => {
       onUpdated(updated)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.sessions(campaign.id) })
     }
   })
   const setRsvp = useMutation({
     mutationFn: (response: 'YES' | 'NO' | 'MAYBE') =>
-      api.campaigns.sessions.rsvps.set({
+      convex.mutation(convexApi.campaigns.sessionRsvps.set, {
         campaignId: campaign.id,
         sessionId: session.id,
         response
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionRsvps(campaign.id, session.id)
-      })
+    onSuccess: (rsvp) => setSubmittedRsvp(rsvp.response)
   })
 
   useEffect(() => {
@@ -96,11 +98,12 @@ export function CampaignSessionSchedulePanel({
     updateSchedule.mutate()
   }
 
-  const currentRsvp = rsvps.data?.find((entry) => entry.userId === currentUserId)?.response ?? ''
+  const currentRsvp =
+    rsvps.results.find((entry) => entry.userId === currentUserId)?.response ?? submittedRsvp ?? ''
   const counts = {
-    yes: rsvps.data?.filter((entry) => entry.response === 'YES').length ?? 0,
-    maybe: rsvps.data?.filter((entry) => entry.response === 'MAYBE').length ?? 0,
-    no: rsvps.data?.filter((entry) => entry.response === 'NO').length ?? 0
+    yes: rsvps.results.filter((entry) => entry.response === 'YES').length,
+    maybe: rsvps.results.filter((entry) => entry.response === 'MAYBE').length,
+    no: rsvps.results.filter((entry) => entry.response === 'NO').length
   }
   const incomplete = scheduledStartAt.length > 0 !== scheduledEndAt.length > 0
 
@@ -186,6 +189,11 @@ export function CampaignSessionSchedulePanel({
         </Group>
       ) : null}
       {setRsvp.error ? <Alert color='red'>Your RSVP couldn’t be updated.</Alert> : null}
+      {rsvps.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => rsvps.loadMore(32)}>
+          Load more RSVPs
+        </Button>
+      ) : null}
     </Stack>
   )
 }

@@ -1,34 +1,28 @@
 import { Alert, Button, Select, Stack, Textarea, TextInput, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-import { getCampaignConversations } from '#app/data/campaigns/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation as useConvexMutation } from 'convex/react'
 import * as styles from './CampaignAnnouncements.css'
 
 export function CampaignAnnouncementComposer({ campaignId }: { campaignId: string }) {
-  const queryClient = useQueryClient()
-  const conversations = useQuery(getCampaignConversations(campaignId))
-  const partyId = conversations.data?.find((conversation) => conversation.kind === 'PARTY')?.id
+  const createAnnouncement = useConvexMutation(convexApi.campaigns.announcements.create)
   const [scope, setScope] = useState<'TABLE' | 'PARTY'>('TABLE')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const publish = useMutation({
     mutationFn: (commandId: string) =>
-      api.campaigns.announcements.create({
+      createAnnouncement({
         campaignId,
         commandId,
         scope,
-        partyId: scope === 'PARTY' ? (partyId ?? null) : null,
+        partyId: null,
         title: title.trim(),
         body: body.trim()
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setTitle('')
       setBody('')
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.announcements(campaignId)
-      })
     }
   })
 
@@ -41,7 +35,7 @@ export function CampaignAnnouncementComposer({ campaignId }: { campaignId: strin
         <Select
           data={[
             { label: 'Everyone at the table', value: 'TABLE' },
-            { label: 'Players only', value: 'PARTY', disabled: !partyId }
+            { label: 'Players only', value: 'PARTY' }
           ]}
           label='Audience'
           value={scope}
@@ -66,7 +60,7 @@ export function CampaignAnnouncementComposer({ campaignId }: { campaignId: strin
       </Stack>
       {publish.error ? <Alert color='red'>The announcement couldn’t be published.</Alert> : null}
       <Button
-        disabled={!title.trim() || !body.trim() || (scope === 'PARTY' && !partyId)}
+        disabled={!title.trim() || !body.trim()}
         loading={publish.isPending}
         onClick={() => publish.mutate(crypto.randomUUID())}
       >

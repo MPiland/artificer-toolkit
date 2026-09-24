@@ -455,7 +455,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
         })
       )
 
-      // Defenses
+      // Defense arrays also retain authored prose, not only vocabulary IDs.
       .set(
         'damageVulnerabilities',
         selectMulti(
@@ -463,6 +463,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           'Damage Vulnerabilities',
           {
             kind: 'DATA',
+            preserveUnknownOptions: true,
             relationship: table('damage_types', {
               selectColumns: ['id', 'label']
             })
@@ -477,6 +478,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           'Damage Resistances',
           {
             kind: 'DATA',
+            preserveUnknownOptions: true,
             relationship: table('damage_types', {
               selectColumns: ['id', 'label']
             })
@@ -491,6 +493,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           'Damage Immunities',
           {
             kind: 'DATA',
+            preserveUnknownOptions: true,
             relationship: table('damage_types', {
               selectColumns: ['id', 'label']
             })
@@ -505,6 +508,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           'Condition Immunities',
           {
             kind: 'DATA',
+            preserveUnknownOptions: true,
             relationship: table('condition_types', {
               selectColumns: ['id', 'label']
             })

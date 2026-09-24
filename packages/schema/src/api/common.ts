@@ -1,7 +1,7 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const resourceIdParamsDtoSchema = z.object({
-  id: z.string().min(1)
+  id: z.string().check(z.minLength(1))
 })
 
 export const ownerContextDtoSchema = z.object({
@@ -11,7 +11,7 @@ export const ownerContextDtoSchema = z.object({
 
 export const authoredContentProvenanceDtoSchema = z.object({
   kind: z.enum(['MASTER', 'OWNED']),
-  ownerUserId: z.string().nullable()
+  ownerUserId: z.nullable(z.string())
 })
 
 export const authoredContentPermissionsDtoSchema = z.object({
@@ -22,28 +22,30 @@ export const authoredContentPermissionsDtoSchema = z.object({
 })
 
 export function authoredResourceResponseDtoSchema<
-  TSchema extends z.ZodTypeAny,
-  TExtrasShape extends z.ZodRawShape
->(itemSchema: TSchema, extrasSchema: z.ZodObject<TExtrasShape>) {
+  TSchema extends z.ZodMiniType,
+  TExtrasShape extends z.core.$ZodShape
+>(itemSchema: TSchema, extrasSchema: z.ZodMiniObject<TExtrasShape>) {
   const base = z.object({
-    item: itemSchema.nullable(),
+    item: z.nullable(itemSchema),
     publicId: z.string(),
     provenance: authoredContentProvenanceDtoSchema,
     permissions: authoredContentPermissionsDtoSchema
   })
 
-  return base.merge(extrasSchema).nullable()
+  return z.nullable(z.extend(base, extrasSchema.shape))
 }
 
-export function listResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
+export function listResponseDtoSchema<TSchema extends z.ZodMiniType>(itemSchema: TSchema) {
   return z.object({
     items: z.array(itemSchema),
     meta: z.record(z.string(), z.unknown())
   })
 }
 
-export function singleResourceResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
-  return itemSchema.nullable()
+export function singleResourceResponseDtoSchema<TSchema extends z.ZodMiniType>(
+  itemSchema: TSchema
+) {
+  return z.nullable(itemSchema)
 }
 
 export type AuthoredContentProvenanceDto = z.infer<typeof authoredContentProvenanceDtoSchema>

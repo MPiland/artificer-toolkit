@@ -7,7 +7,6 @@ import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   buildCharacterDraftSaveInput,
   createFallbackCharacterFormValues,
-  normalizeCharacterForCommit,
   normalizeCharacterForDraft,
   toCharacterFormValues
 } from '../shared/formNormalization'
@@ -69,10 +68,7 @@ describe('character builder utilities', () => {
         }
       }
     })
-    expect(normalizeCharacterForCommit(values)).toMatchObject({
-      id: characterBuilderPayloadFixture.character.id,
-      status: 'ACTIVE'
-    })
+    expect(normalizeCharacterForDraft(values)).not.toHaveProperty('primaryRulesCatalogueId')
   })
 
   it('fingerprints only fields that affect Builder resolution', () => {
@@ -244,7 +240,7 @@ describe('character builder utilities', () => {
       assignments: [{ ability: 'STRENGTH', option: '15' }]
     }
 
-    const draftInput = buildCharacterDraftSaveInput(values, 'create')
+    const draftInput = buildCharacterDraftSaveInput(values, 'create', 'draft-generation')
 
     expect(draftInput.character.intent.abilities).toMatchObject({
       method: CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
@@ -317,14 +313,14 @@ describe('character builder utilities', () => {
     ).toEqual(standardSlots)
   })
 
-  it('includes the active base revision when saving edit drafts', () => {
+  it('sends the draft generation without a client-owned active baseline', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
 
-    const draftInput = buildCharacterDraftSaveInput(values, 'edit', {
-      baseActiveUpdatedAt: '2026-05-03T10:15:30.000Z'
-    })
+    const draftInput = buildCharacterDraftSaveInput(values, 'edit', 'draft-generation')
 
-    expect(draftInput.baseActiveUpdatedAt).toBe('2026-05-03T10:15:30.000Z')
+    expect(draftInput.expectedDraftId).toBe('draft-generation')
+    expect(draftInput).not.toHaveProperty('baseActiveUpdatedAt')
+    expect(draftInput.character).not.toHaveProperty('primaryRulesCatalogueId')
   })
 
   it('reports inactive ability intent methods for the draft-save notice', () => {

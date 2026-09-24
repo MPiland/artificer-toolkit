@@ -1,9 +1,9 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const diceExpressionDtoSchema = z.object({
-  count: z.number().int().positive(),
-  die: z.number().int().min(2),
-  modifier: z.number().int()
+  count: z.number().check(z.int()).check(z.positive()),
+  die: z.number().check(z.int()).check(z.gte(2)),
+  modifier: z.number().check(z.int())
 })
 
 export type DiceExpressionDto = z.infer<typeof diceExpressionDtoSchema>

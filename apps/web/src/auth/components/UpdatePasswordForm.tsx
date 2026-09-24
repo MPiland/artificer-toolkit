@@ -1,10 +1,15 @@
-import { type MouseEvent, type SubmitEvent, useState } from 'react'
+import { type MouseEvent, type SubmitEvent, useEffect, useRef, useState } from 'react'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
+import { useHydrated } from '@tanstack/react-router'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   passwordInputSchema,
   usernameInputSchema
+} from '@artificer-toolkit/schema/api/auth'
+import type {
+  AuthInvitationRedeemInput,
+  AuthPasswordResetInput
 } from '@artificer-toolkit/schema/api/auth'
 import { browserAuthClient } from '../authClient'
 import {
@@ -27,9 +32,18 @@ import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 export function UpdatePasswordForm({
   authClient = browserAuthClient,
   invitation = false,
+  invitationCredentials,
+  recovery,
   onBackToSignIn,
   onSuccess
-}: AuthFormProps & { invitation?: boolean; onBackToSignIn?: () => void | Promise<void> }) {
+}: AuthFormProps & {
+  invitation?: boolean
+  invitationCredentials?: Pick<AuthInvitationRedeemInput, 'email' | 'token'>
+  recovery?: Pick<AuthPasswordResetInput, 'email' | 'token'>
+  onBackToSignIn?: () => void | Promise<void>
+}) {
+  const hydrated = useHydrated()
+  const formRef = useRef<HTMLFormElement>(null)
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
@@ -38,6 +52,15 @@ export function UpdatePasswordForm({
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
     null
   )
+
+  useEffect(() => {
+    if (!formRef.current) return
+    // Preserve native typing/autofill in the SSR form before React attached handlers.
+    const values = new FormData(formRef.current)
+    setUsername(String(values.get('username') ?? ''))
+    setPassword(String(values.get('password') ?? ''))
+    setConfirmPassword(String(values.get('confirmPassword') ?? ''))
+  }, [])
 
   async function handleBackToSignIn(event: MouseEvent<HTMLAnchorElement>) {
     if (!onBackToSignIn) return
@@ -89,12 +112,18 @@ export function UpdatePasswordForm({
 
     try {
       const result =
-        invitation && parsedUsername?.success
+        invitation && parsedUsername?.success && invitationCredentials
           ? await authClient.completeInvitation({
+              ...invitationCredentials,
               password: parsedPassword.data,
               username: parsedUsername.data
             })
-          : await authClient.updatePassword({ password: parsedPassword.data })
+          : recovery
+            ? await authClient.resetPassword({ ...recovery, password: parsedPassword.data })
+            : {
+                ok: false,
+                message: 'Request a new verification code before resetting your password.'
+              }
 
       if (!result.ok) {
         const message = result.message ?? 'Could not complete this account update.'
@@ -117,7 +146,7 @@ export function UpdatePasswordForm({
   }
 
   return (
-    <form className={authForm} method='post' onSubmit={handleSubmit}>
+    <form ref={formRef} className={authForm} method='post' onSubmit={handleSubmit}>
       {invitation && (
         <TextInput
           label='Username'
@@ -171,7 +200,12 @@ export function UpdatePasswordForm({
         required
       />
       <PasswordMatchFeedback confirmation={confirmPassword} password={password} />
-      <Button className={authButton} type='submit' loading={isSubmitting}>
+      <Button
+        className={authButton}
+        type='submit'
+        loading={isSubmitting}
+        disabled={!hydrated || (invitation && !invitationCredentials)}
+      >
         {invitation ? 'Complete registration' : 'Update password'}
       </Button>
       {feedback && (

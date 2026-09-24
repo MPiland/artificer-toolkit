@@ -1,0 +1,186 @@
+import {
+  ACTIVATION_CODE,
+  CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
+  PATH_CODE,
+  RANGE_KIND,
+  SCALING,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type ClassAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { closedRuleEffect } from './mechanics.js'
+
+function classRowId(classIndex: number, group: number, entry: number): string {
+  const xx = classIndex.toString(16).padStart(2, '0')
+  const gg = group.toString(16).padStart(2, '0')
+  const nn = entry.toString(16).padStart(2, '0')
+  return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+const W = 11
+
+export const theFiend: ClassAuthored = {
+  id: SUBCLASS_IDS.FIEND,
+  label: 'The Fiend',
+  category: CLASS_CATEGORY.SUBCLASS,
+  parentClassId: CLASS_IDS.WARLOCK,
+  description:
+    "You have made a pact with a fiend from the lower planes of existence, a being whose aims are evil, even if you strive against those aims. Such beings desire the corruption or destruction of all things, ultimately including you. Fiends powerful enough to forge a pact include demon lords such as Demogorgon, Orcus, Fraz'Urb-luu, and Baphomet; archdevils such as Asmodeus, Dispater, Mephistopheles, and Belial; pit fiends and balors that are especially mighty; and ultroloths and other lords of the yugoloths.",
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID,
+  features: [
+    {
+      id: classRowId(W, 11, 1),
+      label: 'Expanded Spell List',
+      description:
+        'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you.',
+      availableAtLevel: 1,
+      order: 0,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(W, 20, 1),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(W, 21, 1), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_EXPANDED_SPELL_LIST
+        })
+      ]
+    },
+    {
+      id: classRowId(W, 11, 3),
+      label: "Dark One's Blessing",
+      description:
+        'Starting at 1st level, when you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).',
+      availableAtLevel: 1,
+      order: 1,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(W, 20, 2),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(W, 21, 2), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_DARK_ONES_BLESSING
+        })
+      ]
+    },
+    {
+      id: classRowId(W, 11, 4),
+      label: "Dark One's Own Luck",
+      description:
+        "Starting at 6th level, you can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll's effects occur. Once you use this feature, you can't use it again until you finish a short or long rest.",
+      availableAtLevel: 6,
+      order: 2,
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: classRowId(W, 22, 1),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 1
+      },
+      effects: [
+        closedRuleEffect({
+          id: classRowId(W, 20, 3),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(W, 22, 1), cost: 1 },
+            activation: { code: ACTIVATION_CODE.FREE },
+            range: { id: classRowId(W, 21, 3), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_DARK_ONES_OWN_LUCK
+        })
+      ]
+    },
+    {
+      id: classRowId(W, 11, 5),
+      label: 'Fiendish Resilience',
+      description:
+        'Starting at 10th level, you can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature. Damage from magical weapons or silver weapons ignores this resistance.',
+      availableAtLevel: 10,
+      order: 3,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(W, 20, 4),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(W, 21, 4), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_FIENDISH_RESILIENCE
+        })
+      ]
+    },
+    {
+      id: classRowId(W, 11, 6),
+      label: 'Hurl Through Hell',
+      description:
+        "Starting at 14th level, when you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape. At the end of your next turn, the target returns to the space it previously occupied, or the nearest unoccupied space. If the target is not a fiend, it takes 10d10 psychic damage as it reels from its horrific experience. Once you use this feature, you can't use it again until you finish a long rest.",
+      availableAtLevel: 14,
+      order: 4,
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: classRowId(W, 22, 2),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1
+      },
+      effects: [
+        closedRuleEffect({
+          id: classRowId(W, 20, 5),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(W, 21, 5), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_HIT,
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
+        }),
+        closedRuleEffect({
+          id: classRowId(W, 20, 6),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
+            range: { id: classRowId(W, 21, 6), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_HIT,
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
+        }),
+        closedRuleEffect({
+          id: classRowId(W, 20, 7),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.SPELL_ATTACK,
+            range: { id: classRowId(W, 21, 7), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_HIT,
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
+        })
+      ]
+    }
+  ]
+}

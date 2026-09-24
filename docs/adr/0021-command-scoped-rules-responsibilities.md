@@ -1,20 +1,38 @@
 # ADR 0021: Command-scoped rules responsibilities
 
-- **Status:** transitional — command ownership retained; versioned evaluator details superseded by ADRs 0023 and 0024
+- **Status:** historical — superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-14
-- **Revised:** 2026-08-15
+- **Revised:** 2026-09-22
 - **Scope:** Character derivation, Sheet play commands, Encounter actions, live-session ordering, and future VTT mechanical commands
 - **Update when:** a command changes policy ownership, the invalidation boundary changes, or a new live mechanical lane is added
 - **Verification:** model-contract tests, Sheet and Encounter command parity, live-session conflict/replay/reconnect tests, and command-latency gates
 - **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces room-only snapshots with synchronously committed, version-matched Character mechanics projections.
 
-## Context
+## Current superseding amendment — 2026-09-22
+
+Command ownership now depends on an active Session authority epoch. The Session Durable Object orders
+and executes the supported Door, standalone token move/undo, and live Character paths against its
+minimum live projection. It atomically stores SQLite live state, the replay receipt, and the next
+ordered Convex publication before broadcasting success. The TypeScript Rules Kernel remains the pure
+mechanics authority for the live Character path.
+
+Convex remains authentication/current-membership authority and the durable cross-session/system store.
+It independently revalidates each ordered publication and supplies subscription and recovery state;
+overlapping direct Convex mutations reject while the room authority is active. Encounter rule commands
+remain on their owning Convex paths unless their individual contract is explicitly added to the Session
+DO. Recipient-filtered previews remain ephemeral.
+
+Everything below records the Phase 8.1 and early Phase 8.2 Postgres/Zen command topology. It remains
+useful decision history, but it does not define current runtime ownership. ADR 0029 and the amendment
+above are the current authority.
+
+## Historical context
 
 One rules authority does not require one giant evaluation for every user interaction. The converged Character model correctly derives a complete mechanical snapshot, but rebuilding that snapshot for HP edits, resource spends, notes, token commits, or every visible Sheet section adds avoidable database and fact-assembly work. Splitting one user action into simultaneous evaluator calls would introduce the opposite problem: partial answers could observe different versions and finish out of order.
 
-Live play also needs correct answers when player, GM, Encounter, Character, and scene commands arrive close together. The live-session coordinator orders overlapping conflict sets while allowing unrelated aggregates and scene resources to progress concurrently. Postgres remains durable truth, and the pinned Zen revision remains the only game-system authority.
+Live play also needs correct answers when player, GM, Encounter, Character, and scene commands arrive close together. The live-session coordinator orders overlapping conflict sets while allowing unrelated aggregates and scene resources to progress concurrently. Postgres was durable truth, and the pinned Zen revision was the only game-system authority.
 
-## Decision
+## Historical decision
 
 Keep one versioned Zen runtime and divide evaluation by command responsibility, not by UI component.
 
@@ -42,7 +60,7 @@ Character actions and Encounter actions use bounded action contracts under the s
 
 One user command selects at most one mechanical evaluation lane. The server does not call multiple independent rule models with `Promise.all`, and the client does not request rules per Sheet widget. Model subcalls inside one JDM graph remain one atomic evaluation. Commands sharing a conflict key observe committed predecessor state; commands over disjoint keys may execute concurrently.
 
-## Live-session application
+## Historical live-session application
 
 One coordinator owns each active Campaign session: a hibernatable Durable Object for managed remote play or the local Node host for local play. It derives a conservative set of hierarchical conflict keys from each validated command, claims the full set atomically, and preserves FIFO only between overlapping work. Disjoint Characters and scene resources can execute concurrently, within the room's bounded concurrency limit. Ambiguous executor outcomes keep their claimed keys fenced until an idempotent retry proves the result.
 
@@ -60,7 +78,7 @@ For every durable command the room:
 
 Scene commands may rebase across a stale scene version only when the persisted conflict-key history since that version is disjoint from the command's requested keys. Multi-aggregate transactions acquire database locks in deterministic canonical-key order. A coordinator restart reconstructs pending delivery from its journal and gameplay state from Postgres plus exact pinned revisions. Reconnect receives a private ready snapshot and pending-command status. Managed-remote and local modes share the wire protocol, policies, reducers, and application services; only the coordination/execution topology differs.
 
-## Invalidation boundary
+## Historical invalidation boundary
 
 | Change                                                                                                                                 | Rules work                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -74,10 +92,10 @@ Scene commands may rebase across a stale scene version only when the persisted c
 
 If a future mechanic cannot be assigned to one row, its command contract is underspecified and must be redesigned before implementation.
 
-## Consequences
+## Historical consequences
 
 The ordinary HTTP Sheet path may remain more expensive while no active command can reuse a version-matched materialized snapshot, but active play does not rebuild the entire Character for every command. There is no rules microservice, cross-model fan-out, eventual mechanical answer, or acknowledgement before persistence. Performance work measures each lane separately: conflict-local wait time, remote coordination hop, fact assembly, Zen time, transaction time, acknowledgement latency, and reconnect hydration.
 
-The first authenticated Node-host implementation materialized present Character and Encounter actor snapshots during room admission and retained the matching Builder resolution with each Character's pinned Zen result. A committed snapshot may supply current-command validation only when aggregate identity, pinned revision, and expected aggregate version still match. HP, presentation, and usage-only Encounter changes select no fresh evaluation. Character resource and spell-slot changes apply prospective usage to committed facts and evaluate the exact pinned `character-action-resolve` model once before persistence; they do not rerun `character-policy`. Encounter actions reuse the committed actor-policy output and evaluate only their bounded pinned action contract. Structural commands continue to evaluate prospective facts once. Historical local Node and Linux-container measurements remain useful lane baselines, but the current managed topology is a Durable Object plus private Netlify executor and has separate Phase 08 p95 gates. Admission absorbs initial snapshot materialization before active play begins.
+The first authenticated Node-host implementation materialized present Character and Encounter actor snapshots during room admission and retained the matching Builder resolution with each Character's pinned Zen result. A committed snapshot may supply current-command validation only when aggregate identity, pinned revision, and expected aggregate version still match. HP, presentation, and usage-only Encounter changes select no fresh evaluation. Character resource and spell-slot changes apply prospective usage to committed facts and evaluate the exact pinned `character-action-resolve` model once before persistence; they do not rerun `character-policy`. Encounter actions reuse the committed actor-policy output and evaluate only their bounded pinned action contract. Structural commands continue to evaluate prospective facts once. Historical local Node and Linux-container measurements remain useful lane baselines, but the then-current managed topology was a Durable Object plus private Netlify executor and had separate Phase 08 p95 gates. Admission absorbs initial snapshot materialization before active play begins.
 
 This ADR refines ADR 0019's “one top-level Character evaluation” rule: one full evaluation remains atomic for one structural fact set, but it is not the universal command handler. It also moves the authenticated command-room foundation into Phase 07; Phase 08 adds scene contracts, renderer behavior, and VTT-specific commands on that proven room.

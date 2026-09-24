@@ -1,8 +1,8 @@
 import { Alert, Badge, Button, Group, Loader, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { SocialApplicationDialog } from './components/SocialApplicationDialog'
 import { SocialDetailField } from './components/SocialDetailField'
 import { SocialReportDialog } from './components/SocialReportDialog'
@@ -16,14 +16,12 @@ import * as styles from './SocialListingDetailPage.css'
 
 export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: string }) {
   const navigate = useNavigate()
-  const listing = useQuery({
-    queryKey: queryKeys.socialHub.listing(listingPublicId),
-    queryFn: () => api.socialHub.listings.get(listingPublicId)
-  })
-  const eligibility = useQuery({
-    queryKey: queryKeys.socialHub.eligibility(),
-    queryFn: () => api.socialHub.eligibility.get()
-  })
+  const listing = useQuery(
+    convexQuery(convexApi.social.discovery.getListing, {
+      listingPublicId: listingPublicId.toLowerCase()
+    })
+  )
+  const eligibility = useQuery(convexQuery(convexApi.social.profiles.getEligibility, {}))
 
   if (listing.isPending) return <Loader aria-label='Loading listing' size='sm' />
   if (listing.isError) {
@@ -46,7 +44,7 @@ export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: 
           </Group>
           <Text className={styles.prose}>{data.summary}</Text>
         </div>
-        {!isHost ? (
+        {eligibility.data?.eligible && !isHost ? (
           <Group gap='xs'>
             <SocialApplicationDialog listing={data} />
             <SocialReportDialog

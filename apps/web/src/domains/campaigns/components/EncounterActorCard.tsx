@@ -16,7 +16,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCharacterSheet } from '#app/data/characters/queries'
 import { AuthoredDetailProse } from '#components/AuthoredDetail'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
@@ -46,10 +46,11 @@ export function EncounterActorCard({
   const [notes, setNotes] = useState(actor.gmNotes ?? '')
   const [rollVisibility, setRollVisibility] = useState<'PRIVATE' | 'TABLE'>('PRIVATE')
   const [sheetOpened, setSheetOpened] = useState(false)
-  const sheet = useQuery({
-    ...getCharacterSheet(actor.sourceId ?? ''),
-    enabled: actor.kind === 'CHARACTER' && sheetOpened && Boolean(actor.sourceId)
-  })
+  const sheet = useQuery(
+    getCharacterSheet(
+      actor.kind === 'CHARACTER' && sheetOpened ? (actor.sourceId ?? undefined) : undefined
+    )
+  )
 
   useEffect(() => {
     setInitiative(actor.initiative ?? 0)
@@ -296,6 +297,7 @@ export function EncounterActorCard({
         ) : null}
         {sheet.data ? (
           <CharacterSheetView
+            key={sheet.data.meta.characterId}
             characterPublicId={
               campaign.memberships.find(
                 (membership) => membership.assignedCharacter?.id === actor.sourceId

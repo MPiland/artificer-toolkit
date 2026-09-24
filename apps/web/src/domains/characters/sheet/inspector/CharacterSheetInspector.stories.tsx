@@ -36,8 +36,7 @@ import {
   openSpellsInspector,
   openStrengthInspector,
   openStrengthSaveInspector,
-  panelHandler,
-  spellsPanelHandler
+  withSheetPanel
 } from '../fixtures/characterSheetStory.fixture'
 
 const meta = {
@@ -50,9 +49,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const AbilityInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(abilityPanelFixture)] }
-  },
+  decorators: [withSheetPanel(abilityPanelFixture)],
   play: openStrengthInspector
 }
 
@@ -60,29 +57,23 @@ export const AbilityInspectorLight: Story = {
   globals: {
     theme: 'light'
   },
-  parameters: {
-    msw: { handlers: [panelHandler(abilityPanelFixture)] }
-  },
+  decorators: [withSheetPanel(abilityPanelFixture)],
   play: openStrengthInspector
 }
 
 export const AbilityInspectorAdjusted: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(adjustedAbilityPanelFixture)] }
-  },
+  decorators: [withSheetPanel(adjustedAbilityPanelFixture)],
   play: openStrengthInspector
 }
 
 export const AbilityInspectorOverridden: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(overriddenAbilityPanelFixture)] }
-  },
+  decorators: [withSheetPanel(overriddenAbilityPanelFixture)],
   play: openStrengthInspector
 }
 
 export const AbilityInspectorMobile: Story = {
+  decorators: [withSheetPanel(abilityPanelFixture)],
   parameters: {
-    msw: { handlers: [panelHandler(abilityPanelFixture)] },
     viewport: {
       defaultViewport: 'mobile1'
     }
@@ -97,8 +88,8 @@ export const AbilityInspectorTabletPortrait: Story = {
       isRotated: false
     }
   },
+  decorators: [withSheetPanel(abilityPanelFixture)],
   parameters: {
-    msw: { handlers: [panelHandler(abilityPanelFixture)] },
     viewport: {
       options: characterSheetTabletViewports
     }
@@ -113,8 +104,8 @@ export const AbilityInspectorTabletLandscape: Story = {
       isRotated: false
     }
   },
+  decorators: [withSheetPanel(abilityPanelFixture)],
   parameters: {
-    msw: { handlers: [panelHandler(abilityPanelFixture)] },
     viewport: {
       options: characterSheetTabletViewports
     }
@@ -123,51 +114,37 @@ export const AbilityInspectorTabletLandscape: Story = {
 }
 
 export const SavingThrowInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(savingThrowPanelFixture)] }
-  },
+  decorators: [withSheetPanel(savingThrowPanelFixture)],
   play: openStrengthSaveInspector
 }
 
 export const SkillInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(skillPanelFixture)] }
-  },
+  decorators: [withSheetPanel(skillPanelFixture)],
   play: openArcanaInspector
 }
 
 export const SkillsInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(skillsPanelFixture)] }
-  },
+  decorators: [withSheetPanel(skillsPanelFixture)],
   play: openSkillsInspector
 }
 
 export const SensesInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(sensesPanelFixture)] }
-  },
+  decorators: [withSheetPanel(sensesPanelFixture)],
   play: openSensesInspector
 }
 
 export const MovementInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(movementPanelFixture)] }
-  },
+  decorators: [withSheetPanel(movementPanelFixture)],
   play: openMovementInspector
 }
 
 export const DefensesInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(defensesPanelFixture)] }
-  },
+  decorators: [withSheetPanel(defensesPanelFixture)],
   play: openDefensesInspector
 }
 
 export const ProficienciesInspector: Story = {
-  parameters: {
-    msw: { handlers: [panelHandler(proficienciesPanelFixture)] }
-  },
+  decorators: [withSheetPanel(proficienciesPanelFixture)],
   play: openProficienciesInspector
 }
 
@@ -175,16 +152,14 @@ export const SpellInspector: Story = {
   args: {
     initialTab: 'spells'
   },
-  parameters: {
-    msw: { handlers: [panelHandler(spellPanelFixture)] }
-  },
+  decorators: [withSheetPanel(spellPanelFixture)],
   play: openSpellInspector
 }
 
 export const SpellInspectorMobile: Story = {
   ...SpellInspector,
+  decorators: [withSheetPanel(spellPanelFixture)],
   parameters: {
-    msw: { handlers: [panelHandler(spellPanelFixture)] },
     viewport: { defaultViewport: 'mobile1' }
   }
 }
@@ -193,9 +168,7 @@ export const ItemInspector: Story = {
   args: {
     initialTab: 'inventory'
   },
-  parameters: {
-    msw: { handlers: [panelHandler(itemPanelFixture)] }
-  },
+  decorators: [withSheetPanel(itemPanelFixture)],
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(
       canvas.getByRole('button', { name: 'Open Wand of Magic Missiles details' })
@@ -206,8 +179,8 @@ export const ItemInspector: Story = {
 
 export const ItemInspectorMobile: Story = {
   ...ItemInspector,
+  decorators: [withSheetPanel(itemPanelFixture)],
   parameters: {
-    msw: { handlers: [panelHandler(itemPanelFixture)] },
     viewport: { defaultViewport: 'mobile1' }
   }
 }
@@ -217,9 +190,7 @@ export const AstralTearItemInspector: Story = {
     initialTab: 'inventory',
     sheet: astralTearCharacterSheetFixture
   },
-  parameters: {
-    msw: { handlers: [panelHandler(astralTearItemPanelFixture)] }
-  },
+  decorators: [withSheetPanel(astralTearItemPanelFixture)],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(
@@ -277,31 +248,23 @@ export const SpellInspectorCustomizeExpandedMobile: Story = {
 
 export const SpellInspectorAttackDamage: Story = {
   ...SpellInspector,
-  parameters: {
-    msw: { handlers: [panelHandler(spellPanelAttackDamageFixture)] }
-  }
+  decorators: [withSheetPanel(spellPanelAttackDamageFixture)]
 }
 
 export const SpellInspectorSaveDamage: Story = {
   ...SpellInspectorAttackDamage,
-  parameters: {
-    msw: { handlers: [panelHandler(spellPanelSaveDamageFixture)] }
-  }
+  decorators: [withSheetPanel(spellPanelSaveDamageFixture)]
 }
 
 export const SpellInspectorEmptyCustomizations: Story = {
   ...SpellInspector,
-  parameters: {
-    msw: { handlers: [panelHandler(spellPanelEmptyCustomizationsFixture)] }
-  },
+  decorators: [withSheetPanel(spellPanelEmptyCustomizationsFixture)],
   play: expandSpellCustomize
 }
 
 export const SpellInspectorConfiguredCustomizations: Story = {
   ...SpellInspector,
-  parameters: {
-    msw: { handlers: [panelHandler(spellPanelConfiguredCustomizationsFixture)] }
-  },
+  decorators: [withSheetPanel(spellPanelConfiguredCustomizationsFixture)],
   play: showConfiguredSpellCustomizations
 }
 
@@ -309,16 +272,14 @@ export const SpellsInspector: Story = {
   args: {
     initialTab: 'spells'
   },
-  parameters: {
-    msw: { handlers: [spellsPanelHandler(spellsPanelFixture)] }
-  },
+  decorators: [withSheetPanel(spellsPanelFixture)],
   play: openSpellsInspector
 }
 
 export const SpellsInspectorMobile: Story = {
   ...SpellsInspector,
+  decorators: [withSheetPanel(spellsPanelFixture)],
   parameters: {
-    msw: { handlers: [spellsPanelHandler(spellsPanelFixture)] },
     viewport: { defaultViewport: 'mobile1' }
   }
 }

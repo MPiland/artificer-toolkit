@@ -1,13 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getVehicle, getVehicleDraft } from '#app/data/vehicles/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { vehicleResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import { getVehicle } from '#app/data/vehicles/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import type { VehicleEditLoaderData } from '#app/routes/-routeLoaderData'
 import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
@@ -20,25 +18,14 @@ import {
 export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit')({
   context: () => createAuthoredFormRouteContext('vehicle', 'edit'),
   loader: async ({ context, params }): Promise<VehicleEditLoaderData> => {
-    const client = createServerApi()
-    const vehicleId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.vehicles.list(),
-      publicId: params.vehiclePublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'VEHICLE'
-    })
-    const activeVehicleQuery = getVehicle(vehicleId, client)
-    const [response, draft] = await Promise.all([
-      ensureOptionalActiveContent(context.queryClient, activeVehicleQuery),
-      context.queryClient.ensureQueryData(getVehicleDraft(vehicleId, client))
+    const [active, working] = await Promise.all([
+      context.queryClient.ensureQueryData(getVehicle(params.vehiclePublicId)),
+      context.queryClient.ensureQueryData(getVehicle({ id: params.vehiclePublicId, view: 'draft' }))
     ])
+    const response = vehicleResponseDtoSchema.parse(active)
+    const draft = vehicleResponseDtoSchema.parse(working)?.draft ?? null
+    const vehicleId = response?.item?.id ?? draft?.subjectId ?? params.vehiclePublicId
     const routeSubject = getAuthoredRouteSubject(vehicleId, response, draft)
-    const system = await loadAuthoredRouteSystem(
-      context.queryClient,
-      client,
-      response?.item?.systemId ?? draft?.systemId
-    )
     if (
       routeSubject &&
       !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)
@@ -50,6 +37,12 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       })
     }
 
+    const parsedDraft = vehicleAuthoringInputDtoSchema.safeParse(draft?.payload)
+    const currentVehicle = parsedDraft.success ? parsedDraft.data : response?.item
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      currentVehicle?.systemId ?? draft?.systemId
+    )
     return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,
       draft,

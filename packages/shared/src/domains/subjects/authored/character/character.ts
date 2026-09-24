@@ -14,6 +14,7 @@ export interface CharacterAuthored {
   state: CharacterState
 
   systemId: string
-  primaryRulesCatalogueId: string
+  /** Transitional SQL payload only; native Characters select content by UUID within their System. */
+  primaryRulesCatalogueId?: string
   userId: string
 }

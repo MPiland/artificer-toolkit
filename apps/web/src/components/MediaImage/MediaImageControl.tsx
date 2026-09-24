@@ -1,8 +1,7 @@
 import { Button, Tooltip, UnstyledButton } from '@mantine/core'
 import { Image as ImageIcon, Pencil, Plus, Shield } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { api } from '#app/lib/api'
+import { useMediaImage } from '#app/data/media'
 import type { MediaImageControlProps } from './MediaImage.types'
 import { MediaImageDialog } from './MediaImageDialog'
 import * as styles from './MediaImage.css'
@@ -17,17 +16,7 @@ export function MediaImageControl({
   variant = 'artwork'
 }: MediaImageControlProps) {
   const [opened, setOpened] = useState(false)
-  const imageQuery = useQuery({
-    queryKey: ['media', target?.lookup, 'THUMBNAIL'],
-    queryFn: async () => {
-      if (!target) return null
-      return await api.media.getImage({
-        target: target.lookup,
-        variantKind: 'THUMBNAIL'
-      })
-    },
-    enabled: Boolean(target)
-  })
+  const imageQuery = useMediaImage(target, 'THUMBNAIL')
   const image = imageQuery.data ?? null
   const actionLabel = image && variant === 'artwork' ? 'Change image' : label
 
@@ -105,7 +94,7 @@ export function MediaImageControl({
           </span>
         </Tooltip>
       )}
-      {target ? (
+      {target && opened ? (
         <MediaImageDialog
           beforeChange={beforeChange}
           current={image}

@@ -14,7 +14,7 @@ import {
 } from '@mantine/core'
 import { Crosshair, Trash2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint, SceneTokenVision } from '@artificer-toolkit/shared/vtt'
 import { convertSceneLightKind, sceneBarrierLabel } from './CampaignSceneObjectInspector.model'

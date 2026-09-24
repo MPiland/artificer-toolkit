@@ -1,10 +1,12 @@
 # ADR 0009: VTT encounter events are separate from character Sheet history
 
-- **Status:** transitional — event ownership retained; rules-runtime details superseded by ADR 0023
+- **Status:** decision — Encounter event ownership retained; SQL, rule-pack, and transaction topology superseded by ADRs 0023, 0024, and 0029
 - **Date:** 2026-08-09
 - **Scope:** Encounter templates, Session-bound runs, actor state, event timelines, character commands, and pure rules evaluation
 - **Update when:** encounter persistence, action resolution, initiative/turn state, timeline visibility, or replay changes
-- **Verification:** `packages/functions/src/services/encounter`; `packages/db/src/domains/encounters`; `packages/schema/src/api/encounters.ts`; character Sheet command/event modules
+- **Verification:** `apps/apis/convex/encounters`; `packages/rules-runtime/src/encounter`; `packages/schema/src/api/encounters.ts`; Character Sheet command/event modules
+
+> The aggregate and event-ownership boundaries remain current. References below to SQL filtering, database constraints, immutable rule packs, and the former transaction topology are historical implementation context superseded by [ADRs 0023](0023-shared-rules-kernel-and-system-capabilities.md), [0024](0024-current-published-authored-content.md), and [0029](0029-convex-backend-cutover.md).
 
 ## Context
 

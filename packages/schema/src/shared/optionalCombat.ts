@@ -1,16 +1,21 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
-import { serverUuidIdentityDtoSchema } from './rulesExecution.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
+import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
+export { dnd5eOptionalCombatRuleKindDtoSchema }
+export { DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY } from './reusableDefinitionIdentity.js'
 
-const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
-const positiveVersionSchema = z.number().int().positive().max(10_000)
-const optionalCombatGroupKeyDtoSchema = z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/)
-const boundedD20Schema = z.number().int().min(1).max(20)
-const boundedPositiveIntegerSchema = z.number().int().positive().max(1_000_000)
+const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+const positiveVersionSchema = z.number().check(z.int()).check(z.positive()).check(z.lte(10_000))
+const optionalCombatGroupKeyDtoSchema = z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))
+const boundedD20Schema = z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))
+const boundedPositiveIntegerSchema = z
+  .number()
+  .check(z.int())
+  .check(z.positive())
+  .check(z.lte(1_000_000))
 
-/** Family-owned identity for the D&D adapter; the shared kernel never dispatches on these kinds. */
-export const DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY = 'dnd5e-optional-combat' as const
 /** Code-owned operation contract used by the D&D adapter; source documents only pin it. */
 export const DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY =
   'scene.grid.square.alternating-diagonals' as const
@@ -47,23 +52,6 @@ export const DND5E_MASSIVE_DAMAGE_DEFINITION_ID = '00000000-0000-4000-8000-00000
 export const DND5E_MORALE_OPERATION_KEY = 'encounter.morale' as const
 export const DND5E_MORALE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000ff' as const
 
-export const dnd5eOptionalCombatRuleKindDtoSchema = z.enum([
-  'FLANKING',
-  'ALTERNATING_DIAGONALS',
-  'FACING',
-  'CLIMB_ONTO_LARGER_CREATURE',
-  'DISARM',
-  'MARK',
-  'OVERRUN',
-  'SHOVE_ASIDE',
-  'TUMBLE',
-  'HITTING_COVER',
-  'CLEAVING',
-  'INJURIES',
-  'MASSIVE_DAMAGE',
-  'MORALE'
-])
-
 export const optionalCombatModulePinDtoSchema = z.strictObject({
   policyModuleKey: ruleCapabilityKeyDtoSchema,
   contractVersion: positiveVersionSchema
@@ -91,7 +79,7 @@ export const dnd5eOptionalCombatOperationDtoSchema = z.discriminatedUnion('primi
     id: serverUuidIdentityDtoSchema,
     primitive: z.literal('SET_HIT_POINTS'),
     target: z.literal('SUBJECT'),
-    value: z.number().int().max(0),
+    value: z.number().check(z.int()).check(z.lte(0)),
     duration: z.null()
   }),
   z.strictObject({
@@ -121,8 +109,8 @@ export const dnd5eOptionalCombatOperationDtoSchema = z.discriminatedUnion('primi
     rollMode: z.literal('DISADVANTAGE'),
     rollContexts: z
       .array(z.enum(['ATTACK_ROLL', 'ABILITY_CHECK', 'SAVING_THROW']))
-      .min(1)
-      .max(3),
+      .check(z.minLength(1))
+      .check(z.maxLength(3)),
     duration: dnd5eOptionalCombatOperationDurationDtoSchema
   }),
   z.strictObject({
@@ -144,7 +132,7 @@ export const dnd5eOptionalCombatOperationDtoSchema = z.discriminatedUnion('primi
     primitive: z.literal('APPLY_MODIFIER'),
     target: z.literal('SUBJECT'),
     modifierDefinitionId: serverUuidIdentityDtoSchema,
-    value: z.number().int().min(-1_000_000).max(1_000_000),
+    value: z.number().check(z.int()).check(z.gte(-1_000_000)).check(z.lte(1_000_000)),
     duration: dnd5eOptionalCombatOperationDurationDtoSchema
   }),
   z.strictObject({
@@ -161,27 +149,29 @@ export const dnd5eOptionalCombatOperationDtoSchema = z.discriminatedUnion('primi
       primitive: z.literal('REQUIRE_CHECK'),
       target: z.literal('SUBJECT'),
       abilityDefinitionId: serverUuidIdentityDtoSchema,
-      difficultyClass: boundedPositiveIntegerSchema.max(100),
+      difficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
       trigger: z.literal('BEFORE_COMBAT_ACTION'),
-      successEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).length(2),
-      failureEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).length(3)
+      successEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).check(z.length(2)),
+      failureEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).check(z.length(3))
     })
-    .superRefine((operation, context) => {
-      const effects = (items: readonly { readonly effect: string }[]) =>
-        items.map((item) => item.effect).sort()
-      if (
-        effects(operation.successEffects).join('|') !==
-          'ALLOW_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY' ||
-        effects(operation.failureEffects).join('|') !==
-          'DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY|SET_REACTION_AVAILABILITY'
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['failureEffects'],
-          message: 'Combat-action checks require their exact closed success and failure effects.'
-        })
-      }
-    }),
+    .check(
+      z.superRefine((operation, context) => {
+        const effects = (items: readonly { readonly effect: string }[]) =>
+          items.map((item) => item.effect).sort()
+        if (
+          effects(operation.successEffects).join('|') !==
+            'ALLOW_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY' ||
+          effects(operation.failureEffects).join('|') !==
+            'DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY|SET_REACTION_AVAILABILITY'
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['failureEffects'],
+            message: 'Combat-action checks require their exact closed success and failure effects.'
+          })
+        }
+      })
+    ),
   z.strictObject({
     id: serverUuidIdentityDtoSchema,
     primitive: z.literal('JUDGMENT_REQUIRED'),
@@ -218,14 +208,17 @@ const dnd5eOptionalCombatOutcomeDescriptorDtoSchema = z.strictObject({
     'FLEE',
     'SURRENDER'
   ]),
-  operations: z.array(dnd5eOptionalCombatOperationDtoSchema).min(1).max(8)
+  operations: z
+    .array(dnd5eOptionalCombatOperationDtoSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(8))
 })
 
 const dnd5eOptionalCombatRecoveryDescriptorDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     id: serverUuidIdentityDtoSchema,
     kind: z.literal('NONE'),
-    operations: z.array(dnd5eOptionalCombatOperationDtoSchema).length(0)
+    operations: z.array(dnd5eOptionalCombatOperationDtoSchema).check(z.length(0))
   }),
   z.strictObject({
     id: serverUuidIdentityDtoSchema,
@@ -235,7 +228,10 @@ const dnd5eOptionalCombatRecoveryDescriptorDtoSchema = z.discriminatedUnion('kin
       'NATURAL_HEALING',
       'JUDGMENT_REQUIRED'
     ]),
-    operations: z.array(dnd5eOptionalCombatOperationDtoSchema).min(1).max(4)
+    operations: z
+      .array(dnd5eOptionalCombatOperationDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(4))
   })
 ])
 
@@ -244,53 +240,57 @@ const dnd5eOptionalCombatBandDtoSchema = z
     minimum: boundedD20Schema,
     maximum: boundedD20Schema,
     outcome: dnd5eOptionalCombatOutcomeDescriptorDtoSchema,
-    recovery: dnd5eOptionalCombatRecoveryDescriptorDtoSchema.nullable()
+    recovery: z.nullable(dnd5eOptionalCombatRecoveryDescriptorDtoSchema)
   })
-  .superRefine((band, context) => {
-    if (band.minimum > band.maximum) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['maximum'],
-        message: 'Optional combat outcome band maximum must not precede its minimum.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((band, context) => {
+      if (band.minimum > band.maximum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['maximum'],
+          message: 'Optional combat outcome band maximum must not precede its minimum.'
+        })
+      }
+    })
+  )
 
 const dnd5eOptionalCombatBandsDtoSchema = z
   .array(dnd5eOptionalCombatBandDtoSchema)
-  .min(1)
-  .max(20)
-  .superRefine((bands, context) => {
-    let previousMaximum = 0
-    const outcomeIds = new Set<string>()
-    const recoveryIds = new Set<string>()
-    for (const [index, band] of bands.entries()) {
-      if (band.minimum <= previousMaximum) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'minimum'],
-          message: 'Optional combat outcome bands must be ordered and non-overlapping.'
-        })
+  .check(z.minLength(1))
+  .check(z.maxLength(20))
+  .check(
+    z.superRefine((bands, context) => {
+      let previousMaximum = 0
+      const outcomeIds = new Set<string>()
+      const recoveryIds = new Set<string>()
+      for (const [index, band] of bands.entries()) {
+        if (band.minimum <= previousMaximum) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'minimum'],
+            message: 'Optional combat outcome bands must be ordered and non-overlapping.'
+          })
+        }
+        if (outcomeIds.has(band.outcome.id)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'outcome', 'id'],
+            message: 'Optional combat outcome identities must be unique.'
+          })
+        }
+        if (band.recovery !== null && recoveryIds.has(band.recovery.id)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'recovery', 'id'],
+            message: 'Optional combat recovery identities must be unique.'
+          })
+        }
+        outcomeIds.add(band.outcome.id)
+        if (band.recovery !== null) recoveryIds.add(band.recovery.id)
+        previousMaximum = band.maximum
       }
-      if (outcomeIds.has(band.outcome.id)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'outcome', 'id'],
-          message: 'Optional combat outcome identities must be unique.'
-        })
-      }
-      if (band.recovery !== null && recoveryIds.has(band.recovery.id)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'recovery', 'id'],
-          message: 'Optional combat recovery identities must be unique.'
-        })
-      }
-      outcomeIds.add(band.outcome.id)
-      if (band.recovery !== null) recoveryIds.add(band.recovery.id)
-      previousMaximum = band.maximum
-    }
-  })
+    })
+  )
 
 /**
  * Each supported D&D optional-rule kind has a closed parameter arm. The policy
@@ -298,21 +298,23 @@ const dnd5eOptionalCombatBandsDtoSchema = z
  */
 const boundedCheckDefinitionChoicesSchema = z
   .array(serverUuidIdentityDtoSchema)
-  .min(1)
-  .max(4)
-  .superRefine((definitionIds, context) => {
-    const seen = new Set<string>()
-    definitionIds.forEach((definitionId, index) => {
-      if (seen.has(definitionId)) {
-        context.addIssue({
-          code: 'custom',
-          path: [index],
-          message: 'Optional combat check-definition choices must be unique.'
-        })
-      }
-      seen.add(definitionId)
+  .check(z.minLength(1))
+  .check(z.maxLength(4))
+  .check(
+    z.superRefine((definitionIds, context) => {
+      const seen = new Set<string>()
+      definitionIds.forEach((definitionId, index) => {
+        if (seen.has(definitionId)) {
+          context.addIssue({
+            code: 'custom',
+            path: [index],
+            message: 'Optional combat check-definition choices must be unique.'
+          })
+        }
+        seen.add(definitionId)
+      })
     })
-  })
+  )
 
 export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -345,7 +347,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
   z.strictObject({
     kind: z.literal('HITTING_COVER'),
     qualifyingAttackKind: z.literal('RANGED'),
-    redirectCoverProviderKinds: z.array(z.literal('CREATURE')).length(1),
+    redirectCoverProviderKinds: z.array(z.literal('CREATURE')).check(z.length(1)),
     redirectRequiresStrictAttackTotalOverProviderArmorClass: z.literal(true)
   }),
   z.strictObject({
@@ -357,8 +359,8 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
     kind: z.literal('INJURIES'),
     triggerKinds: z
       .array(z.enum(['CRITICAL_HIT', 'DROP_TO_ZERO', 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE']))
-      .min(1)
-      .max(3),
+      .check(z.minLength(1))
+      .check(z.maxLength(3)),
     bands: dnd5eOptionalCombatBandsDtoSchema
   }),
   z.strictObject({
@@ -368,7 +370,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
       denominator: boundedPositiveIntegerSchema
     }),
     savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
-    savingThrowDifficultyClass: boundedPositiveIntegerSchema.max(100),
+    savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
     bands: dnd5eOptionalCombatBandsDtoSchema
   }),
   z.strictObject({
@@ -386,10 +388,10 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
           'GROUP_LEADER_TAKEN_PRISONER'
         ])
       )
-      .min(1)
-      .max(9),
+      .check(z.minLength(1))
+      .check(z.maxLength(9)),
     savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
-    savingThrowDifficultyClass: boundedPositiveIntegerSchema.max(100),
+    savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
     requiresGroupLeaderOrFallback: z.literal(true),
     overwhelmingOpposition: z.strictObject({
       rollMode: z.enum(['NORMAL', 'DISADVANTAGE']),
@@ -397,28 +399,32 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
     }),
     individualOutcomes: z
       .array(dnd5eOptionalCombatOutcomeDescriptorDtoSchema)
-      .length(3)
-      .superRefine((outcomes, context) => {
-        const kinds = outcomes.map((outcome) => outcome.kind).sort()
-        if (kinds.join('|') !== 'CONTINUE|FLEE|SURRENDER') {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Morale definitions must supply Continue, Flee, and Surrender outcomes.'
-          })
-        }
-      }),
+      .check(z.length(3))
+      .check(
+        z.superRefine((outcomes, context) => {
+          const kinds = outcomes.map((outcome) => outcome.kind).sort()
+          if (kinds.join('|') !== 'CONTINUE|FLEE|SURRENDER') {
+            context.addIssue({
+              code: 'custom',
+              message: 'Morale definitions must supply Continue, Flee, and Surrender outcomes.'
+            })
+          }
+        })
+      ),
     groupOutcomes: z
       .array(dnd5eOptionalCombatOutcomeDescriptorDtoSchema)
-      .length(3)
-      .superRefine((outcomes, context) => {
-        const kinds = outcomes.map((outcome) => outcome.kind).sort()
-        if (kinds.join('|') !== 'CONTINUE|FLEE|SURRENDER') {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Morale definitions must supply Continue, Flee, and Surrender outcomes.'
-          })
-        }
-      })
+      .check(z.length(3))
+      .check(
+        z.superRefine((outcomes, context) => {
+          const kinds = outcomes.map((outcome) => outcome.kind).sort()
+          if (kinds.join('|') !== 'CONTINUE|FLEE|SURRENDER') {
+            context.addIssue({
+              code: 'custom',
+              message: 'Morale definitions must supply Continue, Flee, and Surrender outcomes.'
+            })
+          }
+        })
+      )
   })
 ])
 
@@ -435,17 +441,19 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = z
     gameSystemId: serverUuidIdentityDtoSchema,
     module: optionalCombatModulePinDtoSchema,
     parameters: dnd5eOptionalCombatRuleParametersDtoSchema,
-    mutuallyExclusiveGroup: optionalCombatGroupKeyDtoSchema.nullable()
+    mutuallyExclusiveGroup: z.nullable(optionalCombatGroupKeyDtoSchema)
   })
-  .superRefine((document, context) => {
-    if (document.kind !== document.parameters.kind) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['parameters', 'kind'],
-        message: 'Optional combat definition parameters must match the definition kind.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((document, context) => {
+      if (document.kind !== document.parameters.kind) {
+        context.addIssue({
+          code: 'custom',
+          path: ['parameters', 'kind'],
+          message: 'Optional combat definition parameters must match the definition kind.'
+        })
+      }
+    })
+  )
 
 export const optionalCombatDefinitionSnapshotDtoSchema = z.strictObject({
   definitionId: serverUuidIdentityDtoSchema,
@@ -453,7 +461,7 @@ export const optionalCombatDefinitionSnapshotDtoSchema = z.strictObject({
   definitionVersion: positiveVersionSchema,
   definitionChecksum: checksumSchema,
   contractVersion: positiveVersionSchema,
-  label: z.string().trim().min(1).max(160),
+  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
   document: dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema
 })
 
@@ -461,51 +469,53 @@ export const encounterOptionalCombatSnapshotDtoSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
     gameSystemId: serverUuidIdentityDtoSchema,
-    definitions: z.array(optionalCombatDefinitionSnapshotDtoSchema).max(14)
+    definitions: z.array(optionalCombatDefinitionSnapshotDtoSchema).check(z.maxLength(14))
   })
-  .superRefine((snapshot, context) => {
-    const definitionIds = new Set<string>()
-    const kinds = new Set<string>()
-    const groups = new Set<string>()
-    for (const [index, definition] of snapshot.definitions.entries()) {
-      if (definition.document.id !== definition.definitionId) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['definitions', index, 'document', 'id'],
-          message: 'Optional combat snapshot definition identity must match its document.'
-        })
+  .check(
+    z.superRefine((snapshot, context) => {
+      const definitionIds = new Set<string>()
+      const kinds = new Set<string>()
+      const groups = new Set<string>()
+      for (const [index, definition] of snapshot.definitions.entries()) {
+        if (definition.document.id !== definition.definitionId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['definitions', index, 'document', 'id'],
+            message: 'Optional combat snapshot definition identity must match its document.'
+          })
+        }
+        if (definition.document.gameSystemId !== snapshot.gameSystemId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['definitions', index, 'document', 'gameSystemId'],
+            message: 'Optional combat snapshot definitions must use the Encounter Game System.'
+          })
+        }
+        if (definitionIds.has(definition.definitionId) || kinds.has(definition.document.kind)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['definitions', index],
+            message: 'Optional combat snapshots cannot contain duplicate definitions or kinds.'
+          })
+        }
+        const group = definition.document.mutuallyExclusiveGroup
+        if (group !== null && groups.has(group)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['definitions', index, 'document', 'mutuallyExclusiveGroup'],
+            message: 'Optional combat snapshots cannot contain conflicting definition groups.'
+          })
+        }
+        definitionIds.add(definition.definitionId)
+        kinds.add(definition.document.kind)
+        if (group !== null) groups.add(group)
       }
-      if (definition.document.gameSystemId !== snapshot.gameSystemId) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['definitions', index, 'document', 'gameSystemId'],
-          message: 'Optional combat snapshot definitions must use the Encounter Game System.'
-        })
-      }
-      if (definitionIds.has(definition.definitionId) || kinds.has(definition.document.kind)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['definitions', index],
-          message: 'Optional combat snapshots cannot contain duplicate definitions or kinds.'
-        })
-      }
-      const group = definition.document.mutuallyExclusiveGroup
-      if (group !== null && groups.has(group)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['definitions', index, 'document', 'mutuallyExclusiveGroup'],
-          message: 'Optional combat snapshots cannot contain conflicting definition groups.'
-        })
-      }
-      definitionIds.add(definition.definitionId)
-      kinds.add(definition.document.kind)
-      if (group !== null) groups.add(group)
-    }
-  })
+    })
+  )
 
 export const encounterOptionalCombatSummaryDtoSchema = z.strictObject({
   definitionId: serverUuidIdentityDtoSchema,
-  label: z.string().trim().min(1).max(160),
+  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
   kind: dnd5eOptionalCombatRuleKindDtoSchema
 })
 
@@ -532,3 +542,11 @@ export type Dnd5eOptionalCombatReusableDefinitionDocumentDto = z.infer<
 export type EncounterOptionalCombatSnapshotDto = z.infer<
   typeof encounterOptionalCombatSnapshotDtoSchema
 >
+
+/** Server-only snapshot facts consumed by an installed System's Scene-grid policy. */
+export interface EncounterOptionalCombatPolicyFacts {
+  gameSystemId: string
+  automationMode: Parameters<typeof activeOptionalCombatDefinitions>[0]['automationMode']
+  optionalCombatSnapshot?: EncounterOptionalCombatSnapshotDto | null
+  optionalCombatSnapshotChecksum?: string | null
+}

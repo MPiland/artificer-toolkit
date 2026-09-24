@@ -1,16 +1,15 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { getClass } from '#app/data/classes/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { classResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getClass, useGetClass } from '#app/data/classes/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
+import {
+  resolveAuthoredDetailView,
+  validateAuthoredDetailSearch
+} from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
-import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
 import type { ClassDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
 
@@ -19,32 +18,16 @@ const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'ski
 export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug/')({
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps: search, params }): Promise<ClassDetailLoaderData> => {
-    const client = createServerApi()
-    const classId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.classes.list(),
-      publicId: params.classPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'CLASS'
-    })
-    const view = search.view ?? 'active'
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getClass(
-        {
-          id: classId,
-          meta: classDetailMeta,
-          view
-        },
-        client
+  loader: async ({ context, deps: search, location, params }): Promise<ClassDetailLoaderData> => {
+    const view = resolveAuthoredDetailView(search, location.pathname)
+    const response = classResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(
+        getClass({ id: params.classPublicId, meta: classDetailMeta, view })
       )
     )
     const draft = response?.draft ?? null
-    const references: Pick<
-      AuthoredContentReferenceData,
-      'classes' | 'currencies' | 'equipment' | 'languages' | 'skills'
-    > = {
+    const classId = response?.item?.id ?? draft?.subjectId ?? params.classPublicId
+    const references = {
       classes: response?.meta?.classes ?? [],
       currencies: response?.meta?.currencies ?? [],
       equipment: response?.meta?.equipment ?? [],
@@ -69,13 +52,20 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
 })
 
 function ClassDetailRoute() {
-  const { classId, draft, references, response, view } = Route.useLoaderData()
+  const { classId, view } = Route.useLoaderData()
+  const { classPublicId } = Route.useParams()
+  const { data: response } = useGetClass({ id: classPublicId, meta: classDetailMeta, view })
 
   return (
     <ClassDetailPage
       classId={classId}
-      draft={draft}
-      references={references}
+      draft={response?.draft ?? null}
+      references={{
+        currencies: response?.meta?.currencies ?? [],
+        equipment: response?.meta?.equipment ?? [],
+        languages: response?.meta?.languages ?? [],
+        skills: response?.meta?.skills ?? []
+      }}
       response={response}
       view={view}
     />

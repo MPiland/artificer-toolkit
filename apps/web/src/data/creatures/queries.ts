@@ -1,30 +1,25 @@
-import type { Api, AuthoredDetailRequestDto, CreatureListRequestDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
+import { convexQuery } from '@convex-dev/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  authoredDetailReadInputSchema,
+  creatureResponseDtoSchema,
+  type AuthoredDetailRequestDto
+} from '@artificer-toolkit/schema/api/content'
 
 type DetailInput = string | AuthoredDetailRequestDto
 
-const creatureQueries = createAuthoredContentQueries(
-  (client) => client.content.creatures,
-  queryKeys.content.creatures
-)
-
-export function getCreatureList(input: CreatureListRequestDto, client?: Api) {
-  return creatureQueries.getList(input, client)
-}
-
-export function useGetCreatureList(input: CreatureListRequestDto) {
-  return creatureQueries.useList(input)
-}
-
-export function getCreature(input: DetailInput, client?: Api) {
-  return creatureQueries.getDetail(input, client)
+export function getCreature(input: DetailInput) {
+  const args = authoredDetailReadInputSchema.parse({
+    ...(typeof input === 'string' ? { id: input } : input),
+    subjectKind: 'CREATURE'
+  })
+  return queryOptions({
+    ...convexQuery(convexApi.content.details.get, args),
+    select: (result) => creatureResponseDtoSchema.parse(result)
+  })
 }
 
 export function useGetCreature(input: DetailInput) {
-  return creatureQueries.useDetail(input)
-}
-
-export function getCreatureDraft(id: string, client?: Api) {
-  return creatureQueries.getDraft(id, client)
+  return useSuspenseQuery(getCreature(input))
 }

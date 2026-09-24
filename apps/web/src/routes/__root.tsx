@@ -4,13 +4,23 @@ import layers from '#css/main.css?url'
 import mantineNotificationStyles from '@mantine/notifications/styles.layer.css?url'
 import mantineLayers from '@mantine/core/styles.layer.css?url'
 import mantineTiptapStyles from '@mantine/tiptap/styles.layer.css?url'
-import { ColorSchemeScript } from '@mantine/core'
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { Suspense, lazy } from 'react'
+import { ColorSchemeScript, getDefaultZIndex } from '@mantine/core'
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+  useRouter,
+  useRouterState
+} from '@tanstack/react-router'
+import { Suspense, lazy, useEffect, type ReactNode } from 'react'
+import { useConvexAuth, useQuery } from 'convex/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { AppProviders } from '#app/providers/AppProviders'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import type { AppRouterContext } from '#app/routerContext'
+import type { AuthSessionSnapshotDto } from '@artificer-toolkit/schema/api/auth'
 import { isAuthoringStepNavigationState } from '#forms/layout/authoringSearch'
 
 const RouterDevtools = import.meta.env.DEV
@@ -31,9 +41,8 @@ const QueryDevtools = import.meta.env.DEV
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
   shouldReload: ({ location }) => !isAuthoringStepNavigationState(location.state),
-  beforeLoad: async () => {
-    return loadCurrentSessionFn()
-  },
+  beforeLoad: async ({ context }: { context: AppRouterContext }): Promise<AuthSessionSnapshotDto> =>
+    context.loadCurrentSession?.() ?? loadCurrentSessionFn(),
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -54,10 +63,22 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
   }),
   errorComponent: RouteErrorState,
   notFoundComponent: RouteNotFound,
-  component: RootDocument
+  component: RootContent,
+  shellComponent: RootDocument
 })
 
-function RootDocument() {
+function RootContent() {
+  return (
+    <>
+      <SessionConvergence />
+      <Suspense fallback={<RouteLoadingState />}>
+        <Outlet />
+      </Suspense>
+    </>
+  )
+}
+
+function RootDocument({ children }: { children: ReactNode }) {
   const { nonce, queryClient } = Route.useRouteContext()
 
   return (
@@ -72,15 +93,40 @@ function RootDocument() {
       </head>
       <body>
         <AppProviders queryClient={queryClient}>
-          <Suspense fallback={<RouteLoadingState />}>
-            <Outlet />
-          </Suspense>
+          {children}
+          <RootDevtools nonce={nonce} />
         </AppProviders>
-        <RootDevtools nonce={nonce} />
         <Scripts />
       </body>
     </html>
   )
+}
+
+function SessionConvergence() {
+  const router = useRouter()
+  const isNavigating = useRouterState({
+    select: (state) => state.isLoading || state.status === 'pending'
+  })
+  const { user, queryClient } = Route.useRouteContext()
+  const { isLoading } = useConvexAuth()
+  const snapshot = useQuery(api.account.session, isLoading ? 'skip' : {})
+
+  useEffect(() => {
+    if (!snapshot) return
+    const identityChanged =
+      snapshot.user?.userId !== user?.userId || snapshot.user?.role !== user?.role
+    if (identityChanged) queryClient.clear()
+    // Concurrent invalidation can clear a still-rendered pending match's load promise.
+    // Route state retriggers convergence after navigation; identity caches clear immediately.
+    if (
+      !isNavigating &&
+      (identityChanged || snapshot.user?.authoringExperience !== user?.authoringExperience)
+    ) {
+      void router.invalidate()
+    }
+  }, [snapshot, user, queryClient, router, isNavigating])
+
+  return null
 }
 
 function RootDevtools({ nonce }: { nonce?: string }) {
@@ -89,13 +135,13 @@ function RootDevtools({ nonce }: { nonce?: string }) {
   }
 
   return (
-    <>
+    <div style={{ position: 'relative', zIndex: getDefaultZIndex('app') }}>
       <Suspense fallback={null}>
         <RouterDevtools position='bottom-right' />
       </Suspense>
       <Suspense fallback={null}>
         <QueryDevtools buttonPosition='bottom-left' styleNonce={nonce} />
       </Suspense>
-    </>
+    </div>
   )
 }

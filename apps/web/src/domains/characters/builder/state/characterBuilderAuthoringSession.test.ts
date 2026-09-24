@@ -39,11 +39,10 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(progress).not.toHaveProperty('visibleSteps')
   })
 
-  it('creates a ready create session from resolved character payload data', () => {
+  it('keeps creation read-only until the mounted client opens a persisted draft', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {
-        payload: characterBuilderPayloadFixture,
-        systems: []
+        systems: [{ id: characterFixture.systemId }]
       },
       mode: 'create'
     })
@@ -51,45 +50,46 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.kind).toBe('character-builder')
     expect(session.mode).toBe('create')
     expect(session.systemRequired).toBe(false)
-    expect(session.initialValues?.id).toBe(characterFixture.id)
-    expect(session.subjectLabel).toBe(characterFixture.label)
-    expect(session.initialAuthoringState?.activeStepId).toBe(
-      characterBuilderPayloadFixture.resolution.recommendedSectionId
-    )
-    expect(session.initialAuthoringState?.visibleSteps).toHaveLength(9)
-    expect(session.initialAuthoringState?.progressSummary.stepCount).toBe(9)
+    expect(session.systemId).toBe(characterFixture.systemId)
+    expect(session.characterId).toBeUndefined()
+    expect(session.initialValues).toBeUndefined()
+    expect(session.initialAuthoringState).toBeUndefined()
+    expect(session.payload).toBeNull()
+    expect(session.draft).toBeNull()
+    expect(session.readOnly).toBe(true)
   })
 
-  it('keeps the ready create form owner stable across transient Character identities', () => {
+  it('keeps the form owner stable on save but replaces it for a reopened generation', () => {
+    const data = {
+      characterId: characterFixture.id,
+      breadcrumbLabel: draftFixture.label,
+      draft: draftFixture,
+      payload: characterBuilderDraftPayloadFixture
+    }
     const firstSession = createCharacterBuilderAuthoringSession({
-      data: {
-        payload: characterBuilderDraftPayloadFixture,
-        systems: []
-      },
-      mode: 'create'
+      data,
+      mode: 'edit'
     })
     const nextSession = createCharacterBuilderAuthoringSession({
       data: {
-        payload: {
-          ...characterBuilderDraftPayloadFixture,
-          character: {
-            ...characterBuilderDraftPayloadFixture.character,
-            id: 'authenticated-transient-character'
-          }
-        },
-        systems: []
+        ...data,
+        draft: { ...draftFixture, updatedAt: '2026-09-06T10:15:30.000Z' }
       },
-      mode: 'create'
+      mode: 'edit'
     })
 
-    expect(firstSession.formKey).toBe('character:create:ready')
+    expect(firstSession.formKey).toBe(`character:${characterFixture.id}:${draftFixture.id}`)
     expect(nextSession.formKey).toBe(firstSession.formKey)
+    const reopened = createCharacterBuilderAuthoringSession({
+      data: { ...data, draft: { ...draftFixture, id: 'next-generation' } },
+      mode: 'edit'
+    })
+    expect(reopened.formKey).not.toBe(firstSession.formKey)
   })
 
   it('creates a system-required create session when no payload is available', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {
-        payload: null,
         systems: []
       },
       mode: 'create'
@@ -100,14 +100,13 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.initialValues).toBeUndefined()
   })
 
-  it('prefers draft payloads for edit sessions with active drafts', () => {
+  it('uses the native working payload and persisted draft state for active drafts', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {
         breadcrumbLabel: draftFixture.label,
         characterId: characterFixture.id,
         draft: draftFixture,
-        draftPayload: characterBuilderDraftPayloadFixture,
-        response: characterBuilderPayloadFixture
+        payload: characterBuilderDraftPayloadFixture
       },
       mode: 'edit'
     })
@@ -116,7 +115,7 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.hasActiveDraft).toBe(true)
     expect(session.hasInvalidDraft).toBe(false)
     expect(session.isDraft).toBe(true)
-    expect(session.baseActiveUpdatedAt).toBe(draftFixture.baseActiveUpdatedAt)
+    expect(session.draft?.baseActiveUpdatedAt).toBe(draftFixture.baseActiveUpdatedAt)
     expect(session.payload).toBe(characterBuilderDraftPayloadFixture)
     expect(session.initialValues?.builderIntent?.abilities).toBeDefined()
     expect(session.initialAuthoringState?.activeStepId).toBe(
@@ -130,9 +129,8 @@ describe('createCharacterBuilderAuthoringSession', () => {
       data: {
         breadcrumbLabel: draftFixture.label,
         characterId: characterFixture.id,
-        draft: draftFixture,
-        draftPayload: null,
-        response: null
+        draft: { ...draftFixture, draftState: 'DRAFT_ONLY', mode: 'create' },
+        payload: null
       },
       mode: 'edit'
     })
@@ -149,13 +147,55 @@ describe('createCharacterBuilderAuthoringSession', () => {
         breadcrumbLabel: null,
         characterId: characterFixture.id,
         draft: null,
-        draftPayload: null,
-        response: null
+        payload: null
       },
       mode: 'edit'
     })
 
     expect(session.notFound).toBe(true)
     expect(session.invalidDraftOnly).toBe(false)
+  })
+
+  it('resumes draft-only Characters in create mode without claiming an active draft', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        breadcrumbLabel: draftFixture.label,
+        characterId: characterBuilderDraftPayloadFixture.character.id,
+        draft: {
+          ...draftFixture,
+          characterId: characterBuilderDraftPayloadFixture.character.id,
+          draftState: 'DRAFT_ONLY',
+          mode: 'create',
+          baseActiveUpdatedAt: null
+        },
+        payload: characterBuilderDraftPayloadFixture
+      },
+      mode: 'edit'
+    })
+
+    expect(session.mode).toBe('create')
+    expect(session.hasActiveDraft).toBe(false)
+    expect(session.isDraft).toBe(true)
+    expect(session.draft?.baseActiveUpdatedAt).toBeNull()
+    expect(session.initialValues?.id).toBe(characterBuilderDraftPayloadFixture.character.id)
+  })
+
+  it('opens an active Character without fabricating a draft', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        breadcrumbLabel: characterFixture.label,
+        characterId: characterFixture.id,
+        draft: null,
+        payload: characterBuilderPayloadFixture
+      },
+      mode: 'edit'
+    })
+
+    expect(session.mode).toBe('edit')
+    expect(session.hasActiveDraft).toBe(false)
+    expect(session.isDraft).toBe(false)
+    expect(session.draft).toBeNull()
+    expect(session.readOnly).toBe(true)
+    expect(session.payload).toBe(characterBuilderPayloadFixture)
   })
 })

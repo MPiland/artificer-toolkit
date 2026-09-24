@@ -3,15 +3,21 @@ import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useMutation } from '@tanstack/react-query'
 import { type SubmitEvent, useState } from 'react'
-import type { SocialListingDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
 
-export function SocialInviteDialog({ listing }: { listing: SocialListingDto }) {
+export function SocialInviteDialog({
+  listing
+}: {
+  listing: Pick<SocialListingDto, 'listingPublicId' | 'version' | 'status' | 'title'>
+}) {
   const [opened, { close, open }] = useDisclosure(false)
   const [username, setUsername] = useState('')
+  const createInvitation = useConvexMutation(convexApi.social.invitations.create)
   const invite = useMutation({
     mutationFn: () =>
-      api.campaigns.invites.create({
+      createInvitation({
         listingPublicId: listing.listingPublicId,
         expectedListingVersion: listing.version,
         username

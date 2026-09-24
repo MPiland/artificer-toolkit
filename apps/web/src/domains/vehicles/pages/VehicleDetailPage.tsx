@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
   type AuthoredDraftDto,
@@ -26,7 +27,7 @@ import {
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import * as styles from './VehicleDetailPage.css'
@@ -50,6 +51,7 @@ export function VehicleDetailPage({
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('VEHICLE', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState<VehicleAuthoringInputDto>({
     draft,
@@ -58,13 +60,13 @@ export function VehicleDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.vehicles.deleteActive,
-    discard: api.content.vehicles.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.vehicles.detailRoot(vehicleId),
     domainLabel: 'Vehicle',
     domainQueryKey: queryKeys.content.vehicles.all(),
     draftQueryKey: queryKeys.content.vehicles.draft(vehicleId),
-    duplicate: api.content.vehicles.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: vehicleId,
     navigateEdit: async (subject) =>
@@ -73,6 +75,13 @@ export function VehicleDetailPage({
         to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/vehicles' })
+  })
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: vehicleId,
+    label: detailState.item?.label ?? 'Vehicle',
+    subjectKind: 'VEHICLE',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -115,20 +124,16 @@ export function VehicleDetailPage({
     draft?.publicId ?? response?.publicId ?? vehicleId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: vehicleId,
-    label: item.label,
-    subjectKind: 'VEHICLE',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
           label: 'Resume Draft',
           tone: 'primary',
           onClick: () =>
-            navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams })
+            navigate({
+              to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+              params: vehicleParams
+            })
         }
       : detailState.permissions.canEdit
         ? {
@@ -177,7 +182,11 @@ export function VehicleDetailPage({
         }
       : null,
     exportAction,
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) }
+    {
+      label: 'Create New',
+      tone: 'secondary',
+      onClick: () => navigate({ to: '/vehicles/new' })
+    }
   ])
 
   return (
@@ -192,7 +201,11 @@ export function VehicleDetailPage({
             subjectId: vehicleId,
             scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
           },
-          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'VEHICLE', subjectId: vehicleId }
+          attach: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'VEHICLE',
+            subjectId: vehicleId
+          }
         }}
         eyebrow='Vehicle'
         facts={getVehicleFacts(item)}
@@ -204,7 +217,10 @@ export function VehicleDetailPage({
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
           onViewActive: () =>
-            navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
+            navigate({
+              to: '/vehicles/$vehiclePublicId/$vehicleSlug',
+              params: vehicleParams
+            }),
           onViewDraft: () =>
             navigate({
               to: '/vehicles/$vehiclePublicId/$vehicleSlug',
@@ -238,7 +254,10 @@ function getVehicleFacts(vehicle: VehicleAuthoringInputDto): AuthoredDetailFact[
       label: 'Speed',
       value: vehicle.speed ? `${vehicle.speed} ft.` : (vehicle.speedNote ?? 'Not set')
     },
-    { label: 'Properties', value: formatReferenceList(vehicle.properties, 'property') }
+    {
+      label: 'Properties',
+      value: formatReferenceList(vehicle.properties, 'property')
+    }
   ]
 }
 

@@ -1,0 +1,41 @@
+{
+  "name": "@artificer-toolkit/authoring",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./nodeRuntime": {
+      "types": "./dist/nodeRuntime/index.d.ts",
+      "default": "./dist/nodeRuntime/index.js"
+    },
+    "./nodeRuntime/authoredSourceFacts": {
+      "types": "./dist/nodeRuntime/authoredSourceFacts.d.ts",
+      "default": "./dist/nodeRuntime/authoredSourceFacts.js"
+    },
+    "./imports": {
+      "types": "./dist/imports/index.d.ts",
+      "default": "./dist/imports/index.js"
+    },
+    "./reusableDefinitions": {
+      "types": "./dist/reusableDefinitions/index.d.ts",
+      "default": "./dist/reusableDefinitions/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/authoring/src",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
+  },
+  "dependencies": {
+    "@artificer-toolkit/schema": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

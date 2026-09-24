@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { validateMapFile } from './CampaignScenePreparation.model'
 import {
   clearVttMapUploadIdempotencyKey,
-  createVttMapUploadFingerprint,
+  getUploadedVttMapAssetId,
   getOrCreateVttMapUploadIdempotencyKey,
   uploadVttMap
 } from './vttMapUpload'
@@ -18,6 +18,8 @@ function mapFile(name = 'vault.webp'): File {
 
 class SuccessfulXmlHttpRequest {
   static readonly sentUrls: string[] = []
+  static readonly headers: Array<[string, string]> = []
+  static readonly statuses: number[] = []
   status = 0
   readonly upload: { onprogress: ((event: { loaded: number }) => void) | null } = {
     onprogress: null
@@ -30,13 +32,13 @@ class SuccessfulXmlHttpRequest {
     this.#url = url
   }
 
-  getResponseHeader(name: string): string | null {
-    return name.toLowerCase() === 'etag' ? `"${this.#url}"` : null
+  setRequestHeader(name: string, value: string): void {
+    SuccessfulXmlHttpRequest.headers.push([name, value])
   }
 
   send(body: Blob): void {
     SuccessfulXmlHttpRequest.sentUrls.push(this.#url)
-    this.status = 200
+    this.status = SuccessfulXmlHttpRequest.statuses.shift() ?? 200
     this.upload.onprogress?.({ loaded: body.size })
     queueMicrotask(() => this.onload?.())
   }
@@ -46,7 +48,10 @@ describe('Campaign scene preparation', () => {
   afterEach(() => {
     sessionStorage.clear()
     SuccessfulXmlHttpRequest.sentUrls.length = 0
+    SuccessfulXmlHttpRequest.headers.length = 0
+    SuccessfulXmlHttpRequest.statuses.length = 0
     vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it('accepts the locked map formats and 25 MiB boundary', () => {
@@ -88,51 +93,49 @@ describe('Campaign scene preparation', () => {
     ).toBe(secondKey)
   })
 
-  it('scopes resumable parts to the R2 object identity', () => {
-    const first = createVttMapUploadFingerprint({
-      storageProvider: 'R2',
-      objectKey: 'campaigns/a/maps/first.webp'
-    })
-    const second = createVttMapUploadFingerprint({
-      storageProvider: 'R2',
-      objectKey: 'campaigns/a/maps/second.webp'
-    })
-
-    expect(first).toBe('vtt-map:R2:campaigns/a/maps/first.webp')
-    expect(first).not.toBe(second)
-  })
-
-  it('retains completed R2 parts across retries and clears them after completion', async () => {
+  it('sends one exact typed PUT and retains its asset for finalization retry after reload', async () => {
     vi.stubGlobal('XMLHttpRequest', SuccessfulXmlHttpRequest)
     const file = new File([new Uint8Array(6 * 1024 * 1024 + 1)], 'large-map.webp', {
       type: 'image/webp'
     })
     const intent = {
       assetId: '33333333-3333-4333-8333-333333333333',
-      storageProvider: 'R2' as const,
       expiresAt: '2026-08-16T00:00:00.000Z',
-      objectKey: 'raw/user/map',
-      resumable: {
-        chunkBytes: 6_291_456 as const,
-        protocol: 'R2_MULTIPART' as const,
-        parts: [
-          { partNumber: 1, url: 'https://storage.example/part-1' },
-          { partNumber: 2, url: 'https://storage.example/part-2' }
-        ]
-      }
+      method: 'PUT' as const,
+      url: 'https://storage.example/map'
     }
+    const onProgress = vi.fn()
+    await uploadVttMap({ campaignId: campaignA, file, intent, onProgress })
+    expect(SuccessfulXmlHttpRequest.sentUrls).toEqual([intent.url])
+    expect(SuccessfulXmlHttpRequest.headers).toEqual([['Content-Type', 'image/webp']])
+    expect(onProgress).toHaveBeenLastCalledWith(100)
+    expect(getUploadedVttMapAssetId(campaignA, file)).toBe(intent.assetId)
+    expect(getUploadedVttMapAssetId(campaignB, file)).toBeNull()
+    clearVttMapUploadIdempotencyKey(campaignA, file)
+    expect(getUploadedVttMapAssetId(campaignA, file)).toBeNull()
+  })
 
-    expect(await uploadVttMap({ file, intent, onProgress: () => undefined })).toEqual([
-      { partNumber: 1, etag: '"https://storage.example/part-1"' },
-      { partNumber: 2, etag: '"https://storage.example/part-2"' }
-    ])
-    expect(SuccessfulXmlHttpRequest.sentUrls).toHaveLength(2)
-
-    await uploadVttMap({ file, intent, onProgress: () => undefined })
-    expect(SuccessfulXmlHttpRequest.sentUrls).toHaveLength(2)
-
-    clearVttMapUploadIdempotencyKey(campaignA, file, intent.assetId)
-    await uploadVttMap({ file, intent, onProgress: () => undefined })
+  it('never retains an asset after all PUT attempts fail', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('XMLHttpRequest', SuccessfulXmlHttpRequest)
+    SuccessfulXmlHttpRequest.statuses.push(503, 503, 503, 503)
+    const file = mapFile()
+    const result = expect(
+      uploadVttMap({
+        campaignId: campaignA,
+        file,
+        intent: {
+          assetId: firstKey,
+          method: 'PUT',
+          url: 'https://storage.example/map',
+          expiresAt: '2026-09-11T01:00:00.000Z'
+        },
+        onProgress: () => undefined
+      })
+    ).rejects.toThrow('503')
+    await vi.runAllTimersAsync()
+    await result
     expect(SuccessfulXmlHttpRequest.sentUrls).toHaveLength(4)
+    expect(getUploadedVttMapAssetId(campaignA, file)).toBeNull()
   })
 })

@@ -426,6 +426,67 @@ describe('token footprint path crossings', () => {
     expect(crossings[0]?.exitPathDistance).toBeCloseTo(13)
   })
 
+  it.each([
+    {
+      expected: { entryDistance: 0, exitDistance: 200 },
+      path: [
+        { x: 450, y: 0 },
+        { x: 650, y: 0 }
+      ],
+      title: 'crosses from the near footprint edge to the far footprint edge'
+    },
+    {
+      expected: { entryDistance: 300, exitDistance: 500 },
+      path: [
+        { x: 150, y: 0 },
+        { x: 650, y: 0 }
+      ],
+      title: 'reports a far-edge endpoint as the exit'
+    },
+    {
+      expected: null,
+      path: [
+        { x: 150, y: 0 },
+        { x: 450, y: 0 }
+      ],
+      title: 'does not report an approach ending at the near footprint edge'
+    },
+    {
+      expected: null,
+      path: [
+        { x: -5, y: 2 },
+        { x: 5, y: 2 }
+      ],
+      title: 'does not report an edge tangent'
+    },
+    {
+      expected: null,
+      path: [
+        { x: -5, y: -1 },
+        { x: -1, y: -5 }
+      ],
+      title: 'does not report a corner tangent'
+    }
+  ])('$title', ({ expected, path }) => {
+    const crossings = collectTokenFootprintPathCrossings({
+      movingToken: { ...token(ids.sourceToken, path[0]!.x, path[0]!.y), height: 100, width: 100 },
+      path,
+      stationaryTokens: [{ ...token(ids.targetToken, 550), height: 100, width: 100 }]
+    })
+
+    if (!expected) {
+      expect(crossings).toEqual([])
+      return
+    }
+    expect(crossings).toMatchObject([
+      {
+        entryPathDistance: expected.entryDistance,
+        exitPathDistance: expected.exitDistance,
+        stationaryTokenId: ids.targetToken
+      }
+    ])
+  })
+
   it('orders simultaneous crossings by stationary token identity and fails closed on invalid input', () => {
     const moving = token(ids.sourceToken, -5)
     const lowerId = token(ids.effect, 0)

@@ -1,0 +1,17 @@
+import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import * as S from './shared.js'
+
+export const spellbook: EquipmentAuthored = {
+  kind: S.SUBJECT.EQUIPMENT,
+  id: S.equipId(174),
+  label: 'Spellbook',
+  description:
+    'Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells.',
+  category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+  properties: [],
+  cost: S.gp(50),
+  weight: S.lbs(3),
+  rarityId: S.RARITY_COMMON,
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID
+}

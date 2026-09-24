@@ -1,18 +1,26 @@
 import { Alert, Button, FileInput, Select, Stack, TextInput, Textarea, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import type { CampaignFileProfile } from '@artificer-toolkit/schema/api/media'
-import { api } from '#app/lib/api'
-import { getCampaignNotebook, getCampaignSessions } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
-import { getSupabaseBrowserClient } from '#supabase/client'
+import { useAction, useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { campaignFileAccept, validateCampaignFile } from './campaignFiles.model'
 import * as styles from './CampaignFiles.css'
 
 export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
-  const queryClient = useQueryClient()
-  const sessions = useQuery(getCampaignSessions(campaignId))
-  const notebook = useQuery(getCampaignNotebook(campaignId))
+  const sessions = usePaginatedQuery(
+    convexApi.campaigns.sessions.list,
+    { campaignId },
+    { initialNumItems: 8 }
+  )
+  const notebook = usePaginatedQuery(
+    convexApi.campaigns.notebooks.list,
+    { campaignId },
+    { initialNumItems: 8 }
+  )
+  const createUpload = useConvexMutation(convexApi.media.fileAssets.createUpload)
+  const finalize = useAction(convexApi.media.fileActions.finalize)
+  const createAttachment = useConvexMutation(convexApi.campaigns.attachments.create)
   const [file, setFile] = useState<File | null>(null)
   const [profile, setProfile] = useState<CampaignFileProfile>('CAMPAIGN_FILE')
   const [displayName, setDisplayName] = useState('')
@@ -25,7 +33,7 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
     mutationFn: async () => {
       if (!file || fileError) throw new Error(fileError ?? 'Choose a file.')
       const target = { type: profile, campaignId } as const
-      const intent = await api.media.createCampaignFileUpload({
+      const intent = await createUpload({
         profile,
         target,
         originalFileName: file.name,
@@ -33,20 +41,20 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
         declaredBytes: file.size,
         idempotencyKey: crypto.randomUUID()
       })
-      const { error } = await getSupabaseBrowserClient()
-        .storage.from(intent.bucket)
-        .uploadToSignedUrl(intent.objectKey, intent.token, file)
-      if (error) throw new Error('Upload did not finish. Try again.')
-      const finalized = await api.media.finalizeCampaignFileUpload({
-        assetId: intent.assetId
+      const response = await fetch(intent.url, {
+        method: intent.method,
+        headers: { 'Content-Type': file.type },
+        body: file
       })
+      if (!response.ok) throw new Error('Upload did not finish. Try again.')
+      const finalized = await finalize({ assetId: intent.assetId })
       if (finalized.status !== 'READY')
         throw new Error(
           finalized.status === 'REJECTED'
             ? 'That file was rejected.'
             : 'File processing is still running.'
         )
-      return api.campaigns.attachments.create({
+      return createAttachment({
         campaignId,
         assetId: intent.assetId,
         displayName: displayName.trim() || file.name,
@@ -55,15 +63,12 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
         noteSectionId
       })
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setFile(null)
       setDisplayName('')
       setDescription('')
       setSessionId(null)
       setNoteSectionId(null)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.attachments(campaignId)
-      })
     }
   })
 
@@ -103,23 +108,37 @@ export function CampaignFileUploader({ campaignId }: { campaignId: string }) {
         <Select
           clearable
           label='Session (optional)'
-          data={(sessions.data ?? []).map((session) => ({
+          data={sessions.results.map((session) => ({
             value: session.id,
             label: session.title ?? `Session ${session.sessionNumber}`
           }))}
           value={sessionId}
           onChange={setSessionId}
         />
-        <Select
-          clearable
-          label='Campaign note (optional)'
-          data={(notebook.data ?? []).map((note) => ({
-            value: note.id,
-            label: note.title
-          }))}
-          value={noteSectionId}
-          onChange={setNoteSectionId}
-        />
+        {sessions.status === 'CanLoadMore' ? (
+          <Button type='button' variant='subtle' onClick={() => sessions.loadMore(8)}>
+            Load more sessions
+          </Button>
+        ) : null}
+        <div>
+          <Select
+            clearable
+            searchable
+            label='Campaign note (optional)'
+            data={notebook.results.map((note) => ({
+              value: note.id,
+              label: note.title
+            }))}
+            placeholder={notebook.status === 'LoadingFirstPage' ? 'Loading notes…' : undefined}
+            value={noteSectionId}
+            onChange={setNoteSectionId}
+          />
+          {notebook.status === 'CanLoadMore' ? (
+            <Button type='button' variant='subtle' onClick={() => notebook.loadMore(8)}>
+              Load more notes
+            </Button>
+          ) : null}
+        </div>
       </div>
       <Textarea
         autosize

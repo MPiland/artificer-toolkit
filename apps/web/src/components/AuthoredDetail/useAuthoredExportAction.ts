@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useConvex } from 'convex/react'
 import { notifications } from '@mantine/notifications'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
 import { exportAuthoredContent } from '#app/data/imports/importClient'
@@ -17,12 +18,13 @@ export function useAuthoredExportAction({
   subjectKind: AuthoredSubjectKindDto
   view: 'active' | 'draft'
 }): AuthoredDetailAction | null {
+  const client = useConvex()
   const [loading, setLoading] = useState(false)
 
   const onExport = useCallback(async () => {
     setLoading(true)
     try {
-      const content = await exportAuthoredContent({ id, subjectKind, view })
+      const content = await exportAuthoredContent({ id, subjectKind, view }, client)
       const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' })
       const href = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -35,7 +37,7 @@ export function useAuthoredExportAction({
     } finally {
       setLoading(false)
     }
-  }, [id, label, subjectKind, view])
+  }, [client, id, label, subjectKind, view])
 
   if (!canExport) return null
 

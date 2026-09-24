@@ -47,6 +47,36 @@
   },
   "overrides": [
     {
+      "files": ["apps/apis/convex/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "convex/server",
+                "importNames": ["mutationGeneric", "internalMutationGeneric"],
+                "message": "Use lib/mutations so Scene vision dependencies advance transactionally."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/_generated/server", "**/_generated/server.js"],
+                "importNames": ["mutation", "internalMutation"],
+                "message": "Use lib/mutations so Scene vision dependencies advance transactionally."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/apis/convex/lib/mutations.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
       "files": ["packages/shared/src/domains/**/maps/**/*.ts"],
       "rules": {
         "typescript/unbound-method": "off"

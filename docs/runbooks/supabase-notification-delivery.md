@@ -1,5 +1,7 @@
 # Supabase notification delivery runbook
 
+> **Historical:** This Supabase/Postgres delivery path is retired by Phase 8.2. Current notification and auth email delivery runs through Convex; use the [Convex notification delivery runbook](convex-notification-delivery.md). Do not use the commands below for current deployments.
+
 Artificer remains authoritative for applications, invitations, memberships, announcements, and destinations. Postgres owns feed/preferences; Supabase Edge executes delivery; Resend sends email.
 
 ## Deploy

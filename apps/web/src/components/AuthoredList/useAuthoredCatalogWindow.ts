@@ -31,6 +31,7 @@ interface AuthoredCatalogQueryResult<TPage extends AuthoredCatalogPageShape> {
 }
 
 export function useAuthoredCatalogWindow<TPage extends AuthoredCatalogPageShape, TRequest>(input: {
+  searchSubjectKind?: AuthoredListCatalogWindow['searchSubjectKind']
   buildFilters: (page: TPage) => AuthoredListFilter[]
   buildRequest: (state: {
     filterValues: AuthoredListFilterValues
@@ -46,7 +47,11 @@ export function useAuthoredCatalogWindow<TPage extends AuthoredCatalogPageShape,
   const [query, setQuery] = useState('')
   const [filterValues, setFilterValues] = useState<AuthoredListFilterValues>({})
   const [sort, setSort] = useState(input.initialSort)
-  const request = input.buildRequest({ filterValues, query, sort })
+  const request = input.buildRequest({
+    filterValues,
+    query: input.searchSubjectKind ? '' : query,
+    sort
+  })
   const listing = input.useList(request)
   const firstPage = listing.data?.pages[0]
   const filters = useMemo(
@@ -71,6 +76,7 @@ export function useAuthoredCatalogWindow<TPage extends AuthoredCatalogPageShape,
   )
   const catalog = useMemo<AuthoredListCatalogWindow>(
     () => ({
+      searchSubjectKind: input.searchSubjectKind,
       activeCount: firstPage?.summary.activeCount ?? 0,
       controls: {
         filterValues,
@@ -95,7 +101,7 @@ export function useAuthoredCatalogWindow<TPage extends AuthoredCatalogPageShape,
       isFetchingPreviousPage: listing.isFetchingPreviousPage,
       totalCount: firstPage?.page.totalCount ?? 0
     }),
-    [emptyFilterValues, filterValues, firstPage, listing, query, sort]
+    [emptyFilterValues, filterValues, firstPage, input.searchSubjectKind, listing, query, sort]
   )
 
   return {

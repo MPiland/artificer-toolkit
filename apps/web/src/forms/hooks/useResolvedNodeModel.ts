@@ -25,7 +25,7 @@ export function useResolvedNodeModel({
   enabled = true,
   debounceMs = 150,
   onClearPaths
-}: UseResolvedNodeModelOptions): NodeRuntimeResolveResponseDto | undefined {
+}: UseResolvedNodeModelOptions) {
   const request = useMemo(
     () => ({
       mapId,
@@ -50,7 +50,7 @@ export function useResolvedNodeModel({
   }, [debounceMs, debouncedRequestFingerprint, request, requestFingerprint])
 
   const query = useNodeRuntimeResolve(debouncedRequest, enabled && Boolean(systemId))
-  const model = useMemo(() => {
+  const model = useMemo<NodeRuntimeResolveResponseDto | undefined>(() => {
     if (!query.data) return undefined
     if (!query.isPlaceholderData) return query.data
 
@@ -69,5 +69,5 @@ export function useResolvedNodeModel({
     onClearPaths(query.data.clearPaths)
   }, [clearPathKey, onClearPaths, query.data, query.isPlaceholderData])
 
-  return model
+  return { model, error: query.error, isFetching: query.isFetching, refetch: query.refetch }
 }

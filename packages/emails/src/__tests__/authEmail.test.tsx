@@ -6,6 +6,7 @@ import {
   getAuthEmailContent,
   getAuthEmailPlainText
 } from '../authEmailContent.js'
+import { renderAuthEmail } from '../renderAuthEmail.js'
 
 describe('AuthEmail', () => {
   it.each([
@@ -70,4 +71,25 @@ describe('AuthEmail', () => {
     expect(await render(email)).not.toContain('123456')
     expect(await render(email, { plainText: true })).not.toContain('Verification code')
   })
+
+  it.each(['signup', 'recovery', 'invite'] as const)(
+    'renders the %s delivery payload from the shared template',
+    async (action) => {
+      const email = await renderAuthEmail({
+        action,
+        actionUrl: 'https://app.example.test/auth/confirmed',
+        token: '123456'
+      })
+
+      expect(email).toMatchObject({
+        subject: getAuthEmailContent(action).subject,
+        text: getAuthEmailPlainText({
+          action,
+          actionUrl: 'https://app.example.test/auth/confirmed',
+          token: '123456'
+        })
+      })
+      expect(email.html).toContain('Artificer Toolkit')
+    }
+  )
 })

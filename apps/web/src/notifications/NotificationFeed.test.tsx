@@ -9,9 +9,21 @@ const mocks = vi.hoisted(() => ({
   markRead: vi.fn()
 }))
 
-vi.mock('#app/lib/api', () => ({
-  api: { notifications: mocks }
+vi.mock('#app/data/notifications', () => ({
+  notificationFeedQuery: { queryKey: ['native-notification-feed'], queryFn: () => mocks.feed() }
 }))
+
+vi.mock('convex/react', async (importOriginal) => {
+  const { getFunctionName } = await import('convex/server')
+  return {
+    ...(await importOriginal<typeof import('convex/react')>()),
+    useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+    useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
+      getFunctionName(reference) === 'notifications:markAllSeen'
+        ? mocks.markAllSeen
+        : mocks.markRead
+  }
+})
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-router')>()),
@@ -52,7 +64,7 @@ describe('NotificationFeed', () => {
     renderWithAppProviders(<NotificationFeed onNavigate={onNavigate} />)
 
     await waitFor(() => {
-      expect(mocks.markAllSeen).toHaveBeenCalledWith()
+      expect(mocks.markAllSeen).toHaveBeenCalledWith({})
     })
 
     fireEvent.click(screen.getByRole('button', { name: /invitation from/i }))

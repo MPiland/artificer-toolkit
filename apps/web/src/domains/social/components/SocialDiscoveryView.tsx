@@ -1,9 +1,8 @@
 import { Alert, Button, Drawer, Group, Loader, TextInput } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import type { SocialDiscoveryInput } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { usePaginatedQuery } from 'convex/react'
+import { CatchBoundary } from '@tanstack/react-router'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import type { SocialHubSearch } from '../socialSearch'
 import { toSocialDiscoveryInput } from '../socialDiscovery'
@@ -37,13 +36,7 @@ export function SocialDiscoveryView({
     search.safetyPractice
   ].filter((value) => value !== undefined).length
   const clearFilters = () => onSearchChange({ query: search.query, view: 'discover' })
-  const listings = useInfiniteQuery({
-    queryKey: queryKeys.socialHub.discovery(filters),
-    queryFn: ({ pageParam }) => api.socialHub.discovery.search({ ...filters, cursor: pageParam }),
-    initialPageParam: undefined as SocialDiscoveryInput['cursor'] | undefined,
-    getNextPageParam: (page) => page.nextCursor ?? undefined
-  })
-  const items = listings.data?.pages.flatMap((page) => page.items)
+  const normalizedQuery = search.query?.trim()
 
   return (
     <>
@@ -59,7 +52,10 @@ export function SocialDiscoveryView({
           placeholder='Title or summary'
           value={search.query ?? ''}
           onChange={(event) =>
-            onSearchChange({ ...search, query: event.currentTarget.value || undefined })
+            onSearchChange({
+              ...search,
+              query: event.currentTarget.value || undefined
+            })
           }
         />
         <Button
@@ -100,32 +96,79 @@ export function SocialDiscoveryView({
           </Group>
         </div>
       </Drawer>
-      {listings.isPending ? <Loader aria-label='Loading listings' size='sm' /> : null}
-      {listings.isError ? <Alert color='red'>Could not load listings. Try again.</Alert> : null}
-      {items?.length === 0 ? (
+      <CatchBoundary
+        getResetKey={() => JSON.stringify(search)}
+        errorComponent={SocialDiscoveryError}
+      >
+        <SocialDiscoveryResults filters={filters} query={normalizedQuery} />
+      </CatchBoundary>
+    </>
+  )
+}
+
+function SocialDiscoveryError({ reset }: { reset: () => void }) {
+  return (
+    <Alert color='red'>
+      Could not load listings. Try again.
+      <Button mt='sm' size='xs' variant='default' onClick={reset}>
+        Retry search
+      </Button>
+    </Alert>
+  )
+}
+
+function SocialDiscoveryResults({
+  filters,
+  query
+}: {
+  filters: ReturnType<typeof toSocialDiscoveryInput>
+  query?: string
+}) {
+  const browse = usePaginatedQuery(
+    convexApi.social.discoveryLists.browse,
+    query ? 'skip' : filters,
+    {
+      initialNumItems: 8
+    }
+  )
+  const search = usePaginatedQuery(
+    convexApi.social.discoveryLists.search,
+    query ? { ...filters, query } : 'skip',
+    { initialNumItems: 8 }
+  )
+  const listings = query ? search : browse
+  const exhaustedEmpty = listings.status === 'Exhausted' && listings.results.length === 0
+
+  return (
+    <>
+      {listings.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading listings' size='sm' />
+      ) : null}
+      {exhaustedEmpty ? (
         <SocialEmptyState
           title='No tables match'
           body='Try clearing a filter or checking again later.'
         />
       ) : null}
-      {items?.length ? (
+      {listings.results.length ? (
         <div className={listStyles.rows} aria-label='Open public tables'>
-          {items.map((listing) => (
+          {listings.results.map((listing) => (
             <SocialListingRow listing={listing} key={listing.listingPublicId} />
           ))}
         </div>
       ) : null}
-      {listings.hasNextPage ? (
-        <Button
-          loading={listings.isFetchingNextPage}
-          variant='default'
-          onClick={() => listings.fetchNextPage()}
-        >
+      {listings.status === 'CanLoadMore' ? (
+        <Button variant='default' onClick={() => listings.loadMore(8)}>
           Load more tables
         </Button>
       ) : null}
+      {listings.status === 'LoadingMore' ? (
+        <Loader aria-label='Loading more listings' size='sm' />
+      ) : null}
       <span className={styles.srStatus} aria-live='polite'>
-        {listings.isFetching ? 'Updating table results.' : 'Table results updated.'}
+        {listings.status === 'LoadingFirstPage' || listings.status === 'LoadingMore'
+          ? 'Updating table results.'
+          : 'Table results updated.'}
       </span>
     </>
   )

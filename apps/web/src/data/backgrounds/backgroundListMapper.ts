@@ -1,36 +1,6 @@
-import type { BackgroundListResponseDto } from '#app/lib/api'
-import type {
-  AuthoredListAttributeColumn,
-  AuthoredListFilter,
-  AuthoredListItem
-} from '#components/AuthoredList'
-import { summarizeAuthoredDescription } from '../authoredListMapper'
+import type { AuthoredListAttributeColumn, AuthoredListFilter } from '#components/AuthoredList'
 
-export function mapBackgroundListToAuthoredItems(
-  response: BackgroundListResponseDto
-): AuthoredListItem[] {
-  return response.items.map((item) => ({
-    id: item.id,
-    publicId: item.publicId,
-    name: item.label,
-    description: summarizeAuthoredDescription(item.description),
-    attributes: {},
-    filterValues: {
-      source: item.provenance.kind
-    },
-    sortValues: {
-      name: item.label
-    },
-    searchText: summarizeAuthoredDescription(item.description),
-    sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-    sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-    permissions: item.permissions
-  }))
-}
-
-export function buildBackgroundListFilters(
-  _response: BackgroundListResponseDto
-): AuthoredListFilter[] {
+export function buildBackgroundListFilters(): AuthoredListFilter[] {
   return [
     {
       key: 'source',
@@ -47,7 +17,3 @@ export function buildBackgroundListFilters(
 export const backgroundListAttributeColumns = [] satisfies AuthoredListAttributeColumn[]
 
 export const backgroundListSortOptions = [{ value: 'name', label: 'Name A-Z' }]
-
-export function summarizeBackgroundList(response: BackgroundListResponseDto) {
-  return `${response.summary.activeCount} backgrounds / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
-}

@@ -12,17 +12,17 @@ import {
 import { useDisclosure } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
 import type {
+  EncounterCommandInputDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessions'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  CampaignSceneStateDto,
+  EncounterActorTokenBindingCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
 
-type LiveEncounterCommand = Extract<
-  LiveSessionCommandDto,
-  { aggregateKind: 'ENCOUNTER' }
->['command']
+type LiveEncounterCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
 
 export function CampaignTabletopEncounterDrawer({
   actorIdByTokenId,

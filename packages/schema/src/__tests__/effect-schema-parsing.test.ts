@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 
 import { effectDtoSchema } from '../effects/effect.js'
 import { hitPointMaximumReductionDtoSchema } from '../effects/hitPointMaximumReduction.js'
+import { manifestBehaviorPathDtoSchema, pathDtoSchema } from '../effects/path.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 
 type ParsedEffectForAssertions = {
@@ -108,6 +110,61 @@ function exactRollTablePath(
 }
 
 describe('effect schema parsing', () => {
+  it.each([
+    ['path', pathDtoSchema],
+    ['manifest behavior path', manifestBehaviorPathDtoSchema]
+  ] as const)('accepts closed-rule and manual outcomes through the %s schema', (_name, schema) => {
+    const outcomes = [
+      {
+        id: 'closed-rule-outcome',
+        effectKind: 'CLOSED_RULE',
+        ruleKind: CLOSED_RULE_KIND.ANIMAL_FRIENDSHIP
+      },
+      {
+        id: 'manual-adjudication-outcome',
+        effectKind: 'MANUAL_ADJUDICATION',
+        label: 'Resolve manually',
+        instructions: 'Resolve at the table.',
+        reasonCode: 'NARRATIVE_JUDGMENT'
+      }
+    ]
+    const malformedOutcomes: Record<string, unknown>[] = [
+      { ...outcomes[0], ruleKind: undefined },
+      { ...outcomes[0], ruleKind: 'NOT_A_RULE' }
+    ]
+    for (const missingField of ['label', 'instructions', 'reasonCode'] as const) {
+      const outcome: Record<string, unknown> = { ...outcomes[1] }
+      delete outcome[missingField]
+      malformedOutcomes.push(outcome)
+    }
+
+    for (const outcome of outcomes) {
+      const parsed = schema.parse(
+        fixedPath(
+          `${outcome.id}-path`,
+          1,
+          'ON_USE',
+          singleResultBlock(`${outcome.id}-result`, outcome)
+        )
+      )
+      expect(parsed).toMatchObject({
+        resultBlock: { outcomes: [{ effectKind: outcome.effectKind }] }
+      })
+    }
+    for (const outcome of malformedOutcomes) {
+      expect(
+        schema.safeParse(
+          fixedPath(
+            'invalid-outcome-path',
+            1,
+            'ON_USE',
+            singleResultBlock('invalid-outcome-result', outcome)
+          )
+        ).success
+      ).toBe(false)
+    }
+  })
+
   it('accepts one UUID-backed maximum hit point reduction source and canonical recovery tag', () => {
     const valid = {
       id: '00000000-0000-4000-8000-0000000000f0',

@@ -1,10 +1,33 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, vi } from 'vitest'
+import { useQueryClient } from '@tanstack/react-query'
+import { getSystemListPage } from '#app/data/systems/queries'
+import { authoredRouteStorySystems } from '#domains/authoredRouteStory.fixtures'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { LibraryImportPage } from './LibraryImportPage'
 
+const previewId = '00000000-0000-4000-8000-000000000222'
 const mocks = vi.hoisted(() => ({ commitImport: vi.fn(), previewImport: vi.fn() }))
 vi.mock('#app/data/imports/importClient', () => mocks)
+
+function NativeSystemImportPage() {
+  const queryClient = useQueryClient()
+  queryClient.setQueryDefaults(getSystemListPage().queryKey, {
+    queryFn: async () => ({
+      page: [
+        {
+          ...authoredRouteStorySystems[0]!,
+          rulesCatalogues: [
+            { id: '00000000-0000-4000-8000-000000000301', label: '2014 SRD', description: null }
+          ]
+        }
+      ],
+      isDone: true,
+      continueCursor: ''
+    })
+  })
+  return <LibraryImportPage />
+}
 
 beforeEach(() => {
   mocks.commitImport.mockReset()
@@ -30,7 +53,9 @@ it('previews selected entries, requires replacement confirmation, and commits on
         }
       }
     ],
-    summary: { ready: 1, needsReview: 0, unable: 0 }
+    summary: { ready: 1, needsReview: 0, unable: 0 },
+    previewId,
+    expiresAt: '2026-09-20T00:00:00.000Z'
   })
   mocks.commitImport.mockResolvedValue({
     source: 'DND_BEYOND',
@@ -47,7 +72,7 @@ it('previews selected entries, requires replacement confirmation, and commits on
     ],
     summary: { created: 0, updated: 1, skipped: 0, failed: 0 }
   })
-  renderWithAppProviders(<LibraryImportPage />)
+  renderWithAppProviders(<NativeSystemImportPage />)
   fireEvent.change(screen.getByLabelText('Character-sheet links'), {
     target: { value: 'https://www.dndbeyond.com/characters/1' }
   })
@@ -60,7 +85,9 @@ it('previews selected entries, requires replacement confirmation, and commits on
   fireEvent.click(screen.getByRole('button', { name: 'Confirm import' }))
   await waitFor(() =>
     expect(mocks.commitImport).toHaveBeenCalledWith(
-      expect.objectContaining({ selectedEntryIds: ['link-1'] })
+      expect.objectContaining({ selectedEntryIds: ['link-1'] }),
+      previewId,
+      expect.anything()
     )
   )
   expect(await screen.findByText(/0 created, 1 updated/i)).toBeInTheDocument()
@@ -131,7 +158,9 @@ it('groups preview outcomes and commits individual active or draft choices', asy
         ]
       }
     ],
-    summary: { ready: 1, needsReview: 0, unable: 0 }
+    summary: { ready: 1, needsReview: 0, unable: 0 },
+    previewId,
+    expiresAt: '2026-09-20T00:00:00.000Z'
   })
   mocks.commitImport.mockResolvedValue({
     source: 'DND_BEYOND',
@@ -139,7 +168,7 @@ it('groups preview outcomes and commits individual active or draft choices', asy
     summary: { created: 0, updated: 0, skipped: 0, failed: 0 }
   })
 
-  renderWithAppProviders(<LibraryImportPage />)
+  renderWithAppProviders(<NativeSystemImportPage />)
   fireEvent.change(screen.getByLabelText('Character-sheet links'), {
     target: { value: 'https://www.dndbeyond.com/characters/1' }
   })
@@ -195,7 +224,9 @@ it('groups preview outcomes and commits individual active or draft choices', asy
             choice: 'DRAFT'
           }
         ]
-      })
+      }),
+      previewId,
+      expect.anything()
     )
   )
 })
@@ -207,10 +238,12 @@ it('collapses every top-level entry in a batch', async () => {
       { entryId: 'link-1', name: 'one', label: 'Aria', status: 'READY', issues: [] },
       { entryId: 'link-2', name: 'two', label: 'Borin', status: 'READY', issues: [] }
     ],
-    summary: { ready: 2, needsReview: 0, unable: 0 }
+    summary: { ready: 2, needsReview: 0, unable: 0 },
+    previewId,
+    expiresAt: '2026-09-20T00:00:00.000Z'
   })
 
-  renderWithAppProviders(<LibraryImportPage />)
+  renderWithAppProviders(<NativeSystemImportPage />)
   fireEvent.change(screen.getByLabelText('Character-sheet links'), {
     target: {
       value: 'https://www.dndbeyond.com/characters/1\nhttps://www.dndbeyond.com/characters/2'

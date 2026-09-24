@@ -75,7 +75,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
-    await user.click(screen.getByLabelText("Scene token for Ember's Wake"))
+    await user.click(await screen.findByLabelText("Scene token for Ember's Wake"))
     const [emberOption] = await screen.findAllByRole('option', { hidden: true, name: 'Ember' })
     expect(emberOption).toBeDefined()
     await user.click(emberOption!)

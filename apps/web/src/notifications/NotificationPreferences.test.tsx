@@ -8,8 +8,16 @@ const mocks = vi.hoisted(() => ({
   updatePreferences: vi.fn()
 }))
 
-vi.mock('#app/lib/api', () => ({
-  api: { notifications: mocks }
+vi.mock('#app/data/notifications', () => ({
+  notificationPreferencesQuery: {
+    queryKey: ['native-notification-preferences'],
+    queryFn: () => mocks.preferences()
+  }
+}))
+
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useMutation: () => mocks.updatePreferences
 }))
 
 import { NotificationPreferences } from './NotificationPreferences'

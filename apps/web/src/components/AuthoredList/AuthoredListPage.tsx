@@ -11,7 +11,7 @@ import {
 import { useMediaQuery } from '@mantine/hooks'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import clsx from 'clsx'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ICreate from '#assets/icons/ICreate'
 import IGrid from '#assets/icons/IGrid'
 import IList from '#assets/icons/IList'
@@ -21,6 +21,7 @@ import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import { AuthoredListCards } from './AuthoredListCards'
 import { AuthoredListTable } from './AuthoredListTable'
+import { AuthoredCatalogueSearch } from './AuthoredCatalogueSearch'
 import type {
   AuthoredListActionHandlers,
   AuthoredListFilter,
@@ -51,13 +52,14 @@ export function AuthoredListPage({
   createLabel,
   items,
   draftItems = [],
+  draftLoading = false,
   filters,
   attributeColumns = [],
   sortOptions = [{ value: 'name', label: 'Name A-Z' }],
   defaultSort = 'name',
   emptyState,
   error,
-  loading = false,
+  loading: activeLoading = false,
   initialViewMode,
   cardOnly = false,
   catalog,
@@ -75,6 +77,7 @@ export function AuthoredListPage({
     useState<AuthoredListFilterValues>(() => buildInitialFilters(filters))
   const [uncontrolledSort, setUncontrolledSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
+  const loading = contentPanel === 'draft' ? draftLoading : activeLoading
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
     if (cardOnly) return 'cards'
     if (initialViewMode) return initialViewMode
@@ -83,13 +86,15 @@ export function AuthoredListPage({
     return window.matchMedia(mobileQuery).matches ? 'cards' : 'table'
   })
   const viewportRef = useRef<HTMLDivElement>(null)
-  const visibleItemIdRef = useRef<string | undefined>(undefined)
+  const visibleItemRef = useRef<{ id: string; offset: number } | undefined>(undefined)
   const previousWindowFirstItemIdRef = useRef<string | undefined>(undefined)
   const controls = catalog?.controls
   const query = controls?.query ?? uncontrolledQuery
   const filterValues = controls?.filterValues ?? uncontrolledFilterValues
   const sort = controls?.sort ?? uncontrolledSort
   const normalizedQuery = query.trim().toLowerCase()
+  const searchSubjectKind =
+    contentPanel === 'active' && normalizedQuery ? catalog?.searchSubjectKind : undefined
   const hasActiveFilters =
     normalizedQuery.length > 0 || Object.values(filterValues).some((value) => Boolean(value))
   const visibleItems = contentPanel === 'draft' ? draftItems : items
@@ -141,8 +146,11 @@ export function AuthoredListPage({
     catalog && contentPanel === 'active' ? catalog.totalCount : filteredItems.length
 
   const cardColumnCount = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
-  const virtualRowCount =
-    viewMode === 'cards' ? Math.ceil(filteredItems.length / cardColumnCount) : filteredItems.length
+  const virtualRowCount = searchSubjectKind
+    ? 0
+    : viewMode === 'cards'
+      ? Math.ceil(filteredItems.length / cardColumnCount)
+      : filteredItems.length
   const rowVirtualizer = useVirtualizer({
     count: virtualRowCount,
     getScrollElement: () => viewportRef.current,
@@ -166,29 +174,44 @@ export function AuthoredListPage({
     rowVirtualizer.scrollToOffset(0)
   }, [cardColumnCount, contentPanel, filterValues, query, rowVirtualizer, sort, viewMode])
 
-  useEffect(() => {
-    const firstRenderedRow = virtualRows[0]
-    if (!firstRenderedRow) return
-    const firstItemIndex = firstRenderedRow.index * cardColumnCount
-    visibleItemIdRef.current = filteredItems[firstItemIndex]?.id
-  }, [cardColumnCount, filteredItems, virtualRows])
-
-  useEffect(() => {
-    if (!catalog || contentPanel !== 'active') return
+  useLayoutEffect(() => {
+    if (!catalog || contentPanel !== 'active' || searchSubjectKind) return
     const previousFirstItemId = previousWindowFirstItemIdRef.current
     const nextFirstItemId = filteredItems[0]?.id
     previousWindowFirstItemIdRef.current = nextFirstItemId
-    if (!previousFirstItemId || previousFirstItemId === nextFirstItemId) return
-    const anchorItemId = visibleItemIdRef.current
-    if (!anchorItemId) return
-    const anchorIndex = filteredItems.findIndex((item) => item.id === anchorItemId)
-    if (anchorIndex >= 0) {
-      rowVirtualizer.scrollToIndex(Math.floor(anchorIndex / cardColumnCount), { align: 'start' })
+    const anchor = visibleItemRef.current
+    if (previousFirstItemId && previousFirstItemId !== nextFirstItemId && anchor) {
+      const index = filteredItems.findIndex((item) => item.id === anchor.id)
+      const position =
+        index < 0
+          ? undefined
+          : rowVirtualizer.getOffsetForIndex(Math.floor(index / cardColumnCount), 'start')
+      if (position) {
+        rowVirtualizer.scrollToOffset(position[0] + anchor.offset)
+        return
+      }
     }
-  }, [cardColumnCount, catalog, contentPanel, filteredItems, rowVirtualizer])
+    // Track the visible row, not an overscan row; restore before reading its new index.
+    const scrollTop = viewportRef.current?.scrollTop ?? 0
+    const row = virtualRows.find((row) => row.start <= scrollTop && row.end > scrollTop)
+    const item = row && filteredItems[row.index * cardColumnCount]
+    if (row && item) visibleItemRef.current = { id: item.id, offset: scrollTop - row.start }
+    else if (!filteredItems.length) visibleItemRef.current = undefined
+  }, [
+    cardColumnCount,
+    catalog,
+    contentPanel,
+    filteredItems,
+    rowVirtualizer,
+    searchSubjectKind,
+    virtualRows
+  ])
 
   useEffect(() => {
-    if (!catalog || contentPanel !== 'active' || virtualRows.length === 0) return
+    if (!catalog || contentPanel !== 'active' || searchSubjectKind || virtualRows.length === 0)
+      return
+    // A restored scroll position reaches the virtualizer on the next scroll event.
+    if (rowVirtualizer.scrollOffset !== viewportRef.current?.scrollTop) return
     const firstVisibleRow = virtualRows[0]?.index ?? 0
     const lastVisibleRow = virtualRows.at(-1)?.index ?? 0
     if (firstVisibleRow <= 3 && catalog.hasPreviousPage && !catalog.isFetchingPreviousPage) {
@@ -201,7 +224,7 @@ export function AuthoredListPage({
     ) {
       catalog.fetchNextPage()
     }
-  }, [catalog, contentPanel, virtualRowCount, virtualRows])
+  }, [catalog, contentPanel, rowVirtualizer, searchSubjectKind, virtualRowCount, virtualRows])
 
   useEffect(() => {
     if ((cardOnly || isMobile) && viewMode !== 'cards') {
@@ -228,7 +251,7 @@ export function AuthoredListPage({
           aria-label='Choose content state'
           data={[
             { label: `Active (${activeCount})`, value: 'active' },
-            { label: `Drafts (${draftItems.length})`, value: 'draft' }
+            { label: `Drafts (${draftLoading ? '…' : draftItems.length})`, value: 'draft' }
           ]}
           value={contentPanel}
           onChange={(value) => setContentPanel(value === 'draft' ? 'draft' : 'active')}
@@ -247,6 +270,7 @@ export function AuthoredListPage({
           defaultSort={defaultSort}
           defaultSortLabel={defaultSortLabel}
           resultCount={resultCount}
+          rankedSearch={Boolean(searchSubjectKind)}
           onQueryChange={(value) => {
             if (controls) {
               controls.onQueryChange(value)
@@ -309,20 +333,26 @@ export function AuthoredListPage({
                 }}
               />
             ))}
-            <AppSelect
-              label='Sort'
-              data={sortOptions}
-              placeholder={defaultSortLabel}
-              value={sort === defaultSort ? null : sort}
-              allowDeselect={false}
-              onChange={(value) => {
-                if (controls) {
-                  controls.onSortChange(value ?? defaultSort)
-                  return
-                }
-                setUncontrolledSort(value ?? defaultSort)
-              }}
-            />
+            {searchSubjectKind ? (
+              <Text size='sm' c='dimmed'>
+                Sorted by relevance
+              </Text>
+            ) : (
+              <AppSelect
+                label='Sort'
+                data={sortOptions}
+                placeholder={defaultSortLabel}
+                value={sort === defaultSort ? null : sort}
+                allowDeselect={false}
+                onChange={(value) => {
+                  if (controls) {
+                    controls.onSortChange(value ?? defaultSort)
+                    return
+                  }
+                  setUncontrolledSort(value ?? defaultSort)
+                }}
+              />
+            )}
           </div>
           {!cardOnly ? (
             <Group
@@ -368,76 +398,92 @@ export function AuthoredListPage({
         className={clsx(
           styles.tableShell,
           viewMode === 'cards' &&
-            !loading &&
-            !error &&
-            filteredItems.length > 0 &&
+            (searchSubjectKind || (!loading && !error && filteredItems.length > 0)) &&
             styles.cardResultsShell
         )}
         aria-label={`${title} results`}
       >
-        {loading ? <LoadingRows title={title} /> : null}
-        {!loading && error ? (
-          <StatePanel
-            title={`Couldn't load ${title.toLowerCase()}.`}
-            copy='Refresh the page to try again.'
+        {searchSubjectKind ? (
+          <AuthoredCatalogueSearch
+            subjectKind={searchSubjectKind}
+            query={query.trim()}
+            category={filterValues.category ?? undefined}
+            source={filterValues.source}
+            viewMode={viewMode}
+            cardColumnCount={cardColumnCount}
+            attributeColumns={attributeColumns}
+            onView={onView}
+            onViewIntent={onViewIntent}
+            actionHandlers={actionHandlers}
+            useMenuActions={isMobile}
           />
-        ) : null}
-        {!loading && !error && filteredItems.length === 0
-          ? (draftEmptyState ??
-            emptyState ?? (
+        ) : (
+          <>
+            {loading ? <LoadingRows title={title} /> : null}
+            {!loading && error ? (
               <StatePanel
-                title={
-                  hasActiveFilters
-                    ? `No ${title.toLowerCase()} match these filters.`
-                    : `No ${title.toLowerCase()} yet.`
-                }
-                copy={
-                  hasActiveFilters
-                    ? 'Try a different search or clear a filter.'
-                    : `Use ${createLabel} to get started.`
-                }
+                title={`Couldn't load ${title.toLowerCase()}.`}
+                copy='Refresh the page to try again.'
               />
-            ))
-          : null}
-        {!loading && !error && filteredItems.length > 0 ? (
-          viewMode === 'cards' ? (
-            <AuthoredListCards
-              cardColumnCount={cardColumnCount}
-              filteredItems={filteredItems}
-              attributeColumns={attributeColumns}
-              onView={onView}
-              onViewIntent={onViewIntent}
-              paddingBottom={paddingBottom}
-              paddingTop={paddingTop}
-              renderedRows={renderedRows}
-              viewportRef={viewportRef}
-              actionHandlers={actionHandlers}
-              useMenuActions={isMobile}
-            />
-          ) : (
-            <AuthoredListTable
-              filteredItems={filteredItems}
-              attributeColumns={attributeColumns}
-              hasAccentColumn={hasAccentColumn}
-              hasStatusColumn={hasStatusColumn}
-              hasBadgeColumn={hasBadgeColumn}
-              onView={onView}
-              onViewIntent={onViewIntent}
-              paddingBottom={paddingBottom}
-              paddingTop={paddingTop}
-              renderedRows={renderedRows}
-              viewportRef={viewportRef}
-              actionHandlers={actionHandlers}
-            />
-          )
-        ) : null}
-        {catalog && contentPanel === 'active' ? (
-          <span aria-live='polite'>
-            {catalog.isFetchingNextPage || catalog.isFetchingPreviousPage
-              ? `Loading more ${title.toLowerCase()}.`
-              : ''}
-          </span>
-        ) : null}
+            ) : null}
+            {!loading && !error && filteredItems.length === 0
+              ? (draftEmptyState ??
+                emptyState ?? (
+                  <StatePanel
+                    title={
+                      hasActiveFilters
+                        ? `No ${title.toLowerCase()} match these filters.`
+                        : `No ${title.toLowerCase()} yet.`
+                    }
+                    copy={
+                      hasActiveFilters
+                        ? 'Try a different search or clear a filter.'
+                        : `Use ${createLabel} to get started.`
+                    }
+                  />
+                ))
+              : null}
+            {!loading && !error && filteredItems.length > 0 ? (
+              viewMode === 'cards' ? (
+                <AuthoredListCards
+                  cardColumnCount={cardColumnCount}
+                  filteredItems={filteredItems}
+                  attributeColumns={attributeColumns}
+                  onView={onView}
+                  onViewIntent={onViewIntent}
+                  paddingBottom={paddingBottom}
+                  paddingTop={paddingTop}
+                  renderedRows={renderedRows}
+                  viewportRef={viewportRef}
+                  actionHandlers={actionHandlers}
+                  useMenuActions={isMobile}
+                />
+              ) : (
+                <AuthoredListTable
+                  filteredItems={filteredItems}
+                  attributeColumns={attributeColumns}
+                  hasAccentColumn={hasAccentColumn}
+                  hasStatusColumn={hasStatusColumn}
+                  hasBadgeColumn={hasBadgeColumn}
+                  onView={onView}
+                  onViewIntent={onViewIntent}
+                  paddingBottom={paddingBottom}
+                  paddingTop={paddingTop}
+                  renderedRows={renderedRows}
+                  viewportRef={viewportRef}
+                  actionHandlers={actionHandlers}
+                />
+              )
+            ) : null}
+            {catalog && contentPanel === 'active' ? (
+              <span aria-live='polite'>
+                {catalog.isFetchingNextPage || catalog.isFetchingPreviousPage
+                  ? `Loading more ${title.toLowerCase()}.`
+                  : ''}
+              </span>
+            ) : null}
+          </>
+        )}
       </section>
     </div>
   )

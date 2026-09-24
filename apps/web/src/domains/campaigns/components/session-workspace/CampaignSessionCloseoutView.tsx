@@ -1,8 +1,9 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { useConvex } from 'convex/react'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'
 import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
@@ -21,20 +22,17 @@ export function CampaignSessionCloseoutView({
   session: CampaignSessionDto
   onUpdated: (session: CampaignSessionDto) => void
 }) {
-  const queryClient = useQueryClient()
+  const convex = useConvex()
   const finish = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.finish({
+      convex.mutation(convexApi.campaigns.sessionFinish.finish, {
         campaignId: campaign.id,
         sessionId: session.id,
         commandId: crypto.randomUUID(),
         expectedVersion: session.version
       }),
-    onSuccess: async (updated) => {
+    onSuccess: (updated) => {
       onUpdated(updated)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessions(campaign.id)
-      })
     }
   })
 

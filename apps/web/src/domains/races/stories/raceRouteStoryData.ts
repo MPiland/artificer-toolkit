@@ -45,7 +45,7 @@ const raceStoryReferences = {
     { value: 'speed-fly', label: 'Fly' },
     { value: 'speed-swim', label: 'Swim' }
   ]
-} satisfies RaceDetailLoaderData['references']
+} satisfies NonNullable<NonNullable<RaceResponseDto>['meta']>
 
 export const seedDerivedDragonbornRace = {
   id: DRAGONBORN_ID,
@@ -263,9 +263,7 @@ export const draftRaceResponse = {
 export const activeRaceDetailLoaderData = {
   breadcrumbLabel: seedDerivedDragonbornRace.label,
   draft: raceStoryDraft,
-  parentResponse: null,
   raceId: seedDerivedDragonbornRace.id,
-  references: raceStoryReferences,
   response: activeRaceResponse,
   view: 'active'
 } satisfies RaceDetailLoaderData
@@ -273,9 +271,7 @@ export const activeRaceDetailLoaderData = {
 export const draftRaceDetailLoaderData = {
   breadcrumbLabel: draftDragonbornRace.label,
   draft: raceStoryDraft,
-  parentResponse: null,
   raceId: seedDerivedDragonbornRace.id,
-  references: raceStoryReferences,
   response: draftRaceResponse,
   view: 'draft'
 } satisfies RaceDetailLoaderData

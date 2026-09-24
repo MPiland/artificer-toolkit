@@ -34,7 +34,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0018](0018-embedded-rule-packs-and-encounter-resolution.md)           | Former immutable embedded rule-pack model                              | historical   |
 | [0019](0019-versioned-cross-domain-rules-runtime.md)                   | Former versioned cross-domain evaluator model                          | historical   |
 | [0020](0020-local-and-remote-live-session-host.md)                     | Durable Object remote and native Node local live-session coordination  | decision     |
-| [0021](0021-command-scoped-rules-responsibilities.md)                  | Command-scoped application ownership                                   | transitional |
+| [0021](0021-command-scoped-rules-responsibilities.md)                  | Historical Postgres/Zen command-scoped application ownership           | historical   |
 | [0022](0022-versioned-domain-documents-and-correctness-projections.md) | Former versioned document/projection model                             | historical   |
 | [0023](0023-shared-rules-kernel-and-system-capabilities.md)            | Shared Rules Kernel and platform-owned Game System capabilities        | decision     |
 | [0024](0024-current-published-authored-content.md)                     | Current published authored content and frozen occurrences              | decision     |
@@ -42,7 +42,10 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0026](0026-bounded-action-phase-specialization.md)                    | Bounded action test/outcome specialization                             | decision     |
 | [0027](0027-campaign-scenes-and-encounter-bindings.md)                 | Campaign-owned live Scenes and optional Encounter bindings             | decision     |
 | [0028](0028-r2-vtt-map-storage.md)                                     | Cloudflare R2 storage for VTT maps                                     | decision     |
-| [0029](0029-convex-backend-cutover.md)                                 | Convex, Better Auth, and TypeScript Rules Kernel backend cutover       | transitional |
+| [0029](0029-convex-backend-cutover.md)                                 | Current Convex, Better Auth, and TypeScript Rules Kernel authority     | decision     |
+| [0030](0030-owner-deletion-and-retained-dependencies.md)               | Owner deletion with dependency repair and retained shared history      | decision     |
+| [0031](0031-oversized-inventory-cleanup.md)                            | Oversized inventory cleanup with localized pending state               | decision     |
+| [0032](0032-campaign-deletion-lifecycle.md)                             | One fenced, resumable Campaign deletion lifecycle for every size       | decision     |
 
 ## Updating an ADR
 

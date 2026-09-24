@@ -1,5 +1,5 @@
 import { Accordion, Badge, Button, MultiSelect, NumberInput, Switch, Text } from '@mantine/core'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { SIZE_REGISTRY, type SizeCode } from '@artificer-toolkit/shared/core'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'

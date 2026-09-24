@@ -1,3 +1,7 @@
+import {
+  getInventoryCurrencyRows,
+  getInventoryCurrencyTotals
+} from './characterSheetInventory.utils'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -5,7 +9,30 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createSheet, openEquipmentManager, showCarriedEquipment } from '../tests/sheetTestHarness'
 import { CharacterSheetInventory } from './CharacterSheetInventory'
 
+const queryMocks = vi.hoisted(() => ({ getCharacterSheetEquipmentOptions: vi.fn() }))
+
+vi.mock('#app/data/characters/queries', () => ({
+  getCharacterSheetEquipmentOptions: queryMocks.getCharacterSheetEquipmentOptions
+}))
+
+const fullEquipmentOptions = [
+  { id: 'equipment-1', label: 'Longsword', isContainer: false, requiresAttunement: true },
+  { id: 'equipment-2', label: 'Backpack', isContainer: true, requiresAttunement: false }
+]
+
 describe('Character Sheet inventory', () => {
+  beforeEach(() => {
+    queryMocks.getCharacterSheetEquipmentOptions.mockImplementation(
+      (id: string | undefined, campaignId?: string | null) => ({
+        queryKey: ['character-equipment-options', id, campaignId ?? null],
+        queryFn: async () => fullEquipmentOptions,
+        enabled: Boolean(id),
+        initialData: id ? fullEquipmentOptions : undefined,
+        retry: false,
+        staleTime: Infinity
+      })
+    )
+  })
   it('groups personal and party inventory into collapsible sections', async () => {
     const user = userEvent.setup()
 
@@ -50,11 +77,45 @@ describe('Character Sheet inventory', () => {
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADJUST_CURRENCY',
       currencyId: 'currency-1',
+      kind: 'RULESET',
       amount: 1,
       expectedVersion: 4
     })
   })
 
+  it('uses the selected qualified currency when denomination IDs collide', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.reference.currencyOptions = [
+      { id: 'currency-1', label: 'Gold', kind: 'RULESET' },
+      {
+        id: 'currency-1',
+        label: 'Campaign Gold',
+        kind: 'CAMPAIGN',
+        campaignCurrencySystemId: 'campaign-currency-1'
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetInventory pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    await openEquipmentManager(user)
+    const currencySelect = screen.getByRole('combobox', { name: /^currency type$/i })
+    await user.click(currencySelect)
+    await user.click(screen.getByRole('option', { name: 'Campaign Gold' }))
+    await user.click(screen.getByRole('button', { name: /apply currency/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'ADJUST_CURRENCY',
+      currencyId: 'currency-1',
+      kind: 'CAMPAIGN',
+      campaignCurrencySystemId: 'campaign-currency-1',
+      amount: 1,
+      expectedVersion: 4
+    })
+  })
   it('locks inventory inputs while a sheet command is pending', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
@@ -91,6 +152,74 @@ describe('Character Sheet inventory', () => {
       itemInstanceId: 'item-1'
     })
     expect(screen.queryByRole('button', { name: /^details$/i })).not.toBeInTheDocument()
+  })
+
+  it('loads full equipment choices only for an open Campaign inventory drawer', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    sheet.meta.viewer = 'CAMPAIGN_OWNER'
+    sheet.meta.campaignId = '00000000-0000-4000-8000-000000000123'
+
+    renderWithAppProviders(
+      <CharacterSheetInventory pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    expect(queryMocks.getCharacterSheetEquipmentOptions).toHaveBeenLastCalledWith(
+      undefined,
+      sheet.meta.campaignId
+    )
+    await openEquipmentManager(user)
+    expect(queryMocks.getCharacterSheetEquipmentOptions).toHaveBeenLastCalledWith(
+      sheet.meta.characterId,
+      sheet.meta.campaignId
+    )
+    await user.click(screen.getByRole('combobox', { name: /^equipment$/i }))
+    await user.click(screen.getByRole('option', { name: 'Backpack' }))
+    expect(screen.getByRole('combobox', { name: /^add to$/i })).toBeDisabled()
+  })
+
+  it('disables item acquisition while full equipment choices are loading', async () => {
+    const user = userEvent.setup()
+    queryMocks.getCharacterSheetEquipmentOptions.mockImplementation((id: string | undefined) => ({
+      queryKey: ['pending-character-equipment-options', id],
+      queryFn: () => new Promise(() => {}),
+      enabled: Boolean(id),
+      retry: false
+    }))
+
+    renderWithAppProviders(
+      <CharacterSheetInventory pending={false} sheet={createSheet()} submitCommand={vi.fn()} />
+    )
+
+    await openEquipmentManager(user)
+    expect(screen.getByRole('status')).toHaveTextContent('Loading equipment…')
+    expect(screen.getByRole('combobox', { name: /^equipment$/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^quantity$/i })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: /^add to$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
+  })
+
+  it('keeps item acquisition disabled when full equipment choices fail', async () => {
+    const user = userEvent.setup()
+    queryMocks.getCharacterSheetEquipmentOptions.mockImplementation((id: string | undefined) => ({
+      queryKey: ['failed-character-equipment-options', id],
+      queryFn: async () => {
+        throw new Error('Equipment query failed.')
+      },
+      enabled: Boolean(id),
+      retry: false
+    }))
+
+    renderWithAppProviders(
+      <CharacterSheetInventory pending={false} sheet={createSheet()} submitCommand={vi.fn()} />
+    )
+
+    await openEquipmentManager(user)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Equipment choices could not be loaded.'
+    )
+    expect(screen.getByRole('combobox', { name: /^equipment$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
   })
 
   it('adds inventory items through sheet commands', async () => {
@@ -179,5 +308,83 @@ describe('Character Sheet inventory', () => {
     await user.click(row)
     expect(openPanel).toHaveBeenCalledWith({ kind: 'ITEM', itemInstanceId: 'item-1' })
     expect(screen.queryByText(/a balanced knightly blade/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps qualified totals exact above the safe numeric aggregate', () => {
+    const sheet = createSheet()
+    const systemId = '00000000-0000-4000-8000-000000000601'
+    sheet.reference.currencyOptions = [
+      { id: 'currency-1', label: 'Gold', kind: 'RULESET' },
+      {
+        id: 'currency-1',
+        label: 'Campaign Gold',
+        kind: 'CAMPAIGN',
+        campaignCurrencySystemId: systemId
+      }
+    ]
+    sheet.inventory.currencies = [
+      { currencyId: 'currency-1', kind: 'RULESET', label: 'Gold', amount: Number.MAX_SAFE_INTEGER },
+      {
+        currencyId: 'currency-1',
+        kind: 'RULESET',
+        label: 'Gold',
+        amount: Number.MAX_SAFE_INTEGER,
+        containerId: 'pouch'
+      },
+      {
+        currencyId: 'currency-1',
+        kind: 'CAMPAIGN',
+        campaignCurrencySystemId: systemId,
+        label: 'Campaign Gold',
+        amount: 3
+      }
+    ]
+    expect(
+      getInventoryCurrencyTotals(sheet).map(({ label, amount }) => ({ label, amount }))
+    ).toEqual([
+      { label: 'Gold', amount: '18014398509481982' },
+      { label: 'Campaign Gold', amount: '3' }
+    ])
+    expect(getInventoryCurrencyRows(sheet)).toHaveLength(3)
+  })
+
+  it('moves held historical currency without making it available for acquisition', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    const historicalSystemId = '00000000-0000-4000-8000-000000000602'
+    sheet.inventory.currencies = [
+      {
+        currencyId: 'old-coin',
+        kind: 'CAMPAIGN',
+        campaignCurrencySystemId: historicalSystemId,
+        label: 'Old Coin',
+        amount: 4
+      }
+    ]
+    sheet.inventory.containers = [{ id: 'pouch', label: 'Pouch', itemIds: [], currencies: [] }]
+    renderWithAppProviders(
+      <CharacterSheetInventory pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+    await openEquipmentManager(user)
+    expect(
+      screen
+        .getAllByRole('button', { name: '+1' })
+        .every((button) => button.hasAttribute('disabled'))
+    ).toBe(true)
+    await user.click(screen.getByRole('combobox', { name: /^to$/i }))
+    await user.click(screen.getByRole('option', { name: 'Pouch' }))
+    await user.click(screen.getByRole('button', { name: /^move currency$/i }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'MOVE_CURRENCY',
+      currencyId: 'old-coin',
+      kind: 'CAMPAIGN',
+      campaignCurrencySystemId: historicalSystemId,
+      amount: 1,
+      fromContainerId: undefined,
+      toContainerId: 'pouch',
+      expectedVersion: 4
+    })
+    expect(screen.getByRole('combobox', { name: /^currency type$/i })).toHaveValue('Gold')
   })
 })

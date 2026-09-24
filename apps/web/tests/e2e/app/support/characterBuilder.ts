@@ -1,5 +1,4 @@
 import { expect, type Page } from '@playwright/test'
-import { runAndWaitForSuccessfulTrpcProcedure } from './trpc'
 
 const BUILDER_CONTROL_TIMEOUT = 10_000
 
@@ -12,6 +11,15 @@ export async function goToBuilderStep(page: Page, label: string): Promise<void> 
   await expect(step).toHaveCount(1)
   await step.click()
   await expect(page.getByRole('heading', { name: label, exact: true }).first()).toBeVisible()
+  await waitForBuilderResolution(page)
+}
+
+export async function waitForBuilderResolution(page: Page): Promise<void> {
+  const content = page.locator('[aria-labelledby="character-builder-active-step-title"]')
+  await expect(content).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
+  await expect(content).toHaveAttribute('aria-busy', 'false', {
+    timeout: 30_000
+  })
 }
 
 export async function selectBuilderCatalogOptionAndResolve(
@@ -28,12 +36,8 @@ export async function selectBuilderCatalogOptionAndResolve(
   await expect(dialog).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
   await expect(radio).toHaveCount(1)
   await radio.check()
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => dialog.getByRole('button', { name: actionLabel, exact: true }).click(),
-    { method: 'POST' }
-  )
+  await dialog.getByRole('button', { name: actionLabel, exact: true }).click()
+  await waitForBuilderResolution(page)
   await expect(dialog).toBeHidden()
 }
 
@@ -47,12 +51,8 @@ export async function selectBuilderOptionAndResolve(
   await expect(combobox).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
   await combobox.click()
   await expect(optionLocator).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => optionLocator.click(),
-    { method: 'POST' }
-  )
+  await optionLocator.click()
+  await waitForBuilderResolution(page)
 }
 
 export async function selectBuilderOption(
@@ -66,6 +66,7 @@ export async function selectBuilderOption(
   await combobox.click()
   await expect(optionLocator).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
   await optionLocator.click()
+  await waitForBuilderResolution(page)
 }
 
 export async function selectBuilderGrantChoiceAndResolve(
@@ -81,12 +82,8 @@ export async function selectBuilderGrantChoiceAndResolve(
   await expect(combobox).toHaveCount(1)
   await combobox.click()
   await expect(optionLocator).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => optionLocator.click(),
-    { method: 'POST' }
-  )
+  await optionLocator.click()
+  await waitForBuilderResolution(page)
 }
 
 export async function selectBuilderClassProficiencyAndResolve(
@@ -103,12 +100,8 @@ export async function selectBuilderClassProficiencyAndResolve(
   await expect(combobox).toHaveCount(1)
   await combobox.click()
   await expect(optionLocator).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => optionLocator.click(),
-    { method: 'POST' }
-  )
+  await optionLocator.click()
+  await waitForBuilderResolution(page)
 }
 
 export async function expectBuilderClassProficiencyValues(
@@ -153,12 +146,8 @@ export async function selectBuilderOptionAtIndexAndResolve(
   await expect(combobox).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
   await combobox.click()
   await expect(optionLocator).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => optionLocator.click(),
-    { method: 'POST' }
-  )
+  await optionLocator.click()
+  await waitForBuilderResolution(page)
 }
 
 export async function selectBuilderSpellChoiceAndResolve(
@@ -171,12 +160,8 @@ export async function selectBuilderSpellChoiceAndResolve(
   const addButton = row.getByRole('button', { name: 'Add', exact: true })
   await expect(list).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
   await expect(addButton).toBeVisible({ timeout: BUILDER_CONTROL_TIMEOUT })
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.resolve',
-    async () => addButton.click(),
-    { method: 'POST' }
-  )
+  await addButton.click()
+  await waitForBuilderResolution(page)
   await expect(row.getByRole('button', { name: 'Remove', exact: true })).toBeVisible()
 }
 

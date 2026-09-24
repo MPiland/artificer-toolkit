@@ -1,10 +1,5 @@
-import type { VehicleListResponseDto } from '#app/lib/api'
-import type {
-  AuthoredListAttributeColumn,
-  AuthoredListFilter,
-  AuthoredListItem
-} from '#components/AuthoredList'
-import { summarizeAuthoredDescription } from '../authoredListMapper'
+import type { AuthoredCatalogueSummary } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredListAttributeColumn, AuthoredListFilter } from '#components/AuthoredList'
 
 export function formatVehicleCategory(category: string | undefined): string {
   if (!category) return 'Vehicle'
@@ -14,45 +9,9 @@ export function formatVehicleCategory(category: string | undefined): string {
     .replace(/^\w/, (letter) => letter.toUpperCase())
 }
 
-export function mapVehicleListToAuthoredItems(
-  response: VehicleListResponseDto
-): AuthoredListItem[] {
-  return response.items.map((item) => {
-    const category = item.category ?? 'VEHICLE'
-
-    return {
-      id: item.id,
-      publicId: item.publicId,
-      name: item.label,
-      description: summarizeAuthoredDescription(item.description),
-      attributes: {
-        Category: formatVehicleCategory(category)
-      },
-      filterValues: {
-        category,
-        source: item.provenance.kind
-      },
-      sortValues: {
-        category: formatVehicleCategory(category),
-        name: item.label
-      },
-      searchText: `${summarizeAuthoredDescription(item.description)} ${formatVehicleCategory(category)}`,
-      sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-      sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: item.permissions
-    }
-  })
-}
-
-export function buildVehicleListFilters(response: VehicleListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(
-    new Set(
-      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
-        (category) => category.id
-      )
-    )
-  ).sort()
-
+export function buildVehicleListFilters(
+  categories: AuthoredCatalogueSummary['categories']
+): AuthoredListFilter[] {
   return [
     {
       key: 'category',
@@ -83,7 +42,3 @@ export const vehicleListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
   { value: 'category', label: 'Category' }
 ]
-
-export function summarizeVehicleList(response: VehicleListResponseDto) {
-  return `${response.summary.activeCount} vehicles / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
-}

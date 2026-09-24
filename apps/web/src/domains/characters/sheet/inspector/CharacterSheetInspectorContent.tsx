@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { MediaImageView } from '#app/components/MediaImage'
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import type {
-  CharacterPreparationOptionsResponseDto,
   CharacterSheetPanelDto,
   CharacterSheetPanelTargetDto
-} from '#app/lib/api'
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'

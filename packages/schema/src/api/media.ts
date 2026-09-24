@@ -1,6 +1,7 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
-import { authoredSubjectKindDtoSchema } from './content.js'
+import { authoredSubjectKindSchema } from '../projections/identity.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 export const mediaImageProfileSchema = z.enum([
   'ACCOUNT_AVATAR',
@@ -35,42 +36,44 @@ export const campaignFileMimeTypeSchema = z.enum([
 
 export const normalizedImageCropSchema = z
   .strictObject({
-    x: z.number().min(0).max(1),
-    y: z.number().min(0).max(1),
-    width: z.number().positive().max(1),
-    height: z.number().positive().max(1)
+    x: z.number().check(z.gte(0)).check(z.lte(1)),
+    y: z.number().check(z.gte(0)).check(z.lte(1)),
+    width: z.number().check(z.positive()).check(z.lte(1)),
+    height: z.number().check(z.positive()).check(z.lte(1))
   })
-  .superRefine((crop, context) => {
-    if (crop.x + crop.width > 1 || crop.y + crop.height > 1) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Crop must stay within the image bounds.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((crop, context) => {
+      if (crop.x + crop.width > 1 || crop.y + crop.height > 1) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Crop must stay within the image bounds.'
+        })
+      }
+    })
+  )
 
 export const mediaTargetSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ACCOUNT_AVATAR') }),
   z.strictObject({
     type: z.literal('CHARACTER_PORTRAIT'),
-    characterId: z.string().uuid()
+    characterId: z.string().check(z.uuid())
   }),
   z.strictObject({
     type: z.literal('AUTHORED_IMAGE'),
-    subjectKind: authoredSubjectKindDtoSchema,
-    subjectId: z.string().uuid()
+    subjectKind: authoredSubjectKindSchema,
+    subjectId: postgresUuidSchema
   }),
   z.strictObject({
     type: z.literal('CAMPAIGN_FILE'),
-    campaignId: z.string().uuid()
+    campaignId: z.string().check(z.uuid())
   }),
   z.strictObject({
     type: z.literal('CAMPAIGN_HANDOUT_MAP'),
-    campaignId: z.string().uuid()
+    campaignId: z.string().check(z.uuid())
   }),
   z.strictObject({
     type: z.literal('VTT_MAP'),
-    campaignId: z.string().uuid()
+    campaignId: z.string().check(z.uuid())
   })
 ])
 
@@ -79,26 +82,28 @@ export const createVttMapUploadIntentInputSchema = z
     profile: vttMapProfileSchema,
     target: z.strictObject({
       type: z.literal('VTT_MAP'),
-      campaignId: z.string().uuid()
+      campaignId: z.string().check(z.uuid())
     }),
-    originalFileName: z.string().trim().min(1).max(255),
+    originalFileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
     declaredMimeType: imageMimeTypeSchema,
     declaredBytes: z
       .number()
-      .int()
-      .positive()
-      .max(25 * 1024 * 1024),
-    idempotencyKey: z.string().uuid()
+      .check(z.int())
+      .check(z.positive())
+      .check(z.lte(25 * 1024 * 1024)),
+    idempotencyKey: z.string().check(z.uuid())
   })
-  .superRefine((input, context) => {
-    if (input.profile !== input.target.type) {
-      context.addIssue({
-        code: 'custom',
-        path: ['target'],
-        message: 'The upload profile must match its target.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.profile !== input.target.type) {
+        context.addIssue({
+          code: 'custom',
+          path: ['target'],
+          message: 'The upload profile must match its target.'
+        })
+      }
+    })
+  )
 
 export const createCampaignFileUploadIntentInputSchema = z
   .strictObject({
@@ -106,56 +111,58 @@ export const createCampaignFileUploadIntentInputSchema = z
     target: z.discriminatedUnion('type', [
       z.strictObject({
         type: z.literal('CAMPAIGN_FILE'),
-        campaignId: z.string().uuid()
+        campaignId: z.string().check(z.uuid())
       }),
       z.strictObject({
         type: z.literal('CAMPAIGN_HANDOUT_MAP'),
-        campaignId: z.string().uuid()
+        campaignId: z.string().check(z.uuid())
       })
     ]),
-    originalFileName: z.string().trim().min(1).max(255),
+    originalFileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
     declaredMimeType: campaignFileMimeTypeSchema,
     declaredBytes: z
       .number()
-      .int()
-      .positive()
-      .max(6 * 1024 * 1024),
-    idempotencyKey: z.string().uuid()
+      .check(z.int())
+      .check(z.positive())
+      .check(z.lte(6 * 1024 * 1024)),
+    idempotencyKey: z.string().check(z.uuid())
   })
-  .superRefine((input, context) => {
-    if (input.profile !== input.target.type)
-      context.addIssue({
-        code: 'custom',
-        path: ['target'],
-        message: 'The upload profile must match its target.'
-      })
-    if (input.profile === 'CAMPAIGN_HANDOUT_MAP' && input.declaredMimeType === 'text/plain')
-      context.addIssue({
-        code: 'custom',
-        path: ['declaredMimeType'],
-        message: 'Handout maps must be images.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.profile !== input.target.type)
+        context.addIssue({
+          code: 'custom',
+          path: ['target'],
+          message: 'The upload profile must match its target.'
+        })
+      if (input.profile === 'CAMPAIGN_HANDOUT_MAP' && input.declaredMimeType === 'text/plain')
+        context.addIssue({
+          code: 'custom',
+          path: ['declaredMimeType'],
+          message: 'Handout maps must be images.'
+        })
+    })
+  )
 
 export const signedCampaignFileDeliveryDtoSchema = z.strictObject({
-  assetId: z.string().uuid(),
-  url: z.string().url(),
-  expiresAt: z.string().datetime(),
+  assetId: z.string().check(z.uuid()),
+  url: z.string().check(z.url()),
+  expiresAt: z.iso.datetime(),
   mimeType: campaignFileMimeTypeSchema,
-  fileName: z.string().trim().min(1).max(255),
-  byteSize: z.number().int().positive()
+  fileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
+  byteSize: z.number().check(z.int()).check(z.positive())
 })
 
 export const signedImageDeliveryDtoSchema = z.strictObject({
-  assetId: z.string().uuid(),
+  assetId: z.string().check(z.uuid()),
   variantKind: mediaVariantKindSchema,
-  url: z.string().url(),
-  expiresAt: z.string().datetime(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+  url: z.string().check(z.url()),
+  expiresAt: z.iso.datetime(),
+  width: z.number().check(z.int()).check(z.positive()),
+  height: z.number().check(z.int()).check(z.positive()),
   mimeType: imageMimeTypeSchema,
-  crop: normalizedImageCropSchema.nullable(),
-  altText: z.string().trim().min(1).max(240).nullable(),
+  crop: z.nullable(normalizedImageCropSchema),
+  altText: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))),
   isDecorative: z.boolean()
 })
 
@@ -163,154 +170,164 @@ export const createImageUploadIntentInputSchema = z
   .strictObject({
     profile: mediaImageProfileSchema,
     target: mediaTargetSchema,
-    originalFileName: z.string().trim().min(1).max(255),
+    originalFileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
     declaredMimeType: imageMimeTypeSchema,
     declaredBytes: z
       .number()
-      .int()
-      .positive()
-      .max(6 * 1024 * 1024),
-    idempotencyKey: z.string().uuid()
+      .check(z.int())
+      .check(z.positive())
+      .check(z.lte(6 * 1024 * 1024)),
+    idempotencyKey: z.string().check(z.uuid())
   })
-  .superRefine((input, context) => {
-    if (input.profile !== input.target.type) {
-      context.addIssue({
-        code: 'custom',
-        path: ['target'],
-        message: 'The upload profile must match its target.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.profile !== input.target.type) {
+        context.addIssue({
+          code: 'custom',
+          path: ['target'],
+          message: 'The upload profile must match its target.'
+        })
+      }
+    })
+  )
 
 export const createImageUploadIntentOutputSchema = z.strictObject({
-  assetId: z.string().uuid(),
+  assetId: z.string().check(z.uuid()),
   bucket: z.literal('media'),
-  objectKey: z.string().min(1),
-  token: z.string().min(1),
-  expiresAt: z.string().datetime()
+  objectKey: z.string().check(z.minLength(1)),
+  token: z.string().check(z.minLength(1)),
+  expiresAt: z.iso.datetime()
 })
 
 export const vttMapMultipartPartUploadSchema = z.strictObject({
-  partNumber: z.number().int().min(1).max(5),
-  url: z.string().url()
+  partNumber: z.number().check(z.int()).check(z.gte(1)).check(z.lte(5)),
+  url: z.string().check(z.url())
 })
 
 export const createVttMapUploadIntentOutputSchema = z.strictObject({
-  assetId: z.string().uuid(),
+  assetId: z.string().check(z.uuid()),
   storageProvider: z.literal('R2'),
-  objectKey: z.string().min(1),
-  expiresAt: z.string().datetime(),
+  objectKey: z.string().check(z.minLength(1)),
+  expiresAt: z.iso.datetime(),
   resumable: z.strictObject({
     chunkBytes: z.literal(6 * 1024 * 1024),
     protocol: z.literal('R2_MULTIPART'),
-    parts: z.array(vttMapMultipartPartUploadSchema).min(1).max(5)
+    parts: z.array(vttMapMultipartPartUploadSchema).check(z.minLength(1)).check(z.maxLength(5))
   })
 })
 
 export const completeVttMapMultipartUploadInputSchema = z
   .strictObject({
-    assetId: z.string().uuid(),
+    assetId: z.string().check(z.uuid()),
     parts: z
       .array(
         z.strictObject({
-          partNumber: z.number().int().min(1).max(5),
-          etag: z.string().trim().min(1).max(128)
+          partNumber: z.number().check(z.int()).check(z.gte(1)).check(z.lte(5)),
+          etag: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(128))
         })
       )
-      .min(1)
-      .max(5)
+      .check(z.minLength(1))
+      .check(z.maxLength(5))
   })
-  .superRefine((input, context) => {
-    const partNumbers = input.parts.map((part) => part.partNumber)
-    if (new Set(partNumbers).size !== partNumbers.length) {
-      context.addIssue({ code: 'custom', path: ['parts'], message: 'Upload parts must be unique.' })
-    }
-  })
+  .check(
+    z.superRefine((input, context) => {
+      const partNumbers = input.parts.map((part) => part.partNumber)
+      if (new Set(partNumbers).size !== partNumbers.length) {
+        context.addIssue({
+          code: 'custom',
+          path: ['parts'],
+          message: 'Upload parts must be unique.'
+        })
+      }
+    })
+  )
 
 export const finalizeImageUploadInputSchema = z.strictObject({
-  assetId: z.string().uuid()
+  assetId: z.string().check(z.uuid())
 })
 
 export const finalizeImageUploadOutputSchema = z.strictObject({
-  assetId: z.string().uuid(),
+  assetId: z.string().check(z.uuid()),
   status: mediaAssetStatusSchema,
-  preview: signedImageDeliveryDtoSchema.nullable()
+  preview: z.nullable(signedImageDeliveryDtoSchema)
 })
 
 export const finalizeVttMapUploadOutputSchema = z.strictObject({
-  assetId: z.string().uuid(),
+  assetId: z.string().check(z.uuid()),
   status: z.enum(['READY', 'REJECTED'])
 })
 
 export const vttMapTileDeliveryDtoSchema = z.strictObject({
-  column: z.number().int().nonnegative(),
-  height: z.number().int().positive(),
-  row: z.number().int().nonnegative(),
-  url: z.string().url(),
-  width: z.number().int().positive()
+  column: z.number().check(z.int()).check(z.nonnegative()),
+  height: z.number().check(z.int()).check(z.positive()),
+  row: z.number().check(z.int()).check(z.nonnegative()),
+  url: z.string().check(z.url()),
+  width: z.number().check(z.int()).check(z.positive())
 })
 
 export const signedVttMapDeliveryDtoSchema = z.strictObject({
-  assetId: z.string().uuid(),
-  expiresAt: z.string().datetime(),
-  height: z.number().int().positive().max(8192),
+  assetId: z.string().check(z.uuid()),
+  expiresAt: z.iso.datetime(),
+  height: z.number().check(z.int()).check(z.positive()).check(z.lte(8192)),
   overview: z.strictObject({
-    height: z.number().int().positive(),
-    url: z.string().url(),
-    width: z.number().int().positive()
+    height: z.number().check(z.int()).check(z.positive()),
+    url: z.string().check(z.url()),
+    width: z.number().check(z.int()).check(z.positive())
   }),
-  tiles: z.array(vttMapTileDeliveryDtoSchema).min(1).max(64),
-  width: z.number().int().positive().max(8192)
+  tiles: z.array(vttMapTileDeliveryDtoSchema).check(z.minLength(1)).check(z.maxLength(64)),
+  width: z.number().check(z.int()).check(z.positive()).check(z.lte(8192))
 })
 
 export const attachImageInputSchema = z
   .strictObject({
-    assetId: z.string().uuid(),
+    assetId: z.string().check(z.uuid()),
     target: mediaTargetSchema,
-    crop: normalizedImageCropSchema.optional(),
-    altText: z.string().trim().min(1).max(240).optional(),
-    isDecorative: z.boolean().default(false)
+    crop: z.optional(normalizedImageCropSchema),
+    altText: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))),
+    isDecorative: z._default(z.boolean(), false)
   })
-  .superRefine((input, context) => {
-    if (input.target.type === 'AUTHORED_IMAGE') {
+  .check(
+    z.superRefine((input, context) => {
+      if (input.target.type === 'AUTHORED_IMAGE') {
+        if (input.crop === undefined) {
+          context.addIssue({
+            code: 'custom',
+            path: ['crop'],
+            message: 'Choose a thumbnail crop for authored artwork.'
+          })
+        }
+        if (!input.isDecorative) {
+          context.addIssue({
+            code: 'custom',
+            path: ['isDecorative'],
+            message: 'Main authored artwork is decorative.'
+          })
+        }
+        if (input.altText !== undefined) {
+          context.addIssue({
+            code: 'custom',
+            path: ['altText'],
+            message: 'Main authored artwork does not accept alt text.'
+          })
+        }
+        return
+      }
+
+      if (input.altText !== undefined || input.isDecorative) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Alt text and decorative state only apply to authored images.'
+        })
+      }
       if (input.crop === undefined) {
         context.addIssue({
           code: 'custom',
           path: ['crop'],
-          message: 'Choose a thumbnail crop for authored artwork.'
+          message: 'Avatar and portrait crops are required.'
         })
       }
-      if (!input.isDecorative) {
-        context.addIssue({
-          code: 'custom',
-          path: ['isDecorative'],
-          message: 'Main authored artwork is decorative.'
-        })
-      }
-      if (input.altText !== undefined) {
-        context.addIssue({
-          code: 'custom',
-          path: ['altText'],
-          message: 'Main authored artwork does not accept alt text.'
-        })
-      }
-      return
-    }
-
-    if (input.altText !== undefined || input.isDecorative) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Alt text and decorative state only apply to authored images.'
-      })
-    }
-    if (input.crop === undefined) {
-      context.addIssue({
-        code: 'custom',
-        path: ['crop'],
-        message: 'Avatar and portrait crops are required.'
-      })
-    }
-  })
+    })
+  )
 
 export const removeImageInputSchema = z.strictObject({
   target: mediaTargetSchema
@@ -320,19 +337,19 @@ export const imageLookupTargetSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ACCOUNT_AVATAR') }),
   z.strictObject({
     type: z.literal('CHARACTER_PORTRAIT'),
-    characterId: z.string().uuid()
+    characterId: z.string().check(z.uuid())
   }),
   z.strictObject({
     type: z.literal('AUTHORED_IMAGE'),
-    subjectKind: authoredSubjectKindDtoSchema,
-    subjectId: z.string().uuid(),
+    subjectKind: authoredSubjectKindSchema,
+    subjectId: postgresUuidSchema,
     scope: z.enum(['ACTIVE', 'DRAFT'])
   })
 ])
 
 export const imageLookupInputSchema = z.strictObject({
   target: imageLookupTargetSchema,
-  variantKind: mediaVariantKindSchema.default('DISPLAY')
+  variantKind: z._default(mediaVariantKindSchema, 'DISPLAY')
 })
 
 export type MediaImageProfile = z.infer<typeof mediaImageProfileSchema>

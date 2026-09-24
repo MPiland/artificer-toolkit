@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useState } from 'react'
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@artificer-toolkit/schema/api/auth'
-import type { EntitlementProjectionDto } from '#app/lib/api'
+import type { EntitlementProjectionDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { browserAuthClient } from '#app/auth/authClient'
 import { accountClient } from './accountClient'
 import { DeleteAccountModal } from './DeleteAccountModal'
@@ -13,10 +13,12 @@ import * as styles from './settings.css'
 export function AccountSettingsPage({
   email,
   emailChanged = false,
+  emailConfirmationFailed = false,
   entitlements
 }: {
   email: string
   emailChanged?: boolean
+  emailConfirmationFailed?: boolean
   entitlements?: EntitlementProjectionDto
 }) {
   const [deleteOpened, { close: closeDelete, open: openDelete }] = useDisclosure(false)
@@ -115,10 +117,17 @@ export function AccountSettingsPage({
         </p>
       </header>
 
-      {emailChanged && (
-        <Alert color='blue' mt='lg' title='Email confirmation received'>
-          Your email change may still be waiting for confirmation from the other address.
+      {emailConfirmationFailed ? (
+        <Alert color='red' mt='lg' title='Email confirmation failed'>
+          This confirmation link could not be used. Request another email change from your account
+          settings.
         </Alert>
+      ) : (
+        emailChanged && (
+          <Alert color='blue' mt='lg' title='Email confirmation received'>
+            Your email change may still be waiting for confirmation from the other address.
+          </Alert>
+        )
       )}
 
       {entitlements ? <EntitlementSummary entitlements={entitlements} /> : null}

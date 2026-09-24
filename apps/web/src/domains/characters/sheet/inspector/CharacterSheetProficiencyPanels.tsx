@@ -1,5 +1,5 @@
 import { Button, Select, Text } from '@mantine/core'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'

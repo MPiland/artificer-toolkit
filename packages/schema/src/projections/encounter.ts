@@ -1,19 +1,20 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
-import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 import {
   encounterCommandResultDtoSchema,
   encounterGmProjectionDtoSchema
-} from '../api/encounters.js'
+} from '../api/encounterData.js'
 import { automationModeDtoSchema, manualReminderModeDtoSchema } from '../api/campaignSettings.js'
 import {
   encounterActorRuleInputSchema,
   encounterActorRuleOutputSchema
 } from '../api/encounterActorRules.js'
 import { projectionChecksumSchema, projectionIdentifierSchema } from './identity.js'
+import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
 
-const nonNegativeStreamVersionSchema = z.number().int().min(0)
+const nonNegativeStreamVersionSchema = z.number().check(z.int()).check(z.gte(0))
 
 export const ENCOUNTER_CURRENT_PROJECTION_SCHEMA_VERSION = 2
 
@@ -24,12 +25,12 @@ export const encounterActorRuleSnapshotProjectionSchema = z.strictObject({
   revisionId: projectionIdentifierSchema
 })
 
-const encounterGmProjectionForPersistenceSchema = encounterGmProjectionDtoSchema.extend({
+const encounterGmProjectionForPersistenceSchema = z.extend(encounterGmProjectionDtoSchema, {
   blueprintVersion: nonNegativeStreamVersionSchema,
   version: nonNegativeStreamVersionSchema
 })
 
-const encounterCommandResultForPersistenceSchema = encounterCommandResultDtoSchema.extend({
+const encounterCommandResultForPersistenceSchema = z.extend(encounterCommandResultDtoSchema, {
   projection: encounterGmProjectionForPersistenceSchema
 })
 
@@ -40,7 +41,7 @@ function validateEncounterProjectionEnvelope(
     projection: { id: string; version: number; rulePackRevisionId: string | null }
     ruleSnapshot: { encounterVersion: number; revisionId: string }
   },
-  context: z.RefinementCtx
+  context: z.core.$RefinementCtx
 ) {
   if (value.projection.id !== value.encounterId) {
     context.addIssue({
@@ -81,7 +82,7 @@ export const encounterCurrentProjectionSchema = z
     projection: encounterGmProjectionForPersistenceSchema,
     ruleSnapshot: encounterActorRuleSnapshotProjectionSchema
   })
-  .superRefine(validateEncounterProjectionEnvelope)
+  .check(z.superRefine(validateEncounterProjectionEnvelope))
 
 export type EncounterCurrentProjection = z.infer<typeof encounterCurrentProjectionSchema>
 
@@ -89,19 +90,20 @@ export type EncounterCurrentProjection = z.infer<typeof encounterCurrentProjecti
  * The only supported historical Encounter projection format. It is retained
  * solely to decode rows written before Blueprint identity was normalized.
  */
-export const legacyEncounterGmProjectionV1Schema = encounterGmProjectionForPersistenceSchema
-  .omit({
+export const legacyEncounterGmProjectionV1Schema = z.extend(
+  z.omit(encounterGmProjectionForPersistenceSchema, {
     blueprintChecksum: true,
     blueprintId: true,
     blueprintVersion: true,
     gameSystemId: true,
     automationMode: true,
     manualReminderMode: true
-  })
-  .extend({
+  }),
+  {
     templateId: projectionIdentifierSchema,
-    templateVersion: z.number().int().nonnegative()
-  })
+    templateVersion: z.number().check(z.int()).check(z.nonnegative())
+  }
+)
 
 export const legacyEncounterCurrentProjectionV1Schema = z
   .strictObject({
@@ -112,13 +114,13 @@ export const legacyEncounterCurrentProjectionV1Schema = z
     projection: legacyEncounterGmProjectionV1Schema,
     ruleSnapshot: encounterActorRuleSnapshotProjectionSchema
   })
-  .superRefine(validateEncounterProjectionEnvelope)
+  .check(z.superRefine(validateEncounterProjectionEnvelope))
 
 export type LegacyEncounterCurrentProjectionV1 = z.infer<
   typeof legacyEncounterCurrentProjectionV1Schema
 >
 
-const legacyEncounterCommandResultV1Schema = encounterCommandResultForPersistenceSchema.extend({
+const legacyEncounterCommandResultV1Schema = z.extend(encounterCommandResultForPersistenceSchema, {
   projection: legacyEncounterGmProjectionV1Schema
 })
 
@@ -127,19 +129,21 @@ export const legacyEncounterProjectionEventV1Schema = z
     command: legacyEncounterCommandResultV1Schema,
     currentProjection: legacyEncounterCurrentProjectionV1Schema
   })
-  .superRefine((value, context) => {
-    if (
-      value.command.projection.id !== value.currentProjection.encounterId ||
-      value.command.projection.version !== value.currentProjection.streamVersion
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message:
-          'Historical Encounter event command must match its current projection identity and stream version.',
-        path: ['command', 'projection']
-      })
-    }
-  })
+  .check(
+    z.superRefine((value, context) => {
+      if (
+        value.command.projection.id !== value.currentProjection.encounterId ||
+        value.command.projection.version !== value.currentProjection.streamVersion
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message:
+            'Historical Encounter event command must match its current projection identity and stream version.',
+          path: ['command', 'projection']
+        })
+      }
+    })
+  )
 
 export type LegacyEncounterProjectionEventV1 = z.infer<
   typeof legacyEncounterProjectionEventV1Schema
@@ -149,7 +153,7 @@ export const encounterProjectionBlueprintHeaderSchema = z.strictObject({
   encounterId: projectionIdentifierSchema,
   gameSystemId: projectionIdentifierSchema,
   blueprintId: projectionIdentifierSchema,
-  blueprintVersion: z.number().int().nonnegative(),
+  blueprintVersion: z.number().check(z.int()).check(z.nonnegative()),
   blueprintChecksum: projectionChecksumSchema,
   automationMode: automationModeDtoSchema,
   manualReminderMode: manualReminderModeDtoSchema
@@ -249,38 +253,31 @@ export const encounterProjectionEventSchema = z
      * New events explicitly declare whether their Encounter command owns a
      * rule receipt. Omission is reserved for historical event decoding.
      */
-    ruleReceipt: z
-      .strictObject({
+    ruleReceipt: z.nullable(
+      z.strictObject({
         occurrenceId: serverUuidIdentityDtoSchema,
         resultChecksum: projectionChecksumSchema
       })
-      .nullable(),
+    ),
     /** Server-only provenance for an Encounter-owned Creature equipment overlay. */
-    creatureEquipmentReplacement: z
-      .strictObject({
-        actorId: serverUuidIdentityDtoSchema,
-        loadoutEntryId: serverUuidIdentityDtoSchema,
-        equipmentId: serverUuidIdentityDtoSchema,
-        sourceRevision: z.number().int().positive(),
-        sourceVersionId: serverUuidIdentityDtoSchema,
-        sourceChecksum: projectionChecksumSchema
-      })
-      .optional(),
+    creatureEquipmentReplacement: z.optional(encounterCreatureEquipmentReplacementSchema),
     /** Optional for historical events; new mechanics-bearing events pin the effective combat policy. */
-    optionalCombatSnapshotChecksum: projectionChecksumSchema.nullable().optional()
+    optionalCombatSnapshotChecksum: z.optional(z.nullable(projectionChecksumSchema))
   })
-  .superRefine((value, context) => {
-    if (
-      value.command.projection.id !== value.currentProjection.encounterId ||
-      value.command.projection.version !== value.currentProjection.streamVersion
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message:
-          'Encounter event command must match its current projection identity and stream version.',
-        path: ['command', 'projection']
-      })
-    }
-  })
+  .check(
+    z.superRefine((value, context) => {
+      if (
+        value.command.projection.id !== value.currentProjection.encounterId ||
+        value.command.projection.version !== value.currentProjection.streamVersion
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message:
+            'Encounter event command must match its current projection identity and stream version.',
+          path: ['command', 'projection']
+        })
+      }
+    })
+  )
 
 export type EncounterProjectionEvent = z.infer<typeof encounterProjectionEventSchema>

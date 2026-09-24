@@ -172,10 +172,10 @@ describe('encounter contracts', () => {
     }
 
     expect(
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(evidencePending)
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse(evidencePending)
     ).toMatchObject(evidencePending)
     expect(
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(orderPending)
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse(orderPending)
     ).toMatchObject(orderPending)
     expect(
       resolveRuleOccurrenceInputDtoSchema.parse({
@@ -286,7 +286,7 @@ describe('encounter contracts', () => {
     ).toMatchObject(applicationContext)
 
     expect(() =>
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse({
         ...evidencePending,
         pending: {
           ...evidencePending.pending,
@@ -340,17 +340,17 @@ describe('encounter contracts', () => {
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
       }
     }
-    expect(encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(pending)).toMatchObject(
-      pending
-    )
+    expect(
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse(pending)
+    ).toMatchObject(pending)
     expect(() =>
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse({
         ...pending,
         pending: { ...pending.pending, occurrenceVersion: 1 }
       })
     ).toThrow()
     expect(() =>
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse({
         ...pending,
         status: 'COMPLETE',
         pending: pending.pending
@@ -397,7 +397,8 @@ describe('encounter contracts', () => {
         allowedResponses: ['DECLINE', 'OPTION'] as const
       }
     }
-    const pending = encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(pendingInput)
+    const pending =
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse(pendingInput)
     if (!pending || pending.pending?.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected a movement-reaction pending summary.')
     expect(pending.pending).toMatchObject({
@@ -416,7 +417,7 @@ describe('encounter contracts', () => {
       }).resolution
     ).toEqual({ kind: 'OPTION', optionId })
     expect(() =>
-      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+      encounterCommandResultDtoSchema.shape.occurrence._zod.def.innerType.parse({
         ...pendingInput,
         pending: {
           ...pendingInput.pending,

@@ -6,7 +6,7 @@ import {
   getCharacterPreparationOptions,
   getCharacterSheetPanel
 } from '#app/data/characters/queries'
-import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as sheetOverlayStyles from '../shared/sheetOverlay.css'
 import { CharacterSheetInspectorContent } from './CharacterSheetInspectorContent'
@@ -14,6 +14,7 @@ import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
 
 export function CharacterSheetInspector({
+  campaignId,
   characterId,
   equipmentItems,
   commandError,
@@ -24,6 +25,7 @@ export function CharacterSheetInspector({
   onClose,
   onTargetChange
 }: {
+  campaignId?: string | null
   characterId: string
   equipmentItems?: CharacterSheet['inventory']['items']
   commandError?: string
@@ -35,11 +37,10 @@ export function CharacterSheetInspector({
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
-  const panelQuery = useQuery(getCharacterSheetPanel(characterId, target))
-  const preparationOptionsQuery = useQuery({
-    ...getCharacterPreparationOptions(characterId),
-    enabled: target.kind === 'SPELLS'
-  })
+  const panelQuery = useQuery(getCharacterSheetPanel(characterId, target, campaignId))
+  const preparationOptionsQuery = useQuery(
+    getCharacterPreparationOptions(target.kind === 'SPELLS' ? characterId : undefined, campaignId)
+  )
 
   return (
     <Drawer
@@ -88,7 +89,7 @@ export function CharacterSheetInspector({
           equipmentItems={equipmentItems ?? []}
           panel={panelQuery.data}
           pending={pending}
-          preparationOptions={preparationOptionsQuery.data}
+          preparationOptions={preparationOptionsQuery.data ?? undefined}
           preparationOptionsError={preparationOptionsQuery.error?.message}
           preparationOptionsPending={target.kind === 'SPELLS' && preparationOptionsQuery.isPending}
           submitCommand={submitCommand}

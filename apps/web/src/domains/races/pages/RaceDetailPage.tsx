@@ -1,7 +1,14 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex, useQuery } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { authoredDetailReadInputSchema } from '@artificer-toolkit/schema/api/content'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
-import { type AuthoredDraftDto, type RaceResponseDto } from '@artificer-toolkit/schema/api/content'
+import {
+  raceResponseDtoSchema,
+  type AuthoredDraftDto,
+  type RaceResponseDto
+} from '@artificer-toolkit/schema/api/content'
 import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import {
   AuthoredDetailItemList,
@@ -19,26 +26,24 @@ import {
   useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
-import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
+import { resolveRaceParentPreview } from '../raceParentPreview.utils'
 
 export function RaceDetailPage({
   draft,
-  parentResponse,
   raceId,
   response,
   view
 }: {
   draft: AuthoredDraftDto | null
-  parentResponse?: RaceResponseDto | null
   raceId: string
-  references: Pick<AuthoredContentReferenceData, 'speeds'>
   response: RaceResponseDto
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('RACE', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
@@ -46,14 +51,35 @@ export function RaceDetailPage({
     schema: raceAuthoredDtoSchema,
     viewActive
   })
+  const selectedParentId =
+    detailState.item?.category === 'SUBRACE' ? detailState.item.parentRaceId : undefined
+  const nativeParent = useQuery(
+    convexApi.content.details.get,
+    selectedParentId
+      ? authoredDetailReadInputSchema.parse({
+          id: selectedParentId,
+          subjectKind: 'RACE',
+          view: 'active'
+        })
+      : 'skip'
+  )
+  const parsedParent = raceResponseDtoSchema.safeParse(nativeParent)
+  const parentResponse = parsedParent.success ? parsedParent.data : null
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: raceId,
+    label: detailState.item?.label ?? 'Race',
+    subjectKind: 'RACE',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.races.deleteActive,
-    discard: api.content.races.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.races.detailRoot(raceId),
     domainLabel: 'Race',
     domainQueryKey: queryKeys.content.races.all(),
     draftQueryKey: queryKeys.content.races.draft(raceId),
-    duplicate: api.content.races.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: raceId,
     navigateEdit: async (subject) =>
@@ -100,18 +126,11 @@ export function RaceDetailPage({
   }
 
   const item = detailState.item
-  const parentRace = parentResponse?.item?.category === 'BASE' ? parentResponse.item : null
+  const parentRace = resolveRaceParentPreview(item, parentResponse)
   const raceParams = buildRaceRouteParams(
     draft?.publicId ?? response?.publicId ?? raceId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: raceId,
-    label: item.label,
-    subjectKind: 'RACE',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {

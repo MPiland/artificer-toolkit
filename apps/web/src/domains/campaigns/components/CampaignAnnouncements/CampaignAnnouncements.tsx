@@ -1,8 +1,10 @@
-import { Alert, Badge, Group, Loader, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core'
+import { convexQuery } from '@convex-dev/react-query'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { getCampaignAnnouncements } from '#app/data/campaigns/queries'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useEffect, useRef } from 'react'
+import { usePaginatedQuery } from 'convex/react'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { CampaignAnnouncementComposer } from './CampaignAnnouncementComposer'
 import * as styles from './CampaignAnnouncements.css'
 
@@ -13,17 +15,40 @@ export function CampaignAnnouncements({
   campaign: CampaignDetailDto
   announcementPublicId?: string | null
 }) {
-  const announcements = useQuery(getCampaignAnnouncements(campaign.id))
-  const selectedAnnouncement = announcements.data?.find(
-    (announcement) => announcement.announcementPublicId === announcementPublicId
+  const announcements = usePaginatedQuery(
+    convexApi.campaigns.announcements.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
   )
+  const deepLinkedAnnouncement = useQuery(
+    convexQuery(
+      convexApi.campaigns.announcements.get,
+      announcementPublicId ? { campaignId: campaign.id, announcementPublicId } : 'skip'
+    )
+  )
+  const selectedAnnouncement =
+    deepLinkedAnnouncement.data ??
+    announcements.results.find(
+      (announcement) => announcement.announcementPublicId === announcementPublicId
+    )
+  const displayedAnnouncements =
+    deepLinkedAnnouncement.data &&
+    !announcements.results.some(
+      (announcement) =>
+        announcement.announcementPublicId === deepLinkedAnnouncement.data?.announcementPublicId
+    )
+      ? [deepLinkedAnnouncement.data, ...announcements.results]
+      : announcements.results
+  const focusedAnnouncementPublicId = useRef<string | null>(null)
 
   useEffect(() => {
     if (!selectedAnnouncement) return
+    if (focusedAnnouncementPublicId.current === selectedAnnouncement.announcementPublicId) return
     const element = document.getElementById(
       `announcement-${selectedAnnouncement.announcementPublicId}`
     )
     if (!element) return
+    focusedAnnouncementPublicId.current = selectedAnnouncement.announcementPublicId
     element.focus({ preventScroll: true })
     element.scrollIntoView({ block: 'center' })
   }, [selectedAnnouncement])
@@ -42,10 +67,14 @@ export function CampaignAnnouncements({
             Updates published for current Campaign members.
           </Text>
         </div>
-        {announcements.isPending ? <Loader aria-label='Loading announcements' size='sm' /> : null}
-        {announcements.error ? <Alert color='red'>Announcements couldn’t be loaded.</Alert> : null}
+        {announcements.status === 'LoadingFirstPage' ? (
+          <Loader aria-label='Loading announcements' size='sm' />
+        ) : null}
+        {deepLinkedAnnouncement.isError ? (
+          <Alert color='red'>That announcement is unavailable.</Alert>
+        ) : null}
         <Stack gap={0}>
-          {announcements.data?.map((announcement) => (
+          {displayedAnnouncements.map((announcement) => (
             <article
               className={styles.announcement}
               id={`announcement-${announcement.announcementPublicId}`}
@@ -75,8 +104,16 @@ export function CampaignAnnouncements({
             </article>
           ))}
         </Stack>
-        {!announcements.isPending && !announcements.error && announcements.data?.length === 0 ? (
+        {announcements.status === 'Exhausted' && displayedAnnouncements.length === 0 ? (
           <Text c='dimmed'>No announcements yet.</Text>
+        ) : null}
+        {announcements.status === 'CanLoadMore' ? (
+          <Button variant='subtle' onClick={() => announcements.loadMore(48)}>
+            Load more announcements
+          </Button>
+        ) : null}
+        {announcements.status === 'LoadingMore' ? (
+          <Loader aria-label='Loading more announcements' size='sm' />
         ) : null}
       </section>
     </div>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useConvexAuth, useMutation as useConvexMutation } from 'convex/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { notificationFeedQuery } from '#app/data/notifications'
 import { NotificationFeedView } from './NotificationFeedView'
 import { toNotificationViewModel, type NotificationDestination } from './notificationModel'
 import * as styles from './notifications.css'
@@ -15,12 +16,15 @@ export function NotificationFeed({
   onNavigate?: () => void
 }) {
   const navigate = useNavigate()
+  const { isAuthenticated } = useConvexAuth()
   const feed = useQuery({
-    queryKey: queryKeys.notifications.feed(),
-    queryFn: () => api.notifications.feed()
+    ...notificationFeedQuery,
+    enabled: isAuthenticated
   })
-  const markAllSeen = useMutation({ mutationFn: () => api.notifications.markAllSeen() })
-  const markRead = useMutation({ mutationFn: (id: string) => api.notifications.markRead({ id }) })
+  const setAllSeen = useConvexMutation(api.notifications.markAllSeen)
+  const setRead = useConvexMutation(api.notifications.markRead)
+  const markAllSeen = useMutation({ mutationFn: () => setAllSeen({}) })
+  const markRead = useMutation({ mutationFn: (id: string) => setRead({ id }) })
   const hasMarkedFeedSeen = useRef(false)
   const [actionError, setActionError] = useState('')
   const viewItems = useMemo(
@@ -29,13 +33,13 @@ export function NotificationFeed({
   )
 
   useEffect(() => {
-    if (hasMarkedFeedSeen.current || !feed.data) return
+    if (hasMarkedFeedSeen.current || !isAuthenticated || !feed.data) return
     hasMarkedFeedSeen.current = true
 
     markAllSeen.mutate(undefined, {
       onError: () => setActionError('Notifications could not be marked as seen.')
     })
-  }, [feed.data, markAllSeen])
+  }, [feed.data, isAuthenticated, markAllSeen])
 
   function open(id: string, destination: NotificationDestination) {
     setActionError('')

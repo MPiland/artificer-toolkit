@@ -1,39 +1,39 @@
 import { notifications } from '@mantine/notifications'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
 import {
   buildVehicleListFilters,
-  formatVehicleCategory,
-  mapVehicleListToAuthoredItems,
-  summarizeVehicleList,
   vehicleListAttributeColumns,
   vehicleListSortOptions
 } from '#app/data/vehicles/vehicleListMapper'
 import { useDuplicateVehicleMutation } from '#app/data/vehicles/mutations'
-import { getVehicle, getVehicleList, useGetVehicleList } from '#app/data/vehicles/queries'
-import { createServerApi } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { getVehicle } from '#app/data/vehicles/queries'
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
-import type { VehicleListRequestDto } from '#app/lib/api'
 
 const vehicleDetailMeta = ['currencies']
-const vehicleCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies VehicleListRequestDto
-
 export const Route = createFileRoute('/_authed/vehicles/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getVehicleList(vehicleCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'VEHICLE',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, { subjectKind: 'VEHICLE' })
+      )
+    ])
   },
   component: VehiclesRoute
 })
@@ -41,32 +41,12 @@ export const Route = createFileRoute('/_authed/vehicles/')({
 function VehiclesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildVehicleListFilters,
-    buildRequest: ({ filterValues, query, sort }): VehicleListRequestDto => ({
-      ...vehicleCatalogueRequest,
-      category: filterValues.category ?? undefined,
-      query: query || undefined,
-      sort: sort === 'category' ? 'category' : 'name',
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) =>
-      mapDraftSummariesToAuthoredItems(response.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatVehicleCategory
-      }),
-    mapItems: mapVehicleListToAuthoredItems,
-    summarize: summarizeVehicleList,
-    useList: useGetVehicleList
-  })
+  const listing = useNativeAuthoredCatalogWindow('VEHICLE')
   const duplicateMutation = useDuplicateVehicleMutation()
+  const operations = createAuthoredOperations('VEHICLE', useConvex())
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.vehicles.deleteActive,
-    deleteDraft: api.content.vehicles.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.vehicles.detailRoot,
     domainLabel: 'Vehicle',
     domainQueryKey: queryKeys.content.vehicles.all(),
@@ -98,11 +78,16 @@ function VehiclesRoute() {
     <>
       <AuthoredListPage
         title='Vehicles'
-        summary={listing.summary ?? 'Loading vehicles...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} vehicles / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading vehicles...'
+        }
         createLabel='Create Vehicle'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildVehicleListFilters(listing.summary?.categories ?? [])}
         attributeColumns={vehicleListAttributeColumns}
         sortOptions={vehicleListSortOptions}
         catalog={listing.catalog}

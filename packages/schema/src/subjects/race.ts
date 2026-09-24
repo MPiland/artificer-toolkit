@@ -1,5 +1,5 @@
 import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared/core'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { raceAncestryDtoSchema } from './shared.js'
 import {
@@ -7,42 +7,42 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema,
   authoredRichTextSchema,
-  authoredShortTextSchema,
-  detailDtoSchema,
-  speedDtoSchema
-} from '../shared/index.js'
-import { featureDtoSchema } from '../features/index.js'
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import { detailDtoSchema } from '../shared/detail.js'
+import { speedDtoSchema } from '../shared/speed.js'
+import { featureDtoSchema } from '../features/feature.js'
 import { authoredRecordStatusSchema, sizeCodeSchema } from '../shared/enums.js'
 
 const raceBaseDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  quote: authoredRichTextSchema.optional(),
-  description: authoredRichTextSchema.optional(),
-  status: authoredRecordStatusSchema.optional(),
+  quote: z.optional(authoredRichTextSchema),
+  description: z.optional(authoredRichTextSchema),
+  status: z.optional(authoredRecordStatusSchema),
   userId: authoredIdentifierSchema,
   systemId: authoredIdentifierSchema
 })
 
-const baseRaceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
+const baseRaceAuthoredDtoSchemaInternal = z.extend(raceBaseDtoSchema, {
   category: z.literal('BASE'),
   selectionMode: z.union([
     z.literal(RACE_SELECTION_MODE.DIRECT),
     z.literal(RACE_SELECTION_MODE.REQUIRES_SUBRACE)
   ]),
-  ancestry: raceAncestryDtoSchema.optional(),
-  heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
-  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
+  ancestry: z.optional(raceAncestryDtoSchema),
+  heritageIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
   size: sizeCodeSchema,
   speeds: authoredNestedCollectionSchema(speedDtoSchema)
 })
 
-const subraceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
+const subraceAuthoredDtoSchemaInternal = z.extend(raceBaseDtoSchema, {
   category: z.literal('SUBRACE'),
   parentRaceId: authoredIdentifierSchema,
-  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional()
+  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
 })
 
 export const baseRaceAuthoredDtoSchema: typeof baseRaceAuthoredDtoSchemaInternal =
@@ -54,16 +54,16 @@ export type BaseRaceAuthoredDto = z.infer<typeof baseRaceAuthoredDtoSchema>
 export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchema>
 export type RaceAuthoredDto = BaseRaceAuthoredDto | SubraceAuthoredDto
 
-export const raceAuthoredDtoSchema: z.ZodType<RaceAuthoredDto> = z.discriminatedUnion('category', [
-  baseRaceAuthoredDtoSchema,
-  subraceAuthoredDtoSchema
-])
+export const raceAuthoredDtoSchema: z.ZodMiniType<RaceAuthoredDto> = z.discriminatedUnion(
+  'category',
+  [baseRaceAuthoredDtoSchema, subraceAuthoredDtoSchema]
+)
 
-const baseRaceAuthoringInputDtoSchemaInternal = baseRaceAuthoredDtoSchema.extend({
-  userId: authoredIdentifierSchema.optional()
+const baseRaceAuthoringInputDtoSchemaInternal = z.extend(baseRaceAuthoredDtoSchema, {
+  userId: z.optional(authoredIdentifierSchema)
 })
-const subraceAuthoringInputDtoSchemaInternal = subraceAuthoredDtoSchema.extend({
-  userId: authoredIdentifierSchema.optional()
+const subraceAuthoringInputDtoSchemaInternal = z.extend(subraceAuthoredDtoSchema, {
+  userId: z.optional(authoredIdentifierSchema)
 })
 
 export const baseRaceAuthoringInputDtoSchema: typeof baseRaceAuthoringInputDtoSchemaInternal =
@@ -75,7 +75,8 @@ export type BaseRaceAuthoringInputDto = z.infer<typeof baseRaceAuthoringInputDto
 export type SubraceAuthoringInputDto = z.infer<typeof subraceAuthoringInputDtoSchema>
 export type RaceAuthoringInputDto = BaseRaceAuthoringInputDto | SubraceAuthoringInputDto
 
-export const raceAuthoringInputDtoSchema: z.ZodType<RaceAuthoringInputDto> = z.discriminatedUnion(
-  'category',
-  [baseRaceAuthoringInputDtoSchema, subraceAuthoringInputDtoSchema]
-)
+export const raceAuthoringInputDtoSchema: z.ZodMiniType<RaceAuthoringInputDto> =
+  z.discriminatedUnion('category', [
+    baseRaceAuthoringInputDtoSchema,
+    subraceAuthoringInputDtoSchema
+  ])

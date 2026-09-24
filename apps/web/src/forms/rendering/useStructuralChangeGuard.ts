@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { useConvex } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  type NodeRuntimePathDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import { notifications } from '@mantine/notifications'
 import {
   clearResolvedNodeFormPaths,
@@ -7,7 +13,6 @@ import {
   type ResolvedNodeClearableForm
 } from '../node-map/nodeFormUtils'
 import { hasMeaningfulAuthoringValueAtPaths, setAuthoringFieldValue } from '../utils/pathUtils'
-import { api } from '#app/lib/api'
 
 export type StructuralChangeRequest = {
   commit: () => void
@@ -43,6 +48,7 @@ export function useStructuralChangeGuard<TValues extends object>({
   rootSystemId,
   rootValues
 }: UseStructuralChangeGuardOptions<TValues>): StructuralChangeGuard {
+  const convex = useConvex()
   const [pending, setPending] = useState(false)
   const [confirmation, setConfirmation] = useState<StructuralChangeConfirmation>()
   const requestSequence = useRef(0)
@@ -100,13 +106,25 @@ export function useStructuralChangeGuard<TValues extends object>({
       )
       setPending(true)
 
-      void api.nodeRuntime
-        .normalizeValues({
-          mapId: rootMapId,
-          systemId: rootSystemId,
-          values: prospectiveValues
+      const normalizationRequest = {
+        mapId: rootMapId,
+        systemId: rootSystemId,
+        values: prospectiveValues
+      }
+      void Promise.resolve()
+        .then(() => {
+          if (!convex) throw new Error('Native node runtime client is unavailable.')
+
+          return convex.query(
+            convexApi.authoring.nodeRuntime.normalizeValues,
+            nodeRuntimeNormalizeValuesRequestDtoSchema.parse(
+              JSON.parse(JSON.stringify(normalizationRequest))
+            )
+          )
         })
         .then((normalization) => {
+          const verifiedNormalization =
+            nodeRuntimeNormalizeValuesResponseDtoSchema.parse(normalization)
           if (requestSequence.current !== requestId) return
           if (
             fingerprintAuthoringValues(toResolvedNodeValues(form.state.values)) !==
@@ -118,18 +136,23 @@ export function useStructuralChangeGuard<TValues extends object>({
             return
           }
 
-          if (hasMeaningfulAuthoringValueAtPaths(prospectiveValues, normalization.clearedPaths)) {
+          if (
+            hasMeaningfulAuthoringValueAtPaths(
+              prospectiveValues,
+              verifiedNormalization.clearedPaths
+            )
+          ) {
             setConfirmation({
               ...change,
               baseValuesFingerprint,
-              clearPaths: normalization.clearedPaths,
+              clearPaths: verifiedNormalization.clearedPaths,
               opener
             })
             return
           }
 
           change.commit()
-          clearResolvedNodeFormPaths(form, normalization.clearedPaths)
+          clearResolvedNodeFormPaths(form, verifiedNormalization.clearedPaths)
         })
         .catch(() => {
           if (requestSequence.current !== requestId) return
@@ -139,7 +162,7 @@ export function useStructuralChangeGuard<TValues extends object>({
           if (requestSequence.current === requestId) setPending(false)
         })
     },
-    [form, rootMapId, rootSystemId, rootValues]
+    [convex, form, rootMapId, rootSystemId, rootValues]
   )
 
   useEffect(

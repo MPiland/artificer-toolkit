@@ -1,11 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HttpResponse, http } from 'msw'
-import { afterAll, beforeAll, expect, vi } from 'vitest'
+import { ConvexReactClient } from 'convex/react'
+import { getFunctionName } from 'convex/server'
+import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
 
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { server } from '#test/msw/server'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { CharacterSheetView } from '../core/CharacterSheetView'
@@ -29,8 +30,31 @@ import {
 } from './inspector.fixtures'
 import { getCharacterSheetPanelImageTarget } from './inspector.model'
 
-function panelResponse(panel: unknown) {
-  return HttpResponse.json([{ result: { data: panel } }])
+function mockPanelQueries(
+  panel: CharacterSheetPanelDto,
+  preparation?: CharacterPreparationOptionsResponseDto
+) {
+  const read = (reference: Parameters<ConvexReactClient['query']>[0]) => {
+    switch (getFunctionName(reference)) {
+      case 'characters/panels:get':
+        return panel
+      case 'characters/preparationOptions:get':
+        return preparation ?? null
+      default:
+        throw new Error(`Unconfigured native query: ${getFunctionName(reference)}`)
+    }
+  }
+  vi.spyOn(ConvexReactClient.prototype, 'query').mockImplementation(async (...[reference]) =>
+    read(reference)
+  )
+  const watch = vi
+    .spyOn(ConvexReactClient.prototype, 'watchQuery')
+    .mockImplementation((...[reference]) => ({
+      localQueryResult: () => read(reference),
+      journal: () => undefined,
+      onUpdate: () => () => undefined
+    }))
+  return watch
 }
 
 const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
@@ -51,6 +75,8 @@ afterAll(() => {
 })
 
 describe('Character Sheet inspector', () => {
+  afterEach(() => vi.restoreAllMocks())
+
   it('maps authored domain panels to their active artwork', () => {
     expect(getCharacterSheetPanelImageTarget(spellPanelAttackDamageFixture)?.lookup).toMatchObject({
       subjectKind: 'SPELL',
@@ -103,7 +129,7 @@ describe('Character Sheet inspector', () => {
   })
 
   it('opens as an overlay from the existing ability card', async () => {
-    server.use(http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture)))
+    const watch = mockPanelQueries(abilityPanelFixture)
     const user = userEvent.setup()
 
     renderWithAppProviders(
@@ -120,6 +146,11 @@ describe('Character Sheet inspector', () => {
     expect(inspector).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Astra Vale' })).toBeVisible()
     expect(screen.queryByRole('button', { name: /save sheet/i })).not.toBeInTheDocument()
+    expect(
+      watch.mock.calls.every(
+        ([reference]) => getFunctionName(reference) === 'characters/panels:get'
+      )
+    ).toBe(true)
   })
 
   it('commits numeric fields on blur', async () => {
@@ -147,7 +178,7 @@ describe('Character Sheet inspector', () => {
   })
 
   it('announces command failures inside the overlay', async () => {
-    server.use(http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture)))
+    mockPanelQueries(abilityPanelFixture)
 
     renderWithAppProviders(
       <CharacterSheetInspector
@@ -404,51 +435,33 @@ describe('Character Sheet inspector', () => {
     const characterId = '00000000-0000-0000-0000-000000000001'
     const classId = '00000000-0000-0000-0000-000000000002'
     const spellId = '00000000-0000-0000-0000-000000000003'
-    server.use(
-      http.get('*/api/trpc/characters.panel,characters.preparationOptions', () =>
-        HttpResponse.json([
+    mockPanelQueries(
+      {
+        kind: 'SPELLS',
+        target: { kind: 'SPELLS' },
+        panelId: 'spells',
+        characterId,
+        title: 'Manage spells',
+        state: 'DEFAULT',
+        editable: true,
+        allowedCommands: ['SET_PREPARED_SPELLS'],
+        slots: [],
+        groups: []
+      },
+      {
+        characterId,
+        streamVersion: 4,
+        classes: [
           {
-            result: {
-              data: {
-                kind: 'SPELLS',
-                target: { kind: 'SPELLS' },
-                panelId: 'spells',
-                characterId,
-                title: 'Manage spells',
-                state: 'DEFAULT',
-                editable: true,
-                allowedCommands: ['SET_PREPARED_SPELLS'],
-                slots: [],
-                groups: []
-              }
-            }
-          },
-          {
-            result: {
-              data: {
-                characterId,
-                streamVersion: 4,
-                classes: [
-                  {
-                    classId,
-                    label: 'Cleric',
-                    preparedSpellLimit: 2,
-                    options: [
-                      {
-                        spellId,
-                        label: 'Healing Word',
-                        level: 1,
-                        prepared: false,
-                        committed: false
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
+            classId,
+            label: 'Cleric',
+            preparedSpellLimit: 2,
+            options: [
+              { spellId, label: 'Healing Word', level: 1, prepared: false, committed: false }
+            ]
           }
-        ])
-      )
+        ]
+      }
     )
 
     renderWithAppProviders(

@@ -234,7 +234,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
             key={session.key}
             form={form}
             session={session}
-            onAdvanced={() => void setExperience('advanced')}
+            onAdvanced={isExperienceUpdating ? undefined : () => void setExperience('advanced')}
             onStateChange={setGuidedState}
           />
         }

@@ -1,9 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { getCreature } from '#app/data/creatures/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { creatureResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getCreature, useGetCreature } from '#app/data/creatures/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
@@ -13,7 +10,6 @@ import {
   validateAuthoredDetailSearch
 } from '#app/routing/authoredDetailSearch'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { CreatureDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { CreatureDetailPage } from '#domains/creatures/pages/CreatureDetailPage'
 
@@ -35,43 +31,14 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
     location,
     params
   }): Promise<CreatureDetailLoaderData> => {
-    const client = createServerApi()
-    const creatureId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.creatures.list(),
-      publicId: params.creaturePublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'CREATURE'
-    })
     const view = resolveAuthoredDetailView(search, location.pathname)
-    const response = await ensureOptionalActiveContent(
-      context.queryClient,
-      getCreature(
-        {
-          id: creatureId,
-          meta: creatureDetailMeta,
-          view
-        },
-        client
+    const response = creatureResponseDtoSchema.parse(
+      await context.queryClient.ensureQueryData(
+        getCreature({ id: params.creaturePublicId, meta: creatureDetailMeta, view })
       )
     )
     const draft = response?.draft ?? null
-    const references: Pick<
-      AuthoredContentReferenceData,
-      | 'challengeRatings'
-      | 'conditionTypes'
-      | 'creatureTypes'
-      | 'damageTypes'
-      | 'equipment'
-      | 'speeds'
-    > = {
-      challengeRatings: response?.meta?.challengeRatings ?? [],
-      conditionTypes: response?.meta?.conditionTypes ?? [],
-      creatureTypes: response?.meta?.creatureTypes ?? [],
-      damageTypes: response?.meta?.damageTypes ?? [],
-      equipment: response?.meta?.equipment ?? [],
-      speeds: response?.meta?.speeds ?? []
-    }
+    const creatureId = response?.item?.id ?? draft?.subjectId ?? params.creaturePublicId
     const routeSubject = getAuthoredRouteSubject(creatureId, response, draft)
 
     if (
@@ -85,19 +52,24 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
       })
     }
 
-    return { breadcrumbLabel: routeSubject?.label, creatureId, draft, references, response, view }
+    return { breadcrumbLabel: routeSubject?.label, creatureId, draft, response, view }
   },
   component: CreatureDetailRoute
 })
 
 function CreatureDetailRoute() {
-  const { creatureId, draft, references, response, view } = Route.useLoaderData()
+  const { creatureId, view } = Route.useLoaderData()
+  const { creaturePublicId } = Route.useParams()
+  const { data: response } = useGetCreature({
+    id: creaturePublicId,
+    meta: creatureDetailMeta,
+    view
+  })
 
   return (
     <CreatureDetailPage
       creatureId={creatureId}
-      draft={draft}
-      references={references}
+      draft={response?.draft ?? null}
       response={response}
       view={view}
     />

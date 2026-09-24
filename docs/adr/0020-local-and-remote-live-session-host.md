@@ -1,12 +1,28 @@
 # ADR 0020: Local and remote authoritative live-session coordination
 
-- **Status:** decision
+- **Status:** historical — durable session-host, executor, journal, and command authority superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-14
-- **Revised:** 2026-08-16
+- **Revised:** 2026-09-22
 - **Scope:** live VTT coordination, local hosting, remote hosting, and the deployment boundary around Zen
 - **Update when:** session authority, native WebSocket protocol, command scheduling, local packaging, remote deployment, or VTT synchronization changes
 - **Verification:** Worker workerd tests; session-host build and authenticated local join, replay, reconnect, persistence, broadcast, and latency gates
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replace rule pins with current capability discovery and frozen occurrence snapshots. [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md) replaces Encounter-owned live Scene materialization with Campaign-owned live Scenes plus optional Encounter bindings. Transport, authority, journal, and renderer ownership remain unchanged.
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaced command-time Character reconstruction at the former executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replaced rule pins with capability discovery and frozen occurrence snapshots. [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md) replaced Encounter-owned live Scene materialization. ADR 0029 supersedes this ADR's transport, durable authority, journal, and executor topology.
+
+## Current superseding amendment — 2026-09-22
+
+ADR 0029 now makes one Session Durable Object the active live-command authority. It owns the minimum
+live projection and ordered execution for Door changes, standalone token movement/undo, and the live
+Character command path. Each accepted command atomically commits SQLite live state, its replay receipt,
+and an ordered Convex publication outbox entry before broadcasting success. Recipient-filtered previews
+remain ephemeral.
+
+Convex remains current-membership authority and the durable cross-session/system product store. It
+independently revalidates ordered publications, drives subscriptions, and is the recovery source after
+release or eviction. Direct overlapping Convex writes are fenced while the Session DO is active. Other
+commands, including Encounter rule paths not explicitly added to the live contract, remain with their
+owning Convex functions.
+
+> Everything below records the retired session-host, Netlify executor, Supabase/Postgres, Zen, local-host, conflict-key scheduler, and lease topology. It is historical and does not override the amendment above.
 
 ## Context
 

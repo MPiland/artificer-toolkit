@@ -1,8 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { TestRouterProvider } from '#test/TestRouterProvider'
 import { Shell } from './Shell'
 import { platformNavigation } from './navigation'
 import { useShellReturnHref } from './returnLocation'
+
+vi.mock('#app/data/media', () => ({
+  useMediaImage: () => ({ data: null })
+}))
 
 describe('Shell', () => {
   beforeEach(() => {
@@ -81,6 +87,19 @@ describe('Shell', () => {
       'href',
       '/settings'
     )
+  })
+
+  it('does not offer a script-only account menu before hydration', () => {
+    const shell = (
+      <Shell currentPath='/home' isAuthenticated navigation={[]}>
+        <div>Home</div>
+      </Shell>
+    )
+    const serverMarkup = document.createElement('div')
+    serverMarkup.innerHTML = renderToString(<TestRouterProvider>{shell}</TestRouterProvider>)
+    expect(serverMarkup.querySelector('button[aria-label="Open account menu"]')).toBeDisabled()
+    renderWithAppProviders(shell)
+    expect(screen.getByRole('button', { name: 'Open account menu' })).toBeEnabled()
   })
 
   it('exposes Social Hub directly without adding it to the Create menu', async () => {

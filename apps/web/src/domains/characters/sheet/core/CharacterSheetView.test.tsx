@@ -1,42 +1,18 @@
-import { screen, waitFor, within } from '@testing-library/react'
-import { useQueryClient } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http } from 'msw'
+import { ConvexReactClient } from 'convex/react'
+import { getFunctionName } from 'convex/server'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { server } from '#test/msw/server'
-import { queryKeys } from '#app/lib/queryKeys'
-import {
-  tabletopCampaignId,
-  tabletopSession
-} from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
+import { tabletopCampaignId } from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
 import { CharacterSheetView } from './CharacterSheetView'
-import {
-  createSheet,
-  openHpControls,
-  readBatchedInput,
-  trpcErrorJson,
-  trpcJson
-} from '../tests/sheetTestHarness'
+import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
+import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 
-const diceCanvasMocks = vi.hoisted(() => ({ preloadDiceModels: vi.fn() }))
-const liveSessionMocks = vi.hoisted(() => ({
-  executeCommand: vi.fn(),
-  getAggregateVersion: vi.fn(() => 0)
+const diceCanvasMocks = vi.hoisted(() => ({
+  onRollSettled: undefined as ((rollId: string) => void) | undefined,
+  preloadDiceModels: vi.fn()
 }))
-
-vi.mock('#domains/campaigns/vtt/useCampaignLiveSession', () => ({
-  useCampaignLiveSession: () => ({
-    encounterCommandPending: false,
-    error: null,
-    executeCommand: liveSessionMocks.executeCommand,
-    getAggregateVersion: liveSessionMocks.getAggregateVersion,
-    sendCommand: vi.fn(),
-    sendTransient: vi.fn(),
-    state: { aggregateVersions: [], deliverySequence: 0, scenes: [] },
-    status: 'CONNECTED' as const
-  })
-}))
-
 vi.mock('../dice/dice.utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../dice/dice.utils')>()),
   supportsWebGL: () => true
@@ -47,49 +23,19 @@ vi.mock('../dice/diceModelPreload', () => ({
 }))
 
 vi.mock('../dice/DiceCanvas', () => ({
-  default: ({ roll }: { roll?: { id: string } }) => (
-    <div data-testid='dice-canvas'>{roll?.id ?? 'idle'}</div>
-  )
+  default: ({
+    roll,
+    onRollSettled
+  }: {
+    onRollSettled: (rollId: string) => void
+    roll?: { id: string }
+  }) => {
+    diceCanvasMocks.onRollSettled = onRollSettled
+    return <div data-testid='dice-canvas'>{roll?.id ?? 'idle'}</div>
+  }
 }))
 
 const liveCharacterId = '33333333-3333-4333-8333-333333333333'
-const liveAttendance = [
-  {
-    campaignId: tabletopCampaignId,
-    characterId: liveCharacterId,
-    present: true,
-    sessionId: tabletopSession.id
-  }
-]
-
-function LiveCharacterSheetHarness({
-  onClient,
-  sheet
-}: {
-  onClient?: (client: ReturnType<typeof useQueryClient>) => void
-  sheet: ReturnType<typeof createSheet>
-}) {
-  const queryClient = useQueryClient()
-  onClient?.(queryClient)
-  if (!queryClient.getQueryData(queryKeys.campaigns.sessions(tabletopCampaignId))) {
-    queryClient.setQueryData(queryKeys.campaigns.sessions(tabletopCampaignId), [tabletopSession])
-  }
-  if (
-    !queryClient.getQueryData(
-      queryKeys.campaigns.sessionAttendance(tabletopCampaignId, tabletopSession.id)
-    )
-  ) {
-    queryClient.setQueryData(
-      queryKeys.campaigns.sessionAttendance(tabletopCampaignId, tabletopSession.id),
-      liveAttendance
-    )
-  }
-  if (!queryClient.getQueryData(queryKeys.characters.sheet(sheet.meta.characterId))) {
-    queryClient.setQueryData(queryKeys.characters.sheet(sheet.meta.characterId), sheet)
-  }
-  return <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />
-}
-
 function createRollRecord(id: string) {
   return {
     id,
@@ -113,28 +59,29 @@ function createRollRecord(id: string) {
 describe('Character Sheet shell', () => {
   beforeEach(() => {
     diceCanvasMocks.preloadDiceModels.mockReset()
-    liveSessionMocks.executeCommand.mockReset()
-    liveSessionMocks.getAggregateVersion.mockReset()
-    liveSessionMocks.getAggregateVersion.mockReturnValue(0)
+    diceCanvasMocks.onRollSettled = undefined
   })
 
   it('rolls the displayed ability modifier and adds the authoritative result to history', async () => {
     const user = userEvent.setup()
-    let submittedRoll: unknown
     window.localStorage.setItem(
       'artificer:dice-presentation:v1',
-      JSON.stringify({ animate3d: false, postProcessing: true, shadowQuality: 'MEDIUM' })
+      JSON.stringify({
+        animate3d: false,
+        postProcessing: true,
+        shadowQuality: 'MEDIUM'
+      })
     )
     const rollRecord = createRollRecord('roll-1')
 
-    server.use(
-      http.post('*/api/trpc/rolls.execute', async ({ request }) => {
-        const body = await request.json()
-        submittedRoll = readBatchedInput<unknown>(body)
-        return trpcJson(rollRecord)
-      }),
-      http.get('*/api/trpc/rolls.history', () => trpcJson([rollRecord]))
-    )
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    const executeRoll = vi.spyOn(convexClient, 'mutation').mockResolvedValue(rollRecord)
+    vi.spyOn(convexClient, 'query').mockResolvedValue([rollRecord])
+    vi.spyOn(convexClient, 'watchQuery').mockReturnValue({
+      localQueryResult: () => [rollRecord],
+      journal: () => undefined,
+      onUpdate: () => () => undefined
+    })
 
     try {
       renderWithAppProviders(
@@ -143,17 +90,21 @@ describe('Character Sheet shell', () => {
           hasDraft={false}
           rollerName='Tess'
           sheet={createSheet()}
-        />
+        />,
+        { convexClient }
       )
 
       await user.click(screen.getByRole('button', { name: 'Roll Strength check: 1d20' }))
 
       await waitFor(() =>
-        expect(submittedRoll).toMatchObject({
+        expect(executeRoll.mock.calls[0]?.[1]).toMatchObject({
           characterId: 'character-1',
           expression: '1d20',
           source: { kind: 'ABILITY_CHECK', label: 'Strength check' }
         })
+      )
+      expect(getFunctionName(executeRoll.mock.calls[0]![0])).toBe(
+        getFunctionName(convexApi.rolls.execute)
       )
       expect(await screen.findByText('Rolled 14')).toBeInTheDocument()
       expect(diceCanvasMocks.preloadDiceModels).not.toHaveBeenCalled()
@@ -165,6 +116,7 @@ describe('Character Sheet shell', () => {
       ).toBeInTheDocument()
     } finally {
       window.localStorage.removeItem('artificer:dice-presentation:v1')
+      await convexClient.close()
     }
   })
 
@@ -176,21 +128,27 @@ describe('Character Sheet shell', () => {
     const rollGate = new Promise<void>((resolve) => {
       releaseRoll = resolve
     })
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
     window.localStorage.setItem(
       'artificer:dice-presentation:v1',
-      JSON.stringify({ animate3d: true, postProcessing: true, shadowQuality: 'MEDIUM' })
-    )
-
-    server.use(
-      http.post('*/api/trpc/rolls.execute', async () => {
-        await rollGate
-        return trpcJson(rollRecord)
-      }),
-      http.post('*/api/trpc/rolls.discard', async ({ request }) => {
-        discardedRoll = readBatchedInput<unknown>(await request.json())
-        return trpcJson({ ok: true })
+      JSON.stringify({
+        animate3d: true,
+        postProcessing: true,
+        shadowQuality: 'MEDIUM'
       })
     )
+
+    vi.spyOn(convexClient, 'mutation').mockImplementation(async (...[reference, args]) => {
+      if (getFunctionName(reference) === getFunctionName(convexApi.rolls.execute)) {
+        await rollGate
+        return rollRecord
+      }
+      if (getFunctionName(reference) === getFunctionName(convexApi.rolls.discard)) {
+        discardedRoll = args
+        return { ok: true }
+      }
+      throw new Error('Unexpected Sheet test mutation.')
+    })
 
     try {
       renderWithAppProviders(
@@ -198,26 +156,161 @@ describe('Character Sheet shell', () => {
           characterPublicId='character-1'
           hasDraft={false}
           sheet={createSheet()}
-        />
+        />,
+        { convexClient }
       )
 
-      const rollTarget = screen.getByRole('button', { name: 'Roll Strength check: 1d20' })
+      const rollTarget = screen.getByRole('button', {
+        name: 'Roll Strength check: 1d20'
+      })
       await user.click(rollTarget)
       expect(rollTarget).toHaveAttribute('aria-busy', 'true')
       expect(await screen.findByTestId('dice-canvas')).toHaveTextContent('idle')
 
-      releaseRoll()
-      await waitFor(() =>
-        expect(screen.getByTestId('dice-canvas')).toHaveTextContent('roll-cancel')
-      )
-
       await user.click(screen.getByRole('heading', { name: 'Aria' }))
+      releaseRoll()
 
       await waitFor(() => expect(screen.getByTestId('dice-canvas')).toHaveTextContent('idle'))
       await waitFor(() => expect(discardedRoll).toEqual({ id: 'roll-cancel' }))
       expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
     } finally {
       window.localStorage.removeItem('artificer:dice-presentation:v1')
+      await convexClient.close()
+    }
+  })
+
+  it('waits for dice presentation before applying rest evidence and cancels an unrevealed roll', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    const roll = {
+      ...createRollRecord('rest-roll'),
+      source: { kind: 'HIT_DIE' as const, label: 'Short rest hit dice' },
+      normalizedExpression: '1d8 + 1',
+      evidence: {
+        ...createRollRecord('rest-roll').evidence,
+        terms: [{ count: 1, die: 8 as const, rolls: [5], subtotal: 5 }],
+        modifier: 1,
+        subtotal: 6,
+        total: 6
+      }
+    }
+    let rollNumber = 0
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    const mutation = vi
+      .spyOn(convexClient, 'mutation')
+      .mockImplementation(async (...[reference, _args]) => {
+        if (getFunctionName(reference) === getFunctionName(convexApi.rolls.execute)) {
+          rollNumber += 1
+          return {
+            ...roll,
+            id:
+              rollNumber === 1
+                ? '00000000-0000-4000-8000-000000000101'
+                : '00000000-0000-4000-8000-000000000102'
+          }
+        }
+        if (getFunctionName(reference) === getFunctionName(convexApi.rolls.discard))
+          return { ok: true }
+        if (
+          getFunctionName(reference) === getFunctionName(convexApi.characters.sheetCommands.execute)
+        ) {
+          return {
+            characterId: sheet.meta.characterId,
+            streamVersion: 5,
+            sheet
+          }
+        }
+        throw new Error('Unexpected mutation')
+      })
+    vi.spyOn(convexClient, 'query').mockImplementation(async (...[reference, args]) => {
+      if (getFunctionName(reference) === 'characters/rest:preview') {
+        return createRestPreview(characterRestPreviewInputSchema.parse(args).input)
+      }
+      return []
+    })
+    window.localStorage.setItem(
+      'artificer:dice-presentation:v1',
+      JSON.stringify({
+        animate3d: true,
+        postProcessing: true,
+        shadowQuality: 'MEDIUM'
+      })
+    )
+    try {
+      renderWithAppProviders(
+        <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />,
+        { convexClient }
+      )
+      await user.click(screen.getByRole('button', { name: /^short rest$/i }))
+      const dialog = await screen.findByRole('dialog', {
+        name: /^short rest$/i
+      })
+      await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
+      const reroll = await within(dialog).findByRole('button', {
+        name: /1d8 \+ 1/i
+      })
+      await waitFor(() => expect(reroll).toBeEnabled())
+      await user.click(reroll)
+      await waitFor(() =>
+        expect(screen.getByTestId('dice-canvas')).toHaveTextContent(
+          '00000000-0000-4000-8000-000000000101'
+        )
+      )
+      expect(within(dialog).queryByText(/6 rolled/i)).not.toBeInTheDocument()
+      await user.click(screen.getByRole('heading', { name: 'Aria' }))
+      await waitFor(() =>
+        expect(
+          mutation.mock.calls.some(
+            ([reference, args]) =>
+              getFunctionName(reference) === getFunctionName(convexApi.rolls.discard) &&
+              (args as { id: string }).id === '00000000-0000-4000-8000-000000000101'
+          )
+        ).toBe(true)
+      )
+      expect(within(dialog).queryByText(/6 rolled/i)).not.toBeInTheDocument()
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: /^short rest$/i })).not.toBeInTheDocument()
+      )
+      await user.click(screen.getByRole('button', { name: /^short rest$/i }))
+      const reopenedDialog = await screen.findByRole('dialog', {
+        name: /^short rest$/i
+      })
+      const addHitDie = within(reopenedDialog).getByRole('button', {
+        name: /add one d8 hit die/i
+      })
+      await waitFor(() => expect(addHitDie).toBeEnabled())
+      await user.click(addHitDie)
+      const revealedReroll = await within(reopenedDialog).findByRole('button', {
+        name: /1d8 \+ 1/i
+      })
+      await waitFor(() => expect(revealedReroll).toBeEnabled())
+      await user.click(revealedReroll)
+      await waitFor(() =>
+        expect(screen.getByTestId('dice-canvas')).toHaveTextContent(
+          '00000000-0000-4000-8000-000000000102'
+        )
+      )
+      await act(async () => diceCanvasMocks.onRollSettled?.('00000000-0000-4000-8000-000000000102'))
+      expect((await within(reopenedDialog).findAllByText(/6 rolled/i)).length).toBeGreaterThan(0)
+      await user.click(
+        within(reopenedDialog).getByRole('button', {
+          name: /take short rest/i
+        })
+      )
+      await waitFor(() =>
+        expect(
+          mutation.mock.calls.some(
+            ([reference, args]) =>
+              getFunctionName(reference) ===
+                getFunctionName(convexApi.characters.sheetCommands.execute) &&
+              (args as { command: { rollId?: string } }).command.rollId ===
+                '00000000-0000-4000-8000-000000000102'
+          )
+        ).toBe(true)
+      )
+    } finally {
+      window.localStorage.removeItem('artificer:dice-presentation:v1')
+      await convexClient.close()
     }
   })
 
@@ -236,169 +329,74 @@ describe('Character Sheet shell', () => {
     expect(within(dialog).getByLabelText('Modifier for row 2')).toBeInTheDocument()
   })
 
-  it('submits sheet commands through the production command mutation path', async () => {
-    const user = userEvent.setup()
-    let submittedCommand: unknown
-
-    server.use(
-      http.post('*/api/trpc/characters.command', async ({ request }) => {
-        const body = await request.json()
-        submittedCommand = readBatchedInput<{ id: string; input: unknown }>(body).input
-        const sheet = createSheet()
-        sheet.meta.streamVersion = 5
-
-        return trpcJson({
-          characterId: sheet.meta.characterId,
-          streamVersion: sheet.meta.streamVersion,
-          sheet
-        })
-      })
-    )
-
-    renderWithAppProviders(
-      <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={createSheet()} />
-    )
-
-    await openHpControls(user)
-    await user.click(screen.getByRole('button', { name: /^damage$/i }))
-
-    await waitFor(() =>
-      expect(submittedCommand).toMatchObject({
-        type: 'ADJUST_HIT_POINTS',
-        expectedVersion: 4
-      })
-    )
-  })
-
-  it('routes an attended live-session character through the authoritative socket command', async () => {
+  it('submits sheet commands through the native command mutation path', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()
-    sheet.meta.campaignId = tabletopCampaignId
-    sheet.meta.characterId = liveCharacterId
-    let httpCommandCalled = false
-    let refetchQueries: ReturnType<typeof vi.spyOn> | undefined
-    liveSessionMocks.getAggregateVersion.mockReturnValue(5)
-
-    server.use(
-      http.all('*/api/trpc/campaigns.sessions.list', () => trpcJson([tabletopSession])),
-      http.all('*/api/trpc/campaigns.sessions.attendance.list', () => trpcJson(liveAttendance)),
-      http.post('*/api/trpc/characters.command', () => {
-        httpCommandCalled = true
-        return trpcJson({ characterId: sheet.meta.characterId, sheet, streamVersion: 5 })
-      })
-    )
-    liveSessionMocks.executeCommand.mockImplementation(async (command) => {
-      return {
-        acceptedSequence: 1,
-        aggregateId: sheet.meta.characterId,
-        aggregateKind: 'CHARACTER' as const,
-        deliverySequence: 1,
-        originCommandId: command.command.commandId,
-        replayed: false,
-        response: null,
-        type: 'COMMAND_COMMITTED' as const,
-        version: 5
-      }
-    })
-
-    renderWithAppProviders(
-      <LiveCharacterSheetHarness
-        onClient={(client) => {
-          refetchQueries ??= vi.spyOn(client, 'refetchQueries')
-        }}
-        sheet={sheet}
-      />
-    )
-
-    await waitFor(
-      () => expect(screen.getByRole('button', { name: /manage (?:hp|hit points)/i })).toBeEnabled(),
-      { timeout: 5_000 }
-    )
-    await openHpControls(user)
-    const damage = screen.getByRole('button', { name: /^damage$/i })
-    await waitFor(() => expect(damage).toBeEnabled())
-    await user.click(damage)
-
-    await waitFor(() => expect(liveSessionMocks.executeCommand).toHaveBeenCalledTimes(1))
-    expect(liveSessionMocks.executeCommand).toHaveBeenCalledWith({
-      aggregateKind: 'CHARACTER',
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    const execute = vi.spyOn(convexClient, 'mutation').mockResolvedValue({
       characterId: sheet.meta.characterId,
-      command: expect.objectContaining({ expectedVersion: 5, type: 'ADJUST_HIT_POINTS' })
+      streamVersion: 5,
+      sheet
     })
-    expect(httpCommandCalled).toBe(false)
-    await waitFor(() =>
-      expect(refetchQueries).toHaveBeenCalledWith({
-        queryKey: queryKeys.characters.sheet(sheet.meta.characterId),
-        exact: true
-      })
+
+    renderWithAppProviders(
+      <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />,
+      { convexClient }
     )
+
+    await openHpControls(user)
+    await user.click(screen.getByRole('button', { name: /^damage$/i }))
+
+    await waitFor(() => expect(execute).toHaveBeenCalledTimes(1))
+    expect(getFunctionName(execute.mock.calls[0]![0])).toBe(
+      getFunctionName(convexApi.characters.sheetCommands.execute)
+    )
+    expect(execute.mock.calls[0]?.[1]).toMatchObject({
+      id: sheet.meta.characterId,
+      command: { type: 'ADJUST_HIT_POINTS', expectedVersion: 4 }
+    })
+    await convexClient.close()
   })
 
-  it('does not apply a delayed live command response older than the room version', async () => {
+  it('submits a campaign GM HP change through the campaign command mutation', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()
     sheet.meta.campaignId = tabletopCampaignId
     sheet.meta.characterId = liveCharacterId
-    liveSessionMocks.getAggregateVersion.mockReturnValue(6)
-    liveSessionMocks.executeCommand.mockImplementation(async (command) => {
-      const replayedSheet = structuredClone(sheet)
-      replayedSheet.meta.streamVersion = 5
-      return {
-        acceptedSequence: 1,
-        aggregateId: sheet.meta.characterId,
-        aggregateKind: 'CHARACTER' as const,
-        deliverySequence: 1,
-        originCommandId: command.command.commandId,
-        replayed: true,
-        response: {
-          characterId: sheet.meta.characterId,
-          sheet: replayedSheet,
-          streamVersion: 5
-        },
-        type: 'COMMAND_COMMITTED' as const,
-        version: 5
-      }
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    const execute = vi.spyOn(convexClient, 'mutation').mockResolvedValue({
+      characterId: sheet.meta.characterId,
+      streamVersion: 5,
+      sheet
     })
-
-    let queryClient: ReturnType<typeof useQueryClient> | undefined
     renderWithAppProviders(
-      <LiveCharacterSheetHarness
-        onClient={(client) => {
-          queryClient = client
-        }}
-        sheet={sheet}
-      />
-    )
-
-    await waitFor(
-      () => expect(screen.getByRole('button', { name: /manage (?:hp|hit points)/i })).toBeEnabled(),
-      { timeout: 5_000 }
+      <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />,
+      { convexClient }
     )
     await openHpControls(user)
     await user.click(screen.getByRole('button', { name: /^damage$/i }))
-    await waitFor(() => expect(liveSessionMocks.executeCommand).toHaveBeenCalledTimes(1))
-
-    expect(
-      queryClient?.getQueryData<ReturnType<typeof createSheet>>(
-        queryKeys.characters.sheet(sheet.meta.characterId)
-      )?.meta.streamVersion
-    ).toBe(4)
+    await waitFor(() => expect(execute).toHaveBeenCalledTimes(1))
+    expect(getFunctionName(execute.mock.calls[0]![0])).toBe(
+      getFunctionName(convexApi.campaigns.characterSheet.execute)
+    )
+    expect(execute.mock.calls[0]?.[1]).toMatchObject({
+      campaignId: tabletopCampaignId,
+      characterId: sheet.meta.characterId,
+      command: { type: 'ADJUST_HIT_POINTS', expectedVersion: 4 }
+    })
+    await convexClient.close()
   })
 
   it('shows sheet command errors from the production command mutation path', async () => {
     const user = userEvent.setup()
-
-    server.use(
-      http.post('*/api/trpc/characters.command', () =>
-        trpcErrorJson(
-          'This character changed in another tab. Refresh the sheet, then try again.',
-          409
-        )
-      )
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    vi.spyOn(convexClient, 'mutation').mockRejectedValue(
+      new Error('This character changed in another tab. Refresh the sheet, then try again.')
     )
 
     renderWithAppProviders(
-      <CharacterSheetView characterPublicId='character-1' hasDraft sheet={createSheet()} />
+      <CharacterSheetView characterPublicId='character-1' hasDraft sheet={createSheet()} />,
+      { convexClient }
     )
 
     expect(screen.getByText(/builder draft work/i)).toBeInTheDocument()
@@ -406,6 +404,7 @@ describe('Character Sheet shell', () => {
     await user.click(screen.getByRole('button', { name: /^damage$/i }))
 
     expect(await screen.findByText(/changed in another tab/i)).toBeInTheDocument()
+    await convexClient.close()
   })
 
   it('reacts when the requested initial sheet tab changes', () => {

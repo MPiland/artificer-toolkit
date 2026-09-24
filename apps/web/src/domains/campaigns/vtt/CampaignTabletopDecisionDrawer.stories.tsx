@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterCommandResultDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
-import type { LiveSessionCommittedMessage } from './liveSessionClient'
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
 const resolveDecision = fn()
@@ -38,12 +40,34 @@ const reactionPending = {
   allowedResponses: ['DECLINE', 'OPTION']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
+const passagePending = {
+  kind: 'MOVEMENT_PASSAGE_CHOICE',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  sourceActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [
+    { optionId: 'a'.repeat(64), ruleKind: 'OVERRUN' as const, economy: 'ACTION' as const },
+    { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
+  ],
+  allowedResponses: ['DECLINE', 'OPTION']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
 const initiativePending = {
   kind: 'INITIATIVE_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
   request: { requestId: 'initiative-roll', min: 1, max: 20 },
+  allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const actionOutcomePending = {
+  kind: 'ACTION_OUTCOME_EVIDENCE',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  request: { requestId: 'action-outcome', min: 0, max: 10 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
@@ -76,38 +100,18 @@ const declarationPending = {
 
 async function resolveDecisionCommand(
   command: ResolveRuleOccurrenceInputDto
-): Promise<LiveSessionCommittedMessage> {
+): Promise<EncounterCommandResultDto> {
   resolveDecision(command)
   return {
-    type: 'COMMAND_COMMITTED',
-    acceptedSequence: 1,
-    aggregateKind: 'ENCOUNTER',
-    aggregateId: tabletopGmEncounter.id,
-    deliverySequence: 1,
-    originCommandId: command.commandId,
-    replayed: false,
-    changedAggregates: [
-      {
-        aggregateKind: 'ENCOUNTER',
-        aggregateId: tabletopGmEncounter.id,
-        beforeVersion: tabletopGmEncounter.version,
-        version: tabletopGmEncounter.version + 1
-      }
-    ],
-    encounterActorTokenBindings: [],
-    encounterSceneBindings: [],
-    version: tabletopGmEncounter.version + 1,
-    response: {
-      projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
-      roll: null,
-      resolution: null,
-      occurrence: {
-        occurrenceId: command.occurrenceId,
-        occurrenceVersion: command.expectedOccurrenceVersion + 1,
-        status: 'COMPLETE',
-        outcome: null,
-        pending: null
-      }
+    projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
+    roll: null,
+    resolution: null,
+    occurrence: {
+      occurrenceId: command.occurrenceId,
+      occurrenceVersion: command.expectedOccurrenceVersion + 1,
+      status: 'COMPLETE',
+      outcome: null,
+      pending: null
     }
   }
 }
@@ -166,6 +170,22 @@ export const MovementReaction: Story = {
   }
 }
 
+export const PassageChoice: Story = {
+  args: { pending: passagePending },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecision(page)
+    await userEvent.click(drawer.getByRole('button', { name: 'Overrun · Action' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    await expect(resolveDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'PASSAGE_OPTION', optionId: 'a'.repeat(64) }
+      })
+    )
+  }
+}
+
 export const InitiativeSystemRoll: Story = {
   args: { pending: initiativePending },
   play: async ({ canvasElement }) => {
@@ -177,6 +197,23 @@ export const InitiativeSystemRoll: Story = {
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({
         resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll' }
+      })
+    )
+  }
+}
+
+export const ActionOutcome: Story = {
+  args: { pending: actionOutcomePending },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecision(page)
+    await userEvent.type(drawer.getByLabelText('Result'), '7')
+    await userEvent.click(drawer.getByRole('button', { name: 'Submit result' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    await expect(resolveDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'ENTER_INTEGER', requestId: 'action-outcome', value: 7 }
       })
     )
   }
@@ -231,6 +268,8 @@ export const KeyboardConflict: Story = {
     await userEvent.keyboard('{Enter}')
     const dialog = await page.findByRole('dialog', { name: 'Pending decision' })
     await waitFor(() => expect(dialog).toBeVisible())
+    await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe('1'))
+    await waitFor(() => expect(dialog.getAnimations()).toHaveLength(0))
     const drawer = within(dialog)
     await userEvent.click(drawer.getByRole('button', { name: 'Roll in VTT' }))
     await expect(
@@ -243,5 +282,7 @@ async function openDecision(page: ReturnType<typeof within>) {
   await userEvent.click(await page.findByRole('button', { name: 'Open pending decision' }))
   const dialog = await page.findByRole('dialog', { name: 'Pending decision' })
   await waitFor(() => expect(dialog).toBeVisible())
+  await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe('1'))
+  await waitFor(() => expect(dialog.getAnimations()).toHaveLength(0))
   return within(dialog)
 }

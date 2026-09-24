@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { UpdatePasswordPage } from '#app/auth/pages'
+import { ResetPasswordPage } from '#app/auth/pages/ResetPasswordPage'
+import { UpdatePasswordPage } from '#app/auth/pages/UpdatePasswordPage'
 
 export const Route = createFileRoute('/_guest/_auth/update-password')({
   validateSearch: z.object({
@@ -12,5 +13,5 @@ export const Route = createFileRoute('/_guest/_auth/update-password')({
 function UpdatePasswordRoute() {
   const { flow } = Route.useSearch()
 
-  return <UpdatePasswordPage invitation={flow === 'invite'} />
+  return flow === 'invite' ? <UpdatePasswordPage invitation /> : <ResetPasswordPage />
 }

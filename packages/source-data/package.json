@@ -1,0 +1,37 @@
+{
+  "name": "@artificer-toolkit/source-data",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./content": {
+      "types": "./dist/content.d.ts",
+      "default": "./dist/content.js"
+    },
+    "./srd": {
+      "types": "./dist/srd/index.d.ts",
+      "default": "./dist/srd/index.js"
+    },
+    "./srd/*.js": {
+      "types": "./dist/srd/*.d.ts",
+      "default": "./dist/srd/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/source-data/src"
+  },
+  "dependencies": {
+    "@artificer-toolkit/schema": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

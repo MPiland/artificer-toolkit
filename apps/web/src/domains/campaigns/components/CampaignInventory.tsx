@@ -10,19 +10,28 @@ import {
   Text,
   Title
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import type { InventoryDto } from '@artificer-toolkit/schema/api/campaigns'
-import type { CampaignDetailDto, InventoryOwnerRefDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import {
-  getCampaignCurrencySystems,
-  getCampaignInventory,
-  getCampaignVehicles
-} from '#app/data/campaigns/queries'
+import { useMutation } from '@tanstack/react-query'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type {
+  InventoryDto,
+  TransferCampaignInventoryInput
+} from '@artificer-toolkit/schema/api/campaignInventory'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useEffect, useState } from 'react'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { useConvex, useMutation as useConvexMutation, useQuery } from 'convex/react'
 import { CurrencySystemEditor } from './CurrencySystemEditor'
 import { CampaignInventoryAudit } from './CampaignInventoryAudit'
 import { CampaignPartyInventoryActions } from './CampaignPartyInventoryActions'
+import {
+  aggregateInventoryCurrencies,
+  getAuthorizedSourceOwners,
+  getCharacterInventory,
+  getCurrentCurrencyOptions,
+  getTransferDestinationOwners,
+  inventoryCurrencyKey,
+  parseOwner
+} from './campaignInventory.utils'
 import * as sharedStyles from '../campaigns.css'
 import * as inventoryStyles from './inventory.css'
 
@@ -35,80 +44,250 @@ export function CampaignInventory({
   currentUserId: string
   partyOnly?: boolean
 }) {
-  const queryClient = useQueryClient()
-  const vehicles = useQuery(getCampaignVehicles(campaign.id))
-  const ownerOptions = getAuthorizedSourceOwners(campaign, currentUserId, vehicles.data ?? [])
-  const destinationOptions = getTransferDestinationOwners(campaign, vehicles.data ?? [])
+  const convex = useConvex()
+  const transferInventory = useConvexMutation(convexApi.campaigns.inventoryTransfers.transfer)
+  const retryCleanup = useConvexMutation(convexApi.campaigns.inventoryCleanup.retry)
   const [ownerValue, setOwnerValue] = useState('PARTY')
-  const [destinationValue, setDestinationValue] = useState(destinationOptions[1]?.value ?? '')
+  const [destinationValue, setDestinationValue] = useState(() => {
+    const assignedCharacter = campaign.memberships.find((member) => member.assignedCharacter)
+    return assignedCharacter?.assignedCharacter
+      ? `CHARACTER:${assignedCharacter.assignedCharacter.id}`
+      : ''
+  })
   const [assetValue, setAssetValue] = useState('')
   const [amount, setAmount] = useState(1)
-  const sourceOwner = parseOwner(ownerValue, campaign.id)
+  const [preparingTransfer, setPreparingTransfer] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
   const destinationOwner = destinationValue ? parseOwner(destinationValue, campaign.id) : null
-  const inventory = useQuery(getCampaignInventory(campaign.id, sourceOwner))
-  const currencySystems = useQuery({
-    ...getCampaignCurrencySystems(campaign.id),
-    enabled: !partyOnly && campaign.role === 'OWNER'
-  })
-  const canTransfer =
-    (sourceOwner.kind !== 'VEHICLE' || campaign.capabilities.managePartyInventory) &&
-    (campaign.capabilities.managePartyInventory || campaign.capabilities.transferOwnInventory)
-  const carriedItems = (inventory.data?.items ?? []).filter((item) => !item.containerId)
-  const carriedCurrencies = (inventory.data?.currencies ?? []).filter(
-    (currency) => !currency.containerId
+  const vehicles = usePaginatedQuery(
+    convexApi.campaigns.vehicles.list,
+    partyOnly ? 'skip' : { campaignId: campaign.id },
+    { initialNumItems: 48 }
   )
-  const containers = (inventory.data?.items ?? []).filter((item) => item.isContainer)
-  const transferableCurrencies = Array.from(
-    (inventory.data?.currencies ?? [])
-      .reduce((byDenomination, currency) => {
-        const current = byDenomination.get(currency.denominationId)
-        byDenomination.set(currency.denominationId, {
-          ...currency,
-          amount: (current?.amount ?? 0) + currency.amount,
-          containerId: null
-        })
-        return byDenomination
-      }, new Map<string, InventoryDto['currencies'][number]>())
-      .values()
+  const ownerOptions = getAuthorizedSourceOwners(campaign, currentUserId, vehicles.results)
+  const selectedOwnerValue = ownerOptions.some((option) => option.value === ownerValue)
+    ? ownerValue
+    : 'PARTY'
+  const sourceOwner = parseOwner(selectedOwnerValue, campaign.id)
+  const cleanup = usePaginatedQuery(
+    convexApi.campaigns.inventoryCleanup.pending,
+    sourceOwner.kind === 'CHARACTER'
+      ? 'skip'
+      : {
+          campaignId: campaign.id,
+          ...(sourceOwner.kind === 'VEHICLE' ? { vehicleId: sourceOwner.vehicleId } : {})
+        },
+    { initialNumItems: 48 }
+  )
+  const cleanupNotices = [
+    ...new Map(cleanup.results.map((notice) => [notice.jobId, notice])).values()
+  ]
+  const vehicleCleanupPending = sourceOwner.kind === 'VEHICLE' && cleanupNotices.length > 0
+  const cleanupRetry = useMutation({
+    mutationFn: (jobId: string) => retryCleanup({ campaignId: campaign.id, jobId })
+  })
+  const partyItems = usePaginatedQuery(
+    convexApi.campaigns.partyInventory.items,
+    sourceOwner.kind === 'CAMPAIGN' ? { campaignId: campaign.id } : 'skip',
+    { initialNumItems: 48 }
+  )
+  const partyCurrencies = usePaginatedQuery(
+    convexApi.campaigns.partyInventory.currencies,
+    sourceOwner.kind === 'CAMPAIGN' ? { campaignId: campaign.id } : 'skip',
+    { initialNumItems: 48 }
+  )
+  const vehicleItems = usePaginatedQuery(
+    convexApi.campaigns.vehicleInventory.items,
+    sourceOwner.kind === 'VEHICLE'
+      ? { campaignId: campaign.id, vehicleId: sourceOwner.vehicleId }
+      : 'skip',
+    { initialNumItems: 48 }
+  )
+  const vehicleCurrencies = usePaginatedQuery(
+    convexApi.campaigns.vehicleInventory.currencies,
+    sourceOwner.kind === 'VEHICLE'
+      ? { campaignId: campaign.id, vehicleId: sourceOwner.vehicleId }
+      : 'skip',
+    { initialNumItems: 48 }
+  )
+  const characterSheet = useQuery(
+    convexApi.campaigns.characterSheet.get,
+    sourceOwner.kind === 'CHARACTER'
+      ? { campaignId: campaign.id, characterId: sourceOwner.characterId }
+      : 'skip'
+  )
+  const ownerVersion = useQuery(convexApi.campaigns.inventoryOwners.version, {
+    input: { campaignId: campaign.id, owner: sourceOwner }
+  })
+  const currencySystems = usePaginatedQuery(
+    convexApi.campaigns.currencySystems.list,
+    !partyOnly ? { campaignId: campaign.id } : 'skip',
+    { initialNumItems: 48 }
+  )
+  const canManageInventory =
+    campaign.capabilities.managePartyInventory && campaign.status === 'ACTIVE'
+  const system = useQuery(
+    convexApi.content.systems.get,
+    !partyOnly ? { id: campaign.gameSystemId } : 'skip'
+  )
+
+  useEffect(() => {
+    if (ownerValue === selectedOwnerValue) return
+    setOwnerValue(selectedOwnerValue)
+    setAssetValue('')
+  }, [ownerValue, selectedOwnerValue])
+  useEffect(() => {
+    if (cleanup.status === 'CanLoadMore') cleanup.loadMore(48)
+  }, [cleanup.loadMore, cleanup.status])
+  useEffect(() => {
+    if (vehicles.status === 'CanLoadMore') vehicles.loadMore(48)
+  }, [vehicles.loadMore, vehicles.status])
+  useEffect(() => {
+    if (partyItems.status === 'CanLoadMore') partyItems.loadMore(48)
+  }, [partyItems.loadMore, partyItems.status])
+  useEffect(() => {
+    if (partyCurrencies.status === 'CanLoadMore') partyCurrencies.loadMore(48)
+  }, [partyCurrencies.loadMore, partyCurrencies.status])
+  useEffect(() => {
+    if (vehicleItems.status === 'CanLoadMore') vehicleItems.loadMore(48)
+  }, [vehicleItems.loadMore, vehicleItems.status])
+  useEffect(() => {
+    if (vehicleCurrencies.status === 'CanLoadMore') vehicleCurrencies.loadMore(48)
+  }, [vehicleCurrencies.loadMore, vehicleCurrencies.status])
+  useEffect(() => {
+    if (currencySystems.status === 'CanLoadMore') currencySystems.loadMore(48)
+  }, [currencySystems.loadMore, currencySystems.status])
+
+  const destinationOptions = getTransferDestinationOwners(campaign, vehicles.results)
+  const currencyOptionsReady =
+    !partyOnly && system !== undefined && currencySystems.status === 'Exhausted'
+  const currencyOptions = currencyOptionsReady
+    ? getCurrentCurrencyOptions(system, currencySystems.results, campaign.contentMaturity)
+    : []
+  const characterInventory =
+    sourceOwner.kind === 'CHARACTER' && characterSheet && ownerVersion
+      ? getCharacterInventory(characterSheet, sourceOwner, currencyOptions)
+      : undefined
+  const inventory =
+    sourceOwner.kind === 'CHARACTER'
+      ? characterInventory?.inventory
+      : ownerVersion
+        ? {
+            owner: sourceOwner,
+            version: ownerVersion.version,
+            items: sourceOwner.kind === 'CAMPAIGN' ? partyItems.results : vehicleItems.results,
+            currencies:
+              sourceOwner.kind === 'CAMPAIGN' ? partyCurrencies.results : vehicleCurrencies.results
+          }
+        : undefined
+  const inventoryLoading =
+    ownerVersion === undefined ||
+    (sourceOwner.kind === 'CAMPAIGN' &&
+      (partyItems.status === 'LoadingFirstPage' ||
+        partyCurrencies.status === 'LoadingFirstPage')) ||
+    (sourceOwner.kind === 'VEHICLE' &&
+      (vehicleItems.status === 'LoadingFirstPage' ||
+        vehicleCurrencies.status === 'LoadingFirstPage')) ||
+    (sourceOwner.kind === 'CHARACTER' && characterSheet === undefined)
+  const carriedItems = (inventory?.items ?? []).filter((item) => !item.containerId)
+  const carriedCurrencies = aggregateInventoryCurrencies(
+    (inventory?.currencies ?? []).filter((currency) => !currency.containerId)
+  )
+  const containers = (inventory?.items ?? []).filter((item) => item.isContainer)
+  const transferableCurrencies = aggregateInventoryCurrencies(
+    (inventory?.currencies ?? [])
+      .filter(
+        (currency) =>
+          Boolean(currency.kind) &&
+          (currency.kind !== 'CAMPAIGN' || Boolean(currency.campaignCurrencySystemId))
+      )
+      .map((currency) => ({ ...currency, containerId: null }))
   )
   const assetOptions = [
-    ...(inventory.data?.items ?? []).map((item) => ({
+    ...(inventory?.items ?? []).map((item) => ({
       value: `ITEM:${item.id}`,
-      label: `${item.label} (${item.quantity})`
+      label: `${item.label} (${item.quantity})`,
+      item
     })),
     ...transferableCurrencies.map((currency) => ({
-      value: `CURRENCY:${currency.denominationId}`,
-      label: `${currency.label} (${currency.amount} ${currency.abbreviation})`
+      value: `CURRENCY:${inventoryCurrencyKey(currency)}`,
+      label: `${currency.label} (${currency.amount} ${currency.abbreviation})`,
+      currency
     }))
   ]
+  const selectedAsset = assetOptions.find((option) => option.value === assetValue)
   const transfer = useMutation({
-    mutationFn: async () => {
-      if (!inventory.data || !destinationOwner)
-        throw new Error('Choose a different destination inventory.')
-      const destinationInventory = await api.campaigns.inventory.get(campaign.id, destinationOwner)
-      const [kind, assetId] = assetValue.split(':') as ['ITEM' | 'CURRENCY', string]
+    mutationFn: (input: TransferCampaignInventoryInput) => transferInventory({ input }),
+    onSuccess: () => {
+      setTransferError(null)
+      setAssetValue('')
+    }
+  })
+  const canTransfer =
+    campaign.status === 'ACTIVE' &&
+    (sourceOwner.kind !== 'VEHICLE' || campaign.capabilities.managePartyInventory) &&
+    (campaign.capabilities.managePartyInventory || campaign.capabilities.transferOwnInventory)
+  const transferPending = preparingTransfer || transfer.isPending
+  const sourceReady =
+    !vehicleCleanupPending &&
+    inventory !== undefined &&
+    (sourceOwner.kind === 'CHARACTER'
+      ? currencyOptionsReady
+      : sourceOwner.kind === 'CAMPAIGN'
+        ? partyItems.status === 'Exhausted' && partyCurrencies.status === 'Exhausted'
+        : vehicleItems.status === 'Exhausted' && vehicleCurrencies.status === 'Exhausted')
+
+  async function startTransfer() {
+    if (
+      transferPending ||
+      !sourceReady ||
+      !inventory ||
+      !destinationOwner ||
+      !selectedAsset ||
+      destinationValue === selectedOwnerValue
+    )
+      return
+    setPreparingTransfer(true)
+    setTransferError(null)
+    try {
+      const fences = await convex.query(convexApi.campaigns.inventoryOwners.transferVersions, {
+        input: { campaignId: campaign.id, source: sourceOwner, destination: destinationOwner }
+      })
+      if ('currency' in selectedAsset && !selectedAsset.currency.kind)
+        throw new Error('Choose a currency with a current namespace.')
       const common = {
         campaignId: campaign.id,
         source: sourceOwner,
         destination: destinationOwner,
         amount,
-        expectedSourceVersion: inventory.data.version,
-        expectedDestinationVersion: destinationInventory.version,
+        expectedSourceVersion: inventory.version,
+        expectedDestinationVersion: fences.destinationVersion,
         idempotencyKey: crypto.randomUUID()
       }
-      return kind === 'ITEM'
-        ? api.campaigns.inventory.transfer({ ...common, kind, itemId: assetId })
-        : api.campaigns.inventory.transfer({
-            ...common,
-            kind,
-            denominationId: assetId
-          })
-    },
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['campaigns', campaign.id, 'inventory']
-      })
-  })
+      const input: TransferCampaignInventoryInput =
+        'item' in selectedAsset
+          ? { ...common, kind: 'ITEM', itemId: selectedAsset.item.id }
+          : {
+              ...common,
+              kind: 'CURRENCY',
+              campaignCurrencySystemId:
+                selectedAsset.currency.kind === 'RULESET'
+                  ? null
+                  : selectedAsset.currency.campaignCurrencySystemId,
+              denominationId: selectedAsset.currency.denominationId
+            }
+      transfer.mutate(input)
+    } catch (error) {
+      setTransferError(error instanceof Error ? error.message : 'Transfer could not be prepared.')
+    } finally {
+      setPreparingTransfer(false)
+    }
+  }
+
+  function resetTransferSelection() {
+    transfer.reset()
+    setTransferError(null)
+  }
 
   return (
     <div className={partyOnly ? undefined : inventoryStyles.inventoryWorkspace}>
@@ -129,18 +308,47 @@ export function CampaignInventory({
             <Select
               data={ownerOptions}
               classNames={{ input: sharedStyles.input }}
+              disabled={transferPending}
               label='Inventory owner'
-              value={ownerValue}
+              value={selectedOwnerValue}
               onChange={(value) => {
-                transfer.reset()
+                resetTransferSelection()
                 setOwnerValue(value ?? 'PARTY')
                 setAssetValue('')
               }}
             />
           </>
         ) : null}
-        {inventory.error ? <Alert color='red'>{inventory.error.message}</Alert> : null}
-        {inventory.isPending ? (
+        {cleanupNotices.map((notice) => (
+          <Group key={notice.jobId} gap='xs' role='status' aria-live='polite'>
+            {notice.status === 'RUNNING' ? <Loader size='xs' aria-hidden='true' /> : null}
+            <Text size='sm'>
+              {notice.status === 'FAILED'
+                ? 'Inventory update needs a retry.'
+                : sourceOwner.kind === 'VEHICLE'
+                  ? 'Updating Vehicle cargo'
+                  : 'Updating incoming inventory'}
+            </Text>
+            {notice.status === 'FAILED' && campaign.role === 'OWNER' && notice.retryReady ? (
+              <Button
+                size='compact-sm'
+                variant='subtle'
+                disabled={cleanupRetry.isPending}
+                loading={cleanupRetry.isPending && cleanupRetry.variables === notice.jobId}
+                onClick={() => cleanupRetry.mutate(notice.jobId)}
+              >
+                Retry update
+              </Button>
+            ) : null}
+            {cleanupRetry.error && cleanupRetry.variables === notice.jobId ? (
+              <Text c='red' size='sm'>
+                Inventory update could not be retried.
+              </Text>
+            ) : null}
+          </Group>
+        ))}
+        {characterInventory?.error ? <Alert color='red'>{characterInventory.error}</Alert> : null}
+        {inventoryLoading ? (
           <Loader size='sm' />
         ) : partyOnly ? (
           <Accordion multiple defaultValue={['carried']}>
@@ -155,63 +363,96 @@ export function CampaignInventory({
                 <Accordion.Control>{container.label}</Accordion.Control>
                 <Accordion.Panel>
                   <InventoryEntries
-                    items={(inventory.data?.items ?? []).filter(
+                    items={(inventory?.items ?? []).filter(
                       (item) => item.containerId === container.id
                     )}
-                    currencies={(inventory.data?.currencies ?? []).filter(
-                      (currency) => currency.containerId === container.id
+                    currencies={aggregateInventoryCurrencies(
+                      (inventory?.currencies ?? []).filter(
+                        (currency) => currency.containerId === container.id
+                      )
                     )}
                   />
                 </Accordion.Panel>
               </Accordion.Item>
             ))}
           </Accordion>
-        ) : ownerValue === 'PARTY' && inventory.data && campaign.status === 'ACTIVE' ? null : (
+        ) : sourceOwner.kind !== 'CHARACTER' && inventory && canManageInventory ? null : (
           <InventoryEntries
-            items={inventory.data?.items ?? []}
-            currencies={inventory.data?.currencies ?? []}
+            items={inventory?.items ?? []}
+            currencies={aggregateInventoryCurrencies(inventory?.currencies ?? [])}
           />
         )}
-        {ownerValue === 'PARTY' && inventory.data && campaign.status === 'ACTIVE' ? (
-          <CampaignPartyInventoryActions campaignId={campaign.id} inventory={inventory.data} />
+        {sourceOwner.kind !== 'CHARACTER' &&
+        inventory &&
+        canManageInventory &&
+        !vehicleCleanupPending ? (
+          <CampaignPartyInventoryActions
+            key={selectedOwnerValue}
+            campaignId={campaign.id}
+            currencyOptions={currencyOptions}
+            inventory={inventory}
+          />
         ) : null}
-        {canTransfer && campaign.status === 'ACTIVE' ? (
+        {canTransfer ? (
           <Stack gap='sm'>
             <Title order={3}>Transfer</Title>
-            {transfer.error ? <Alert color='red'>{transfer.error.message}</Alert> : null}
+            {transfer.error || transferError ? (
+              <Alert color='red'>
+                {transferError ?? transfer.error?.message}
+                {transfer.variables && !transferPending ? (
+                  <Button
+                    ml='sm'
+                    size='compact-sm'
+                    variant='subtle'
+                    onClick={() => transfer.mutate(transfer.variables)}
+                  >
+                    Retry transfer
+                  </Button>
+                ) : null}
+              </Alert>
+            ) : null}
             <div className={inventoryStyles.inventoryTransferGrid}>
               <Select
-                data={assetOptions}
+                data={assetOptions.map(({ value, label }) => ({ value, label }))}
                 classNames={{ input: sharedStyles.input }}
+                disabled={transferPending || !sourceReady}
                 label='Item or currency'
                 value={assetValue}
                 onChange={(value) => {
-                  transfer.reset()
+                  resetTransferSelection()
                   setAssetValue(value ?? '')
                 }}
               />
               <Select
-                data={destinationOptions.filter((option) => option.value !== ownerValue)}
+                data={destinationOptions.filter((option) => option.value !== selectedOwnerValue)}
                 classNames={{ input: sharedStyles.input }}
+                disabled={transferPending || !sourceReady}
                 label='Destination'
-                value={destinationValue === ownerValue ? null : destinationValue}
+                value={destinationValue === selectedOwnerValue ? null : destinationValue}
                 onChange={(value) => {
+                  resetTransferSelection()
                   setDestinationValue(value ?? '')
-                  transfer.reset()
                 }}
               />
               <NumberInput
-                label='Amount'
                 classNames={{ input: sharedStyles.input }}
+                disabled={transferPending || !sourceReady}
+                label='Amount'
                 min={1}
                 step={1}
                 value={amount}
                 onChange={(value) => setAmount(Number(value) || 1)}
               />
               <Button
-                disabled={!assetValue || !destinationValue || destinationValue === ownerValue}
-                loading={transfer.isPending}
-                onClick={() => transfer.mutate()}
+                disabled={
+                  transferPending ||
+                  !sourceReady ||
+                  !assetValue ||
+                  !destinationValue ||
+                  destinationValue === selectedOwnerValue
+                }
+                loading={transferPending}
+                onClick={() => void startTransfer()}
               >
                 Transfer
               </Button>
@@ -231,14 +472,14 @@ export function CampaignInventory({
             </Text>
           </div>
           {campaign.status === 'ACTIVE' ? (
-            <CurrencySystemEditor campaignId={campaign.id} systems={currencySystems.data ?? []} />
+            <CurrencySystemEditor campaignId={campaign.id} systems={currencySystems.results} />
           ) : (
             <Stack gap='xs'>
-              {currencySystems.data?.map((system) => (
-                <div key={system.id}>
-                  <Text fw={600}>{system.label}</Text>
+              {currencySystems.results.map((currencySystem) => (
+                <div key={currencySystem.id}>
+                  <Text fw={600}>{currencySystem.label}</Text>
                   <Text c='dimmed' size='sm'>
-                    {system.denominations
+                    {currencySystem.denominations
                       .map(
                         (denomination) => `${denomination.label} (${denomination.scaleInReference})`
                       )
@@ -262,7 +503,7 @@ function InventoryEntries({
   currencies
 }: {
   items: InventoryDto['items']
-  currencies: InventoryDto['currencies']
+  currencies: ReturnType<typeof aggregateInventoryCurrencies>
 }) {
   if (items.length === 0 && currencies.length === 0) return <Text c='dimmed'>Empty.</Text>
   return (
@@ -276,7 +517,7 @@ function InventoryEntries({
       {currencies.map((currency) => (
         <Group
           justify='space-between'
-          key={`${currency.kind}:${currency.denominationId}:${currency.containerId ?? 'carried'}`}
+          key={JSON.stringify([inventoryCurrencyKey(currency), currency.containerId ?? null])}
         >
           <Text>{currency.label}</Text>
           <Text>
@@ -286,62 +527,4 @@ function InventoryEntries({
       ))}
     </Stack>
   )
-}
-
-export function getAuthorizedSourceOwners(
-  campaign: CampaignDetailDto,
-  currentUserId: string,
-  vehicles: ReadonlyArray<{ id: string; label: string | null }>
-) {
-  const memberships =
-    campaign.role === 'OWNER'
-      ? campaign.memberships
-      : campaign.memberships.filter((member) => member.userId === currentUserId)
-  return [
-    { value: 'PARTY', label: 'Party inventory' },
-    ...memberships.flatMap((member) =>
-      member.assignedCharacter
-        ? [
-            {
-              value: `CHARACTER:${member.assignedCharacter.id}`,
-              label: member.assignedCharacter.label
-            }
-          ]
-        : []
-    ),
-    ...vehicles.map((vehicle) => ({
-      value: `VEHICLE:${vehicle.id}`,
-      label: vehicle.label ?? 'Campaign Vehicle'
-    }))
-  ]
-}
-
-function getTransferDestinationOwners(
-  campaign: CampaignDetailDto,
-  vehicles: ReadonlyArray<{ id: string; label: string | null }>
-) {
-  return [
-    { value: 'PARTY', label: 'Party inventory' },
-    ...campaign.memberships.flatMap((member) =>
-      member.assignedCharacter
-        ? [
-            {
-              value: `CHARACTER:${member.assignedCharacter.id}`,
-              label: member.assignedCharacter.label
-            }
-          ]
-        : []
-    ),
-    ...vehicles.map((vehicle) => ({
-      value: `VEHICLE:${vehicle.id}`,
-      label: vehicle.label ?? 'Campaign Vehicle'
-    }))
-  ]
-}
-
-export function parseOwner(value: string, campaignId: string): InventoryOwnerRefDto {
-  if (value === 'PARTY') return { kind: 'CAMPAIGN', campaignId }
-  if (value.startsWith('VEHICLE:'))
-    return { kind: 'VEHICLE', vehicleId: value.slice('VEHICLE:'.length) }
-  return { kind: 'CHARACTER', characterId: value.slice('CHARACTER:'.length) }
 }

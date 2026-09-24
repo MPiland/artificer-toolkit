@@ -1,10 +1,5 @@
-import type { EquipmentListResponseDto } from '#app/lib/api'
-import type {
-  AuthoredListAttributeColumn,
-  AuthoredListFilter,
-  AuthoredListItem
-} from '#components/AuthoredList'
-import { summarizeAuthoredDescription } from '../authoredListMapper'
+import type { AuthoredCatalogueSummary } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import type { AuthoredListAttributeColumn, AuthoredListFilter } from '#components/AuthoredList'
 
 export function formatEquipmentCategory(category: string | undefined): string {
   if (!category) return 'Equipment'
@@ -14,47 +9,9 @@ export function formatEquipmentCategory(category: string | undefined): string {
     .replace(/^\w/, (letter) => letter.toUpperCase())
 }
 
-export function mapEquipmentListToAuthoredItems(
-  response: EquipmentListResponseDto
-): AuthoredListItem[] {
-  return response.items.map((item) => {
-    const category = item.category ?? 'EQUIPMENT'
-
-    return {
-      id: item.id,
-      publicId: item.publicId,
-      name: item.label,
-      description: summarizeAuthoredDescription(item.description),
-      attributes: {
-        Category: formatEquipmentCategory(category)
-      },
-      filterValues: {
-        category,
-        source: item.provenance.kind
-      },
-      sortValues: {
-        category: formatEquipmentCategory(category),
-        name: item.label
-      },
-      searchText: `${summarizeAuthoredDescription(item.description)} ${formatEquipmentCategory(category)}`,
-      sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-      sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: item.permissions
-    }
-  })
-}
-
 export function buildEquipmentListFilters(
-  response: EquipmentListResponseDto
+  categories: AuthoredCatalogueSummary['categories']
 ): AuthoredListFilter[] {
-  const categories = Array.from(
-    new Set(
-      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
-        (category) => category.id
-      )
-    )
-  ).sort()
-
   return [
     {
       key: 'category',
@@ -85,7 +42,3 @@ export const equipmentListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
   { value: 'category', label: 'Category' }
 ]
-
-export function summarizeEquipmentList(response: EquipmentListResponseDto) {
-  return `${response.summary.activeCount} items / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
-}

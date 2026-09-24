@@ -15,19 +15,13 @@ import {
   Tooltip
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { BookOpenText } from 'lucide-react'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import { type SubmitEvent, useState } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import {
-  getCampaignDetail,
-  getCampaignNotebook,
-  getCampaignSessionNotes,
-  getCampaignSessions
-} from '#app/data/campaigns/queries'
-import { useCampaignRealtime } from '#app/data/campaigns/useCampaignRealtime'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { getCampaignDetail } from '#app/data/campaigns/queries'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import { renderSanitizedRichHtml } from '#app/lib/richText'
 import { SessionSectionEditor } from './CampaignSessionNotes'
@@ -75,17 +69,25 @@ function CampaignNotesContent({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  useCampaignRealtime(campaign, currentUserId)
-  const notebook = useQuery(getCampaignNotebook(campaign.id))
-  const sessions = useQuery(getCampaignSessions(campaign.id))
   const [view, setView] = useState<'campaign' | 'sessions'>('campaign')
+  const notebook = usePaginatedQuery(
+    convexApi.campaigns.notebooks.list,
+    view === 'campaign' ? { campaignId: campaign.id } : 'skip',
+    { initialNumItems: 8 }
+  )
+  const sessions = usePaginatedQuery(
+    convexApi.campaigns.sessions.list,
+    view === 'sessions' ? { campaignId: campaign.id } : 'skip',
+    { initialNumItems: 8 }
+  )
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const sessionId = selectedSessionId ?? sessions.data?.[0]?.id ?? null
-  const sessionNotes = useQuery({
-    ...getCampaignSessionNotes(campaign.id, sessionId ?? campaign.id),
-    enabled: view === 'sessions' && Boolean(sessionId)
-  })
-  const sharedSections = notebook.data?.filter((section) => section.visibility === 'SHARED') ?? []
+  const sessionId = selectedSessionId ?? sessions.results[0]?.id ?? null
+  const sessionNotes = usePaginatedQuery(
+    convexApi.campaigns.sessionNotes.list,
+    view === 'sessions' && sessionId ? { campaignId: campaign.id, sessionId } : 'skip',
+    { initialNumItems: 8 }
+  )
+  const sharedSections = notebook.results.filter((section) => section.visibility === 'SHARED')
 
   return (
     <Stack gap='lg'>
@@ -106,7 +108,9 @@ function CampaignNotesContent({
             <Text fw={700}>Campaign notes</Text>
             <Badge variant='light'>GM maintained</Badge>
           </Group>
-          {notebook.error ? <Alert color='red'>{notebook.error.message}</Alert> : null}
+          {notebook.status === 'LoadingFirstPage' ? (
+            <Loader aria-label='Loading Campaign notes' size='sm' />
+          ) : null}
           <Accordion multiple variant='separated'>
             {(['GENERAL', 'PEOPLE', 'PLACES'] as const).map((category) => {
               const sections = sharedSections.filter((section) => section.category === category)
@@ -126,16 +130,24 @@ function CampaignNotesContent({
                           </Accordion.Item>
                         ))}
                       </Accordion>
-                    ) : (
+                    ) : notebook.status === 'Exhausted' ? (
                       <Text c='dimmed' size='sm'>
                         No {label.toLowerCase()} notes yet.
                       </Text>
-                    )}
+                    ) : null}
                   </Accordion.Panel>
                 </Accordion.Item>
               )
             })}
           </Accordion>
+          {notebook.status === 'CanLoadMore' ? (
+            <Button variant='subtle' onClick={() => notebook.loadMore(8)}>
+              Load more notes
+            </Button>
+          ) : null}
+          {notebook.status === 'LoadingMore' ? (
+            <Loader aria-label='Loading more Campaign notes' size='sm' />
+          ) : null}
         </section>
       ) : (
         <section>
@@ -145,7 +157,7 @@ function CampaignNotesContent({
           </Group>
           <Select
             classNames={{ input: sharedStyles.input }}
-            data={(sessions.data ?? []).map((session) => ({
+            data={sessions.results.map((session) => ({
               value: session.id,
               label: session.title
                 ? session.scheduledStartAt
@@ -160,10 +172,14 @@ function CampaignNotesContent({
             value={sessionId}
             onChange={setSelectedSessionId}
           />
-          {sessionNotes.error ? <Alert color='red'>{sessionNotes.error.message}</Alert> : null}
-          {sessionId && sessionNotes.data?.length ? (
+          {sessions.status === 'CanLoadMore' ? (
+            <Button variant='subtle' onClick={() => sessions.loadMore(8)}>
+              Load more sessions
+            </Button>
+          ) : null}
+          {sessionId && sessionNotes.results.length ? (
             <Accordion multiple mt='md' variant='separated'>
-              {sessionNotes.data.map((section) => (
+              {sessionNotes.results.map((section) => (
                 <Accordion.Item key={section.id} value={`session:${section.id}`}>
                   <Accordion.Control>{section.title}</Accordion.Control>
                   <Accordion.Panel>
@@ -181,10 +197,15 @@ function CampaignNotesContent({
                 </Accordion.Item>
               ))}
             </Accordion>
-          ) : sessionId && !sessionNotes.isPending ? (
+          ) : sessionId && sessionNotes.status !== 'LoadingFirstPage' ? (
             <Text c='dimmed' mt='sm' size='sm'>
               No notes for this session yet.
             </Text>
+          ) : null}
+          {sessionNotes.status === 'CanLoadMore' ? (
+            <Button variant='subtle' onClick={() => sessionNotes.loadMore(8)}>
+              Load more sections
+            </Button>
           ) : null}
           {sessionId &&
           campaign.status === 'ACTIVE' &&
@@ -213,12 +234,12 @@ function SessionSectionCreator({
   campaignId: string
   sessionId: string
 }) {
-  const queryClient = useQueryClient()
+  const convex = useConvex()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const create = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.notes.create({
+      convex.mutation(convexApi.campaigns.sessionNotes.create, {
         campaignId,
         sessionId,
         title,
@@ -226,12 +247,9 @@ function SessionSectionCreator({
         visibility: 'SHARED',
         kind: 'SHARED_NOTE'
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setTitle('')
       setContent('')
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionNotes(campaignId, sessionId)
-      })
     }
   })
 

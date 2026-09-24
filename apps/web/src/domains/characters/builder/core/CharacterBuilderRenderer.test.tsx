@@ -182,9 +182,25 @@ describe('CharacterBuilderRenderer', () => {
 
     renderWithAppProviders(
       <AuthoringLayout
-        data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+        data={{
+          characterId: characterBuilderPayloadFixture.character.id,
+          breadcrumbLabel: characterBuilderPayloadFixture.character.label,
+          payload: characterBuilderPayloadFixture,
+          draft: {
+            id: 'draft-generation',
+            characterId: characterBuilderPayloadFixture.character.id,
+            publicId: 'test-character',
+            systemId: characterBuilderPayloadFixture.character.systemId,
+            userId: characterBuilderPayloadFixture.character.userId,
+            label: characterBuilderPayloadFixture.character.label,
+            status: 'DRAFT',
+            draftState: 'DRAFT_ONLY',
+            mode: 'create',
+            payload: { character: characterBuilderPayloadFixture.character }
+          }
+        }}
         kind='character-builder'
-        mode='create'
+        mode='edit'
       />
     )
 

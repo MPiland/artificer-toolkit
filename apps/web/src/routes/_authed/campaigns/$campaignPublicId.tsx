@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { getCampaignDetail, getCampaignRouteIdentity } from '#app/data/campaigns/queries'
-import { createServerApi } from '#app/lib/api'
+import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { isLegacyAuthoredDetailPath } from '#app/routing/authoredLegacyRoutes'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -8,14 +7,8 @@ export const Route = createFileRoute('/_authed/campaigns/$campaignPublicId')({
   loader: async ({ context, location, params }) => {
     if (!isLegacyAuthoredDetailPath(location.pathname, 'campaigns')) return null
 
-    const client = createServerApi()
-    const identity = await context.queryClient.ensureQueryData(
-      getCampaignRouteIdentity(params.campaignPublicId, client)
-    )
-    if (!identity) throw new Error('Campaign not found.')
-
     const campaign = await context.queryClient.ensureQueryData(
-      getCampaignDetail(identity.subjectId, client)
+      getCampaignDetail(params.campaignPublicId)
     )
 
     throw redirect({

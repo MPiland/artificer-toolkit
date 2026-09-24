@@ -3,7 +3,9 @@ import { MoreHorizontal } from 'lucide-react'
 import type { RefObject } from 'react'
 import clsx from 'clsx'
 import type { EncounterTimelineDto } from '@artificer-toolkit/schema/api/encounters'
-import type { CampaignChatEntryDto, RollRecordDto } from '#app/lib/api'
+import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { formatRollEvidence } from '#app/domains/characters/sheet/dice/dice.utils'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
@@ -32,7 +34,9 @@ export function CampaignChatHistory({
   conversationLabel: string
   currentUserId: string
   directUserId: string | undefined
-  encounterEntries: EncounterTimelineDto['entries'] | undefined
+  encounterEntries:
+    | Pick<EncounterTimelineDto['entries'][number], 'id' | 'visibility' | 'roll' | 'createdAt'>[]
+    | undefined
   entries: CampaignChatEntryDto[]
   hasNextPage: boolean
   isEncounterTimelineError: boolean
@@ -180,7 +184,9 @@ export function CampaignChatHistory({
               >
                 <div className={chatStyles.chatMessageMeta}>
                   <Text className={chatStyles.chatAuthor} fw={600} size='sm'>
-                    {entry.characterLabel ?? `@${entry.authorUsername}`}
+                    {entry.authorUsername === deletedCampaignAuthorLabel
+                      ? deletedCampaignAuthorLabel
+                      : (entry.characterLabel ?? `@${entry.authorUsername}`)}
                   </Text>
                   <Group gap={4} wrap='nowrap'>
                     <Text c='dimmed' size='xs'>

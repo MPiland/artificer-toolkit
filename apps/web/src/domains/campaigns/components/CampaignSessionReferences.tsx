@@ -12,13 +12,13 @@ import {
   TextInput,
   Tooltip
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { IconTrash } from '@tabler/icons-react'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import { useState } from 'react'
-import type { CampaignDetailDto, CampaignSessionReferencePinDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignNotebook, getCampaignSessionReferences } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionReferencePinDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   authoredReferenceSubjectOptions,
   campaignSessionReferenceHref,
@@ -36,9 +36,17 @@ export function CampaignSessionReferences({
   sessionId: string
   editable?: boolean
 }) {
-  const queryClient = useQueryClient()
-  const references = useQuery(getCampaignSessionReferences(campaign.id, sessionId))
-  const notebook = useQuery(getCampaignNotebook(campaign.id))
+  const convex = useConvex()
+  const references = usePaginatedQuery(
+    convexApi.campaigns.sessionReferences.list,
+    { campaignId: campaign.id, sessionId },
+    { initialNumItems: 4 }
+  )
+  const notebook = usePaginatedQuery(
+    convexApi.campaigns.notebooks.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 8 }
+  )
   const [adding, setAdding] = useState(false)
   const [targetKind, setTargetKind] = useState<'CAMPAIGN_NOTE' | 'AUTHORED_ROUTE'>('CAMPAIGN_NOTE')
   const [noteSectionId, setNoteSectionId] = useState<string | null>(null)
@@ -47,26 +55,23 @@ export function CampaignSessionReferences({
   const [publicId, setPublicId] = useState('')
   const create = useMutation({
     mutationFn: (target: CampaignSessionReferencePinDto['target']) =>
-      api.campaigns.sessions.references.create({
+      convex.mutation(convexApi.campaigns.sessionReferences.create, {
         campaignId: campaign.id,
         sessionId,
         target
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setAdding(false)
       setNoteSectionId(null)
       setPublicId('')
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionReferences(campaign.id, sessionId)
-      })
     }
   })
   const remove = useMutation({
     mutationFn: (pinId: string) =>
-      api.campaigns.sessions.references.delete(campaign.id, sessionId, pinId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionReferences(campaign.id, sessionId)
+      convex.mutation(convexApi.campaigns.sessionReferences.remove, {
+        campaignId: campaign.id,
+        sessionId,
+        pinId
       })
   })
 
@@ -100,11 +105,12 @@ export function CampaignSessionReferences({
           </Button>
         ) : null}
       </Group>
-      {references.isPending ? <Text c='dimmed'>Loading references…</Text> : null}
-      {references.error ? <Alert color='red'>References couldn’t be loaded.</Alert> : null}
-      {references.data?.length ? (
+      {references.status === 'LoadingFirstPage' ? (
+        <Text c='dimmed'>Loading references…</Text>
+      ) : null}
+      {references.results.length ? (
         <Stack gap='xs'>
-          {references.data.map((reference) => (
+          {references.results.map((reference) => (
             <Group
               className={sessionsStyles.sessionReferenceRow}
               key={reference.id}
@@ -136,10 +142,15 @@ export function CampaignSessionReferences({
             </Group>
           ))}
         </Stack>
-      ) : !references.isPending && !references.error ? (
+      ) : references.status !== 'LoadingFirstPage' ? (
         <Text c='dimmed' size='sm'>
           No references pinned.
         </Text>
+      ) : null}
+      {references.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => references.loadMore(4)}>
+          Load more references
+        </Button>
       ) : null}
       {adding ? (
         <Stack className={sessionsStyles.sessionReferenceEditor} gap='sm'>
@@ -152,18 +163,27 @@ export function CampaignSessionReferences({
             onChange={(value) => setTargetKind(value as typeof targetKind)}
           />
           {targetKind === 'CAMPAIGN_NOTE' ? (
-            <Select
-              classNames={{ input: sharedStyles.input }}
-              data={(notebook.data ?? []).map((section) => ({
-                label: section.title,
-                value: section.id
-              }))}
-              label='Campaign note'
-              placeholder={notebook.isPending ? 'Loading notes…' : 'Choose a note'}
-              searchable
-              value={noteSectionId}
-              onChange={setNoteSectionId}
-            />
+            <Stack gap='xs'>
+              <Select
+                classNames={{ input: sharedStyles.input }}
+                data={notebook.results.map((section) => ({
+                  label: section.title,
+                  value: section.id
+                }))}
+                label='Campaign note'
+                placeholder={
+                  notebook.status === 'LoadingFirstPage' ? 'Loading notes…' : 'Choose a note'
+                }
+                searchable
+                value={noteSectionId}
+                onChange={setNoteSectionId}
+              />
+              {notebook.status === 'CanLoadMore' ? (
+                <Button type='button' variant='subtle' onClick={() => notebook.loadMore(8)}>
+                  Load more notes
+                </Button>
+              ) : null}
+            </Stack>
           ) : (
             <Group align='end' grow wrap='wrap'>
               <Select

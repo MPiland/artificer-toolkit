@@ -1,4 +1,4 @@
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { MediaImageTarget } from '#app/components/MediaImage'
 
 type AbilityPanel = Extract<CharacterSheetPanelDto, { kind: 'ABILITY' }>

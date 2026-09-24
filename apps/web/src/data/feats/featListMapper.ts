@@ -1,32 +1,6 @@
-import type { FeatListResponseDto } from '#app/lib/api'
-import type {
-  AuthoredListAttributeColumn,
-  AuthoredListFilter,
-  AuthoredListItem
-} from '#components/AuthoredList'
-import { summarizeAuthoredDescription } from '../authoredListMapper'
+import type { AuthoredListAttributeColumn, AuthoredListFilter } from '#components/AuthoredList'
 
-export function mapFeatListToAuthoredItems(response: FeatListResponseDto): AuthoredListItem[] {
-  return response.items.map((item) => ({
-    id: item.id,
-    publicId: item.publicId,
-    name: item.label,
-    description: summarizeAuthoredDescription(item.description),
-    attributes: {},
-    filterValues: {
-      source: item.provenance.kind
-    },
-    sortValues: {
-      name: item.label
-    },
-    searchText: summarizeAuthoredDescription(item.description),
-    sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-    sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-    permissions: item.permissions
-  }))
-}
-
-export function buildFeatListFilters(_response: FeatListResponseDto): AuthoredListFilter[] {
+export function buildFeatListFilters(): AuthoredListFilter[] {
   return [
     {
       key: 'source',
@@ -43,7 +17,3 @@ export function buildFeatListFilters(_response: FeatListResponseDto): AuthoredLi
 export const featListAttributeColumns = [] satisfies AuthoredListAttributeColumn[]
 
 export const featListSortOptions = [{ value: 'name', label: 'Name A-Z' }]
-
-export function summarizeFeatList(response: FeatListResponseDto) {
-  return `${response.summary.activeCount} feats / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
-}

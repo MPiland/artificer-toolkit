@@ -27,7 +27,7 @@ import { GuidedSpellReviewScreen } from './GuidedSpellReviewScreen'
 type GuidedSpellAuthoringProps = {
   isExistingDraft?: boolean
   system: NonNullable<SystemResponseDto>
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
 }
 

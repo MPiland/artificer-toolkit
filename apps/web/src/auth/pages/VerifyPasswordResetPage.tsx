@@ -1,9 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AuthPageShell, VerifyPasswordResetForm } from '../components'
+import type { AuthPasswordResetInput } from '@artificer-toolkit/schema/api/auth'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { UpdatePasswordForm } from '../components/UpdatePasswordForm'
+import { VerifyPasswordResetForm } from '../components/VerifyPasswordResetForm'
 
 export function VerifyPasswordResetPage({ initialEmail }: { initialEmail?: string }) {
   const navigate = useNavigate()
+  const [recovery, setRecovery] = useState<Pick<AuthPasswordResetInput, 'email' | 'token'> | null>(
+    null
+  )
 
   useEffect(() => {
     if (!initialEmail || typeof window === 'undefined') return
@@ -16,7 +22,8 @@ export function VerifyPasswordResetPage({ initialEmail }: { initialEmail?: strin
   }, [initialEmail])
 
   async function handleSuccess() {
-    await navigate({ to: '/update-password', replace: true })
+    setRecovery(null)
+    await navigate({ to: '/sign-in', replace: true })
   }
 
   return (
@@ -24,7 +31,11 @@ export function VerifyPasswordResetPage({ initialEmail }: { initialEmail?: strin
       title='Verify your reset code'
       description='Confirm the code from your email before choosing a new password.'
     >
-      <VerifyPasswordResetForm initialEmail={initialEmail} onSuccess={handleSuccess} />
+      {recovery ? (
+        <UpdatePasswordForm recovery={recovery} onSuccess={handleSuccess} />
+      ) : (
+        <VerifyPasswordResetForm initialEmail={initialEmail} onVerified={setRecovery} />
+      )}
     </AuthPageShell>
   )
 }

@@ -4,7 +4,7 @@
 - **Date:** 2026-07-10
 - **Scope:** Authoring Schema contract, node-map DSL, resolvers, and client presentation adapters
 - **Update when:** node kinds, condition/visibility semantics, map registry, resolution DTOs, or form rendering ownership changes
-- **Verification:** `packages/shared/src/utils/nodeDefinition.ts`; `packages/shared/src/utils/nodeRuntime.ts`; `packages/shared/src/domains/**/maps`; `apps/apis/src/trpc/router.ts` (`nodeRuntime`); node-runtime and node-map inventory tests
+- **Verification:** `packages/shared/src/utils/nodeDefinition.ts`; `packages/shared/src/utils/nodeRuntime.ts`; `packages/shared/src/domains/**/maps`; `packages/authoring/src/nodeRuntime`; `apps/apis/convex/authoring/nodeRuntime.ts`; node-runtime and node-map inventory tests
 
 ## Context
 

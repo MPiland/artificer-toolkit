@@ -1,12 +1,15 @@
-import { Alert, Badge, Button, Group, Select, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Alert, Badge, Button, Group, Loader, Select, Stack, Text, Title } from '@mantine/core'
+import { useMutation } from '@tanstack/react-query'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
-import { useState } from 'react'
-import type { CampaignContentShareDto, CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignContent } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
-import { campaignContentTypeOptions, listOwnedCampaignContent } from '../campaignContentSubmission'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useEffect, useState } from 'react'
+import type {
+  CampaignContentShareDto,
+  CampaignDetailDto
+} from '@artificer-toolkit/schema/api/campaignCore'
+import { usePaginatedQuery as useCandidatePaginatedQuery } from 'convex-helpers/react'
+import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import { campaignContentTypeOptions } from '../campaignContentSubmission'
 import * as sharedStyles from '../campaigns.css'
 import * as contentStyles from './campaignContent.css'
 
@@ -28,47 +31,50 @@ export function CampaignContent({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const queryClient = useQueryClient()
   const [subjectKind, setSubjectKind] = useState<AuthoredSubjectKindDto | null>(null)
   const [subjectId, setSubjectId] = useState<string | null>(null)
-  const content = useQuery(getCampaignContent(campaign.id))
-  const candidates = useQuery({
-    queryKey: ['campaigns', campaign.id, 'content-candidates', subjectKind],
-    queryFn: () => (subjectKind ? listOwnedCampaignContent(subjectKind) : Promise.resolve([])),
-    enabled: subjectKind !== null && campaign.capabilities.shareOwnedContent
-  })
+  const content = usePaginatedQuery(
+    convexApi.campaigns.contentShares.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 48 }
+  )
+  const candidates = useCandidatePaginatedQuery(
+    convexApi.content.catalogue.list,
+    subjectKind && campaign.capabilities.shareOwnedContent
+      ? { subjectKind, source: 'OWNED', sort: 'name' }
+      : 'skip',
+    { initialNumItems: 48 }
+  )
+  const shareContent = useConvexMutation(convexApi.campaigns.contentShares.share)
+  const unshareContent = useConvexMutation(convexApi.campaigns.contentShares.unshare)
+
+  useEffect(() => {
+    if (subjectKind && candidates.status === 'CanLoadMore') candidates.loadMore(48)
+  }, [candidates.loadMore, candidates.status, subjectKind])
+
   const share = useMutation({
     mutationFn: async () => {
       if (!subjectKind || !subjectId) throw new Error('Choose owned homebrew to share.')
-      const candidate = candidates.data?.find((item) => item.subjectId === subjectId)
+      const candidate = candidates.results.find((item) => item.id === subjectId)
       if (!candidate) throw new Error('That owned homebrew record is no longer available.')
-      return api.campaigns.content.share({
+      return shareContent({
         campaignId: campaign.id,
         subjectKind,
-        subjectId: candidate.subjectId
+        subjectId: candidate.id
       })
     },
-    onSuccess: async () => {
-      setSubjectId(null)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.content(campaign.id) })
-    }
+    onSuccess: () => setSubjectId(null)
   })
   const unshare = useMutation({
     mutationFn: (item: CampaignContentShareDto) =>
-      api.campaigns.content.unshare({
+      unshareContent({
         campaignId: campaign.id,
         subjectKind: item.subjectKind,
         subjectId: item.subjectId,
         sharedBy: item.sharedBy,
         expectedCampaignVersion: campaign.version,
         commandId: crypto.randomUUID()
-      }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.content(campaign.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.detail(campaign.id) })
-      ])
-    }
+      })
   })
 
   return (
@@ -81,7 +87,9 @@ export function CampaignContent({
           Members can immediately share active homebrew they own with this Campaign.
         </Text>
       </div>
-      {content.error ? <Alert color='red'>{content.error.message}</Alert> : null}
+      {content.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading Campaign content' size='sm' />
+      ) : null}
       {campaign.capabilities.shareOwnedContent ? (
         <Stack gap='sm'>
           <div>
@@ -90,8 +98,8 @@ export function CampaignContent({
               Sharing grants current read and use access while you remain an active member.
             </Text>
           </div>
-          {candidates.error || share.error || unshare.error ? (
-            <Alert color='red'>{(candidates.error ?? share.error ?? unshare.error)?.message}</Alert>
+          {share.error || unshare.error ? (
+            <Alert color='red'>{share.error?.message ?? unshare.error?.message}</Alert>
           ) : null}
           <Group align='end' wrap='wrap'>
             <Select
@@ -106,11 +114,11 @@ export function CampaignContent({
             />
             <Select
               classNames={{ input: sharedStyles.input }}
-              data={(candidates.data ?? []).map((candidate) => ({
-                value: candidate.subjectId,
+              data={candidates.results.map((candidate) => ({
+                value: candidate.id,
                 label: candidate.label
               }))}
-              disabled={!subjectKind || candidates.isPending}
+              disabled={!subjectKind || candidates.status !== 'Exhausted'}
               label='Owned homebrew'
               searchable
               value={subjectId}
@@ -118,7 +126,7 @@ export function CampaignContent({
             />
             <Button
               className={contentStyles.inputRowButton}
-              disabled={!subjectId || content.isPending}
+              disabled={!subjectId || content.status === 'LoadingFirstPage'}
               loading={share.isPending}
               onClick={() => share.mutate()}
             >
@@ -127,11 +135,11 @@ export function CampaignContent({
           </Group>
         </Stack>
       ) : null}
-      {(content.data ?? []).length === 0 ? (
+      {content.status === 'Exhausted' && content.results.length === 0 ? (
         <Text c='dimmed'>No homebrew is shared with this Campaign.</Text>
       ) : null}
       <Stack gap='sm'>
-        {content.data?.map((item) => (
+        {content.results.map((item) => (
           <div className={sharedStyles.memberRow} key={`${item.subjectKind}:${item.subjectId}`}>
             <div>
               <Group gap='xs'>
@@ -160,6 +168,14 @@ export function CampaignContent({
           </div>
         ))}
       </Stack>
+      {content.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => content.loadMore(48)}>
+          Load more content
+        </Button>
+      ) : null}
+      {content.status === 'LoadingMore' ? (
+        <Loader aria-label='Loading more Campaign content' size='sm' />
+      ) : null}
     </section>
   )
 }

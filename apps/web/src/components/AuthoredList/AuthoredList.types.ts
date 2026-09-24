@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { AuthoredCatalogueSearchInput } from '@artificer-toolkit/schema/api/authoredCatalogue'
 
 export type AuthoredListProvenance = 'master' | 'owned'
 export type AuthoredListViewMode = 'table' | 'cards'
@@ -75,6 +76,7 @@ export interface AuthoredListCatalogControls {
 }
 
 export interface AuthoredListCatalogWindow {
+  searchSubjectKind?: AuthoredCatalogueSearchInput['subjectKind']
   activeCount: number
   controls: AuthoredListCatalogControls
   fetchNextPage: () => void
@@ -92,6 +94,7 @@ export interface AuthoredListPageProps {
   createLabel: string
   items: AuthoredListItem[]
   draftItems?: AuthoredListItem[]
+  draftLoading?: boolean
   filters: AuthoredListFilter[]
   attributeColumns?: AuthoredListAttributeColumn[]
   sortOptions?: AuthoredListSortOption[]

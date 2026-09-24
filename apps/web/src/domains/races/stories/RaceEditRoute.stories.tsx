@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect } from 'storybook/test'
+import { useQueryClient } from '@tanstack/react-query'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { expect, mocked } from 'storybook/test'
 import { Route } from '#routes/_authed/races/$racePublicId/$raceSlug/edit'
 import {
   authoredRouteStoryParams,
@@ -17,15 +19,28 @@ import {
   selectAuthoringChildTarget
 } from '#domains/authoredRouteStory.play'
 import {
-  authoredRouteNodeRuntimeHandlers,
+  configureAuthoredRouteStoryQueries,
   createAuthoredEditRouteOverrides
 } from '#domains/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Races/Routes/Edit',
+  decorators: [
+    (Story) => {
+      configureAuthoredRouteStoryQueries(useQueryClient())
+      return <Story />
+    }
+  ],
+  beforeEach: () => {
+    mocked(usePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [],
+      status: 'Exhausted'
+    })
+  },
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers: authoredRouteNodeRuntimeHandlers },
     tanstack: {
       router: {
         route: Route,

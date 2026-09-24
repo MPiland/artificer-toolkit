@@ -1,0 +1,99 @@
+import {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SHAPE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  SPELL_COMPONENT,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+export const zoneOfTruth: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.ZONE_OF_TRUTH,
+  label: 'Zone of Truth',
+  description:
+    "<p>You create a magical zone that guards against deception in a 15-foot-radius sphere centered on a point of your choice within range. Until the spell ends, a creature that enters the spell's area for the first time on a turn or starts its turn there must make a Charisma saving throw. On a failed save, a creature can't speak a deliberate lie while in the radius. You know whether each creature succeeds or fails on its saving throw. An affected creature is aware of the spell and can thus avoid answering questions to which it would normally respond with a lie. Such a creature can be evasive in its answers as long as it remains within the boundaries of the truth.</p>",
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  level: 2,
+  classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
+  components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
+  magicSchoolId: schoolId('ENCHANTMENT'),
+  effects: [
+    {
+      id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x210, 1),
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x201, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 60,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x212, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: {
+            amount: 15,
+            unit: MEASUREMENT_UNIT_CODE.FEET
+          }
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x202, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 10
+            },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'ZONE_OF_TRUTH' as const
+              },
+              {
+                id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Judge Truthfulness',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'Such a creature can be evasive in its answers as long as it remains within the boundaries of the truth.'
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

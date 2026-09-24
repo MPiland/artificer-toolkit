@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const authoredSubjectKindSchema = z.enum([
   'BACKGROUND',
@@ -21,10 +21,10 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue }
 
-export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+export const jsonValueSchema: z.ZodMiniType<JsonValue> = z.lazy(() =>
   z.union([
     z.string(),
-    z.number().finite(),
+    z.number(),
     z.boolean(),
     z.null(),
     z.array(jsonValueSchema),
@@ -32,11 +32,15 @@ export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   ])
 )
 
-export const projectionIdentifierSchema = z.string().trim().min(1).max(240)
+export const projectionIdentifierSchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(240))
 export const projectionChecksumSchema = z
   .string()
-  .regex(/^[a-f0-9]{64}$/, 'Expected a lowercase SHA-256 checksum')
-export const projectionSchemaVersionSchema = z.number().int().positive()
+  .check(z.regex(/^[a-f0-9]{64}$/, 'Expected a lowercase SHA-256 checksum'))
+export const projectionSchemaVersionSchema = z.number().check(z.int()).check(z.positive())
 
 export const authoredVersionVectorEntrySchema = z.strictObject({
   subjectKind: authoredSubjectKindSchema,
@@ -46,9 +50,8 @@ export const authoredVersionVectorEntrySchema = z.strictObject({
   checksum: projectionChecksumSchema
 })
 
-export const authoredVersionVectorSchema = z
-  .array(authoredVersionVectorEntrySchema)
-  .superRefine((entries, context) => {
+export const authoredVersionVectorSchema = z.array(authoredVersionVectorEntrySchema).check(
+  z.superRefine((entries, context) => {
     const seen = new Set<string>()
     entries.forEach((entry, index) => {
       const key = `${entry.subjectKind}:${entry.subjectId}`
@@ -62,5 +65,6 @@ export const authoredVersionVectorSchema = z
       seen.add(key)
     })
   })
+)
 
 export type AuthoredVersionVector = z.infer<typeof authoredVersionVectorSchema>

@@ -2,6 +2,8 @@ import polygonClipping, { type MultiPolygon } from 'polygon-clipping'
 import RBush from 'rbush'
 import { orient2d } from 'robust-predicates'
 
+import { segmentsIntersect } from './segments.js'
+
 import {
   VTT_SCENE_LIMITS,
   type CampaignSceneState,
@@ -36,31 +38,7 @@ function bounds(a: ScenePoint, b: ScenePoint) {
   }
 }
 
-function pointOnSegment(point: ScenePoint, a: ScenePoint, b: ScenePoint): boolean {
-  return (
-    point.x >= Math.min(a.x, b.x) - EPSILON &&
-    point.x <= Math.max(a.x, b.x) + EPSILON &&
-    point.y >= Math.min(a.y, b.y) - EPSILON &&
-    point.y <= Math.max(a.y, b.y) + EPSILON
-  )
-}
-
-export function segmentsIntersect(
-  a: ScenePoint,
-  b: ScenePoint,
-  c: ScenePoint,
-  d: ScenePoint
-): boolean {
-  const abC = orient2d(a.x, a.y, b.x, b.y, c.x, c.y)
-  const abD = orient2d(a.x, a.y, b.x, b.y, d.x, d.y)
-  const cdA = orient2d(c.x, c.y, d.x, d.y, a.x, a.y)
-  const cdB = orient2d(c.x, c.y, d.x, d.y, b.x, b.y)
-  if (abC === 0 && pointOnSegment(c, a, b)) return true
-  if (abD === 0 && pointOnSegment(d, a, b)) return true
-  if (cdA === 0 && pointOnSegment(a, c, d)) return true
-  if (cdB === 0 && pointOnSegment(b, c, d)) return true
-  return Math.sign(abC) !== Math.sign(abD) && Math.sign(cdA) !== Math.sign(cdB)
-}
+export { segmentsIntersect } from './segments.js'
 
 export class SceneBarrierIndex {
   readonly #tree = new RBush<IndexedBarrier>()
@@ -309,6 +287,38 @@ export function isSceneMovementPathValid(
     (point, pathIndex) =>
       pathIndex === 0 || canMoveBetween(state, path[pathIndex - 1]!, point, index)
   )
+}
+
+/** Returns the canonical movement failure for callers that own their error boundary. */
+export function sceneTokenMovementFailure(
+  state: Pick<CampaignSceneState, 'map' | 'tokens' | 'barriers' | 'doorStates'>,
+  tokenId: string,
+  position: ScenePoint,
+  path: readonly ScenePoint[]
+): string | null {
+  const token = state.tokens.find((candidate) => candidate.id === tokenId)
+  if (!token || token.locked) return 'The token is missing or locked.'
+  const first = path[0]
+  const last = path.at(-1)
+  if (
+    !first ||
+    !last ||
+    first.x !== token.position.x ||
+    first.y !== token.position.y ||
+    last.x !== position.x ||
+    last.y !== position.y
+  )
+    return 'Token movement must follow a path from its current position.'
+  for (const point of path) {
+    if (point.x < 0 || point.y < 0 || point.x > state.map.width || point.y > state.map.height)
+      return 'Token movement must remain within the map bounds.'
+  }
+  const index = new SceneBarrierIndex(state.barriers)
+  for (let pathIndex = 1; pathIndex < path.length; pathIndex += 1) {
+    if (!canMoveBetween(state, path[pathIndex - 1]!, path[pathIndex]!, index))
+      return 'Token movement crosses a blocking barrier.'
+  }
+  return null
 }
 
 export function lightCrossesBlockingBarrier(

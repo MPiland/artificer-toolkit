@@ -3,8 +3,9 @@ import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useMutation } from '@tanstack/react-query'
 import { type SubmitEvent, useState } from 'react'
-import type { CreateSocialReportInput } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import type { CreateSocialReportInput } from '@artificer-toolkit/schema/api/socialHub'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
 import { reportReasonOptions } from '../socialModels'
 
 export function SocialReportDialog({
@@ -15,31 +16,9 @@ export function SocialReportDialog({
   const [opened, { close, open }] = useDisclosure(false)
   const [reason, setReason] = useState<CreateSocialReportInput['reason']>('OTHER')
   const [details, setDetails] = useState('')
+  const createReport = useConvexMutation(convexApi.social.reports.create)
   const report = useMutation({
-    mutationFn: () => {
-      if (target.targetKind === 'PROFILE') {
-        return api.socialHub.reports.create({
-          targetKind: 'PROFILE',
-          targetPublicId: target.targetPublicId,
-          reason,
-          details
-        })
-      }
-      if (target.targetKind === 'LISTING') {
-        return api.socialHub.reports.create({
-          targetKind: 'LISTING',
-          targetPublicId: target.targetPublicId,
-          reason,
-          details
-        })
-      }
-      return api.socialHub.reports.create({
-        targetKind: 'APPLICATION',
-        targetPublicId: target.targetPublicId,
-        reason,
-        details
-      })
-    },
+    mutationFn: () => createReport({ input: { ...target, reason, details } }),
     onSuccess: () => {
       notifications.show({ color: 'green', message: 'Report submitted for review.' })
       setDetails('')

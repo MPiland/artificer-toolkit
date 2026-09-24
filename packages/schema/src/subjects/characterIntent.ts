@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   ADVANCEMENT_METHOD_CODE,
@@ -13,37 +13,37 @@ import {
 import { abilityCodeSchema } from '../shared/enums.js'
 
 const characterProfileAuthoredDtoSchemaRaw = z.object({
-  alignmentId: z.string().optional(),
-  lifestyleId: z.string().optional(),
-  faith: z.string().optional(),
-  gender: z.string().optional(),
-  age: z.string().optional(),
-  eyes: z.string().optional(),
-  hair: z.string().optional(),
-  skin: z.string().optional(),
-  height: z.string().optional(),
-  weight: z.string().optional(),
-  physicalCharacteristics: z.string().optional(),
-  personalityTraits: z.string().optional(),
-  ideals: z.string().optional(),
-  bonds: z.string().optional(),
-  flaws: z.string().optional(),
-  organizations: z.string().optional(),
-  allies: z.string().optional(),
-  enemies: z.string().optional(),
-  backstory: z.string().optional(),
-  notes: z.string().optional()
+  alignmentId: z.optional(z.string()),
+  lifestyleId: z.optional(z.string()),
+  faith: z.optional(z.string()),
+  gender: z.optional(z.string()),
+  age: z.optional(z.string()),
+  eyes: z.optional(z.string()),
+  hair: z.optional(z.string()),
+  skin: z.optional(z.string()),
+  height: z.optional(z.string()),
+  weight: z.optional(z.string()),
+  physicalCharacteristics: z.optional(z.string()),
+  personalityTraits: z.optional(z.string()),
+  ideals: z.optional(z.string()),
+  bonds: z.optional(z.string()),
+  flaws: z.optional(z.string()),
+  organizations: z.optional(z.string()),
+  allies: z.optional(z.string()),
+  enemies: z.optional(z.string()),
+  backstory: z.optional(z.string()),
+  notes: z.optional(z.string())
 })
 const characterProvenanceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.optional(z.number().check(z.int()))
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.optional(z.number().check(z.int()))
   }),
   z.object({ kind: z.literal('RACE'), raceId: z.string() }),
   z.object({ kind: z.literal('SUBRACE'), subraceId: z.string() }),
@@ -52,12 +52,16 @@ const characterProvenanceDtoSchemaRaw = z.union([
   z.object({ kind: z.literal('FEAT'), featId: z.string() }),
   z.object({ kind: z.literal('FEATURE'), featureId: z.string() }),
   z.object({ kind: z.literal('OPTION'), acquiredParentId: z.string(), optionId: z.string() }),
-  z.object({ kind: z.literal('MANUAL'), reason: z.string().optional() })
+  z.object({ kind: z.literal('MANUAL'), reason: z.optional(z.string()) })
 ])
 const characterAcquisitionTimingDtoSchemaRaw = z.union([
   z.object({ kind: z.literal('IMMEDIATE') }),
-  z.object({ kind: z.literal('CHARACTER_LEVEL'), level: z.number().int() }),
-  z.object({ kind: z.literal('CLASS_LEVEL'), classId: z.string(), classLevel: z.number().int() })
+  z.object({ kind: z.literal('CHARACTER_LEVEL'), level: z.number().check(z.int()) }),
+  z.object({
+    kind: z.literal('CLASS_LEVEL'),
+    classId: z.string(),
+    classLevel: z.number().check(z.int())
+  })
 ])
 const characterFeatureSelectionValueDtoSchemaRaw = z.union([
   z.object({ kind: z.literal('ID'), id: z.string() }),
@@ -74,53 +78,56 @@ const characterFeatureAcquisitionRecordDtoSchemaRaw = z.object({
   featureId: z.string(),
   source: characterProvenanceDtoSchemaRaw,
   timing: characterAcquisitionTimingDtoSchemaRaw,
-  selections: z.array(characterFeatureSelectionRecordDtoSchemaRaw).optional()
+  selections: z.optional(z.array(characterFeatureSelectionRecordDtoSchemaRaw))
 })
 const characterChosenGrantSelectionRecordDtoSchemaRaw = z.object({
   id: z.string(),
   grantId: z.string(),
   source: characterProvenanceDtoSchemaRaw,
   timing: characterAcquisitionTimingDtoSchemaRaw,
-  progressionLevel: z.number().int().positive().optional(),
+  progressionLevel: z.optional(z.number().check(z.int()).check(z.positive())),
   targetIds: z.array(z.string())
 })
 const characterChosenGrantSelectionsDtoSchemaRaw = z
   .array(characterChosenGrantSelectionRecordDtoSchemaRaw)
-  .superRefine((selections, context) => {
-    const seen = new Set<string>()
-    selections.forEach((selection, index) => {
-      const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
-      if (seen.has(identity))
-        context.addIssue({
-          code: 'custom',
-          path: [index],
-          message: 'Chosen grant selections must be unique by grant, source, and progression level.'
-        })
-      seen.add(identity)
+  .check(
+    z.superRefine((selections, context) => {
+      const seen = new Set<string>()
+      selections.forEach((selection, index) => {
+        const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
+        if (seen.has(identity))
+          context.addIssue({
+            code: 'custom',
+            path: [index],
+            message:
+              'Chosen grant selections must be unique by grant, source, and progression level.'
+          })
+        seen.add(identity)
+      })
     })
-  })
+  )
 const characterAdvancementIntentDtoSchemaRaw = z.union([
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.EXPERIENCE),
-    experience: z.number().int().optional()
+    experience: z.optional(z.number().check(z.int()))
   }),
   z.object({ method: z.literal(ADVANCEMENT_METHOD_CODE.MILESTONE) })
 ])
 const characterDieRollRecordDtoSchemaRaw = z.object({
-  die: z.number().int(),
-  value: z.number().int()
+  die: z.number().check(z.int()),
+  value: z.number().check(z.int())
 })
 const characterHitpointLevelEntryDtoSchemaRaw = z.object({
-  level: z.number().int().positive(),
-  classId: z.string().min(1),
-  classLevel: z.number().int().positive(),
-  value: z.number().int(),
-  rolls: z.array(characterDieRollRecordDtoSchemaRaw).optional(),
-  overridden: z.boolean().optional()
+  level: z.number().check(z.int()).check(z.positive()),
+  classId: z.string().check(z.minLength(1)),
+  classLevel: z.number().check(z.int()).check(z.positive()),
+  value: z.number().check(z.int()),
+  rolls: z.optional(z.array(characterDieRollRecordDtoSchemaRaw)),
+  overridden: z.optional(z.boolean())
 })
 const characterRaceIntentDtoSchemaRaw = z.object({
   raceId: z.string(),
-  subraceId: z.string().optional()
+  subraceId: z.optional(z.string())
 })
 const characterBackgroundIntentDtoSchemaRaw = z.object({ backgroundId: z.string() })
 const characterAncestryAcquisitionDtoSchemaRaw = z.object({
@@ -133,31 +140,35 @@ const characterAncestryAcquisitionDtoSchemaRaw = z.object({
   ]),
   timing: z.union([
     z.object({ kind: z.literal('IMMEDIATE') }),
-    z.object({ kind: z.literal('CLASS_LEVEL'), classId: z.string(), classLevel: z.number().int() })
+    z.object({
+      kind: z.literal('CLASS_LEVEL'),
+      classId: z.string(),
+      classLevel: z.number().check(z.int())
+    })
   ])
 })
 const characterClassIntentDtoSchemaRaw = z.object({
   classId: z.string(),
-  classLevel: z.number().int(),
-  subclassId: z.string().optional(),
-  specializationId: z.string().optional()
+  classLevel: z.number().check(z.int()),
+  subclassId: z.optional(z.string()),
+  specializationId: z.optional(z.string())
 })
 const characterManualAbilityAssignmentDtoSchemaRaw = z.object({
   ability: abilityCodeSchema,
-  score: z.number().int()
+  score: z.number().check(z.int())
 })
 const characterAbilityRollGroupRecordDtoSchemaRaw = z.object({
   id: z.string(),
   rolls: z.array(characterDieRollRecordDtoSchemaRaw),
   kept: z.array(characterDieRollRecordDtoSchemaRaw),
-  assignedAbility: abilityCodeSchema.optional(),
-  score: z.number().int(),
-  applied: z.boolean().optional(),
-  rolling: z.boolean().optional()
+  assignedAbility: z.optional(abilityCodeSchema),
+  score: z.number().check(z.int()),
+  applied: z.optional(z.boolean()),
+  rolling: z.optional(z.boolean())
 })
 const characterManualRolledAbilityRecordDtoSchemaRaw = z.object({
-  configuration: z.string().optional(),
-  rollGroups: z.array(characterAbilityRollGroupRecordDtoSchemaRaw).optional(),
+  configuration: z.optional(z.string()),
+  rollGroups: z.optional(z.array(characterAbilityRollGroupRecordDtoSchemaRaw)),
   assignments: z.array(characterManualAbilityAssignmentDtoSchemaRaw)
 })
 const characterStandardArrayAssignmentDtoSchemaRaw = z.object({
@@ -185,16 +196,16 @@ const characterAbilityScoresIntentDtoSchemaRaw = z.union([
 const characterStartingEquipmentSelectionDtoSchemaRaw = z.object({
   selectionKey: z.string(),
   equipmentId: z.string(),
-  quantity: z.number().int()
+  quantity: z.number().check(z.int())
 })
 const characterStartingEquipmentGroupSelectionDtoSchemaRaw = z.object({
   groupId: z.string(),
   optionId: z.string(),
-  selections: z.array(characterStartingEquipmentSelectionDtoSchemaRaw).optional()
+  selections: z.optional(z.array(characterStartingEquipmentSelectionDtoSchemaRaw))
 })
 const characterStartingGoldSelectionDtoSchemaRaw = z.object({
   goldOption: z.string(),
-  totalGold: z.number().int()
+  totalGold: z.number().check(z.int())
 })
 const characterStartingEquipmentDecisionDtoSchemaRaw = z.object({
   source: z.union([
@@ -202,20 +213,20 @@ const characterStartingEquipmentDecisionDtoSchemaRaw = z.object({
     z.literal(CharacterStartingEquipmentSource.BACKGROUND)
   ]),
   tookGold: z.boolean(),
-  groups: z.array(characterStartingEquipmentGroupSelectionDtoSchemaRaw).optional(),
-  gold: characterStartingGoldSelectionDtoSchemaRaw.optional(),
-  applied: z.boolean().optional()
+  groups: z.optional(z.array(characterStartingEquipmentGroupSelectionDtoSchemaRaw)),
+  gold: z.optional(characterStartingGoldSelectionDtoSchemaRaw),
+  applied: z.optional(z.boolean())
 })
 const characterSpellSelectionSourceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.optional(z.number().check(z.int()))
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.optional(z.number().check(z.int()))
   }),
   z.object({ kind: z.literal('FEATURE'), featureId: z.string() }),
   z.object({ kind: z.literal('OPTION'), acquiredParentId: z.string(), optionId: z.string() })
@@ -225,7 +236,7 @@ const characterSpellSelectionRecordDtoSchemaRaw = z.object({
   source: characterSpellSelectionSourceDtoSchemaRaw,
   timing: characterAcquisitionTimingDtoSchemaRaw,
   spells: z.array(z.string()),
-  replacedSelectionId: z.string().optional()
+  replacedSelectionId: z.optional(z.string())
 })
 const characterResourceGrantRecordDtoSchemaRaw = z.object({
   id: z.string(),
@@ -243,21 +254,21 @@ const characterHitpointsIntentDtoSchemaRaw = z.object({
 const characterIntentDtoSchemaRaw = z.object({
   advancement: characterAdvancementIntentDtoSchemaRaw,
   race: characterRaceIntentDtoSchemaRaw,
-  ancestrySelections: z.array(characterAncestryAcquisitionDtoSchemaRaw).optional(),
+  ancestrySelections: z.optional(z.array(characterAncestryAcquisitionDtoSchemaRaw)),
   background: characterBackgroundIntentDtoSchemaRaw,
   classes: z.array(characterClassIntentDtoSchemaRaw),
   abilities: characterAbilityScoresIntentDtoSchemaRaw,
   hitpoints: characterHitpointsIntentDtoSchemaRaw,
-  startingEquipment: z
-    .object({
-      class: characterStartingEquipmentDecisionDtoSchemaRaw.optional(),
-      background: characterStartingEquipmentDecisionDtoSchemaRaw.optional()
+  startingEquipment: z.optional(
+    z.object({
+      class: z.optional(characterStartingEquipmentDecisionDtoSchemaRaw),
+      background: z.optional(characterStartingEquipmentDecisionDtoSchemaRaw)
     })
-    .optional(),
+  ),
   featureAcquisitions: z.array(characterFeatureAcquisitionRecordDtoSchemaRaw),
-  chosenGrantSelections: characterChosenGrantSelectionsDtoSchemaRaw.optional(),
-  spellSelections: z.array(characterSpellSelectionRecordDtoSchemaRaw).optional(),
-  resourceGrants: z.array(characterResourceGrantRecordDtoSchemaRaw).optional()
+  chosenGrantSelections: z.optional(characterChosenGrantSelectionsDtoSchemaRaw),
+  spellSelections: z.optional(z.array(characterSpellSelectionRecordDtoSchemaRaw)),
+  resourceGrants: z.optional(z.array(characterResourceGrantRecordDtoSchemaRaw))
 })
 
 export type CharacterProfileAuthoredDto = z.infer<typeof characterProfileAuthoredDtoSchemaRaw>

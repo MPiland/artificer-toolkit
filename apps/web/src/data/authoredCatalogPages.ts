@@ -1,40 +1,36 @@
-import type { AuthoredCatalogCursorDto } from '#app/lib/api'
+import {
+  authoredCataloguePageSchema,
+  type AuthoredCataloguePage,
+  type AuthoredCatalogueReadInput
+} from '@artificer-toolkit/schema/api/authoredCatalogue'
 
-type AuthoredCatalogPage<TItem> = {
-  items: TItem[]
-  page: {
-    nextCursor: AuthoredCatalogCursorDto | null
-  }
-}
+export async function loadPagedAuthoredCatalogItems(
+  list: (input: AuthoredCatalogueReadInput) => Promise<AuthoredCataloguePage>,
+  request: AuthoredCatalogueReadInput
+): Promise<AuthoredCataloguePage['page']> {
+  const items: AuthoredCataloguePage['page'] = []
+  const seenCursors = new Set<string | null>()
+  let cursor = request.paginationOpts.cursor
 
-type AuthoredCatalogRequest = {
-  cursor?: AuthoredCatalogCursorDto
-  direction: 'BACKWARD' | 'FORWARD'
-  limit: number
-}
-
-export async function loadPagedAuthoredCatalogItems<TItem, TRequest extends AuthoredCatalogRequest>(
-  list: (input: TRequest) => Promise<AuthoredCatalogPage<TItem>>,
-  request: TRequest
-): Promise<TItem[]> {
-  const items: TItem[] = []
-  const seenCursors = new Set<string>()
-  let cursor = request.cursor
-
-  do {
-    const response = await list(
-      cursor ? { ...request, cursor, direction: 'FORWARD' } : { ...request, direction: 'FORWARD' }
-    )
-    items.push(...response.items)
-    cursor = response.page.nextCursor ?? undefined
-    if (!cursor) break
-
-    const cursorKey = JSON.stringify(cursor)
-    if (seenCursors.has(cursorKey)) {
+  while (true) {
+    if (seenCursors.has(cursor)) {
       throw new Error('Authored catalogue pagination returned a repeated cursor.')
     }
-    seenCursors.add(cursorKey)
-  } while (cursor)
+    seenCursors.add(cursor)
 
-  return items
+    const response = authoredCataloguePageSchema.parse(
+      await list({
+        ...request,
+        paginationOpts: { ...request.paginationOpts, cursor }
+      })
+    )
+    items.push(...response.page)
+
+    if (response.isDone) return items
+
+    if (response.continueCursor.length === 0) {
+      throw new Error('Authored catalogue pagination did not advance.')
+    }
+    cursor = response.continueCursor
+  }
 }

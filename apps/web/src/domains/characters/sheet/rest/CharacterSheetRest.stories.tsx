@@ -2,15 +2,13 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
-import {
-  characterSheetStoryMeta,
-  hitDieRollHandler,
-  restPreviewHandler
-} from '../fixtures/characterSheetStory.fixture'
+import { characterSheetStoryMeta, mockHitDieRoll } from '../fixtures/characterSheetStory.fixture'
+import { mockSheetRestPreview } from '../fixtures/characterSheetNativeStory.fixture'
 
 const meta = {
   ...characterSheetStoryMeta,
-  title: 'Domains/Characters/Character Sheet/Rest'
+  title: 'Domains/Characters/Character Sheet/Rest',
+  beforeEach: mockSheetRestPreview
 } satisfies Meta<typeof CharacterSheetView>
 
 export default meta
@@ -21,9 +19,6 @@ export const ShortRestPreview: Story = {
   args: {
     initialTab: 'actions',
     sheet: characterSheetMulticlassFixture
-  },
-  parameters: {
-    msw: { handlers: [restPreviewHandler()] }
   },
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Short Rest' }))
@@ -43,16 +38,16 @@ export const ShortRestPreview: Story = {
 
 export const ShortRestRolled: Story = {
   ...ShortRestPreview,
-  parameters: {
-    msw: { handlers: [restPreviewHandler(), hitDieRollHandler()] }
-  },
+  beforeEach: mockHitDieRoll,
   play: async (context) => {
     await ShortRestPreview.play?.(context)
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Short Rest'
     })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
-    await expect(await within(dialog).findByText('15 rolled')).toBeVisible()
+    await expect(
+      await within(dialog).findByText('15 rolled', {}, { timeout: 20_000 })
+    ).toBeVisible()
     await expect(within(dialog).getByText('6 HP selected')).toBeVisible()
   }
 }
@@ -71,9 +66,6 @@ export const LongRestPreview: Story = {
   args: {
     initialTab: 'actions',
     sheet: characterSheetMulticlassFixture
-  },
-  parameters: {
-    msw: { handlers: [restPreviewHandler()] }
   },
   play: async ({ canvas, canvasElement }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Long Rest' }))

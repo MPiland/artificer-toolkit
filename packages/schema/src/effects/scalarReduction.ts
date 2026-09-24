@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
@@ -14,22 +14,24 @@ export const scalarReductionDtoSchema = z.strictObject({
     kind: z.literal('DICE'),
     diceConfig: z
       .string()
-      .trim()
-      .regex(/^[1-9]\d{0,1}d(?:[2-9]|[1-9]\d{1,3})$/i)
+      .check(z.trim())
+      .check(z.regex(/^[1-9]\d{0,1}d(?:[2-9]|[1-9]\d{1,3})$/i))
   }),
   stacking: z.literal('ADDITIVE'),
   floor: z.literal(0),
   recoveryTriggers: z
     .array(z.enum(['SHORT_REST', 'LONG_REST']))
-    .min(1)
-    .max(2)
-    .superRefine((value, context) => {
-      if (new Set(value).size !== value.length)
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Recovery triggers must be unique.'
-        })
-    }),
+    .check(z.minLength(1))
+    .check(z.maxLength(2))
+    .check(
+      z.superRefine((value, context) => {
+        if (new Set(value).size !== value.length)
+          context.addIssue({
+            code: 'custom',
+            message: 'Recovery triggers must be unique.'
+          })
+      })
+    ),
   terminalConsequence: z.literal('TARGET_DIED')
 })
 

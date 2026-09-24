@@ -61,8 +61,7 @@ export default defineConfig({
           maxWorkers: 1,
           browser: {
             api: {
-              host: '127.0.0.1',
-              port: 64115
+              host: '127.0.0.1'
             },
             enabled: true,
             fileParallelism: false,

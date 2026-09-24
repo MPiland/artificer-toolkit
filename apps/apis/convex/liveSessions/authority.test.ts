@@ -1,0 +1,299 @@
+import { makeFunctionReference } from 'convex/server'
+import { afterEach, expect, it, vi } from 'vitest'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import type { LiveSessionJoinOptionsDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
+import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
+import { assertConvexOwnsCampaignLiveState } from './authorityGuard'
+
+afterEach(() => vi.useRealTimers())
+
+type Authority = {
+  campaignId: string
+  sessionId: string
+  epoch: string
+  phase: 'ACTIVATING' | 'DO_ACTIVE' | 'DRAINING'
+  activationFingerprint: string
+  activationExpiresAt?: number
+  persistedSequence: number
+  persistedStateChecksum: string
+  finalSequence?: number
+  finalStateChecksum?: string
+  createdAt: string
+  updatedAt: string
+}
+
+const claim = makeFunctionReference<'mutation', LiveSessionJoinOptionsDto, Authority>(
+  'liveSessions/authority:claim'
+)
+const authorizeAdmission = makeFunctionReference<
+  'mutation',
+  LiveSessionJoinOptionsDto & { expiresAt: number },
+  unknown
+>('liveSessions/admission:authorize')
+const commitActivation = makeFunctionReference<
+  'mutation',
+  LiveSessionJoinOptionsDto & {
+    epoch: string
+    activationFingerprint: string
+    stateChecksum: string
+  },
+  Authority
+>('liveSessions/authority:commitActivation')
+const advancePersisted = makeFunctionReference<
+  'mutation',
+  LiveSessionJoinOptionsDto & {
+    epoch: string
+    expectedStateChecksum: string
+    sequence: number
+    stateChecksum: string
+  },
+  Authority
+>('liveSessions/authority:advancePersisted')
+const beginDrain = makeFunctionReference<
+  'mutation',
+  LiveSessionJoinOptionsDto & {
+    epoch: string
+    finalSequence: number
+    finalStateChecksum: string
+  },
+  Authority
+>('liveSessions/authority:beginDrain')
+const release = makeFunctionReference<
+  'mutation',
+  LiveSessionJoinOptionsDto & {
+    epoch: string
+    finalSequence: number
+    finalStateChecksum: string
+  },
+  null
+>('liveSessions/authority:release')
+const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
+  'campaigns/sessions:create'
+)
+
+it('fences one Campaign authority epoch through claim, publication, drain, and release', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  const [ownerClaim, playerClaim] = await Promise.all([
+    base.other.caller.mutation(claim, input),
+    base.owner.caller.mutation(claim, input)
+  ])
+  expect(playerClaim.epoch).toBe(ownerClaim.epoch)
+  const renewedClaim = await base.other.caller.mutation(claim, input)
+  expect(renewedClaim.epoch).toBe(ownerClaim.epoch)
+  expect(renewedClaim.activationExpiresAt).toBeGreaterThanOrEqual(ownerClaim.activationExpiresAt!)
+
+  const otherSession = await base.other.caller.mutation(createSession, {
+    campaignId: base.campaign.id
+  })
+  await expect(
+    base.other.caller.mutation(claim, { ...input, sessionId: otherSession.id })
+  ).rejects.toThrow('Another Session already owns')
+  const initialStateChecksum = 'a'.repeat(64)
+  await expect(
+    base.t.mutation(commitActivation, {
+      ...input,
+      epoch: ownerClaim.epoch,
+      activationFingerprint: '0'.repeat(64),
+      stateChecksum: initialStateChecksum
+    })
+  ).rejects.toThrow('activation fingerprint is stale')
+
+  const active = await base.t.mutation(commitActivation, {
+    ...input,
+    epoch: ownerClaim.epoch,
+    activationFingerprint: ownerClaim.activationFingerprint,
+    stateChecksum: initialStateChecksum
+  })
+  await expect(
+    base.t.mutation(commitActivation, {
+      ...input,
+      epoch: ownerClaim.epoch,
+      activationFingerprint: ownerClaim.activationFingerprint,
+      stateChecksum: initialStateChecksum
+    })
+  ).resolves.toEqual(active)
+
+  const firstChecksum = '1'.repeat(64)
+  await expect(
+    base.t.mutation(advancePersisted, {
+      ...input,
+      epoch: active.epoch,
+      expectedStateChecksum: active.persistedStateChecksum,
+      sequence: 2,
+      stateChecksum: firstChecksum
+    })
+  ).rejects.toThrow('not contiguous')
+  const first = await base.t.mutation(advancePersisted, {
+    ...input,
+    epoch: active.epoch,
+    expectedStateChecksum: active.persistedStateChecksum,
+    sequence: 1,
+    stateChecksum: firstChecksum
+  })
+  await expect(
+    base.t.mutation(advancePersisted, {
+      ...input,
+      epoch: active.epoch,
+      expectedStateChecksum: active.persistedStateChecksum,
+      sequence: 1,
+      stateChecksum: firstChecksum
+    })
+  ).resolves.toEqual(first)
+
+  const finalChecksum = '2'.repeat(64)
+  const draining = await base.t.mutation(beginDrain, {
+    ...input,
+    epoch: active.epoch,
+    finalSequence: 2,
+    finalStateChecksum: finalChecksum
+  })
+  await expect(
+    base.t.mutation(release, {
+      ...input,
+      epoch: active.epoch,
+      finalSequence: 2,
+      finalStateChecksum: finalChecksum
+    })
+  ).rejects.toThrow('final publication is incomplete')
+  await base.t.mutation(advancePersisted, {
+    ...input,
+    epoch: active.epoch,
+    expectedStateChecksum: draining.persistedStateChecksum,
+    sequence: 2,
+    stateChecksum: finalChecksum
+  })
+  await expect(
+    base.t.mutation(release, {
+      ...input,
+      epoch: active.epoch,
+      finalSequence: 2,
+      finalStateChecksum: finalChecksum
+    })
+  ).resolves.toBeNull()
+  await expect(
+    base.t.mutation(release, {
+      ...input,
+      epoch: active.epoch,
+      finalSequence: 2,
+      finalStateChecksum: finalChecksum
+    })
+  ).resolves.toBeNull()
+})
+
+it('expires an abandoned activation, reopens direct writes, and replaces the epoch', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  const original = await base.other.caller.mutation(claim, input)
+  expect(original.activationExpiresAt).toBeGreaterThan(Date.now())
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).rejects.toThrow('currently owned')
+
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db.query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', input.campaignId))
+      .unique()
+    if (!row || row.epoch !== original.epoch) throw new Error('Missing live authority.')
+    await ctx.db.patch(row._id, { activationExpiresAt: Date.now() - 1 })
+  })
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).resolves.toBeNull()
+  await expect(
+    base.t.mutation(commitActivation, {
+      ...input,
+      epoch: original.epoch,
+      activationFingerprint: original.activationFingerprint,
+      stateChecksum: 'a'.repeat(64)
+    })
+  ).rejects.toThrow('authority is stale')
+  const replacement = await base.other.caller.mutation(claim, input)
+  expect(replacement.epoch).not.toBe(original.epoch)
+  expect(replacement.activationExpiresAt).toBeGreaterThan(Date.now())
+  await expect(
+    base.t.mutation(commitActivation, {
+      ...input,
+      epoch: original.epoch,
+      activationFingerprint: original.activationFingerprint,
+      stateChecksum: 'a'.repeat(64)
+    })
+  ).rejects.toThrow('authority is stale')
+})
+
+it('rejects invalid activation deadlines before claiming authority', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  for (const expiresAt of [Date.now() - 1, Number.MAX_SAFE_INTEGER + 1]) {
+    await expect(
+      base.other.caller.mutation(authorizeAdmission, { ...input, expiresAt })
+    ).rejects.toThrow('activation expiry is invalid')
+  }
+  const row = await base.t.run((ctx) => ctx.db.query('campaignLiveAuthorities')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', input.campaignId))
+    .unique())
+  expect(row).toBeNull()
+})
+
+it('renews the same activation epoch without shortening its expiry', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  vi.useFakeTimers()
+  const first = await base.other.caller.mutation(claim, input)
+  vi.setSystemTime(Date.now() + 30_000)
+  const renewed = await base.other.caller.mutation(claim, input)
+  expect(renewed.epoch).toBe(first.epoch)
+  expect(renewed.activationExpiresAt).toBeGreaterThan(first.activationExpiresAt!)
+  vi.setSystemTime(first.activationExpiresAt! + 1)
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).rejects.toThrow('currently owned')
+  vi.setSystemTime(renewed.activationExpiresAt! + 1)
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).resolves.toBeNull()
+})
+
+it('uses the updated time for a preexisting activation without an expiry', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  const claimed = await base.other.caller.mutation(claim, input)
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db.query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', input.campaignId))
+      .unique()
+    if (!row) throw new Error('Missing live authority.')
+    await ctx.db.patch(row._id, { activationExpiresAt: undefined })
+  })
+  vi.useFakeTimers()
+  vi.setSystemTime(Date.parse(claimed.updatedAt) + 60_001)
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).resolves.toBeNull()
+})
+
+it('keeps active authority fenced after the activation deadline', async () => {
+  const base = await createEncounterSceneFixture()
+  const input = { campaignId: base.campaign.id, sessionId: base.session.id }
+  vi.useFakeTimers()
+  const claimed = await base.other.caller.mutation(claim, input)
+  const active = await base.t.mutation(commitActivation, {
+    ...input,
+    epoch: claimed.epoch,
+    activationFingerprint: claimed.activationFingerprint,
+    stateChecksum: 'a'.repeat(64)
+  })
+  expect(active.activationExpiresAt).toBeUndefined()
+  vi.setSystemTime(claimed.activationExpiresAt! + 1)
+  await expect(
+    base.t.run((ctx) => assertConvexOwnsCampaignLiveState(ctx, input.campaignId))
+  ).rejects.toThrow('currently owned')
+  await expect(
+    base.t.mutation(commitActivation, {
+      ...input,
+      epoch: claimed.epoch,
+      activationFingerprint: claimed.activationFingerprint,
+      stateChecksum: 'a'.repeat(64)
+    })
+  ).resolves.toEqual(active)
+})

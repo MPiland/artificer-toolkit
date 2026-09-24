@@ -364,8 +364,12 @@ export type ValueDomainParamByCode = {
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }
 
-  // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition
-  SAVING_THROW_MODIFIER: { ability: AbilityCode; conditionTypeId?: string }
+  // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition.
+  SAVING_THROW_MODIFIER: {
+    ability: AbilityCode
+    conditionTypeId?: string
+    ruleDefinitionId?: string
+  }
 
   // Skill bonus is per skill
   SKILL_MODIFIER: { skillId: string }

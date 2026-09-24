@@ -1,0 +1,234 @@
+import { describe, expect, it } from 'vitest'
+import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { TableNames } from '../_generated/dataModel'
+import { api } from '../_generated/api'
+import schema from '../schema'
+import { ensureAuthoredRouteId } from '../content/routeIds'
+import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
+import { createActiveRuleEffectStore } from '../rules/effectStore'
+import {
+  seedTurnSaveEffect,
+  turnCharacterEffectFixture
+} from '../../tests/fixtures/turnActiveEffectFixtures'
+import { readCharacterRecord } from './documents'
+import { removeAccountPrivateCharacters } from './accountDeletion'
+
+const tableNames = Object.keys(schema.tables) as TableNames[]
+const encounterTables = tableNames.filter((name) => name.startsWith('encounter'))
+
+async function fullSnapshot(t: Awaited<ReturnType<typeof turnCharacterEffectFixture>>['t']) {
+  return t.run(async (ctx) => ({
+    app: Object.fromEntries(
+      await Promise.all(tableNames.map(async (name) => [name, await ctx.db.query(name).collect()]))
+    ),
+    schedules: await ctx.db.system.query('_scheduled_functions').collect()
+  }))
+}
+
+async function prepare() {
+  const base = await turnCharacterEffectFixture()
+  const deletingEffect = await seedTurnSaveEffect(base, {
+    stage: 'START_OF_TURN',
+    ticks: 2,
+    damage: 1
+  })
+  if (deletingEffect.owner.kind !== 'CHARACTER')
+    throw new Error('Expected a Character-owned active effect fixture.')
+
+  await base.t.run(async (ctx) => {
+    const session = await ctx.db
+      .query('campaignSessions')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
+      .unique()
+    if (!session) throw new Error('Missing fixture Encounter Session.')
+    await ctx.db.patch(session._id, { status: 'FINISHED' })
+    await removeAccountCampaignMemberships(ctx, base.player.userId)
+  })
+
+  const active = await base.t.run((ctx) =>
+    ctx.db
+      .query('characters')
+      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+      .unique()
+  )
+  if (!active) throw new Error('Missing deleting Character.')
+  await base.player.caller.mutation(api.characters.drafts.create, {
+    id: base.character.id,
+    systemId: base.character.systemId
+  })
+  const draftOnly = await base.player.caller.mutation(api.characters.drafts.create, {
+    id: crypto.randomUUID(),
+    systemId: base.character.systemId
+  })
+  const receiptCommandId = crypto.randomUUID()
+  await base.player.caller.mutation(api.characters.sheetCommands.execute, {
+    id: base.character.id,
+    command: {
+      type: 'SET_INSPIRATION',
+      commandId: receiptCommandId,
+      expectedVersion: active.streamVersion,
+      inspired: true
+    }
+  })
+  const roll = await base.player.caller.mutation(api.rolls.execute, {
+    characterId: base.character.id,
+    expression: '1d6',
+    source: { kind: 'MANUAL', label: 'Account deletion roll' }
+  })
+
+  const foreignCharacterId = crypto.randomUUID()
+  const foreignEffectId = crypto.randomUUID()
+  const foreignRollId = crypto.randomUUID()
+  await base.t.run(async (ctx) => {
+    const current = await ctx.db
+      .query('characters')
+      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+      .unique()
+    if (!current) throw new Error('Missing current deleting Character.')
+    const character = {
+      ...readCharacterRecord(current),
+      id: foreignCharacterId,
+      userId: base.owner.userId,
+      label: 'Unrelated Character'
+    }
+    const { _id: _currentId, _creationTime, ...fields } = current
+    await ctx.db.insert('characters', {
+      ...fields,
+      id: foreignCharacterId,
+      userId: base.owner.userId,
+      label: character.label,
+      documentJson: canonicalizeRuleDocument(character),
+      checksum: checksumRuleDocument(character)
+    })
+    await ensureAuthoredRouteId(ctx, 'CHARACTER', foreignCharacterId, false, base.owner.userId)
+    await createActiveRuleEffectStore(ctx).create({
+      id: foreignEffectId,
+      owner: { kind: 'CHARACTER', characterId: foreignCharacterId },
+      definition: deletingEffect.definition,
+      lifecycle: deletingEffect.lifecycle
+    })
+    await ctx.db.insert('userRollHistory', {
+      ...roll,
+      id: foreignRollId,
+      userId: base.owner.userId,
+      characterId: null
+    })
+  })
+
+  const history = await base.t.run(async (ctx) =>
+    Object.fromEntries(
+      await Promise.all(
+        encounterTables.map(async (name) => [name, await ctx.db.query(name).collect()])
+      )
+    )
+  )
+  return {
+    base,
+    draftOnly,
+    receiptCommandId,
+    roll,
+    deletingEffect,
+    foreignCharacterId,
+    foreignEffectId,
+    foreignRollId,
+    history
+  }
+}
+
+describe('trusted private Character account cleanup', () => {
+  it.each(['SUCCESS', 'LATE_ROLLBACK', 'MALFORMED_RECEIPT'] as const)(
+    'removes complete private Character state and preserves finished Encounter history: %s',
+    async (outcome) => {
+      const fixture = await prepare()
+      const { base } = fixture
+      if (outcome === 'MALFORMED_RECEIPT')
+        await base.t.run(async (ctx) => {
+          const stored = await ctx.db
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (q) =>
+              q.eq('characterId', base.character.id).eq('commandId', fixture.receiptCommandId)
+            )
+            .unique()
+          if (!stored) throw new Error('Missing Character receipt fixture.')
+          await ctx.db.patch(stored._id, { actorId: base.owner.userId })
+        })
+
+      const before = await fullSnapshot(base.t)
+      const remove = () =>
+        base.t.run(async (ctx) => {
+          await removeAccountPrivateCharacters(ctx, base.player.userId)
+          if (outcome === 'LATE_ROLLBACK') throw new Error('Abort after private Character cleanup.')
+        })
+
+      if (outcome === 'LATE_ROLLBACK') {
+        await expect(remove()).rejects.toThrow('Abort after private Character cleanup.')
+        expect(await fullSnapshot(base.t)).toEqual(before)
+        return
+      }
+      if (outcome === 'MALFORMED_RECEIPT') {
+        await expect(remove()).rejects.toThrow('receipt history identity mismatch')
+        expect(await fullSnapshot(base.t)).toEqual(before)
+        return
+      }
+
+      await remove()
+      const after = await fullSnapshot(base.t)
+      expect(Object.fromEntries(encounterTables.map((name) => [name, after.app[name]]))).toEqual(
+        fixture.history
+      )
+      const remaining = await base.t.run(async (ctx) => ({
+        characters: await ctx.db.query('characters').collect(),
+        drafts: await ctx.db.query('characterDrafts').collect(),
+        payloads: await ctx.db.query('characterDraftPayloads').collect(),
+        routes: await ctx.db.query('authoredRouteIds').collect(),
+        receipts: await ctx.db.query('characterCommandReceipts').collect(),
+        effects: await ctx.db.query('characterActiveRuleEffects').collect(),
+        rolls: await ctx.db.query('userRollHistory').collect(),
+        usage: await ctx.db
+          .query('accountUsageEntries')
+          .withIndex('by_ownerUserId', (q) => q.eq('ownerUserId', base.player.userId))
+          .collect(),
+        profile: await ctx.db
+          .query('userProfiles')
+          .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+          .unique()
+      }))
+      expect(remaining.characters.some((row) => row.id === base.character.id)).toBe(false)
+      expect(
+        remaining.drafts.some(
+          (row) =>
+            row.characterId === base.character.id ||
+            row.characterId === fixture.draftOnly.characterId
+        )
+      ).toBe(false)
+      expect(
+        remaining.payloads.some(
+          (row) =>
+            row.characterId === base.character.id ||
+            row.characterId === fixture.draftOnly.characterId
+        )
+      ).toBe(false)
+      expect(
+        remaining.routes.some(
+          (row) =>
+            row.subjectId === base.character.id || row.subjectId === fixture.draftOnly.characterId
+        )
+      ).toBe(false)
+      expect(remaining.receipts.some((row) => row.characterId === base.character.id)).toBe(false)
+      expect(remaining.effects.some((row) => row.id === fixture.deletingEffect.id)).toBe(false)
+      expect(remaining.rolls.some((row) => row.userId === base.player.userId)).toBe(false)
+      expect(remaining.usage.some((row) => row.resource === 'personalCharacters')).toBe(false)
+      expect(remaining.profile?.entitlementUsage.personalCharacters).toBe(0)
+      expect(remaining.characters).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: fixture.foreignCharacterId })])
+      )
+      expect(remaining.effects).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: fixture.foreignEffectId })])
+      )
+      expect(remaining.rolls).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: fixture.foreignRollId })])
+      )
+    },
+    30_000
+  )
+})

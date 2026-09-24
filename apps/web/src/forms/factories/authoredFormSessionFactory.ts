@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { z } from 'zod'
+import type * as core from 'zod/v4/core'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
@@ -62,7 +62,7 @@ export type AuthoredSessionConfig<
     sessionContext: TContext
   ) => ReactNode
   resolveCreateSystemId: (systems: readonly { id: string }[], context: TContext) => string | null
-  schema: z.ZodType<TSubmit>
+  schema: core.$ZodType<TSubmit>
   subjectKindLabel: string
   toCreateData: (data: unknown) => TCreateData
   toEditData: (data: unknown) => TEditData

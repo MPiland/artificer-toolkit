@@ -1,10 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import {
-  getCampaignDetail,
-  getCampaignRouteIdentity,
-  getCampaignSession
-} from '#app/data/campaigns/queries'
-import { createServerApi } from '#app/lib/api'
+import { getCampaignDetail, getCampaignSession } from '#app/data/campaigns/queries'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { normalizeAuthoredRouteSlug } from '#app/routing/authoredRouteHandles'
 import { CampaignSessionWorkspace } from '#domains/campaigns'
@@ -20,13 +15,8 @@ export const Route = createFileRoute(
     if (!Number.isSafeInteger(sessionNumber)) {
       throw new Error('Session number is too large.')
     }
-    const client = createServerApi()
-    const identity = await context.queryClient.ensureQueryData(
-      getCampaignRouteIdentity(params.campaignPublicId, client)
-    )
-    if (!identity) throw new Error('Campaign not found.')
     const campaign = await context.queryClient.ensureQueryData(
-      getCampaignDetail(identity.subjectId, client)
+      getCampaignDetail(params.campaignPublicId)
     )
     if (normalizeAuthoredRouteSlug(campaign.name) !== params.campaignSlug) {
       throw redirect({
@@ -38,9 +28,7 @@ export const Route = createFileRoute(
         to: '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
       })
     }
-    await context.queryClient.ensureQueryData(
-      getCampaignSession(campaign.id, sessionNumber, client)
-    )
+    await context.queryClient.ensureQueryData(getCampaignSession(campaign.id, sessionNumber))
     return { campaignId: campaign.id, sessionNumber }
   },
   component: CampaignSessionRoute
@@ -52,7 +40,7 @@ function CampaignSessionRoute() {
   return (
     <CampaignSessionWorkspace
       campaignId={campaignId}
-      currentUserId={user?.id ?? ''}
+      currentUserId={user?.userId ?? ''}
       sessionNumber={sessionNumber}
     />
   )

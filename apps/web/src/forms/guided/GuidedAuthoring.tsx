@@ -13,7 +13,7 @@ import { GuidedStartChoice } from './GuidedStartChoice'
 
 type GuidedAuthoringProps = {
   form: ComponentProps<typeof GuidedSpellAuthoring>['form']
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
 }
@@ -37,6 +37,7 @@ export function GuidedAuthoring({
       <GuidedStartChoice
         domain={session.domain}
         domainLabel={session.subjectKindLabel}
+        systemId={session.systemId}
         onAdvanced={onAdvanced}
         onFresh={() => setStarted(true)}
       />

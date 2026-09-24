@@ -1,4 +1,4 @@
-import type { CampaignSessionNoteSectionDto } from '#app/lib/api'
+import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 
 export type CampaignSessionSectionKind = CampaignSessionNoteSectionDto['kind']
 

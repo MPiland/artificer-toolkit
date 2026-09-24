@@ -32,6 +32,13 @@ import { getRequiredValidators } from '../rendering/FormRenderer.utils'
 import { Item as AuthoringRailItem } from '../layout/Steps/Item/Item'
 import { withStaticResolvedScopes } from './withStaticResolvedScopes'
 
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useConvex: () => ({
+    query: vi.fn(async () => ({ values: {}, clearedPaths: [] }))
+  })
+}))
+
 type TestFormValues = {
   id: string
   label: string
@@ -1295,7 +1302,7 @@ describe('authoring form platform', () => {
     await user.click(resetActionsButton)
     await user.type(nameInput, 'Fire Lace')
     await user.click(resetActionsButton)
-    expect(resetStepButton).toBeEnabled()
+    expect(await screen.findByLabelText(/reset step/i)).toBeEnabled()
 
     await user.click(screen.getByRole('link', { name: /^next$/i }))
 

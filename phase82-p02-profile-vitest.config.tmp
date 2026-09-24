@@ -1,0 +1,10 @@
+import base from '../../../apps/apis/vitest.config'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  ...base,
+  test: {
+    ...base.test,
+    include: ['.codex/validation/phase82-p02-resolution/resolve-profile.test.ts']
+  }
+})

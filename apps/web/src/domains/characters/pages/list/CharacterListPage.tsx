@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import {
@@ -11,7 +11,7 @@ import {
 } from '#app/data/characters/characterListMapper'
 import {
   getCharacterDraft,
-  getCharacterList,
+  useGetCharacterList,
   getCharacterSheet
 } from '#app/data/characters/queries'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
@@ -19,16 +19,19 @@ import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 export function CharacterListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getCharacterList())
+  const { data, isLoading } = useGetCharacterList()
+  const response = data ?? { items: [], meta: {} }
 
   return (
     <AuthoredListPage
       title='Characters'
-      summary={summarizeCharacterList(data)}
+      summary={isLoading ? 'Loading characters…' : summarizeCharacterList(response)}
       createLabel='Create Character'
-      items={mapCharacterListToActiveAuthoredItems(data)}
-      draftItems={mapCharacterListToDraftAuthoredItems(data)}
-      filters={buildCharacterListFilters(data)}
+      items={mapCharacterListToActiveAuthoredItems(response)}
+      draftItems={mapCharacterListToDraftAuthoredItems(response)}
+      loading={isLoading}
+      draftLoading={isLoading}
+      filters={buildCharacterListFilters(response)}
       attributeColumns={characterListAttributeColumns}
       sortOptions={characterListSortOptions}
       cardOnly

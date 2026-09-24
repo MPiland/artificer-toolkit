@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Alert, Stack } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-form'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { usePaginatedQuery } from 'convex-helpers/react'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -15,9 +13,10 @@ import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { toGuidedRaceParentOptions } from './guidedRaceParents'
 
 type GuidedRaceAuthoringProps = {
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
 }
@@ -30,20 +29,18 @@ export const GuidedRaceAuthoring = withForm({
     const values = useStore(form.store, (state) => readRaceValues(state.values))
     const system = session.system
     const categoryLocked = session.mode === 'edit'
-    const parentRaces = useQuery({
-      enabled: values.category === RACE_CATEGORY_CODE.SUBRACE,
-      queryFn: () =>
-        loadPagedAuthoredCatalogItems(api.content.races.list, {
-          direction: 'FORWARD',
-          limit: 48,
-          sort: 'name'
-        }),
-      queryKey: queryKeys.content.races.list(),
-      select: (items) =>
-        items
-          .filter((item) => item.category === RACE_CATEGORY_CODE.BASE)
-          .map((item) => ({ label: item.label, value: item.id }))
-    })
+    const parentRaces = usePaginatedQuery(
+      convexApi.content.catalogue.list,
+      values.category === RACE_CATEGORY_CODE.SUBRACE && session.systemId
+        ? { subjectKind: 'RACE', systemId: session.systemId }
+        : 'skip',
+      { initialNumItems: 48 }
+    )
+
+    useEffect(() => {
+      if (parentRaces.status === 'CanLoadMore') parentRaces.loadMore(48)
+    }, [parentRaces.loadMore, parentRaces.status])
+    const parentOptions = toGuidedRaceParentOptions(parentRaces.results, session.subjectId)
 
     useEffect(() => {
       onStateChange({
@@ -108,9 +105,11 @@ export const GuidedRaceAuthoring = withForm({
                 >
                   {(field) => (
                     <field.SelectField
-                      data={parentRaces.data ?? []}
+                      data={parentOptions}
                       label='Parent race'
-                      placeholder={parentRaces.isLoading ? 'Loading races…' : 'Choose a base race'}
+                      placeholder={
+                        parentRaces.status !== 'Exhausted' ? 'Loading races…' : 'Choose a base race'
+                      }
                       required
                     />
                   )}

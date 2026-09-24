@@ -1,31 +1,24 @@
 import { Alert, Button, Group, Modal, SegmentedControl, Stack, TextInput } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { UpdateSocialContentPreferenceInput } from '@artificer-toolkit/schema/api/socialHub'
 import { type SubmitEvent, useState } from 'react'
 import { latestAdultBirthDate } from '#app/domains/social/socialAge'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
 import * as styles from './settings.css'
 
 export function MatureContentPreference() {
   const queryClient = useQueryClient()
   const [birthDate, setBirthDate] = useState('')
   const [attestationOpened, setAttestationOpened] = useState(false)
-  const preference = useQuery({
-    queryKey: queryKeys.socialHub.eligibility(),
-    queryFn: () => api.socialHub.eligibility.get()
-  })
+  const preferenceQuery = convexQuery(convexApi.social.profiles.getEligibility, {})
+  const preference = useQuery(preferenceQuery)
+  const updateSocialPreference = useConvexMutation(convexApi.social.profiles.updatePreference)
   const updatePreference = useMutation({
-    mutationFn: (
-      input:
-        | { contentPreference: 'STANDARD' }
-        | {
-            contentPreference: 'MATURE'
-            birthDate?: string
-          }
-    ) => api.socialHub.preferences.update(input),
+    mutationFn: (input: UpdateSocialContentPreferenceInput) => updateSocialPreference({ input }),
     onSuccess: (result) => {
-      queryClient.setQueryData(queryKeys.socialHub.eligibility(), result)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
+      queryClient.setQueryData(preferenceQuery.queryKey, result)
       setAttestationOpened(false)
       setBirthDate('')
     }

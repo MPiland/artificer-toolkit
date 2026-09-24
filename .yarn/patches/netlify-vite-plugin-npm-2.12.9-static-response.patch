@@ -1,0 +1,14 @@
+diff --git a/dist/main.js b/dist/main.js
+--- a/dist/main.js
++++ b/dist/main.js
+@@ -149,6 +149,10 @@ function netlify(options = {}) {
+             await fromWebResponse(result.response, nodeRes);
+             return;
+           }
++          if (isStaticFile) {
++            // Vite serves this file; release Netlify's unused stream before cache renames.
++            await result.response.body?.cancel();
++          }
+           for (const key in headers) {
+             nodeRes.setHeader(key, headers[key]);
+           }

@@ -25,39 +25,6 @@ function getStyleSrc() {
   return "style-src 'self' 'unsafe-inline'"
 }
 
-const SUPABASE_CONNECT_SOURCES = ['https://*.supabase.co', 'wss://*.supabase.co'] as const
-
-const LOCAL_SUPABASE_CONNECT_SOURCES = [
-  'http://127.0.0.1:54321',
-  'http://localhost:54321',
-  'ws://127.0.0.1:54321',
-  'ws://localhost:54321'
-] as const
-
-function getDevelopmentConnectSources() {
-  if (!isDevelopment()) return []
-
-  const sources = new Set<string>(LOCAL_SUPABASE_CONNECT_SOURCES)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-
-  if (supabaseUrl) {
-    try {
-      const url = new URL(supabaseUrl)
-      sources.add(url.origin)
-
-      if (url.protocol === 'http:') {
-        sources.add(`ws://${url.host}`)
-      } else if (url.protocol === 'https:') {
-        sources.add(`wss://${url.host}`)
-      }
-    } catch {
-      // Ignore invalid local env values; Supabase client config owns surfacing that error.
-    }
-  }
-
-  return [...sources]
-}
-
 function getSentryConnectSource() {
   const dsn = process.env.VITE_SENTRY_DSN
   if (!dsn) return []
@@ -70,10 +37,24 @@ function getSentryConnectSource() {
   }
 }
 
+function getConvexConnectSources() {
+  const configured = process.env.VITE_CONVEX_URL ?? import.meta.env.VITE_CONVEX_URL
+  if (!configured) return []
+  try {
+    const url = new URL(configured)
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    if (url.protocol !== 'https:' && !(isDevelopment() && local && url.protocol === 'http:'))
+      return []
+    return [url.origin, `${url.protocol === 'https:' ? 'wss:' : 'ws:'}//${url.host}`]
+  } catch {
+    return []
+  }
+}
+
 function getLiveSessionConnectSource() {
   const configured =
     process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL
-  if (!configured) return isDevelopment() ? ['ws://127.0.0.1:2567'] : []
+  if (!configured) return isDevelopment() ? ['ws://127.0.0.1:8787'] : []
 
   try {
     const url = new URL(configured)
@@ -85,31 +66,44 @@ function getLiveSessionConnectSource() {
   }
 }
 
-function getVttMapSource() {
-  const accountId = process.env.R2_ACCOUNT_ID?.trim()
-  if (!accountId || !/^[a-f0-9]{32}$/iu.test(accountId)) return []
+function getMediaStorageSource() {
+  const configured =
+    process.env.VITE_MEDIA_STORAGE_ORIGIN ?? import.meta.env.VITE_MEDIA_STORAGE_ORIGIN
+  if (!configured) return []
 
-  return [`https://${accountId}.r2.cloudflarestorage.com`]
+  try {
+    const url = new URL(configured)
+    const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    const isAllowedProtocol =
+      url.protocol === 'https:' || (isDevelopment() && isLoopback && url.protocol === 'http:')
+    if (
+      !isAllowedProtocol ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash ||
+      url.hostname.includes('*')
+    )
+      return []
+    return [url.origin]
+  } catch {
+    return []
+  }
 }
 
 function getConnectSrc() {
   return [
     "connect-src 'self' blob:",
-    ...SUPABASE_CONNECT_SOURCES,
+    ...getConvexConnectSources(),
     ...getSentryConnectSource(),
     ...getLiveSessionConnectSource(),
-    ...getVttMapSource(),
-    ...getDevelopmentConnectSources()
+    ...getMediaStorageSource()
   ].join(' ')
 }
 
 function getImgSrc() {
-  return [
-    "img-src 'self' data: blob:",
-    'https://*.supabase.co',
-    ...getVttMapSource(),
-    ...getDevelopmentConnectSources().filter((source) => source.startsWith('http'))
-  ].join(' ')
+  return ["img-src 'self' data: blob:", ...getMediaStorageSource()].join(' ')
 }
 
 function getCsp({ nonce }: SecurityHeaderOptions = {}) {

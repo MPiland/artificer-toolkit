@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { transitionContent } from '../auth.css'
-import { AuthPageShell } from '../components'
+import { AuthPageShell } from '../components/AuthPageShell'
 import { ctaRow, primaryLink } from '#app/marketing/marketing.css'
 
 export function InviteLinkErrorPage() {

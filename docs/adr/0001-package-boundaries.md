@@ -1,20 +1,24 @@
 # ADR 0001: Package boundaries and the product-data seam
 
-- **Status:** decision
+- **Status:** decision — product-data isolation retained; SQL/Kysely/tRPC package topology superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-07-10
 - **Scope:** monorepo package ownership and web-to-backend data access
 - **Update when:** a package gains a new dependency direction, a product-data route bypasses `apps/apis`, or orchestration ownership moves
-- **Verification:** workspace manifests; `apps/apis/src/trpc/router.ts`; `apps/apis/src/trpc/procedures.ts`; the owning `apps/apis/src/trpc/*Router.ts`; `apps/apis/src/trpc/dbContext.ts`
+- **Verification:** workspace manifests; `apps/apis/convex`; shared schema and domain packages; [ADR 0029](0029-convex-backend-cutover.md)
 
 ## Context
 
 The repository contains shared domain contracts, persistence, application services, transport, and a web client. Without an explicit direction, frontend code can reach persistence details and transport handlers can accumulate domain behavior. This is especially risky while the character creator and authored-content platform are being rebuilt together.
 
-## Decision
+## Retained decision
 
-`apps/apis` is the only product-data boundary for `apps/web`. Web code calls API procedures and consumes API/schema contracts; it does not import Kysely, repositories, SQL, or application-service internals.
+`apps/apis` remains the only product-data boundary for `apps/web`. Web code calls typed Convex product functions and consumes shared contracts; it does not import persistence or application-service internals.
 
-The intended dependency direction is:
+## Historical implementation topology
+
+Before the Convex cutover, that boundary used the following SQL/Kysely, service-package, and tRPC topology. [ADR 0029](0029-convex-backend-cutover.md) supersedes this topology while retaining the dependency-isolation rule above.
+
+The intended dependency direction was:
 
 ```text
 packages/schema  +  packages/shared
@@ -33,8 +37,8 @@ packages/schema  +  packages/shared
 - `apps/apis` owns authentication/context binding, tRPC procedure shape, DTO validation at the boundary, error mapping, and API-to-service wiring. It stays thin.
 - `apps/web` owns user-facing flows and rendering and reaches product data through `apps/apis`.
 
-## Consequences
+## Current consequences
 
-New product-data features must have an API procedure (or an explicitly documented non-product-data path) before web usage. Reusable behavior belongs below the API seam, not in route handlers. A package dependency that points upward across this direction requires a new decision or a deliberate boundary change.
+New product-data features must expose a typed Convex product function through `apps/apis` before web usage. Reusable behavior belongs below the web adapter seam. A package dependency that bypasses this direction requires a new decision or a deliberate boundary change.
 
-The current source has a database context helper in `apps/apis`; that helper establishes request-scoped DB/RLS context and does not make the API layer the owner of repository behavior.
+The former request-scoped database context helper and RLS topology are historical implementation details superseded by ADR 0029.

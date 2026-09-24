@@ -9,6 +9,17 @@ import {
 import { characterListFixture } from '#app/domains/characters/pages/list/characterList.fixtures'
 
 describe('character list mapper', () => {
+  it('keeps canonical repair Characters out of the active panel even without a working draft', () => {
+    const response = {
+      ...characterListFixture,
+      items: [{ ...characterListFixture.items[0], status: 'DRAFT' as const, streamVersion: 3 }]
+    }
+    expect(mapCharacterListToActiveAuthoredItems(response)).toEqual([])
+    expect(mapCharacterListToDraftAuthoredItems(response)[0]).toMatchObject({
+      description: 'Character requires Builder repair before play.',
+      statusTone: 'draft'
+    })
+  })
   it('maps active and draft-only characters into authored list rows', () => {
     const items = mapCharacterListToAuthoredItems(characterListFixture)
 

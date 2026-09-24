@@ -1,4 +1,5 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { createClientOnlyFn } from '@tanstack/react-start'
@@ -33,6 +34,7 @@ export function RouteNotFound() {
 
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
   const homeRoute = useHomeRoute()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     captureRouteError(error)
@@ -49,7 +51,14 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
         Try again. If the problem continues, return to the homepage.
       </Alert>
       <Group>
-        <Button variant='default' onClick={reset}>
+        <Button
+          variant='default'
+          onClick={() => {
+            void queryClient
+              .resetQueries({ predicate: (query) => query.state.status === 'error' })
+              .finally(reset)
+          }}
+        >
           Try again
         </Button>
         <Button component={Link} to={homeRoute} leftSection={<IArrowLeft size={16} />}>

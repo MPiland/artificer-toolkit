@@ -5,6 +5,7 @@ import type {
   SceneDefinition,
   SceneDelta,
   SceneEvent,
+  SceneEntity,
   SceneFogLayer,
   ScenePoint,
   SceneTransientReveal,
@@ -73,11 +74,11 @@ function dimRangeInSceneUnits(
 }
 
 /** Apply pinned Character vision only where the scene token has no explicit vision override. */
-export function resolveSceneCharacterVision(
-  state: CampaignSceneState,
+export function resolveSceneCharacterVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
+  state: T,
   bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
   characterVisions: readonly SceneCharacterVision[]
-): CampaignSceneState {
+): T {
   const characterIdByTokenId = new Map(
     bindings.map((binding) => [binding.tokenId, binding.characterId])
   )
@@ -202,6 +203,92 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
     case 'AMBIENT_ILLUMINATION_SET':
       return { ...state, ambientIllumination: delta.illumination }
     case 'TOKEN_UPSERTED':
+    case 'TOKEN_REMOVED':
+    case 'TOKEN_MOVED':
+    case 'TOKEN_MOVE_UNDONE':
+    case 'DOOR_STATE_SET':
+    case 'BARRIER_UPSERTED':
+    case 'BARRIER_REMOVED':
+      return applySceneGeometryDelta(state, delta)
+    case 'LIGHT_UPSERTED':
+      return { ...state, lights: upsertById(state.lights, delta.light) }
+    case 'LIGHT_REMOVED':
+      return { ...state, lights: removeById(state.lights, delta.lightId) }
+    case 'DARKNESS_UPSERTED':
+      return { ...state, darknessZones: upsertById(state.darknessZones, delta.zone) }
+    case 'DARKNESS_REMOVED':
+      return { ...state, darknessZones: removeById(state.darknessZones, delta.zoneId) }
+    case 'ANNOTATION_UPSERTED':
+      return { ...state, annotations: upsertById(state.annotations, delta.annotation) }
+    case 'ANNOTATION_REMOVED':
+      return { ...state, annotations: removeById(state.annotations, delta.annotationId) }
+    case 'FOG_CHUNKS_PATCHED': {
+      const key = fogLayerKey(delta.layer)
+      const index = state.fogLayers.findIndex((layer) => fogLayerKey(layer) === key)
+      if (index < 0) return { ...state, fogLayers: [...state.fogLayers, delta.layer] }
+      const current = state.fogLayers[index]
+      if (
+        !current ||
+        current.width !== delta.layer.width ||
+        current.height !== delta.layer.height
+      ) {
+        throw new Error('Fog layer dimensions cannot change through a chunk patch.')
+      }
+      const chunks = new Map(current.chunks.map((chunk) => [chunk.index, chunk]))
+      for (const chunk of delta.layer.chunks) chunks.set(chunk.index, chunk)
+      return {
+        ...state,
+        fogLayers: state.fogLayers.map((layer, layerIndex) =>
+          layerIndex === index
+            ? {
+                ...layer,
+                chunks: [...chunks.values()].sort((left, right) => left.index - right.index)
+              }
+            : layer
+        )
+      }
+    }
+    case 'FOG_LAYER_REPLACED': {
+      if (delta.layer && delta.layer.ownerUserId !== delta.ownerUserId) {
+        throw new Error('Fog replacement owner must match its layer owner.')
+      }
+      const key = delta.ownerUserId ?? 'SHARED_PARTY'
+      const remaining = state.fogLayers.filter((layer) => fogLayerKey(layer) !== key)
+      return {
+        ...state,
+        fogLayers: delta.layer ? [...remaining, structuredClone(delta.layer)] : remaining
+      }
+    }
+    case 'VISION_REVEAL_MODE_SET':
+      return { ...state, visionRevealMode: delta.mode }
+    case 'MEASUREMENT_UPSERTED':
+      return { ...state, measurements: upsertById(state.measurements, delta.measurement) }
+    case 'MEASUREMENT_REMOVED':
+      return { ...state, measurements: removeById(state.measurements, delta.measurementId) }
+  }
+}
+
+/** Apply geometry only; the caller still validates aggregate limits and commits derived fog. */
+export function applySceneGeometryDelta<
+  T extends Pick<CampaignSceneState, 'tokens' | 'barriers' | 'doorStates'>
+>(
+  state: T,
+  delta: Extract<
+    SceneAtomicDelta,
+    {
+      kind:
+        | 'TOKEN_UPSERTED'
+        | 'TOKEN_REMOVED'
+        | 'TOKEN_MOVED'
+        | 'TOKEN_MOVE_UNDONE'
+        | 'DOOR_STATE_SET'
+        | 'BARRIER_UPSERTED'
+        | 'BARRIER_REMOVED'
+    }
+  >
+): T {
+  switch (delta.kind) {
+    case 'TOKEN_UPSERTED':
       return { ...state, tokens: upsertById(state.tokens, delta.token) }
     case 'TOKEN_REMOVED':
       return { ...state, tokens: removeById(state.tokens, delta.tokenId) }
@@ -262,61 +349,6 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
         )
       }
     }
-    case 'LIGHT_UPSERTED':
-      return { ...state, lights: upsertById(state.lights, delta.light) }
-    case 'LIGHT_REMOVED':
-      return { ...state, lights: removeById(state.lights, delta.lightId) }
-    case 'DARKNESS_UPSERTED':
-      return { ...state, darknessZones: upsertById(state.darknessZones, delta.zone) }
-    case 'DARKNESS_REMOVED':
-      return { ...state, darknessZones: removeById(state.darknessZones, delta.zoneId) }
-    case 'ANNOTATION_UPSERTED':
-      return { ...state, annotations: upsertById(state.annotations, delta.annotation) }
-    case 'ANNOTATION_REMOVED':
-      return { ...state, annotations: removeById(state.annotations, delta.annotationId) }
-    case 'FOG_CHUNKS_PATCHED': {
-      const key = fogLayerKey(delta.layer)
-      const index = state.fogLayers.findIndex((layer) => fogLayerKey(layer) === key)
-      if (index < 0) return { ...state, fogLayers: [...state.fogLayers, delta.layer] }
-      const current = state.fogLayers[index]
-      if (
-        !current ||
-        current.width !== delta.layer.width ||
-        current.height !== delta.layer.height
-      ) {
-        throw new Error('Fog layer dimensions cannot change through a chunk patch.')
-      }
-      const chunks = new Map(current.chunks.map((chunk) => [chunk.index, chunk]))
-      for (const chunk of delta.layer.chunks) chunks.set(chunk.index, chunk)
-      return {
-        ...state,
-        fogLayers: state.fogLayers.map((layer, layerIndex) =>
-          layerIndex === index
-            ? {
-                ...layer,
-                chunks: [...chunks.values()].sort((left, right) => left.index - right.index)
-              }
-            : layer
-        )
-      }
-    }
-    case 'FOG_LAYER_REPLACED': {
-      if (delta.layer && delta.layer.ownerUserId !== delta.ownerUserId) {
-        throw new Error('Fog replacement owner must match its layer owner.')
-      }
-      const key = delta.ownerUserId ?? 'SHARED_PARTY'
-      const remaining = state.fogLayers.filter((layer) => fogLayerKey(layer) !== key)
-      return {
-        ...state,
-        fogLayers: delta.layer ? [...remaining, structuredClone(delta.layer)] : remaining
-      }
-    }
-    case 'VISION_REVEAL_MODE_SET':
-      return { ...state, visionRevealMode: delta.mode }
-    case 'MEASUREMENT_UPSERTED':
-      return { ...state, measurements: upsertById(state.measurements, delta.measurement) }
-    case 'MEASUREMENT_REMOVED':
-      return { ...state, measurements: removeById(state.measurements, delta.measurementId) }
   }
 }
 
@@ -372,25 +404,53 @@ export function replaySceneEvents(
   )
 }
 
+/** The same privacy predicate serves complete snapshots and independently paged collections. */
+export function isSceneEntityVisibleToViewer(
+  state: Pick<CampaignSceneState, 'map' | 'fogLayers'>,
+  viewer: SceneViewer,
+  value: SceneEntity
+): boolean {
+  if (viewer.role === 'GM') return true
+  switch (value.collection) {
+    case 'annotations':
+      return (
+        value.entity.visibility === 'TABLE' &&
+        isScenePointExplored(state, viewer.userId, value.entity.position)
+      )
+    case 'barriers':
+      return isSceneSegmentExplored(state, viewer.userId, value.entity.a, value.entity.b)
+    case 'darknessZones':
+      return isScenePolygonExplored(state, viewer.userId, value.entity.polygon)
+    case 'lights':
+      return isScenePointExplored(state, viewer.userId, value.entity.position)
+    case 'measurements':
+      return true
+    case 'tokens':
+      return (
+        !value.entity.hidden &&
+        (value.entity.controlledByUserIds.includes(viewer.userId) ||
+          isScenePointExplored(state, viewer.userId, value.entity.position))
+      )
+  }
+}
+
 export function projectSceneForViewer(
   state: CampaignSceneState,
   viewer: SceneViewer
 ): CampaignSceneState {
   if (viewer.role === 'GM') return structuredClone(state)
   const barriers = state.barriers.filter((barrier) =>
-    isSceneSegmentExplored(state, viewer.userId, barrier.a, barrier.b)
+    isSceneEntityVisibleToViewer(state, viewer, { collection: 'barriers', entity: barrier })
   )
   const barrierIds = new Set(barriers.map((barrier) => barrier.id))
   return {
     ...structuredClone(state),
-    annotations: state.annotations.filter(
-      (annotation) =>
-        annotation.visibility === 'TABLE' &&
-        isScenePointExplored(state, viewer.userId, annotation.position)
+    annotations: state.annotations.filter((annotation) =>
+      isSceneEntityVisibleToViewer(state, viewer, { collection: 'annotations', entity: annotation })
     ),
     barriers,
     darknessZones: state.darknessZones.filter((zone) =>
-      isScenePolygonExplored(state, viewer.userId, zone.polygon)
+      isSceneEntityVisibleToViewer(state, viewer, { collection: 'darknessZones', entity: zone })
     ),
     doorStates: Object.fromEntries(
       Object.entries(state.doorStates).filter(([barrierId]) => barrierIds.has(barrierId))
@@ -399,9 +459,11 @@ export function projectSceneForViewer(
       (layer) => layer.ownerUserId === null || layer.ownerUserId === viewer.userId
     ),
     lights: state.lights.filter((light) =>
-      isScenePointExplored(state, viewer.userId, light.position)
+      isSceneEntityVisibleToViewer(state, viewer, { collection: 'lights', entity: light })
     ),
-    tokens: state.tokens.filter((token) => isSceneTokenVisibleToViewer(state, viewer, token.id))
+    tokens: state.tokens.filter((token) =>
+      isSceneEntityVisibleToViewer(state, viewer, { collection: 'tokens', entity: token })
+    )
   }
 }
 
@@ -410,10 +472,10 @@ export function projectSceneTokenPreviewForViewer(
   state: CampaignSceneState,
   options: { path: readonly ScenePoint[]; tokenId: string; viewer: SceneViewer }
 ): { reveal: SceneTransientReveal; visionLayers: SceneFogLayer[] } {
-  if (state.visionRevealMode === 'ON_DROP') {
-    return { reveal: { barriers: [], doorStates: {}, tokens: [] }, visionLayers: [] }
-  }
-  const visionLayers = deriveSceneTokenPreviewFogLayers(state, options)
+  const visionLayers =
+    state.visionRevealMode === 'ON_DROP' ? [] : deriveSceneTokenPreviewFogLayers(state, options)
+  if (visionLayers.length === 0)
+    return { reveal: { barriers: [], doorStates: {}, tokens: [] }, visionLayers }
   let revealedState = state
   for (const layer of visionLayers) {
     revealedState = applyAtomicDelta(revealedState, { kind: 'FOG_CHUNKS_PATCHED', layer })
@@ -447,10 +509,7 @@ export function isSceneTokenVisibleToViewer(
   const token = state.tokens.find((candidate) => candidate.id === tokenId)
   return (
     token !== undefined &&
-    (viewer.role === 'GM' ||
-      (!token.hidden &&
-        (token.controlledByUserIds.includes(viewer.userId) ||
-          isScenePointExplored(state, viewer.userId, token.position))))
+    isSceneEntityVisibleToViewer(state, viewer, { collection: 'tokens', entity: token })
   )
 }
 
@@ -532,12 +591,13 @@ function projectAtomicSceneDeltaForViewer(
       )
         ? structuredClone(rawDelta)
         : null
-    case 'DOOR_STATE_SET':
-      return projectSceneForViewer(after, viewer).barriers.some(
-        (barrier) => barrier.id === rawDelta.barrierId
-      )
+    case 'DOOR_STATE_SET': {
+      const barrier = after.barriers.find((candidate) => candidate.id === rawDelta.barrierId)
+      return barrier &&
+        isSceneEntityVisibleToViewer(after, viewer, { collection: 'barriers', entity: barrier })
         ? structuredClone(rawDelta)
         : null
+    }
     case 'LIGHT_UPSERTED': {
       const prior = projectSceneForViewer(before, viewer).lights.find(
         (light) => light.id === rawDelta.light.id

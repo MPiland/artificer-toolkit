@@ -87,10 +87,23 @@ const authoredListRoutes = [
   }
 ] as const
 
-const authoredEditRoutes = [
-  'src/routes/_authed/classes/$classPublicId/$classSlug/edit.tsx',
-  'src/routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit.tsx',
-  'src/routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit.tsx'
+const nativeAuthoredEditRoutes = [
+  {
+    sourcePath: 'src/routes/_authed/classes/$classPublicId/$classSlug/edit.tsx',
+    lookup: 'getClass(params.classPublicId)'
+  },
+  {
+    sourcePath: 'src/routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit.tsx',
+    lookup: 'getEquipment(params.equipmentPublicId)'
+  },
+  {
+    sourcePath: 'src/routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit.tsx',
+    lookup: 'getVehicle(params.vehiclePublicId)'
+  },
+  {
+    sourcePath: 'src/routes/_authed/races/$racePublicId/$raceSlug/edit.tsx',
+    lookup: 'getRace(params.racePublicId)'
+  }
 ] as const
 
 const authoredLegacyEditRoutes = [
@@ -158,13 +171,13 @@ describe('authored detail routes', () => {
     }
   )
 
-  it.each(authoredEditRoutes)(
-    'resolves public route handles before edit-page draft mutations in %s',
-    (sourcePath) => {
+  it.each(nativeAuthoredEditRoutes)(
+    'reads canonical public aliases directly through the native detail query in $sourcePath',
+    ({ sourcePath, lookup }) => {
       const source = readFileSync(join(process.cwd(), sourcePath), 'utf8')
 
-      expect(source).toContain('resolveAuthoredRouteSubjectId')
-      expect(source).not.toContain('parseAuthoredRouteId(params.')
+      expect(source).toContain(lookup)
+      expect(source).not.toContain('resolveAuthoredRouteSubjectId')
     }
   )
 

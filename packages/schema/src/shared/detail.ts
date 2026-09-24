@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   authoredIdentifierSchema,
   authoredRichTextSchema,
@@ -9,7 +9,7 @@ export const detailDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
   description: authoredRichTextSchema,
-  order: z.number().int()
+  order: z.number().check(z.int())
 })
 
 export type DetailDto = z.infer<typeof detailDtoSchema>

@@ -14,22 +14,26 @@ import {
   Tooltip
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { IconDotsVertical, IconTrash } from '@tabler/icons-react'
+import { convexQuery } from '@convex-dev/react-query'
+import { IconChevronDown, IconChevronUp, IconDotsVertical, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useConvex } from 'convex/react'
 import { useEffect, useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterCommandInputDto,
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getEncounterTimeline } from '#app/data/encounters/queries'
-import { getSystemList } from '#app/data/systems/queries'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
 import { EncounterActorCard } from './EncounterActorCard'
+import { EncounterReinforcement } from './EncounterReinforcement'
+import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 import { EncounterReminders } from './EncounterReminders'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
@@ -47,26 +51,26 @@ export function CampaignEncounterWorkspace({
   onUpdated: (encounter: EncounterGmProjectionDto) => void
 }) {
   const queryClient = useQueryClient()
+  const convex = useConvex()
   const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false)
+  const [reinforceOpen, setReinforceOpen] = useState(false)
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
   const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
   const [round, setRound] = useState(encounter.round)
-  const timeline = useQuery(getEncounterTimeline(encounter.id))
+  const timeline = useQuery(getEncounterTimeline(encounter.id, convex))
   const needsExplicitSystem =
     encounter.status === 'PREPARED' &&
     encounter.rulePackRevisionId === null &&
     encounter.actors.every((actor) => actor.systemId === null)
-  const systems = useQuery({
-    ...getSystemList(),
-    enabled: needsExplicitSystem && campaign.role === 'OWNER' && sessionOpen
-  })
+  const systems = useSystemList(needsExplicitSystem && campaign.role === 'OWNER' && sessionOpen)
   const [openedActorId, setOpenedActorId] = useState<string | null>(
     encounter.currentActorId ??
       encounter.actors.find((actor) => actor.initiative === null)?.id ??
       null
   )
   const command = useMutation({
-    mutationFn: (input: EncounterCommandInputDto) => api.encounters.command(input),
+    mutationFn: (input: EncounterCommandInputDto) =>
+      convex.mutation(convexApi.encounters.commands.execute, { command: input }),
     onSuccess: (result) => {
       const updated = encounterGmProjectionDtoSchema.parse(result.projection)
       if (result.roll) {
@@ -88,11 +92,42 @@ export function CampaignEncounterWorkspace({
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })
       setCompleteConfirmOpen(false)
       setRemoveActorId(null)
+      setReinforceOpen(false)
       onUpdated(updated)
     }
   })
   const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE' && sessionOpen
   const readOnly = !canManage || encounter.status === 'COMPLETED'
+  const pendingDecision = useQuery({
+    ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
+      encounterId: encounter.id
+    }),
+    enabled: !readOnly
+  })
+  const needsSideOrder =
+    !readOnly &&
+    encounter.status === 'ACTIVE' &&
+    encounter.initiativePolicy?.procedure === 'SIDE_ROLL'
+  const actorSides = useQuery({
+    ...convexQuery(convexApi.encounters.projectionReads.actorSides, {
+      encounterId: encounter.id,
+      expectedVersion: encounter.version
+    }),
+    enabled: needsSideOrder
+  })
+  const sideByActor = new Map(
+    actorSides.data?.actors.map((actor) => [actor.id, actor.sideId]) ?? []
+  )
+  const structureDisabled =
+    command.isPending ||
+    pendingDecision.isPending ||
+    Boolean(pendingDecision.error) ||
+    pendingDecision.data !== null ||
+    (needsSideOrder &&
+      (Boolean(actorSides.error) || actorSides.data?.version !== encounter.version))
+  const currentActorIndex = encounter.actors.findIndex(
+    (actor) => actor.id === encounter.currentActorId
+  )
   const actorToRemove = encounter.actors.find((actor) => actor.id === removeActorId) ?? null
   const commandWithVersion = (payload: EncounterCommandPayload) =>
     command.mutate({
@@ -102,6 +137,7 @@ export function CampaignEncounterWorkspace({
       expectedVersion: encounter.version
     } as EncounterCommandInputDto)
   const missingInitiative = encounter.actors.some((actor) => actor.initiative === null)
+  const requiresManualInitiative = encounter.automationMode === 'MANUAL'
 
   function commitRound() {
     if (readOnly || encounter.status !== 'ACTIVE' || round === encounter.round) return
@@ -174,7 +210,7 @@ export function CampaignEncounterWorkspace({
             <Button
               disabled={
                 readOnly ||
-                missingInitiative ||
+                (requiresManualInitiative && missingInitiative) ||
                 encounter.actors.length === 0 ||
                 !rulesetSystemId ||
                 command.isPending
@@ -189,7 +225,10 @@ export function CampaignEncounterWorkspace({
         ) : canManage && encounter.status === 'PREPARED' ? (
           <Button
             disabled={
-              readOnly || missingInitiative || encounter.actors.length === 0 || command.isPending
+              readOnly ||
+              (requiresManualInitiative && missingInitiative) ||
+              encounter.actors.length === 0 ||
+              command.isPending
             }
             onClick={() => commandWithVersion({ type: 'START' })}
           >
@@ -241,16 +280,26 @@ export function CampaignEncounterWorkspace({
           </Group>
         ) : null}
       </Group>
-      {encounter.status === 'PREPARED' && missingInitiative ? (
+      {encounter.status === 'PREPARED' && requiresManualInitiative && missingInitiative ? (
         <Text c='dimmed' size='sm'>
           Roll or enter initiative for each combatant to start.
         </Text>
+      ) : null}
+      {encounter.status === 'PREPARED' ? (
+        <CampaignEncounterDecision
+          campaignId={campaign.id}
+          connected={canManage}
+          encounter={encounter}
+          onResolved={(result) =>
+            onUpdated(encounterGmProjectionDtoSchema.parse(result.projection))
+          }
+        />
       ) : null}
       {command.error ? (
         <Alert color='red'>The Encounter couldn’t be updated. Try that action again.</Alert>
       ) : null}
       <Accordion value={openedActorId} variant='separated' onChange={setOpenedActorId}>
-        {encounter.actors.map((actor) => (
+        {encounter.actors.map((actor, actorIndex) => (
           <Accordion.Item
             className={encounterStyles.encounterActorItem}
             data-current={encounter.currentActorId === actor.id || undefined}
@@ -278,6 +327,56 @@ export function CampaignEncounterWorkspace({
                   </Text>
                 </Group>
               </Accordion.Control>
+              {!readOnly && actorIndex > currentActorIndex ? (
+                <Group gap={0} mr='xs' wrap='nowrap'>
+                  <ActionIcon
+                    aria-label={'Move ' + actor.label + ' earlier'}
+                    disabled={
+                      structureDisabled ||
+                      actorIndex <= currentActorIndex + 1 ||
+                      (needsSideOrder &&
+                        sideByActor.get(actor.id) !==
+                          sideByActor.get(encounter.actors[actorIndex - 1]?.id ?? ''))
+                    }
+                    variant='subtle'
+                    onClick={() => {
+                      const actorIds = encounter.actors.map((candidate) => candidate.id)
+                      actorIds.splice(
+                        actorIndex - 1,
+                        2,
+                        actorIds[actorIndex]!,
+                        actorIds[actorIndex - 1]!
+                      )
+                      commandWithVersion({ type: 'REORDER', actorIds })
+                    }}
+                  >
+                    <IconChevronUp aria-hidden size={17} />
+                  </ActionIcon>
+                  <ActionIcon
+                    aria-label={'Move ' + actor.label + ' later'}
+                    disabled={
+                      structureDisabled ||
+                      actorIndex === encounter.actors.length - 1 ||
+                      (needsSideOrder &&
+                        sideByActor.get(actor.id) !==
+                          sideByActor.get(encounter.actors[actorIndex + 1]?.id ?? ''))
+                    }
+                    variant='subtle'
+                    onClick={() => {
+                      const actorIds = encounter.actors.map((candidate) => candidate.id)
+                      actorIds.splice(
+                        actorIndex,
+                        2,
+                        actorIds[actorIndex + 1]!,
+                        actorIds[actorIndex]!
+                      )
+                      commandWithVersion({ type: 'REORDER', actorIds })
+                    }}
+                  >
+                    <IconChevronDown aria-hidden size={17} />
+                  </ActionIcon>
+                </Group>
+              ) : null}
               {actor.kind !== 'CHARACTER' && !readOnly ? (
                 <Tooltip label={`Remove ${actor.label}`}>
                   <ActionIcon
@@ -305,6 +404,23 @@ export function CampaignEncounterWorkspace({
           </Accordion.Item>
         ))}
       </Accordion>
+      {!readOnly ? (
+        <Button
+          disabled={structureDisabled}
+          variant='default'
+          onClick={() => setReinforceOpen(true)}
+        >
+          Add enemy
+        </Button>
+      ) : null}
+      <EncounterReinforcement
+        disabled={readOnly || structureDisabled}
+        opened={reinforceOpen}
+        sideRoll={encounter.initiativePolicy?.procedure === 'SIDE_ROLL'}
+        submitting={command.isPending}
+        onClose={() => setReinforceOpen(false)}
+        onCommand={commandWithVersion}
+      />
       <EncounterReminders
         disabled={readOnly || command.isPending}
         encounter={encounter}
@@ -412,6 +528,8 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'SET_ROUND') return 'Round corrected'
   if (commandType === 'UPDATE_ACTOR') return 'Enemy updated'
   if (commandType === 'REMOVE_ACTOR') return 'Enemy removed'
+  if (commandType === 'REORDER') return 'Turn order updated'
+  if (commandType === 'REINFORCE') return 'Enemy added'
   if (commandType === 'ADJUST_FEATURE_RESOURCE') return 'Feature charge changed'
   if (commandType === 'UPSERT_REMINDER') return 'Reminder updated'
   if (commandType === 'REMOVE_REMINDER') return 'Reminder removed'

@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import {
   type AuthoredDraftDto,
@@ -25,7 +26,7 @@ import {
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -46,6 +47,7 @@ export function BackgroundDetailPage({
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('BACKGROUND', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
@@ -54,13 +56,13 @@ export function BackgroundDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.backgrounds.deleteActive,
-    discard: api.content.backgrounds.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.backgrounds.detailRoot(backgroundId),
     domainLabel: 'Background',
     domainQueryKey: queryKeys.content.backgrounds.all(),
     draftQueryKey: queryKeys.content.backgrounds.draft(backgroundId),
-    duplicate: api.content.backgrounds.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: backgroundId,
     navigateEdit: async (subject) =>
@@ -69,6 +71,14 @@ export function BackgroundDetailPage({
         to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/backgrounds' })
+  })
+
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: backgroundId,
+    label: detailState.item?.label ?? 'Background',
+    subjectKind: 'BACKGROUND',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -111,13 +121,6 @@ export function BackgroundDetailPage({
     draft?.publicId ?? response?.publicId ?? backgroundId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: backgroundId,
-    label: item.label,
-    subjectKind: 'BACKGROUND',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {

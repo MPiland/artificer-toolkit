@@ -5,9 +5,7 @@ import { useStore } from '@tanstack/react-form'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
+import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -19,7 +17,7 @@ import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 
 type GuidedEquipmentAuthoringProps = {
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
 }
@@ -32,18 +30,8 @@ export const GuidedEquipmentAuthoring = withForm({
     const values = useStore(form.store, (state) => readEquipmentValues(state.values))
     const categoryLocked = session.mode === 'edit'
     const parentEquipment = useQuery({
-      enabled: values.category === EQUIPMENT_CATEGORY_CODE.VARIANT,
-      queryFn: () =>
-        loadPagedAuthoredCatalogItems(api.content.equipment.list, {
-          direction: 'FORWARD',
-          limit: 48,
-          sort: 'name'
-        }),
-      queryKey: queryKeys.content.equipment.list(),
-      select: (items) =>
-        items
-          .filter((item) => item.category !== EQUIPMENT_CATEGORY_CODE.VARIANT)
-          .map((item) => ({ label: item.label, value: item.id }))
+      ...getEquipmentOptions(session.system?.id, true),
+      enabled: values.category === EQUIPMENT_CATEGORY_CODE.VARIANT && Boolean(session.system?.id)
     })
 
     useEffect(() => {

@@ -1,4 +1,5 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
+import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -8,10 +9,11 @@ import {
 const characterEquipmentItemStateDtoSchemaRaw = z.object({
   id: z.string(),
   equipmentId: z.string(),
-  quantity: z.number().int(),
-  containerId: z.string().optional(),
-  customName: z.string().optional(),
-  notes: z.string().optional()
+  quantity: z.number().check(z.int()),
+  containerId: z.optional(z.string()),
+  customName: z.optional(z.string()),
+  notes: z.optional(z.string()),
+  retainedRulesJson: z.optional(z.string())
 })
 const characterEquipmentStateDtoSchemaRaw = z.object({
   inventory: z.array(characterEquipmentItemStateDtoSchemaRaw),
@@ -20,14 +22,17 @@ const characterEquipmentStateDtoSchemaRaw = z.object({
 })
 const characterHitDiceUsageStateDtoSchemaRaw = z
   .object({
-    die: z.number().int().positive(),
-    total: z.number().int().nonnegative(),
-    used: z.number().int().nonnegative()
+    die: z.number().check(z.int()).check(z.positive()),
+    total: z.number().check(z.int()).check(z.nonnegative()),
+    used: z.number().check(z.int()).check(z.nonnegative())
   })
-  .refine(({ total, used }) => used <= total, { message: 'Used hit dice cannot exceed the total.' })
-const characterHitDiceUsageStateDtoSchema = z
-  .array(characterHitDiceUsageStateDtoSchemaRaw)
-  .superRefine((hitDice, context) => {
+  .check(
+    z.refine(({ total, used }) => used <= total, {
+      message: 'Used hit dice cannot exceed the total.'
+    })
+  )
+const characterHitDiceUsageStateDtoSchema = z.array(characterHitDiceUsageStateDtoSchemaRaw).check(
+  z.superRefine((hitDice, context) => {
     const seen = new Set<number>()
     hitDice.forEach(({ die }, index) => {
       if (seen.has(die))
@@ -39,6 +44,7 @@ const characterHitDiceUsageStateDtoSchema = z
       seen.add(die)
     })
   })
+)
 const characterOwnedCreatureStateDtoSchemaRaw = z.object({
   id: z.string(),
   creatureId: z.string(),
@@ -48,97 +54,93 @@ const characterOwnedCreatureStateDtoSchemaRaw = z.object({
     CREATURE_RELATIONSHIP_KIND_CODE.OWNED
   ]),
   originKind: z.enum([CREATURE_ORIGIN_KIND_CODE.WORLD, CREATURE_ORIGIN_KIND_CODE.SUMMONED]),
-  customName: z.string().optional(),
-  notes: z.string().optional(),
-  isActive: z.boolean().optional(),
-  currentHitPoints: z.number().int().nonnegative().optional(),
-  tempHitPoints: z.number().int().nonnegative().optional(),
-  hitDice: characterHitDiceUsageStateDtoSchema.optional()
+  customName: z.optional(z.string()),
+  notes: z.optional(z.string()),
+  isActive: z.optional(z.boolean()),
+  currentHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  hitDice: z.optional(characterHitDiceUsageStateDtoSchema)
 })
 const characterOwnedVehicleStateDtoSchemaRaw = z.object({
   id: z.string(),
   vehicleId: z.string(),
-  customName: z.string().optional(),
-  notes: z.string().optional(),
-  isActive: z.boolean().optional(),
-  currentHitPoints: z.number().int().nonnegative().optional()
+  customName: z.optional(z.string()),
+  notes: z.optional(z.string()),
+  isActive: z.optional(z.boolean()),
+  currentHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative()))
 })
 const characterRosterEquipmentAssignmentStateDtoSchemaRaw = z.object({
   equipmentItemId: z.string()
 })
-const characterCurrencyAmountStateDtoSchemaRaw = z.object({
-  currencyId: z.string(),
-  amount: z.number()
-})
 const characterCurrencyGroupStateDtoSchemaRaw = z.object({
   id: z.string(),
-  containerId: z.string().optional(),
-  currencies: z.array(characterCurrencyAmountStateDtoSchemaRaw)
+  containerId: z.optional(z.string()),
+  currencies: z.array(characterCurrencyAmountDtoSchema)
 })
 const characterClassSpellStateDtoSchemaRaw = z.object({
-  learned: z.array(z.string()).optional(),
-  prepared: z.array(z.string()).optional()
+  learned: z.optional(z.array(z.string())),
+  prepared: z.optional(z.array(z.string()))
 })
 const characterClassStateDtoSchemaRaw = z.object({
   classId: z.string(),
-  spells: characterClassSpellStateDtoSchemaRaw.optional()
+  spells: z.optional(characterClassSpellStateDtoSchemaRaw)
 })
 const characterResourceUsageStateDtoSchemaRaw = z.object({
   resourceGrantId: z.string(),
-  used: z.number().int()
+  used: z.number().check(z.int())
 })
 const characterSpellSlotUsageStateDtoSchemaRaw = z.object({
   slotKey: z.string(),
-  used: z.number().int().min(0)
+  used: z.number().check(z.int()).check(z.gte(0))
 })
 const characterConditionStateDtoSchemaRaw = z.object({
   conditionTypeId: z.string(),
-  notes: z.string().optional()
+  notes: z.optional(z.string())
 })
 const characterExhaustionStateDtoSchemaRaw = z.object({
-  level: z.number().int().min(0).max(6),
-  notes: z.string().optional()
+  level: z.number().check(z.int()).check(z.gte(0)).check(z.lte(6)),
+  notes: z.optional(z.string())
 })
 const characterNoteGroupStateDtoSchemaRaw = z.object({
   id: z.string(),
   label: z.string(),
-  sortOrder: z.number().int(),
+  sortOrder: z.number().check(z.int()),
   kind: z.enum(['SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM'])
 })
 const characterNoteStateDtoSchemaRaw = z.object({
   id: z.string(),
   title: z.string(),
-  body: z.string().optional(),
+  body: z.optional(z.string()),
   groupId: z.string(),
-  pinned: z.boolean().optional(),
+  pinned: z.optional(z.boolean()),
   createdAt: z.string(),
   updatedAt: z.string()
 })
 const characterHitpointsStateDtoSchemaRaw = z.object({
-  current: z.number().int(),
-  temp: z.number().int().optional(),
+  current: z.number().check(z.int()),
+  temp: z.optional(z.number().check(z.int())),
   hitDice: characterHitDiceUsageStateDtoSchema
 })
 const characterStateDtoSchemaRaw = z.object({
   equipment: characterEquipmentStateDtoSchemaRaw,
   currency: z.array(characterCurrencyGroupStateDtoSchemaRaw),
   hitpoints: characterHitpointsStateDtoSchemaRaw,
-  inspiration: z.boolean().optional(),
-  classes: z.array(characterClassStateDtoSchemaRaw).optional(),
-  resources: z.array(characterResourceUsageStateDtoSchemaRaw).optional(),
-  spellSlots: z.array(characterSpellSlotUsageStateDtoSchemaRaw).optional(),
-  conditions: z.array(characterConditionStateDtoSchemaRaw).optional(),
-  exhaustion: characterExhaustionStateDtoSchemaRaw.optional(),
-  noteGroups: z.array(characterNoteGroupStateDtoSchemaRaw).optional(),
-  notes: z.array(characterNoteStateDtoSchemaRaw).optional(),
-  creatures: z.array(characterOwnedCreatureStateDtoSchemaRaw).optional(),
-  vehicles: z.array(characterOwnedVehicleStateDtoSchemaRaw).optional(),
-  creatureEquipment: z
-    .record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
-    .optional(),
-  vehicleEquipment: z
-    .record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
-    .optional()
+  inspiration: z.optional(z.boolean()),
+  classes: z.optional(z.array(characterClassStateDtoSchemaRaw)),
+  resources: z.optional(z.array(characterResourceUsageStateDtoSchemaRaw)),
+  spellSlots: z.optional(z.array(characterSpellSlotUsageStateDtoSchemaRaw)),
+  conditions: z.optional(z.array(characterConditionStateDtoSchemaRaw)),
+  exhaustion: z.optional(characterExhaustionStateDtoSchemaRaw),
+  noteGroups: z.optional(z.array(characterNoteGroupStateDtoSchemaRaw)),
+  notes: z.optional(z.array(characterNoteStateDtoSchemaRaw)),
+  creatures: z.optional(z.array(characterOwnedCreatureStateDtoSchemaRaw)),
+  vehicles: z.optional(z.array(characterOwnedVehicleStateDtoSchemaRaw)),
+  creatureEquipment: z.optional(
+    z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
+  ),
+  vehicleEquipment: z.optional(
+    z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
+  )
 })
 
 export type CharacterStateDto = z.infer<typeof characterStateDtoSchemaRaw>

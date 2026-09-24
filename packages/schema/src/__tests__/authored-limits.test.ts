@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   AUTHORED_LIMITS,
@@ -31,7 +31,7 @@ const serializedRichText =
 
 const primitiveBoundaryCases: Array<{
   name: string
-  schema: z.ZodType
+  schema: z.core.$ZodType
   exact: unknown
   plusOne: unknown
 }> = [
@@ -92,7 +92,7 @@ const exactLabel = 'x'.repeat(AUTHORED_LIMITS.shortTextCharacters)
 
 const authoredRootBoundaryCases: Array<{
   name: string
-  schema: z.ZodType
+  schema: z.core.$ZodType
   payload: Record<string, unknown>
 }> = [
   {
@@ -214,16 +214,16 @@ describe('authored input limits', () => {
   it.each(primitiveBoundaryCases)(
     '$name accepts its exact limit and rejects limit + 1',
     (testCase) => {
-      expect(testCase.schema.safeParse(testCase.exact).success).toBe(true)
-      expect(testCase.schema.safeParse(testCase.plusOne).success).toBe(false)
+      expect(z.safeParse(testCase.schema, testCase.exact).success).toBe(true)
+      expect(z.safeParse(testCase.schema, testCase.plusOne).success).toBe(false)
     }
   )
 
   it.each(authoredRootBoundaryCases)(
     '$name accepts an exact-limit label and rejects limit + 1',
     ({ schema, payload }) => {
-      expect(schema.safeParse({ ...payload, label: exactLabel }).success).toBe(true)
-      expect(schema.safeParse(payload).success).toBe(false)
+      expect(z.safeParse(schema, { ...payload, label: exactLabel }).success).toBe(true)
+      expect(z.safeParse(schema, payload).success).toBe(false)
     }
   )
 

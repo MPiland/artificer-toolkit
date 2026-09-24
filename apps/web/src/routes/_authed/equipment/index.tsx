@@ -1,39 +1,39 @@
 import { notifications } from '@mantine/notifications'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
-import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
-import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
+import { useNativeAuthoredCatalogWindow } from '#components/AuthoredList/useNativeAuthoredCatalogWindow'
 import {
   buildEquipmentListFilters,
   equipmentListAttributeColumns,
-  equipmentListSortOptions,
-  formatEquipmentCategory,
-  mapEquipmentListToAuthoredItems,
-  summarizeEquipmentList
+  equipmentListSortOptions
 } from '#app/data/equipment/equipmentListMapper'
 import { useDuplicateEquipmentMutation } from '#app/data/equipment/mutations'
-import { getEquipment, getEquipmentList, useGetEquipmentList } from '#app/data/equipment/queries'
-import { createServerApi } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { getEquipment } from '#app/data/equipment/queries'
+import { getAuthoredCatalogueList } from '#app/data/authoredCatalogue'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
-import type { EquipmentListRequestDto } from '#app/lib/api'
 
-const equipmentDetailMeta = ['equipment', 'rarities']
-const equipmentCatalogueRequest = {
-  direction: 'FORWARD',
-  limit: 48,
-  sort: 'name'
-} satisfies EquipmentListRequestDto
-
+const equipmentDetailMeta = ['classes', 'currencies', 'equipment', 'heritages', 'rarities']
 export const Route = createFileRoute('/_authed/equipment/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureInfiniteQueryData(
-      getEquipmentList(equipmentCatalogueRequest, createServerApi())
-    )
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        getAuthoredCatalogueList({
+          subjectKind: 'EQUIPMENT',
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      ),
+      context.queryClient.ensureQueryData(
+        convexQuery(api.content.catalogue.summary, { subjectKind: 'EQUIPMENT' })
+      )
+    ])
   },
   component: EquipmentRoute
 })
@@ -41,32 +41,12 @@ export const Route = createFileRoute('/_authed/equipment/')({
 function EquipmentRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const listing = useAuthoredCatalogWindow({
-    buildFilters: buildEquipmentListFilters,
-    buildRequest: ({ filterValues, query, sort }): EquipmentListRequestDto => ({
-      ...equipmentCatalogueRequest,
-      category: filterValues.category ?? undefined,
-      query: query || undefined,
-      sort: sort === 'category' ? 'category' : 'name',
-      source:
-        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
-          ? filterValues.source
-          : undefined
-    }),
-    initialSort: 'name',
-    mapDrafts: (response) =>
-      mapDraftSummariesToAuthoredItems(response.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatEquipmentCategory
-      }),
-    mapItems: mapEquipmentListToAuthoredItems,
-    summarize: summarizeEquipmentList,
-    useList: useGetEquipmentList
-  })
+  const listing = useNativeAuthoredCatalogWindow('EQUIPMENT')
   const duplicateMutation = useDuplicateEquipmentMutation()
+  const operations = createAuthoredOperations('EQUIPMENT', useConvex())
   const deleteAction = useAuthoredDeleteAction({
-    deleteActive: api.content.equipment.deleteActive,
-    deleteDraft: api.content.equipment.discardDraft,
+    deleteActive: operations.deleteActive,
+    deleteDraft: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.equipment.detailRoot,
     domainLabel: 'Equipment',
     domainQueryKey: queryKeys.content.equipment.all(),
@@ -98,11 +78,16 @@ function EquipmentRoute() {
     <>
       <AuthoredListPage
         title='Equipment'
-        summary={listing.summary ?? 'Loading equipment...'}
+        summary={
+          listing.summary
+            ? `${listing.summary.activeCount} items / ${listing.summary.masterCount} SRD / ${listing.summary.ownedCount} homebrew`
+            : 'Loading equipment...'
+        }
         createLabel='Create Equipment'
         items={listing.items}
         draftItems={listing.draftItems}
-        filters={listing.filters}
+        draftLoading={listing.draftLoading}
+        filters={buildEquipmentListFilters(listing.summary?.categories ?? [])}
         attributeColumns={equipmentListAttributeColumns}
         sortOptions={equipmentListSortOptions}
         catalog={listing.catalog}

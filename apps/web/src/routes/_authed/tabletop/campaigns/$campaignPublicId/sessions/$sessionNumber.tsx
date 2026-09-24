@@ -1,10 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import {
-  getCampaignDetail,
-  getCampaignRouteIdentity,
-  getCampaignSession
-} from '#app/data/campaigns/queries'
-import { createServerApi } from '#app/lib/api'
+import { createFileRoute, notFound } from '@tanstack/react-router'
+import { getCampaignDetail, getCampaignSession } from '#app/data/campaigns/queries'
 import { CampaignTabletopWindow } from '#domains/campaigns'
 
 export const Route = createFileRoute(
@@ -19,18 +14,14 @@ export const Route = createFileRoute(
       throw new Error('Session number is too large.')
     }
 
-    const client = createServerApi()
-    const identity = await context.queryClient.ensureQueryData(
-      getCampaignRouteIdentity(params.campaignPublicId, client)
-    )
-    if (!identity) throw new Error('Campaign not found.')
-
-    const campaign = await context.queryClient.ensureQueryData(
-      getCampaignDetail(identity.subjectId, client)
-    )
-    await context.queryClient.ensureQueryData(
-      getCampaignSession(campaign.id, sessionNumber, client)
-    )
+    const campaign = await context.queryClient
+      .ensureQueryData(getCampaignDetail(params.campaignPublicId))
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message.includes('Campaign not found.'))
+          throw notFound()
+        throw error
+      })
+    await context.queryClient.ensureQueryData(getCampaignSession(campaign.id, sessionNumber))
     return { campaignId: campaign.id, sessionNumber }
   },
   component: CampaignTabletopRoute
@@ -42,7 +33,7 @@ function CampaignTabletopRoute() {
   return (
     <CampaignTabletopWindow
       campaignId={campaignId}
-      currentUserId={user?.id ?? ''}
+      currentUserId={user?.userId ?? ''}
       sessionNumber={sessionNumber}
     />
   )

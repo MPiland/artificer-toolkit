@@ -82,36 +82,19 @@ Do not byte-cap instruction files, skill files, tool docs, or agent policy files
 
 Protect context usage. **Any command with unknown or potentially large output must be scoped and byte-capped.**
 
-Byte-cap unknown or potentially large output. Line caps alone are unsafe because a single line can be huge.
-
-```bash
-COMMAND 2>&1 | head -c 4000
-COMMAND 2>&1 | tail -c 4000
-```
-
-### Good Byte Capping Examples
-
-```bash
-rg -n -m 20 'functionName|ComponentName|routeName' src 2>&1 | head -c 200
-bash -o pipefail -c 'npm run type-check 2>&1 | tail -c 500'
-bash -o pipefail -c 'npm run test 2>&1 | tail -c 2000'
-bash -o pipefail -c 'npm run build 2>&1 | tail -c 500'
-rg -l "SEARCH_TERM" src 2>&1 | head -c 4000
-```
-
-Do not rely on `head -n`, `tail -n`, or `sed -n` as the only cap.
+Cap unknown or potentially large output before displaying it. Line caps alone are unsafe because a single line can be huge. In PowerShell, bound displayed text with `Substring`; for strict byte limits, read a bounded byte range from the saved log.
 
 Scope before printing content: list files first, search specific paths, count matches when useful, and avoid reading generated, binary, minified, database, or huge JSON/JSONL files unless required.
 
-Preserve exit codes when needed:
+Preserve complete verification logs and native command exit codes; display only a bounded excerpt after completion:
 
-```bash
-tmp="$(mktemp)"
-COMMAND >"$tmp" 2>&1
-status=$?
-tail -c 5000 "$tmp"
-rm -f "$tmp"
-exit "$status"
+```powershell
+New-Item -ItemType Directory -Force local-validation/task | Out-Null
+yarn turbo:affected:typecheck *> local-validation/task/typecheck.log
+$validationExit = $LASTEXITCODE
+$excerpt = Get-Content -LiteralPath local-validation/task/typecheck.log -Tail 20 | Out-String
+$excerpt.Substring(0, [Math]::Min(4000, $excerpt.Length))
+exit $validationExit
 ```
 
 Avoid unbounded `cat`, broad `rg`, `find`, `ls -R`, `git diff`, tests, builds, and `select *`.
@@ -120,12 +103,9 @@ If capped output is insufficient, narrow the command before increasing the cap.
 
 ## Shell Selection
 
-Git Bash is the preferred shell for ordinary repository work on this Windows machine.
+Use native PowerShell for Windows commands, including rg, git, yarn, node, tests, and process management. Use Git Bash only when the user explicitly requests it.
 
-- Use Git Bash for rg, git, yarn, node, focused tests, typechecks, and other commands that do not require Windows-only process control.
-- Keep command syntax, quoting, path separators, pipes, and exit-code handling native to the shell currently in use. Do not wrap Git Bash commands in cmd /c or PowerShell unless the command specifically requires it.
-- Use PowerShell or another native Windows shell for Docker Desktop control, GUI/process inspection, Windows service management, filesystem operations that need Windows semantics, or spawn-heavy commands that fail under Git Bash.
-- When a documented repo command behaves differently across shells, preserve the repo command and retry it in the shell that supports the required process behavior. Do not bypass the repo's environment configuration.
+Keep quoting, paths, redirection, and exit-code handling native to PowerShell. Preserve documented repository commands and environment configuration.
 
 ## Windows Process Execution
 
@@ -133,19 +113,16 @@ This repo runs on Windows, and several frontend tools spawn native child process
 
 - Prefer MCP/browser inspection when a dev server is already running.
 - Codex may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
-- If Codex must start a spawn-heavy command, request escalated execution with `sandbox_permissions: "require_escalated"` instead of trying the normal sandbox first.
-- Use the repo command exactly as documented through Git Bash when supported, or PowerShell/native Windows when the command needs Windows process behavior. For example, prefer `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006` in Git Bash; do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
-- Do not switch shells repeatedly during one operation. Choose Git Bash by default, and switch to PowerShell/native Windows only for the documented exceptions above or when Git Bash produces a reproducible Windows process failure.
+- Follow the active session's permission policy. In an unrestricted session, run commands normally. Request escalation only when supported and needed for a sandbox restriction; never supply escalation flags when the session forbids them.
+- Use documented repo commands through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
 - Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
-- Keep normal read/search/patch commands in the regular sandbox. Escalation is for native child-process toolchains, not routine file inspection.
-- If local Supabase appears offline, especially `ECONNREFUSED 127.0.0.1:54321`, verify Docker Desktop and the local Supabase containers before diagnosing app auth or sheet routes. Check Docker/Supabase status with escalated PowerShell when needed; if Docker Desktop is not running, start it so the local Supabase stack can come online.
+- If local Supabase appears offline, especially `ECONNREFUSED 127.0.0.1:54321`, verify Docker Desktop and the local Supabase containers before diagnosing app auth or sheet routes. Check Docker/Supabase status with PowerShell; if Docker Desktop is not running, start it so the local Supabase stack can come online.
 
 ## GitHub CLI Auth On Windows
 
 GitHub CLI auth is available through the Windows keyring in this workspace, not through `GH_TOKEN` in the sandboxed shell environment.
 
-- Run `gh` commands with escalated execution when authentication is required, including PR review/comment/thread operations.
-- If normal sandboxed `gh` reports an invalid token, retry the same `gh` command escalated before diagnosing auth as broken.
+- Run `gh` under the active session's permission policy. If a sandbox blocks keyring access and escalation is supported, retry with escalation before diagnosing auth as broken.
 - Do not print or inspect token values. `gh auth status` is acceptable for confirming authentication state.
 
 ## Code Changes
@@ -167,12 +144,12 @@ Avoid wrapper functions that simply call another function.
 
 Match validation to risk.
 
-Store disposable validation logs, screenshots, and generated evidence only under `.codex/validation/<task>/`. Do not create root-level logs or use `tmp/`, `logs/`, or `artifacts/` for validation output. Keep intentionally retained design-review evidence under `.impeccable/critique/` and canonical product references under `docs/mockups/`.
+Store disposable validation logs, screenshots, and generated evidence under ignored `local-validation/<task>/`. Keep durable validation summaries and source identities under `docs/validation/`, and living handoffs under `docs/handoffs/`, so another agent can find them in the repository. Do not create root-level logs or use `tmp/`, `logs/`, or `artifacts/` for validation output. Keep intentionally retained design-review evidence under `.impeccable/critique/` and canonical product references under `docs/mockups/`.
 
-Skip validation for low-risk changes and say so plainly.
+For low-risk documentation or configuration edits, inspect the diff and skip application tests when they cannot exercise the change. State what was checked.
 Use the cheapest useful check for risky changes.
 Run typecheck validation through Turbo-backed repo commands by default, such as `yarn turbo:typecheck:web` or `yarn turbo:affected:typecheck`, so local caching is used. Do not run direct workspace typecheck commands like `yarn workspace @artificer-toolkit/web typecheck:app` unless diagnosing Turbo itself or a Turbo-backed command is unavailable.
-Do not run full test suites or full builds unless risk justifies it or the user asks.
+Do not run full test suites or full builds unless risk justifies it or the user asks. The global Local before staging requirements take precedence for promotion work.
 
 ## Subagents
 

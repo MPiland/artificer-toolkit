@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   characterGrantFoldInputSchema,
@@ -29,43 +29,56 @@ import {
   sizeCodeSchema
 } from '../shared/enums.js'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
-import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
+import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
-const boundedIdentitySchema = z.string().trim().min(1).max(240)
+const finiteNumberSchema = z.number()
+const integerSchema = z.number().check(z.int())
+const booleanSchema = z.boolean()
+
+const boundedIdentitySchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(240))
 
 const characterAbilityDefinitionFactSchema = z.strictObject({
   id: serverUuidIdentityDtoSchema,
   code: boundedIdentitySchema
 })
 
-const characterAbilityDefinitionsSchema = z
-  .array(characterAbilityDefinitionFactSchema)
-  .max(32)
-  .superRefine((definitions, context) => {
-    const ids = new Set<string>()
-    const codes = new Set<string>()
-    for (const [index, definition] of definitions.entries()) {
-      if (ids.has(definition.id)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'id'],
-          message: 'Character ability definition IDs must be unique.'
-        })
-      }
-      if (codes.has(definition.code)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'code'],
-          message: 'Character ability definition codes must be unique.'
-        })
-      }
-      ids.add(definition.id)
-      codes.add(definition.code)
-    }
-  })
-  .transform((definitions) =>
+const characterAbilityDefinitionsSchema = z.pipe(
+  z
+    .array(characterAbilityDefinitionFactSchema)
+    .check(z.maxLength(32))
+    .check(
+      z.superRefine((definitions, context) => {
+        const ids = new Set<string>()
+        const codes = new Set<string>()
+        for (const [index, definition] of definitions.entries()) {
+          if (ids.has(definition.id)) {
+            context.addIssue({
+              code: 'custom',
+              path: [index, 'id'],
+              message: 'Character ability definition IDs must be unique.'
+            })
+          }
+          if (codes.has(definition.code)) {
+            context.addIssue({
+              code: 'custom',
+              path: [index, 'code'],
+              message: 'Character ability definition codes must be unique.'
+            })
+          }
+          ids.add(definition.id)
+          codes.add(definition.code)
+        }
+      })
+    ),
+  z.transform((definitions) =>
     [...definitions].sort((left, right) => left.id.localeCompare(right.id))
   )
+)
 
 const characterTargetDefenseSchema = z.strictObject({
   kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
@@ -73,52 +86,60 @@ const characterTargetDefenseSchema = z.strictObject({
   source: characterMechanicSourceSchema
 })
 
-const canonicalCharacterTargetDefensesSchema = z
-  .array(characterTargetDefenseSchema)
-  .max(100)
-  .superRefine((defenses, ctx) => {
-    const keys = new Set<string>()
-    defenses.forEach((defense, index) => {
-      const key = `${defense.kind}:${defense.damageTypeId}`
-      if (keys.has(key)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Character target defenses must be unique.',
-          path: [index]
+const canonicalCharacterTargetDefensesSchema = z.pipe(
+  z
+    .array(characterTargetDefenseSchema)
+    .check(z.maxLength(100))
+    .check(
+      z.superRefine((defenses, ctx) => {
+        const keys = new Set<string>()
+        defenses.forEach((defense, index) => {
+          const key = `${defense.kind}:${defense.damageTypeId}`
+          if (keys.has(key)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Character target defenses must be unique.',
+              path: [index]
+            })
+          }
+          keys.add(key)
         })
-      }
-      keys.add(key)
-    })
-  })
-  .transform((defenses) =>
+      })
+    ),
+  z.transform((defenses) =>
     [...defenses].sort((left, right) =>
       left.damageTypeId === right.damageTypeId
         ? left.kind.localeCompare(right.kind)
         : left.damageTypeId.localeCompare(right.damageTypeId)
     )
   )
+)
 
-const canonicalConditionImmunityIdsSchema = z
-  .array(serverUuidIdentityDtoSchema)
-  .max(100)
-  .superRefine((conditionIds, ctx) => {
-    const seen = new Set<string>()
-    conditionIds.forEach((conditionId, index) => {
-      if (seen.has(conditionId)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Character condition immunities must be unique.',
-          path: [index]
+const canonicalConditionImmunityIdsSchema = z.pipe(
+  z
+    .array(serverUuidIdentityDtoSchema)
+    .check(z.maxLength(100))
+    .check(
+      z.superRefine((conditionIds, ctx) => {
+        const seen = new Set<string>()
+        conditionIds.forEach((conditionId, index) => {
+          if (seen.has(conditionId)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Character condition immunities must be unique.',
+              path: [index]
+            })
+          }
+          seen.add(conditionId)
         })
-      }
-      seen.add(conditionId)
-    })
-  })
-  .transform((conditionIds) => [...conditionIds].sort())
+      })
+    ),
+  z.transform((conditionIds) => [...conditionIds].sort())
+)
 
 const characterRuleContributionInputSchema = z.strictObject({
   sourceId: boundedIdentitySchema,
-  value: z.number().finite()
+  value: finiteNumberSchema
 })
 
 const characterMovementFactsSchema = z.strictObject({
@@ -126,18 +147,18 @@ const characterMovementFactsSchema = z.strictObject({
     .array(
       z.strictObject({
         speedId: boundedIdentitySchema,
-        code: boundedIdentitySchema.nullable(),
-        baseAmount: z.number().finite(),
+        code: z.nullable(boundedIdentitySchema),
+        baseAmount: finiteNumberSchema,
         unit: measurementUnitCodeSchema,
-        override: z
-          .strictObject({ sourceId: boundedIdentitySchema, value: z.number().finite() })
-          .nullable()
+        override: z.nullable(
+          z.strictObject({ sourceId: boundedIdentitySchema, value: finiteNumberSchema })
+        )
       })
     )
-    .max(100),
+    .check(z.maxLength(100)),
   preference: z.strictObject({
     mode: z.enum(['AUTO', 'EXPLICIT']),
-    speedId: boundedIdentitySchema.nullable()
+    speedId: z.nullable(boundedIdentitySchema)
   })
 })
 
@@ -147,15 +168,15 @@ const characterSenseFactsSchema = z.strictObject({
       z.strictObject({
         senseDefinitionId: serverUuidIdentityDtoSchema,
         sourceId: boundedIdentitySchema,
-        value: z.number().finite()
+        value: finiteNumberSchema
       })
     )
-    .max(100)
+    .check(z.maxLength(100))
 })
 
 const characterArmorClassFactsSchema = z.strictObject({
   dexterityAbilityId: boundedIdentitySchema,
-  dexterityAbilityIndex: z.number().int().min(0).max(31).nullable(),
+  dexterityAbilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
   equipment: z
     .array(
       z.strictObject({
@@ -163,10 +184,10 @@ const characterArmorClassFactsSchema = z.strictObject({
         source: characterMechanicSourceSchema,
         category: z.enum(['ARMOR', 'SHIELD']),
         equippedSlot: boundedIdentitySchema,
-        armorClass: z.number().finite().nullable()
+        armorClass: z.nullable(finiteNumberSchema)
       })
     )
-    .max(500)
+    .check(z.maxLength(500))
 })
 
 const characterHitPointFactsSchema = z.strictObject({
@@ -174,59 +195,63 @@ const characterHitPointFactsSchema = z.strictObject({
     .array(
       z.strictObject({
         classId: boundedIdentitySchema,
-        classLevel: z.number().int().min(0).max(20),
-        value: z.number().finite()
+        classLevel: integerSchema.check(z.gte(0)).check(z.lte(20)),
+        value: finiteNumberSchema
       })
     )
-    .max(400),
+    .check(z.maxLength(400)),
   constitutionAbilityId: boundedIdentitySchema,
-  constitutionAbilityIndex: z.number().int().min(0).max(31).nullable(),
-  progression: z
-    .strictObject({
-      method: z.enum(['FIXED', 'MANUAL']),
-      rows: z
-        .array(
-          z.strictObject({
-            sequence: z.number().int().min(0).max(399),
-            level: z.number().int().min(1).max(400),
-            classId: boundedIdentitySchema,
-            classLevel: z.number().int().min(1).max(20),
-            die: z.number().int().positive().nullable(),
-            abilityIndex: z.number().int().min(0).max(31).nullable(),
-            fallbackValue: z.number().int(),
-            rollValue: z.number().int().nullable(),
-            legacyOverrideValue: z.number().int().nullable()
-          })
-        )
-        .max(400)
-        .superRefine((rows, context) => {
-          for (const [index, row] of rows.entries()) {
-            if (row.sequence !== index) {
-              context.addIssue({
-                code: 'custom',
-                message: 'Hit point progression rows must use contiguous sequence values',
-                path: [index, 'sequence']
-              })
-            }
-          }
-        })
-    })
-    .nullable()
-    .default(null),
-  manualMaximumModifier: z
-    .strictObject({
+  constitutionAbilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
+  progression: z._default(
+    z.nullable(
+      z.strictObject({
+        method: z.enum(['FIXED', 'MANUAL']),
+        rows: z
+          .array(
+            z.strictObject({
+              sequence: integerSchema.check(z.gte(0)).check(z.lte(399)),
+              level: integerSchema.check(z.gte(1)).check(z.lte(400)),
+              classId: boundedIdentitySchema,
+              classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+              die: z.nullable(integerSchema.check(z.positive())),
+              abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
+              fallbackValue: integerSchema,
+              rollValue: z.nullable(integerSchema),
+              legacyOverrideValue: z.nullable(integerSchema)
+            })
+          )
+          .check(z.maxLength(400))
+          .check(
+            z.superRefine((rows, context) => {
+              for (const [index, row] of rows.entries()) {
+                if (row.sequence !== index) {
+                  context.addIssue({
+                    code: 'custom',
+                    message: 'Hit point progression rows must use contiguous sequence values',
+                    path: [index, 'sequence']
+                  })
+                }
+              }
+            })
+          )
+      })
+    ),
+    null
+  ),
+  manualMaximumModifier: z.nullable(
+    z.strictObject({
       sourceId: boundedIdentitySchema,
       source: characterMechanicSourceSchema,
-      value: z.number().finite()
+      value: finiteNumberSchema
     })
-    .nullable(),
-  manualMaximumOverride: z
-    .strictObject({
+  ),
+  manualMaximumOverride: z.nullable(
+    z.strictObject({
       sourceId: boundedIdentitySchema,
       source: characterMechanicSourceSchema,
-      value: z.number().finite()
+      value: finiteNumberSchema
     })
-    .nullable()
+  )
 })
 
 const characterDerivedNumericBonusSchema = z.discriminatedUnion('kind', [
@@ -234,7 +259,7 @@ const characterDerivedNumericBonusSchema = z.discriminatedUnion('kind', [
     kind: z.literal('FIXED'),
     sourceId: boundedIdentitySchema,
     source: characterMechanicSourceSchema,
-    value: z.number().finite(),
+    value: finiteNumberSchema,
     operation: z.enum(['ADD', 'SET'])
   }),
   z.strictObject({
@@ -250,99 +275,102 @@ const characterDerivedNumericBonusSchema = z.discriminatedUnion('kind', [
   })
 ])
 
-const characterDerivedNumericOverrideSchema = z
-  .strictObject({
+const characterDerivedNumericOverrideSchema = z.nullable(
+  z.strictObject({
     sourceId: boundedIdentitySchema,
     source: characterMechanicSourceSchema,
-    value: z.number().finite()
+    value: finiteNumberSchema
   })
-  .nullable()
+)
 
-const characterDerivedProficiencyOverrideSchema = z
-  .strictObject({
+const characterDerivedProficiencyOverrideSchema = z.nullable(
+  z.strictObject({
     sourceId: boundedIdentitySchema,
     source: characterMechanicSourceSchema,
     value: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
   })
-  .nullable()
+)
 
 export const characterDerivedBaseFactsSchema = z.strictObject({
   abilities: z
     .array(
       z.strictObject({
         abilityId: boundedIdentitySchema,
-        baseScore: z.number().int().min(0).max(30),
-        bonuses: z.array(characterDerivedNumericBonusSchema).max(200),
+        baseScore: integerSchema.check(z.gte(0)).check(z.lte(30)),
+        bonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
         scoreOverride: characterDerivedNumericOverrideSchema
       })
     )
-    .max(32),
+    .check(z.maxLength(32)),
   savingThrows: z
     .array(
       z.strictObject({
         abilityId: boundedIdentitySchema,
-        abilityIndex: z.number().int().min(0).max(31).nullable(),
+        abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
         proficiencySubjectId: boundedIdentitySchema,
         proficiencyOverride: characterDerivedProficiencyOverrideSchema,
-        bonuses: z.array(characterDerivedNumericBonusSchema).max(200),
+        bonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
         totalOverride: characterDerivedNumericOverrideSchema
       })
     )
-    .max(32),
+    .check(z.maxLength(32)),
   skills: z
     .array(
       z.strictObject({
         skillId: boundedIdentitySchema,
         governingAbilityId: boundedIdentitySchema,
-        governingAbilityIndex: z.number().int().min(0).max(31).nullable(),
-        governingAbilityOverride: z
-          .strictObject({
+        governingAbilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
+        governingAbilityOverride: z.nullable(
+          z.strictObject({
             sourceId: boundedIdentitySchema,
             value: boundedIdentitySchema,
-            abilityIndex: z.number().int().min(0).max(31).nullable()
+            abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31)))
           })
-          .nullable(),
-        proficiencySubjectIds: z.array(boundedIdentitySchema).min(1).max(100),
+        ),
+        proficiencySubjectIds: z
+          .array(boundedIdentitySchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(100)),
         proficiencyOverride: characterDerivedProficiencyOverrideSchema,
-        bonuses: z.array(characterDerivedNumericBonusSchema).max(200),
+        bonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
         totalOverride: characterDerivedNumericOverrideSchema,
         passiveOverride: characterDerivedNumericOverrideSchema
       })
     )
-    .max(100),
+    .check(z.maxLength(100)),
   initiative: z.strictObject({
     abilityId: boundedIdentitySchema,
-    abilityIndex: z.number().int().min(0).max(31).nullable(),
-    bonuses: z.array(characterDerivedNumericBonusSchema).max(200)
+    abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
+    bonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200))
   }),
-  spellcasting: z
-    .strictObject({
+  spellcasting: z.nullable(
+    z.strictObject({
       abilityId: boundedIdentitySchema,
-      abilityIndex: z.number().int().min(0).max(31).nullable(),
-      saveDcBonuses: z.array(characterDerivedNumericBonusSchema).max(200),
-      attackBonuses: z.array(characterDerivedNumericBonusSchema).max(200)
+      abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
+      saveDcBonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
+      attackBonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200))
     })
-    .nullable()
+  )
 })
 
 const spellSlotEntrySchema = z.strictObject({
-  spellLevel: z.number().int().min(1).max(9),
-  slotCount: z.number().int().min(0).max(99)
+  spellLevel: integerSchema.check(z.gte(1)).check(z.lte(9)),
+  slotCount: integerSchema.check(z.gte(0)).check(z.lte(99))
 })
 
 const characterSpellcastingClassSchema = z.strictObject({
   classId: boundedIdentitySchema,
-  classLevel: z.number().int().min(1).max(20),
-  resetKind: z.string().regex(/^[A-Z][A-Z0-9_]{0,79}$/),
+  classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+  resetKind: z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)),
   spellLimits: z
     .array(
       z.strictObject({
-        classLevel: z.number().int().min(1).max(20),
-        slots: z.array(spellSlotEntrySchema).max(9)
+        classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+        slots: z.array(spellSlotEntrySchema).check(z.maxLength(9))
       })
     )
-    .min(1)
-    .max(20)
+    .check(z.minLength(1))
+    .check(z.maxLength(20))
 })
 
 const characterSpellSlotUsageFactsSchema = z
@@ -350,66 +378,68 @@ const characterSpellSlotUsageFactsSchema = z
     z.discriminatedUnion('kind', [
       z.strictObject({
         kind: z.literal('STANDARD'),
-        spellLevel: z.number().int().min(1).max(9),
-        rawUsed: z.number().int().min(0).max(2_147_483_647)
+        spellLevel: integerSchema.check(z.gte(1)).check(z.lte(9)),
+        rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
       }),
       z.strictObject({
         kind: z.literal('PACT'),
-        rawUsed: z.number().int().min(0).max(2_147_483_647)
+        rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
       })
     ])
   )
-  .max(10)
-  .superRefine((usage, context) => {
-    const keys = new Set<string>()
-    for (const [index, entry] of usage.entries()) {
-      const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.kind
-      if (keys.has(key)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell slot usage facts must be unique by slot kind',
-          path: [index]
-        })
+  .check(z.maxLength(10))
+  .check(
+    z.superRefine((usage, context) => {
+      const keys = new Set<string>()
+      for (const [index, entry] of usage.entries()) {
+        const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.kind
+        if (keys.has(key)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell slot usage facts must be unique by slot kind',
+            path: [index]
+          })
+        }
+        keys.add(key)
       }
-      keys.add(key)
-    }
-  })
+    })
+  )
 
 const characterChargeLevelsSchema = z
   .array(
     z.strictObject({
       sourceId: boundedIdentitySchema,
-      level: z.number().int().min(1).max(20),
-      amount: z.number().finite()
+      level: integerSchema.check(z.gte(1)).check(z.lte(20)),
+      amount: finiteNumberSchema
     })
   )
-  .max(20)
+  .check(z.maxLength(20))
 
 const characterChargeScaledBaseSchema = z.strictObject({
-  multiplier: z.number().finite().nullable(),
-  minimum: z.number().finite().nullable(),
-  maximum: z.number().finite().nullable()
+  multiplier: z.nullable(finiteNumberSchema),
+  minimum: z.nullable(finiteNumberSchema),
+  maximum: z.nullable(finiteNumberSchema)
 })
 
 const characterChargeBaseSchema = z.discriminatedUnion('kind', [
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('ABILITY_MODIFIER'),
     abilityId: boundedIdentitySchema
   }),
-  characterChargeScaledBaseSchema.extend({ kind: z.literal('CHARACTER_LEVEL') }),
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, { kind: z.literal('CHARACTER_LEVEL') }),
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('CLASS_LEVEL'),
     classId: boundedIdentitySchema
   }),
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('PARENT_CLASS_LEVEL'),
     sourceLevel: characterChargeSourceLevelSchema
   }),
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('SPELL_CAST_LEVEL'),
-    spellCastLevel: z.number().int().min(1).max(9).nullable()
+    spellCastLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9)))
   }),
-  z.strictObject({ kind: z.literal('FIXED_AMOUNT'), amount: z.number().finite() }),
+  z.strictObject({ kind: z.literal('FIXED_AMOUNT'), amount: finiteNumberSchema }),
   z.strictObject({
     kind: z.literal('PER_LEVEL'),
     sourceLevel: characterChargeSourceLevelSchema,
@@ -418,27 +448,27 @@ const characterChargeBaseSchema = z.discriminatedUnion('kind', [
 ])
 
 const characterChargeBonusSchema = z.discriminatedUnion('kind', [
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('ABILITY_MODIFIER'),
     sourceId: boundedIdentitySchema,
     abilityId: boundedIdentitySchema
   }),
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('SKILL_BONUS'),
     sourceId: boundedIdentitySchema,
     skillId: boundedIdentitySchema
   }),
-  characterChargeScaledBaseSchema.extend({
+  z.extend(characterChargeScaledBaseSchema, {
     kind: z.literal('PROFICIENCY_BONUS'),
     sourceId: boundedIdentitySchema
   })
 ])
 
 const characterChargeCalculationSchema = z.strictObject({
-  calculationId: boundedIdentitySchema,
+  calculationId: characterResourcePoolIdentitySchema,
   sourceId: boundedIdentitySchema,
   base: characterChargeBaseSchema,
-  bonuses: z.array(characterChargeBonusSchema).max(100)
+  bonuses: z.array(characterChargeBonusSchema).check(z.maxLength(100))
 })
 
 const eligibilityConstraintSchema = z.enum(['INCLUDE', 'EXCLUDE'])
@@ -451,7 +481,7 @@ const eligibilityConditionBaseSchema = z.strictObject({
 })
 
 const eligibilityConditionSchema = z.discriminatedUnion('kind', [
-  eligibilityConditionBaseSchema.extend({
+  z.extend(eligibilityConditionBaseSchema, {
     kind: z.literal('PREDICATE'),
     predicateCode: z.enum([
       'ABILITY_SCORE',
@@ -476,33 +506,33 @@ const eligibilityConditionSchema = z.discriminatedUnion('kind', [
       'WHILE_SOURCE_ATTUNED'
     ]),
     authoringMode: eligibilityModeSchema,
-    abilityId: boundedIdentitySchema.nullable(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    requiredIds: z.array(boundedIdentitySchema).max(500),
-    secondaryRequiredIds: z.array(boundedIdentitySchema).max(500).default([]),
-    category: boundedIdentitySchema.nullable(),
-    requiredProperties: z.array(boundedIdentitySchema).max(100),
-    minimumRank: eligibilityRankSchema.nullable()
+    abilityId: z.nullable(boundedIdentitySchema),
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    requiredIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
+    secondaryRequiredIds: z._default(z.array(boundedIdentitySchema).check(z.maxLength(500)), []),
+    category: z.nullable(boundedIdentitySchema),
+    requiredProperties: z.array(boundedIdentitySchema).check(z.maxLength(100)),
+    minimumRank: z.nullable(eligibilityRankSchema)
   }),
-  eligibilityConditionBaseSchema.extend({ kind: z.literal('UNSUPPORTED') })
+  z.extend(eligibilityConditionBaseSchema, { kind: z.literal('UNSUPPORTED') })
 ])
 
 const eligibilityEvaluationSchema = z.strictObject({
   evaluationId: boundedIdentitySchema,
   sourceState: z.strictObject({
-    carried: z.boolean(),
-    equipped: z.boolean(),
-    attuned: z.boolean()
+    carried: booleanSchema,
+    equipped: booleanSchema,
+    attuned: booleanSchema
   }),
   groups: z
     .array(
       z.strictObject({
         groupId: boundedIdentitySchema,
-        conditions: z.array(eligibilityConditionSchema).max(200)
+        conditions: z.array(eligibilityConditionSchema).check(z.maxLength(200))
       })
     )
-    .max(100)
+    .check(z.maxLength(100))
 })
 
 const characterSpellGrantAttributeSchema = z.enum([
@@ -516,19 +546,16 @@ const characterSpellGrantAttributeSchema = z.enum([
   'SELF_ONLY'
 ])
 
-const characterSpellChargeDescriptorSchema = z
-  .strictObject({
+const characterSpellChargeDescriptorSchema = z.nullable(
+  z.strictObject({
     id: boundedIdentitySchema,
-    limitKind: z.string().regex(/^[A-Z][A-Z0-9_]{0,79}$/),
-    resetKind: z
-      .string()
-      .regex(/^[A-Z][A-Z0-9_]{0,79}$/)
-      .nullable()
+    limitKind: z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)),
+    resetKind: z.nullable(z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)))
   })
-  .nullable()
+)
 
 const characterSpellAccessCandidateSchema = z.strictObject({
-  sequence: z.number().int().min(0).max(999),
+  sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
   accessId: boundedIdentitySchema,
   sourceInstanceId: boundedIdentitySchema,
   spellId: boundedIdentitySchema,
@@ -536,71 +563,73 @@ const characterSpellAccessCandidateSchema = z.strictObject({
   grantId: boundedIdentitySchema,
   sourceKind: z.enum(['CLASS', 'SUBCLASS', 'RACE', 'SUBRACE']),
   sourceId: boundedIdentitySchema,
-  owningClassId: boundedIdentitySchema.nullable(),
-  activeSourceLevel: z.number().int().min(1).max(20),
-  featureAvailableAtLevel: z.number().int().min(1).max(20),
-  inheritedFeatureDuplicate: z.boolean(),
-  specializationId: boundedIdentitySchema.nullable(),
-  specializationRestrictionIds: z.array(boundedIdentitySchema).max(100).nullable(),
+  owningClassId: z.nullable(boundedIdentitySchema),
+  activeSourceLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+  featureAvailableAtLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+  inheritedFeatureDuplicate: booleanSchema,
+  specializationId: z.nullable(boundedIdentitySchema),
+  specializationRestrictionIds: z.nullable(z.array(boundedIdentitySchema).check(z.maxLength(100))),
   selectionKind: z.enum(['GRANTED', 'CHOSEN']),
   authoringMode: z.enum(['ALL', 'SELECTED']),
-  selectedByCharacter: z.boolean(),
+  selectedByCharacter: booleanSchema,
   scalingKind: z.enum(['NONE', 'PER_LEVEL']),
-  scalingSource: z
-    .enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
-    .nullable(),
-  progressionLevel: z.number().int().min(1).max(20).nullable(),
-  totalLevel: z.number().int().min(0).max(20),
-  classLevel: z.number().int().min(1).max(20).nullable(),
-  attributes: z.array(characterSpellGrantAttributeSchema).max(16),
-  castAtLevel: z.number().int().min(1).max(9).nullable(),
-  castingAbility: abilityCodeSchema.nullable(),
+  scalingSource: z.nullable(
+    z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
+  ),
+  progressionLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(20))),
+  totalLevel: integerSchema.check(z.gte(0)).check(z.lte(20)),
+  classLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(20))),
+  attributes: z.array(characterSpellGrantAttributeSchema).check(z.maxLength(16)),
+  castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
+  castingAbility: z.nullable(abilityCodeSchema),
   charge: characterSpellChargeDescriptorSchema
 })
 
 const characterSpellAccessCandidatesSchema = z
   .array(characterSpellAccessCandidateSchema)
-  .max(1000)
-  .superRefine((candidates, context) => {
-    for (const [index, candidate] of candidates.entries()) {
-      if (candidate.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell access candidates must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(1000))
+  .check(
+    z.superRefine((candidates, context) => {
+      for (const [index, candidate] of candidates.entries()) {
+        if (candidate.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell access candidates must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
       }
-    }
-  })
+    })
+  )
 
 const characterSpellMechanicSourceSchema = characterActionSpellSourceSchema
 
-const characterSpellMechanicSourceFactSchema = characterSpellMechanicSourceSchema.extend({
-  sequence: z.number().int().min(0).max(9_999)
+const characterSpellMechanicSourceFactSchema = z.extend(characterSpellMechanicSourceSchema, {
+  sequence: integerSchema.check(z.gte(0)).check(z.lte(9_999))
 })
 
 const characterSpellMechanicAdjustmentSchema = z.strictObject({
-  sequence: z.number().int().min(0).max(9_999),
+  sequence: integerSchema.check(z.gte(0)).check(z.lte(9_999)),
   id: boundedIdentitySchema,
   source: characterSpellMechanicSourceSchema,
   field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'DC_BONUS', 'DC_OVERRIDE', 'DAMAGE_BONUS']),
-  value: z.number().finite()
+  value: finiteNumberSchema
 })
 
 const characterSpellMechanicsFactsSchema = z.strictObject({
-  snapshotSources: z.array(characterSpellMechanicSourceFactSchema).max(1_000),
-  adjustments: z.array(characterSpellMechanicAdjustmentSchema).max(1_000)
+  snapshotSources: z.array(characterSpellMechanicSourceFactSchema).check(z.maxLength(1_000)),
+  adjustments: z.array(characterSpellMechanicAdjustmentSchema).check(z.maxLength(1_000))
 })
 
 const characterItemMechanicsItemSchema = z.strictObject({
   itemInstanceId: boundedIdentitySchema,
-  costAmount: z.number().finite().nullable(),
-  weight: z
-    .strictObject({
-      amount: z.number().finite(),
+  costAmount: z.nullable(finiteNumberSchema),
+  weight: z.nullable(
+    z.strictObject({
+      amount: finiteNumberSchema,
       unit: measurementUnitCodeSchema
     })
-    .nullable()
+  )
 })
 
 const characterItemMechanicsAdjustmentSchema = z.union([
@@ -614,7 +643,7 @@ const characterItemMechanicsAdjustmentSchema = z.union([
       'DAMAGE_BONUS',
       'WEIGHT_OVERRIDE'
     ]),
-    value: z.number().finite()
+    value: finiteNumberSchema
   }),
   z.strictObject({
     id: boundedIdentitySchema,
@@ -625,19 +654,19 @@ const characterItemMechanicsAdjustmentSchema = z.union([
 ])
 
 const characterItemMechanicsFactsSchema = z.strictObject({
-  items: z.array(characterItemMechanicsItemSchema).max(500),
-  adjustments: z.array(characterItemMechanicsAdjustmentSchema).max(1_000)
+  items: z.array(characterItemMechanicsItemSchema).check(z.maxLength(500)),
+  adjustments: z.array(characterItemMechanicsAdjustmentSchema).check(z.maxLength(1_000))
 })
 
 const characterCompanionMechanicsCompanionSchema = z.strictObject({
   companionInstanceId: boundedIdentitySchema,
   creatureId: boundedIdentitySchema,
-  abilityScores: z.record(boundedIdentitySchema, z.number().finite()),
-  armorClass: z.number().finite(),
-  maxHitPoints: z.number().finite(),
-  size: sizeCodeSchema.nullable(),
-  alignmentId: boundedIdentitySchema.nullable(),
-  creatureTypeId: boundedIdentitySchema.nullable()
+  abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
+  armorClass: finiteNumberSchema,
+  maxHitPoints: finiteNumberSchema,
+  size: z.nullable(sizeCodeSchema),
+  alignmentId: z.nullable(boundedIdentitySchema),
+  creatureTypeId: z.nullable(boundedIdentitySchema)
 })
 
 const characterCompanionMechanicsAdjustmentSchema = z.union([
@@ -645,7 +674,7 @@ const characterCompanionMechanicsAdjustmentSchema = z.union([
     id: boundedIdentitySchema,
     companionInstanceId: boundedIdentitySchema,
     field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE']),
-    value: z.number().finite()
+    value: finiteNumberSchema
   }),
   z.strictObject({
     id: boundedIdentitySchema,
@@ -662,8 +691,8 @@ const characterCompanionMechanicsAdjustmentSchema = z.union([
 ])
 
 const characterCompanionMechanicsFactsSchema = z.strictObject({
-  companions: z.array(characterCompanionMechanicsCompanionSchema).max(500),
-  adjustments: z.array(characterCompanionMechanicsAdjustmentSchema).max(1_000)
+  companions: z.array(characterCompanionMechanicsCompanionSchema).check(z.maxLength(500)),
+  adjustments: z.array(characterCompanionMechanicsAdjustmentSchema).check(z.maxLength(1_000))
 })
 
 const characterDefenseFactsSchema = z.strictObject({
@@ -679,7 +708,7 @@ const characterDefenseFactsSchema = z.strictObject({
         damageTypeId: serverUuidIdentityDtoSchema
       })
     )
-    .max(100)
+    .check(z.maxLength(100))
 })
 
 const characterProficiencyFactsSchema = z.strictObject({
@@ -695,7 +724,7 @@ const characterProficiencyFactsSchema = z.strictObject({
         targetId: boundedIdentitySchema
       })
     )
-    .max(1_000)
+    .check(z.maxLength(1_000))
 })
 
 const characterSpellAccessReasonSchema = z.enum([
@@ -712,42 +741,44 @@ const characterSpellAccessReasonSchema = z.enum([
 const characterSpellPreparationSourceSchema = z.strictObject({
   sourceKind: z.enum(['CLASS', 'SUBCLASS']),
   sourceId: boundedIdentitySchema,
-  attributes: z.array(boundedIdentitySchema).max(20),
-  abilityIndex: z.number().int().min(0).max(31).nullable(),
+  attributes: z.array(boundedIdentitySchema).check(z.maxLength(20)),
+  abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
   spellLimits: z
     .array(
       z.strictObject({
-        classLevel: z.number().int().min(1).max(20),
-        preparedSpellsLimit: z.number().int().min(-999).max(999).nullable(),
-        spellLevels: z.array(z.number().int().min(1).max(9)).max(9)
+        classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+        preparedSpellsLimit: z.nullable(integerSchema.check(z.gte(-999)).check(z.lte(999))),
+        spellLevels: z.array(integerSchema.check(z.gte(1)).check(z.lte(9))).check(z.maxLength(9))
       })
     )
-    .max(20),
-  prepareLimit: z
-    .strictObject({
-      methodKinds: z.array(z.enum(['SPELLCASTING_ABILITY', 'CLASS_LEVEL', 'PER_LEVEL'])).max(3),
-      scaling: z.enum(['FULL', 'HALF', 'DOUBLE']).nullable(),
-      rounding: z.enum(['UP', 'DOWN', 'NEAREST']).nullable(),
+    .check(z.maxLength(20)),
+  prepareLimit: z.nullable(
+    z.strictObject({
+      methodKinds: z
+        .array(z.enum(['SPELLCASTING_ABILITY', 'CLASS_LEVEL', 'PER_LEVEL']))
+        .check(z.maxLength(3)),
+      scaling: z.nullable(z.enum(['FULL', 'HALF', 'DOUBLE'])),
+      rounding: z.nullable(z.enum(['UP', 'DOWN', 'NEAREST'])),
       perLevel: z
         .array(
           z.strictObject({
-            classLevel: z.number().int().min(1).max(20),
-            amount: z.number().int().min(-999).max(999)
+            classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+            amount: integerSchema.check(z.gte(-999)).check(z.lte(999))
           })
         )
-        .max(20)
+        .check(z.maxLength(20))
     })
-    .nullable()
+  )
 })
 
 const characterSpellPreparationClassSchema = z.strictObject({
   classId: boundedIdentitySchema,
-  classLevel: z.number().int().min(1).max(20),
-  sources: z.array(characterSpellPreparationSourceSchema).max(20),
-  learnedStatePresent: z.boolean(),
-  learnedStateSpellIds: z.array(boundedIdentitySchema).max(500),
-  intentSpellIds: z.array(boundedIdentitySchema).max(500),
-  preparedStateSpellIds: z.array(boundedIdentitySchema).max(500)
+  classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+  sources: z.array(characterSpellPreparationSourceSchema).check(z.maxLength(20)),
+  learnedStatePresent: booleanSchema,
+  learnedStateSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
+  intentSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
+  preparedStateSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500))
 })
 
 const characterSpellPreparationRequestReasonSchema = z.enum([
@@ -761,112 +792,115 @@ const characterSpellPreparationRequestReasonSchema = z.enum([
 export const characterRulePolicyInputSchema = z.strictObject({
   contractVersion: z.literal(4),
   /** Exact System vocabulary frozen with the Character source snapshot. */
-  abilityDefinitions: characterAbilityDefinitionsSchema.default([]),
+  abilityDefinitions: z._default(characterAbilityDefinitionsSchema, []),
   grantFoldFacts: characterGrantFoldInputSchema,
-  totalLevel: z.number().int().min(0).max(20),
+  totalLevel: integerSchema.check(z.gte(0)).check(z.lte(20)),
   derivedBaseFacts: characterDerivedBaseFactsSchema,
-  spellMechanicsFacts: characterSpellMechanicsFactsSchema.default({
+  spellMechanicsFacts: z._default(characterSpellMechanicsFactsSchema, {
     snapshotSources: [],
     adjustments: []
   }),
-  itemMechanicsFacts: characterItemMechanicsFactsSchema.default({ items: [], adjustments: [] }),
-  companionMechanicsFacts: characterCompanionMechanicsFactsSchema.default({
+  itemMechanicsFacts: z._default(characterItemMechanicsFactsSchema, { items: [], adjustments: [] }),
+  companionMechanicsFacts: z._default(characterCompanionMechanicsFactsSchema, {
     companions: [],
     adjustments: []
   }),
-  defenseFacts: characterDefenseFactsSchema.default({ manualAdditions: [] }),
-  proficiencyFacts: characterProficiencyFactsSchema.default({ manualAdditions: [] }),
-  movementFacts: characterMovementFactsSchema.optional(),
-  senseFacts: characterSenseFactsSchema.optional(),
-  armorClassFacts: characterArmorClassFactsSchema.optional(),
-  hitPointFacts: characterHitPointFactsSchema.optional(),
+  defenseFacts: z._default(characterDefenseFactsSchema, { manualAdditions: [] }),
+  proficiencyFacts: z._default(characterProficiencyFactsSchema, { manualAdditions: [] }),
+  movementFacts: z.optional(characterMovementFactsSchema),
+  senseFacts: z.optional(characterSenseFactsSchema),
+  armorClassFacts: z.optional(characterArmorClassFactsSchema),
+  hitPointFacts: z.optional(characterHitPointFactsSchema),
   spellAccessCandidates: characterSpellAccessCandidatesSchema,
-  spellClasses: z.array(z.strictObject({ classId: boundedIdentitySchema })).max(20),
-  spellPreparationClasses: z.array(characterSpellPreparationClassSchema).max(20),
+  spellClasses: z.array(z.strictObject({ classId: boundedIdentitySchema })).check(z.maxLength(20)),
+  spellPreparationClasses: z.array(characterSpellPreparationClassSchema).check(z.maxLength(20)),
   spellPreparationCatalog: z
     .array(
       z.strictObject({
         spellId: boundedIdentitySchema,
-        spellLevel: z.number().int().min(0).max(9),
-        classIds: z.array(boundedIdentitySchema).max(50)
+        spellLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
+        classIds: z.array(boundedIdentitySchema).check(z.maxLength(50))
       })
     )
-    .max(5000),
-  spellPreparationRequest: z
-    .strictObject({
+    .check(z.maxLength(5000)),
+  spellPreparationRequest: z.nullable(
+    z.strictObject({
       classId: boundedIdentitySchema,
-      spellIds: z.array(boundedIdentitySchema).max(500)
+      spellIds: z.array(boundedIdentitySchema).check(z.maxLength(500))
     })
-    .nullable(),
+  ),
   spellCastCandidates: characterSpellCastCandidatesSchema,
-  spellActionFacts: characterSpellActionFactsSchema.default([]),
+  spellActionFacts: z._default(characterSpellActionFactsSchema, []),
   spellCastSlots: characterSpellCastSlotsSchema,
   spellCastResources: z
     .array(
       z.strictObject({
         ownerKey: boundedIdentitySchema,
-        remaining: z.number().int().min(0).max(999)
+        remaining: integerSchema.check(z.gte(0)).check(z.lte(999))
       })
     )
-    .max(500),
-  spellcastingClasses: z.array(characterSpellcastingClassSchema).max(20),
+    .check(z.maxLength(500)),
+  spellcastingClasses: z.array(characterSpellcastingClassSchema).check(z.maxLength(20)),
   chargeCalculations: z
     .array(characterChargeCalculationSchema)
-    .max(500)
-    .superRefine((calculations, context) => {
-      const seen = new Set<string>()
-      for (const [index, calculation] of calculations.entries()) {
-        if (seen.has(calculation.calculationId)) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Charge calculation IDs must be unique',
-            path: [index, 'calculationId']
-          })
+    .check(z.maxLength(500))
+    .check(
+      z.superRefine((calculations, context) => {
+        const seen = new Set<string>()
+        for (const [index, calculation] of calculations.entries()) {
+          if (seen.has(calculation.calculationId)) {
+            context.addIssue({
+              code: 'custom',
+              message: 'Charge calculation IDs must be unique',
+              path: [index, 'calculationId']
+            })
+          }
+          seen.add(calculation.calculationId)
         }
-        seen.add(calculation.calculationId)
-      }
-    }),
-  resourcePoolCandidates: characterResourcePoolCandidatesSchema.default([]),
-  actionCandidates: characterActionCandidatesSchema.default([]),
-  resourceUsageFacts: characterResourceUsageFactsSchema.optional(),
-  spellSlotUsageFacts: characterSpellSlotUsageFactsSchema.optional(),
-  eligibilityFacets: z.array(eligibilityEvaluationSchema).max(200),
+      })
+    ),
+  resourcePoolCandidates: z._default(characterResourcePoolCandidatesSchema, []),
+  actionCandidates: z._default(characterActionCandidatesSchema, []),
+  resourceUsageFacts: z.optional(characterResourceUsageFactsSchema),
+  spellSlotUsageFacts: z.optional(characterSpellSlotUsageFactsSchema),
+  eligibilityFacets: z.array(eligibilityEvaluationSchema).check(z.maxLength(200)),
   rest: z.strictObject({
-    totalHitDice: z.number().int().min(0).max(100),
-    currentExhaustion: z.number().int().min(0).max(6),
-    attunementSlotOverride: z.number().int().min(0).max(100).nullable(),
-    companions: z
-      .array(
-        z.strictObject({
-          companionInstanceId: boundedIdentitySchema,
-          totalHitDice: z.number().int().min(0).max(100)
-        })
-      )
-      .max(500)
-      .optional()
+    totalHitDice: integerSchema.check(z.gte(0)).check(z.lte(100)),
+    currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
+    attunementSlotOverride: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(100))),
+    companions: z.optional(
+      z
+        .array(
+          z.strictObject({
+            companionInstanceId: boundedIdentitySchema,
+            totalHitDice: integerSchema.check(z.gte(0)).check(z.lte(100))
+          })
+        )
+        .check(z.maxLength(500))
+    )
   })
 })
 
-const characterRuleContributionResultSchema = characterRuleContributionInputSchema.extend({
-  acceptedModifierIndex: z.number().int().min(0).max(9_999).optional(),
-  grantId: boundedIdentitySchema.optional(),
-  domainKey: boundedIdentitySchema.optional(),
-  source: characterMechanicSourceSchema.optional(),
+const characterRuleContributionResultSchema = z.extend(characterRuleContributionInputSchema, {
+  acceptedModifierIndex: z.optional(integerSchema.check(z.gte(0)).check(z.lte(9_999))),
+  grantId: z.optional(boundedIdentitySchema),
+  domainKey: z.optional(boundedIdentitySchema),
+  source: z.optional(characterMechanicSourceSchema),
   state: z.enum(['APPLIED', 'SUPPRESSED']),
   reasonCode: z.enum(['STACKED', 'SUPPRESSED_BY_STACKING'])
 })
 
 const characterDerivedNumericCalculationSchema = z.strictObject({
-  base: z.number().finite(),
-  effective: z.number().finite(),
+  base: finiteNumberSchema,
+  effective: finiteNumberSchema,
   contributions: z.array(
     z.strictObject({
       sourceId: boundedIdentitySchema,
       source: characterMechanicSourceSchema,
-      acceptedModifierIndex: z.number().int().min(0).max(9_999).optional(),
-      grantId: boundedIdentitySchema.optional(),
-      domainKey: boundedIdentitySchema.optional(),
-      value: z.number().finite(),
+      acceptedModifierIndex: z.optional(integerSchema.check(z.gte(0)).check(z.lte(9_999))),
+      grantId: z.optional(boundedIdentitySchema),
+      domainKey: z.optional(boundedIdentitySchema),
+      value: finiteNumberSchema,
       state: z.enum(['APPLIED', 'SUPPRESSED']),
       reasonCode: z.enum(['APPLIED', 'STACKED', 'SUPPRESSED_BY_STACKING', 'SUPPRESSED_BY_OVERRIDE'])
     })
@@ -878,13 +912,13 @@ const characterDerivedSelectionCalculationSchema = z.strictObject({
   base: boundedIdentitySchema,
   effective: boundedIdentitySchema,
   contributions: z.array(z.never()),
-  override: z
-    .strictObject({
+  override: z.nullable(
+    z.strictObject({
       sourceId: boundedIdentitySchema,
       source: characterMechanicSourceSchema,
       value: boundedIdentitySchema
     })
-    .nullable()
+  )
 })
 
 const characterDerivedProficiencyCalculationSchema = z.strictObject({
@@ -892,7 +926,7 @@ const characterDerivedProficiencyCalculationSchema = z.strictObject({
   effective: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE']),
   contributions: z.array(
     z.strictObject({
-      acceptedProficiencyIndex: z.number().int().min(0).max(9_999),
+      acceptedProficiencyIndex: integerSchema.check(z.gte(0)).check(z.lte(9_999)),
       sourceId: boundedIdentitySchema,
       source: characterMechanicSourceSchema,
       grantId: boundedIdentitySchema,
@@ -909,14 +943,14 @@ const characterDerivedProficiencyCalculationSchema = z.strictObject({
 })
 
 const characterRollModeSchema = z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
-export const characterRuleSenseRangeSchema = z
-  .strictObject({
+export const characterRuleSenseRangeSchema = z.nullable(
+  z.strictObject({
     id: boundedIdentitySchema,
-    amount: z.number().finite(),
+    amount: finiteNumberSchema,
     unit: measurementUnitCodeSchema,
     calculation: characterDerivedNumericCalculationSchema
   })
-  .nullable()
+)
 export const characterRuleSenseSchema = z.strictObject({
   senseDefinitionId: serverUuidIdentityDtoSchema,
   range: characterRuleSenseRangeSchema
@@ -938,28 +972,32 @@ const characterRollContributorSchema = z.strictObject({
   influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
 })
 
-const characterRollContributorsSchema = z.array(characterRollContributorSchema).max(500)
-const canonicalCharacterRollContributorsSchema = characterRollContributorsSchema.superRefine(
-  (contributors, context) => {
+const characterRollContributorsSchema = z
+  .array(characterRollContributorSchema)
+  .check(z.maxLength(500))
+const canonicalCharacterRollContributorsSchema = characterRollContributorsSchema.check(
+  z.superRefine((contributors, context) => {
     let priorKey: string | null = null
     for (const [index, contributor] of contributors.entries()) {
       const prior = contributors[index - 1]
       if (priorKey !== null && prior && compareCanonicalD20Contributors(prior, contributor) >= 0) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [index],
           message: 'Roll contributors must be strictly sorted and unique.'
         })
       }
       priorKey = 'set'
     }
-  }
+  })
 )
 const characterRollContributorRecordSchema = z
   .record(boundedIdentitySchema, characterRollContributorsSchema)
-  .refine((record) => Object.keys(record).length <= 100, {
-    message: 'Roll contributor records support at most 100 test keys.'
-  })
+  .check(
+    z.refine((record) => Object.keys(record).length <= 100, {
+      message: 'Roll contributor records support at most 100 test keys.'
+    })
+  )
 
 const characterRollContributorEvidenceSchema = z.strictObject({
   initiative: characterRollContributorsSchema,
@@ -1018,21 +1056,19 @@ export const characterRulePolicyOutputSchema = z.strictObject({
       subjectId: boundedIdentitySchema,
       scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
       source: characterMechanicSourceSchema,
-      category: equipmentCategoryCodeSchema.optional(),
-      grantId: boundedIdentitySchema.optional()
+      category: z.optional(equipmentCategoryCodeSchema),
+      grantId: z.optional(boundedIdentitySchema)
     })
   ),
-  proficiencyBonus: z.number().int(),
+  proficiencyBonus: integerSchema,
   abilityModifiers: z.array(
-    z.strictObject({ ability: boundedIdentitySchema, value: z.number().int() })
+    z.strictObject({ ability: boundedIdentitySchema, value: integerSchema })
   ),
-  passiveChecks: z.array(
-    z.strictObject({ checkId: boundedIdentitySchema, value: z.number().int() })
-  ),
+  passiveChecks: z.array(z.strictObject({ checkId: boundedIdentitySchema, value: integerSchema })),
   modifierGroups: z.array(
     z.strictObject({
       domainKey: boundedIdentitySchema,
-      effective: z.number().finite(),
+      effective: finiteNumberSchema,
       contributions: z.array(characterRuleContributionResultSchema)
     })
   ),
@@ -1048,50 +1084,55 @@ export const characterRulePolicyOutputSchema = z.strictObject({
       UNARMED: characterRollModeSchema
     })
   }),
-  rollContributorEvidence: characterRollContributorEvidenceSchema.default(
+  rollContributorEvidence: z._default(
+    characterRollContributorEvidenceSchema,
     emptyCharacterRollContributors
   ),
   /** UUID-backed System-policy records for authored rules that select saves. */
-  savingThrowDefinitions: z
-    .array(
-      z.strictObject({
-        abilityDefinitionId: serverUuidIdentityDtoSchema,
-        modifier: z.number().int(),
-        rollMode: characterRollModeSchema,
-        contributors: canonicalCharacterRollContributorsSchema
-      })
-    )
-    .max(16)
-    .default([]),
+  savingThrowDefinitions: z._default(
+    z
+      .array(
+        z.strictObject({
+          abilityDefinitionId: serverUuidIdentityDtoSchema,
+          ruleDefinitionId: z.optional(serverUuidIdentityDtoSchema),
+          modifier: integerSchema,
+          rollMode: characterRollModeSchema,
+          contributors: canonicalCharacterRollContributorsSchema
+        })
+      )
+      .check(z.maxLength(16)),
+    []
+  ),
   defenses: canonicalCharacterTargetDefensesSchema,
-  conditionImmunityIds: canonicalConditionImmunityIdsSchema.default([]),
-  movement: z
-    .strictObject({
+  conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),
+  movement: z._default(
+    z.strictObject({
       speeds: z
         .array(
           z.strictObject({
             speedId: boundedIdentitySchema,
-            amount: z.number().finite(),
+            amount: finiteNumberSchema,
             unit: measurementUnitCodeSchema,
             calculation: characterDerivedNumericCalculationSchema
           })
         )
-        .max(100),
-      primaryMovementSpeedId: boundedIdentitySchema.nullable()
-    })
-    .default({ speeds: [], primaryMovementSpeedId: null }),
-  senses: z.array(characterRuleSenseSchema).max(100).default([]),
+        .check(z.maxLength(100)),
+      primaryMovementSpeedId: z.nullable(boundedIdentitySchema)
+    }),
+    { speeds: [], primaryMovementSpeedId: null }
+  ),
+  senses: z._default(z.array(characterRuleSenseSchema).check(z.maxLength(100)), []),
   hitPointProgression: z
     .array(
       z.strictObject({
-        sequence: z.number().int().min(0).max(399),
-        level: z.number().int().min(1).max(400),
+        sequence: integerSchema.check(z.gte(0)).check(z.lte(399)),
+        level: integerSchema.check(z.gte(1)).check(z.lte(400)),
         classId: boundedIdentitySchema,
-        classLevel: z.number().int().min(1).max(20),
-        value: z.number().int()
+        classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+        value: integerSchema
       })
     )
-    .max(400),
+    .check(z.maxLength(400)),
   derivedStats: z.strictObject({
     proficiencyBonus: characterDerivedNumericCalculationSchema,
     abilities: z.array(
@@ -1114,12 +1155,12 @@ export const characterRulePolicyOutputSchema = z.strictObject({
         governingAbility: z.strictObject({
           base: boundedIdentitySchema,
           effective: boundedIdentitySchema,
-          override: z
-            .strictObject({
+          override: z.nullable(
+            z.strictObject({
               sourceId: boundedIdentitySchema,
               value: boundedIdentitySchema
             })
-            .nullable()
+          )
         }),
         proficiency: characterDerivedProficiencyCalculationSchema,
         total: characterDerivedNumericCalculationSchema,
@@ -1127,40 +1168,40 @@ export const characterRulePolicyOutputSchema = z.strictObject({
       })
     ),
     initiative: characterDerivedNumericCalculationSchema,
-    armorClass: characterDerivedNumericCalculationSchema.default({
+    armorClass: z._default(characterDerivedNumericCalculationSchema, {
       base: 10,
       effective: 10,
       contributions: [],
       override: null
     }),
-    maxHitPoints: characterDerivedNumericCalculationSchema.default({
+    maxHitPoints: z._default(characterDerivedNumericCalculationSchema, {
       base: 0,
       effective: 0,
       contributions: [],
       override: null
     }),
-    spellcasting: z
-      .strictObject({
+    spellcasting: z.nullable(
+      z.strictObject({
         abilityId: boundedIdentitySchema,
         saveDc: characterDerivedNumericCalculationSchema,
         attackBonus: characterDerivedNumericCalculationSchema
       })
-      .nullable()
+    )
   }),
   spellAccessDecisions: z
     .array(
       z.strictObject({
-        sequence: z.number().int().min(0).max(999),
+        sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
         accessId: boundedIdentitySchema,
         status: z.enum(['INCLUDED', 'EXCLUDED']),
         reasonCode: characterSpellAccessReasonSchema
       })
     )
-    .max(1000),
+    .check(z.maxLength(1000)),
   spellAccess: z
     .array(
       z.strictObject({
-        sequence: z.number().int().min(0).max(999),
+        sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
         accessId: boundedIdentitySchema,
         sourceInstanceId: boundedIdentitySchema,
         spellId: boundedIdentitySchema,
@@ -1168,179 +1209,179 @@ export const characterRulePolicyOutputSchema = z.strictObject({
         grantId: boundedIdentitySchema,
         sourceKind: z.enum(['CLASS', 'SUBCLASS', 'RACE', 'SUBRACE']),
         sourceId: boundedIdentitySchema,
-        owningClassId: boundedIdentitySchema.nullable(),
+        owningClassId: z.nullable(boundedIdentitySchema),
         timingKind: z.enum(['CLASS_LEVEL', 'CHARACTER_LEVEL']),
-        timingLevel: z.number().int().min(1).max(20),
-        attributes: z.array(characterSpellGrantAttributeSchema).max(16),
+        timingLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
+        attributes: z.array(characterSpellGrantAttributeSchema).check(z.maxLength(16)),
         acquisition: z.enum(['KNOWN', 'ALWAYS_PREPARED', 'GRANTED']),
         castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
-        castAtLevel: z.number().int().min(1).max(9).nullable(),
-        castingAbility: abilityCodeSchema.nullable(),
+        castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
+        castingAbility: z.nullable(abilityCodeSchema),
         charge: characterSpellChargeDescriptorSchema,
-        learned: z.boolean(),
-        prepared: z.boolean()
+        learned: booleanSchema,
+        prepared: booleanSchema
       })
     )
-    .max(1000),
+    .check(z.maxLength(1000)),
   spellMechanics: z
     .array(
       z.strictObject({
         source: characterSpellMechanicSourceSchema,
-        attackBonus: z.number().finite().optional(),
-        saveDC: z.number().finite().optional(),
-        damageBonus: z.number().finite(),
+        attackBonus: z.optional(finiteNumberSchema),
+        saveDC: z.optional(finiteNumberSchema),
+        damageBonus: finiteNumberSchema,
         calculations: z.strictObject({
-          attackBonus: characterDerivedNumericCalculationSchema.optional(),
-          saveDC: characterDerivedNumericCalculationSchema.optional(),
+          attackBonus: z.optional(characterDerivedNumericCalculationSchema),
+          saveDC: z.optional(characterDerivedNumericCalculationSchema),
           damageBonus: characterDerivedNumericCalculationSchema
         })
       })
     )
-    .max(1_000),
+    .check(z.maxLength(1_000)),
   itemMechanics: z
     .array(
       z.strictObject({
         itemInstanceId: boundedIdentitySchema,
-        attackBonus: z.number().finite(),
-        cost: z.number().finite().optional(),
-        damageBonus: z.number().finite(),
-        displayAsAttack: z.boolean(),
+        attackBonus: finiteNumberSchema,
+        cost: z.optional(finiteNumberSchema),
+        damageBonus: finiteNumberSchema,
+        displayAsAttack: booleanSchema,
         properties: z.strictObject({
-          adamantine: z.boolean(),
-          dualWield: z.boolean(),
-          silvered: z.boolean()
+          adamantine: booleanSchema,
+          dualWield: booleanSchema,
+          silvered: booleanSchema
         }),
-        weight: z
-          .strictObject({ amount: z.number().finite(), unit: measurementUnitCodeSchema })
-          .optional(),
+        weight: z.optional(
+          z.strictObject({ amount: finiteNumberSchema, unit: measurementUnitCodeSchema })
+        ),
         calculations: z.strictObject({
           attackBonus: characterDerivedNumericCalculationSchema,
-          cost: characterDerivedNumericCalculationSchema.optional(),
+          cost: z.optional(characterDerivedNumericCalculationSchema),
           damageBonus: characterDerivedNumericCalculationSchema,
-          weight: characterDerivedNumericCalculationSchema.optional()
+          weight: z.optional(characterDerivedNumericCalculationSchema)
         })
       })
     )
-    .max(500),
+    .check(z.maxLength(500)),
   companions: z
     .array(
       z.strictObject({
         companionInstanceId: boundedIdentitySchema,
         creatureId: boundedIdentitySchema,
-        abilityScores: z.record(boundedIdentitySchema, z.number().finite()),
-        armorClass: z.number().finite(),
-        maxHitPoints: z.number().finite(),
-        size: sizeCodeSchema.optional(),
-        alignmentId: boundedIdentitySchema.optional(),
-        creatureTypeId: boundedIdentitySchema.optional(),
+        abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
+        armorClass: finiteNumberSchema,
+        maxHitPoints: finiteNumberSchema,
+        size: z.optional(sizeCodeSchema),
+        alignmentId: z.optional(boundedIdentitySchema),
+        creatureTypeId: z.optional(boundedIdentitySchema),
         calculations: z.strictObject({
           armorClass: characterDerivedNumericCalculationSchema,
           maxHitPoints: characterDerivedNumericCalculationSchema,
-          size: characterDerivedSelectionCalculationSchema
-            .extend({
+          size: z.optional(
+            z.extend(characterDerivedSelectionCalculationSchema, {
               base: sizeCodeSchema,
               effective: sizeCodeSchema,
-              override: z
-                .strictObject({
+              override: z.nullable(
+                z.strictObject({
                   sourceId: boundedIdentitySchema,
                   source: characterMechanicSourceSchema,
                   value: sizeCodeSchema
                 })
-                .nullable()
+              )
             })
-            .optional(),
-          alignmentId: characterDerivedSelectionCalculationSchema.optional(),
-          creatureTypeId: characterDerivedSelectionCalculationSchema.optional()
+          ),
+          alignmentId: z.optional(characterDerivedSelectionCalculationSchema),
+          creatureTypeId: z.optional(characterDerivedSelectionCalculationSchema)
         })
       })
     )
-    .max(500),
+    .check(z.maxLength(500)),
   classSpellStates: z
     .array(
       z.strictObject({
         classId: boundedIdentitySchema,
-        learnedSpellIds: z.array(boundedIdentitySchema).max(500),
-        preparedSpellIds: z.array(boundedIdentitySchema).max(500)
+        learnedSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
+        preparedSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500))
       })
     )
-    .max(20),
+    .check(z.maxLength(20)),
   spellPreparation: z.strictObject({
     sources: z
       .array(
         z.strictObject({
           classId: boundedIdentitySchema,
-          sourceIds: z.array(boundedIdentitySchema).max(20),
-          preparedSpellLimit: z.number().int().min(-999).max(999).nullable(),
-          maxPreparableSpellLevel: z.number().int().min(0).max(9),
-          availableSpellIds: z.array(boundedIdentitySchema).max(5000),
-          learnedSpellIds: z.array(boundedIdentitySchema).max(500),
-          preparedSpellIds: z.array(boundedIdentitySchema).max(500)
+          sourceIds: z.array(boundedIdentitySchema).check(z.maxLength(20)),
+          preparedSpellLimit: z.nullable(integerSchema.check(z.gte(-999)).check(z.lte(999))),
+          maxPreparableSpellLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
+          availableSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(5000)),
+          learnedSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
+          preparedSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500))
         })
       )
-      .max(20),
-    requestDecision: z
-      .strictObject({
+      .check(z.maxLength(20)),
+    requestDecision: z.nullable(
+      z.strictObject({
         classId: boundedIdentitySchema,
-        requestedSpellIds: z.array(boundedIdentitySchema).max(500),
+        requestedSpellIds: z.array(boundedIdentitySchema).check(z.maxLength(500)),
         status: z.enum(['ALLOWED', 'REJECTED']),
         reasonCode: characterSpellPreparationRequestReasonSchema,
-        unavailableSpellId: boundedIdentitySchema.nullable()
+        unavailableSpellId: z.nullable(boundedIdentitySchema)
       })
-      .nullable()
+    )
   }),
   spellCastDecisions: characterSpellCastDecisionsSchema,
   spellSlots: z.strictObject({
     calculationId: boundedIdentitySchema,
-    sourceClassIds: z.array(boundedIdentitySchema).max(20),
+    sourceClassIds: z.array(boundedIdentitySchema).check(z.maxLength(20)),
     maxByLevel: z.array(
-      spellSlotEntrySchema.extend({
-        sourceIds: z.array(boundedIdentitySchema).max(20),
-        rawUsed: z.number().int().min(0).max(2_147_483_647),
-        effectiveUsed: z.number().int().min(0),
-        remaining: z.number().int().min(0)
+      z.extend(spellSlotEntrySchema, {
+        sourceIds: z.array(boundedIdentitySchema).check(z.maxLength(20)),
+        rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
+        effectiveUsed: integerSchema.check(z.gte(0)),
+        remaining: integerSchema.check(z.gte(0))
       })
     ),
-    pactMagic: z
-      .strictObject({
+    pactMagic: z.nullable(
+      z.strictObject({
         sourceClassId: boundedIdentitySchema,
-        slots: z.number().int().min(0),
-        level: z.number().int().min(1).max(9),
-        rawUsed: z.number().int().min(0).max(2_147_483_647),
-        effectiveUsed: z.number().int().min(0),
-        remaining: z.number().int().min(0)
+        slots: integerSchema.check(z.gte(0)),
+        level: integerSchema.check(z.gte(1)).check(z.lte(9)),
+        rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
+        effectiveUsed: integerSchema.check(z.gte(0)),
+        remaining: integerSchema.check(z.gte(0))
       })
-      .nullable(),
+    ),
     fusionStrategy: z.enum(['NONE', 'SINGLE_CLASS', 'MULTICLASS_FUSED'])
   }),
   chargeMaximums: z.array(
     z.strictObject({
-      calculationId: boundedIdentitySchema,
+      calculationId: characterResourcePoolIdentitySchema,
       sourceId: boundedIdentitySchema,
       state: z.enum(['RESOLVED', 'UNRESOLVED']),
-      maximum: z.number().int().min(0).nullable(),
+      maximum: z.nullable(integerSchema.check(z.gte(0))),
       reasonCode: z.enum(['CALCULATED', 'MISSING_REQUIRED_FACT']),
-      baseContribution: z
-        .strictObject({
+      baseContribution: z.nullable(
+        z.strictObject({
           sourceId: boundedIdentitySchema,
-          value: z.number().int()
+          value: integerSchema
         })
-        .nullable(),
+      ),
       bonusContributions: z.array(
         z.strictObject({
           sourceId: boundedIdentitySchema,
-          value: z.number().int()
+          value: integerSchema
         })
       )
     })
   ),
-  resources: characterResourcesSchema.default([]),
-  actionDecisions: characterActionDecisionsSchema.default([]),
-  spellCastMechanics: characterSpellCastMechanicsSchema.default([]),
-  spellReferenceMechanics: characterSpellReferenceMechanicsSchema.default([]),
+  resources: z._default(characterResourcesSchema, []),
+  actionDecisions: z._default(characterActionDecisionsSchema, []),
+  spellCastMechanics: z._default(characterSpellCastMechanicsSchema, []),
+  spellReferenceMechanics: z._default(characterSpellReferenceMechanicsSchema, []),
   eligibilityFacets: z.array(
     z.strictObject({
       evaluationId: boundedIdentitySchema,
-      passed: z.boolean(),
+      passed: booleanSchema,
       failures: z.array(
         z.strictObject({
           conditionId: boundedIdentitySchema,
@@ -1354,21 +1395,21 @@ export const characterRulePolicyOutputSchema = z.strictObject({
     })
   ),
   rest: z.strictObject({
-    hitDieConstitutionModifier: z.number().finite(),
-    hitDiceRecoveredAfterLongRest: z.number().int().min(0),
-    currentExhaustion: z.number().int().min(0).max(6),
-    minimumExhaustion: z.number().int().min(0).max(6),
-    maximumExhaustion: z.number().int().min(0).max(6),
-    exhaustionAfterLongRest: z.number().int().min(0).max(6),
-    attunementSlotLimit: z.number().int().min(0),
+    hitDieConstitutionModifier: finiteNumberSchema,
+    hitDiceRecoveredAfterLongRest: integerSchema.check(z.gte(0)),
+    currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
+    minimumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
+    maximumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
+    exhaustionAfterLongRest: integerSchema.check(z.gte(0)).check(z.lte(6)),
+    attunementSlotLimit: integerSchema.check(z.gte(0)),
     companionHitDiceRecoveredAfterLongRest: z
       .array(
         z.strictObject({
           companionInstanceId: boundedIdentitySchema,
-          recovered: z.number().int().min(0)
+          recovered: integerSchema.check(z.gte(0))
         })
       )
-      .max(500)
+      .check(z.maxLength(500))
   })
 })
 

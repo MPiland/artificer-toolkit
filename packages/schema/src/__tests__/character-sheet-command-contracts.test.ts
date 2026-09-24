@@ -14,8 +14,32 @@ import {
   characterCompletedRestResultDtoSchema,
   characterRestHitDiceRollEvidenceDtoSchema
 } from '../api/characterSheet.js'
+import {
+  characterHistoryEntryDtoSchema,
+  characterHistoryResponseDtoSchema
+} from '../api/characterHistory.js'
+import {
+  characterHistoryEntryDtoSchema as commandHistoryEntrySchema,
+  characterHistoryResponseDtoSchema as commandHistoryResponseSchema
+} from '../api/characterSheetCommands.js'
 
 describe('character sheet command contracts', () => {
+  it('shares the unchanged history contracts with the standalone history reader', () => {
+    expect(commandHistoryEntrySchema).toBe(characterHistoryEntryDtoSchema)
+    expect(commandHistoryResponseSchema).toBe(characterHistoryResponseDtoSchema)
+    const entry = {
+      eventId: 'event-1',
+      occurredAt: '2026-09-08T00:00:00.000Z',
+      actorId: 'actor-1',
+      eventType: 'SOURCE_REMOVED',
+      summary: 'Source removed'
+    }
+    expect(
+      characterHistoryResponseDtoSchema.parse({ characterId: 'character-1', entries: [entry] })
+    ).toEqual({ characterId: 'character-1', entries: [entry] })
+    expect(characterHistoryEntryDtoSchema.safeParse({ ...entry, summary: 12 }).success).toBe(false)
+  })
+
   it('accepts versioned rule upgrade preview and apply inputs', () => {
     expect(characterRuleUpgradePreviewRequestDtoSchema.parse({ expectedVersion: 3 })).toEqual({
       expectedVersion: 3

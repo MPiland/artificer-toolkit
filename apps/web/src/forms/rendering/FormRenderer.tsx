@@ -48,7 +48,7 @@ import { captureGroupEditorSnapshot } from './groupEditorTransaction'
 import { AuthoringValidationAlert } from './AuthoringValidationAlert'
 import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 import * as styles from './FormRenderer.css'
-import { Button, Group, Loader, Modal, Stack, Text } from '@mantine/core'
+import { Alert, Button, Group, Loader, Modal, Stack, Text } from '@mantine/core'
 import { CircleHelp } from 'lucide-react'
 import { AuthoringArtworkControl } from '../AuthoringArtworkControl'
 
@@ -150,7 +150,12 @@ export function FormRenderer<TValues extends object>({
         () => (parentValues ? [parentValues, ...(ancestors ?? [])] : ancestors),
         [ancestors, parentValues]
       )
-      const { model: activeModel } = useAuthoringResolvedModel({
+      const {
+        model: activeModel,
+        error: resolutionError,
+        isFetching: isResolving,
+        refetch: retryResolution
+      } = useAuthoringResolvedModel({
         ancestors,
         debounceMs,
         mapId: resolvedMapId ?? 'pending',
@@ -320,6 +325,7 @@ export function FormRenderer<TValues extends object>({
       const statePatch = useMemo(
         () => ({
           canFinalize:
+            !resolutionError &&
             canSubmit &&
             (navigationState
               ? Object.values(navigationState.stepStatuses).every((status) => status === 'complete')
@@ -353,6 +359,7 @@ export function FormRenderer<TValues extends object>({
           resolvedFieldPathPrefix,
           resolvedReadOnly,
           resolvedSystemId,
+          resolutionError,
           canSubmit,
           hasChanges,
           isSubmitting
@@ -429,7 +436,7 @@ export function FormRenderer<TValues extends object>({
       )
 
       const shouldUpdateAuthoringState =
-        updateAuthoringState && Boolean(resolvedMapId && activeModel)
+        updateAuthoringState && Boolean(resolvedMapId && (activeModel || resolutionError))
 
       useEffect(() => {
         if (!shouldUpdateAuthoringState) return
@@ -473,9 +480,25 @@ export function FormRenderer<TValues extends object>({
         </Modal>
       ) : null
 
+      const resolutionAlert = resolutionError ? (
+        <Alert color='red' title='Could not load authoring tools'>
+          <Text size='sm'>Your current form values are still here. Retry to continue.</Text>
+          <Button
+            mt='sm'
+            type='button'
+            variant='default'
+            loading={isResolving}
+            onClick={() => void retryResolution()}
+          >
+            Retry
+          </Button>
+        </Alert>
+      ) : null
+
       if (canvasContent) {
         return (
           <>
+            {resolutionAlert}
             <AuthoringValidationAlert
               target={updateAuthoringState ? activeTarget : undefined}
               validationTargets={
@@ -489,6 +512,8 @@ export function FormRenderer<TValues extends object>({
       }
 
       if (!resolvedMapId) return null
+
+      if (resolutionAlert) return resolutionAlert
 
       if (!activeModel && resolvedResolveModel) {
         return (

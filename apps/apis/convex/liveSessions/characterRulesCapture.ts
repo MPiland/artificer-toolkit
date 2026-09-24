@@ -1,0 +1,369 @@
+import { zodToConvex } from 'convex-helpers/server/zod4'
+import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
+import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
+import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
+import {
+  liveSessionCharacterRulesInputSchema,
+  liveSessionCharacterRulesResponseSchema,
+  type LiveSessionCharacterRulesInput,
+  type LiveSessionCharacterRulesResponse
+} from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { internalQuery, type QueryCtx } from '../_generated/server'
+import type { Doc } from '../_generated/dataModel'
+import { requireCampaignAuthority } from '../campaigns/authority'
+import {
+  readCampaignCharacterState,
+  requireCampaignCharacterAuthority
+} from '../campaigns/characterState'
+import { readCampaignSharedRoot } from '../campaigns/contentAccess'
+import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
+import { requireSession } from '../campaigns/sessionDocuments'
+import { readCharacterSheetState } from '../characters/sheetStateDocuments'
+import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
+import { readCharacterSources, recordCharacterSourceIdentity } from '../characters/sourceReads'
+import {
+  canReadAuthoredRoot,
+  readAuthoredVersion,
+  readPublishedDocument
+} from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import { readVisibleAuthoredRouteId } from '../content/routeIds'
+import { requireSystem } from '../content/systemDocuments'
+import { isImportRowVisible } from '../imports/visibility'
+import { requireIdentity } from '../lib/identity'
+import { requireCampaignLiveAuthority } from './authorityGuard'
+import { readLiveSessionRulesRevisions } from './rulesRevisions'
+import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
+import { readLiveMovementAdmission } from './encounterMovementAdmission'
+import { readRunActor, readRunActors } from '../encounters/documents'
+import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
+
+/** Raw stored inputs only; the Session DO owns Character rule preparation and evaluation. */
+export async function readCharacterRulesCapture(
+  ctx: QueryCtx,
+  args: LiveSessionCharacterRulesInput
+): Promise<LiveSessionCharacterRulesResponse> {
+  const input = liveSessionCharacterRulesInputSchema.parse(args)
+  const { userId } = await requireIdentity(ctx)
+  if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
+  if (
+    (input.movement && input.concentrationResponse) ||
+    (input.turnResponse && (input.movement || input.concentrationResponse))
+  )
+    throw new Error('Live Session capture scopes cannot be combined.')
+  const movementAdmission = input.movement
+    ? await readLiveMovementAdmission(ctx, { ...input, movement: input.movement })
+    : null
+  if (movementAdmission && input.movement) {
+    const actor = await readRunActor(ctx, movementAdmission.state, input.movement.actorId)
+    if (
+      actor.kind !== 'CHARACTER' ||
+      actor.sourceId !== input.characterId ||
+      actor.sourceRevision !== input.expectedStreamVersion
+    )
+      throw new Error('Movement Character source is unavailable or stale.')
+  }
+  const concentrationAdmission = input.concentrationResponse
+    ? await readLiveConcentrationResponseAdmission(ctx, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        authorityEpoch: input.authorityEpoch,
+        expectedUserId: input.expectedUserId,
+        expectedRole: input.expectedRole,
+        encounterId: input.concentrationResponse.encounterId.toLowerCase(),
+        expectedVersion: input.concentrationResponse.expectedVersion,
+        concentrationResponse: input.concentrationResponse
+      })
+    : null
+  if (
+    concentrationAdmission &&
+    (concentrationAdmission.kind !== 'READY' ||
+      !concentrationAdmission.actors.some(
+        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
+      ))
+  )
+    throw new Error('Concentration Character is unavailable.')
+  const turnAdmission = input.turnResponse
+    ? await readLiveEncounterTurnAdmission(
+        ctx,
+        {
+          ...input,
+          encounterId: input.turnResponse.encounterId.toLowerCase(),
+          expectedVersion: input.turnResponse.expectedVersion
+        },
+        input.turnResponse
+      )
+    : null
+  if (turnAdmission && input.turnResponse) {
+    if (
+      turnAdmission.kind !== 'READY' ||
+      turnAdmission.state.id !== input.turnResponse.encounterId.toLowerCase() ||
+      turnAdmission.state.version !== input.turnResponse.expectedVersion ||
+      !(await readRunActors(ctx, turnAdmission.state)).some(
+        (actor) =>
+          actor.kind === 'CHARACTER' &&
+          actor.sourceId === input.characterId &&
+          actor.sourceRevision === input.expectedStreamVersion
+      )
+    )
+      throw new Error('Turn Character source is unavailable or stale.')
+  }
+  const { campaign, membership } =
+    movementAdmission ?? (await requireCampaignAuthority(ctx, input.campaignId, userId))
+  if (
+    membership.role !== input.expectedRole ||
+    (!concentrationAdmission && !movementAdmission && !turnAdmission && membership.role !== 'OWNER')
+  )
+    throw new Error('Live Session role mismatch.')
+  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (!movementAdmission) {
+    const authority = await requireCampaignLiveAuthority(ctx, {
+      campaignId: campaign.id,
+      sessionId: input.sessionId,
+      epoch: input.authorityEpoch
+    })
+    if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
+  }
+  const session =
+    movementAdmission?.session ?? (await requireSession(ctx, campaign.id, input.sessionId))
+  if (session.status !== 'OPEN') throw new Error('Live Session is not open.')
+  const { assignment } = await requireCampaignCharacterAuthority(
+    ctx,
+    campaign.id,
+    input.characterId,
+    concentrationAdmission || movementAdmission || turnAdmission ? campaign.ownerUserId : userId
+  )
+  const { active, draft } = await loadCharacterState(ctx, input.characterId)
+  if (!active || active.userId !== assignment.userId)
+    throw new Error('Stored Campaign Character assignment mismatch.')
+  if (draft && draft.userId !== active.userId)
+    throw new Error('Stored Character draft ownership mismatch.')
+  if (active.status !== 'ACTIVE')
+    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  if (active.streamVersion !== input.expectedStreamVersion)
+    throw new Error('Live Session Character stream version is stale.')
+  if (active.systemId !== campaign.gameSystemId)
+    throw new Error('Stored Campaign Character System mismatch.')
+  const route = await readVisibleAuthoredRouteId(ctx, { subjectId: active.id })
+  if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
+    throw new Error('Stored Character route identity mismatch.')
+  const scope = { input, userId }
+  const revisions = await readLiveSessionRulesRevisions(ctx, {
+    systemId: active.systemId,
+    campaignId: campaign.id,
+    sessionId: session.id,
+    characterId: active.id
+  })
+
+  if (input.request.kind === 'INPUTS') {
+    const response = {
+      kind: 'INPUTS' as const,
+      character: readCharacterRecord(active),
+      ...(input.movement ? { movementOwner: active } : {}),
+      updatedAt: active.updatedAt,
+      characterChecksum: active.checksum,
+      streamVersion: active.streamVersion,
+      sheetState: readCharacterSheetState(active),
+      system: await requireSystem(ctx, active.systemId),
+      campaign: {
+        id: campaign.id,
+        status: campaign.status,
+        contentMaturity: campaign.contentMaturity,
+        attunementSlotOverride: campaign.attunementSlotOverride,
+        state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,
+        currencyOptions: await readCampaignCurrencyOptions(ctx, campaign)
+      }
+    }
+    return liveSessionCharacterRulesResponseSchema.parse({
+      ...response,
+      revisions,
+      readChecksum: checksumCanonicalJson({ ...scope, response })
+    })
+  }
+
+  // GM admission never substitutes for the Character owner's source access.
+  const access = await readCharacterSources(ctx, active, active.userId)
+  const identities = new Map<string, AuthoredCurrentSourceIdentity>()
+  if (input.request.kind === 'PUBLICATIONS') {
+    const { subjectIds: requestedIds, afterSubjectId } = input.request
+    const subjectIds = [...new Set(requestedIds)]
+      .sort()
+      .filter((id) => afterSubjectId === null || id > afterSubjectId)
+    const publications: Extract<
+      LiveSessionCharacterRulesResponse,
+      { kind: 'PUBLICATIONS' }
+    >['publications'] = []
+    const checkedIds: string[] = []
+    let payloadBytes = 0
+    for (const id of subjectIds) {
+      // Root metadata also consumes database bytes, even when a source is absent or unreadable.
+      if (checkedIds.length === 4 || payloadBytes >= 4 * 1024 * 1024) break
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique()
+      if (
+        root &&
+        root.systemId === active.systemId &&
+        (await isImportRowVisible(ctx, root.importJobId))
+      ) {
+        const source = access.sources.find((source) => source.id === root.contentSourceId)
+        const direct = source && (await canReadAuthoredRoot(ctx, root, active.userId, source))
+        const shared = await readCampaignSharedRoot(ctx, campaign, root.subjectKind, root.id, root)
+        if (direct || shared) {
+          const version = await readAuthoredVersion(ctx, root)
+          const byteLength =
+            version.documentByteLength ?? new TextEncoder().encode(version.documentJson).byteLength
+          if (payloadBytes > 0 && payloadBytes + byteLength > 4 * 1024 * 1024) break
+          const publication = parsePublicationDocument(
+            root.subjectKind,
+            await readPublishedDocument(ctx, root, version)
+          )
+          payloadBytes += byteLength
+          if (!direct && publication.document.status !== 'ACTIVE') {
+            checkedIds.push(id)
+            continue
+          }
+          recordCharacterSourceIdentity(identities, root)
+          // Source checksum identifies the validated stored version; DTO parsing can normalize JSON.
+          publications.push({
+            identity: identities.get(root.id)!,
+            version: version.version,
+            documentJson: JSON.stringify(publication.document),
+            campaignShared: !direct,
+            campaignParentAllowed:
+              (source?.kind === 'PLATFORM' && !!direct) ||
+              (shared !== null && publication.document.status === 'ACTIVE'),
+            ...(root.subjectKind === 'CLASS' && root.parentClassId !== undefined
+              ? { storedParentId: root.parentClassId }
+              : root.subjectKind === 'RACE' && root.parentRaceId !== undefined
+                ? { storedParentId: root.parentRaceId }
+                : root.subjectKind === 'EQUIPMENT' && root.parentEquipmentId !== undefined
+                  ? { storedParentId: root.parentEquipmentId }
+                  : {})
+          })
+        }
+      }
+      checkedIds.push(id)
+    }
+    const continueAfter = checkedIds.length < subjectIds.length ? checkedIds.at(-1)! : null
+    return {
+      kind: 'PUBLICATIONS',
+      revisions,
+      readChecksum: checksumCanonicalJson({
+        ...scope,
+        checkedIds,
+        publications: publications.map(({ documentJson: _documentJson, ...metadata }) => metadata),
+        continueAfter
+      }),
+      continueAfter,
+      publications
+    }
+  }
+
+  const kinds =
+    input.request.kind === 'CLASS_CATALOGUE'
+      ? (['CLASS'] as const)
+      : input.request.kind === 'SPELL_CATALOGUE'
+        ? (['SPELL'] as const)
+        : (authoredSourceKindsByTable.features ?? [])
+  const featureIds =
+    input.request.kind === 'FEATURE_SOURCES' ? new Set(input.request.featureIds) : null
+  let { kindIndex, sourceIndex, paginationCursor } = input.request.cursor ?? {
+    kindIndex: 0,
+    sourceIndex: 0,
+    paginationCursor: null
+  }
+  if (kindIndex >= kinds.length || sourceIndex > access.sources.length)
+    throw new Error('Character source cursor is invalid.')
+  const sources: Extract<LiveSessionCharacterRulesResponse, { kind: 'SOURCE_INDEX' }>['sources'] =
+    []
+  // Native Convex permits one paginated read per function; even empty sources advance the cursor.
+  {
+    const kind = kinds[kindIndex]!
+    const source = access.sources[sourceIndex]
+    const roots: Array<{ root: Doc<'authoredRoots'>; campaignShared: boolean }> = []
+    const options = { cursor: paginationCursor, numItems: 4 }
+    const page = source
+      ? await ctx.db
+          .query('authoredRoots')
+          .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
+            q
+              .eq('contentSourceId', source.id)
+              .eq('subjectKind', kind)
+              .eq('ownerUserId', source.kind === 'USER' ? source.ownerUserId : undefined)
+          )
+          .paginate(options)
+      : await ctx.db
+          .query('campaignContentShares')
+          .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
+            q.eq('campaignId', campaign.id).eq('subjectKind', kind)
+          )
+          .paginate(options)
+    if (
+      page.pageStatus === 'SplitRequired' ||
+      (!page.isDone && page.continueCursor === paginationCursor)
+    )
+      throw new Error('Character source page cannot advance.')
+    for (const row of page.page) {
+      if ('subjectId' in row) {
+        const root = await readCampaignSharedRoot(ctx, campaign, kind, row.subjectId)
+        if (root) {
+          const directSource = access.sources.find(
+            (candidate) => candidate.id === root.contentSourceId
+          )
+          if (!directSource || !(await canReadAuthoredRoot(ctx, root, active.userId, directSource)))
+            roots.push({ root, campaignShared: true })
+        }
+      } else {
+        if (row.systemId !== active.systemId)
+          throw new Error('Stored Character source System mismatch.')
+        if (source && (await canReadAuthoredRoot(ctx, row, active.userId, source)))
+          roots.push({ root: row, campaignShared: false })
+      }
+    }
+    for (const { root, campaignShared } of roots) {
+      let matches = true
+      if (featureIds) {
+        if (!root.authoringSources)
+          throw new Error('Character feature source facts are not materialized.')
+        const metadata = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
+        if (metadata.checksum !== root.checksum)
+          throw new Error('Stored Character feature source checksum mismatch.')
+        matches =
+          metadata.rows.features?.some(
+            (row) => typeof row.id === 'string' && featureIds.has(row.id)
+          ) ?? false
+      }
+      recordCharacterSourceIdentity(identities, root)
+      sources.push({ ...identities.get(root.id)!, campaignShared, matches })
+    }
+    if (page.isDone) {
+      sourceIndex++
+      paginationCursor = null
+      if (sourceIndex > access.sources.length) {
+        kindIndex++
+        sourceIndex = 0
+      }
+    } else {
+      paginationCursor = page.continueCursor
+    }
+  }
+  const continueCursor =
+    kindIndex < kinds.length ? { kindIndex, sourceIndex, paginationCursor } : null
+  sources.sort((left, right) => left.subjectId.localeCompare(right.subjectId))
+  return {
+    kind: 'SOURCE_INDEX',
+    revisions,
+    readChecksum: checksumCanonicalJson({ ...scope, sources, continueCursor }),
+    continueCursor,
+    sources
+  }
+}
+
+export const capture = internalQuery({
+  args: zodToConvex(liveSessionCharacterRulesInputSchema),
+  returns: zodToConvex(liveSessionCharacterRulesResponseSchema),
+  handler: readCharacterRulesCapture
+})

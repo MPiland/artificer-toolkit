@@ -6,9 +6,8 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants/proficiency'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
+import { getEquipmentOptions } from '#app/data/equipment/options'
+import { getNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -29,7 +28,7 @@ import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { createEmptySpellcasting } from '../classAuthoring.utils'
 
 type GuidedClassAuthoringProps = {
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
 }
@@ -43,31 +42,31 @@ export const GuidedClassAuthoring = withForm({
     const isSubclass = values.category === CLASS_CATEGORY.SUBCLASS
     const steps = isSubclass ? SUBCLASS_STEPS : BASE_STEPS
     const categoryLocked = session.mode === 'edit'
-    const classes = useQuery({
-      enabled: isSubclass,
-      queryFn: () =>
-        loadPagedAuthoredCatalogItems(api.content.classes.list, {
-          direction: 'FORWARD',
-          limit: 48,
-          sort: 'name'
-        }),
-      queryKey: queryKeys.content.classes.list(),
-      select: (items) =>
-        items
-          .filter((item) => item.category === CLASS_CATEGORY.BASE)
-          .map((item) => ({ label: item.label, value: item.id }))
+    const parentClasses = useQuery({
+      ...getNodeRuntimeResolve(
+        {
+          mapId: 'class',
+          systemId: session.systemId ?? '',
+          values: { category: CLASS_CATEGORY.SUBCLASS }
+        },
+        isSubclass && Boolean(session.systemId)
+      ),
+      select: (response) =>
+        response.steps
+          .flatMap((step) => step.sections)
+          .flatMap((section) => section.nodes)
+          .flatMap((node) =>
+            node.kind === 'INPUT' &&
+            'options' in node &&
+            node.path.length === 1 &&
+            node.path[0] === 'parentClassId'
+              ? node.options
+              : []
+          )
     })
-    const equipment = useQuery({
-      enabled: !isSubclass && step === 2,
-      queryFn: () =>
-        loadPagedAuthoredCatalogItems(api.content.equipment.list, {
-          direction: 'FORWARD',
-          limit: 48,
-          sort: 'name'
-        }),
-      queryKey: queryKeys.content.equipment.list(),
-      select: (items) => items.map((item) => ({ label: item.label, value: item.id }))
-    })
+    const equipment = useQuery(
+      getEquipmentOptions(!isSubclass && step === 2 ? session.systemId : undefined)
+    )
 
     useEffect(() => {
       if (step >= steps.length) setStep(0)
@@ -154,9 +153,23 @@ export const GuidedClassAuthoring = withForm({
                 >
                   {(field) => (
                     <field.SelectField
-                      data={classes.data ?? []}
+                      data={parentClasses.data ?? []}
+                      error={
+                        parentClasses.isError ? 'Parent classes could not be loaded.' : undefined
+                      }
                       label='Parent class'
-                      placeholder={classes.isLoading ? 'Loading classes…' : 'Choose a base class'}
+                      placeholder={
+                        !session.systemId
+                          ? 'Select a System first'
+                          : parentClasses.isPending
+                            ? 'Loading classes…'
+                            : parentClasses.isError
+                              ? 'Parent classes unavailable'
+                              : 'Choose a base class'
+                      }
+                      readOnly={
+                        !session.systemId || parentClasses.isPending || parentClasses.isError
+                      }
                       required
                     />
                   )}
@@ -214,8 +227,17 @@ export const GuidedClassAuthoring = withForm({
             <div className={styles.fields}>
               <Select
                 data={equipment.data ?? []}
+                disabled={!session.systemId || equipment.isPending || equipment.isError}
                 label='Starting item'
-                placeholder={equipment.isLoading ? 'Loading equipment…' : 'Search equipment'}
+                placeholder={
+                  !session.systemId
+                    ? 'Select a System first'
+                    : equipment.isPending
+                      ? 'Loading equipment…'
+                      : equipment.isError
+                        ? 'Equipment unavailable'
+                        : 'Search equipment'
+                }
                 searchable
                 value={values.startingItem?.equipmentIds?.[0] ?? null}
                 onChange={(value) =>
@@ -234,6 +256,11 @@ export const GuidedClassAuthoring = withForm({
                 }
               />
             </div>
+            {equipment.isError ? (
+              <Alert color='red' title='Equipment unavailable'>
+                Starting equipment could not be loaded. Please try again later.
+              </Alert>
+            ) : null}
           </Stack>
         ) : null}
 

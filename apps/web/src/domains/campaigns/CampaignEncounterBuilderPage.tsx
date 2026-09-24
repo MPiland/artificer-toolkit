@@ -10,13 +10,15 @@ import {
   TextInput,
   Title
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { IconChevronLeft } from '@tabler/icons-react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CreateEncounterBlueprintInputDto } from '@artificer-toolkit/schema/api/encounterData'
+import { useConvex } from 'convex/react'
 import { useState } from 'react'
-import { getCampaignDetail } from '#app/data/campaigns/queries'
+import { useCampaignDetail } from '#app/data/campaigns/queries'
 import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { getEncounterBlueprints } from '#app/data/encounters/queries'
-import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from './campaigns.css'
 import * as encounterStyles from './components/encounter.css'
@@ -26,18 +28,22 @@ type BlueprintEnemy =
   | { kind: 'CUSTOM'; label: string; maxHitPoints: number }
 
 export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: string }) {
-  const { data: campaign } = useSuspenseQuery(getCampaignDetail(campaignId))
+  const convex = useConvex()
+  const campaign = useCampaignDetail(campaignId)
   const blueprints = useQuery({
-    ...getEncounterBlueprints(campaign.gameSystemId),
+    ...getEncounterBlueprints(campaign.gameSystemId, convex),
     enabled: campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   })
   const creatures = useQuery({
     queryFn: () =>
-      loadPagedAuthoredCatalogItems(api.content.creatures.list, {
-        direction: 'FORWARD',
-        limit: 48,
-        sort: 'name'
-      }),
+      loadPagedAuthoredCatalogItems(
+        (input) => convex.query(convexApi.content.catalogue.list, input),
+        {
+          subjectKind: 'CREATURE',
+          sort: 'name',
+          paginationOpts: { cursor: null, numItems: 48 }
+        }
+      ),
     queryKey: queryKeys.content.creatures.list()
   })
   const queryClient = useQueryClient()
@@ -47,17 +53,19 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
   const [customHitPoints, setCustomHitPoints] = useState(10)
   const [enemies, setEnemies] = useState<BlueprintEnemy[]>([])
   const create = useMutation({
-    mutationFn: () =>
-      api.encounters.blueprints.create({
+    mutationFn: () => {
+      const blueprintEnemies: CreateEncounterBlueprintInputDto['enemies'] = enemies.map((enemy) =>
+        enemy.kind === 'CREATURE'
+          ? { kind: 'CREATURE', sourceId: enemy.sourceId }
+          : { kind: 'CUSTOM', label: enemy.label, maxHitPoints: enemy.maxHitPoints }
+      )
+      return convex.mutation(convexApi.encounters.blueprints.create, {
         gameSystemId: campaign.gameSystemId,
         name: name.trim(),
-        enemies: enemies.map((enemy) =>
-          enemy.kind === 'CREATURE'
-            ? { kind: 'CREATURE', sourceId: enemy.sourceId }
-            : { kind: 'CUSTOM', label: enemy.label, maxHitPoints: enemy.maxHitPoints }
-        ),
+        enemies: blueprintEnemies,
         commandId: crypto.randomUUID()
-      }),
+      })
+    },
     onSuccess: async () => {
       setName('')
       setEnemies([])

@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { classAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import { type AuthoredDraftDto, type ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import { type ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -18,7 +19,7 @@ import {
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import {
@@ -44,6 +45,7 @@ export function ClassDetailPage({
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('CLASS', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState<ClassAuthoringInputDto>({
     draft,
@@ -52,13 +54,13 @@ export function ClassDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.classes.deleteActive,
-    discard: api.content.classes.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.classes.detailRoot(classId),
     domainLabel: 'Class',
     domainQueryKey: queryKeys.content.classes.all(),
     draftQueryKey: queryKeys.content.classes.draft(classId),
-    duplicate: api.content.classes.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: classId,
     navigateEdit: async (subject) =>
@@ -67,6 +69,13 @@ export function ClassDetailPage({
         to: '/classes/$classPublicId/$classSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/classes' })
+  })
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: classId,
+    label: detailState.item?.label ?? 'Class',
+    subjectKind: 'CLASS',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -109,13 +118,6 @@ export function ClassDetailPage({
     draft?.publicId ?? response?.publicId ?? classId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: classId,
-    label: item.label,
-    subjectKind: 'CLASS',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const parentClassLabel = getClassParentLabel(item, response)
   const classModel = buildClassDetailModel(item, references)
   const pageActions = compactAuthoredDetailActions([

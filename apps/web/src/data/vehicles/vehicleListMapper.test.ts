@@ -1,85 +1,14 @@
-import type { VehicleListResponseDto } from '#app/lib/api'
-import {
-  buildVehicleListFilters,
-  formatVehicleCategory,
-  mapVehicleListToAuthoredItems,
-  summarizeVehicleList
-} from './vehicleListMapper'
+import { buildVehicleListFilters, formatVehicleCategory } from './vehicleListMapper'
 
 describe('vehicle list mapper', () => {
-  it('maps vehicle list metadata into authored list items', () => {
-    const response = createVehicleListResponse()
-
-    const items = mapVehicleListToAuthoredItems(response)
-
-    expect(items).toHaveLength(2)
-    expect(items[0]).toMatchObject({
-      id: 'vehicle-1',
-      name: 'Sky Skiff',
-      attributes: { Category: 'Air' },
-      sourceLabel: 'Homebrew'
-    })
-    expect(items[1]?.sourceLabel).toBe('SRD')
-  })
-
   it('builds category and source filters', () => {
-    const filters = buildVehicleListFilters(createVehicleListResponse())
+    const filters = buildVehicleListFilters(['AIR', 'SPELLJAMMER'])
 
     expect(filters.map((filter) => filter.key)).toEqual(['category', 'source'])
     expect(filters[0]?.options.map((option) => option.label)).toContain('Spelljammer')
   })
 
-  it('formats category and summary copy', () => {
+  it('formats categories', () => {
     expect(formatVehicleCategory('SPELLJAMMER')).toBe('Spelljammer')
-    expect(summarizeVehicleList(createVehicleListResponse())).toBe(
-      '2 vehicles / 1 SRD / 1 homebrew'
-    )
   })
 })
-
-function createVehicleListResponse(): VehicleListResponseDto {
-  return {
-    items: [
-      {
-        id: 'vehicle-1',
-        publicId: 'vehicle-1',
-        activeUpdatedAt: '2026-01-01T00:00:00.000Z',
-        label: 'Sky Skiff',
-        description: '<p>Fast transport.</p>',
-        status: 'DRAFT',
-        category: 'AIR',
-        userId: 'user-1',
-        systemId: 'system-1',
-        provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
-        permissions: {
-          canView: true,
-          canEdit: true,
-          canCopy: true,
-          canDelete: true
-        }
-      },
-      {
-        id: 'vehicle-2',
-        publicId: 'vehicle-2',
-        activeUpdatedAt: '2026-01-01T00:00:00.000Z',
-        label: 'Spelljammer',
-        description: null,
-        status: 'ACTIVE',
-        category: 'SPELLJAMMER',
-        userId: 'master',
-        systemId: 'system-1',
-        provenance: { kind: 'MASTER', ownerUserId: null },
-        permissions: {
-          canView: true,
-          canEdit: false,
-          canCopy: true,
-          canDelete: false
-        }
-      }
-    ],
-    drafts: [],
-    meta: { categories: [{ id: 'AIR' }, { id: 'SPELLJAMMER' }] },
-    page: { nextCursor: null, previousCursor: null, totalCount: 2 },
-    summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
-  }
-}

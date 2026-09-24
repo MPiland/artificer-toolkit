@@ -9,74 +9,220 @@ import {
   Text,
   Tooltip
 } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
 import { Swords } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  EncounterActionChoiceDto,
+  EncounterActionChoicesDto,
+  EncounterOptionalActionChoicesDto,
+  GetEncounterOptionalActionChoicesInputDto
+} from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type {
+  EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import type { LiveSessionCommittedMessage } from './liveSessionClient'
 
 export function CampaignTabletopActionDrawer({
   actions,
+  actionsLoading,
+  actionChoicesError,
+  optionalRules,
   actorIdByTokenId,
   connected,
   encounter,
+  opened,
+  onOpen,
+  onClose,
   pending,
   scene,
-  onResolve
+  onResolve,
+  onLoadOptionalChoices
 }: {
-  actions: CharacterSheetResponseDto['actions']['items']
+  actions: EncounterActionChoiceDto[]
+  actionsLoading: boolean
+  actionChoicesError: string | null
+  optionalRules: EncounterActionChoicesDto['optionalRules']
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+  opened: boolean
+  onOpen: () => void
+  onClose: () => void
   pending: boolean
   scene: CampaignSceneStateDto
-  onResolve: (command: ResolveEncounterActionInputDto) => Promise<LiveSessionCommittedMessage>
+  onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
+  onLoadOptionalChoices: (
+    request: GetEncounterOptionalActionChoicesInputDto
+  ) => Promise<EncounterOptionalActionChoicesDto>
 }) {
-  const [opened, { close, open }] = useDisclosure(false)
   const [actionId, setActionId] = useState<string | null>(null)
   const [targetActorId, setTargetActorId] = useState<string | null>(null)
+  const [optionalRuleId, setOptionalRuleId] = useState<string | null>(null)
+  const [optionalChoices, setOptionalChoices] = useState<{
+    requestIdentity: string
+    value: EncounterOptionalActionChoicesDto
+  } | null>(null)
+  const [optionalValues, setOptionalValues] = useState<Record<string, string>>({})
+  const [optionalChoicesLoading, setOptionalChoicesLoading] = useState(false)
+  const [optionalChoicesError, setOptionalChoicesError] = useState<{
+    requestIdentity: string
+    value: string
+  } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const currentActor =
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
-  const availableActions = useMemo(
-    () =>
-      actions.filter(
-        (action) =>
-          action.availability.status === 'AVAILABLE' && action.rollable === true && action.mechanic
-      ),
-    [actions]
+  const currentActorId = currentActor?.id ?? null
+  const selectedAction = actions.find((action) => action.id === actionId) ?? null
+  const selectedOptionalRule =
+    optionalRules.find((rule) => rule.definitionId === optionalRuleId) ?? null
+  const selectedActionId = selectedAction?.id ?? null
+  const selectedOptionalRuleId = selectedOptionalRule?.definitionId ?? null
+  const sourceToken = useMemo(
+    () => scene.tokens.find((token) => actorIdByTokenId.get(token.id) === currentActor?.id),
+    [actorIdByTokenId, currentActor?.id, scene.tokens]
   )
-  const selectedAction = availableActions.find((action) => action.id === actionId) ?? null
-  const controlsDisabled = !connected || pending || submitting
+  const targetToken = useMemo(
+    () => scene.tokens.find((token) => actorIdByTokenId.get(token.id) === targetActorId),
+    [actorIdByTokenId, scene.tokens, targetActorId]
+  )
+  const sourceTokenId = sourceToken?.id ?? null
+  const targetTokenId = targetToken?.id ?? null
+  const sceneContext = useMemo(
+    () =>
+      sourceTokenId && targetTokenId
+        ? {
+            sceneId: scene.id,
+            expectedSceneVersion: scene.version,
+            sourceTokenId,
+            targetTokenId
+          }
+        : null,
+    [scene.id, scene.version, sourceTokenId, targetTokenId]
+  )
+  const choiceRequestIdentity = JSON.stringify([
+    encounter.id,
+    encounter.version,
+    currentActorId,
+    selectedActionId,
+    targetActorId,
+    selectedOptionalRuleId,
+    scene.id,
+    scene.version,
+    sourceTokenId,
+    targetTokenId
+  ])
+  const currentOptionalChoices =
+    optionalChoices?.requestIdentity === choiceRequestIdentity ? optionalChoices.value : null
+  const currentOptionalChoicesError =
+    optionalChoicesError?.requestIdentity === choiceRequestIdentity
+      ? optionalChoicesError.value
+      : null
+  const choiceRequestSequence = useRef(0)
+  const selectionControlsDisabled =
+    !connected || pending || submitting || actionsLoading || actionChoicesError !== null
+  const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
+  const incompleteOptionalChoices =
+    optionalRuleId !== null &&
+    (!selectedOptionalRule ||
+      !currentOptionalChoices ||
+      currentOptionalChoices.fields.some((field) => !optionalValues[field.fieldId]))
 
   useEffect(() => {
     setActionId(null)
     setTargetActorId(null)
+    setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
   }, [encounter.currentActorId])
 
+  useEffect(() => {
+    const sequence = ++choiceRequestSequence.current
+    setOptionalChoices(null)
+    setOptionalChoicesError(null)
+    setOptionalValues({})
+    if (
+      !opened ||
+      !currentActorId ||
+      !selectedActionId ||
+      !targetActorId ||
+      !selectedOptionalRuleId
+    ) {
+      setOptionalChoicesLoading(false)
+      return
+    }
+    setOptionalChoicesLoading(true)
+    void onLoadOptionalChoices({
+      encounterId: encounter.id,
+      expectedVersion: encounter.version,
+      actorId: currentActorId,
+      actionId: selectedActionId,
+      targetActorId,
+      sceneContext:
+        sourceTokenId && targetTokenId
+          ? {
+              sceneId: scene.id,
+              expectedSceneVersion: scene.version,
+              sourceTokenId,
+              targetTokenId
+            }
+          : null,
+      definitionId: selectedOptionalRuleId
+    })
+      .then((nextChoices) => {
+        if (choiceRequestSequence.current !== sequence) return
+        setOptionalChoices({ requestIdentity: choiceRequestIdentity, value: nextChoices })
+      })
+      .catch((nextError: unknown) => {
+        if (choiceRequestSequence.current !== sequence) return
+        setOptionalChoicesError({
+          requestIdentity: choiceRequestIdentity,
+          value:
+            nextError instanceof Error ? nextError.message : 'Optional choices could not be loaded.'
+        })
+      })
+      .finally(() => {
+        if (choiceRequestSequence.current === sequence) setOptionalChoicesLoading(false)
+      })
+    return () => {
+      if (choiceRequestSequence.current === sequence) choiceRequestSequence.current += 1
+    }
+  }, [
+    choiceRequestIdentity,
+    currentActorId,
+    encounter.id,
+    encounter.version,
+    onLoadOptionalChoices,
+    opened,
+    scene.id,
+    scene.version,
+    selectedActionId,
+    selectedOptionalRuleId,
+    sourceTokenId,
+    targetActorId,
+    targetTokenId
+  ])
+
   async function resolveAction(): Promise<void> {
-    if (!currentActor || !selectedAction || !targetActorId || controlsDisabled) return
-    const sourceToken = scene.tokens.find(
-      (token) => actorIdByTokenId.get(token.id) === currentActor.id
+    if (
+      !currentActor ||
+      !selectedAction ||
+      !targetActorId ||
+      selectionControlsDisabled ||
+      optionalChoicesLoading ||
+      currentOptionalChoicesError !== null ||
+      incompleteOptionalChoices
     )
-    const targetToken = scene.tokens.find(
-      (token) => actorIdByTokenId.get(token.id) === targetActorId
-    )
+      return
     setSubmitting(true)
     setError(null)
     setFeedback(null)
     try {
-      const committed = await onResolve({
+      const response = await onResolve({
         type: 'RESOLVE_ACTION',
         encounterId: encounter.id,
         commandId: crypto.randomUUID(),
@@ -84,24 +230,19 @@ export function CampaignTabletopActionDrawer({
         actorId: currentActor.id,
         actionId: selectedAction.id,
         targetActorId,
-        sceneContext:
-          sourceToken && targetToken
-            ? {
-                sceneId: scene.id,
-                expectedSceneVersion: scene.version,
-                sourceTokenId: sourceToken.id,
-                targetTokenId: targetToken.id
-              }
-            : null
+        sceneContext,
+        optionalCombatIntent: currentOptionalChoices
+          ? {
+              definitionId: currentOptionalChoices.definitionId,
+              optionId: currentOptionalChoices.optionId,
+              selectionContract: currentOptionalChoices.selectionContract,
+              selections: currentOptionalChoices.fields.map((field) => ({
+                fieldId: field.fieldId,
+                value: { kind: 'ENTITY' as const, entityId: optionalValues[field.fieldId]! }
+              }))
+            }
+          : null
       })
-      if (committed.aggregateKind !== 'ENCOUNTER') {
-        throw new Error('The live session returned an unexpected action result.')
-      }
-      const response = committed.response
-      if (!response) throw new Error('The live session returned no action result.')
-      if (!('projection' in response)) {
-        throw new Error('The live session returned an unexpected action result.')
-      }
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
       } else if (response.resolution) {
@@ -128,7 +269,7 @@ export function CampaignTabletopActionDrawer({
   return (
     <>
       <Tooltip label='Actions'>
-        <ActionIcon aria-label='Open actions' size='lg' variant='default' onClick={open}>
+        <ActionIcon aria-label='Open actions' size='lg' variant='default' onClick={onOpen}>
           <Swords aria-hidden size={18} />
         </ActionIcon>
       </Tooltip>
@@ -139,7 +280,7 @@ export function CampaignTabletopActionDrawer({
         size='min(28rem, 100vw)'
         title='Actions'
         zIndex={400}
-        onClose={close}
+        onClose={onClose}
       >
         <Stack gap='md' aria-busy={submitting || undefined}>
           <div>
@@ -151,40 +292,96 @@ export function CampaignTabletopActionDrawer({
           {!connected ? (
             <Alert color='yellow'>Actions will return when live play reconnects.</Alert>
           ) : null}
-          {availableActions.length ? (
+          {actionChoicesError ? (
+            <Alert aria-live='assertive' color='red'>
+              {actionChoicesError}
+            </Alert>
+          ) : null}
+          {actionsLoading ? <Text c='dimmed'>Loading available actions…</Text> : null}
+          {!actionsLoading && !actionChoicesError && actions.length ? (
             <>
               <Select
-                data={availableActions.map((action) => ({
+                comboboxProps={{ withinPortal: false }}
+                data={actions.map((action) => ({
                   label: action.sourceLabel
                     ? `${action.label} · ${action.sourceLabel}`
                     : action.label,
                   value: action.id
                 }))}
-                disabled={controlsDisabled}
+                disabled={selectionControlsDisabled}
                 label='Action'
                 searchable
                 value={actionId}
                 onChange={setActionId}
               />
               <Select
+                comboboxProps={{ withinPortal: false }}
                 data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}
-                disabled={controlsDisabled}
+                disabled={selectionControlsDisabled}
                 label='Target'
                 searchable
                 value={targetActorId}
                 onChange={setTargetActorId}
               />
-              {selectedAction?.mechanic ? (
+              {selectedAction ? (
                 <Text c='dimmed' size='sm'>
-                  {selectedAction.mechanic.rangeLabel ?? 'System-defined range'}
-                  {selectedAction.mechanic.attackBonus === undefined
+                  {selectedAction.rangeLabel ?? 'System-defined range'}
+                  {selectedAction.attackBonus === undefined
                     ? ''
-                    : ` · ${selectedAction.mechanic.attackBonus >= 0 ? '+' : ''}${selectedAction.mechanic.attackBonus} to hit`}
+                    : ` · ${selectedAction.attackBonus >= 0 ? '+' : ''}${selectedAction.attackBonus} to hit`}
                 </Text>
               ) : null}
+              {optionalRules.length ? (
+                <Select
+                  clearable
+                  comboboxProps={{ withinPortal: false }}
+                  data={optionalRules.map((rule) => ({
+                    label: rule.label,
+                    value: rule.definitionId
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  label='Optional rule'
+                  placeholder='No optional rule'
+                  searchable
+                  value={optionalRuleId}
+                  onChange={setOptionalRuleId}
+                />
+              ) : null}
+              {selectedOptionalRule &&
+                currentOptionalChoices?.fields.map((field) => (
+                  <Select
+                    comboboxProps={{ withinPortal: false }}
+                    data={field.options.map((option) => ({
+                      label: option.label,
+                      value: option.id
+                    }))}
+                    disabled={dependentControlsDisabled}
+                    key={field.fieldId}
+                    label={field.label}
+                    searchable
+                    value={optionalValues[field.fieldId] ?? null}
+                    onChange={(value) => {
+                      setOptionalValues((current) =>
+                        value === null
+                          ? Object.fromEntries(
+                              Object.entries(current).filter(
+                                ([fieldId]) => fieldId !== field.fieldId
+                              )
+                            )
+                          : { ...current, [field.fieldId]: value }
+                      )
+                    }}
+                  />
+                ))}
               <Group>
                 <Button
-                  disabled={controlsDisabled || !selectedAction || !targetActorId}
+                  disabled={
+                    dependentControlsDisabled ||
+                    !selectedAction ||
+                    !targetActorId ||
+                    incompleteOptionalChoices ||
+                    currentOptionalChoicesError !== null
+                  }
                   loading={submitting}
                   onClick={() => void resolveAction()}
                 >
@@ -192,9 +389,9 @@ export function CampaignTabletopActionDrawer({
                 </Button>
               </Group>
             </>
-          ) : (
+          ) : !actionsLoading && !actionChoicesError ? (
             <Text c='dimmed'>No structured actions are available for the active combatant.</Text>
-          )}
+          ) : null}
           {feedback ? (
             <Alert aria-live='polite' color='green'>
               {feedback}
@@ -203,6 +400,11 @@ export function CampaignTabletopActionDrawer({
           {error ? (
             <Alert aria-live='assertive' color='red'>
               {error}
+            </Alert>
+          ) : null}
+          {currentOptionalChoicesError ? (
+            <Alert aria-live='assertive' color='red'>
+              {currentOptionalChoicesError}
             </Alert>
           ) : null}
         </Stack>

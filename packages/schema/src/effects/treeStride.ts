@@ -1,10 +1,10 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { measurementUnitCodeSchema } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 const positiveMeasurementDtoSchema = z.object({
-  amount: z.number().positive(),
+  amount: z.number().check(z.positive()),
   unit: measurementUnitCodeSchema
 })
 
@@ -17,7 +17,7 @@ export const treeStrideDtoSchema = z.object({
   sameTreeKind: z.boolean(),
   livingTreesOnly: z.boolean(),
   minimumTreeSizeRelativeToTraveler: z.boolean(),
-  usesPerRound: z.number().int().positive(),
+  usesPerRound: z.number().check(z.int()).check(z.positive()),
   mustEndTurnOutside: z.boolean()
 })
 

@@ -1,10 +1,11 @@
 import { Select, Tabs } from '@mantine/core'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { getCampaignDetail, getCampaignSession } from '#app/data/campaigns/queries'
+import { useConvex } from 'convex/react'
+import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
 import { CampaignSessionCloseoutView } from './components/session-workspace/CampaignSessionCloseoutView'
 import { CampaignSessionHeader } from './components/session-workspace/CampaignSessionHeader'
@@ -30,9 +31,13 @@ export function CampaignSessionWorkspace({
   sessionNumber: number
 }) {
   const queryClient = useQueryClient()
-  const { data: campaign } = useSuspenseQuery(getCampaignDetail(campaignId))
+  const convex = useConvex()
+  const campaign = useCampaignDetail(campaignId)
   const { data: session } = useSuspenseQuery(getCampaignSession(campaign.id, sessionNumber))
-  const encounters = useQuery(getCampaignEncounters(campaign.id))
+  const encounters = useQuery({
+    ...getCampaignEncounters(campaign.id, convex),
+    enabled: campaign.role === 'OWNER'
+  })
   const views = useMemo<SessionWorkspaceView[]>(
     () => getSessionWorkspaceViews(campaign.role, session.status),
     [campaign.role, session.status]
@@ -51,7 +56,7 @@ export function CampaignSessionWorkspace({
   }, [campaign.role, encounters.data, session.id])
 
   function updateSession(updated: CampaignSessionDto) {
-    queryClient.setQueryData(queryKeys.campaigns.session(campaign.id, sessionNumber), updated)
+    queryClient.setQueryData(getCampaignSession(campaign.id, sessionNumber).queryKey, updated)
     if (updated.status === 'FINISHED') setActiveView('CLOSEOUT')
   }
 

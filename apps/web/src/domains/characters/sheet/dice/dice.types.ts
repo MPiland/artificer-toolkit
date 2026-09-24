@@ -15,8 +15,10 @@ export type CharacterSheetRollController = {
   hasManualRoll: boolean
   pending: boolean
   pendingRequest?: CharacterSheetRollRequest
+  presentationPending: boolean
   presentedRoll?: RollRecordDto
   presentedRollPrivate: boolean
+  revealRoll: (rollId: string) => void
   setDestination: (destination: 'PRIVATE' | 'TABLE') => void
 }
 

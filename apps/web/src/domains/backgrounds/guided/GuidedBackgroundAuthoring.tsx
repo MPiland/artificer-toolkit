@@ -6,9 +6,7 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
+import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
@@ -32,7 +30,7 @@ const STEPS = ['Basics', 'Benefits', 'Starting gear', 'Features', 'Review'] as c
 
 type Props = {
   session: AuthoredFormSession
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
 }
 
@@ -121,7 +119,13 @@ export const GuidedBackgroundAuthoring = withForm({
           </Stack>
         ) : null}
 
-        {screen === 2 ? <StartingGearEditor equipment={equipment} onChange={setEquipment} /> : null}
+        {screen === 2 ? (
+          <StartingGearEditor
+            equipment={equipment}
+            onChange={setEquipment}
+            systemId={session.systemId}
+          />
+        ) : null}
 
         {screen === 3 ? (
           <GuidedFeatureAccordion
@@ -195,21 +199,14 @@ function BenefitEditor({
 
 function StartingGearEditor({
   equipment,
-  onChange
+  onChange,
+  systemId
 }: {
   equipment: StartingEquipmentDto
   onChange: (next: StartingEquipmentDto) => void
+  systemId?: string
 }) {
-  const equipmentOptions = useQuery({
-    queryFn: () =>
-      loadPagedAuthoredCatalogItems(api.content.equipment.list, {
-        direction: 'FORWARD',
-        limit: 48,
-        sort: 'name'
-      }),
-    queryKey: queryKeys.content.equipment.list(),
-    select: (items) => items.map((entry) => ({ label: entry.label, value: entry.id }))
-  })
+  const equipmentOptions = useQuery(getEquipmentOptions(systemId))
   const items = getStartingEquipmentItems(equipment)
   const item = items.find(isGuidedStartingEquipmentItem) ?? createGuidedStartingEquipmentItem(1)
   const setItem = (patch: Partial<GuidedStartingEquipmentItem>) => {
@@ -224,9 +221,18 @@ function StartingGearEditor({
       </Text>
       <Select
         data={equipmentOptions.data ?? []}
+        disabled={!systemId || equipmentOptions.isPending || equipmentOptions.isError}
         label='Starting item'
         searchable
-        placeholder={equipmentOptions.isLoading ? 'Loading equipment…' : 'Search equipment'}
+        placeholder={
+          !systemId
+            ? 'Select a System first'
+            : equipmentOptions.isPending
+              ? 'Loading equipment…'
+              : equipmentOptions.isError
+                ? 'Equipment unavailable'
+                : 'Search equipment'
+        }
         value={item.equipmentIds?.[0] ?? ''}
         onChange={(value) =>
           setItem({
@@ -235,6 +241,11 @@ function StartingGearEditor({
           })
         }
       />
+      {equipmentOptions.isError ? (
+        <Alert color='red' title='Equipment unavailable'>
+          Starting equipment could not be loaded. Please try again later.
+        </Alert>
+      ) : null}
       <NumberInput
         label='Quantity'
         min={1}

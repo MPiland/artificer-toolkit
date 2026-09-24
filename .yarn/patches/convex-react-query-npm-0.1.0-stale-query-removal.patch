@@ -1,0 +1,39 @@
+diff --git a/src/index.ts b/src/index.ts
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -261,6 +261,9 @@
+         // A query has been GC'd so no stale value will be available.
+         // In Convex this means we should unsubscribe.
+         case "removed": {
++          // A delayed observer may remove an evicted instance, not its live replacement.
++          // Keep the replacement's subscription while its query remains in the cache.
++          if (queryCache.get(event.query.queryHash)) break;
+           this.subscriptions[event.query.queryHash].unsubscribe();
+           delete this.subscriptions[event.query.queryHash];
+           break;
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -143,6 +143,9 @@
+                 // A query has been GC'd so no stale value will be available.
+                 // In Convex this means we should unsubscribe.
+                 case "removed": {
++                    // A delayed observer may remove an evicted instance, not its live replacement.
++                    // Keep the replacement's subscription while its query remains in the cache.
++                    if (queryCache.get(event.query.queryHash)) break;
+                     this.subscriptions[event.query.queryHash].unsubscribe();
+                     delete this.subscriptions[event.query.queryHash];
+                     break;
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -156,6 +156,9 @@
+                 // A query has been GC'd so no stale value will be available.
+                 // In Convex this means we should unsubscribe.
+                 case "removed": {
++                    // A delayed observer may remove an evicted instance, not its live replacement.
++                    // Keep the replacement's subscription while its query remains in the cache.
++                    if (queryCache.get(event.query.queryHash)) break;
+                     this.subscriptions[event.query.queryHash].unsubscribe();
+                     delete this.subscriptions[event.query.queryHash];
+                     break;

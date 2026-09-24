@@ -1,6 +1,7 @@
 import { MantineProvider } from '@mantine/core'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactElement } from 'react'
+import { renderToString } from 'react-dom/server'
 import { resolver, theme } from '#css/theme'
 import {
   ResetPasswordForm,
@@ -26,13 +27,75 @@ function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
     signUp: async () => ({ ok: true }),
     requestPasswordReset: async () => ({ ok: true }),
     verifyPasswordRecovery: async () => ({ ok: true }),
-    updatePassword: async () => ({ ok: true }),
+    resetPassword: async () => ({ ok: true }),
     signOut: async () => ({ ok: true }),
     ...overrides
   }
 }
 
 describe('AuthForms', () => {
+  it('blocks recovery controls before hydration can attach their API handlers', () => {
+    for (const form of [
+      <ResetPasswordForm />,
+      <VerifyPasswordResetForm />,
+      <UpdatePasswordForm />
+    ]) {
+      const container = document.createElement('div')
+      container.innerHTML = renderToString(
+        <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+          {form}
+        </MantineProvider>
+      )
+      expect(container.querySelector('button[type="submit"]')).toBeDisabled()
+      for (const input of container.querySelectorAll(
+        'input[name="email"], input[name="token"]:not([type="hidden"])'
+      )) {
+        expect(input).toBeDisabled()
+      }
+    }
+  })
+
+  it('preserves fields typed before hydration and blocks registration until credentials are read', async () => {
+    const completeInvitation = vi.fn(async () => ({ ok: true }))
+    const authClient = createAuthClient({ completeInvitation })
+    const credentials = { email: 'player@example.com', token: 'a'.repeat(64) }
+    const form = (ready = false) => (
+      <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+        <UpdatePasswordForm
+          authClient={authClient}
+          invitation
+          invitationCredentials={ready ? credentials : undefined}
+        />
+      </MantineProvider>
+    )
+    const container = document.createElement('div')
+    container.innerHTML = renderToString(form())
+    document.body.append(container)
+    const username = container.querySelector<HTMLInputElement>('input[name="username"]')!
+    const password = container.querySelector<HTMLInputElement>('input[name="password"]')!
+    const confirmation = container.querySelector<HTMLInputElement>('input[name="confirmPassword"]')!
+    expect(username).toBeEnabled()
+    expect(container.querySelector('button[type="submit"]')).toBeDisabled()
+    // Native DOM edits before React has attached any event handlers.
+    username.value = 'early_player'
+    password.value = 'early-password-123'
+    confirmation.value = 'early-password-123'
+    const { rerender } = render(form(), { container, hydrate: true })
+    expect(completeInvitation).not.toHaveBeenCalled()
+    rerender(form(true))
+    expect(username).toHaveValue('early_player')
+    expect(password).toHaveValue('early-password-123')
+    expect(confirmation).toHaveValue('early-password-123')
+    fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
+    await waitFor(() =>
+      expect(completeInvitation).toHaveBeenCalledWith({
+        ...credentials,
+        username: 'early_player',
+        password: 'early-password-123'
+      })
+    )
+  })
+
   it('marks sign-in credentials for safe browser autofill without GET fallback', () => {
     renderAuthForm(<SignInForm authClient={createAuthClient()} />)
 
@@ -168,21 +231,8 @@ describe('AuthForms', () => {
     ).toBeInTheDocument()
   })
 
-  it('passes auto-confirm signup sessions to the success handler', async () => {
-    const session = {
-      access_token: 'token',
-      refresh_token: 'refresh-token',
-      expires_in: 3600,
-      token_type: 'bearer',
-      user: {
-        id: 'user-1',
-        app_metadata: {},
-        user_metadata: {},
-        aud: 'authenticated',
-        created_at: '2026-01-01T00:00:00.000Z'
-      }
-    } satisfies NonNullable<AuthResult['session']>
-    const signUp = vi.fn(async () => ({ ok: true, session }))
+  it('requires email verification after successful signup', async () => {
+    const signUp = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
     renderAuthForm(
@@ -207,12 +257,8 @@ describe('AuthForms', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
-    await waitFor(() =>
-      expect(onSuccess).toHaveBeenCalledWith({
-        ok: true,
-        session
-      })
-    )
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith({ ok: true }))
+    expect(await screen.findByText(/send a confirmation link/i)).toBeInTheDocument()
   })
 
   it('marks reset-password email for browser autofill without GET fallback', () => {
@@ -269,11 +315,13 @@ describe('AuthForms', () => {
   it('prefills the email and automatically verifies a complete recovery code', async () => {
     const verifyPasswordRecovery = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
+    const onVerified = vi.fn()
 
     renderAuthForm(
       <VerifyPasswordResetForm
         authClient={createAuthClient({ verifyPasswordRecovery })}
         initialEmail='reset@example.com'
+        onVerified={onVerified}
         onSuccess={onSuccess}
       />
     )
@@ -289,6 +337,7 @@ describe('AuthForms', () => {
         token: '123456'
       })
     )
+    expect(onVerified).toHaveBeenCalledWith({ email: 'reset@example.com', token: '123456' })
     expect(onSuccess).toHaveBeenCalled()
   })
 
@@ -351,12 +400,16 @@ describe('AuthForms', () => {
     expect(calls).toEqual(['sign-out', 'navigate'])
   })
 
-  it('updates the password after a recovery code is accepted', async () => {
-    const updatePassword = vi.fn(async () => ({ ok: true }))
+  it('resets the password only with a verified recovery code', async () => {
+    const resetPassword = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
     renderAuthForm(
-      <UpdatePasswordForm authClient={createAuthClient({ updatePassword })} onSuccess={onSuccess} />
+      <UpdatePasswordForm
+        authClient={createAuthClient({ resetPassword })}
+        recovery={{ email: 'reset@example.com', token: '123456' }}
+        onSuccess={onSuccess}
+      />
     )
 
     fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
@@ -368,11 +421,29 @@ describe('AuthForms', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
     await waitFor(() =>
-      expect(updatePassword).toHaveBeenCalledWith({
-        password: 'new-password-123'
+      expect(resetPassword).toHaveBeenCalledWith({
+        email: 'reset@example.com',
+        password: 'new-password-123',
+        token: '123456'
       })
     )
     expect(onSuccess).toHaveBeenCalled()
+  })
+
+  it('does not reset a password without a verified recovery code', async () => {
+    const resetPassword = vi.fn(async () => ({ ok: true }))
+    renderAuthForm(<UpdatePasswordForm authClient={createAuthClient({ resetPassword })} />)
+
+    fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Request a new verification code')
+    expect(resetPassword).not.toHaveBeenCalled()
   })
 
   it('shows live password confirmation feedback during password updates', () => {
@@ -400,6 +471,10 @@ describe('AuthForms', () => {
       <UpdatePasswordForm
         authClient={createAuthClient({ completeInvitation })}
         invitation
+        invitationCredentials={{
+          email: 'player@example.com',
+          token: 'a'.repeat(64)
+        }}
         onSuccess={onSuccess}
       />
     )
@@ -417,7 +492,9 @@ describe('AuthForms', () => {
 
     await waitFor(() =>
       expect(completeInvitation).toHaveBeenCalledWith({
+        email: 'player@example.com',
         password: 'new-password-123',
+        token: 'a'.repeat(64),
         username: 'player_one'
       })
     )

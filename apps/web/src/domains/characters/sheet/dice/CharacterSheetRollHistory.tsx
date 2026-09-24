@@ -16,7 +16,7 @@ export function CharacterSheetRollHistory({
   rollerName: string
   onClose: () => void
 }) {
-  const history = useQuery({ ...getRollHistory(), enabled: opened })
+  const history = useQuery(getRollHistory(opened))
   const clearHistory = useClearRollHistoryMutation()
   const [confirmingClear, setConfirmingClear] = useState(false)
   const messagesRef = useRef<HTMLDivElement>(null)

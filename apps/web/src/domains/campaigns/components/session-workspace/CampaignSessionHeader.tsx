@@ -1,11 +1,12 @@
 import { Alert, Badge, Button, Group, Text, TextInput } from '@mantine/core'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useNavigate } from '@tanstack/react-router'
 import { IconChevronLeft } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { useConvex } from 'convex/react'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignChatDrawer } from '../CampaignChatDrawer'
 import { CampaignLiveControls } from '../CampaignLiveControls'
@@ -23,24 +24,21 @@ export function CampaignSessionHeader({
   onUpdated: (session: CampaignSessionDto) => void
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const convex = useConvex()
   const [title, setTitle] = useState(session.title ?? '')
   const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   useEffect(() => setTitle(session.title ?? ''), [session.title])
 
   const update = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.update({
+      convex.mutation(convexApi.campaigns.sessions.update, {
         campaignId: campaign.id,
         sessionId: session.id,
         expectedVersion: session.version,
         title: title.trim() || null
       }),
-    onSuccess: async (updated) => {
+    onSuccess: (updated) => {
       onUpdated(updated)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessions(campaign.id)
-      })
     }
   })
 

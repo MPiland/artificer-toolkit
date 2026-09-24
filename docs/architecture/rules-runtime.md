@@ -1,5 +1,154 @@
 # Shared rules runtime
 
+> **Status:** canonical current Convex implementation; managed promotion remains in Phase 8.2
+>
+> **Scope:** pure Rules Kernel, System capability contracts, published definitions, execution, frozen occurrences, decisions, receipts, and aggregate commit
+>
+> **Update when:** graph contracts, primitive ownership, System capabilities, publication, occurrence, replay, or receipt behavior changes
+>
+> **Verification:** `packages/rules-runtime`, authored publishers and readers under `apps/apis/convex/content`, Encounter and Character commands under `apps/apis/convex`, `apps/apis/convex/liveSessions/state.ts`, `apps/session-worker/src/nativeLiveSessionRoom.ts`, shared contracts under `packages/schema`, ADRs 0023-0025, and the Phase 8.2 acceptance ledger
+
+The Rules Kernel is a pure execution library. It walks a validated bounded graph, accepts explicit facts,
+random evidence, and decisions, and returns typed proposals and a trace. It does not authenticate users,
+read persistence, generate randomness, mutate aggregates, or encode D&D-specific policy.
+
+```mermaid
+flowchart TD
+  Draft["Typed authored draft"] --> Publish["Validated Convex publication"]
+  Publish --> Current["Current immutable definition"]
+  Current --> Discover["System capability discovery"]
+  Facts["Authorized aggregate snapshot + explicit evidence"] --> Execute["Pure Rules Kernel execution"]
+  Discover --> Execute
+  Execute --> Decision{"More input required?"}
+  Decision -->|yes| Freeze["Frozen occurrence + bounded decision contract"]
+  Freeze --> Resume["Authorized resume with exact version"]
+  Resume --> Execute
+  Decision -->|no| Proposal["Validated typed proposals"]
+  Proposal --> Commit["Owning authority transaction"]
+  Commit --> Receipt["Exact idempotent receipt"]
+```
+
+## Ownership and publication
+
+Game System adapters own rules vocabulary and policy, including D&D 2014 behavior. Reusable mechanics
+remain portable typed operations. Code-owned operation keys, versions, validators, and bounded graphs
+prevent authored data from introducing executable code or unbounded work.
+
+Published authored roots and reusable definitions keep stable UUID identity and immutable versions.
+Current publication is the source for new invocations; issued occurrences retain their frozen
+execution evidence, and acquired Equipment retains rules where its ownership lifecycle requires it.
+The retired legacy authoring model is historical and
+has no current product authority.
+
+## Execution, decisions, and receipts
+
+An authorized application command creates or resumes an aggregate-owned occurrence. A paused
+occurrence stores its exact graph, evidence, decision contract, authority context, and aggregate
+version. Resume rejects stale authority, an unexpected aggregate version, or a decision outside the
+stored contract. Only one pending occurrence may own an Encounter command decision at a time.
+
+A complete execution returns proposals. Character Sheet and Encounter writes use an owning Convex
+mutation that validates and applies them with the aggregate's expected version, advances the
+occurrence, and writes the receipt in one transaction, including during live Sessions. The approved
+[live execution boundary](../adr/0029-convex-backend-cutover.md#live-rules-execution-clarification--2026-09-24)
+places heavy live rule evaluation and fact preparation in the Session DO. Sheet write ownership does
+not require that computation to run in Convex. This DO integration remains incomplete; current
+Encounter coordinators still evaluate inside Convex. Any authority-transaction failure leaves the prior state visible. An
+exact retry returns the stored receipt without rerunning randomness, rereading current authored
+definitions, or applying state twice.
+
+## Initiative and live delivery
+
+Encounter initiative, active reordering, actor removal, and reinforcement timing are application
+policy built on typed rules evidence. Reordering applies immediately after any pending decision is
+resolved. A newly improvised actor may act in the current round only when its rolled position is after
+the current actor; otherwise it becomes eligible next round. Preplanned hidden actors already occupy
+the order and reveal without being re-added.
+
+The Session Durable Object owns live ordering, replay, and the minimum projection for its supported
+Door and standalone token move/undo paths while its authority epoch is active.
+It commits before broadcasting and publishes through an ordered outbox. Convex remains the current
+membership authority, independently revalidates publications, drives subscriptions, and supplies
+recovery state after release or eviction. Direct overlapping Scene writes in Convex are fenced during
+active room authority. The remaining R06 integration must order heavy live commands through the room
+and acknowledge them only after their required Convex transaction commits. Browser-visible receipts
+and subscription payloads remain recipient-safe.
+
+## Portable live preparation
+
+`rules-runtime/character/builderPreparation` and `character/sheetPreparation` own the existing
+reconciliation, readiness and Character evaluation over authorized inputs. The Convex
+`characters/sheetInputs` loader owns record access, assignment checks and current-source loading;
+it does not invoke Builder readiness or Character rule evaluation. `character/contextPreparation`
+owns source selection, retained Equipment handling, inheritance resolution, feature collection and
+the Spell catalogue decision. Its typed readers supply authorized current publications and parents;
+the Convex adapter retains access checks, bounded catalogue reads and publication identities.
+The current loader still returns an assembled context, so it is not a raw-document transport contract.
+
+The private `liveSessionCharacterRules` contract now supplies stored Character/Sheet/System/Campaign
+inputs, authorized source indexes and paged publication DTOs to Worker `nativeCharacterRules`.
+Convex `liveSessions/characterRulesCapture` requires the authenticated GM, current DO epoch, open
+Session, exact assignment and Character stream version; source access remains the Character owner's.
+It imports neither context preparation nor rules evaluation. The Worker reuses the same context,
+active Builder catalogue and Sheet preparation functions, without serializing database contexts or Maps.
+This preparation function is implemented separately from the still-incomplete live command/commit route.
+
+Every capture returns a read checksum. The eventual commit must validate the corresponding authorized
+current identities and complete read ranges in its transaction, together with the command's other
+aggregate fences. Rehydrating every captured payload in that transaction would defeat paging and can
+exceed Convex's aggregate read limit; a bounded currentness validator is still required. This includes
+absent requested publications and complete relevant catalogue/feature membership, so an added source
+cannot escape validation merely because no previously loaded root changed. Source identities refer to
+stored publication checksums; publication DTO parsing can normalize JSON. Publication pages target
+4 MiB, with one existing <=10 MiB publication allowed per page. Shared-publication authorization can
+also read parent documents; the page target alone does not establish the aggregate Convex read limit.
+Maximum-size shared inheritance still needs a real local backend proof before promotion.
+
+The private `liveSessionEncounterRules` contract supplies stored Run/System inputs, individual actors
+with their first four active effects, subsequent four-effect pages, and current reusable definitions.
+It requires the authenticated GM, active DO epoch, open Session, exact Run version and current
+Character assignment. Worker `nativeEncounterRules` captures actors in parallel, preserves the existing
+effect order after paging, prepares only the selected source/target Character facts, and reuses the
+existing action mechanics and relationship algorithms. Its read dependencies include empty effect
+ranges, so effect additions and removals must participate in commit validation. Both preparation
+paths have authenticated HTTP parity coverage; action dispatch, execution, and atomic commit remain
+separate unfinished integration work.
+
+Character source reads retain exact current publication identities, including selected inheritance
+parents and catalogues reused during Builder materialization. Race and Equipment reads resolve their
+authored relationships without compiling unused publication graphs. These identities describe the
+current read; they do not pin future invocations or replace current assignment, membership, share and
+catalogue authorization checks. They are not yet a complete cross-transaction capture contract.
+
+`rules-runtime/encounterMovementTargets` owns existing target facts, effect reductions and reaction
+source compilation. `encounterMechanicsBatchPlan` owns the existing Character/actor transition plan;
+`encounterActionSources` and `encounterActionMechanicsPreparation` own action source resolution and
+the existing target, resource, relationship and execution-plan preparation. Their Convex adapters
+provide authorized source/effect reads and still own transactional validation and writes. These modules depend on
+domain types rather than Convex contexts or database rows. Their current Convex callers remain in
+place until authorized capture, DO evaluation and validated commit are connected. Extraction alone
+does not prove the completed DO boundary or the V15 workload.
+
+Convex `encounters/mechanicsBatchPersistence` owns authorized target reads and persistence of a trusted
+mechanics plan, checking the current Run, actor and Character before writes. Its caller still owns
+source/effect freshness and root-command replay; the helper is not an external plan authorization
+boundary. The existing `mechanicsBatch` adapter continues to load fresh Sheet facts, plan and persist
+within the same mutation, preserving the order of sequential movement settlements.
+
+`encounterActionEffects` owns effect planning and receipt-transition projection;
+`encounterActionEconomy` owns allowance preparation, refresh and consumption calculation. The latter
+accepts current-definition and target readers, preserving the early return without reads for Manual
+mode and actions without an allowance. Convex still owns effect storage and the actor checksum check
+and write; these calculations perform no database writes.
+
+## Historical implementation record
+
+The material below records the earlier target design and implementation progress. References to SQL,
+Supabase, GoRules packs, transitional repositories, or incomplete Phase 8 work are historical and do
+not override the current contract above.
+
+### Original rules runtime guide
+
 > **Status:** canonical target; implementation rebaseline in progress
 >
 > **Scope:** Rules Kernel, Game System capability contracts, authored rule definitions, capability discovery, execution, and occurrence lifecycle
@@ -8,7 +157,7 @@
 >
 > **Verification:** ADRs 0023-0025 and the Phase 08 fixed acceptance ledger
 
-## Ownership
+### Ownership
 
 ```mermaid
 flowchart TD
@@ -31,7 +180,39 @@ The Rules Kernel owns execution protocol only. It walks a validated bounded grap
 between ports, requests bounded evidence or decisions, and returns proposed results. It does not read
 repositories, authorize users, generate random values, mutate aggregates, or know D&D vocabulary.
 
-### Creature authored equipment identity
+#### Execution contract modules
+
+```mermaid
+flowchart TD
+  Public["shared/rulesExecution compatibility facade"] --> Core["ruleExecutionCore + Protocol + Evidence"]
+  Public --> Effects["Active effects + effect evidence"]
+  Public --> Applications["Mechanics + application outputs"]
+  Public --> Encounter["Initiative + turn + spatial contracts"]
+  Public --> Results["Stored result branches and receipts"]
+  Public --> Pending["ruleExecutionPendingApplication: ordered context union"]
+  Public --> Snapshots["ruleExecutionPendingSnapshots: kernel evidence + aggregate choices"]
+  Public --> Metadata["ruleExecutionReceiptCommandMetadata"]
+  Core --> Applications
+  Core --> Encounter
+  Applications --> Results
+  Encounter --> Results
+  Pending --> Contexts["Direct-action, turn, spatial, initiative + optional-combat pending leaves"]
+  Snapshots --> Pending
+  Metadata --> Encounter
+```
+
+**CURRENT:** the Phase 8.2 split keeps the established `shared/rulesExecution` public
+surface through explicit re-exports. Focused leaves import their concrete dependencies
+directly and never import the facade. Backend modules that need one schema import its owning leaf so
+Convex does not initialize every Rules execution contract for a narrow endpoint. Stored DTO shapes,
+union order, refinements, defaults, continuation seals, and public facade names remain unchanged.
+`ruleExecutionPendingApplication` composes the ordered pending-context union;
+`ruleExecutionPendingSnapshots` owns kernel evidence snapshots and aggregate choices;
+`ruleExecutionReceiptCommandMetadata` owns receipt command metadata. The facade has no local schema
+construction. API correlation IDs use `ruleExecutionProtocol`; graph and UUID consumers use
+`ruleExecutionCore` and `serverUuidIdentity` directly.
+
+#### Creature authored equipment identity
 
 Creature equipment is authored source data, not an Encounter inventory or a Scene object. An optional
 Creature-owned `equipmentLoadout` document records one UUID-backed occurrence, its Equipment UUID,
@@ -41,7 +222,15 @@ duplicate Equipment mechanics, derive availability from labels, or create automa
 Natural weapons remain Creature Features. Runtime loadout replacement, Equipment resolution, and
 Encounter actor snapshots are separate application responsibilities.
 
-### Target-owned actor relationships
+`rules-runtime/encounterFeatureActionCapabilityDiscovery` owns the shared pure compatibility and
+capability checks for those frozen sources. Native Convex `REPLACE_CREATURE_EQUIPMENT` authorizes
+the selected current Equipment through the same source reader as Blueprint admission, replaces one
+Encounter-owned loadout/source overlay, and stores the pinned revision provenance with its command
+receipt. The original Creature payload remains immutable. Replacement, final actor-policy projection
+and receipt commit in one mutation; retry returns the historical result without rereading current
+Equipment. This native command is under V09 validation; full actor and browser acceptance is pending.
+
+#### Target-owned actor relationships
 
 An `ACTOR_RELATIONSHIP` outcome compiles to one target-owned active effect. Its origin retains the
 exact source actor, occurrence, action, and authored relationship UUID; its owner is the target actor.
@@ -83,7 +272,7 @@ and reconciliation; VTT owns its semantic capabilities. Those later contracts co
 they are not fields in the Rules Kernel contract. Unsupported subcontracts and capabilities are absent,
 and services and UI fail closed rather than assume D&D equivalents.
 
-## Publish versus runtime
+### Publish versus runtime
 
 Publish validates graph bounds, cycles, ports, primitive contract versions, UUID references,
 same-System compatibility, and transitive dependencies. It proves only that an invocation is
@@ -100,6 +289,304 @@ is the bounded neutral `rules-runtime-graph` family; it compiles against the exa
 capability contract at draft save and publish. Other families require their own typed publisher.
 The ordinary service accepts only USER source-owner mutation; PLATFORM publication remains a future
 internal/bootstrap composition, never a caller-provided authority flag.
+
+**CURRENT / Phase 8.2 extraction:** `@artificer-toolkit/authoring/reusableDefinitions` owns the
+single persistence-independent publisher for graph, sense, rule-capability, condition-rule-state, rule-maintenance,
+initiative-policy, D&D encounter-lifecycle, and D&D optional-combat documents.
+
+```mermaid
+flowchart LR
+  Convex["Convex content/definitions mutations"] --> Publisher["authoring/reusableDefinitions"]
+  SQL["Temporary SQL definition store"] --> Publisher["authoring/reusableDefinitions"]
+  Publisher --> Contracts["schema/shared/reusableDefinitions"]
+  Publisher --> Compiler["shared/rules graph compiler"]
+```
+
+The publisher receives installed System capabilities, operation contracts, current vocabulary,
+and a store implementing atomic draft/publication callbacks. Ownership checks, exact dependency
+revalidation, checksums, and seven-family validation are shared rather than reimplemented by a
+transport. The root-record contract lives in `schema`, not `db`. The temporary functions exports
+forward to this same implementation. Native Convex `content/definitions` now composes this publisher
+for create/save/publish; authenticated get/list queries serve the same UUID-backed workspace DTOs.
+The System definition workspace uses these native queries and mutations. Managed lifecycle proof
+and the complete same-source acceptance gates remain pending.
+
+The native `reusableDefinitions` root has version zero before first publication, an optional
+current document/checksum/contract/publication-metadata tuple, and an optional draft-version marker.
+`reusableDefinitionDrafts` holds at most one draft per definition UUID. The first draft is version
+zero. Every save checks both expected versions; publication rechecks source ownership, draft integrity,
+the current base version and exact live dependency pins in one Convex transaction before replacing
+the current tuple and deleting the draft. No historical revision table is introduced.
+
+Indexed PLATFORM and caller-owned ranges provide bounded ten-row definition pages. Actual source
+ownership is still checked on each admitted root; a denormalized owner is not authority. Published
+source options use a source/version index so unpublished roots do not consume their existing
+500-publication budget. Options and detail/dependency reads share one stored-root decoder, including
+source ownership and publication integrity; normalization cannot admit a reference that this current
+reader rejects. Untouched canonical PLATFORM version-one rows retain their original stored
+shape for exact seed replay: absent publication metadata is decoded as contract one, creation time,
+and the validated System document's metadata author. This fallback grants no mutation authority.
+Installed compiler-generated Effect-action families remain executable but are not standalone
+authoring choices; the seven publisher-family keys have one shared schema home.
+
+The existing persistence checksum codec now lives at `@artificer-toolkit/shared/canonicalJson`;
+the temporary DB export forwards to it. D&D flanking, facing, diagonal-movement, optional-action,
+and optional-movement policies use that focused import to verify their persisted combat snapshots
+without loading DB code. Canonical normalization and UTF-8 SHA-256 bytes are unchanged. In particular,
+undefined object entries are omitted and undefined array entries become null; the separate strict
+rules-document codec must not replace this protocol. No persisted checksum backfill is required.
+
+**Phase 8.2 execution extraction:** the existing schema-aware execution wrapper lives in
+`@artificer-toolkit/rules-runtime`, separate from form authoring, with schema and the shared
+Kernel as its workspace dependencies. Its temporary functions facade preserves existing callers. Authentication,
+authorized source reads, transaction boundaries, state application, and integrity-key provisioning
+remain with the calling backend; the wrapper does not introduce a store or another engine.
+`rules-runtime/systems/dnd5e/optionalCombatActionSelection` owns the existing pure selection contract
+for optional actions. `rules-runtime/encounterActorOptionalContestContext` owns normalized Creature
+contest facts and the exact selected HELD-to-CARRIED transition. Functions keeps the existing locked
+target-map adapters; native Disarm uses these same pure helpers. Native preparation, participant
+authority, item/ACTION persistence and command replay remain in the Convex Encounter adapter.
+
+`rules-runtime/encounterCreatureEquipmentSources` owns the unchanged Equipment snapshot pinning,
+checksum validation and loadout binding checks. It accepts structural source/actor inputs without
+database record types. The transitional functions facade reexports it; native Blueprint and Encounter
+callers must authorize their sources before pinning them.
+Continuation signing/verification uses the standard Web Crypto API, preserving canonical UTF-8
+HMAC-SHA256, lowercase hexadecimal seals, and the defensively copied minimum-32-byte key contract.
+The installed D&D compiler, operation implementations and policies now live in the same neutral
+package. Its `platformRulesRuntime` subpath supplies the installed capabilities and operations to
+both execution and publication composition; generated Effect actions are not duplicated into a
+second compiler. UUID v5 identities still use the existing library and unchanged inputs. Action
+entry points, initiative source facts and optional-combat policy facts are schema-owned server
+contracts, not DB row dependencies. The aggregate reader still owns authoritative provenance and
+transactional reads. Family-key constants have one home in `schema/shared/reusableDefinitionIdentity`.
+
+Character source compilation exposes prepareCharacterRuleSources for repeated evaluation inside
+one backend transaction. assembleCharacterRuleSnapshot and evaluateCharacterRules accept that
+server-owned preparation only with the same immutable source-context object; a mismatched context
+is refused. Current Character state, reconciliation, eligibility, Spell hydration and policy
+fact/output validation still run on every pass. Standalone callers compile and validate their own
+sources as before. Backend retries and later requests start with fresh authorized sources.
+
+```mermaid
+flowchart LR
+  Sources["Optional-combat source validation"] --> Lookup["platformPolicyModules"]
+  Lookup --> Descriptors["D&D policyModuleRegistration"]
+  Runtime["D&D executable runtime registration"] --> Descriptors
+  Policy["D&D policy implementations"] --> Descriptors
+```
+
+Policy registration checks read the same ordered descriptor array used by execution, without
+initializing executable operations or Character preparation. `platformRulesRuntime` preserves
+the lookup export. System identity, allowed policy keys, contract versions and rejection behavior
+are unchanged; each installed System must supply both its descriptors and executable bindings.
+
+Encounter actor policy uses the focused `platformEncounterPolicy` binding to the same D&D actor
+policy and immutable System UUID as the full runtime registration. The existing
+`platformRulesRuntime.evaluateInstalledEncounterActors` export remains available. Input/output
+validation and unknown-System dispatch errors are unchanged; reading actor policy does not initialize
+executable runtime operations.
+
+The same package owns native D&D Character grant-fold, action-preparation and whole-Character
+policies. `platformCharacterPolicy` binds these through the same D&D policy functions used by
+the full registration, so Character preparation does not initialize executable operations and
+Encounter policies. `platformRulesRuntime` preserves its existing exports. Both views use the
+immutable System UUID; installing a System must supply its applicable policy and execution bindings.
+`evaluateInstalledCharacterGrantFold`, `evaluateInstalledCharacterActions` and
+`evaluateInstalledCharacterPolicy` select the installed System by immutable UUID, validate
+existing schema facts/results, and reject unknown Systems. Grant-fold and whole-policy facts
+must carry the selected System identity. Whole-policy composition resolves spell access before
+the grant fold, then modifiers and derived stats, defenses/movement/senses/vitals, spell mechanics,
+slots/resources, actions, eligibility and rest. These typed System functions neither widen the
+generic scalar Kernel nor execute source strings. Existing Character tests compare complete
+legacy/native output while retaining their behavior assertions, including provenance and overrides.
+
+The installed System module also exposes `evaluateInstalledEncounterActors` for native Encounter
+actor policy. It validates the existing actor facts/results and preserves initiative modifiers,
+UUID-backed saving throws, target protection and supported feature-resource maximum calculations.
+Usage reconciliation remains with the Encounter application; this policy retains raw usage and does
+not clamp it early. The native D&D evaluator has complete-output GoRules parity checks for the retained
+fixture and bounded-charge/protection cases. Native Run creation now uses the installed evaluator;
+the browser still uses the transitional Run service until the complete native flow is integrated.
+
+`rules-runtime/encounterActorState` and `rules-runtime/encounterActorRuleFacts` now own pure actor
+snapshot/feature/usage reads, deterministic ordering and normalized non-Character facts. Their
+structural inputs do not require database records, and legacy callers forward to these implementations.
+The Node-based enemy dice executor and state writers remain outside the neutral package; extracting
+the readers does not move random evidence generation or persistence into System policy.
+
+`rules-runtime/encounterActorRuleOutput` owns the existing pure output identity checks, bounded
+feature-usage reconciliation, rebinding to reconciled facts and actor/resource lookup. Both backends
+can reuse these checks without a SQL record or GoRules revision. The transitional error export
+forwards the same neutral `EncounterValidationError` class, preserving caller error identity.
+Applying the reconciled usage and publishing its rebound output remain one backend transaction;
+extracting the calculation does not establish native Run persistence or acceptance.
+
+`rules-runtime/encounterLegendaryActionDiscovery` and `legendaryActionEligibilityRegistry` own
+the shared current-definition eligibility and incoming Feature-pool refresh calculations. Native
+Convex and transitional Functions callers use the same implementations. Owner choices, retained
+dice, authority checks and atomic turn publication remain backend-owned.
+
+`rules-runtime/encounterCharacterMechanicsBatch` owns the pure Character/actor outcome fold,
+canonical condition-state reader and deterministic child-command identity derivation. Its inputs
+and receipt applications retain the existing shared contracts, validation and error identity. SQL
+batch writers import this implementation through their transitional facade; authority, current-state
+fences, Character/Encounter publication and occurrence receipts remain in the owning transaction.
+Native mechanics-bearing movement integration is still pending.
+
+`rules-runtime/encounterScalarReductions` owns ordered active scalar reduction, scalar-map comparison
+and reduction detection. Native movement target loading and transitional SQL callers reuse the same
+algorithms and error identity; current effect reads and effective policy evaluation remain backend-owned.
+Its Character fact composer maps policy ability codes through authoritative UUID definitions and
+applies the already-reduced effective score as a temporary policy override. This includes existing
+bonuses and manual overrides exactly once and leaves persisted/base facts unchanged.
+
+Frozen target-bound effect execution and the Character action adapter registry also live in
+`rules-runtime/targetBoundActiveRuleEffectExecutor` and `rules-runtime/characterRuleActionSystemAdapterRegistry`.
+The unchanged executor validates frozen source/target/evidence bindings, seals pauses, and resumes
+through the supplied Rules runtime. It performs no database reads or aggregate writes; transitional
+Functions exports preserve existing callers and error identity.
+
+Pure GM/player Encounter projection now lives in `rules-runtime/encounterProjection`, accepting
+schema-owned structural inputs. SQL callers and native Run creation use the same health bands,
+initiative cursor and snapshot presentation. Settled actor lists use normalized participant ordinals rather than setup initiative/manual order; the pure projector rejects an incomplete or duplicate normalized order. Native gameplay rebuilds compose the current validated initiative cursor before publishing their projection, so an action or turn cannot restore setup order. The legacy checksum envelope still belongs to the
+SQL adapter. Native Run creation composes actor facts, installed policy, zero-usage reconciliation
+and projection in its owning mutation; its persisted GM projection retains a null legacy revision.
+Native owner `get`, active, Campaign-list, pending-occurrence and timeline queries validate the
+persisted projection after current Campaign membership is authorized. Timeline reads derive entries
+from the same immutable command receipts used for replay, so they do not introduce a second event
+store. Player reads remain disabled until Character condition visibility has an authoritative source.
+The [persistence guide](persistence.md#native-run-creation--partial-local-implementation) records the
+new document ownership and remaining lifecycle integration.
+
+Normalized initiative settlement and turn advancement now live in
+`rules-runtime/encounterInitiativeStateSettlement`. The implementation consumes schema-owned round,
+participant and side DTOs plus the three existing update operations. It preserves exact cohort/order
+validation, side contiguity, versioned participant transitions and checksum-bound advance plans.
+SQL and staged in-memory callers reuse it through the transitional functions facade; the backend
+retains transaction and persistence ownership. Native Manual, Automatic, and Assisted `START` now
+persist terminal normalized state and checksum-bound occurrence/command receipts atomically; an
+Assisted pause retains the unchanged Run until its one occurrence settles. Native `ADVANCE_TURN`
+updates the same normalized cursor and carries `ENCOUNTER_START` order into the next round. Native
+`EACH_ROUND` reevaluation, active turn effects, the remaining Run commands, and browser integration
+remain pending.
+
+Initiative graph execution, score batches, tie/order resolution, entity construction, lifecycle
+evaluation and occurrence snapshot serialization/restoration also live in `rules-runtime`.
+They consume the existing initiative DTOs and schema-owned fact sources; supplied update methods
+retain the backend transaction. Transitional functions facades preserve exported values, types and
+error identity. This move preserves the existing staged lifecycle, including pending choices and
+terminal settlement, but does not implement native authorized source loading, normalized storage,
+occurrence persistence or atomic turn effects.
+
+`rules-runtime/character/characterInitiativeFacts` also owns exact Character size, equipped-item
+properties and System check totals. The transitional mechanics compiler calls it with its existing
+snapshot, registry and output. Native consumers must supply those authoritative mechanical inputs;
+displayed Sheet totals do not replace them. Historical compact snapshots still yield unavailable
+declaration facts until freshly compiled.
+
+`rules-runtime/encounterInitiativeStaging` owns initial round assembly, timestamp-free occurrence
+serialization/hydration and the in-memory versioned update port. The transitional coordinator
+uses these same helpers to keep pending choices separate from committed initiative rows. Backend
+terminal settlement still validates the before-pin and applies the staged result atomically with
+turn effects, cursor and receipt; extraction does not establish native occurrence persistence.
+
+Pure Character snapshot assembly, selection traversal, normalized fact composition and canonical
+roll/saving-throw projection now live under `rules-runtime/character`. Their minimal authored
+context has no repository, source-data, Builder service or revision-evaluator dependency. Legacy
+consumers import the same implementations; native callers can supply current trusted records
+without importing the legacy backend. Saving throws still require exact System ability codes
+and project canonical UUIDs, never display labels or inferred aliases.
+
+The same subpath owns pure spell-context decisions shared by native and transitional loaders.
+Convex now has a server-only personal current-source context loader for selected roots, exact System
+vocabulary, authorized inheritance and conditional Spell catalogues; see [Character context](character.md#native-current-source-context--campaign-sources-implemented-lifecycle-integration-pending).
+Pure Builder catalogue/presentation, choice eligibility, structural reconciliation, readiness and view construction also live
+under `rules-runtime/character`. Native Convex read-only Builder queries use these same algorithms
+with current trusted records and the installed Character policy; see [native Builder resolution](character.md#native-builder-resolution--implemented-browser-integration-pending).
+The native [structural preview](character.md#native-structural-preview--local-implementation-acceptance-pending)
+uses authoritative Sheet state and current sources without persisting repairs or exposing legacy pins.
+Native Campaign-aware Sheet preparation now supplies merged Campaign/player adjustments and the
+Campaign attunement setting to the same policy. Secret-source and private-note projection remains
+outside raw mechanical evaluation; shared custom names are GM-visible/editable. Supplemental-state
+writers and complete source-loss/dependency reconciliation (ADR 0024) await their native owning-case
+integration. Native Builder commit has local implementation evidence but awaits complete
+acceptance; API proofs are not lifecycle acceptance.
+
+The pure [Sheet command reducer and classifier](character.md#neutral-sheet-commands--extraction-native-persistence-pending)
+also live under `rules-runtime/character`. Existing Sheet and Encounter callers import them directly;
+SQL state-patch construction stays with the transitional adapter. This extraction neither changes
+command semantics nor supplies native authorization, receipts, or Sheet persistence.
+
+Adjustment slot identity, prospective adjustment transitions, panel targeting and pure command
+validation now share that boundary. Legacy adapters import them directly and retain database condition
+lookup. [Native personal commands](character.md#native-personal-sheet-commands--partial-local-implementation)
+own authority, receipt replay and atomic persistence; the neutral helpers accept authoritative time
+without importing database services.
+Extra updates validate exclusive equipment assignment across Creature and Vehicle rosters in the
+neutral reducer; storage adapters no longer need SQL placement validation to reject duplicate use.
+Optional temporary HP is not a prerequisite for Creature display-only updates.
+Pure rest preview/completion, roll-evidence comparison and structured Sheet-roll resolution now live
+in `character/sheetRest` and `character/sheetRoll`. Native and transitional adapters share these
+algorithms; authentication, current-source loading, randomness, history and atomic consumption remain
+adapter-owned. Rest fingerprints use standard WebCrypto SHA-256 over the unchanged sorted JSON;
+the optional transitional revision input preserves legacy bytes while native previews bind current
+policy output without retired pins. See [native rolls and rests](character.md#native-personal-rolls-and-rests--local-implementation-integration-pending)
+for transaction and remaining integration boundaries.
+The pure inspector-panel resolver and affected-command target mapper now live in `character/sheetPanel`.
+Their implementation body is unchanged; native personal queries and transitional services share the
+same rule-projection/adjustment inputs. Native preparation retains its existing computed rule projection
+for this consumer rather than evaluating policy twice. Campaign maturity/redaction stays adapter-owned.
+Prospective resource usage and action-resource validation are likewise shared; current Sheet reads
+supply raw persisted usage to the System policy without moving storage into the neutral package.
+`campaignClock` also owns pure elapsed game time and bounded latest DAILY/DAWN/DUSK boundary
+selection. The transitional service supplies timestamps and reuses these calculations; atomic
+Campaign-authorized recovery and command replay remain backend-owned. Native clock recovery must
+reuse the explicit Campaign-aware Sheet authority path, not impersonate a personal Sheet owner;
+its recovery transaction is not implemented by the scoped Sheet endpoints.
+See the [clock migration prerequisite](persistence.md#native-campaign-clock--partial-local-implementation).
+Known/prepared spell eligibility also has one neutral implementation, driven by current policy facts
+and output. Native and transitional adapters share it; transport callers still own source visibility.
+The same module composes lightweight preparation options from adapter-authorized spell summaries,
+preserving committed labels/levels, per-class prepared flags and level/name/id ordering.
+Composite resource pool keys retain their existing encoded identity, with a shared 1,000-character
+bound across pool/usage facts, charge calculation input/output, action/cast resource references,
+compiled mechanics and settlement receipts. The action compiler uses that same schema for pool
+normalization while keeping its raw charge ID validation unchanged.
+A valid UUID-backed subclass spell key is 426 characters, so the previous generic 240-character
+identity bound could reject real Characters. Raw definition/source ID bounds and key construction
+are unchanged; this is compatible validator widening, not an identity migration or checksum rewrite.
+
+The [Sheet projection and presentation helpers](character.md#neutral-sheet-projection--extraction-native-persistence-pending)
+share that neutral boundary. They consume trusted maps and evaluated facts/output; only the
+transitional adapter knows about SQL loading and revision checks. Native and transitional Sheet
+adapters hydrate known/prepared spells plus additional policy-visible reference spells; the neutral
+evaluator accepts explicit reference IDs and fails closed if a trusted document is missing.
+The [native personal Sheet query](character.md#native-personal-sheet-read--locally-integrated-acceptance-pending)
+now composes current-source preparation, the installed policy and that projector without legacy
+bindings. It is read-only; native personal commands and browser subscriptions are now locally wired,
+while complete Campaign and lifecycle acceptance remain separate work.
+
+```mermaid
+flowchart LR
+  Caller["Calling backend: authority and transaction"] --> Publisher["authoring/reusableDefinitions"]
+  Caller --> Execution["rules-runtime execution wrapper"]
+  System["rules-runtime/platformRulesRuntime: installed D&D modules"] --> Publisher
+  System --> Execution
+  Execution --> Kernel["shared/rules: TypeScript Kernel"]
+```
+
+The same installed contracts and operation implementations serve both paths. The temporary
+functions composition retains legacy secret-to-key derivation and the publisher factory;
+neither is imported by the neutral package. The local authenticated Convex
+`content/systems:capability` query now imports this registry directly and serves the shared
+capability DTO to the System page and route loader; it does not execute operations or read SQL.
+Native Encounter commands compose the same runtime with the authenticated definition store and
+server-owned continuation key. Assisted `START` persists a sealed pending snapshot without changing
+the Run; resume validates occurrence, request, policy and actor bindings before applying terminal
+initiative state and receipts in one mutation. Definition and Kernel review evidence is recorded in
+[C11 and C16](../roadmap/08-2-convex-cutover-acceptance.md); wider Encounter and release cases retain
+their own acceptance gates.
 
 Runtime capability discovery determines current entry points from actor sources, grants, equipment,
 effects, overrides, Campaign policy, and Scene facts. An execution instance is created only when an
@@ -121,7 +608,7 @@ Capability evidence retains separate authored-source and compiled-Effect checksu
 There is no persistent prepared-plan layer. A derived action list may accelerate presentation but is
 never authority; every command repeats current capability and authorization checks.
 
-### Authored mechanics index
+#### Authored mechanics index
 
 Publication, projection rebuild, and SRD source auditing call one compiler-owned subject seam for all
 eight authored subject families. It returns the effective compiled projection and a reproducible
@@ -131,16 +618,17 @@ only explicitly selected root-owned mechanics; UUID-owned Features, grants, char
 equipment structures, class resources, ancestry structures, and Effect groups retain separate typed
 nodes. An unknown display field cannot become indexed mechanics by accident.
 
-A variant is indexed from its own authored mechanics only. Its parent is independently indexed and
-pinned, while the effective compiled projection resolves the exact pinned parent dependency. This
-keeps inherited mechanics out of the child source audit without changing effective play projection.
+A variant is indexed from its own authored mechanics only. Its parent is independently indexed, while
+the effective compiled projection resolves the exact current published parent. Parent changes reconcile
+derived current projections under ADR 0024; only issued occurrences freeze their exact dependency facts.
+This keeps inherited mechanics out of the child source audit without introducing historical source pins.
 
 An already-authorized domain service may supply the exact current definition/source envelope directly
 to the runtime. The runtime repeats the same identity, checksum, Game System, family, capability, and
 graph validation used for repository-backed execution; it does not read a second source. A frozen
 continuation remains source-independent on resume.
 
-### Typed reusable definition families
+#### Typed reusable definition families
 
 ```mermaid
 flowchart LR
@@ -218,7 +706,7 @@ environment resolution, and typed effect contribution resolution are implemented
 The production reaction consumer, occurrence evidence, authorized projection, and bounded PostgreSQL
 locking/replay/privacy schedules remain required before acceptance.
 
-## Graph constraints
+### Graph constraints
 
 - Graphs are finite, bounded, acyclic, and typed.
 - Node identifiers are local graph structure, not reusable authored identity.
@@ -229,7 +717,7 @@ locking/replay/privacy schedules remain required before acceptance.
   reject Publish.
 - Zen may implement a bounded pure operation; it is hidden behind the same typed port contract.
 
-## Runtime state and evidence
+### Runtime state and evidence
 
 The shared platform provides only demonstrated mutable shapes: counter, bounded track/clock, usage
 marker, and keyed collection. A Game System definition owns meaning, bounds, costs, refresh, and
@@ -264,6 +752,17 @@ retains the same Encounter-owned occurrence and unchanged Encounter version; its
 application context may advance from initiative evaluation to tie/order choice and then to turn effects.
 It never creates a parallel pending occurrence or freezes a start-of-turn actor before initiative is
 settled.
+
+One Campaign has at most one `ACTIVE` Encounter Run, across all its Sessions. Native Convex
+`START` settlement reads the Campaign's active-Run index in the same transaction that activates the
+Run, so concurrent starts conflict and the retried loser is rejected. Pending initiative remains
+`PREPARED`; its eventual settlement checks the same invariant before committing turn effects.
+Completed command retries still return their original receipt.
+
+The public Encounter command mutation verifies the current authenticated identity once and passes
+that server-derived user ID through its internal action and response coordinators. Each coordinator
+retains its Campaign, Session, controller, pending-initiator, and replay checks; no command input can
+supply the acting user ID.
 
 **CURRENT / Gate 2 execution:** every preterminal phase is staged inside that occurrence. At an
 `EACH_ROUND` boundary, evaluated outgoing effects, the proposed normalized initiative round, and any
@@ -359,7 +858,61 @@ the selected System adapter, and executes it without current-definition lookup o
 returns completed evidence, ordered System-interpreted applications, and a versioned lifecycle
 `UPDATE` or terminal `EXPIRE` proposal; the owning Encounter/Character transaction alone applies the
 proposal, writes projections/events, and records the receipt.
-Untargeted spatial roots instead live in `encounter_spatial_rule_effects` under the exact
+`rules-runtime/encounterSpatialMovementRuleService` owns deterministic spatial selection,
+currentness, frozen continuation and terminal evaluation. Callers supply current target loading,
+effect reads, random evidence and terminal publication callbacks. The legacy Functions adapter
+retains SQL locking/publication; the native Convex adapter shares its caller's mutation. The neutral
+coordinator imports neither persistence backend nor Node APIs. Pending contact and evidence-policy
+comparisons use canonical document checksums: serialization may reorder object keys, while every
+field value and array order must remain current.
+
+The native Scene finish mutation publishes spatial-evidence pauses and movement-reaction choices.
+It verifies current spatial selection, reconstructs retained completed evidence, and rebinds a paused
+continuation through the pure active-effect preflight. An unfinished spatial segment remains staged;
+completed segments and reactions publish in path order inside the same finish transaction as the
+contact position, fog, occurrence and command receipt. The Run advances once when that transaction
+publishes mechanics. Current reaction selection uses server-derived Scene perception evidence.
+
+The cutover coordinator retains full spatial history separately from its already-applied prefix.
+Native preparation produces private in-memory settlement plans; these contain mutation context and
+projected targets and never cross the Convex serialization boundary. Finish reconstructs the exact
+retained outcome before dispatching those plans. Only future contact pins may project through a
+verified preceding settlement; issued evidence and historical receipts retain their original facts.
+Pending currentness hashes baseline target state with no issued dice policy. Publication preserves
+that hash when the Run is unchanged, or reseals the same baseline facts at the new Run version.
+Spatial system rolls replay retained raw faces during finish, so a retry cannot obtain new dice.
+Character command metadata records only this transaction's version spans; cumulative spatial receipts
+may also contain earlier commands and intervening reaction transitions.
+An earlier spatial STOP suppresses a later reaction contact. Replay validates the retained command
+result and projects its compact pending summary using current membership and Character assignment.
+The same native coordinator orders hostile Passage contacts with spatial contacts and reactions.
+Overrun/Tumble choices seal the original path, blocker footprint, available allowance and optional
+System rule pins. Assisted contests retain each participant's d20 evidence; only completion spends
+the prepared allowance in the Scene finish transaction. A successful contest resumes to the sealed
+next hostile stop. Decline, failure and ties stop at the current contact. Private terminal preparation
+retains the exact path distance and completing command's contest receipt for fog and deterministic
+finish replay. Publication reseals the complete movement dependency checksum after updating its
+Scene version or spatial currentness. Current controller assignment governs evidence visibility and
+responses; the Owner can resolve Creature participants.
+Passage footprints overlap only when their interiors overlap; a shared edge or corner is permitted.
+Crossings retain exact entry and exit distances even when the exit is the requested endpoint.
+Discovery anchors its mover copy to the original path start while execution validates the actual
+current token position, so earlier published pauses do not hide a later Passage contact.
+The Node action retains server-derived perception through preparation and final recheck. It derives
+fog from the sealed contact/STOP distance before staging recipient layers; the shared neutral
+`encounterMovementPath` slicer preserves exact polyline distance even when the requested path loops
+back to its origin. Character vision observations remain fenced against rebasing a prepared save.
+An internal `UNINTERRUPTED` preparation records Manual automation or the absence of eligible reaction
+and spatial candidates. Finish rechecks that reason with current Run/Scene bindings, token control,
+pending occurrences and candidate discovery before committing the full requested move and fog.
+Ordinary movement retains `occurrence: null` and does not advance the Run or settle mechanics. Its
+Scene receipt replays the historical result even if effects are later added. A Character revision
+change after preparation rejects both publication and replacement vision observations; callers must
+start a new command instead of rebasing frozen movement.
+This internal publication path is implemented during cutover; public bound movement still awaits
+the complete reaction/resume coordinator and viewer-redacted begin replay.
+
+Untargeted spatial roots in the legacy backend live in `encounter_spatial_rule_effects` under the exact
 Encounter-to-Campaign-Scene binding. They share the same immutable active-effect definition/frozen graph
 and mutable lifecycle executor contract, but persist immutable placement and mutable reveal state as
 separate checksummed documents. A spatial root has no target actor; only its locked Scene-contact
@@ -418,7 +971,7 @@ Creature-feature discovery now resolve UUID-backed Effect entry points through c
 adapters. Additional domain adapters remain later implementation work; none of those responsibilities
 move into the Kernel.
 
-## Initiative policy ownership
+### Initiative policy ownership
 
 **CURRENT / Gate 2 foundation:** initiative policy is a System-owned reusable definition, not an
 Encounter service branch. Its closed document selects one procedure and cadence, pins one exact
@@ -436,7 +989,7 @@ policy immediately stale.
 
 Campaign play settings store optional policy and tie-definition UUID overrides. They are ordinary
 current settings, not versioned Campaign snapshots, and owner changes affect only future Encounter
-runs. At Encounter admission the server selects the Campaign override or the System v3 default, verifies
+runs. At Encounter admission the server selects the Campaign override or the System v3/v4 default, verifies
 the exact current policy/graph versions and canonical document checksums, requires every policy/graph
 Content Source to be enabled by the Campaign Rules Catalogues, and freezes the complete policy,
 evaluation, order-choice, and selected tie documents with one canonical snapshot checksum. Active Campaign settings
@@ -449,6 +1002,15 @@ continuations, ascending or descending score ordering, and terminal application 
 Encounter occurrence are implemented. PostgreSQL concurrency/replay/rollback proof remains the
 acceptance boundary.
 
+During Phase 8.2, current initiative and optional-combat source validation lives once in
+`packages/rules-runtime`; SQL adapters and native Campaign settings provide authorized current reads.
+The effective initiative resolver recognizes both v3 and v4 System defaults. The native settings save
+restricts the policy and every graph/optional-definition read to enabled Campaign catalogue sources,
+then replaces only the settings document in the same Convex mutation. The compact options projection
+is also shared by native and SQL Campaign reads; its bounded authorized source list is not a substitute
+for save-time validation. Native web integration, Encounter admission/snapshot wiring and complete
+native lifecycle proof remain separate work.
+
 Campaign optional-combat settings use the same current-selection / frozen-run boundary. A Campaign stores
 only a bounded sorted set of UUID-backed reusable-definition selections. System-owned definition families
 provide labels and adapter documents; shared coordination sees only definition identity, exact
@@ -456,9 +1018,12 @@ version/checksum, and closed capability/contract pins. Encounter admission resol
 sources from the Encounter Game System and freezes one checksum-protected optional-combat snapshot beside
 the separate initiative snapshot. A GM owner may replace that snapshot only on a prepared or active
 Encounter with no pending occurrence; the normal Encounter receipt records the replacement. Manual mode
-keeps the stored snapshot for audit but exposes an empty effective selection to mechanics.
+keeps the stored snapshot for audit but exposes an empty effective selection to mechanics. Lifecycle
+receipts retain the snapshot checksum used by that command, preserving exact replay after a later
+replacement. Replacement resolves only optional-combat sources; changes to current initiative definitions
+do not invalidate the Run's already-frozen initiative policy.
 
-## D&D 2014 adapter
+### D&D 2014 adapter
 
 D&D 2014 supplies policy for abilities, skills, attacks, saves, damage, conditions, spellcasting,
 concentration, reactions, initiative, legendary/recharge behavior, and approved optional combat
@@ -504,6 +1069,29 @@ System-resolved Feature pool, applies the outcome and aggregate-owned charge mut
 retains a separate closed Feature-resource transition in terminal receipt evidence. Generalized action
 transport and the durable `END_OF_OTHER_ACTOR_TURN` Legendary choice remain subsequent Gate 2 work.
 
+The cutover's native automatic action command loads current compiled Character sources and effective
+policy facts through the Campaign owner context. It uses the existing System plan and merges the
+Character's attack contributors with current relationship contributors. A self-targeted resource
+action combines resource and HP changes in one Character write and stream advance; a separate source
+uses the existing derived resource event identity. Character targets retain the canonical Character
+mechanics receipt, including any Creature source charge evidence. Replay checks retained projection
+identities and committed stream transitions. Contextual outcomes, decisions, and Character condition
+settlement still require their remaining native coordinators before public action dispatch is enabled.
+Native completed action receipts also retain `initialFactsChecksum` inside their checksummed result.
+It binds the full initial adapter input to START metadata; Kernel evidence continues to retain only
+consumed graph facts. Phased actions additionally require agreement with the first phase's bound
+checksum. The field is optional for existing receipts from other producers.
+
+Native direct actions and movement reactions share current-source preparation and atomic resource /
+target settlement in `actionMechanics`. The movement adapter revalidates the issued option, executes
+the complete automatic TEST/OUTCOME plan, and checks its current initial binding, selected outcome and
+terminal evidence before settlement. Source resources, target mechanics and one reaction allowance
+share the caller's mutation. Character child-command identities include the reaction ordinal and
+separate resource/outcome phases. Movement receipts optionally retain `initialFactsChecksum` and the
+existing phase-receipt shape; absent fields remain absent for existing producers. Assisted evidence
+pauses do not settle mechanics. The enclosing Scene/Run reaction resume and publication coordinator
+remains incomplete, so this adapter does not enable public bound movement.
+
 Authored D&D saving throws select an exact System-owned ability-definition UUID, including
 ability-modifier DC components. The pinned System vocabulary snapshot supplies the UUID-to-D&D policy
 fact mapping; authored codes and labels never select behavior. Persistence and hydration require the
@@ -518,10 +1106,35 @@ values in an active-effect plan without Scene reads.
 **CURRENT / Gate 2 policy tracer:** the D&D concentration damage-check factory produces one
 UUID-backed graph in the neutral `rules-runtime-graph` family. Its typed graph derives the D&D damage
 DC, requests one bounded d20, and runs the D&D saving-throw operation using the exact
-policy-selected saving-throw identity, target, and contributor-checksum facts. The platform
-reusable-definition root/current publication and canonical
-seed remain pending. The maintenance definition identity is separate from the Kernel and binds
-concentration state/replacement and aggregate-owned application behavior. **CURRENT / Automatic and
+policy-selected saving-throw identity, target, and contributor-checksum facts. **DECISION / 2026-09-15:**
+Concentration is reusable published System content, shared by spells and features. The canonical c3
+`rule-maintenance` definition declares `REPLACE_SAME_DEFINITION`, `TERMINATE_WHEN_EMPTY`, and its c2
+damage-check graph reference. The typed family also permits the existing `RETAIN_UNTIL_TERMINAL`
+policy and a null damage-check reference for maintained rules without that check. Both c2 and c3 are
+in the canonical SRD seed and pass the native publication contract. New native maintained slots require
+this family and exact agreement between the published policy and compiled effect plan.
+
+```mermaid
+flowchart LR
+  Spell["Spell or Feature result block"] -->|maintenanceDefinitionId| C3["Published Concentration c3"]
+  Feature["Feature save modifier"] -->|ruleDefinitionId| C3
+  C3 -->|damageCheckDefinitionId| C2["Published damage-check graph c2"]
+  Save["Character Constitution save and scoped modifiers"] --> C2
+  C2 --> Child["Encounter concentration child receipt"]
+```
+
+An optional UUID `ruleDefinitionId` on a saving-throw modifier scopes its bonus, penalty, advantage or
+disadvantage to that rule. Character policy retains ordinary ability saves and adds records for the
+referenced rule/ability pairs. Concentration selects the c3 Constitution record when present; otherwise
+it uses the ordinary Constitution record. Ordinary saves exclude scoped modifiers. Contributor ordering,
+stacking and advantage/disadvantage cancellation use the existing save policy. Conditional save
+qualifiers still require their own applicable context; a rule reference does not remove that condition.
+The shared modifier Authoring Schema exposes this optional rule through the existing same-System
+reusable-definition selector. Native resolution and normalization retain the selected reference;
+leaving it empty keeps an ordinary ability-save modifier.
+
+The maintenance identity is separate from the Kernel and binds concentration state/replacement and
+aggregate-owned application behavior. **CURRENT / Automatic and
 Assisted execution:** a completed Encounter action stages one deterministic receipt-only child
 occurrence for each finalized positive damage application against an exact maintained concentration
 state. The parent receipt retains only base action evidence. In Assisted mode, the first child pauses
@@ -532,11 +1145,53 @@ Character revisions. A compact authorized pending summary exposes only occurrenc
 request bounds and frozen roll mode, and the two permitted response kinds. A reconnect query returns
 that same summary under the same current authority; sealed context, source pins, contributor evidence,
 and cleanup ownership remain server/audit-only. Unauthorized reconnect reads are indistinguishable from
-absence, and unavailable occurrence mutations use one public unavailable category. UI controls,
-PostgreSQL race/rollback proofs, and
-source-publication lifecycle evidence remain deferred.
+absence, and unavailable occurrence mutations use one public unavailable category.
 
-### Reaction decisions and interrupted commands
+**CURRENT / native local integration:** direct finalized damage creates these children in the parent
+mutation. Before Assisted dice, the coordinator checks the exact parent damage receipt, current c3
+publication/descriptor, c2 graph, System vocabulary, Character facts and scoped save contributors.
+Automatic cleanup remains in the parent transaction; parent replay verifies the child's exact owner
+revision transitions against its final projection. Assisted success retains the Run version; failure
+advances it once. Native rollback, physical/system dice, stale refusal and exact replay have local proof.
+One server-only `deferredCleaving` context can retain the sealed Cleaving choice during concentration
+checks. It is checked before dice, carried through successive saves, and re-evaluated after this
+transaction's cleanup before a single Cleaving decision is published. It does not add a Kernel phase.
+Terminal START/ADVANCE_TURN damage now starts the same child coordinator after outgoing and incoming
+effects commit, in that order. Global damage ordinals distinguish repeated graph-local applications.
+A failed check skips only applications bound to that exact ended maintained state; other owners
+reload their current facts before continuing. Assisted continuation validates every intervening
+response against the immutable parent receipt and accounts for each failed sibling's Run version
+advance. Responses to a completed turn containing positive damage replay its saved terminal projection,
+even after child cleanup changes the current Run. Turns without positive damage retain their existing
+current-view replay behavior. These changes add no persisted record or transaction
+boundary. Local turn evidence is under `.codex/validation/turn-concentration-20260915/integration/`.
+**TRANSITIONAL / scoped native integration verified:** movement damage now has a
+per-contact Concentration coordinator. Preparation uses the existing c2 evaluator and c3 cleanup
+forecast; publication replays recorded dice and verifies cleanup inside the existing Scene mutation.
+An Assisted check retains the movement root as its public response address while the sealed Kernel
+continuation keeps its separate deterministic child identity. Completed child evidence belongs beside
+the damaging contact. Damage graphs and c2 independently retain their publication checksums; they need
+not be the same graph. Cleanup precedes the next contact, including contacts at the same position.
+Spatial lifecycle transitions apply once per movement root across these contact slices. A later slice
+accepts a reveal update only when its exact version and after-state match the retained transition.
+Deleted one-use roots needed by frozen later or completed-but-unapplied contacts retain their original
+server-owned effect record in the private applied prefix; a recreated live root is refused. Terminal
+publication drops this executable continuation material. It never rebuilds a graph from result traces.
+When a later spatial save pauses, completed but unapplied contacts remain separate from the exact
+committed prefix and are reconstructed before settlement on response.
+Native Character reaction receipts also retain the mover's explicit `targetCharacterId`, so a reaction
+can follow a spatial hit on a different Character. Mixed timelines validate that binding and its exact
+version span; older receipts without the optional field still require an existing proved binding.
+Native Scene journeys and the combined contract/maintenance regression pass. Public/browser,
+reconnect/contention and the complete final-source lifecycle remain separate acceptance work.
+Ordered local evidence and retained failures are under
+`.codex/validation/movement-concentration-20260915/integration/`.
+
+Movement integration proof, complete browser/controller/reconnect/contention journeys and the final
+release lifecycle remain open. Earlier direct/Cleaving evidence is under
+`.codex/validation/concentration-integration-20260915/`; neither packet accepts a whole cutover case.
+
+#### Reaction decisions and interrupted commands
 
 **TARGET / depends on the Combat Perception tracer.** The sequence below is the accepted application
 shape; it is not yet a production reaction path.
@@ -634,7 +1289,7 @@ pause/resume, and live-fact binding without D&D or edition dispatch. Opposed-tes
 dice-pool/result-band, and level-less-track fixtures remain target conformance work and are not current
 Kernel capabilities.
 
-## Bounded action-phase specialization
+### Bounded action-phase specialization
 
 An authored action is compiled to an immutable, pinned template. Compilation validates the bounded
 graph shape and declared fact ports, but it does not guess actor, target, cast, or scaling values.
@@ -655,7 +1310,7 @@ remain deferred until the terminal phase succeeds. A paused occurrence may retai
 specialized plan. A terminal receipt retains only the ordered phase identities, checksums, evidence,
 and committed result; it never retains an executable continuation.
 
-## Architect escalation
+### Architect escalation
 
 The primary architect owns product behavior, public/persisted contracts, security, concurrency,
 load-bearing ownership, and frozen acceptance. Implementers decide ordinary internal details. An

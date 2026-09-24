@@ -1,8 +1,13 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { characterMechanicSourceSchema } from './characterGrantFoldRules.js'
+import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
-const boundedIdentitySchema = z.string().trim().min(1).max(240)
+const boundedIdentitySchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(240))
 
 export const characterChargeSourceLevelSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('CLASS_LEVEL'), classId: boundedIdentitySchema }),
@@ -27,37 +32,37 @@ export const characterResourceResetKindSchema = z.enum([
 ])
 
 const resourcePoolCommonSchema = z.strictObject({
-  sequence: z.number().int().min(0).max(9999),
-  poolId: boundedIdentitySchema,
+  sequence: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9999)),
+  poolId: characterResourcePoolIdentitySchema,
   resourceDefinitionId: boundedIdentitySchema,
   chargeId: boundedIdentitySchema,
-  chargeCalculationId: boundedIdentitySchema,
+  chargeCalculationId: characterResourcePoolIdentitySchema,
   baseResetKind: characterResourceResetKindSchema
 })
 
 export const characterResourcePoolCandidateSchema = z.discriminatedUnion('ownerKind', [
-  resourcePoolCommonSchema.extend({
+  z.extend(resourcePoolCommonSchema, {
     ownerKind: z.literal('AUTHORED_GRANT'),
     resourceGrantId: boundedIdentitySchema,
-    availableAtLevel: z.number().int().min(1).max(20),
-    activeSourceLevel: z.number().int().min(1).max(20)
+    availableAtLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    activeSourceLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))
   }),
-  resourcePoolCommonSchema.extend({
+  z.extend(resourcePoolCommonSchema, {
     ownerKind: z.literal('AUTHORED_SOURCE'),
     sourceId: boundedIdentitySchema,
     source: characterMechanicSourceSchema
   }),
-  resourcePoolCommonSchema.extend({
+  z.extend(resourcePoolCommonSchema, {
     ownerKind: z.literal('ITEM_INSTANCE'),
     itemInstanceId: boundedIdentitySchema,
-    sourceId: boundedIdentitySchema.nullable()
+    sourceId: z.nullable(boundedIdentitySchema)
   }),
-  resourcePoolCommonSchema.extend({
+  z.extend(resourcePoolCommonSchema, {
     ownerKind: z.literal('COMPANION_FEATURE'),
     companionInstanceId: boundedIdentitySchema,
     featureId: boundedIdentitySchema
   }),
-  resourcePoolCommonSchema.extend({
+  z.extend(resourcePoolCommonSchema, {
     ownerKind: z.literal('SPELL_SOURCE'),
     accessId: boundedIdentitySchema,
     sourceInstanceId: boundedIdentitySchema,
@@ -67,118 +72,122 @@ export const characterResourcePoolCandidateSchema = z.discriminatedUnion('ownerK
 
 export const characterResourcePoolCandidatesSchema = z
   .array(characterResourcePoolCandidateSchema)
-  .max(500)
-  .superRefine((candidates, context) => {
-    const poolIds = new Set<string>()
-    const calculationIds = new Set<string>()
-    for (const [index, candidate] of candidates.entries()) {
-      if (candidate.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource pool candidates must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(500))
+  .check(
+    z.superRefine((candidates, context) => {
+      const poolIds = new Set<string>()
+      const calculationIds = new Set<string>()
+      for (const [index, candidate] of candidates.entries()) {
+        if (candidate.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource pool candidates must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (poolIds.has(candidate.poolId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource pool IDs must be unique',
+            path: [index, 'poolId']
+          })
+        }
+        if (calculationIds.has(candidate.chargeCalculationId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource charge calculation IDs must be unique',
+            path: [index, 'chargeCalculationId']
+          })
+        }
+        if (candidate.poolId !== candidate.chargeCalculationId) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource pool and charge calculation IDs must match',
+            path: [index, 'chargeCalculationId']
+          })
+        }
+        poolIds.add(candidate.poolId)
+        calculationIds.add(candidate.chargeCalculationId)
       }
-      if (poolIds.has(candidate.poolId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource pool IDs must be unique',
-          path: [index, 'poolId']
-        })
-      }
-      if (calculationIds.has(candidate.chargeCalculationId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource charge calculation IDs must be unique',
-          path: [index, 'chargeCalculationId']
-        })
-      }
-      if (candidate.poolId !== candidate.chargeCalculationId) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource pool and charge calculation IDs must match',
-          path: [index, 'chargeCalculationId']
-        })
-      }
-      poolIds.add(candidate.poolId)
-      calculationIds.add(candidate.chargeCalculationId)
-    }
-  })
+    })
+  )
 
 export const characterResourceUsageFactsSchema = z
   .array(
     z.strictObject({
-      poolId: boundedIdentitySchema,
-      rawUsed: z.number().int().min(0).max(2_147_483_647)
+      poolId: characterResourcePoolIdentitySchema,
+      rawUsed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2_147_483_647))
     })
   )
-  .max(500)
-  .superRefine((usage, context) => {
-    const poolIds = new Set<string>()
-    for (const [index, entry] of usage.entries()) {
-      if (poolIds.has(entry.poolId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource usage pool IDs must be unique',
-          path: [index, 'poolId']
-        })
+  .check(z.maxLength(500))
+  .check(
+    z.superRefine((usage, context) => {
+      const poolIds = new Set<string>()
+      for (const [index, entry] of usage.entries()) {
+        if (poolIds.has(entry.poolId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource usage pool IDs must be unique',
+            path: [index, 'poolId']
+          })
+        }
+        poolIds.add(entry.poolId)
       }
-      poolIds.add(entry.poolId)
-    }
-  })
+    })
+  )
 
 const characterResourceChargeContributionSchema = z.strictObject({
   sourceId: boundedIdentitySchema,
-  value: z.number().int()
+  value: z.number().check(z.int())
 })
 
 const characterResourceResetResolutionSchema = z.strictObject({
   baseResetKind: characterResourceResetKindSchema,
-  appliedGrantId: boundedIdentitySchema.nullable(),
-  source: characterMechanicSourceSchema.nullable()
+  appliedGrantId: z.nullable(boundedIdentitySchema),
+  source: z.nullable(characterMechanicSourceSchema)
 })
 
 const resourceOutputCommonSchema = z.strictObject({
-  sequence: z.number().int().min(0).max(9999),
-  poolId: boundedIdentitySchema,
+  sequence: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9999)),
+  poolId: characterResourcePoolIdentitySchema,
   resourceDefinitionId: boundedIdentitySchema,
   chargeId: boundedIdentitySchema,
-  chargeCalculationId: boundedIdentitySchema,
+  chargeCalculationId: characterResourcePoolIdentitySchema,
   state: z.enum(['RESOLVED', 'UNRESOLVED']),
-  maximum: z.number().int().min(0).nullable(),
-  rawUsed: z.number().int().min(0).max(2_147_483_647),
-  effectiveUsed: z.number().int().min(0).nullable(),
-  remaining: z.number().int().min(0).nullable(),
+  maximum: z.nullable(z.number().check(z.int()).check(z.gte(0))),
+  rawUsed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2_147_483_647)),
+  effectiveUsed: z.nullable(z.number().check(z.int()).check(z.gte(0))),
+  remaining: z.nullable(z.number().check(z.int()).check(z.gte(0))),
   reasonCode: z.enum(['CALCULATED', 'MISSING_REQUIRED_FACT']),
-  baseContribution: characterResourceChargeContributionSchema.nullable(),
+  baseContribution: z.nullable(characterResourceChargeContributionSchema),
   bonusContributions: z.array(characterResourceChargeContributionSchema),
   resetKind: characterResourceResetKindSchema,
   resetResolution: characterResourceResetResolutionSchema
 })
 
 export const characterResourceSchema = z.discriminatedUnion('ownerKind', [
-  resourceOutputCommonSchema.extend({
+  z.extend(resourceOutputCommonSchema, {
     ownerKind: z.literal('AUTHORED_GRANT'),
     resourceGrantId: boundedIdentitySchema,
-    availableAtLevel: z.number().int().min(1).max(20),
-    activeSourceLevel: z.number().int().min(1).max(20)
+    availableAtLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    activeSourceLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))
   }),
-  resourceOutputCommonSchema.extend({
+  z.extend(resourceOutputCommonSchema, {
     ownerKind: z.literal('AUTHORED_SOURCE'),
     sourceId: boundedIdentitySchema,
     source: characterMechanicSourceSchema
   }),
-  resourceOutputCommonSchema.extend({
+  z.extend(resourceOutputCommonSchema, {
     ownerKind: z.literal('ITEM_INSTANCE'),
     itemInstanceId: boundedIdentitySchema,
-    sourceId: boundedIdentitySchema.nullable()
+    sourceId: z.nullable(boundedIdentitySchema)
   }),
-  resourceOutputCommonSchema.extend({
+  z.extend(resourceOutputCommonSchema, {
     ownerKind: z.literal('COMPANION_FEATURE'),
     companionInstanceId: boundedIdentitySchema,
     featureId: boundedIdentitySchema
   }),
-  resourceOutputCommonSchema.extend({
+  z.extend(resourceOutputCommonSchema, {
     ownerKind: z.literal('SPELL_SOURCE'),
     accessId: boundedIdentitySchema,
     sourceInstanceId: boundedIdentitySchema,
@@ -188,60 +197,62 @@ export const characterResourceSchema = z.discriminatedUnion('ownerKind', [
 
 export const characterResourcesSchema = z
   .array(characterResourceSchema)
-  .max(500)
-  .superRefine((resources, context) => {
-    const poolIds = new Set<string>()
-    const calculationIds = new Set<string>()
-    for (const [index, resource] of resources.entries()) {
-      if (poolIds.has(resource.poolId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource pool IDs must be unique',
-          path: [index, 'poolId']
-        })
-      }
-      if (calculationIds.has(resource.chargeCalculationId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource charge calculation IDs must be unique',
-          path: [index, 'chargeCalculationId']
-        })
-      }
-      if (resource.poolId !== resource.chargeCalculationId) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource pool and charge calculation IDs must match',
-          path: [index, 'chargeCalculationId']
-        })
-      }
+  .check(z.maxLength(500))
+  .check(
+    z.superRefine((resources, context) => {
+      const poolIds = new Set<string>()
+      const calculationIds = new Set<string>()
+      for (const [index, resource] of resources.entries()) {
+        if (poolIds.has(resource.poolId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource pool IDs must be unique',
+            path: [index, 'poolId']
+          })
+        }
+        if (calculationIds.has(resource.chargeCalculationId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource charge calculation IDs must be unique',
+            path: [index, 'chargeCalculationId']
+          })
+        }
+        if (resource.poolId !== resource.chargeCalculationId) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource pool and charge calculation IDs must match',
+            path: [index, 'chargeCalculationId']
+          })
+        }
 
-      const validState =
-        resource.state === 'RESOLVED'
-          ? resource.maximum !== null &&
-            resource.effectiveUsed !== null &&
-            resource.remaining !== null &&
-            resource.effectiveUsed === Math.min(resource.rawUsed, resource.maximum) &&
-            resource.remaining === Math.max(resource.maximum - resource.effectiveUsed, 0) &&
-            resource.reasonCode === 'CALCULATED' &&
-            resource.baseContribution !== null
-          : resource.maximum === null &&
-            resource.effectiveUsed === null &&
-            resource.remaining === null &&
-            resource.reasonCode === 'MISSING_REQUIRED_FACT' &&
-            resource.baseContribution === null &&
-            resource.bonusContributions.length === 0
-      if (!validState) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Resource state does not match its resolution facts',
-          path: [index, 'state']
-        })
-      }
+        const validState =
+          resource.state === 'RESOLVED'
+            ? resource.maximum !== null &&
+              resource.effectiveUsed !== null &&
+              resource.remaining !== null &&
+              resource.effectiveUsed === Math.min(resource.rawUsed, resource.maximum) &&
+              resource.remaining === Math.max(resource.maximum - resource.effectiveUsed, 0) &&
+              resource.reasonCode === 'CALCULATED' &&
+              resource.baseContribution !== null
+            : resource.maximum === null &&
+              resource.effectiveUsed === null &&
+              resource.remaining === null &&
+              resource.reasonCode === 'MISSING_REQUIRED_FACT' &&
+              resource.baseContribution === null &&
+              resource.bonusContributions.length === 0
+        if (!validState) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Resource state does not match its resolution facts',
+            path: [index, 'state']
+          })
+        }
 
-      poolIds.add(resource.poolId)
-      calculationIds.add(resource.chargeCalculationId)
-    }
-  })
+        poolIds.add(resource.poolId)
+        calculationIds.add(resource.chargeCalculationId)
+      }
+    })
+  )
 
 export type CharacterChargeSourceLevel = z.infer<typeof characterChargeSourceLevelSchema>
 export type CharacterResourcePoolCandidate = z.infer<typeof characterResourcePoolCandidateSchema>

@@ -1,6 +1,7 @@
 import { Button, Group, Text } from '@mantine/core'
 import { ExternalLink, Gamepad2 } from 'lucide-react'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   buildTabletopHref,
   openAuxiliaryWindow,

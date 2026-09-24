@@ -1,6 +1,6 @@
 # ADR 0028: R2 storage for VTT maps
 
-- **Status:** decision
+- **Status:** decision — R2 byte storage retained; Supabase metadata and provider split superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-09-02
 
 ## Context
@@ -9,9 +9,9 @@ VTT maps are larger and read more frequently than ordinary product media. Keepin
 
 ## Decision
 
-Supabase Postgres remains authoritative for media identity, ownership, lifecycle, references, quotas, and deletion work. New `VTT_MAP` rows persist `storage_provider = 'R2'`; ordinary media remains `SUPABASE`. Existing Supabase-backed maps remain readable and are not migrated.
+Convex is authoritative for media identity, ownership, lifecycle, references, quotas, and deletion work. R2 stores product media bytes under ADR 0029. The former `storage_provider` split between R2 maps and Supabase ordinary media is historical migration context.
 
-The API creates and completes one bounded R2 multipart upload. Browsers receive only short-lived, part-specific signed URLs and return R2 ETags. Server processing and authorized delivery use the persisted provider. Deletion work is keyed by provider plus object key. No Worker, proxy, public bucket, or generic provider framework is introduced.
+Convex creates one bounded upload and returns a short-lived signed single-`PUT` URL whose content length and type match the authorized request. The browser returns the R2 ETag; Convex retains authoritative metadata and schedules cleanup by object key. No Worker, proxy, public bucket, multipart lifecycle, or generic provider framework is introduced.
 
 Staging and production use separate private buckets and bucket-scoped credentials in their existing deployment contexts. Local integration uses a loopback substitute and cannot contact managed storage.
 
@@ -19,4 +19,4 @@ Staging and production use separate private buckets and bucket-scoped credential
 
 - Scene and Encounter records keep stable media asset IDs; they do not know the provider.
 - R2 credentials remain server-only, and bucket CORS exposes `ETag` for browser multipart completion.
-- Cross-provider copying, public delivery, storage-class automation, and migration of existing maps remain out of scope.
+- Public delivery, storage-class automation, and migration of historical objects remain out of scope.

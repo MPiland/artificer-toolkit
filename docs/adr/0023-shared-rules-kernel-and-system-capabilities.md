@@ -55,9 +55,10 @@ identity. Reusable definitions remain for mechanics shared independently across 
 The shared discovery layer compiles an authored Effect before a System adapter derives policy facts;
 an adapter cannot substitute a different compiled Effect.
 
-Zen may implement bounded pure formulas or tables behind typed operations. Application services own
-authorization, I/O, persistence, transactions, clocks, and random generation. Arbitrary authored
-scripts, user-created Game Systems, and user-installable rule plugins remain forbidden.
+Repository-owned TypeScript implements bounded pure formulas and tables behind typed operations.
+Application services own authorization, I/O, persistence, transactions, clocks, and random
+generation. Arbitrary authored scripts, user-created Game Systems, and user-installable rule plugins
+remain forbidden.
 
 Operations are code-owned and have one of three execution kinds: `PURE`, `EVIDENCE`, or `PROPOSAL`.
 A proposal has the same bounded typed scalar ports and deterministic execution as a pure operation, but
@@ -94,8 +95,8 @@ authorization, redaction, and any interrupted domain command remain in the aggre
 application context. This keeps the primitive portable without turning reactions or another
 System-specific decision family into Kernel behavior.
 
-- Rule Studio is no longer a production admin product. Retain only a local/internal inspector,
-  fixture runner, and trace surface.
+- The retired Rule Studio and GoRules pack-management code are not compatibility surfaces. Focused
+  local tests and trace inspection remain ordinary development tools for the TypeScript Rules Kernel.
 
 This decision supersedes the runtime ownership and immutable rule-pack selection portions of ADRs
 [0008](0008-ruleset-identity-and-content-binding.md),

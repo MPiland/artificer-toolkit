@@ -1,10 +1,12 @@
 # ADR 0022: Versioned domain documents and correctness projections
 
-- **Status:** historical — superseded by ADR 0024
+- **Status:** historical — document model superseded by [ADR 0024](0024-current-published-authored-content.md); SQL and session topology superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-17
 - **Scope:** authored versions, System vocabulary snapshots, Character mechanics projections, replayable Encounter/Scene projections, and live-command reads
 - **Update when:** projection inputs/checksums, synchronous publication, domain ownership, or command-read contracts change
 - **Verification:** `docs/architecture/versioned-projections.md`; deterministic compiler/rebuild, transaction rollback, pin-stability, privacy, and replay gates
+
+> The product invariants below remain useful history. Kysely/SQL ownership, Zen authority, Durable Object journals, and local/remote host topology are not current implementation guidance.
 
 ## Context
 

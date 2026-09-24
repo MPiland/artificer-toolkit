@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { ConvexError } from 'convex/values'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   createActivateAction,
@@ -152,6 +153,43 @@ describe('authoring action builders', () => {
     await action({ label: 'Broken Race' })
 
     expect(notifier.show).toHaveBeenCalledWith({ color: 'red', message: messages.activateError })
+  })
+
+  it.each([
+    [
+      { code: 'ACTIVE_NAME_CONFLICT', scope: 'DOMAIN' },
+      'You already have an active item of this type with this name in this System. Rename this draft before activating.'
+    ],
+    [
+      { code: 'ACTIVE_NAME_CONFLICT', scope: 'PARENT_CLASS' },
+      'You already have an active subclass with this name under this parent. Rename this draft before activating.'
+    ],
+    [
+      { code: 'ACTIVE_NAME_INDEX_INCOMPLETE' },
+      'Active names need indexing before activation. Your draft is unchanged.'
+    ],
+    [{ code: 'ACTIVE_NAME_CONFLICT', scope: 'UNKNOWN' }, messages.activateError],
+    [{ code: 'UNKNOWN', message: 'Do not display server internals' }, messages.activateError]
+  ])('shows only recognized publication name errors: %j', async (data, message) => {
+    const notifier = createNotifier()
+    const navigate = createNavigate()
+    const action = createActivateAction({
+      activateMutation: {
+        mutateAsync: vi.fn(async (_payload: SubmitPayload) => {
+          throw new ConvexError(data)
+        })
+      },
+      buildRouteParams,
+      detailPath: '/races/$racePublicId/$raceSlug',
+      messages,
+      navigate,
+      notifier
+    })
+
+    await action({ label: 'Duplicate name' })
+
+    expect(notifier.show).toHaveBeenCalledExactlyOnceWith({ color: 'red', message })
+    expect(navigate).not.toHaveBeenCalled()
   })
 
   it('navigates to edit after creating a draft', async () => {

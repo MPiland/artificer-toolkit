@@ -1,6 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { getSystemList } from '#app/data/systems/queries'
-import { createServerApi } from '#app/lib/api'
+import { loadSystemList } from '#app/data/systems/queries'
 import type { AuthoredCreateLoaderData } from './-routeLoaderData'
 import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
 import { loadAuthoredRouteSystem } from './-authoredRouteSystem'
@@ -8,10 +7,9 @@ import { loadAuthoredRouteSystem } from './-authoredRouteSystem'
 export async function loadAuthoredCreateRouteData(
   queryClient: QueryClient
 ): Promise<AuthoredCreateLoaderData> {
-  const client = createServerApi()
-  const systems = await queryClient.ensureQueryData(getSystemList(client))
+  const systems = await loadSystemList(queryClient)
   const systemId = systems[0]?.id
-  const system = await loadAuthoredRouteSystem(queryClient, client, systemId)
+  const system = await loadAuthoredRouteSystem(queryClient, systemId)
 
   return createAuthoredFormRouteLoaderData({ system, systems })
 }

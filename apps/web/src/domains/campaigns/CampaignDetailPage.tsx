@@ -1,8 +1,7 @@
-import { Alert, Badge, Group, Select, Stack, Tabs, Title } from '@mantine/core'
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
-import { getCampaignDetail } from '#app/data/campaigns/queries'
-import { useCampaignRealtime } from '#app/data/campaigns/useCampaignRealtime'
+import { Alert, Badge, Group, Loader, Select, Stack, Tabs, Title } from '@mantine/core'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useCampaignDetailOrNull } from '#app/data/campaigns/queries'
 import { getCampaignTabs, type CampaignTab } from './campaignAccess'
 import { CampaignSettings } from './components/CampaignSettings'
 import { CampaignChatDrawer } from './components/CampaignChatDrawer'
@@ -38,12 +37,22 @@ export function CampaignDetailPage({
   campaignId: string
   currentUserId: string
 }) {
-  const { data: campaign } = useSuspenseQuery(getCampaignDetail(campaignId))
-  const tabs = getCampaignTabs(campaign)
-  const [activeTab, setActiveTab] = useState<CampaignTab>(tabs[0])
+  const navigate = useNavigate()
+  const campaign = useCampaignDetailOrNull(campaignId)
+  const tabs = campaign ? getCampaignTabs(campaign) : []
+  const [activeTab, setActiveTab] = useState<CampaignTab>(tabs[0] ?? 'sessions')
   const [openCharacterPicker, setOpenCharacterPicker] = useState(false)
   const [requestedAnnouncementId, setRequestedAnnouncementId] = useState<string | null>(null)
-  useCampaignRealtime(campaign, currentUserId)
+  const deleteConfirmed = useRef(false)
+
+  useEffect(() => {
+    if (!campaign)
+      void navigate({
+        to: '/campaigns',
+        replace: true,
+        search: deleteConfirmed.current ? { campaignId } : {}
+      })
+  }, [campaign, campaignId, navigate])
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search)
@@ -60,6 +69,8 @@ export function CampaignDetailPage({
       return
     window.history.replaceState({}, '', window.location.pathname)
   }, [tabs])
+
+  if (!campaign) return <Loader aria-label='Returning to Campaigns' />
 
   return (
     <main className={sharedStyles.page}>
@@ -82,7 +93,6 @@ export function CampaignDetailPage({
               <CampaignChatDrawer
                 campaignId={campaign.id}
                 currentUserId={currentUserId}
-                realtime={false}
                 trigger='icon'
               />
             ) : null}
@@ -91,7 +101,9 @@ export function CampaignDetailPage({
       </header>
       {campaign.status === 'ARCHIVED' ? (
         <Alert color='gray' title='Archived Campaign'>
-          This Campaign is read-only.
+          {campaign.role === 'OWNER'
+            ? 'This Campaign is read-only. You can permanently delete it from Settings.'
+            : 'This Campaign is read-only.'}
         </Alert>
       ) : null}
       <Select
@@ -163,7 +175,15 @@ export function CampaignDetailPage({
         ) : null}
         {tabs.includes('settings') ? (
           <Tabs.Panel value='settings' pt='md'>
-            <CampaignSettings campaign={campaign} />
+            <CampaignSettings
+              campaign={campaign}
+              onDeleteConfirmed={() => {
+                deleteConfirmed.current = true
+              }}
+              onDeleteFailed={() => {
+                deleteConfirmed.current = false
+              }}
+            />
           </Tabs.Panel>
         ) : null}
       </Tabs>

@@ -282,9 +282,13 @@ describe('AuthoringFormProvider URL navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds?source=owned&step=RACE'>
         <AuthoringFormProvider
-          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+          data={{
+            characterId: characterBuilderPayloadFixture.character.id,
+            draft: null,
+            payload: characterBuilderPayloadFixture
+          }}
           kind='character-builder'
-          mode='create'
+          mode='edit'
         >
           <CharacterUrlNavigationProbe />
         </AuthoringFormProvider>

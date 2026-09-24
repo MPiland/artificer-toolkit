@@ -1,14 +1,15 @@
 import { Alert, Button, Group, Select, Text, TextInput, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { type SubmitEvent, useState } from 'react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type {
   CampaignContentMaturityDto,
   CampaignFormatDto,
   CampaignToneTagDto
 } from '@artificer-toolkit/schema/api/campaigns'
-import { api } from '#app/lib/api'
-import { getSystemList } from '#app/data/systems/queries'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
@@ -18,7 +19,7 @@ import * as sharedStyles from './campaigns.css'
 export function CampaignCreatePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const systems = useQuery(getSystemList())
+  const systems = useSystemList()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [format, setFormat] = useState<CampaignFormatDto>('ONGOING')
@@ -28,9 +29,10 @@ export function CampaignCreatePage() {
   const [gameSystemId, setGameSystemId] = useState('')
   const [primaryRulesCatalogueId, setPrimaryRulesCatalogueId] = useState('')
   const selectedSystem = systems.data?.find((system) => system.id === gameSystemId)
+  const createNativeCampaign = useConvexMutation(convexApi.campaigns.create.create)
   const createCampaign = useMutation({
     mutationFn: () =>
-      api.campaigns.create({
+      createNativeCampaign({
         name,
         description: description.trim() || null,
         format,

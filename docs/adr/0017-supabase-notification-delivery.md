@@ -1,7 +1,9 @@
 # ADR 0017: Supabase owns notification presentation and delivery execution
 
-- **Status:** decision
+- **Status:** historical — Supabase notification ownership superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-12
+
+> This ADR records the retired Supabase notification topology. It is not current delivery guidance.
 
 ## Context
 

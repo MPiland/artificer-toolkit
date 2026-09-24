@@ -11,18 +11,19 @@ import {
   Textarea,
   Title
 } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import type { CampaignPlaySettingsDto } from '@artificer-toolkit/schema/api/campaigns'
-import type { CampaignPlaySettingsOptionsDto } from '@artificer-toolkit/schema/api/campaigns'
-import type { TableSafetyPracticeDto } from '@artificer-toolkit/schema/api/tableSafety'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
-  getCampaignPlaySettings,
-  getCampaignPlaySettingsOptions
-} from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+  campaignPlaySettingsDtoSchema,
+  campaignPlaySettingsOptionsDtoSchema,
+  type CampaignPlaySettingsDto,
+  type CampaignPlaySettingsOptionsDto
+} from '@artificer-toolkit/schema/api/campaignSettings'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { TableSafetyPracticeDto } from '@artificer-toolkit/schema/api/tableSafety'
+import { useMutation as useConvexMutation } from 'convex/react'
 import * as styles from './CampaignTableSettings.css'
 
 const practices: ReadonlyArray<{
@@ -40,8 +41,12 @@ const practices: ReadonlyArray<{
 type Draft = Omit<CampaignPlaySettingsDto, 'campaignId' | 'updatedAt' | 'version'>
 
 export function CampaignTableSettings({ campaign }: { campaign: CampaignDetailDto }) {
-  const settings = useQuery(getCampaignPlaySettings(campaign.id))
-  const options = useQuery(getCampaignPlaySettingsOptions(campaign.id))
+  const settings = useQuery(
+    convexQuery(convexApi.campaigns.playSettings.get, { campaignId: campaign.id })
+  )
+  const options = useQuery(
+    convexQuery(convexApi.campaigns.playSettings.options, { campaignId: campaign.id })
+  )
   if (settings.isPending || options.isPending)
     return <Loader aria-label='Loading table settings' size='sm' />
   if (settings.isError || options.isError)
@@ -49,8 +54,8 @@ export function CampaignTableSettings({ campaign }: { campaign: CampaignDetailDt
   return (
     <CampaignTableSettingsForm
       campaign={campaign}
-      options={options.data}
-      settings={settings.data}
+      options={campaignPlaySettingsOptionsDtoSchema.parse(options.data)}
+      settings={campaignPlaySettingsDtoSchema.parse(settings.data)}
     />
   )
 }
@@ -64,9 +69,9 @@ function CampaignTableSettingsForm({
   options: CampaignPlaySettingsOptionsDto
   settings: CampaignPlaySettingsDto
 }) {
-  const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings))
   const editable = isCampaignTableSettingsEditable(campaign)
+  const savePlaySettings = useConvexMutation(convexApi.campaigns.playSettings.save)
   const selectedInitiativePolicy = options.initiativePolicies.find(
     (policy) => policy.definitionId === draft.initiativePolicyDefinitionId
   )
@@ -74,13 +79,11 @@ function CampaignTableSettingsForm({
 
   const save = useMutation({
     mutationFn: () =>
-      api.campaigns.playSettings.save({
+      savePlaySettings({
         campaignId: campaign.id,
         expectedVersion: settings.version,
         ...draft
-      }),
-    onSuccess: (updated) =>
-      queryClient.setQueryData(queryKeys.campaigns.playSettings(campaign.id), updated)
+      })
   })
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {

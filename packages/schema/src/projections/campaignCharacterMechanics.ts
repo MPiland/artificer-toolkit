@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   characterRulePolicyInputSchema,
@@ -10,8 +10,8 @@ import {
   projectionSchemaVersionSchema
 } from './identity.js'
 
-const characterStreamVersionSchema = z.number().int().min(0)
-const manualMaximumModifierOwnerSchema = z.enum(['CHARACTER', 'CAMPAIGN']).nullable()
+const characterStreamVersionSchema = z.number().check(z.int()).check(z.gte(0))
+const manualMaximumModifierOwnerSchema = z.nullable(z.enum(['CHARACTER', 'CAMPAIGN']))
 
 /**
  * Server-only Campaign mechanics overlay for one assigned Character. It binds
@@ -30,10 +30,10 @@ const campaignCharacterMechanicsProjectionIdentitySchema = z.strictObject({
 })
 
 export const campaignCharacterMechanicsProjectionSchema = z.discriminatedUnion('kind', [
-  campaignCharacterMechanicsProjectionIdentitySchema.extend({
+  z.extend(campaignCharacterMechanicsProjectionIdentitySchema, {
     kind: z.literal('BASE_REFERENCE')
   }),
-  campaignCharacterMechanicsProjectionIdentitySchema.extend({
+  z.extend(campaignCharacterMechanicsProjectionIdentitySchema, {
     kind: z.literal('MATERIALIZED'),
     rulePolicyInput: characterRulePolicyInputSchema,
     rulePolicyOutput: characterRulePolicyOutputSchema

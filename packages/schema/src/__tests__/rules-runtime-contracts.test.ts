@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import { MAX_CONCENTRATION_DAMAGE_APPLICATIONS } from '../shared/ruleExecutionConcentration.js'
 import * as publicRulesRuntime from '../api/rulesRuntime.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import {
   activeRuleEffectStateDtoSchema,
+  encounterMaintainedEffectDescriptorDtoSchema,
   MAX_MAINTENANCE_CLEANUP_CHARACTER_TRANSITIONS,
   MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS,
   MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES,
@@ -426,6 +429,48 @@ function maintainedCharacterReceipt() {
   }
 }
 
+function encounterActorActiveEffectReceipt() {
+  const target = {
+    currentHitPoints: 10,
+    temporaryHitPoints: 0,
+    maximumHitPoints: 10,
+    scalarValues: {},
+    conditionIds: []
+  }
+  return {
+    kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+    schemaVersion: 1 as const,
+    occurrenceId: turnBatchIds.occurrence,
+    sourceActorId: turnBatchIds.actor,
+    targetActorId: turnBatchIds.effect,
+    sourceCharacterStreamVersion: null,
+    resourceConsumption: null,
+    featureResourceConsumption: null,
+    targetFeatureResourceConsumption: null,
+    d20: null,
+    activeEffectTransitions: [
+      {
+        kind: 'CREATE' as const,
+        activeEffectId: '00000000-0000-4000-8000-000000000311',
+        targetActorId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        afterVersion: 1,
+        authoredEffectId: turnBatchIds.source,
+        compiledEntryId: turnBatchIds.entry,
+        frozenGraphNodeId: 'effect-node',
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64),
+        frozenSourceChecksum: 'c'.repeat(64),
+        capabilityContractVersion: 1,
+        recurrenceStage: 'START_OF_TURN' as const,
+        remainingTicks: 2
+      }
+    ],
+    targetTransition: { checksum: 'f'.repeat(64), before: target, after: target },
+    applications: []
+  }
+}
+
 describe('rules runtime contracts', () => {
   it('accepts only bounded canonical turn active-effect pending contexts', () => {
     const pending = turnPendingContext()
@@ -747,6 +792,35 @@ describe('rules runtime contracts', () => {
     expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
       kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
     })
+    const turnRemaining = [9999, 10000].map((ordinal) => ({
+      ...application,
+      ordinal,
+      maintainedStateId: pending.maintainedState.id
+    }))
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        remaining: turnRemaining
+      })
+    ).toMatchObject({ remaining: turnRemaining })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        remaining: [...turnRemaining].reverse()
+      })
+    ).toThrow('canonical application order')
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        application: { ...application, ordinal: MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1 }
+      })
+    ).toMatchObject({ application: { ordinal: MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1 } })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        application: { ...application, ordinal: MAX_CONCENTRATION_DAMAGE_APPLICATIONS }
+      })
+    ).toThrow()
     expect(
       serverRuleExecutionApplicationOutputsDtoSchema.parse({
         kind: 'CONCENTRATION_CHECK',
@@ -1267,6 +1341,20 @@ describe('rules runtime contracts', () => {
       initiative: { orderedActorIds: [turnBatchIds.source, turnBatchIds.actor] },
       legendaryActions: []
     })
+    expect(
+      storedRuleExecutionResultDtoSchema.parse({
+        ...result,
+        terminatedMaintainedStates: [
+          {
+            id: turnBatchIds.effect,
+            ownerActorId: turnBatchIds.actor,
+            maintenanceDefinitionId: turnBatchIds.source,
+            expectedVersion: 1,
+            descriptorChecksum: 'a'.repeat(64)
+          }
+        ]
+      })
+    ).toMatchObject({ terminatedMaintainedStates: [{ id: turnBatchIds.effect }] })
     expect(() =>
       storedRuleExecutionResultDtoSchema.parse({
         ...result,
@@ -1392,6 +1480,34 @@ describe('rules runtime contracts', () => {
     expect(storedRuleExecutionResultDtoSchema.parse(turnBatchResult())).toMatchObject({
       status: 'BATCH_COMPLETE'
     })
+    const terminatedMaintainedStates = [
+      {
+        id: '00000000-0000-4000-8000-000000000321',
+        ownerActorId: turnBatchIds.actor,
+        maintenanceDefinitionId: turnBatchIds.source,
+        expectedVersion: 1,
+        descriptorChecksum: 'a'.repeat(64)
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000322',
+        ownerActorId: turnBatchIds.actor,
+        maintenanceDefinitionId: turnBatchIds.source,
+        expectedVersion: 1,
+        descriptorChecksum: 'b'.repeat(64)
+      }
+    ]
+    expect(
+      storedRuleExecutionResultDtoSchema.parse({
+        ...turnBatchResult(),
+        terminatedMaintainedStates
+      })
+    ).toMatchObject({ terminatedMaintainedStates })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...turnBatchResult(),
+        terminatedMaintainedStates: [terminatedMaintainedStates[1], terminatedMaintainedStates[0]]
+      })
+    ).toThrow('unique and use canonical owner order')
     const invalid = (mutate: (result: ReturnType<typeof turnBatchResult>) => void) => {
       const result = structuredClone(turnBatchResult())
       mutate(result)
@@ -1805,6 +1921,223 @@ describe('rules runtime contracts', () => {
     })
   })
 
+  it('allows replacement of a retained maintained state with no dependents', () => {
+    const receipt = structuredClone(maintainedCharacterReceipt())
+    receipt.maintenanceTransition.priorState = {
+      id: '00000000-0000-4000-8000-000000000304',
+      version: 1,
+      maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+      descriptorChecksum: 'a'.repeat(64),
+      sourceActionId: 'prior-action',
+      sourceOccurrenceId: turnBatchIds.source,
+      sourceActorId: turnBatchIds.actor
+    }
+
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      maintenanceTransition: { removedDependentEffects: [], characterOwnerTransitions: [] }
+    })
+
+    receipt.maintenanceTransition.priorState = null
+    receipt.maintenanceTransition.removedDependentEffects.push({
+      kind: 'ENCOUNTER_ACTOR',
+      targetActorId: turnBatchIds.effect,
+      activeEffectId: turnBatchIds.source,
+      createdOrdinal: 1,
+      expectedVersion: 1,
+      definitionChecksum: 'a'.repeat(64),
+      lifecycleChecksum: 'b'.repeat(64)
+    })
+    expect(() => serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toThrow(
+      'prior state and removals are inconsistent'
+    )
+  })
+
+  it('retains composite source action identity in maintained descriptors', () => {
+    const descriptor = {
+      schemaVersion: 2 as const,
+      maintenanceDefinitionId: turnBatchIds.effect,
+      definitionChecksum: 'a'.repeat(64),
+      sourceActionId: `RESOLVE_ACTION:${turnBatchIds.actor}:feature:action`,
+      sourceOccurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION' as const,
+      emptyDependentPolicy: 'RETAIN_UNTIL_TERMINAL' as const
+    }
+    expect(encounterMaintainedEffectDescriptorDtoSchema.parse(descriptor)).toMatchObject(descriptor)
+    expect(() =>
+      encounterMaintainedEffectDescriptorDtoSchema.parse({
+        ...descriptor,
+        sourceActionId: 'x'.repeat(241)
+      })
+    ).toThrow()
+  })
+
+  it('binds maintained Character owner transitions to the immutable source Character', () => {
+    const ownerReplacement = (characterId: string) => {
+      const receipt = structuredClone(maintainedCharacterReceipt())
+      receipt.targetActorId = turnBatchIds.effect
+      receipt.maintenanceTransition.priorState = {
+        id: '00000000-0000-4000-8000-000000000304',
+        version: 1,
+        maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+        descriptorChecksum: 'a'.repeat(64),
+        sourceActionId: 'prior-action',
+        sourceOccurrenceId: turnBatchIds.source,
+        sourceActorId: turnBatchIds.actor
+      }
+      receipt.maintenanceTransition.removedDependentEffects.push({
+        kind: 'CHARACTER',
+        characterId,
+        activeEffectId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      })
+      receipt.maintenanceTransition.characterOwnerTransitions.push({
+        characterId,
+        beforeStreamVersion: 3,
+        afterStreamVersion: 4
+      })
+      return receipt
+    }
+
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...ownerReplacement(turnBatchIds.character),
+        sourceCharacterId: null
+      })
+    ).toMatchObject({ sourceCharacterStreamVersion: null })
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...ownerReplacement(turnBatchIds.condition),
+        sourceCharacterId: turnBatchIds.character
+      })
+    ).toMatchObject({ sourceCharacterStreamVersion: null })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(ownerReplacement(turnBatchIds.character))
+    ).toThrow('Source stream version presence is invalid')
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...ownerReplacement(turnBatchIds.character),
+        sourceCharacterStreamVersion: 4
+      })
+    ).toMatchObject({ sourceCharacterStreamVersion: 4 })
+  })
+
+  it('binds maintained Encounter actor effect creation and preserves legacy receipt shapes', () => {
+    const legacy = serverRuleExecutionApplicationOutputsDtoSchema.parse(
+      encounterActorActiveEffectReceipt()
+    )
+    if (legacy.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error('Expected Encounter actor mechanics receipt.')
+    expect(legacy).not.toHaveProperty('maintenanceTransition')
+    expect(legacy.activeEffectTransitions[0]).not.toHaveProperty('maintainedEffectStateId')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...encounterActorActiveEffectReceipt(),
+        activeEffectTransitions: [
+          {
+            ...encounterActorActiveEffectReceipt().activeEffectTransitions[0]!,
+            maintainedEffectStateId: turnBatchIds.source
+          }
+        ]
+      })
+    ).toThrow('Unbound maintained active effects are invalid')
+
+    const maintainedStateId = '00000000-0000-4000-8000-000000000312'
+    const receipt = {
+      ...encounterActorActiveEffectReceipt(),
+      sourceCharacterId: null,
+      activeEffectTransitions: [
+        {
+          ...encounterActorActiveEffectReceipt().activeEffectTransitions[0]!,
+          maintainedEffectStateId: maintainedStateId
+        }
+      ],
+      maintenanceTransition: {
+        kind: 'REPLACE_SAME_DEFINITION' as const,
+        priorState: null,
+        removedDependentEffects: [],
+        createdState: {
+          id: maintainedStateId,
+          version: 1,
+          maintenanceDefinitionId: '00000000-0000-4000-8000-000000000313',
+          descriptorChecksum: 'd'.repeat(64),
+          definitionChecksum: 'e'.repeat(64),
+          sourceActionId: 'action-id',
+          sourceOccurrenceId: turnBatchIds.occurrence,
+          sourceActorId: turnBatchIds.actor
+        },
+        characterOwnerTransitions: [],
+        createdDependentEffectIds: ['00000000-0000-4000-8000-000000000311']
+      }
+    }
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      maintenanceTransition: { createdState: { id: maintainedStateId } }
+    })
+
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        activeEffectTransitions: [
+          { ...receipt.activeEffectTransitions[0]!, maintainedEffectStateId: turnBatchIds.source }
+        ]
+      })
+    ).toThrow('created dependencies are invalid')
+
+    const withRemovedCharacterOwner = (characterId: string, sourceCharacterId: string | null) => ({
+      ...receipt,
+      sourceCharacterId,
+      maintenanceTransition: {
+        ...receipt.maintenanceTransition,
+        priorState: {
+          id: '00000000-0000-4000-8000-000000000314',
+          version: 1,
+          maintenanceDefinitionId:
+            receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+          descriptorChecksum: 'f'.repeat(64),
+          sourceActionId: 'prior-action',
+          sourceOccurrenceId: turnBatchIds.source,
+          sourceActorId: turnBatchIds.actor
+        },
+        removedDependentEffects: [
+          {
+            kind: 'CHARACTER' as const,
+            characterId,
+            activeEffectId: turnBatchIds.effect,
+            createdOrdinal: 1,
+            expectedVersion: 1,
+            definitionChecksum: 'a'.repeat(64),
+            lifecycleChecksum: 'b'.repeat(64)
+          }
+        ],
+        characterOwnerTransitions: [{ characterId, beforeStreamVersion: 3, afterStreamVersion: 4 }]
+      }
+    })
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        withRemovedCharacterOwner(turnBatchIds.character, null)
+      )
+    ).toMatchObject({ sourceCharacterStreamVersion: null })
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        withRemovedCharacterOwner(turnBatchIds.condition, turnBatchIds.character)
+      )
+    ).toMatchObject({ sourceCharacterStreamVersion: null })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        withRemovedCharacterOwner(turnBatchIds.character, turnBatchIds.character)
+      )
+    ).toThrow('Source Character stream version presence is invalid')
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...withRemovedCharacterOwner(turnBatchIds.character, turnBatchIds.character),
+        sourceCharacterStreamVersion: 4
+      })
+    ).toMatchObject({ sourceCharacterStreamVersion: 4 })
+  })
+
   it('retains one Character owner transition for multiple removed maintained dependents', () => {
     const receipt = structuredClone(maintainedCharacterReceipt())
     receipt.maintenanceTransition.priorState = {
@@ -1854,6 +2187,44 @@ describe('rules runtime contracts', () => {
         ]
       }
     })
+  })
+
+  it('retains composite UUID resource pool identity in persisted mechanics receipts', () => {
+    const sourceInstanceId = `SUBCLASS:${SYSTEM_ID}:${SYSTEM_ID}:${SYSTEM_ID}:${SYSTEM_ID}`
+    const poolId = createCharacterResourceOwnerKey({
+      kind: 'SPELL_SOURCE',
+      resourceGrantId: `${sourceInstanceId}:${SYSTEM_ID}`,
+      spellId: SYSTEM_ID,
+      sourceKind: 'FEATURE',
+      sourceInstanceId
+    })
+    expect(poolId).toHaveLength(426)
+    const receipt = {
+      ...maintainedCharacterReceipt(),
+      resourceConsumption: {
+        poolId,
+        chargeId: SYSTEM_ID,
+        cost: 1,
+        beforeUsed: 0,
+        afterUsed: 1,
+        beforeRemaining: 2,
+        afterRemaining: 1
+      }
+    }
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      resourceConsumption: receipt.resourceConsumption
+    })
+    for (const resourceConsumption of [
+      { ...receipt.resourceConsumption, poolId: 'x'.repeat(1_001) },
+      { ...receipt.resourceConsumption, chargeId: 'x'.repeat(241) }
+    ]) {
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.safeParse({
+          ...receipt,
+          resourceConsumption
+        }).success
+      ).toBe(false)
+    }
   })
 
   it('records only exact, non-overlapping Encounter Feature resource consumption', () => {

@@ -1,22 +1,17 @@
 import { Alert, Loader, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Link, Outlet } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
 import * as styles from './SocialEligibility.css'
 
 export function SocialEligibility() {
-  const queryClient = useQueryClient()
-  const eligibility = useQuery({
-    queryKey: queryKeys.socialHub.eligibility(),
-    queryFn: () => api.socialHub.eligibility.get()
-  })
+  const eligibility = useQuery(convexQuery(convexApi.social.profiles.getEligibility, {}))
+  const initializeSocial = useConvexMutation(convexApi.social.profiles.initialize)
   const initialize = useMutation({
-    mutationFn: () => api.socialHub.eligibility.initialize(),
-    onSuccess: (result) => {
-      queryClient.setQueryData(queryKeys.socialHub.eligibility(), result)
-    }
+    mutationFn: () => initializeSocial({})
   })
   const initializeProfile = initialize.mutate
 

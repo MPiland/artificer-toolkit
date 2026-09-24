@@ -1,7 +1,30 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSecurityHeaders, withSecurityHeaders } from './securityHeaders'
 
 describe('security headers', () => {
+  it('allows only the configured secure Convex endpoint and development loopback', () => {
+    const previousUrl = process.env.VITE_CONVEX_URL
+    const previousMode = process.env.NODE_ENV
+    try {
+      process.env.NODE_ENV = 'production'
+      process.env.VITE_CONVEX_URL = 'https://example.convex.cloud'
+      const secure = createSecurityHeaders()['Content-Security-Policy']
+      expect(secure).toContain('https://example.convex.cloud wss://example.convex.cloud')
+      expect(secure).not.toContain('*.convex.cloud')
+      process.env.VITE_CONVEX_URL = 'http://127.0.0.1:3220'
+      expect(createSecurityHeaders()['Content-Security-Policy']).not.toContain(':3220')
+      process.env.NODE_ENV = 'development'
+      expect(createSecurityHeaders()['Content-Security-Policy']).toContain(
+        'http://127.0.0.1:3220 ws://127.0.0.1:3220'
+      )
+      process.env.VITE_CONVEX_URL = 'http://public.example'
+      expect(createSecurityHeaders()['Content-Security-Policy']).not.toContain('public.example')
+    } finally {
+      if (previousUrl === undefined) delete process.env.VITE_CONVEX_URL
+      else process.env.VITE_CONVEX_URL = previousUrl
+      process.env.NODE_ENV = previousMode
+    }
+  })
   it('adds portable browser hardening headers without HSTS', () => {
     const response = withSecurityHeaders(new Response('ok'))
 
@@ -12,8 +35,9 @@ describe('security headers', () => {
   })
 
   it('enforces the complete browser content policy', () => {
-    const originalUrl = process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
-    delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('VITE_LIVE_SESSION_WEBSOCKET_URL', '')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', '')
 
     try {
       const response = withSecurityHeaders(new Response('ok'))
@@ -26,21 +50,15 @@ describe('security headers', () => {
       expect(csp).toContain("form-action 'self'")
       expect(csp).toContain("script-src 'self'")
       expect(csp).toContain("style-src 'self'")
-      expect(csp).toContain(
-        "img-src 'self' data: blob: https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321"
-      )
-      expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
+      expect(csp).toContain("img-src 'self' data: blob:")
+      expect(csp).toContain("connect-src 'self' blob:")
       expect(csp).not.toContain('novu.co')
-      expect(csp).toContain('http://127.0.0.1:54321')
-      expect(csp).toContain('ws://127.0.0.1:54321')
-      expect(csp).toContain('ws://127.0.0.1:2567')
+      expect(csp).not.toContain('supabase.co')
+      expect(csp).not.toContain(':54321')
+      expect(csp).toContain('ws://127.0.0.1:8787')
       expect(response.headers.get('Content-Security-Policy-Report-Only')).toBeNull()
     } finally {
-      if (originalUrl === undefined) {
-        delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
-      } else {
-        process.env.VITE_LIVE_SESSION_WEBSOCKET_URL = originalUrl
-      }
+      vi.unstubAllEnvs()
     }
   })
 
@@ -59,34 +77,15 @@ describe('security headers', () => {
     }
   })
 
-  it('allows the configured R2 map origin', () => {
-    const originalAccountId = process.env.R2_ACCOUNT_ID
-    process.env.R2_ACCOUNT_ID = '0123456789abcdef0123456789abcdef'
-
-    try {
-      const csp = createSecurityHeaders()['Content-Security-Policy']
-
-      expect(csp).toContain('https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com')
-    } finally {
-      if (originalAccountId === undefined) {
-        delete process.env.R2_ACCOUNT_ID
-      } else {
-        process.env.R2_ACCOUNT_ID = originalAccountId
-      }
-    }
-  })
-
-  it('keeps local Supabase origins out of production CSP', () => {
+  it('keeps retired Supabase origins out of production CSP', () => {
     const originalNodeEnv = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'
 
     try {
       const csp = createSecurityHeaders()['Content-Security-Policy']
 
-      expect(csp).toContain("img-src 'self' data: blob: https://*.supabase.co")
-      expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
-      expect(csp).not.toContain('http://127.0.0.1:54321')
-      expect(csp).not.toContain('ws://127.0.0.1:54321')
+      expect(csp).not.toContain('supabase.co')
+      expect(csp).not.toContain(':54321')
     } finally {
       if (originalNodeEnv === undefined) {
         delete process.env.NODE_ENV
@@ -187,5 +186,49 @@ describe('security headers', () => {
     expect(policy).toContain('geolocation=()')
     expect(policy).toContain('payment=()')
     expect(policy).not.toContain('ambient-light-sensor')
+  })
+})
+
+describe('media storage CSP source', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('adds the configured exact HTTPS origin to upload and image directives', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', 'https://bucket.account.r2.cloudflarestorage.com')
+
+    const csp = createSecurityHeaders()['Content-Security-Policy']
+    const connectSrc = csp.split('; ').find((directive) => directive.startsWith('connect-src'))
+    const imgSrc = csp.split('; ').find((directive) => directive.startsWith('img-src'))
+    expect(connectSrc).toContain('https://bucket.account.r2.cloudflarestorage.com')
+    expect(imgSrc).toContain('https://bucket.account.r2.cloudflarestorage.com')
+    expect(csp).not.toContain('*.r2.cloudflarestorage.com')
+  })
+
+  it('allows HTTP loopback media storage only in development', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', 'http://[::1]:9000')
+    expect(createSecurityHeaders()['Content-Security-Policy']).toContain('http://[::1]:9000')
+
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(createSecurityHeaders()['Content-Security-Policy']).not.toContain('http://[::1]:9000')
+  })
+
+  it.each([
+    'http://storage.example.com',
+    'ftp://storage.example.com',
+    'https://user:pass@storage.example.com',
+    'https://storage.example.com/path',
+    'https://storage.example.com/?query=value',
+    'https://storage.example.com/#fragment',
+    'https://*.r2.cloudflarestorage.com',
+    'not-a-url'
+  ])('rejects malformed or unsafe origin %s', (origin) => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', origin)
+
+    const csp = createSecurityHeaders()['Content-Security-Policy']
+    expect(csp).not.toContain(origin)
+    expect(csp).not.toContain('storage.example.com')
+    expect(csp).not.toContain('r2.cloudflarestorage.com')
   })
 })

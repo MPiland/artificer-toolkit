@@ -9,6 +9,41 @@ import { senseGrantDtoSchema } from '../grants/sense.js'
 import { spellGrantDtoSchema } from '../grants/spell.js'
 
 describe('grant and facet schema parsing', () => {
+  it('selects only the matching modifier domain and kind before validating its fields', () => {
+    let scopeReads = 0
+    const grant = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'remove-attribute',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'ATTRIBUTE',
+      modifierKind: 'REMOVE_OPTION',
+      get scope() {
+        scopeReads += 1
+        return 'GLOBAL'
+      },
+      payload: { attributeId: 'attribute-1' }
+    }
+    expect(modifierGrantDtoSchema.parse(grant)).toMatchObject({
+      valueDomainCode: 'ATTRIBUTE',
+      modifierKind: 'REMOVE_OPTION',
+      payload: { attributeId: 'attribute-1' }
+    })
+    expect(scopeReads).toBeLessThanOrEqual(2)
+    for (const invalid of [
+      { ...grant, valueDomainCode: 'UNKNOWN' },
+      { ...grant, modifierKind: 'UNKNOWN' },
+      {
+        ...grant,
+        modifierKind: 'BONUS',
+        payload: { valueKind: 'FIXED', amount: 1 }
+      },
+      { ...grant, payload: { damageTypeId: 'damage-1' } },
+      { ...grant, payload: undefined }
+    ])
+      expect(modifierGrantDtoSchema.safeParse(invalid).success).toBe(false)
+  })
+
   it('parses features with nested grant groups and options', () => {
     const parsed = featureDtoSchema.parse({
       id: 'fighting-style',
@@ -270,6 +305,35 @@ describe('grant and facet schema parsing', () => {
     ).toBe('DISADVANTAGE')
   })
 
+  it('scopes saving throw modifiers to a reusable rule definition', () => {
+    const grant = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'concentration-save-advantage',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'SAVING_THROW_MODIFIER',
+      domain: {
+        ability: 'CONSTITUTION',
+        ruleDefinitionId: '00000000-0000-4000-8000-0000000000c3'
+      },
+      modifierKind: 'ADVANTAGE',
+      scope: 'GLOBAL'
+    } as const
+
+    expect(
+      modifierGrantDtoSchema.parse({
+        ...grant,
+        domain: { ...grant.domain, ruleDefinitionId: grant.domain.ruleDefinitionId.toUpperCase() }
+      }).domain
+    ).toEqual(grant.domain)
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...grant,
+        domain: { ...grant.domain, ruleDefinitionId: 'concentration' }
+      }).success
+    ).toBe(false)
+  })
+
   it('parses explicit ALL grant authoring mode', () => {
     const parsed = featGrantDtoSchema.parse({
       grantKind: 'FEAT_GRANT',
@@ -508,6 +572,35 @@ describe('grant and facet schema parsing', () => {
   })
 
   it('rejects invalid facet predicate payloads once predicate correlation is enforced', () => {
+    for (const predicateCode of ['WHILE_SOURCE_EQUIPPED', undefined, 'UNKNOWN']) {
+      const result = facetDtoSchema.safeParse({
+        id: 'predicate-facet',
+        groups: [
+          {
+            id: 'group-1',
+            order: 1,
+            contexts: [
+              {
+                id: 'context-1',
+                order: 1,
+                subject: 'CHARACTER',
+                conditions: [
+                  {
+                    id: 'condition-1',
+                    order: 1,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })
+      expect(result.success).toBe(predicateCode === 'WHILE_SOURCE_EQUIPPED')
+    }
+
     expect(() =>
       facetDtoSchema.parse({
         id: 'bad-facet',

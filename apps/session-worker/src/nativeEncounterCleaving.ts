@@ -1,0 +1,289 @@
+import type {
+  LiveSessionEncounterRulesRequest,
+  LiveSessionEncounterRulesResponse
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
+import {
+  resolveEncounterActionSource,
+  type NativeEncounterActionSource
+} from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import {
+  buildEncounterCleavingCandidate,
+  nativeCleavingSourceCurrentness,
+  retainedCleavingDamage,
+  type CleavingContext
+} from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
+import {
+  createNativeCleavingChoice,
+  type NativeCleavingCandidate
+} from '@artificer-toolkit/rules-runtime/encounterCleavingChoice'
+import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
+import * as z from 'zod/mini'
+
+type CharacterFacts = Awaited<ReturnType<typeof prepareNativeLiveCharacterSheet>>
+type CleavingProjection = Pick<
+  Awaited<ReturnType<typeof planNativeLiveConcentration>>,
+  'actors' | 'projectedTargets' | 'activeEffectsByActorId' | 'maintenanceOwners'
+>
+type CleavingReads = {
+  state: EncounterRunState
+  occurredAt: string
+  initialActors: readonly EncounterRunActorState[]
+  projection: CleavingProjection
+  loadTarget: (actor: EncounterRunActorState) => Promise<MovementTarget<CharacterFacts>>
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}
+const characterDocument = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
+
+async function readNativeLiveCleavingCandidates(
+  input: CleavingReads & {
+    sourceActorId: string
+    action: CleavingContext['action']
+    scene: CleavingContext['scene']
+    originalAttack: CleavingContext['originalAttack']
+    visitedTargetActorIds: readonly string[]
+  }
+) {
+  const { state, scene } = input
+  const bindings = await input.capture({ kind: 'CLEAVING_BINDINGS' })
+  if (bindings.kind !== 'CLEAVING_BINDINGS') throw new Error('Cleaving bindings are unavailable.')
+  const eligible = bindings.bindings.filter(
+    (binding) =>
+      binding.actorId !== input.sourceActorId &&
+      !input.visitedTargetActorIds.includes(binding.actorId)
+  )
+  const targets = new Map(input.projection.projectedTargets)
+  await Promise.all(
+    [input.sourceActorId, ...eligible.map((binding) => binding.actorId)].map(async (actorId) => {
+      if (targets.has(actorId)) return
+      const before = input.initialActors.find((actor) => actor.id === actorId)
+      const actor = input.projection.actors.find((actor) => actor.id === actorId)
+      if (!before || !actor) throw new Error('Cleaving actor is unavailable.')
+      const target = await input.loadTarget(before)
+      const owner =
+        actor.kind === 'CHARACTER'
+          ? input.projection.maintenanceOwners.find(
+              (entry) =>
+                entry.owner.kind === 'CHARACTER' && entry.owner.characterId === actor.sourceId
+            )
+          : null
+      const row = owner?.character
+      const effects = input.projection.activeEffectsByActorId.get(actorId) ?? []
+      if (
+        !row &&
+        target.actor === actor &&
+        target.activeEffects.length === effects.length &&
+        target.activeEffects.every((effect, index) => effect === effects[index])
+      ) {
+        targets.set(actorId, target)
+        return
+      }
+      targets.set(
+        actorId,
+        projectEncounterActionTarget({
+          target: { ...target, activeEffects: effects },
+          actor,
+          plan: row
+            ? {
+                characterStreamVersion: row.streamVersion,
+                characterUpdate: {
+                  character: characterDocument.parse(JSON.parse(row.documentJson)),
+                  sheetState: row.sheetState
+                    ? characterSheetStateSchema.parse(JSON.parse(row.sheetState.documentJson))
+                    : null
+                }
+              }
+            : null,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt: input.occurredAt
+        })
+      )
+    })
+  )
+  const range = rangeDtoSchema.parse(input.action.range)
+  const candidates: NativeCleavingCandidate[] =
+    range.rangeKind === 'DISTANCE'
+      ? (
+          await Promise.all(
+            eligible.map(async (binding) => {
+              const target = targets.get(binding.actorId)
+              if (!target || target.actor.kind === 'CUSTOM') return null
+              const armorClass =
+                target.actor.kind === 'CHARACTER'
+                  ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
+                  : snapshotStatBlock(target.actor)?.armorClass
+              if (armorClass == null || target.actor.sourceRevision === null) return null
+              const captured = await input.capture({
+                kind: 'ACTION_SCENE',
+                command: {
+                  actorId: input.sourceActorId,
+                  targetActorId: target.actor.id,
+                  sceneContext: {
+                    sceneId: scene.sceneId,
+                    expectedSceneVersion: scene.sceneVersion,
+                    sourceTokenId: scene.sourceTokenId,
+                    targetTokenId: binding.tokenId
+                  }
+                }
+              })
+              if (captured.kind !== 'ACTION_SCENE')
+                throw new Error('Cleaving Scene is unavailable.')
+              const geometry = captured.context
+                ? {
+                    ...captured.context,
+                    grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+                      encounter: state,
+                      sceneGrid: captured.context.sceneGrid
+                    })
+                  }
+                : null
+              return buildEncounterCleavingCandidate({
+                target,
+                targetTokenId: binding.tokenId,
+                action: input.action,
+                scene,
+                originalAttack: input.originalAttack,
+                geometry
+              })
+            })
+          )
+        ).filter((candidate) => candidate !== null)
+      : []
+  return { candidates, targets }
+}
+
+/** Builds Cleaving only after its parent mechanics and concentration have settled in the plan. */
+export async function planNativeLiveCleaving(input: {
+  state: EncounterRunState
+  result: Extract<StoredRuleExecutionResultDto, { status: 'COMPLETE' }>
+  source: NativeEncounterActionSource
+  action: CleavingContext['action']
+  scene: CleavingContext['scene'] | null
+  occurredAt: string
+  initialActors: readonly EncounterRunActorState[]
+  projection: Awaited<ReturnType<typeof planNativeLiveConcentration>>
+  loadTarget: (actor: EncounterRunActorState) => Promise<MovementTarget<CharacterFacts>>
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const retained = retainedCleavingDamage(input.result)
+  const { scene, state } = input
+  if (
+    !retained ||
+    !scene ||
+    input.action.attackKind !== 'MELEE' ||
+    state.optionalCombatSnapshotChecksum === null
+  )
+    return null
+  const { candidates, targets } = await readNativeLiveCleavingCandidates({
+    ...input,
+    scene,
+    sourceActorId: input.source.actor.id,
+    originalAttack: retained.originalAttack,
+    visitedTargetActorIds: [retained.initialTargetActorId]
+  })
+  const source = targets.get(input.source.actor.id)
+  if (!source) throw new Error('Cleaving source is unavailable.')
+  return createNativeCleavingChoice({
+    ...state,
+    parentOccurrenceId: input.result.occurrenceId,
+    parentResultChecksum: checksumRuleDocument(input.result),
+    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+    sourceActorId: source.actor.id,
+    sourceControllerCharacterId: source.actor.kind === 'CHARACTER' ? source.actor.sourceId : null,
+    sourceCurrentness: nativeCleavingSourceCurrentness(source, input.source),
+    action: input.action,
+    scene,
+    ...retained,
+    visitedTargetActorIds: [retained.initialTargetActorId],
+    chainStep: 0,
+    candidates
+  })
+}
+
+/** Rebuilds a sealed deferred choice from current captured facts after the parent proof is read. */
+export async function rebuildNativeLiveDeferredCleaving(
+  input: CleavingReads & {
+    context: CleavingContext
+    system: SystemAuthoredDto
+  }
+) {
+  const { state, context } = input
+  const { candidates, targets } = await readNativeLiveCleavingCandidates({
+    ...input,
+    sourceActorId: context.sourceActorId,
+    action: context.action,
+    scene: context.scene,
+    originalAttack: context.originalAttack,
+    visitedTargetActorIds: context.visitedTargetActorIds
+  })
+  const sourceFacts = targets.get(context.sourceActorId)
+  if (!sourceFacts) throw new Error('Deferred Cleaving source is unavailable.')
+  const character = sourceFacts.characterReactionSource
+  const candidate = character?.mechanics.rulePolicyInput.actionCandidates.find(
+    (entry) => entry.actionId === context.action.actionId
+  )
+  const entry = candidate
+    ? character?.mechanics.compiledActionEntryPoints.find(
+        (
+          entry
+        ): entry is NonNullable<
+          Parameters<typeof resolveEncounterActionSource>[0]['characterSource']
+        >['entry'] =>
+          entry.actionId === context.action.actionId &&
+          entry.effectId === candidate.effectId &&
+          entry.kind === 'CHARACTER_ACTION' &&
+          entry.compilation.kind === 'COMPILED'
+      )
+    : undefined
+  const source = resolveEncounterActionSource({
+    actor: sourceFacts.actor,
+    actionId: context.action.actionId,
+    gameSystemId: state.gameSystemId,
+    system: input.system,
+    ...(character &&
+    candidate &&
+    entry?.kind === 'CHARACTER_ACTION' &&
+    entry.compilation.kind === 'COMPILED' &&
+    sourceFacts.effectiveRulePolicyOutput
+      ? {
+          characterSource: {
+            id: character.id,
+            streamVersion: character.streamVersion,
+            candidate,
+            entry,
+            effectivePolicyOutput: sourceFacts.effectiveRulePolicyOutput
+          }
+        }
+      : {})
+  })
+  const range =
+    source.kind === 'CREATURE'
+      ? buildCompiledActionTargetPolicy(source.capability).range
+      : source.entry.targetPolicy?.range
+  if (checksumRuleDocument(range) !== checksumRuleDocument(context.action.range))
+    throw new Error('Deferred Cleaving action is stale.')
+  return createNativeCleavingChoice({
+    ...state,
+    ...context,
+    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum ?? '',
+    sourceCurrentness: nativeCleavingSourceCurrentness(sourceFacts, source),
+    chainStep: context.chainStep - 1,
+    candidates
+  })
+}

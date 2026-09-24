@@ -1,6 +1,22 @@
-import type { SpellListResponseDto } from '#app/lib/api'
+import type { SpellListResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
 import { getSpellSchoolAccent } from './spellSchoolAccents'
+
+export interface SpellCatalogueItem {
+  id: string
+  publicId: string
+  label: string
+  description?: string | null
+  level?: number | null
+  magicSchoolId?: string | null
+  magicSchoolLabel?: string | null
+  classIds?: string[] | null
+  classLabels?: string[] | null
+  castingTimeUnit?: string | null
+  castingTimeAmount?: number | null
+  provenance: SpellListResponseDto['items'][number]['provenance']
+  permissions: SpellListResponseDto['items'][number]['permissions']
+}
 
 interface SpellMetaGroup {
   id: string | number
@@ -18,47 +34,48 @@ function formatCastingTime(amount?: number, unit?: string) {
 }
 
 export function mapSpellListToAuthoredItems(response: SpellListResponseDto): AuthoredListItem[] {
-  return response.items.map((item) => {
-    const schoolId = item.magicSchoolId ?? undefined
-    const school = item.magicSchoolLabel ?? undefined
-    const schoolAccent = getSpellSchoolAccent(school)
-    const classIds = item.classIds ?? []
-    const classLabels = item.classLabels ?? []
+  return response.items.map(mapSpellCatalogueItem)
+}
 
-    return {
-      id: item.id,
-      publicId: item.publicId,
+export function mapSpellCatalogueItem(item: SpellCatalogueItem): AuthoredListItem {
+  const schoolId = item.magicSchoolId ?? undefined
+  const school = item.magicSchoolLabel ?? undefined
+  const schoolAccent = getSpellSchoolAccent(school)
+  const classIds = item.classIds ?? []
+  const classLabels = item.classLabels ?? []
+
+  return {
+    id: item.id,
+    publicId: item.publicId,
+    name: item.label,
+    description: item.description ?? undefined,
+    attributes: {
+      level:
+        item.level == null ? undefined : Number(item.level) === 0 ? 'Cantrip' : String(item.level),
+      school,
+      classes: classLabels,
+      castingTime: formatCastingTime(
+        item.castingTimeAmount ?? undefined,
+        item.castingTimeUnit ?? undefined
+      )
+    },
+    filterValues: {
+      level: item.level == null ? undefined : String(item.level),
+      school: schoolId,
+      class: classIds
+    },
+    sortValues: {
+      level: item.level ?? 0,
       name: item.label,
-      description: item.description ?? undefined,
-      attributes: {
-        level:
-          item.level == null
-            ? undefined
-            : Number(item.level) === 0
-              ? 'Cantrip'
-              : String(item.level),
-        school,
-        classes: classLabels,
-        castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit)
-      },
-      filterValues: {
-        level: item.level == null ? undefined : String(item.level),
-        school: schoolId,
-        class: classIds
-      },
-      sortValues: {
-        level: item.level ?? 0,
-        name: item.label,
-        school
-      },
-      searchText: classLabels.join(' '),
-      accentColor: schoolAccent?.color,
-      accentLabel: schoolAccent?.label,
-      sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-      sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: item.permissions
-    }
-  })
+      school
+    },
+    searchText: classLabels.join(' '),
+    accentColor: schoolAccent?.color,
+    accentLabel: schoolAccent?.label,
+    sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
+    sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
+    permissions: item.permissions
+  }
 }
 
 export const spellListAttributeColumns = [
@@ -81,12 +98,24 @@ export function buildSpellListFilters(response: SpellListResponseDto): AuthoredL
     levels?: SpellMetaGroup[]
   }
 
+  return buildSpellFilters({
+    classes: spellMeta.classes ?? [],
+    levels: spellMeta.levels ?? [],
+    schools: spellMeta.schools ?? []
+  })
+}
+
+export function buildSpellFilters(facets: {
+  classes: SpellMetaGroup[]
+  levels: SpellMetaGroup[]
+  schools: SpellMetaGroup[]
+}): AuthoredListFilter[] {
   return [
     {
       key: 'school',
       label: 'School',
       placeholder: 'Any school',
-      options: (spellMeta.schools ?? []).map((entry) => ({
+      options: facets.schools.map((entry) => ({
         value: String(entry.id),
         label: getMetaOptionLabel(entry)
       }))
@@ -95,7 +124,7 @@ export function buildSpellListFilters(response: SpellListResponseDto): AuthoredL
       key: 'level',
       label: 'Level',
       placeholder: 'Any level',
-      options: (spellMeta.levels ?? []).map((entry) => ({
+      options: facets.levels.map((entry) => ({
         value: String(entry.id),
         label: Number(entry.id) === 0 ? 'Cantrip' : `Level ${entry.id}`
       }))
@@ -104,7 +133,7 @@ export function buildSpellListFilters(response: SpellListResponseDto): AuthoredL
       key: 'class',
       label: 'Class',
       placeholder: 'Any class',
-      options: (spellMeta.classes ?? []).map((entry) => ({
+      options: facets.classes.map((entry) => ({
         value: String(entry.id),
         label: getMetaOptionLabel(entry)
       }))

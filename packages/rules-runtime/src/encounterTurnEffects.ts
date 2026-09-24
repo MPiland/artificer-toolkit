@@ -1,0 +1,734 @@
+import {
+  executeTargetBoundActiveRuleEffectWithPause,
+  reconstructTargetBoundActiveRuleEffectCompletion,
+  resumeTargetBoundActiveRuleEffectWithPause,
+  verifyTargetBoundActiveRuleEffectContinuation,
+  type TargetBoundActiveRuleEffectExecutionResult,
+  type TargetBoundActiveRuleEffectExecutionInput
+} from './targetBoundActiveRuleEffectExecutor.js'
+import {
+  deriveEncounterCharacterMechanicsEventCommandId,
+  foldCharacterMechanicsApplications
+} from './encounterCharacterMechanicsBatch.js'
+import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import {
+  type EncounterRunActorState,
+  type EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  ActiveRuleEffectRecord,
+  EncounterMaintainedEffectStateRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import {
+  storedRuleExecutionResultDtoSchema,
+  type PendingCompletedTurnPhaseDto,
+  type StagedTurnEffectPlanDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import {
+  serverKernelRuleExecutionPendingSnapshotDtoSchema,
+  type ServerKernelRuleExecutionPendingSnapshotDto,
+  type ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EncounterMechanicsBatchInput } from './encounterMechanicsBatchPlan.js'
+import { planEncounterMechanicsBatch } from './encounterMechanicsBatchPlan.js'
+import {
+  projectEncounterActionTarget,
+  type ProjectableCharacterFacts
+} from './encounterActionProjection.js'
+import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
+import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  isTurnEffectEligible,
+  requireTurnMaintainedStates,
+  turnEffectOwner,
+  turnEffectRetainedConditions,
+  turnEffectSelectionChecksum,
+  type TurnEffectBoundary
+} from './encounterTurnEffectState.js'
+
+type TurnExecution = StagedTurnEffectPlanDto['executions'][number]
+type TurnPending = Extract<
+  ServerRuleExecutionPendingSnapshotDto['applicationContext'],
+  { kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' }
+>
+
+function same(left: unknown, right: unknown) {
+  return checksumCanonicalJson(left) === checksumCanonicalJson(right)
+}
+
+function targetChecksum(
+  target: MovementTarget,
+  state: {
+    current: number
+    temporary: number
+    conditions: readonly string[]
+    scalarValues: Readonly<Record<string, number>>
+  }
+) {
+  return checksumRuleDocument({
+    targetActorId: target.actor.id,
+    currentHitPoints: state.current,
+    temporaryHitPoints: state.temporary,
+    maximumHitPoints: target.effectiveMaximumHitPoints,
+    scalarValues: state.scalarValues,
+    conditionIds: state.conditions
+  })
+}
+
+function pendingCandidate(input: {
+  ordinal: number
+  boundary: TurnEffectBoundary
+  target: MovementTarget
+  effect: ActiveRuleEffectRecord
+  state: ReturnType<typeof executionState>
+  d20Policy?: unknown
+}) {
+  const currentness = input.target.characterCurrentness
+  return {
+    ordinal: input.ordinal,
+    boundaryOrdinal: input.boundary.ordinal,
+    stage: input.boundary.stage,
+    targetActorId: input.target.actor.id,
+    owner:
+      currentness && input.target.actor.kind === 'CHARACTER' && input.target.actor.sourceId
+        ? {
+            kind: 'CHARACTER' as const,
+            characterId: input.target.actor.sourceId,
+            streamVersion: input.target.actor.sourceRevision!,
+            projectionChecksum: currentness.projectionChecksum,
+            mechanicalContextChecksum: currentness.mechanicalContextChecksum
+          }
+        : { kind: 'ENCOUNTER_ACTOR' as const },
+    activeEffectId: input.effect.id,
+    createdOrdinal: input.effect.createdOrdinal,
+    effectVersion: input.effect.version,
+    definitionChecksum: input.effect.definitionChecksum,
+    lifecycleChecksum: input.effect.lifecycleChecksum,
+    targetStateChecksum: targetChecksum(input.target, input.state),
+    d20Policy: input.d20Policy ?? null
+  }
+}
+
+function executionState(target: MovementTarget) {
+  return {
+    current: target.state.current,
+    temporary: target.state.temporary,
+    conditions: [...target.state.conditions],
+    scalarValues: { ...target.effectiveScalarValues }
+  }
+}
+
+function lifecycle(effect: ActiveRuleEffectRecord, terminal: boolean) {
+  const remaining = effect.lifecycle.remainingTicks
+  if (terminal || remaining === 1)
+    return {
+      kind: 'EXPIRE' as const,
+      expectedVersion: effect.version,
+      beforeRemainingTicks: remaining,
+      afterRemainingTicks: remaining === null ? null : (0 as const),
+      beforeLifecycleChecksum: effect.lifecycleChecksum
+    }
+  const afterRemainingTicks = remaining === null ? null : remaining - 1
+  return {
+    kind: 'UPDATE' as const,
+    expectedVersion: effect.version,
+    afterVersion: effect.version + 1,
+    beforeRemainingTicks: remaining,
+    afterRemainingTicks,
+    beforeLifecycleChecksum: effect.lifecycleChecksum,
+    afterLifecycleChecksum: checksumRuleDocument({
+      schemaVersion: 1,
+      remainingTicks: afterRemainingTicks
+    })
+  }
+}
+
+function requirePending(pending: ServerRuleExecutionPendingSnapshotDto): {
+  context: TurnPending
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+} {
+  if (
+    pending.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    pending.applicationContext.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
+  )
+    throw new Error('The pending occurrence is not turn-effect evidence.')
+  return { context: pending.applicationContext, snapshot: pending }
+}
+
+function kernelContinuation(snapshot: ServerKernelRuleExecutionPendingSnapshotDto) {
+  const {
+    snapshotKind: _snapshotKind,
+    optionalCombatSnapshotChecksum: _optional,
+    applicationContext: _context,
+    ...continuation
+  } = snapshot
+  return continuation
+}
+
+function overlayEffects(
+  effects: readonly ActiveRuleEffectRecord[],
+  prior?: PendingCompletedTurnPhaseDto
+) {
+  if (prior?.kind !== 'STAGED') return [...effects]
+  return effects.flatMap((effect) => {
+    const execution = prior.plan.executions.find((entry) => entry.activeEffectId === effect.id)
+    if (!execution) return [effect]
+    if (
+      effect.version !== execution.beforeVersion ||
+      effect.definitionChecksum !== execution.definition.definitionChecksum ||
+      effect.lifecycleChecksum !== execution.lifecycle.beforeLifecycleChecksum ||
+      effect.lifecycle.remainingTicks !== execution.lifecycle.beforeRemainingTicks ||
+      execution.lifecycle.expectedVersion !== effect.version
+    )
+      throw new Error('Prior turn effect lifecycle is stale.')
+    if (execution.lifecycle.kind === 'EXPIRE') return []
+    return [
+      {
+        ...effect,
+        version: execution.lifecycle.afterVersion,
+        lifecycle: {
+          schemaVersion: 1 as const,
+          remainingTicks: execution.lifecycle.afterRemainingTicks
+        },
+        lifecycleChecksum: execution.lifecycle.afterLifecycleChecksum
+      }
+    ]
+  })
+}
+
+function completeExecution(input: {
+  ordinal: number
+  boundary: TurnEffectBoundary
+  target: MovementTarget
+  effect: ActiveRuleEffectRecord
+  state: ReturnType<typeof executionState>
+  retainedConditionIds: readonly string[]
+  result: TargetBoundActiveRuleEffectExecutionResult
+}): TurnExecution {
+  const { target, effect, result } = input
+  const folded = foldCharacterMechanicsApplications({
+    targetActorId: target.actor.id,
+    currentHitPoints: input.state.current,
+    temporaryHitPoints: input.state.temporary,
+    maximumHitPoints: target.effectiveMaximumHitPoints,
+    scalarValues: input.state.scalarValues,
+    conditionIds: input.state.conditions,
+    retainedConditionIds: [
+      ...new Set([
+        ...input.retainedConditionIds,
+        ...(target.characterFacts?.campaignContext.conditions ?? []).map(
+          (condition) => condition.conditionTypeId
+        )
+      ])
+    ],
+    applications: result.applications
+  })
+  return {
+    ordinal: input.ordinal,
+    boundaryOrdinal: input.boundary.ordinal,
+    stage: input.boundary.stage,
+    targetActorId: target.actor.id,
+    owner:
+      target.actor.kind === 'CHARACTER' && target.actor.sourceId
+        ? { kind: 'CHARACTER', characterId: target.actor.sourceId }
+        : { kind: 'ENCOUNTER_ACTOR' },
+    activeEffectId: effect.id,
+    createdOrdinal: effect.createdOrdinal,
+    beforeVersion: effect.version,
+    definition: {
+      authoredEffectId: effect.definition.authoredEffectId,
+      compiledEntryId: effect.definition.compiledEntryId,
+      frozenGraphNodeId: effect.definition.frozenGraphNodeId,
+      frozenSourceChecksum: effect.definition.frozenGraph.source.checksum,
+      capabilityContractVersion: effect.definition.frozenGraph.capabilityContractVersion,
+      definitionChecksum: effect.definitionChecksum
+    },
+    execution: result.execution,
+    d20: result.d20,
+    targetTransition: {
+      checksum: checksumRuleDocument({ targetActorId: target.actor.id, ...folded.before }),
+      before: folded.before,
+      after: folded.after
+    },
+    applications: folded.applications,
+    lifecycle: lifecycle(effect, result.terminal)
+  }
+}
+
+export async function evaluateEncounterTurnEffects(input: {
+  createRuntime: () => Promise<RulesRuntimeService>
+  rollD20: () => number
+  resolvePerception: (input: {
+    actors: EncounterRunActorState[]
+    target: MovementTarget
+    targets: ReadonlyMap<string, MovementTarget>
+    effect: ActiveRuleEffectRecord
+  }) => Promise<TargetBoundActiveRuleEffectExecutionInput['perception']>
+  state: EncounterRunState
+  userId: string
+  occurrenceId: string
+  actors: EncounterRunActorState[]
+  boundary: TurnEffectBoundary
+  target: MovementTarget
+  targets: ReadonlyMap<string, MovementTarget>
+  effects: ActiveRuleEffectRecord[]
+  candidates: ActiveRuleEffectRecord[]
+  selectionChecksum: string
+  root?: TurnCoordinatorRootDto
+  pending?: ServerRuleExecutionPendingSnapshotDto
+  resolution?: unknown
+  retainedPlan?: StagedTurnEffectPlanDto
+}) {
+  const retained = input.pending ? requirePending(input.pending) : null
+  const pending = retained?.context
+  if (
+    pending &&
+    (input.state.automationMode !== 'ASSISTED' ||
+      !same(pending.root, input.root) ||
+      pending.selectionChecksum !== input.selectionChecksum ||
+      pending.completedExecutions.length !== pending.currentCandidate.ordinal ||
+      pending.completedExecutions.length + pending.remainingCandidates.length + 1 !==
+        input.candidates.length)
+  )
+    throw new Error('Turn effect evidence is stale.')
+  if (
+    input.retainedPlan &&
+    (input.retainedPlan.selectionChecksum !== input.selectionChecksum ||
+      input.retainedPlan.executions.length !== input.candidates.length)
+  )
+    throw new Error('Retained turn effect selection is stale.')
+  if (pending && input.retainedPlan) throw new Error('Turn effect evidence is ambiguous.')
+  // Check the entire issued suffix before consuming any new random evidence.
+  if (pending) {
+    for (const expected of [pending.currentCandidate, ...pending.remainingCandidates]) {
+      const effect = input.candidates[expected.ordinal]
+      if (!effect) throw new Error('Turn effect candidate is stale.')
+      const actual = pendingCandidate({
+        ordinal: expected.ordinal,
+        boundary: input.boundary,
+        target: input.target,
+        effect,
+        state: executionState(input.target),
+        d20Policy: expected.ordinal === pending.currentCandidate.ordinal ? expected.d20Policy : null
+      })
+      if (!same({ ...actual, targetStateChecksum: expected.targetStateChecksum }, expected))
+        throw new Error('Turn effect candidate is stale.')
+    }
+  }
+  const runtime = await input.createRuntime()
+  const executions: TurnExecution[] = []
+  const applications: CharacterRuleActionApplication[] = []
+  const expired = new Set<string>()
+  let state = executionState(input.target)
+  for (const [ordinal, effect] of input.candidates.entries()) {
+    if (effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId)
+      throw new Error('Turn effect Game System is stale.')
+    const recurrence = effect.definition.recurrence
+    if (
+      recurrence.consumeOnFirstEvent !== null ||
+      recurrence.endOnEvents.length !== 0 ||
+      (recurrence.expiration.kind === 'TICKS' &&
+        (recurrence.expiration.decrementStage !== input.boundary.stage ||
+          effect.lifecycle.remainingTicks === null ||
+          effect.lifecycle.remainingTicks < 1)) ||
+      (recurrence.expiration.kind === 'INDEFINITE' && effect.lifecycle.remainingTicks !== null) ||
+      !Number.isSafeInteger(effect.version + 1)
+    )
+      throw new Error('Turn effect recurrence is unsupported.')
+    const effectInput: TargetBoundActiveRuleEffectExecutionInput = {
+      activeEffectId: effect.id,
+      activeEffectVersion: effect.version,
+      definition: effect.definition,
+      lifecycle: effect.lifecycle,
+      lifecycleChecksum: effect.lifecycleChecksum,
+      occurrenceId: input.occurrenceId,
+      targetActorId: input.target.actor.id,
+      currentHitPoints: state.current,
+      temporaryHitPoints: state.temporary,
+      maximumHitPoints: input.target.effectiveMaximumHitPoints,
+      targetScalarValues: state.scalarValues,
+      targetConditionIds: state.conditions,
+      targetDerivedFacts: input.target.targetDerivedFacts,
+      defenses: input.target.defenses,
+      conditionImmunityIds: input.target.conditionImmunityIds,
+      perception: await input.resolvePerception({
+        actors: input.actors,
+        target: input.target,
+        targets: input.targets,
+        effect
+      }),
+      runtime,
+      adapters: characterRuleActionSystemAdapterRegistry
+    }
+    const existing =
+      input.retainedPlan?.executions[ordinal] ??
+      (pending && ordinal < pending.currentCandidate.ordinal
+        ? pending.completedExecutions[ordinal]
+        : undefined)
+    if (
+      existing &&
+      (!same(existing.execution.evidence.source, effect.definition.frozenGraph.source) ||
+        !same(
+          existing.execution.evidence.sourceEntryBindings ?? [],
+          effect.definition.frozenGraph.sourceEntryBindings ?? []
+        ))
+    )
+      throw new Error('Retained turn effect source bindings are stale.')
+    const resuming = pending && ordinal === pending.currentCandidate.ordinal
+    if (
+      resuming &&
+      !same(
+        pendingCandidate({
+          ordinal,
+          boundary: input.boundary,
+          target: input.target,
+          effect,
+          state,
+          d20Policy: pending.currentCandidate.d20Policy
+        }),
+        pending.currentCandidate
+      )
+    )
+      throw new Error('Turn effect target evidence is stale.')
+    let result = existing
+      ? reconstructTargetBoundActiveRuleEffectCompletion({
+          executionInput: effectInput,
+          execution: existing.execution,
+          d20Evidence: existing.d20
+        })
+      : resuming
+        ? await (async () => {
+            const continuation = kernelContinuation(retained!.snapshot)
+            verifyTargetBoundActiveRuleEffectContinuation({
+              ...effectInput,
+              continuation,
+              expectedEvidencePolicy: pending.currentCandidate.d20Policy
+            })
+            const resolution = input.resolution
+            if (
+              !resolution ||
+              typeof resolution !== 'object' ||
+              !('requestId' in resolution) ||
+              typeof resolution.requestId !== 'string'
+            )
+              throw new Error('Turn effect d20 evidence is required.')
+            const systemRoll = 'kind' in resolution && resolution.kind === 'SYSTEM_ROLL'
+            const policy = pending.currentCandidate.d20Policy
+            if (resolution.requestId !== continuation.request.requestId || !policy)
+              throw new Error('Turn effect d20 request is stale.')
+            const rawFaces = systemRoll
+              ? Array.from({ length: policy.rollMode === 'NORMAL' ? 1 : 2 }, input.rollD20)
+              : 'rawFaces' in resolution &&
+                  Array.isArray(resolution.rawFaces) &&
+                  resolution.rawFaces.every((face): face is number => typeof face === 'number')
+                ? resolution.rawFaces
+                : null
+            if (!rawFaces) throw new Error('Turn effect d20 evidence is required.')
+            return resumeTargetBoundActiveRuleEffectWithPause({
+              ...effectInput,
+              continuation,
+              resolution: { requestId: resolution.requestId, rawFaces },
+              expectedEvidencePolicy: policy
+            })
+          })()
+        : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
+    if ('continuation' in result && input.state.automationMode === 'AUTOMATIC') {
+      if (!result.evidencePolicy) throw new Error('Automatic turn effect has no d20 policy.')
+      result = await resumeTargetBoundActiveRuleEffectWithPause({
+        ...effectInput,
+        continuation: result.continuation,
+        resolution: {
+          requestId: result.continuation.request.requestId,
+          rawFaces: Array.from(
+            { length: result.evidencePolicy.rollMode === 'NORMAL' ? 1 : 2 },
+            input.rollD20
+          )
+        },
+        expectedEvidencePolicy: result.evidencePolicy
+      })
+      if ('continuation' in result) throw new Error('Automatic turn effect did not complete.')
+    }
+    if ('continuation' in result) {
+      if (!input.root) throw new Error('Turn effect reconstruction requested new evidence.')
+      return {
+        kind: 'PENDING' as const,
+        snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+          ...result.continuation,
+          snapshotKind: 'KERNEL_EVIDENCE',
+          applicationContext: {
+            kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
+            schemaVersion: 1,
+            root: input.root,
+            selectionChecksum: input.selectionChecksum,
+            currentCandidate: pendingCandidate({
+              ordinal,
+              boundary: input.boundary,
+              target: input.target,
+              effect,
+              state,
+              d20Policy: result.evidencePolicy
+            }),
+            completedExecutions: executions,
+            remainingCandidates: input.candidates.slice(ordinal + 1).map((remaining, offset) =>
+              pendingCandidate({
+                ordinal: ordinal + offset + 1,
+                boundary: input.boundary,
+                target: input.target,
+                effect: remaining,
+                state
+              })
+            )
+          }
+        })
+      }
+    }
+    const execution = completeExecution({
+      ordinal,
+      boundary: input.boundary,
+      target: input.target,
+      effect,
+      state,
+      retainedConditionIds: turnEffectRetainedConditions(effect, input.effects, expired),
+      result
+    })
+    if (existing && !same(existing, execution))
+      throw new Error('Retained turn effect execution is stale.')
+    executions.push(execution)
+    applications.push(...result.applications)
+    const after = execution.targetTransition.after
+    state = {
+      current: after.currentHitPoints,
+      temporary: after.temporaryHitPoints,
+      conditions: after.conditionIds,
+      scalarValues: after.scalarValues
+    }
+    if (execution.lifecycle.kind === 'EXPIRE') expired.add(effect.id)
+  }
+  const retainedConditionIds = [
+    ...new Set(
+      input.candidates.flatMap((effect) =>
+        turnEffectRetainedConditions(effect, input.effects, expired)
+      )
+    )
+  ].sort()
+  return {
+    kind: 'COMPLETE' as const,
+    plan: { selectionChecksum: input.selectionChecksum, executions },
+    applications,
+    retainedConditionIds
+  }
+}
+
+export function turnEffectMechanicsBatch(input: {
+  state: EncounterRunState
+  occurrenceId: string
+  rootCommandId: string
+  occurredAt: string
+  boundary: TurnEffectBoundary
+  target: MovementTarget
+  applications: readonly CharacterRuleActionApplication[]
+  retainedConditionIds: readonly string[]
+}): EncounterMechanicsBatchInput {
+  const actor = input.target.actor
+  return {
+    encounterId: input.state.id,
+    targetActorId: actor.id,
+    expectedEncounterVersion: input.state.version,
+    occurrenceId: input.occurrenceId,
+    sourceCommandId: input.rootCommandId,
+    commandId:
+      actor.kind === 'CHARACTER' && actor.sourceId
+        ? deriveEncounterCharacterMechanicsEventCommandId({
+            occurrenceId: input.occurrenceId,
+            sourceCommandId: input.rootCommandId,
+            phase: 'TURN_EFFECT',
+            ordinal: input.boundary.ordinal,
+            targetCharacterId: actor.sourceId
+          })
+        : input.rootCommandId,
+    occurredAt: input.occurredAt,
+    applications: input.applications,
+    effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
+    effectiveScalarValues: input.target.effectiveScalarValues,
+    retainedConditionIds: input.retainedConditionIds,
+    forceVersionAdvance: actor.kind === 'CHARACTER'
+  }
+}
+
+/** Plans active effects without changing mechanics, lifecycles, or the Run. */
+export async function prepareEncounterTurnEffects<
+  TCharacterFacts extends ProjectableCharacterFacts
+>(input: {
+  state: EncounterRunState
+  listEffects: (owner: ReturnType<typeof turnEffectOwner>) => Promise<ActiveRuleEffectRecord[]>
+  loadMaintainedState: (stateId: string) => Promise<EncounterMaintainedEffectStateRecord | null>
+  loadTarget: (actorId: string) => Promise<MovementTarget<TCharacterFacts> | undefined>
+  createRuntime: () => Promise<RulesRuntimeService>
+  rollD20: () => number
+  resolvePerception: Parameters<typeof evaluateEncounterTurnEffects>[0]['resolvePerception']
+  userId: string
+  root: TurnCoordinatorRootDto
+  occurrenceId: string
+  actors: EncounterRunActorState[]
+  boundary: TurnEffectBoundary
+  pending?: ServerRuleExecutionPendingSnapshotDto
+  resolution?: unknown
+  retainedPhase?: PendingCompletedTurnPhaseDto
+  priorPlan?: PendingCompletedTurnPhaseDto
+  movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}): Promise<
+  | { kind: 'PENDING'; snapshot: ServerRuleExecutionPendingSnapshotDto }
+  | {
+      kind: 'COMPLETE'
+      actors: EncounterRunActorState[]
+      movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+      plan: StagedTurnEffectPlanDto | null
+      phase: PendingCompletedTurnPhaseDto
+    }
+> {
+  const targets = new Map(input.movementTargets)
+  const none = () => {
+    if (input.pending || (input.retainedPhase && input.retainedPhase.kind !== 'NONE'))
+      throw new Error('Retained turn effect selection is stale.')
+    return {
+      kind: 'COMPLETE' as const,
+      actors: input.actors,
+      movementTargets: targets,
+      plan: null,
+      phase: { kind: 'NONE' as const }
+    }
+  }
+  if (input.boundary.actorId === null) return none()
+  const actor = input.actors.find((candidate) => candidate.id === input.boundary.actorId)
+  if (!actor) throw new Error('Turn effect actor is unavailable.')
+  const currentEffects = await input.listEffects(turnEffectOwner(actor, input.state.id))
+  if (
+    input.priorPlan?.kind === 'STAGED' &&
+    input.priorPlan.plan.executions.some(
+      (entry) =>
+        entry.targetActorId === actor.id &&
+        !currentEffects.some((effect) => effect.id === entry.activeEffectId)
+    )
+  )
+    throw new Error('Prior turn effect selection is stale.')
+  const effects = overlayEffects(currentEffects, input.priorPlan)
+  const candidates = effects
+    .filter((effect) => isTurnEffectEligible(effect, actor, input.state, input.boundary.stage))
+    .sort(
+      (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
+    )
+  if (!candidates.length) return none()
+  if (
+    candidates.length +
+      (input.priorPlan?.kind === 'STAGED' ? input.priorPlan.plan.executions.length : 0) >
+    128
+  )
+    throw new Error('A turn may execute at most 128 active effects.')
+  const selected = turnEffectSelectionChecksum(
+    input.root.commandType,
+    input.boundary,
+    actor,
+    input.state.id,
+    candidates
+  )
+  if (input.retainedPhase?.kind === 'NONE')
+    throw new Error('Retained turn effect selection is stale.')
+  if (input.state.automationMode === 'MANUAL') {
+    const phase: PendingCompletedTurnPhaseDto = {
+      kind: 'MANUAL',
+      selectionChecksum: selected,
+      result: storedRuleExecutionResultDtoSchema.parse({
+        status: 'MANUAL',
+        occurrenceId: input.occurrenceId,
+        occurrenceVersion: 1,
+        reminder: { kind: 'MANUAL_RULE_REVIEW' }
+      })
+    }
+    if (input.pending || (input.retainedPhase && !same(phase, input.retainedPhase)))
+      throw new Error('Retained manual turn effects are stale.')
+    return {
+      kind: 'COMPLETE',
+      actors: input.actors,
+      movementTargets: targets,
+      plan: null,
+      phase
+    }
+  }
+  if (input.retainedPhase?.kind === 'MANUAL') throw new Error('Retained turn automation is stale.')
+  await requireTurnMaintainedStates(input.state.id, candidates, input.loadMaintainedState)
+  let target = targets.get(actor.id)
+  if (!target) target = await input.loadTarget(actor.id)
+  if (!target) throw new Error('Turn effect target facts are unavailable.')
+  // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
+  target = buildMovementTarget({
+    actor,
+    activeEffects: effects,
+    characterFacts: target.characterFacts,
+    campaignId: input.state.campaignId,
+    gameSystemId: input.state.gameSystemId,
+    includeReactionSources: target.characterReactionSource !== undefined
+  })
+  targets.set(actor.id, target)
+  const evaluated = await evaluateEncounterTurnEffects({
+    ...input,
+    target,
+    targets,
+    effects,
+    candidates,
+    selectionChecksum: selected,
+    retainedPlan: input.retainedPhase?.kind === 'STAGED' ? input.retainedPhase.plan : undefined
+  })
+  if (evaluated.kind === 'PENDING') return evaluated
+  const batch = turnEffectMechanicsBatch({
+    ...input,
+    target,
+    rootCommandId: input.root.rootCommandId,
+    occurredAt: target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z',
+    applications: evaluated.applications,
+    retainedConditionIds: evaluated.retainedConditionIds
+  })
+  const mechanics = planEncounterMechanicsBatch({
+    batch,
+    actor,
+    userId: input.userId,
+    characterFacts: target.characterFacts ?? undefined
+  })
+  const first = evaluated.plan.executions[0]!
+  const last = evaluated.plan.executions.at(-1)!
+  if (
+    !same(mechanics.targetTransition.before, first.targetTransition.before) ||
+    !same(mechanics.targetTransition.after, last.targetTransition.after)
+  )
+    throw new Error('Grouped turn effect target transition is stale.')
+  const projected = projectEncounterActionTarget({
+    target,
+    actor: mechanics.updatedActor,
+    plan: mechanics,
+    campaignId: input.state.campaignId,
+    gameSystemId: input.state.gameSystemId,
+    occurredAt: batch.occurredAt
+  })
+  // The next boundary observes expired/updated rows as well as staged target mechanics.
+  targets.set(
+    actor.id,
+    buildMovementTarget({
+      actor: projected.actor,
+      activeEffects: overlayEffects(effects, { kind: 'STAGED', plan: evaluated.plan }),
+      characterFacts: projected.characterFacts,
+      campaignId: input.state.campaignId,
+      gameSystemId: input.state.gameSystemId,
+      includeReactionSources: target.characterReactionSource !== undefined
+    })
+  )
+  return {
+    kind: 'COMPLETE',
+    actors: input.actors.map((value) => (value.id === actor.id ? mechanics.updatedActor : value)),
+    movementTargets: targets,
+    plan: evaluated.plan,
+    phase: { kind: 'STAGED', plan: evaluated.plan }
+  }
+}

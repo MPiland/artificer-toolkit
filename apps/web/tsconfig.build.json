@@ -10,7 +10,6 @@
     "src/router.tsx",
     "src/routes/**/*",
     "src/server.ts",
-    "src/supabase/**/*",
     "vite-env.d.ts"
   ],
   "exclude": [

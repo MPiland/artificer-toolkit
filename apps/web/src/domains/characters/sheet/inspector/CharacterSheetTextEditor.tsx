@@ -1,7 +1,7 @@
 import { Textarea, TextInput } from '@mantine/core'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 

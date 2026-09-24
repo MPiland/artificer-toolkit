@@ -1,30 +1,25 @@
-import type { Api, AuthoredDetailRequestDto, VehicleListRequestDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
+import { convexQuery } from '@convex-dev/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  authoredDetailReadInputSchema,
+  vehicleResponseDtoSchema,
+  type AuthoredDetailRequestDto
+} from '@artificer-toolkit/schema/api/content'
 
 type DetailInput = string | AuthoredDetailRequestDto
 
-const vehicleQueries = createAuthoredContentQueries(
-  (client) => client.content.vehicles,
-  queryKeys.content.vehicles
-)
-
-export function getVehicleList(input: VehicleListRequestDto, client?: Api) {
-  return vehicleQueries.getList(input, client)
-}
-
-export function useGetVehicleList(input: VehicleListRequestDto) {
-  return vehicleQueries.useList(input)
-}
-
-export function getVehicle(input: DetailInput, client?: Api) {
-  return vehicleQueries.getDetail(input, client)
+export function getVehicle(input: DetailInput) {
+  const args = authoredDetailReadInputSchema.parse({
+    ...(typeof input === 'string' ? { id: input } : input),
+    subjectKind: 'VEHICLE'
+  })
+  return queryOptions({
+    ...convexQuery(convexApi.content.details.get, args),
+    select: (result) => vehicleResponseDtoSchema.parse(result)
+  })
 }
 
 export function useGetVehicle(input: DetailInput) {
-  return vehicleQueries.useDetail(input)
-}
-
-export function getVehicleDraft(id: string, client?: Api) {
-  return vehicleQueries.getDraft(id, client)
+  return useSuspenseQuery(getVehicle(input))
 }

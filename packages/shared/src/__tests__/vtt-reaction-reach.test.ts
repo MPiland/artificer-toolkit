@@ -209,6 +209,37 @@ describe('reaction reach contact collection', () => {
     expect(candidates.map((candidate) => candidate.sourceId)).toEqual(['a', 'b-enter'])
   })
 
+  it.each([
+    {
+      sources: [
+        source({ sourceId: 'self-before', reactorTokenId: ids.moverToken }),
+        source({ sourceId: 'external', reactorTokenId: ids.reactorToken }),
+        source({ sourceId: 'self-after', reactorTokenId: ids.moverToken })
+      ]
+    },
+    {
+      sources: [
+        source({ sourceId: 'external', reactorTokenId: ids.reactorToken }),
+        source({ sourceId: 'self-after', reactorTokenId: ids.moverToken })
+      ]
+    }
+  ] as const)(
+    'keeps external contacts when self-reactor sources occur around them',
+    ({ sources }) => {
+      const candidates = collect({
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ],
+        sources
+      })
+      expect(candidates.map((candidate) => candidate.sourceId)).toEqual(['external'])
+      expect(candidates.every((candidate) => candidate.reactorActorId !== ids.moverActor)).toBe(
+        true
+      )
+    }
+  )
+
   it('fails closed for invalid source/token/path input', () => {
     const path = [
       { x: -5, y: 0 },

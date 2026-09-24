@@ -17,12 +17,12 @@ import { CircleHelp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type {
   EncounterGmProjectionDto,
+  EncounterCommandResultDto,
   EncounterPlayerProjectionDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { initiativeDeclarationSelectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import type { LiveSessionCommittedMessage } from './liveSessionClient'
 import {
   adjudicationSelectionValues,
   decisionTitle,
@@ -40,7 +40,7 @@ export function CampaignTabletopDecisionDrawer({
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto
   submitting: boolean
-  onResolve: (command: ResolveRuleOccurrenceInputDto) => Promise<LiveSessionCommittedMessage>
+  onResolve: (command: ResolveRuleOccurrenceInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const [localPending, setLocalPending] = useState(false)
@@ -72,7 +72,7 @@ export function CampaignTabletopDecisionDrawer({
     setFeedback(null)
     setError(null)
     try {
-      const committed = await onResolve({
+      const result = await onResolve({
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: encounter.id,
         commandId: crypto.randomUUID(),
@@ -82,14 +82,8 @@ export function CampaignTabletopDecisionDrawer({
         correlationId: null,
         resolution
       })
-      if (committed.aggregateKind !== 'ENCOUNTER' || !committed.response) {
-        throw new Error('The live session returned an unexpected decision result.')
-      }
-      if (!('projection' in committed.response)) {
-        throw new Error('The live session returned an unexpected decision result.')
-      }
       setFeedback(
-        committed.response.occurrence?.status === 'PENDING'
+        result.occurrence?.status === 'PENDING'
           ? 'Decision recorded. Another decision is ready.'
           : 'Decision resolved.'
       )
@@ -122,7 +116,11 @@ export function CampaignTabletopDecisionDrawer({
       >
         <Stack gap='md' aria-busy={localPending || undefined}>
           <div>
-            <Text fw={650}>{decisionTitle(pending.kind)}</Text>
+            <Text fw={650}>
+              {pending.kind === 'OPTIONAL_COMBAT_CLEAVING'
+                ? 'Cleaving choice'
+                : decisionTitle(pending.kind)}
+            </Text>
             <Text c='dimmed' size='sm'>
               This choice is durable. Reconnecting returns to the same decision.
             </Text>
@@ -185,7 +183,9 @@ export function CampaignTabletopDecisionDrawer({
                 </Button>
               </Group>
             </>
-          ) : pending.kind === 'INITIATIVE_EVIDENCE' || pending.kind === 'RECHARGE_EVIDENCE' ? (
+          ) : pending.kind === 'INITIATIVE_EVIDENCE' ||
+            pending.kind === 'RECHARGE_EVIDENCE' ||
+            pending.kind === 'ACTION_OUTCOME_EVIDENCE' ? (
             <>
               <NumberInput
                 disabled={disabled}
@@ -239,6 +239,28 @@ export function CampaignTabletopDecisionDrawer({
                 Decline reaction
               </Button>
             </Stack>
+          ) : pending.kind === 'MOVEMENT_PASSAGE_CHOICE' ? (
+            <Stack gap='xs'>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() =>
+                    void resolve({ kind: 'PASSAGE_OPTION', optionId: option.optionId })
+                  }
+                >
+                  {option.ruleKind === 'OVERRUN' ? 'Overrun' : 'Tumble'} ·{' '}
+                  {option.economy === 'ACTION' ? 'Action' : 'Bonus action'}
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() => void resolve({ kind: 'PASSAGE_DECLINE' })}
+              >
+                Decline passage
+              </Button>
+            </Stack>
           ) : pending.kind === 'LEGENDARY_RESISTANCE_CHOICE' ? (
             <Group>
               <Button
@@ -276,6 +298,27 @@ export function CampaignTabletopDecisionDrawer({
                 onClick={() => void resolve({ kind: 'DECLINE' })}
               >
                 Pass
+              </Button>
+            </Stack>
+          ) : pending.kind === 'OPTIONAL_COMBAT_CLEAVING' ? (
+            <Stack gap='xs'>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
+                >
+                  Cleave{' '}
+                  {encounter.actors.find((actor) => actor.id === option.targetActorId)?.label ??
+                    'Target'}
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() => void resolve({ kind: 'DECLINE' })}
+              >
+                Decline cleaving
               </Button>
             </Stack>
           ) : pending.kind === 'INITIATIVE_ORDER' ? (

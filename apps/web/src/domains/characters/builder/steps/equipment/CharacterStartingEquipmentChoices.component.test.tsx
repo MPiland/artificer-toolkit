@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import type { CharacterBuilderStartingEquipmentViewDto } from '@artificer-toolkit/schema/api/characters'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
-import { api } from '#app/lib/api'
+import { ConvexReactClient } from 'convex/react'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import type { CharacterStartingEquipmentDecision } from '../../core/characterBuilder.types'
 import { CharacterStartingEquipmentChoices } from './CharacterStartingEquipmentChoices'
@@ -51,18 +53,20 @@ describe('CharacterStartingEquipmentChoices', () => {
         total: 7
       }
     } satisfies RollResultDto
-    const executeConfiguration = vi
-      .spyOn(api.rolls, 'executeConfiguration')
-      .mockResolvedValueOnce(roll)
+    const convexClient = new ConvexReactClient('https://builder-test.convex.cloud')
+    const executeConfiguration = vi.spyOn(convexClient, 'mutation').mockResolvedValueOnce(roll)
     const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
 
     try {
-      renderWithAppProviders(<StartingGoldHarness />)
+      renderWithAppProviders(<StartingGoldHarness />, { convexClient })
 
       await user.click(screen.getByRole('button', { name: 'Roll 2d4' }))
 
       await waitFor(() => expect(screen.getByLabelText(/starting gold total/i)).toHaveValue('70'))
-      expect(executeConfiguration).toHaveBeenCalledWith({ configuration: '2d4' })
+      expect(executeConfiguration.mock.calls[0]?.[1]).toEqual({ configuration: '2d4' })
+      expect(getFunctionName(executeConfiguration.mock.calls[0]![0])).toBe(
+        getFunctionName(api.rolls.executeConfiguration)
+      )
 
       const total = screen.getByLabelText(/starting gold total/i)
       await user.clear(total)
@@ -72,6 +76,7 @@ describe('CharacterStartingEquipmentChoices', () => {
     } finally {
       executeConfiguration.mockRestore()
       getContext.mockRestore()
+      await convexClient.close()
     }
   })
 })

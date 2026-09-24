@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./auth-hook": {
-      "types": "./dist/authEmailHook.d.ts",
-      "default": "./dist/authEmailHook.js"
     }
   },
   "scripts": {
@@ -26,9 +22,7 @@
     "@artificer-toolkit/schema": "workspace:^",
     "@react-email/components": "1.0.12",
     "@react-email/render": "2.1.0",
-    "react": "19.2.6",
-    "resend": "6.17.2",
-    "standardwebhooks": "1.0.0"
+    "react": "19.2.6"
   },
   "devDependencies": {
     "@react-email/ui": "6.9.0",

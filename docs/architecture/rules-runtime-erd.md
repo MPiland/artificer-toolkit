@@ -1,15 +1,33 @@
 # Rules runtime domain ERDs
 
-> **Status:** canonical target; implementation rebaseline in progress
+> **Status:** canonical current Convex domain model; managed promotion remains in Phase 8.2
 >
-> **Scope:** identity and ownership relationships for Systems, authored mechanics, Campaigns, Characters, Encounter Blueprints, Runs, and frozen occurrences
+> **Scope:** identity and ownership relationships for Systems, authored mechanics, Campaigns, Characters, Encounter Blueprints, Runs, frozen occurrences, and cleanup state
 >
-> **Update when:** ownership, foreign keys, aggregate boundaries, or occurrence persistence changes
+> **Update when:** ownership, indexed relationships, aggregate boundaries, occurrence persistence, or cleanup state changes
 >
-> **Verification:** canonical SQL, migrations, repository contracts, and Gate 1/2 database tests
+> **Verification:** `apps/apis/convex/schema.ts`, domain schemas/functions under `apps/apis/convex`, shared validators under `packages/schema`, and focused Convex tests
 
-These diagrams show domain ownership, not literal table/column names. Canonical SQL remains the schema
-authority.
+These diagrams show validated Convex document relationships rather than literal field lists. Convex
+schemas and shared validators define stored shapes; application transactions enforce referential
+integrity, authorization, cleanup order, atomicity, and replay.
+
+## Identity, Campaign ownership, and membership
+
+```mermaid
+erDiagram
+  BETTER_AUTH_USER ||--|| USER_PROFILE : maps_by_authUserId
+  USER_PROFILE ||--o{ CAMPAIGN : owns_by_ownerUserId
+  USER_PROFILE ||--o{ CAMPAIGN_MEMBERSHIP : joins_by_userId
+  CAMPAIGN ||--o{ CAMPAIGN_MEMBERSHIP : contains_by_campaignId
+  CAMPAIGN ||--o{ CHARACTER_ASSIGNMENT : admits
+  USER_PROFILE ||--o{ CHARACTER_ASSIGNMENT : controls
+```
+
+The authenticated Better Auth user resolves through `userProfiles.by_authUserId` to the public app
+`userId`. Campaign functions derive authority from `campaigns.ownerUserId` and the exact indexed
+`campaignMemberships` document. Public input never supplies the acting identity, and a downstream
+document reference never grants authority by itself.
 
 ## System and authored content
 
@@ -38,7 +56,7 @@ erDiagram
 ```
 
 For a typed reusable vocabulary family such as `sense`, the catalogue entry and reusable-definition
-root share the exact `(id, game_system_id)` identity. The catalogue entry is selectable metadata; the
+root share the exact `(id, gameSystemId)` identity. The catalogue entry is selectable metadata; the
 published family document is mechanics. Grants keep their existing UUID reference, and no code/label
 lookup selects behavior.
 
@@ -55,7 +73,6 @@ erDiagram
   CAMPAIGN ||--o{ CAMPAIGN_CATALOGUE : enables
   RULES_CATALOGUE ||--o{ CAMPAIGN_CATALOGUE : selected
   GAME_SYSTEM ||--o{ CHARACTER : binds
-  RULES_CATALOGUE ||--o{ CHARACTER : baseline_for
   CAMPAIGN ||--o{ CHARACTER_ASSIGNMENT : admits
   CHARACTER ||--o{ CHARACTER_ASSIGNMENT : assigned
   GAME_SYSTEM ||--o{ ENCOUNTER_BLUEPRINT : constrains
@@ -83,7 +100,7 @@ erDiagram
   ENCOUNTER_RULE_OCCURRENCE ||--o{ INITIATIVE_SIDE : supplies_evidence
 ```
 
-Encounter-side UUIDs are aggregate content, not Rules Kernel primitives. A relationship row stores one
+Encounter-side UUIDs are aggregate content, not Rules Kernel primitives. A relationship document stores one
 canonical unordered pair and one closed factual code (`ALLIED`, `NEUTRAL`, or `HOSTILE`); same-side
 actors are implicitly allied. Targeting, reactions, and side-based initiative read the same locked
 relationship. Game System policy interprets it, while actor kind and side labels remain non-mechanical.
@@ -103,12 +120,12 @@ current settings plus prepared/active Encounter snapshots block removal of a req
 
 Each initiative round is aggregate-owned current state, not a workflow or event log. Its header pins
 the Encounter's initiative-policy checksum and owns the current procedure, cadence, lifecycle status,
-version, and monotonic next-turn ordinal. Participant rows snapshot exact actor/side membership and
+version, and monotonic next-turn ordinal. Participant documents snapshot exact actor/side membership and
 retain only current score, final turn ordinal, lifecycle status, and checksum-bound occurrence pointers.
 An actor-side correction updates only the Encounter actor for future-round construction; it never
 rewrites a non-completed round's participant side snapshot, side order, or pending side-order choice.
-Side rows provide the equivalent normalized state for side-roll procedures. Exact rule receipts remain
-the evidence and replay authority; round rows never embed executable graphs, continuations, or mutable
+Side documents provide the equivalent normalized state for side-roll procedures. Exact rule receipts remain
+the evidence and replay authority; round documents never embed executable graphs, continuations, or mutable
 decision history. A new round either evaluates according to `EACH_ROUND` cadence or carries forward the
 already-settled order under `ENCOUNTER_START`; it never rereads terminal receipt JSON as current state.
 
@@ -118,7 +135,7 @@ duplicates normalized round state. `START_OF_TURN` is not selected until the nor
 at an `EACH_ROUND` wrap, the outgoing `END_OF_TURN` settles before the next round's initiative work.
 Evaluated outgoing effects, proposed initiative state, incoming Feature-owned Recharge recovery, and
 incoming effects remain occurrence-owned staged plans until one terminal transaction applies them in
-that order. A pause leaves the Encounter, initiative rows, active effects, and Feature charges
+that order. A pause leaves the Encounter, initiative documents, active effects, and Feature charges
 unchanged. Advancing pauses retain separate command receipts with a public pending summary only; the
 sealed execution and staged plans remain in the occurrence snapshot.
 
@@ -135,7 +152,7 @@ erDiagram
   CHARACTER_RULE_OCCURRENCE ||--o| FROZEN_EXECUTION_SNAPSHOT : may_pause_or_recur
   ENCOUNTER_RULE_OCCURRENCE ||--o| FROZEN_EXECUTION_SNAPSHOT : may_pause_or_recur
   CHARACTER ||--o{ CHARACTER_ACTIVE_RULE_EFFECT : owns
-  ENCOUNTER_RUN ||--o{ CHARACTER_ACTIVE_RULE_EFFECT : cleanup_source_non_fk
+  ENCOUNTER_RUN ||--o{ CHARACTER_ACTIVE_RULE_EFFECT : cleanup_source_reference
   ENCOUNTER_ACTOR ||--o{ ENCOUNTER_ACTIVE_RULE_EFFECT : owns
   ENCOUNTER_RUN ||--o{ ENCOUNTER_SPATIAL_RULE_EFFECT : owns
   ENCOUNTER_SCENE ||--o{ ENCOUNTER_SPATIAL_RULE_EFFECT : contains
@@ -152,7 +169,7 @@ erDiagram
 ```
 
 `CHARACTER_RULE_OCCURRENCE` and `ENCOUNTER_RULE_OCCURRENCE` are logical aggregate-owned contracts,
-not a mandate for one polymorphic universal table. Their separate receipt rows retain start/resume
+not a mandate for one polymorphic universal collection. Their separate receipt documents retain start/resume
 receipts and enforce each aggregate's authorization, lock order, retention, and privacy.
 Each advancing or re-pausing resume owns a command-specific receipt with its closed actor-filtered
 occurrence result. Later advancement or completion cannot rewrite it, so lost-response retries resolve
@@ -164,8 +181,8 @@ to each aggregate's current final version after atomic application.
 Character outcome events emitted by movement reaction and spatial mechanics use phase- and
 ordinal-scoped deterministic child command UUIDs. Their source command and occurrence remain audit
 correlation; separate movement phases and resumes never share the Character event uniqueness key.
-An Encounter has at most one pending occurrence, enforced by an Encounter-scoped partial unique
-index and checked under the locked Encounter root before fresh source or Kernel work. Matching
+An Encounter has at most one pending occurrence, enforced by the Encounter command transaction
+before fresh source or Kernel work. Matching
 receipt replay precedes that gate. A terminal occurrence may be receipt-only when its pure applicator
 intent declines an aggregate version advance; application and terminal receipt still commit together
 at the unchanged aggregate version.
@@ -197,18 +214,16 @@ Encounter actor identity exists only in `ENCOUNTER_ACTOR_TOKEN_BINDING`. Scene d
 versioned authoring sources and may be deleted without deleting a materialized live Scene, whose
 source snapshot remains audit provenance.
 
-`CHARACTER_ACTIVE_RULE_EFFECT` and `ENCOUNTER_ACTIVE_RULE_EFFECT` are separate current-state tables;
+`CHARACTER_ACTIVE_RULE_EFFECT` and `ENCOUNTER_ACTIVE_RULE_EFFECT` are separate current-state document families;
 they do not reference an occurrence from another aggregate. Each persists separate immutable
-`definition`/`definition_checksum` and mutable `lifecycle`/`lifecycle_checksum` columns. The definition
+`definition`/`definitionChecksum` and mutable `lifecycle`/`lifecycleChecksum` fields. The definition
 contains one `SINGLE_GRAPH` graph/source/provenance/recurrence plan plus the UUID-backed result-block
 identity and its local frozen-graph node binding, recorded as a one-to-one frozen graph source-entry
-binding. The originating action selects that result block before creation; the row never retains an
-action-level `TEST_OUTCOME` specialization plan. Lifecycle carries only remaining ticks. Character rows may
-retain a non-FK `source_encounter_id` only for an Encounter-lifetime definition. Its Encounter-first
-index locates distinct Character owners after actor removal before cleanup locks their rows, without
-coupling their lifetime to Encounter deletion. The Encounter table uses
-an exact composite foreign key to its target actor, while the Character table cascades with its Character
-owner. Future tick and terminal transitions remain owned by their Character or Encounter root receipt
+binding. The originating action selects that result block before creation; the effect document never retains an
+action-level `TEST_OUTCOME` specialization plan. Lifecycle carries only remaining ticks. Character effect documents may retain a `sourceEncounterId` only for an Encounter-lifetime
+definition. Its Encounter-first index locates distinct Character owners after actor removal. Cleanup
+then validates and removes each affected effect through the owning Character or Encounter transaction;
+document references never create an implicit cascade. Future tick and terminal transitions remain owned by their Character or Encounter root receipt
 and use owner-scoped lifecycle-only CAS.
 `ENCOUNTER_SPATIAL_RULE_EFFECT` is the third current-state surface for an untargeted spatial root.
 It belongs to the locked Encounter and references its exact Campaign Scene binding, never to an actor
@@ -219,16 +234,40 @@ Scene-scoped ordinal allocation and current-state CAS are both exact `(encounter
 
 Frozen active-effect evaluation is a pure application-service boundary: it reads the immutable
 definition and mutable lifecycle, returns applications plus an `UPDATE` or `EXPIRE` proposal, and
-does not directly own a table write, projection, event, or receipt.
+does not directly own a stored write, projection, event, or receipt.
 The immutable definition may also carry bounded typed perception contributions. They remain part of
-the existing checksummed definition document rather than a new relation table. A locked Encounter
+the existing checksummed definition document rather than a new document family. A locked Encounter
 application derives observer, subject, and local-area relation arrays from exact actor ownership and
 spatial geometry, retaining effect identity/version/checksum; the relation itself is runtime-only.
 
-**CURRENT / unrun Gate 2 migration:** `ENCOUNTER_MAINTAINED_EFFECT_STATE` is an Encounter-owned,
-server-only current-state row with a UUID-backed System maintenance-definition identity and immutable
-descriptor checksum. It is not a Rules Kernel primitive and it has no public projection. A maintained
-row may own dependent Character or Encounter-actor active effects. Character dependents use
-`ON DELETE RESTRICT` and require explicit owner-root CAS deletion before the maintained row;
-Encounter-actor cascade is only a database integrity backstop. The direct-action replacement path
-records only typed state/effect identity transitions in its terminal receipt.
+## Durable cleanup continuation
+
+```mermaid
+flowchart TD
+  Command["Authorized deletion, departure, or source loss"] --> Scope["Capture exact authority and affected scope"]
+  Scope --> Atomic{"Complete work fits one mutation?"}
+  Atomic -->|yes| Apply["Validate and commit all relationship changes"]
+  Atomic -->|oversized cargo| Job["campaignVehicleCleanupJobs + totals + segments"]
+  Job --> Lock["Mark only affected Vehicle, container, group, or destination documents"]
+  Lock --> Page["Scheduled bounded page"]
+  Page --> Check["Recheck job grant, markers, versions, checksums, and custody"]
+  Check -->|more| Page
+  Check -->|complete| Release["Publish complete custody and release markers"]
+  Check -->|retryable failure| Retry["Owner retry reuses the same durable job"]
+  Retry --> Check
+```
+
+Ordinary cleanup remains one atomic Convex mutation. Oversized inventory cleanup exposes an updating
+state only for the affected slice; unrelated inventory stays readable and editable. Job grants and document
+markers are trusted server state, so continuation can outlive the initiating source without acquiring
+new authority. A retry resumes the same idempotent plan. Shared Campaign history survives account
+deletion with deleted-user presentation, while private account state and active actor participation are
+removed through validated application cleanup.
+
+**Current native implementation:** `ENCOUNTER_MAINTAINED_EFFECT_STATE` is an Encounter-owned,
+server-only current-state document with a UUID-backed System maintenance-definition identity and
+immutable descriptor checksum. It is not a Rules Kernel primitive and it has no public projection.
+A maintained document may own dependent Character or Encounter-actor active effects. Cleanup discovers
+those dependents, validates their owner and checksums, applies owner-root CAS deletion first, and removes
+the maintained state in the same application transaction. The direct-action replacement path records
+only typed state/effect identity transitions in its terminal receipt.

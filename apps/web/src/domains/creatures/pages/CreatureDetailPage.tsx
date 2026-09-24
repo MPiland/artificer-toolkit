@@ -1,5 +1,6 @@
 import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { useConvex } from 'convex/react'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
   type AuthoredDraftDto,
@@ -19,8 +20,7 @@ import {
   useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
-import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 import { buildCreatureDetailModel, type CreatureDetailModel } from './CreatureDetail.model'
@@ -29,20 +29,16 @@ import { CreatureStats, LegendaryActionsContent } from './CreatureDetailSections
 export function CreatureDetailPage({
   creatureId,
   draft,
-  references,
   response,
   view
 }: {
   creatureId: string
   draft: AuthoredDraftDto | null
-  references: Pick<
-    AuthoredContentReferenceData,
-    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
-  >
   response: CreatureResponseDto
   view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
+  const operations = createAuthoredOperations('CREATURE', useConvex())
   const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
@@ -51,13 +47,13 @@ export function CreatureDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
-    deleteActive: api.content.creatures.deleteActive,
-    discard: api.content.creatures.discardDraft,
+    deleteActive: operations.deleteActive,
+    discard: operations.discardDraft,
     detailSubjectQueryKey: queryKeys.content.creatures.detailRoot(creatureId),
     domainLabel: 'Creature',
     domainQueryKey: queryKeys.content.creatures.all(),
     draftQueryKey: queryKeys.content.creatures.draft(creatureId),
-    duplicate: api.content.creatures.duplicate,
+    duplicate: operations.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: creatureId,
     navigateEdit: async (subject) =>
@@ -66,6 +62,13 @@ export function CreatureDetailPage({
         to: '/creatures/$creaturePublicId/$creatureSlug/edit'
       }),
     navigateList: async () => navigate({ to: '/creatures' })
+  })
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: creatureId,
+    label: detailState.item?.label ?? 'Creature',
+    subjectKind: 'CREATURE',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
   })
 
   if (detailState.mode === 'invalid-draft-only') {
@@ -104,18 +107,18 @@ export function CreatureDetailPage({
   }
 
   const item = detailState.item
-  const creatureModel = buildCreatureDetailModel(item, references)
+  const creatureModel = buildCreatureDetailModel(item, {
+    challengeRatings: response?.meta?.challengeRatings ?? [],
+    conditionTypes: response?.meta?.conditionTypes ?? [],
+    creatureTypes: response?.meta?.creatureTypes ?? [],
+    damageTypes: response?.meta?.damageTypes ?? [],
+    equipment: response?.meta?.equipment ?? [],
+    speeds: response?.meta?.speeds ?? []
+  })
   const creatureParams = buildCreatureRouteParams(
     draft?.publicId ?? response?.publicId ?? creatureId,
     item.label
   )
-  const exportAction = useAuthoredExportAction({
-    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
-    id: creatureId,
-    label: item.label,
-    subjectKind: 'CREATURE',
-    view: detailState.mode === 'draft' ? 'draft' : 'active'
-  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -174,7 +177,11 @@ export function CreatureDetailPage({
         }
       : null,
     exportAction,
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/creatures/new' }) }
+    {
+      label: 'Create New',
+      tone: 'secondary',
+      onClick: () => navigate({ to: '/creatures/new' })
+    }
   ])
 
   return (
@@ -189,7 +196,11 @@ export function CreatureDetailPage({
             subjectId: creatureId,
             scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
           },
-          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'CREATURE', subjectId: creatureId }
+          attach: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'CREATURE',
+            subjectId: creatureId
+          }
         }}
         eyebrow='Creature'
         facts={creatureModel.facts}
@@ -201,7 +212,10 @@ export function CreatureDetailPage({
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
           onViewActive: () =>
-            navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams }),
+            navigate({
+              to: '/creatures/$creaturePublicId/$creatureSlug',
+              params: creatureParams
+            }),
           onViewDraft: () =>
             navigate({
               to: '/creatures/$creaturePublicId/$creatureSlug',

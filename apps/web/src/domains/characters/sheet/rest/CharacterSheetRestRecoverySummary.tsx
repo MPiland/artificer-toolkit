@@ -1,5 +1,8 @@
 import { Text } from '@mantine/core'
-import type { CharacterRestPreviewRequestDto, CharacterRestPreviewResponseDto } from '#app/lib/api'
+import type {
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as restStyles from './rest.css'
 import { formatRestRecoveryLabels } from './rest.utils'

@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { backgroundListResponseFixture } from '#domains/backgrounds/background.fixtures'
-import {
-  buildBackgroundListFilters,
-  mapBackgroundListToAuthoredItems,
-  summarizeBackgroundList
-} from './backgroundListMapper'
+import { mapAuthoredCatalogueItems } from '../authoredCatalogue'
+import { buildBackgroundListFilters } from './backgroundListMapper'
 
 describe('backgroundListMapper', () => {
   it('maps provenance and permissions into authored-list display items', () => {
-    const items = mapBackgroundListToAuthoredItems(backgroundListResponseFixture)
+    const items = mapAuthoredCatalogueItems(
+      backgroundListResponseFixture.items.map((item) => ({
+        ...item,
+        status: 'ACTIVE',
+        description: item.description ?? null
+      })),
+      'BACKGROUND'
+    )
 
     expect(items).toHaveLength(2)
     expect(items[0]).toMatchObject({
@@ -34,12 +38,7 @@ describe('backgroundListMapper', () => {
     })
   })
 
-  it('builds source filters and a concrete summary', () => {
-    expect(buildBackgroundListFilters(backgroundListResponseFixture)).toEqual([
-      expect.objectContaining({ key: 'source' })
-    ])
-    expect(summarizeBackgroundList(backgroundListResponseFixture)).toBe(
-      '2 backgrounds / 1 SRD / 1 homebrew'
-    )
+  it('builds source filters without a legacy list response', () => {
+    expect(buildBackgroundListFilters()).toEqual([expect.objectContaining({ key: 'source' })])
   })
 })

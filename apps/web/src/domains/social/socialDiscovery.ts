@@ -1,4 +1,4 @@
-import type { SocialDiscoveryInput } from '#app/lib/api'
+import type { SocialBrowseInput } from '@artificer-toolkit/schema/api/socialDiscovery'
 import {
   campaignFormatOptions,
   contentMaturityOptions,
@@ -10,9 +10,8 @@ import type { SocialHubSearch } from './socialSearch'
 
 export function toSocialDiscoveryInput(
   search: SocialHubSearch
-): Omit<SocialDiscoveryInput, 'cursor'> {
+): Omit<SocialBrowseInput, 'paginationOpts'> {
   return {
-    query: search.query || undefined,
     systemId: search.systemId,
     format: search.format,
     contentMaturity: search.contentMaturity,
@@ -24,8 +23,7 @@ export function toSocialDiscoveryInput(
     stateCode: search.stateCode || undefined,
     city: search.city || undefined,
     minimumAvailableSeats: search.minimumAvailableSeats,
-    safetyPractices: search.safetyPractice ? [search.safetyPractice] : undefined,
-    limit: 20
+    safetyPractices: search.safetyPractice ? [search.safetyPractice] : undefined
   }
 }
 

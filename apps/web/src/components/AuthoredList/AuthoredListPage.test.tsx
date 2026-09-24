@@ -11,6 +11,10 @@ const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   'scrollIntoView'
 )
 
+vi.mock('./AuthoredCatalogueSearch', () => ({
+  AuthoredCatalogueSearch: ({ query }: { query: string }) => <div>Ranked search: {query}</div>
+}))
+
 afterEach(() => {
   vi.unstubAllGlobals()
   if (originalScrollIntoViewDescriptor) {
@@ -55,6 +59,77 @@ function renderSpellList() {
 }
 
 describe('AuthoredListPage', () => {
+  it('keeps active rows usable without presenting a partially loaded draft count', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='5 spells'
+        createLabel='Create Spell'
+        items={spellListItems}
+        draftItems={spellListItems.slice(0, 1)}
+        draftLoading
+        filters={[]}
+      />
+    )
+    expect(screen.getByRole('row', { name: /magic missile/i })).toBeInTheDocument()
+    expect(screen.queryByText('Drafts (1)')).not.toBeInTheDocument()
+    await user.click(screen.getByText('Drafts (…)'))
+    expect(screen.queryByRole('row', { name: /magic missile/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('No draft spells.')).not.toBeInTheDocument()
+  })
+
+  it('uses ranked search only for active native catalogues and hides exact search totals on mobile', async () => {
+    useMobileViewport()
+    const user = userEvent.setup()
+    const fetchNextPage = vi.fn()
+    const catalog: AuthoredListCatalogWindow = {
+      searchSubjectKind: 'FEAT',
+      activeCount: 312,
+      totalCount: 312,
+      controls: {
+        query: 'Magic',
+        sort: 'name',
+        filterValues: {},
+        onClearFilters: vi.fn(),
+        onFilterChange: vi.fn(),
+        onQueryChange: vi.fn(),
+        onSortChange: vi.fn()
+      },
+      fetchNextPage,
+      fetchPreviousPage: vi.fn(),
+      hasNextPage: true,
+      hasPreviousPage: true,
+      isFetchingNextPage: false,
+      isFetchingPreviousPage: false
+    }
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Feats'
+        summary='312 feats'
+        createLabel='Create Feat'
+        items={spellListItems}
+        draftItems={spellListItems}
+        filters={[]}
+        catalog={catalog}
+      />
+    )
+    expect(screen.getByText('Ranked search: Magic')).toBeVisible()
+    expect(screen.queryByText('Magic Missile')).not.toBeInTheDocument()
+    expect(fetchNextPage).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
+    await waitFor(() => expect(screen.getByText('Sorted by relevance')).toBeVisible())
+    expect(screen.getByRole('button', { name: 'Show results' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Show 312 results' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show results' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Show results' })).not.toBeInTheDocument()
+    )
+    await user.click(screen.getByText(`Drafts (${spellListItems.length})`))
+    expect(screen.queryByText('Ranked search: Magic')).not.toBeInTheDocument()
+    expect(screen.getByText('Magic Missile')).toBeVisible()
+  })
+
   it('delegates active catalogue search to the cursor feed without locally filtering its page window', async () => {
     const user = userEvent.setup()
     const onQueryChange = vi.fn()

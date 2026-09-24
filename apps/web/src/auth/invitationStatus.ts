@@ -1,5 +1,5 @@
-import type { User } from '@supabase/supabase-js'
+import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 
-export function hasPendingInvitationSetup(user: Pick<User, 'app_metadata' | 'invited_at'>) {
-  return Boolean(user.invited_at && user.app_metadata.registration_completed !== true)
+export function hasPendingInvitationSetup(user: Pick<AuthSessionUserDto, 'registrationCompleted'>) {
+  return !user.registrationCompleted
 }

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { parseRollExpression, validateRollMode } from '@artificer-toolkit/shared/rolls'
 
 import { rollRecordDtoSchema, rollSourceDtoSchema } from './rolls.js'
@@ -20,8 +20,8 @@ export function getCampaignRealtimeTopic(input: {
 export const campaignRealtimeEnvelopeDtoSchema = z
   .strictObject({
     scope: campaignRealtimeScopeDtoSchema,
-    conversationId: uuidSchema.optional(),
-    recipientUserId: uuidSchema.optional(),
+    conversationId: z.optional(uuidSchema),
+    recipientUserId: z.optional(uuidSchema),
     entity: z.enum([
       'CAMPAIGN',
       'MEMBERSHIP',
@@ -36,54 +36,59 @@ export const campaignRealtimeEnvelopeDtoSchema = z
     entityId: uuidSchema,
     event: z.enum(['CREATED', 'UPDATED', 'DELETED']),
     eventId: uuidSchema,
-    cursor: z.string().trim().min(1).max(200)
+    cursor: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200))
   })
-  .superRefine((envelope, context) => {
-    if (envelope.scope === 'DIRECT' && !envelope.conversationId)
-      context.addIssue({
-        code: 'custom',
-        path: ['conversationId'],
-        message: 'Direct broadcasts require a conversation ID.'
-      })
-    if (envelope.scope !== 'DIRECT' && envelope.conversationId)
-      context.addIssue({
-        code: 'custom',
-        path: ['conversationId'],
-        message: 'Only direct broadcasts have a conversation ID.'
-      })
-    if (envelope.scope === 'USER' && !envelope.recipientUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['recipientUserId'],
-        message: 'User broadcasts require a recipient user ID.'
-      })
-    if (envelope.scope !== 'USER' && envelope.recipientUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['recipientUserId'],
-        message: 'Only user broadcasts have a recipient user ID.'
-      })
-  })
+  .check(
+    z.superRefine((envelope, context) => {
+      if (envelope.scope === 'DIRECT' && !envelope.conversationId)
+        context.addIssue({
+          code: 'custom',
+          path: ['conversationId'],
+          message: 'Direct broadcasts require a conversation ID.'
+        })
+      if (envelope.scope !== 'DIRECT' && envelope.conversationId)
+        context.addIssue({
+          code: 'custom',
+          path: ['conversationId'],
+          message: 'Only direct broadcasts have a conversation ID.'
+        })
+      if (envelope.scope === 'USER' && !envelope.recipientUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientUserId'],
+          message: 'User broadcasts require a recipient user ID.'
+        })
+      if (envelope.scope !== 'USER' && envelope.recipientUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['recipientUserId'],
+          message: 'Only user broadcasts have a recipient user ID.'
+        })
+    })
+  )
 
 export const campaignConversationKindDtoSchema = z.enum(['TABLE', 'PARTY', 'DIRECT'])
 export const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
 export const campaignChatEntryKindDtoSchema = z.enum(['CHAT', 'ROLL'])
 export const campaignChatModeDtoSchema = z.enum(['OOC', 'ROLEPLAY'])
+export const deletedCampaignAuthorLabel = 'Deleted user'
 export const campaignChatEntryDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
   conversationId: uuidSchema,
   room: campaignChatRoomDtoSchema,
   kind: campaignChatEntryKindDtoSchema,
-  mode: campaignChatModeDtoSchema.nullable(),
-  body: z.string().max(2000).nullable(),
-  roll: rollRecordDtoSchema.nullable(),
+  mode: z.nullable(campaignChatModeDtoSchema),
+  body: z.nullable(z.string().check(z.maxLength(2000))),
+  roll: z.nullable(rollRecordDtoSchema),
   authorUserId: uuidSchema,
-  authorUsername: z.string().trim().min(1).max(30),
-  characterId: uuidSchema.nullable(),
-  characterLabel: z.string().trim().min(1).max(100).nullable(),
-  editedAt: timestampSchema.nullable(),
-  unsentAt: timestampSchema.nullable(),
+  authorUsername: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(30)),
+  characterId: z.nullable(uuidSchema),
+  characterLabel: z.nullable(
+    z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))
+  ),
+  editedAt: z.nullable(timestampSchema),
+  unsentAt: z.nullable(timestampSchema),
   createdAt: timestampSchema
 })
 export const campaignConversationDtoSchema = z
@@ -91,57 +96,61 @@ export const campaignConversationDtoSchema = z
     id: uuidSchema,
     campaignId: uuidSchema,
     kind: campaignConversationKindDtoSchema,
-    participantUserIds: z.array(uuidSchema).max(2),
+    participantUserIds: z.array(uuidSchema).check(z.maxLength(2)),
     createdAt: timestampSchema,
-    lastReadAt: timestampSchema.nullable(),
-    unreadCount: z.number().int().nonnegative()
+    lastReadAt: z.nullable(timestampSchema),
+    unreadCount: z.number().check(z.int()).check(z.nonnegative())
   })
-  .superRefine((conversation, context) => {
-    if (conversation.kind === 'DIRECT' && conversation.participantUserIds.length !== 2)
-      context.addIssue({
-        code: 'custom',
-        path: ['participantUserIds'],
-        message: 'Direct conversations require exactly two participants.'
-      })
-    if (
-      conversation.kind === 'DIRECT' &&
-      conversation.participantUserIds.length === 2 &&
-      conversation.participantUserIds[0] === conversation.participantUserIds[1]
-    )
-      context.addIssue({
-        code: 'custom',
-        path: ['participantUserIds'],
-        message: 'Direct participants must be distinct.'
-      })
-    if (conversation.kind !== 'DIRECT' && conversation.participantUserIds.length !== 0)
-      context.addIssue({
-        code: 'custom',
-        path: ['participantUserIds'],
-        message: 'Only direct conversations have participants.'
-      })
-  })
+  .check(
+    z.superRefine((conversation, context) => {
+      if (conversation.kind === 'DIRECT' && conversation.participantUserIds.length !== 2)
+        context.addIssue({
+          code: 'custom',
+          path: ['participantUserIds'],
+          message: 'Direct conversations require exactly two participants.'
+        })
+      if (
+        conversation.kind === 'DIRECT' &&
+        conversation.participantUserIds.length === 2 &&
+        conversation.participantUserIds[0] === conversation.participantUserIds[1]
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['participantUserIds'],
+          message: 'Direct participants must be distinct.'
+        })
+      if (conversation.kind !== 'DIRECT' && conversation.participantUserIds.length !== 0)
+        context.addIssue({
+          code: 'custom',
+          path: ['participantUserIds'],
+          message: 'Only direct conversations have participants.'
+        })
+    })
+  )
 export const campaignConversationsDtoSchema = z.array(campaignConversationDtoSchema)
 export const listCampaignConversationsInputSchema = z.strictObject({ campaignId: uuidSchema })
 export const getCampaignConversationInputSchema = z
   .strictObject({
     campaignId: uuidSchema,
     kind: campaignConversationKindDtoSchema,
-    directUserId: uuidSchema.optional()
+    directUserId: z.optional(uuidSchema)
   })
-  .superRefine((input, context) => {
-    if (input.kind === 'DIRECT' && !input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Direct conversations require a participant.'
-      })
-    if (input.kind !== 'DIRECT' && input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Only direct conversations have a participant.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.kind === 'DIRECT' && !input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Direct conversations require a participant.'
+        })
+      if (input.kind !== 'DIRECT' && input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Only direct conversations have a participant.'
+        })
+    })
+  )
 export const markCampaignConversationReadInputSchema = z.strictObject({
   campaignId: uuidSchema,
   conversationId: uuidSchema,
@@ -151,99 +160,107 @@ export const sendCampaignChatEntryInputSchema = z
   .strictObject({
     campaignId: uuidSchema,
     room: campaignChatRoomDtoSchema,
-    directUserId: uuidSchema.optional(),
+    directUserId: z.optional(uuidSchema),
     mode: campaignChatModeDtoSchema,
-    body: z.string().trim().min(1).max(2000),
-    assignedCharacterId: uuidSchema.optional(),
+    body: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(2000)),
+    assignedCharacterId: z.optional(uuidSchema),
     clientNonce: uuidSchema
   })
-  .superRefine((input, context) => {
-    if (input.room === 'DIRECT' && !input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Direct chat requires a participant.'
-      })
-    if (input.room !== 'DIRECT' && input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Only direct chat has a participant.'
-      })
-    if (input.mode === 'ROLEPLAY' && !input.assignedCharacterId)
-      context.addIssue({
-        code: 'custom',
-        path: ['assignedCharacterId'],
-        message: 'Roleplay chat requires an assigned Character.'
-      })
-    if (input.mode === 'OOC' && input.assignedCharacterId)
-      context.addIssue({
-        code: 'custom',
-        path: ['assignedCharacterId'],
-        message: 'Out-of-character chat uses the account username.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.room === 'DIRECT' && !input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Direct chat requires a participant.'
+        })
+      if (input.room !== 'DIRECT' && input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Only direct chat has a participant.'
+        })
+      if (input.mode === 'ROLEPLAY' && !input.assignedCharacterId)
+        context.addIssue({
+          code: 'custom',
+          path: ['assignedCharacterId'],
+          message: 'Roleplay chat requires an assigned Character.'
+        })
+      if (input.mode === 'OOC' && input.assignedCharacterId)
+        context.addIssue({
+          code: 'custom',
+          path: ['assignedCharacterId'],
+          message: 'Out-of-character chat uses the account username.'
+        })
+    })
+  )
 const executeCampaignRollDetailsSchema = z
   .strictObject({
-    characterId: uuidSchema.nullable(),
-    expression: z.string().trim().min(1).max(200),
-    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).optional(),
+    characterId: z.nullable(uuidSchema),
+    expression: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200)),
+    rollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     source: rollSourceDtoSchema
   })
-  .superRefine(({ expression, rollMode }, context) => {
-    try {
-      validateRollMode(parseRollExpression(expression), rollMode ?? 'NORMAL')
-    } catch (error) {
-      context.addIssue({
-        code: 'custom',
-        path: ['expression'],
-        message: error instanceof Error ? error.message : 'Invalid roll expression.'
-      })
-    }
-  })
+  .check(
+    z.superRefine(({ expression, rollMode }, context) => {
+      try {
+        validateRollMode(parseRollExpression(expression), rollMode ?? 'NORMAL')
+      } catch (error) {
+        context.addIssue({
+          code: 'custom',
+          path: ['expression'],
+          message: error instanceof Error ? error.message : 'Invalid roll expression.'
+        })
+      }
+    })
+  )
 export const executeCampaignRollInputSchema = z
   .strictObject({
     campaignId: uuidSchema,
     room: campaignChatRoomDtoSchema,
-    directUserId: uuidSchema.optional(),
+    directUserId: z.optional(uuidSchema),
     clientNonce: uuidSchema,
     roll: executeCampaignRollDetailsSchema
   })
-  .superRefine((input, context) => {
-    if (input.room !== 'TABLE')
-      context.addIssue({
-        code: 'custom',
-        path: ['room'],
-        message: 'Campaign rolls can only be sent to the TABLE conversation.'
-      })
-    if (input.room !== 'DIRECT' && input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Only direct conversations have a participant.'
-      })
-    if (input.room === 'TABLE' && input.roll.characterId === null) return
-    if (input.roll.characterId === null)
-      context.addIssue({
-        code: 'custom',
-        path: ['roll', 'characterId'],
-        message: 'A player Campaign roll requires an assigned Character.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.room !== 'TABLE')
+        context.addIssue({
+          code: 'custom',
+          path: ['room'],
+          message: 'Campaign rolls can only be sent to the TABLE conversation.'
+        })
+      if (input.room !== 'DIRECT' && input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Only direct conversations have a participant.'
+        })
+      if (input.room === 'TABLE' && input.roll.characterId === null) return
+      if (input.roll.characterId === null)
+        context.addIssue({
+          code: 'custom',
+          path: ['roll', 'characterId'],
+          message: 'A player Campaign roll requires an assigned Character.'
+        })
+    })
+  )
 export const executeCampaignPrivateRollInputSchema = z
   .strictObject({ campaignId: uuidSchema, roll: executeCampaignRollDetailsSchema })
-  .superRefine((input, context) => {
-    if (input.roll.characterId !== null)
-      context.addIssue({
-        code: 'custom',
-        path: ['roll', 'characterId'],
-        message: 'GM private rolls do not use a Character.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.roll.characterId !== null)
+        context.addIssue({
+          code: 'custom',
+          path: ['roll', 'characterId'],
+          message: 'GM private rolls do not use a Character.'
+        })
+    })
+  )
 export const editCampaignChatEntryInputSchema = z.strictObject({
   campaignId: uuidSchema,
   entryId: uuidSchema,
-  body: z.string().trim().min(1).max(2000)
+  body: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(2000))
 })
 export const unsendCampaignChatEntryInputSchema = z.strictObject({
   campaignId: uuidSchema,
@@ -253,29 +270,31 @@ export const listCampaignChatEntriesInputSchema = z
   .strictObject({
     campaignId: uuidSchema,
     room: campaignChatRoomDtoSchema,
-    directUserId: uuidSchema.optional(),
-    cursor: uuidSchema.optional(),
-    limit: z.number().int().min(1).max(100).default(50)
+    directUserId: z.optional(uuidSchema),
+    cursor: z.optional(uuidSchema),
+    limit: z._default(z.number().check(z.int()).check(z.gte(1)).check(z.lte(100)), 50)
   })
-  .superRefine((input, context) => {
-    if (input.room === 'DIRECT' && !input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Direct chat requires a participant.'
-      })
-    if (input.room !== 'DIRECT' && input.directUserId)
-      context.addIssue({
-        code: 'custom',
-        path: ['directUserId'],
-        message: 'Only direct chat has a participant.'
-      })
-  })
+  .check(
+    z.superRefine((input, context) => {
+      if (input.room === 'DIRECT' && !input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Direct chat requires a participant.'
+        })
+      if (input.room !== 'DIRECT' && input.directUserId)
+        context.addIssue({
+          code: 'custom',
+          path: ['directUserId'],
+          message: 'Only direct chat has a participant.'
+        })
+    })
+  )
 export const campaignChatPageDtoSchema = z.strictObject({
   entries: z.array(campaignChatEntryDtoSchema),
-  nextCursor: uuidSchema.nullable(),
-  lastReadAt: timestampSchema.nullable(),
-  unreadCount: z.number().int().nonnegative()
+  nextCursor: z.nullable(uuidSchema),
+  lastReadAt: z.nullable(timestampSchema),
+  unreadCount: z.number().check(z.int()).check(z.nonnegative())
 })
 
 export type CampaignRealtimeEnvelopeDto = z.infer<typeof campaignRealtimeEnvelopeDtoSchema>

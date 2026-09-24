@@ -1,14 +1,14 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
   authoredPlainTextSchema,
   authoredReferenceCollectionSchema,
   authoredRichTextSchema,
-  authoredShortTextSchema,
-  detailDtoSchema
-} from '../shared/index.js'
-import { featureDtoSchema } from '../features/index.js'
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import { detailDtoSchema } from '../shared/detail.js'
+import { featureDtoSchema } from '../features/feature.js'
 import { costDtoSchema, weightDtoSchema } from './shared.js'
 import {
   authoredRecordStatusSchema,
@@ -19,29 +19,29 @@ import {
 export const vehicleAuthoredDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  description: authoredRichTextSchema.optional(),
-  status: authoredRecordStatusSchema.optional(),
-  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  description: z.optional(authoredRichTextSchema),
+  status: z.optional(authoredRecordStatusSchema),
+  details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
   userId: authoredIdentifierSchema,
   systemId: authoredIdentifierSchema,
   category: vehicleCategoryCodeSchema,
-  size: sizeCodeSchema.optional(),
-  armorClass: z.number().int().nonnegative().optional(),
-  hitPoints: z.number().int().nonnegative().optional(),
-  speed: z.number().nonnegative().optional(),
-  speedNote: authoredPlainTextSchema.optional(),
-  crewMin: z.number().int().nonnegative().optional(),
-  crewMax: z.number().int().nonnegative().optional(),
-  passengerCapacity: z.number().int().nonnegative().optional(),
-  cargoCapacity: authoredPlainTextSchema.optional(),
-  weight: weightDtoSchema.optional(),
-  cost: costDtoSchema.optional(),
-  properties: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional()
+  size: z.optional(sizeCodeSchema),
+  armorClass: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  hitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  speed: z.optional(z.number().check(z.nonnegative())),
+  speedNote: z.optional(authoredPlainTextSchema),
+  crewMin: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  crewMax: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  passengerCapacity: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+  cargoCapacity: z.optional(authoredPlainTextSchema),
+  weight: z.optional(weightDtoSchema),
+  cost: z.optional(costDtoSchema),
+  properties: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
 })
 
-export const vehicleAuthoringInputDtoSchema = vehicleAuthoredDtoSchema.extend({
-  userId: authoredIdentifierSchema.optional()
+export const vehicleAuthoringInputDtoSchema = z.extend(vehicleAuthoredDtoSchema, {
+  userId: z.optional(authoredIdentifierSchema)
 })
 
 export type VehicleAuthoredDto = z.infer<typeof vehicleAuthoredDtoSchema>

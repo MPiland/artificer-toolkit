@@ -1,5 +1,6 @@
 import { Stack, Text, Title } from '@mantine/core'
-import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignSessionAttendance } from '../CampaignSessionAttendance'
 import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignSessionEncounters } from '../CampaignSessionEncounters'
@@ -25,7 +26,11 @@ export function CampaignSessionRunView({
     return (
       <Stack gap='lg'>
         <CampaignTabletopLauncher campaign={campaign} session={session} />
-        <CampaignSessionPlayerEncounters campaign={campaign} sessionId={session.id} />
+        <CampaignSessionPlayerEncounters
+          campaign={campaign}
+          sessionId={session.id}
+          sessionOpen={session.status === 'OPEN'}
+        />
         <CampaignFileList
           campaign={campaign}
           currentUserId={currentUserId}

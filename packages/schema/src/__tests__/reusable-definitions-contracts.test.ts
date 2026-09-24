@@ -169,6 +169,41 @@ describe('reusable definition contracts', () => {
     ).toThrow(/identities must be unique/)
   })
 
+  it('accepts maintenance documents and binds persisted envelopes to their family', () => {
+    const maintenance = {
+      schemaVersion: 1,
+      kind: 'RULE_MAINTENANCE' as const,
+      id: definitionId,
+      gameSystemId: systemId,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION' as const,
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' as const,
+      damageCheckDefinitionId: tieDefinitionId
+    }
+    expect(reusableDefinitionDocumentDtoSchema.parse(maintenance)).toEqual(maintenance)
+
+    const current = {
+      id: definitionId,
+      gameSystemId: systemId,
+      contentSourceId: sourceId,
+      definitionFamilyKey: 'rule-maintenance',
+      label: 'Concentration',
+      description: null,
+      document: maintenance,
+      checksum: 'a'.repeat(64),
+      contractVersion: 1,
+      version: 1,
+      publishedAt: '2026-08-25T00:00:00.000Z',
+      publishedBy: actorId
+    }
+    expect(reusableDefinitionCurrentDtoSchema.parse(current)).toEqual(current)
+    expect(() =>
+      reusableDefinitionCurrentDtoSchema.parse({
+        ...current,
+        definitionFamilyKey: 'rules-runtime-graph'
+      })
+    ).toThrow(/family must match/)
+  })
+
   it('requires bounded exact graph pins and an in-policy initiative tie resolver', () => {
     const policy = {
       schemaVersion: 1,

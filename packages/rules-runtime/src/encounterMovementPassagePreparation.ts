@@ -1,0 +1,459 @@
+import type {
+  OptionalCombatPassageChoicePendingContextDto,
+  ServerOptionalCombatContestPendingApplicationContextDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  activeOptionalCombatDefinitions,
+  encounterOptionalCombatSnapshotDtoSchema
+} from '@artificer-toolkit/schema/shared/optionalCombat'
+import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
+import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
+import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
+import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
+import { prepareDnd5eOptionalCombatContestPendingContext } from './systems/dnd5e/optionalCombatContestPendingContext.js'
+import {
+  prepareDnd5eOverrunContest,
+  prepareDnd5eTumbleContest
+} from './systems/dnd5e/optionalMovementPolicy.js'
+
+type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
+  loadSystem: () => Promise<SystemAuthoredDto>
+  prepareEconomy: (input: {
+    actor: EncounterRunActorState
+    state: EncounterRunState
+    activation: { code: string; amount: number }
+    target: MovementTarget<TCharacterFacts>
+  }) => Promise<EncounterActionEconomyConsumption | null>
+}
+
+const sizeRankTable = { TINY: 0, SMALL: 1, MEDIUM: 2, LARGE: 3, HUGE: 4, GARGANTUAN: 5 } as const
+
+type ContestFacts = {
+  controllerCharacterId: string | null
+  contributors: ServerOptionalCombatContestPendingApplicationContextDto['initiator']['contributors']
+  modifier: number | null
+  rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+  size: string | null
+}
+
+type PassagePreparationInput<TCharacterFacts extends CharacterMovementFacts> = {
+  state: EncounterRunState
+  movement: OptionalCombatPassageChoicePendingContextDto['movement']
+  sourceActorId: string
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}
+
+function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input: {
+  actorId: string
+  checkDefinitionId: string
+  gameSystemId: string
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}): ContestFacts {
+  const target = input.targets.get(input.actorId)
+  if (!target || target.actor.id !== input.actorId || target.actor.systemId !== input.gameSystemId)
+    throw new Error('Movement passage actor facts are stale.')
+  if (target.actor.kind === 'CHARACTER') {
+    const facts = target.characterFacts
+    const policy = target.effectiveRulePolicyOutput
+    if (!facts || !policy || !target.actor.sourceId || facts.active.id !== target.actor.sourceId)
+      throw new Error('Movement passage Character facts are unavailable.')
+    const initiative = toCharacterInitiativeActorFacts({
+      snapshot: facts.ruleEvaluation.snapshot,
+      registry: facts.ruleEvaluation.registry,
+      rulePolicyOutput: policy
+    })
+    const modifier = initiative.checkTotals[input.checkDefinitionId]
+    return {
+      controllerCharacterId: facts.active.id,
+      contributors: (policy.rollContributorEvidence.skillChecks[input.checkDefinitionId] ?? []).map(
+        ({ domainKey, grantId, influence, sourceId }) => ({
+          domainKey: domainKey ?? null,
+          grantId: grantId ?? null,
+          influence,
+          sourceId
+        })
+      ),
+      modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
+      rollMode: policy.rollModes.skillChecks[input.checkDefinitionId] ?? 'NORMAL',
+      size: initiative.effectiveSize
+    }
+  }
+  if (target.actor.kind === 'CREATURE') {
+    if (
+      typeof target.actor.snapshot !== 'object' ||
+      target.actor.snapshot === null ||
+      Array.isArray(target.actor.snapshot) ||
+      typeof target.actor.snapshot.payload !== 'object' ||
+      target.actor.snapshot.payload === null ||
+      Array.isArray(target.actor.snapshot.payload)
+    )
+      throw new Error('Movement passage Creature facts are unavailable.')
+    const ruleFacts = encounterCreatureRuleFactsSnapshotSchema.parse(
+      target.actor.snapshot.ruleFacts
+    )
+    if (ruleFacts.gameSystemId !== input.gameSystemId)
+      throw new Error('Movement passage Creature facts are stale.')
+    const modifier = ruleFacts.checkTotals?.[input.checkDefinitionId]
+    return {
+      controllerCharacterId: null,
+      contributors: [],
+      modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
+      rollMode: 'NORMAL',
+      size: sizeCodeSchema.parse(target.actor.snapshot.payload.size)
+    }
+  }
+  throw new Error('Movement passage Custom actors cannot contest passage.')
+}
+
+function passageActors<TCharacterFacts extends CharacterMovementFacts>(input: {
+  state: EncounterRunState
+  choice: OptionalCombatPassageChoicePendingContextDto
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}) {
+  const source = input.targets.get(input.choice.sourceActorId)
+  const blocker = input.targets.get(input.choice.movement.blockerActorId)
+  if (
+    !source ||
+    !blocker ||
+    source.actor.id !== input.choice.sourceActorId ||
+    blocker.actor.id !== input.choice.movement.blockerActorId ||
+    source.actor.encounterId !== input.state.id ||
+    blocker.actor.encounterId !== input.state.id ||
+    source.actor.systemId !== input.state.gameSystemId ||
+    blocker.actor.systemId !== input.state.gameSystemId
+  )
+    throw new Error('Movement passage actors are stale.')
+  return { blocker, source }
+}
+
+type PassageContestInput<TCharacterFacts extends CharacterMovementFacts> = {
+  state: EncounterRunState
+  choice: OptionalCombatPassageChoicePendingContextDto
+  optionId: string
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}
+
+/** Creates one sealed contest from an issued passage option without changing Encounter state. */
+export async function prepareEncounterMovementPassageContest<
+  TCharacterFacts extends CharacterMovementFacts
+>(
+  reads: PassageReads<TCharacterFacts>,
+  input: PassageContestInput<TCharacterFacts>
+): Promise<ServerOptionalCombatContestPendingApplicationContextDto> {
+  const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
+  if (!option) throw new Error('Movement passage option is unavailable.')
+  const { source } = passageActors(input)
+  const system = await reads.loadSystem()
+  if (system.id !== input.state.gameSystemId) throw new Error('Movement passage System is stale.')
+  const economy = await reads.prepareEconomy({
+    actor: source.actor,
+    state: input.state,
+    activation: { code: option.economy, amount: 1 },
+    target: source
+  })
+  if (!economy) throw new Error('Movement passage allowance is unavailable.')
+  return prepareMovementPassageContest(input, economy)
+}
+
+/** All options in one read-only choice share the same current allowance observations. */
+function prepareMovementPassageContest<TCharacterFacts extends CharacterMovementFacts>(
+  input: PassageContestInput<TCharacterFacts>,
+  economy: EncounterActionEconomyConsumption
+): ServerOptionalCombatContestPendingApplicationContextDto {
+  const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
+  if (!option) throw new Error('Movement passage option is unavailable.')
+  const { blocker, source } = passageActors(input)
+  const common = {
+    actionEconomy: option.economy,
+    actionEconomyAvailable: true,
+    automationMode: input.state.automationMode,
+    blockerActorId: blocker.actor.id,
+    gameSystemId: input.state.gameSystemId,
+    initiatorActorId: source.actor.id,
+    optionalCombatSnapshot: input.state.optionalCombatSnapshot,
+    optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+    passageAlreadyUsedThisTurn: false
+  }
+  const sourceSize = actorContestFacts({
+    actorId: source.actor.id,
+    checkDefinitionId: '00000000-0000-0000-0000-000000000000',
+    gameSystemId: input.state.gameSystemId,
+    targets: input.targets
+  }).size
+  const blockerSize = actorContestFacts({
+    actorId: blocker.actor.id,
+    checkDefinitionId: '00000000-0000-0000-0000-000000000000',
+    gameSystemId: input.state.gameSystemId,
+    targets: input.targets
+  }).size
+  const preliminary =
+    option.ruleKind === 'OVERRUN'
+      ? prepareDnd5eOverrunContest({
+          ...common,
+          initiatorSizeRank: sizeRankTable[sourceSize as keyof typeof sizeRankTable] ?? null,
+          targetSizeRank: sizeRankTable[blockerSize as keyof typeof sizeRankTable] ?? null,
+          qualifiedInitiatorContributors: []
+        })
+      : prepareDnd5eTumbleContest(common)
+  if (preliminary.kind !== 'PROPOSED') throw new Error('Movement passage policy is unavailable.')
+  const initiator = actorContestFacts({
+    actorId: source.actor.id,
+    checkDefinitionId: preliminary.proposal.contest.initiatorCheckDefinitionId,
+    gameSystemId: input.state.gameSystemId,
+    targets: input.targets
+  })
+  const defender = actorContestFacts({
+    actorId: blocker.actor.id,
+    checkDefinitionId: preliminary.proposal.contest.targetCheckDefinitionId,
+    gameSystemId: input.state.gameSystemId,
+    targets: input.targets
+  })
+  if (initiator.modifier === null || defender.modifier === null)
+    throw new Error('Movement passage contest facts are unavailable.')
+  const resolved =
+    option.ruleKind === 'OVERRUN'
+      ? {
+          ruleKind: 'OVERRUN' as const,
+          result: prepareDnd5eOverrunContest({
+            ...common,
+            initiatorSizeRank: sizeRankTable[initiator.size as keyof typeof sizeRankTable] ?? null,
+            targetSizeRank: sizeRankTable[defender.size as keyof typeof sizeRankTable] ?? null,
+            qualifiedInitiatorContributors: initiator.contributors.map((contributor) => ({
+              id: contributor.sourceId,
+              influence: contributor.influence,
+              reason: 'EXISTING_QUALIFIED_FACT' as const
+            }))
+          })
+        }
+      : { ruleKind: 'TUMBLE' as const, result: prepareDnd5eTumbleContest(common) }
+  if (resolved.result.kind !== 'PROPOSED')
+    throw new Error('Movement passage policy changed before contest.')
+  const proposal = resolved.result.proposal
+  if (
+    proposal.pin.definitionId !== option.definitionId ||
+    proposal.pin.definitionVersion !== option.definitionVersion ||
+    proposal.pin.definitionChecksum !== option.definitionChecksum ||
+    proposal.pin.moduleKey !== option.moduleKey ||
+    proposal.pin.moduleContractVersion !== option.moduleContractVersion
+  )
+    throw new Error('Movement passage definition is stale.')
+  let initiatorContributors = initiator.contributors
+  let initiatorRollMode = initiator.rollMode
+  if (resolved.ruleKind === 'OVERRUN') {
+    const overrun = resolved
+    if (overrun.result.kind !== 'PROPOSED')
+      throw new Error('Movement passage policy changed before contest.')
+    initiatorContributors = overrun.result.proposal.contest.initiatorContributors.map(
+      (contributor) => ({
+        sourceId: contributor.id,
+        grantId: null,
+        domainKey: null,
+        influence: contributor.influence
+      })
+    )
+    initiatorRollMode = overrun.result.proposal.contest.initiatorMode
+  }
+  const graph = createDnd5eOptionalCombatContestGraph(proposal.pin)
+  return prepareDnd5eOptionalCombatContestPendingContext({
+    actionKind: option.ruleKind,
+    actionId: option.optionId,
+    sourceActorId: source.actor.id,
+    targetActorId: blocker.actor.id,
+    initiatorControllerCharacterId: initiator.controllerCharacterId,
+    sceneContext: {
+      sceneId: input.choice.movement.root.sceneId,
+      sceneVersion: input.choice.movement.root.currentSceneVersion,
+      sourceTokenId: input.choice.sourceTokenId,
+      targetTokenId: input.choice.movement.blockerTokenId
+    },
+    positionalDependencyChecksum: checksumRuleDocument(input.choice.movement),
+    optionalCombat: {
+      snapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+      definitionId: proposal.pin.definitionId,
+      definitionVersion: proposal.pin.definitionVersion,
+      definitionChecksum: proposal.pin.definitionChecksum,
+      moduleKey: proposal.pin.moduleKey,
+      moduleContractVersion: proposal.pin.moduleContractVersion
+    },
+    contestGraph: {
+      definitionId: graph.published.id,
+      checksum: graph.published.checksum,
+      identityChecksum: graph.identityChecksum
+    },
+    optionId: option.optionId,
+    selectionContractChecksum: checksumRuleDocument(option),
+    resolvedSelectionChecksum: checksumRuleDocument({ optionId: option.optionId }),
+    source: {
+      kind: 'OPTIONAL_COMBAT_DEFINITION',
+      definitionId: proposal.pin.definitionId,
+      definitionVersion: proposal.pin.definitionVersion,
+      definitionChecksum: proposal.pin.definitionChecksum,
+      moduleKey: proposal.pin.moduleKey,
+      moduleContractVersion: proposal.pin.moduleContractVersion
+    },
+    target: {
+      kind: 'ENCOUNTER_ACTOR',
+      currentnessChecksum: input.choice.movement.blockerCurrentnessChecksum
+    },
+    initiator: {
+      actorId: source.actor.id,
+      requestNodeId: 'initiator_d20',
+      rollMode: initiatorRollMode,
+      contributors: initiatorContributors,
+      contributorChecksum: checksumRuleDocument(initiatorContributors),
+      modifier: initiator.modifier
+    },
+    defender: {
+      actorId: blocker.actor.id,
+      requestNodeId: 'target_d20',
+      rollMode: defender.rollMode,
+      contributors: defender.contributors,
+      contributorChecksum: checksumRuleDocument(defender.contributors),
+      modifier: defender.modifier,
+      checkDefinitionId: proposal.contest.targetCheckDefinitionId
+    },
+    rollEvidence: { initiator: null, defender: null },
+    selection:
+      option.ruleKind === 'OVERRUN'
+        ? {
+            kind: 'OVERRUN',
+            economy: option.economy,
+            defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
+          }
+        : {
+            kind: 'TUMBLE',
+            economy: option.economy,
+            defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
+          },
+    actionEconomy: {
+      definitionId: economy.definitionId,
+      definitionVersion: economy.definitionVersion,
+      definitionChecksum: economy.definitionChecksum,
+      maximum: economy.maximum,
+      beforeUsed: economy.beforeUsed
+    },
+    movementContinuation: input.choice.movement
+  })
+}
+
+/** Issues only optional-passage choices that can be prepared from current actor facts. */
+export async function availableEncounterMovementPassageChoice<
+  TCharacterFacts extends CharacterMovementFacts
+>(
+  reads: PassageReads<TCharacterFacts>,
+  input: PassagePreparationInput<TCharacterFacts>
+): Promise<OptionalCombatPassageChoicePendingContextDto | null> {
+  if (input.state.automationMode === 'MANUAL' || !input.state.optionalCombatSnapshotChecksum)
+    return null
+  const snapshot = encounterOptionalCombatSnapshotDtoSchema.safeParse(
+    input.state.optionalCombatSnapshot
+  )
+  if (!snapshot.success || snapshot.data.gameSystemId !== input.state.gameSystemId) return null
+  const source = input.targets.get(input.sourceActorId)
+  if (
+    !source ||
+    source.actor.id !== input.sourceActorId ||
+    source.actor.encounterId !== input.state.id ||
+    source.actor.systemId !== input.state.gameSystemId
+  )
+    return null
+  const definitions = activeOptionalCombatDefinitions({
+    automationMode: input.state.automationMode,
+    snapshot: snapshot.data
+  })
+  const economies = await Promise.all(
+    (['ACTION', 'BONUS_ACTION'] as const).map(async (economy) => {
+      try {
+        const prepared = await reads.prepareEconomy({
+          actor: source.actor,
+          state: input.state,
+          activation: { code: economy, amount: 1 },
+          target: source
+        })
+        return prepared ? { code: economy, prepared } : null
+      } catch {
+        return null
+      }
+    })
+  )
+  const options = definitions.flatMap((definition) => {
+    const ruleKind = definition.document.kind
+    if (ruleKind !== 'OVERRUN' && ruleKind !== 'TUMBLE') return []
+    return economies.flatMap((economy) =>
+      economy
+        ? [
+            {
+              ruleKind,
+              economy: economy.code,
+              definitionId: definition.definitionId,
+              definitionVersion: definition.definitionVersion,
+              definitionChecksum: definition.definitionChecksum,
+              moduleKey: definition.document.module.policyModuleKey,
+              moduleContractVersion: definition.document.module.contractVersion
+            }
+          ]
+        : []
+    )
+  })
+  if (options.length === 0) return null
+  const choice = createEncounterMovementPassageChoice({
+    movement: input.movement,
+    sourceActorId: input.sourceActorId,
+    sourceControllerCharacterId:
+      source.actor.kind === 'CHARACTER' ? (source.characterFacts?.active.id ?? null) : null,
+    options
+  })
+  try {
+    const system = await reads.loadSystem()
+    if (system.id !== input.state.gameSystemId) return null
+  } catch {
+    return null
+  }
+  const executable = new Set<string>()
+  for (const option of choice.options) {
+    try {
+      const economy = economies.find((candidate) => candidate?.code === option.economy)
+      if (!economy) continue
+      prepareMovementPassageContest(
+        {
+          state: input.state,
+          choice,
+          optionId: option.optionId,
+          targets: input.targets
+        },
+        economy.prepared
+      )
+      executable.add(option.optionId)
+    } catch {
+      // Missing or stale contest facts make this issued option unavailable.
+    }
+  }
+  const accepted = options.filter((candidate) =>
+    choice.options.some(
+      (option) =>
+        executable.has(option.optionId) &&
+        option.definitionId === candidate.definitionId &&
+        option.definitionVersion === candidate.definitionVersion &&
+        option.economy === candidate.economy &&
+        option.ruleKind === candidate.ruleKind
+    )
+  )
+  return accepted.length === 0
+    ? null
+    : createEncounterMovementPassageChoice({
+        movement: input.movement,
+        sourceActorId: input.sourceActorId,
+        sourceControllerCharacterId:
+          source.actor.kind === 'CHARACTER' ? (source.characterFacts?.active.id ?? null) : null,
+        options: accepted
+      })
+}

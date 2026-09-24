@@ -29,7 +29,7 @@ const DESCRIPTIONS = [
 
 type Props = {
   session: AuthoredFormSession
-  onAdvanced: () => void
+  onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
 }
 

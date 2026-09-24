@@ -29,6 +29,7 @@ function MovementFixture() {
   const [ready, setReady] = useState(false)
   const [preview, setPreview] = useState<ScenePoint | null>(null)
   const [committedPath, setCommittedPath] = useState<ScenePoint[] | null>(null)
+  const [appearanceChanged, setAppearanceChanged] = useState(false)
 
   useEffect(() => {
     if (!host.current) return
@@ -67,6 +68,32 @@ function MovementFixture() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!renderer.current) return
+    renderer.current.update({
+      currentUserId: tabletopCurrentUserId,
+      mapDelivery: null,
+      mode: 'PLAY',
+      role: 'PLAYER',
+      scene: movementScene,
+      tokenPresentations: appearanceChanged
+        ? {
+            [movementScene.tokens[0]!.id]: {
+              accessibleDescription: 'Moved token.',
+              artUrl: null,
+              facing: false,
+              fillColor: 0x1971c2,
+              halo: null,
+              marked: false,
+              outlineColor: 0xffffff,
+              statuses: []
+            }
+          }
+        : undefined,
+      tool: 'SELECT'
+    })
+  }, [appearanceChanged])
+
   return (
     <section aria-label='Movement path fixture' style={{ display: 'grid', gap: 12, padding: 16 }}>
       <div ref={host} style={{ blockSize: 600, minInlineSize: 0, overflow: 'hidden' }} />
@@ -79,6 +106,9 @@ function MovementFixture() {
       <output aria-live='polite' data-testid='movement-commit'>
         {committedPath ? JSON.stringify(committedPath) : 'No committed movement.'}
       </output>
+      <button type='button' onClick={() => setAppearanceChanged(true)}>
+        Change token appearance
+      </button>
     </section>
   )
 }
@@ -133,6 +163,25 @@ export const WaypointDrag: Story = {
   }
 }
 
+export const AppearanceChangeDrag: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    await fireEvent.click(canvas.getByRole('button', { name: 'Change token appearance' }))
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const from = sceneToClient(rendererCanvas, movementScene.tokens[0]!.position)
+    const to = sceneToClient(rendererCanvas, { x: 420, y: 230 })
+    await drag(rendererCanvas, [from, to])
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path[0]).toEqual(movementScene.tokens[0]!.position)
+    expect(path.at(-1)?.x).toBeCloseTo(420)
+    expect(path.at(-1)?.y).toBeCloseTo(230)
+  }
+}
+
 function sceneToClient(canvas: HTMLElement, point: ScenePoint): ScenePoint {
   const bounds = canvas.getBoundingClientRect()
   const scale =
@@ -147,6 +196,7 @@ function sceneToClient(canvas: HTMLElement, point: ScenePoint): ScenePoint {
 async function drag(canvas: HTMLElement, points: ScenePoint[]): Promise<void> {
   const [first, ...rest] = points
   if (!first) return
+  await nextFrame()
   const pointerId = nextPointerId++
   fireEvent.pointerDown(canvas, {
     button: 0,

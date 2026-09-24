@@ -1,14 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getBackground, getBackgroundDraft } from '#app/data/backgrounds/queries'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { backgroundResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { getBackground } from '#app/data/backgrounds/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { BackgroundEditLoaderData } from '#app/routes/-routeLoaderData'
 import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
@@ -22,22 +19,18 @@ export const Route = createFileRoute(
 )({
   context: () => createAuthoredFormRouteContext('background', 'edit'),
   loader: async ({ context, params }): Promise<BackgroundEditLoaderData> => {
-    const client = createServerApi()
-    const backgroundId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.backgrounds.list(),
-      publicId: params.backgroundPublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'BACKGROUND'
-    })
-    const [response, draft] = await Promise.all([
-      ensureOptionalActiveContent(context.queryClient, getBackground(backgroundId, client)),
-      context.queryClient.ensureQueryData(getBackgroundDraft(backgroundId, client))
+    const [active, working] = await Promise.all([
+      context.queryClient.ensureQueryData(getBackground(params.backgroundPublicId)),
+      context.queryClient.ensureQueryData(
+        getBackground({ id: params.backgroundPublicId, view: 'draft' })
+      )
     ])
+    const response = backgroundResponseDtoSchema.parse(active)
+    const draft = backgroundResponseDtoSchema.parse(working)?.draft ?? null
+    const backgroundId = response?.item?.id ?? draft?.subjectId ?? params.backgroundPublicId
     const routeSubject = getAuthoredRouteSubject(backgroundId, response, draft)
     const system = await loadAuthoredRouteSystem(
       context.queryClient,
-      client,
       response?.item?.systemId ?? draft?.systemId
     )
 

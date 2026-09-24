@@ -1,13 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { getRace, getRaceDraft } from '#app/data/races/queries'
-import { createServerApi } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { raceResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { raceAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import { getRace } from '#app/data/races/queries'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
-import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 import type { RaceEditLoaderData } from '#app/routes/-routeLoaderData'
 import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
@@ -20,23 +18,19 @@ import {
 export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug/edit')({
   context: () => createAuthoredFormRouteContext('race', 'edit'),
   loader: async ({ context, params }): Promise<RaceEditLoaderData> => {
-    const client = createServerApi()
-    const raceId = await resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.races.list(),
-      publicId: params.racePublicId,
-      queryClient: context.queryClient,
-      subjectKind: 'RACE'
-    })
-    const [response, draft] = await Promise.all([
-      ensureOptionalActiveContent(context.queryClient, getRace(raceId, client)),
-      context.queryClient.ensureQueryData(getRaceDraft(raceId, client))
+    const [active, working] = await Promise.all([
+      context.queryClient.ensureQueryData(getRace(params.racePublicId)),
+      context.queryClient.ensureQueryData(getRace({ id: params.racePublicId, view: 'draft' }))
     ])
+    const response = raceResponseDtoSchema.parse(active)
+    const draft = raceResponseDtoSchema.parse(working)?.draft ?? null
+    const raceId = response?.item?.id ?? draft?.subjectId ?? params.racePublicId
     const routeSubject = getAuthoredRouteSubject(raceId, response, draft)
+    const parsedDraft = raceAuthoringInputDtoSchema.safeParse(draft?.payload)
+    const currentRace = parsedDraft.success ? parsedDraft.data : response?.item
     const system = await loadAuthoredRouteSystem(
       context.queryClient,
-      client,
-      response?.item?.systemId ?? draft?.systemId
+      currentRace?.systemId ?? draft?.systemId
     )
 
     if (

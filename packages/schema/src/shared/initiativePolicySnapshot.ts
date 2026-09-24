@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { ruleGraphDefinitionDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -7,12 +7,16 @@ import {
   initiativePolicyReusableDefinitionDocumentDtoSchema,
   initiativePolicyExactGraphPinDtoSchema
 } from './initiativePolicy.js'
-import { serverUuidIdentityDtoSchema } from './rulesExecution.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 
-const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
-const definitionVersionSchema = z.number().int().nonnegative().max(1_000_000)
-const contractVersionSchema = z.number().int().positive().max(10_000)
-const labelSchema = z.string().trim().min(1).max(160)
+const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+const definitionVersionSchema = z
+  .number()
+  .check(z.int())
+  .check(z.nonnegative())
+  .check(z.lte(1_000_000))
+const contractVersionSchema = z.number().check(z.int()).check(z.positive()).check(z.lte(10_000))
+const labelSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
 
 const initiativePolicySnapshotDefinitionBaseSchema = z.strictObject({
   definitionId: serverUuidIdentityDtoSchema,
@@ -23,15 +27,19 @@ const initiativePolicySnapshotDefinitionBaseSchema = z.strictObject({
   label: labelSchema
 })
 
-export const initiativePolicySnapshotPolicyDtoSchema =
-  initiativePolicySnapshotDefinitionBaseSchema.extend({
+export const initiativePolicySnapshotPolicyDtoSchema = z.extend(
+  initiativePolicySnapshotDefinitionBaseSchema,
+  {
     document: initiativePolicyReusableDefinitionDocumentDtoSchema
-  })
+  }
+)
 
-export const initiativePolicySnapshotGraphDtoSchema =
-  initiativePolicySnapshotDefinitionBaseSchema.extend({
+export const initiativePolicySnapshotGraphDtoSchema = z.extend(
+  initiativePolicySnapshotDefinitionBaseSchema,
+  {
     document: ruleGraphDefinitionDtoSchema
-  })
+  }
+)
 
 function pinMatchesSnapshot(
   pin: z.infer<typeof initiativePolicyExactGraphPinDtoSchema>,
@@ -53,59 +61,63 @@ export const encounterInitiativePolicySnapshotDtoSchema = z
     orderChoiceGraph: initiativePolicySnapshotGraphDtoSchema,
     tieResolver: initiativePolicySnapshotGraphDtoSchema
   })
-  .superRefine((snapshot, context) => {
-    if (
-      snapshot.policy.document.id !== snapshot.policy.definitionId ||
-      snapshot.policy.document.gameSystemId !== snapshot.gameSystemId
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['policy', 'document'],
-        message: 'Initiative policy snapshot identity must match its pinned policy definition.'
-      })
-    }
-    for (const [key, graph] of [
-      ['evaluationGraph', snapshot.evaluationGraph],
-      ['orderChoiceGraph', snapshot.orderChoiceGraph],
-      ['tieResolver', snapshot.tieResolver]
-    ] as const) {
+  .check(
+    z.superRefine((snapshot, context) => {
       if (
-        graph.document.id !== graph.definitionId ||
-        graph.document.gameSystemId !== snapshot.gameSystemId
+        snapshot.policy.document.id !== snapshot.policy.definitionId ||
+        snapshot.policy.document.gameSystemId !== snapshot.gameSystemId
       ) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key, 'document'],
-          message: 'Initiative graph snapshot identity must match its pinned definition.'
+          code: 'custom',
+          path: ['policy', 'document'],
+          message: 'Initiative policy snapshot identity must match its pinned policy definition.'
         })
       }
-    }
-    if (!pinMatchesSnapshot(snapshot.policy.document.evaluationGraph, snapshot.evaluationGraph)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['evaluationGraph'],
-        message: 'Initiative evaluation graph must match the policy graph pin.'
-      })
-    }
-    if (!pinMatchesSnapshot(snapshot.policy.document.orderChoiceGraph, snapshot.orderChoiceGraph)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['orderChoiceGraph'],
-        message: 'Initiative order-choice graph must match the policy graph pin.'
-      })
-    }
-    if (
-      !snapshot.policy.document.tieResolvers.some((pin) =>
-        pinMatchesSnapshot(pin, snapshot.tieResolver)
-      )
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['tieResolver'],
-        message: 'Initiative tie resolver must be permitted and pinned by the policy.'
-      })
-    }
-  })
+      for (const [key, graph] of [
+        ['evaluationGraph', snapshot.evaluationGraph],
+        ['orderChoiceGraph', snapshot.orderChoiceGraph],
+        ['tieResolver', snapshot.tieResolver]
+      ] as const) {
+        if (
+          graph.document.id !== graph.definitionId ||
+          graph.document.gameSystemId !== snapshot.gameSystemId
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: [key, 'document'],
+            message: 'Initiative graph snapshot identity must match its pinned definition.'
+          })
+        }
+      }
+      if (!pinMatchesSnapshot(snapshot.policy.document.evaluationGraph, snapshot.evaluationGraph)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['evaluationGraph'],
+          message: 'Initiative evaluation graph must match the policy graph pin.'
+        })
+      }
+      if (
+        !pinMatchesSnapshot(snapshot.policy.document.orderChoiceGraph, snapshot.orderChoiceGraph)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['orderChoiceGraph'],
+          message: 'Initiative order-choice graph must match the policy graph pin.'
+        })
+      }
+      if (
+        !snapshot.policy.document.tieResolvers.some((pin) =>
+          pinMatchesSnapshot(pin, snapshot.tieResolver)
+        )
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['tieResolver'],
+          message: 'Initiative tie resolver must be permitted and pinned by the policy.'
+        })
+      }
+    })
+  )
 
 export const encounterInitiativePolicySummaryDtoSchema = z.strictObject({
   definitionId: serverUuidIdentityDtoSchema,

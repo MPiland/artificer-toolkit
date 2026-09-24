@@ -8,6 +8,30 @@ import {
 import { buildNodeMap, type NodeMap } from '../utils/nodeDefinition.js'
 
 describe('Campaign text policy', () => {
+  it('preserves absent and null groups while masking present nested objects without mutation', () => {
+    const child = buildNodeMap<{ label: string }>().define('child', ({ map, nodes }) => {
+      map.set('label', nodes.text(['label'], 'Label'))
+    })
+    const map = buildNodeMap<{ optional?: { label: string } | null }>().define(
+      'parent',
+      ({ map, nodes }) => {
+        map.set(
+          'optional',
+          nodes.groupObject(['optional'], 'Optional', () => child, { presentation: 'inline' })
+        )
+      }
+    ) as NodeMap<Record<string, unknown>>
+    expect(presentAuthoredSnapshotText({}, map, 'STANDARD')).toStrictEqual({})
+    expect(presentAuthoredSnapshotText({ optional: null }, map, 'STANDARD')).toStrictEqual({
+      optional: null
+    })
+    const original = { optional: { label: 'shit lore' } }
+    expect(presentAuthoredSnapshotText(original, map, 'STANDARD')).toStrictEqual({
+      optional: { label: '**** lore' }
+    })
+    expect(original.optional.label).toBe('shit lore')
+  })
+
   it('masks English profanity and selected compound terms with asterisks', () => {
     expect(
       maskStandardPlainText(

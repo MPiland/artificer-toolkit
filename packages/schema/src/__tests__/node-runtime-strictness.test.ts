@@ -44,7 +44,7 @@ describe('node runtime schema strictness', () => {
     ).toBe(false)
 
     let nested: unknown = 'leaf'
-    for (let depth = 0; depth <= AUTHORED_LIMITS.facetNestingDepth; depth += 1) {
+    for (let depth = 0; depth <= AUTHORED_LIMITS.jsonNestingDepth; depth += 1) {
       nested = { child: nested }
     }
     expect(nodeRuntimeContextDtoSchema.safeParse({ ...request, values: { nested } }).success).toBe(
@@ -59,6 +59,33 @@ describe('node runtime schema strictness', () => {
         }
       }).success
     ).toBe(false)
+  })
+
+  it('allows 25 JSON levels independently of the 20-level facet limit', () => {
+    expect(AUTHORED_LIMITS.jsonNestingDepth).toBe(25)
+    expect(AUTHORED_LIMITS.facetNestingDepth).toBe(20)
+    const request = { mapId: 'spell', systemId: 'dnd5e2014' }
+    const nested = (depth: number) => {
+      let value: unknown = 'leaf'
+      for (let index = 1; index < depth; index += 1) {
+        value = index % 2 === 0 ? [value] : { child: value }
+      }
+      return { child: value }
+    }
+    for (const depth of [25, 26]) {
+      const values = nested(depth)
+      for (const context of [{ values }, { parentValues: values }, { ancestors: [values] }]) {
+        expect(nodeRuntimeContextDtoSchema.safeParse({ ...request, ...context }).success).toBe(
+          depth === 25
+        )
+      }
+      expect(
+        nodeRuntimeContextDtoSchema.safeParse({
+          ...request,
+          ancestors: Array.from({ length: depth }, () => ({}))
+        }).success
+      ).toBe(depth === 25)
+    }
   })
 
   it('accepts a valid select input', () => {

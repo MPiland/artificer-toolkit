@@ -12,13 +12,15 @@ interface AppProvidersProps {
   queryClient?: QueryClient
   defaultColorScheme?: MantineColorScheme
   forceColorScheme?: ForcedColorScheme
+  env?: 'default' | 'test'
 }
 
 export function AppProviders({
   children,
   queryClient,
   defaultColorScheme = 'auto',
-  forceColorScheme
+  forceColorScheme,
+  env
 }: AppProvidersProps) {
   const [fallbackQueryClient] = useState(createAppQueryClient)
   const activeQueryClient = queryClient ?? fallbackQueryClient
@@ -26,6 +28,7 @@ export function AppProviders({
   return (
     <QueryClientProvider client={activeQueryClient}>
       <MantineProvider
+        env={env}
         theme={theme}
         cssVariablesResolver={resolver}
         defaultColorScheme={defaultColorScheme}

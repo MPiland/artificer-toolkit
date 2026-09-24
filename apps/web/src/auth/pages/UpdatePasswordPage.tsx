@@ -1,17 +1,44 @@
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import { AuthPageShell, UpdatePasswordForm } from '../components'
+import {
+  authInvitationRedeemInputSchema,
+  type AuthInvitationRedeemInput
+} from '@artificer-toolkit/schema/api/auth'
+import { z } from 'zod/mini'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { UpdatePasswordForm } from '../components/UpdatePasswordForm'
+import { InviteLinkErrorPage } from './InviteLinkErrorPage'
+
+type InvitationCredentials = Pick<AuthInvitationRedeemInput, 'email' | 'token'>
+
+const invitationCredentialsSchema = z.pick(authInvitationRedeemInputSchema, {
+  email: true,
+  token: true
+})
 
 export function UpdatePasswordPage({ invitation = false }: { invitation?: boolean }) {
   const navigate = useNavigate()
   const router = useRouter()
+  const [invitationCredentials, setInvitationCredentials] = useState<InvitationCredentials | null>()
+  const fragmentRead = useRef(false)
+
+  useEffect(() => {
+    if (!invitation || fragmentRead.current) return
+    fragmentRead.current = true
+
+    const url = new URL(window.location.href)
+    const fragment = new URLSearchParams(url.hash.slice(1))
+    const parsed = invitationCredentialsSchema.safeParse({
+      email: fragment.get('email'),
+      token: fragment.get('token')
+    })
+
+    url.hash = ''
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`)
+    setInvitationCredentials(parsed.success ? parsed.data : null)
+  }, [invitation])
 
   async function handleSuccess() {
-    if (invitation) {
-      await router.invalidate()
-      await navigate({ to: '/home' })
-      return
-    }
-
     await navigate({ to: '/sign-in' })
   }
 
@@ -19,6 +46,8 @@ export function UpdatePasswordPage({ invitation = false }: { invitation?: boolea
     await router.invalidate()
     await navigate({ to: '/sign-in', replace: true })
   }
+
+  if (invitation && invitationCredentials === null) return <InviteLinkErrorPage />
 
   return (
     <AuthPageShell
@@ -31,6 +60,7 @@ export function UpdatePasswordPage({ invitation = false }: { invitation?: boolea
     >
       <UpdatePasswordForm
         invitation={invitation}
+        invitationCredentials={invitationCredentials ?? undefined}
         onBackToSignIn={handleBackToSignIn}
         onSuccess={handleSuccess}
       />

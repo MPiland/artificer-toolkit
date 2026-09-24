@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { measurementUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
@@ -11,7 +11,7 @@ export const plantPortalDtoSchema = z.object({
   samePlaneOnly: z.boolean(),
   destinationMustBeSeenOrTouched: z.boolean(),
   movementCost: z.object({
-    amount: z.number().positive(),
+    amount: z.number().check(z.positive()),
     unit: measurementUnitCodeSchema
   })
 })

@@ -1,6 +1,6 @@
 import { Select, Stack, Text } from '@mantine/core'
 import { useState } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { CampaignNotebook } from './CampaignNotebook'
 import { CampaignSessionNotes } from './CampaignSessionNotes'
 import * as sharedStyles from '../campaigns.css'

@@ -11,19 +11,25 @@ import {
 } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import type { CampaignClockDto, CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
-import { api } from '#app/lib/api'
+import type { CampaignClockDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { formatTime, hasCorrectionReason, parseTime } from './campaignClockTime'
 import * as styles from './CampaignClock.css'
 
 export function CampaignClockEditor({
   campaign,
-  clock,
-  onUpdated
+  clock
 }: {
   campaign: CampaignDetailDto
   clock: CampaignClockDto | null
-  onUpdated: () => Promise<void>
 }) {
+  const initialize = useConvexMutation(convexApi.campaigns.clock.initialize)
+  const configure = useConvexMutation(convexApi.campaigns.clock.configure)
+  const advance = useConvexMutation(convexApi.campaigns.clock.advance)
+  const rewind = useConvexMutation(convexApi.campaigns.clock.rewind)
+  const reset = useConvexMutation(convexApi.campaigns.clock.reset)
   const [opened, setOpened] = useState(false)
   const [day, setDay] = useState(1)
   const [time, setTime] = useState('08:00')
@@ -49,7 +55,7 @@ export function CampaignClockEditor({
         expectedVersion: clock?.version ?? 0
       }
       if (!clock)
-        return api.campaigns.clock.initialize({
+        return initialize({
           ...common,
           day,
           minuteOfDay: parseTime(time),
@@ -57,33 +63,32 @@ export function CampaignClockEditor({
           duskMinute: parseTime(dusk)
         })
       if (kind === 'SAVE')
-        return api.campaigns.clock.configure({
+        return configure({
           ...common,
           dawnMinute: parseTime(dawn),
           duskMinute: parseTime(dusk)
         })
       if (kind === 'ADVANCE')
-        return api.campaigns.clock.advance({
+        return advance({
           ...common,
           minutes: advanceMinutes
         })
       if (kind === 'REWIND')
-        return api.campaigns.clock.rewind({
+        return rewind({
           ...common,
           minutes: rewindMinutes,
           correctionReason: rewindReason.trim()
         })
-      return api.campaigns.clock.reset({
+      return reset({
         ...common,
         day,
         minuteOfDay: parseTime(time),
         correctionReason: resetReason.trim()
       })
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setRewindReason('')
       setResetReason('')
-      await onUpdated()
     }
   })
 
@@ -196,17 +201,4 @@ export function CampaignClockEditor({
       </Popover.Dropdown>
     </Popover>
   )
-}
-
-function parseTime(value: string) {
-  const [hours = '0', minutes = '0'] = value.split(':')
-  return Number(hours) * 60 + Number(minutes)
-}
-export function formatTime(minuteOfDay: number) {
-  return `${Math.floor(minuteOfDay / 60)
-    .toString()
-    .padStart(2, '0')}:${(minuteOfDay % 60).toString().padStart(2, '0')}`
-}
-export function hasCorrectionReason(value: string) {
-  return value.trim().length > 0
 }

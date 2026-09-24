@@ -1,25 +1,36 @@
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export { AUTHORED_LIMITS }
 
-export const authoredIdentifierSchema = z.string().max(AUTHORED_LIMITS.shortTextCharacters)
-export const authoredShortTextSchema = z.string().max(AUTHORED_LIMITS.shortTextCharacters)
-export const authoredPlainTextSchema = z.string().max(AUTHORED_LIMITS.plainTextCharacters)
-export const authoredNonnegativeNumberSchema = z.number().nonnegative()
+export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
+
+export const authoredIdentifierSchema = z
+  .string()
+  .check(z.maxLength(AUTHORED_LIMITS.shortTextCharacters))
+export const unknownObjectSchema = z.record(authoredIdentifierSchema, z.unknown())
+export const authoredShortTextSchema = z
+  .string()
+  .check(z.maxLength(AUTHORED_LIMITS.shortTextCharacters))
+export const authoredPlainTextSchema = z
+  .string()
+  .check(z.maxLength(AUTHORED_LIMITS.plainTextCharacters))
+export const authoredNonnegativeNumberSchema = z.number().check(z.nonnegative())
 export const authoredRichTextSchema = z
   .string()
-  .max(AUTHORED_LIMITS.richTextSerializedCharacters)
-  .refine(
-    (value) => getVisibleRichTextLength(value) <= AUTHORED_LIMITS.richTextVisibleCharacters,
-    `Rich text must contain at most ${AUTHORED_LIMITS.richTextVisibleCharacters} visible characters`
+  .check(z.maxLength(AUTHORED_LIMITS.richTextSerializedCharacters))
+  .check(
+    z.refine(
+      (value) => getVisibleRichTextLength(value) <= AUTHORED_LIMITS.richTextVisibleCharacters,
+      `Rich text must contain at most ${AUTHORED_LIMITS.richTextVisibleCharacters} visible characters`
+    )
   )
 
-export const authoredNestedCollectionSchema = <TItem extends z.ZodType>(item: TItem) =>
-  z.array(item).max(AUTHORED_LIMITS.nestedCollectionItems)
+export const authoredNestedCollectionSchema = <TItem extends z.ZodMiniType>(item: TItem) =>
+  z.array(item).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
 
-export const authoredReferenceCollectionSchema = <TItem extends z.ZodType>(item: TItem) =>
-  z.array(item).max(AUTHORED_LIMITS.referenceCollectionItems)
+export const authoredReferenceCollectionSchema = <TItem extends z.ZodMiniType>(item: TItem) =>
+  z.array(item).check(z.maxLength(AUTHORED_LIMITS.referenceCollectionItems))
 
 function getVisibleRichTextLength(value: string): number {
   return value

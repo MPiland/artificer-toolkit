@@ -5,8 +5,10 @@ import {
   createImageUploadIntentInputSchema,
   imageLookupInputSchema
 } from '../api/media.js'
+import { authoredImageSlotSchema } from '../api/mediaAssets.js'
 
 const id = '550e8400-e29b-41d4-a716-446655440000'
+const canonicalOwlId = '00000000-0000-0000-0070-00d600000000'
 
 describe('media contracts', () => {
   it('accepts enabled image profiles and bounded uploads', () => {
@@ -105,7 +107,12 @@ describe('media contracts', () => {
     ).toBe(false)
     expect(
       imageLookupInputSchema.safeParse({
-        target: { type: 'AUTHORED_IMAGE', subjectKind: 'CAMPAIGN', subjectId: id, scope: 'ACTIVE' }
+        target: {
+          type: 'AUTHORED_IMAGE',
+          subjectKind: 'CAMPAIGN',
+          subjectId: id,
+          scope: 'ACTIVE'
+        }
       }).success
     ).toBe(false)
     expect(
@@ -115,8 +122,59 @@ describe('media contracts', () => {
     ).toBe(false)
     expect(
       imageLookupInputSchema.safeParse({
-        target: { type: 'AUTHORED_IMAGE', subjectKind: 'SPELL', subjectId: id, scope: 'DRAFT' }
+        target: {
+          type: 'AUTHORED_IMAGE',
+          subjectKind: 'SPELL',
+          subjectId: id,
+          scope: 'DRAFT'
+        }
       }).success
     ).toBe(true)
+  })
+
+  it('accepts canonical authored identities while keeping runtime identities strict', () => {
+    const target = {
+      type: 'AUTHORED_IMAGE' as const,
+      subjectKind: 'CREATURE' as const,
+      subjectId: canonicalOwlId.toUpperCase()
+    }
+    expect(
+      createImageUploadIntentInputSchema.parse({
+        profile: 'AUTHORED_IMAGE',
+        target,
+        originalFileName: 'owl.png',
+        declaredMimeType: 'image/png',
+        declaredBytes: 1,
+        idempotencyKey: id
+      })
+    ).toMatchObject({ target: { subjectId: canonicalOwlId } })
+    expect(
+      imageLookupInputSchema.parse({
+        target: { ...target, scope: 'ACTIVE' }
+      })
+    ).toMatchObject({ target: { subjectId: canonicalOwlId } })
+    expect(
+      authoredImageSlotSchema.parse({
+        subjectKind: 'CREATURE',
+        subjectId: canonicalOwlId.toUpperCase(),
+        scope: 'ACTIVE',
+        assetId: null,
+        revision: 0
+      }).subjectId
+    ).toBe(canonicalOwlId)
+    expect(
+      imageLookupInputSchema.safeParse({
+        target: {
+          ...target,
+          subjectId: '00000000-0000-0000-0070-00d60000000z',
+          scope: 'ACTIVE'
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      imageLookupInputSchema.safeParse({
+        target: { type: 'CHARACTER_PORTRAIT', characterId: canonicalOwlId }
+      }).success
+    ).toBe(false)
   })
 })

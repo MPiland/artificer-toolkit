@@ -2,17 +2,104 @@ import { Suspense } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouterState } from '@tanstack/react-router'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  nodeRuntimeResolveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { getFunctionName } from 'convex/server'
 import { RaceCataloguePage } from '#domains/races/pages/RaceCataloguePage'
 import {
   authoredCreateRouteLoaderData,
+  authoredRouteStoryDrafts,
+  authoredRouteStoryResponses,
   authoredRouteStorySystem,
   createEditLoaderData
 } from '#domains/authoredRouteStory.fixtures'
-import { ownedBaseRaceResponseFixture } from '#domains/races/race.fixtures'
+import { raceListResponseFixture } from '#domains/races/race.fixtures'
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
+import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
+
+const convexMocks = vi.hoisted(() => ({
+  loadMore: vi.fn(),
+  mutation: vi.fn(),
+  query: vi.fn(),
+  usePaginatedQuery: vi.fn()
+}))
+
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useAction: () => vi.fn(),
+  useConvex: () => convexMocks,
+  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+  useMutation: () => vi.fn(),
+  usePaginatedQuery: () => ({ results: [], status: 'Exhausted', loadMore: vi.fn() }),
+  useQuery: (_reference: unknown, args: unknown) => {
+    if (args === 'skip') return undefined
+    if (typeof args === 'object' && args !== null && 'type' in args) {
+      return { assetId: null, revision: 0 }
+    }
+    throw new Error('Unexpected active Convex query in GuidedEntryJourneys.')
+  }
+}))
+
+vi.mock('convex-helpers/react', () => ({
+  usePaginatedQuery: convexMocks.usePaginatedQuery
+}))
+
+vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#app/query/createAppQueryClient')>()
+  return {
+    ...actual,
+    createAppQueryClient: () => {
+      const client = actual.createAppQueryClient()
+      client.setQueryDefaults(['convexQuery'], {
+        queryFn: async () => {
+          throw new Error('Unexpected active Convex query in GuidedEntryJourneys.')
+        }
+      })
+      client.setQueryDefaults(['convexQuery', 'media/assets:avatar'], {
+        queryFn: async () => null
+      })
+      client.setQueryDefaults(['convexQuery', 'content/catalogue:list'], {
+        queryFn: () => ({
+          page: raceListResponseFixture.items.map((item) =>
+            item.label === 'Elf' ? { ...item, id: catalogueRaceId } : item
+          ),
+          isDone: true,
+          continueCursor: ''
+        })
+      })
+      client.setQueryDefaults(['convexQuery', 'content/catalogue:summary'], {
+        queryFn: () => ({
+          activeCount: 1,
+          masterCount: 1,
+          ownedCount: 0,
+          totalCount: 1,
+          categories: ['BASE']
+        })
+      })
+      client.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
+        queryFn: ({ queryKey }) => {
+          const input = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+          const model = createStaticResolvedFormModel(input.mapId, {
+            ancestors: input.ancestors,
+            parentValues: input.parentValues,
+            system: authoredRouteStorySystem,
+            values: input.values
+          })
+          if (!model) throw new Error('Expected a Race authored form model.')
+          return compactNodeRuntimeResponse(model)
+        }
+      })
+      return client
+    }
+  }
+})
 
 const ownedDraftLoaderData = createEditLoaderData('race', 'ownedDraft')
 const ownedDraft = ownedDraftLoaderData.authoringData.draft
@@ -28,7 +115,37 @@ const copiedRaceAuthoringData = {
     draftState: 'DRAFT_ONLY' as const
   }
 }
-const ownedRace = ownedBaseRaceResponseFixture.item!
+const ownedResponse = { ...authoredRouteStoryResponses.race, draft: null, hasDraft: false }
+const ownedRace = ownedResponse.item!
+const catalogueRaceId = '00000000-0000-4000-8000-000000000001'
+
+beforeEach(() => {
+  convexMocks.loadMore.mockClear()
+  convexMocks.mutation.mockClear()
+  convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
+  convexMocks.usePaginatedQuery.mockClear()
+  convexMocks.mutation.mockResolvedValue(authoredRouteStoryDrafts.race)
+  convexMocks.usePaginatedQuery.mockReturnValue({
+    isLoading: false,
+    loadMore: convexMocks.loadMore,
+    results: [],
+    status: 'Exhausted'
+  })
+})
+
+function resolveStaticNormalization(
+  reference: Parameters<typeof getFunctionName>[0],
+  input: unknown
+) {
+  if (getFunctionName(reference) !== 'authoring/nodeRuntime:normalizeValues') {
+    throw new Error('Expected native node-runtime normalization.')
+  }
+  const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)
+  return nodeRuntimeNormalizeValuesResponseDtoSchema.parse({
+    clearedPaths: [],
+    values: request.values
+  })
+}
 
 function GuidedRaceDestination() {
   return <AuthoringLayout data={copiedRaceAuthoringData} domain='race' mode='edit' />
@@ -62,18 +179,7 @@ function DetailJourney() {
   if (pathname.endsWith('/edit')) return <GuidedRaceDestination />
 
   return (
-    <RaceDetailPage
-      draft={null}
-      raceId={ownedRace.id}
-      references={{
-        speeds: authoredRouteStorySystem.speeds.map((speed) => ({
-          label: speed.label,
-          value: speed.id
-        }))
-      }}
-      response={ownedBaseRaceResponseFixture}
-      view='active'
-    />
+    <RaceDetailPage draft={null} raceId={ownedRace.id} response={ownedResponse} view='active' />
   )
 }
 
@@ -105,6 +211,12 @@ describe('Guided authored entry journeys', () => {
     if (!elfRow) throw new Error('Expected the race catalogue to include Elf.')
     await user.click(within(elfRow).getByRole('button', { name: /Duplicate/i }))
 
+    expect(convexMocks.mutation).toHaveBeenCalledOnce()
+    expect(convexMocks.mutation).toHaveBeenCalledWith(expect.anything(), {
+      subjectKind: 'RACE',
+      subjectId: catalogueRaceId
+    })
+
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()
     expect(
       screen.queryByRole('heading', { name: 'How do you want to begin?' })
@@ -121,6 +233,12 @@ describe('Guided authored entry journeys', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: 'Duplicate' }))
+
+    expect(convexMocks.mutation).toHaveBeenCalledOnce()
+    expect(convexMocks.mutation).toHaveBeenCalledWith(expect.anything(), {
+      subjectKind: 'RACE',
+      subjectId: ownedRace.id
+    })
 
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()
     expect(

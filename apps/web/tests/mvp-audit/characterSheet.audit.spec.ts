@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test'
-import { runAndWaitForSuccessfulTrpcProcedure } from '../e2e/app/support/trpc'
 import { installDevtoolLauncherHiding } from '../e2e/app/support/devtools'
 import { captureAuditNetwork } from './auditNetwork'
 import { navigateForMvpAudit } from './auditNavigation'
@@ -36,12 +35,7 @@ test.describe('MVP character Sheet audit', () => {
       await ensureHpControlsOpen(page)
       await page.getByLabel('Amount').fill('1')
 
-      await runAndWaitForSuccessfulTrpcProcedure(
-        page,
-        'characters.command',
-        async () => page.getByRole('button', { name: 'Apply Damage' }).click(),
-        { method: 'POST' }
-      )
+      await page.getByRole('button', { name: 'Apply Damage' }).click()
       const hitPointsAfterDamage = hitPointsBeforeDamage - 1
       await expect.poll(() => readCurrentHitPoints(page)).toBe(hitPointsAfterDamage)
 
@@ -51,12 +45,7 @@ test.describe('MVP character Sheet audit', () => {
       await page.getByRole('button', { name: 'Browse Notes', exact: true }).click()
       const browseNotesDrawer = page.getByRole('dialog', { name: 'Browse Notes' })
       await browseNotesDrawer.getByLabel('New note group name').fill(groupLabel)
-      await runAndWaitForSuccessfulTrpcProcedure(
-        page,
-        'characters.command',
-        async () => browseNotesDrawer.getByRole('button', { name: 'Add', exact: true }).click(),
-        { method: 'POST' }
-      )
+      await browseNotesDrawer.getByRole('button', { name: 'Add', exact: true }).click()
       await expect(
         browseNotesDrawer.getByRole('button', { name: groupLabel, exact: true })
       ).toBeVisible()
@@ -76,12 +65,7 @@ test.describe('MVP character Sheet audit', () => {
         newNoteDrawer.getByRole('button', { name: 'Create Note', exact: true })
       ).toBeEnabled()
 
-      await runAndWaitForSuccessfulTrpcProcedure(
-        page,
-        'characters.command',
-        async () => newNoteDrawer.getByRole('button', { name: 'Create Note', exact: true }).click(),
-        { method: 'POST' }
-      )
+      await newNoteDrawer.getByRole('button', { name: 'Create Note', exact: true }).click()
       await expect(newNoteDrawer).toBeHidden()
 
       await selectNote(page, noteTitle)
@@ -91,12 +75,7 @@ test.describe('MVP character Sheet audit', () => {
       await expect.poll(() => readCurrentHitPoints(page)).toBe(hitPointsAfterDamage)
       await ensureHpControlsOpen(page)
       await page.getByLabel('Amount').fill('1')
-      await runAndWaitForSuccessfulTrpcProcedure(
-        page,
-        'characters.command',
-        async () => page.getByRole('button', { name: 'Heal', exact: true }).click(),
-        { method: 'POST' }
-      )
+      await page.getByRole('button', { name: 'Heal', exact: true }).click()
       await expect.poll(() => readCurrentHitPoints(page)).toBe(hitPointsBeforeDamage)
 
       await page.reload({ waitUntil: 'networkidle' })

@@ -1,4 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { mocked } from 'storybook/test'
 import { Route } from '#routes/_authed/creatures/$creaturePublicId/$creatureSlug/edit'
 import {
   authoredRouteStoryParams,
@@ -11,15 +14,28 @@ import {
   expectOwnedDraftAuthoringRoute
 } from '#domains/authoredRouteStory.play'
 import {
-  authoredRouteNodeRuntimeHandlers,
+  configureAuthoredRouteStoryQueries,
   createAuthoredEditRouteOverrides
 } from '#domains/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Creatures/Routes/Edit',
+  decorators: [
+    (Story) => {
+      configureAuthoredRouteStoryQueries(useQueryClient())
+      return <Story />
+    }
+  ],
+  beforeEach: () => {
+    mocked(usePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [],
+      status: 'Exhausted'
+    })
+  },
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers: authoredRouteNodeRuntimeHandlers },
     tanstack: {
       router: {
         route: Route,

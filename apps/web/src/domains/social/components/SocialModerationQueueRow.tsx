@@ -1,19 +1,21 @@
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
-import type { SocialModerationQueueItemDto } from '#app/lib/api'
+import type { SocialModerationQueueItemDto } from '@artificer-toolkit/schema/api/socialHub'
 import { formatStatusLabel } from '../socialModels'
 import * as styles from './SocialModerationQueueRow.css'
 
 export function SocialModerationQueueRow({
   item,
   isOpening,
+  disabled,
   onOpen
 }: {
   item: SocialModerationQueueItemDto
   isOpening: boolean
+  disabled?: boolean
   onOpen: () => void
 }) {
   return (
-    <article className={styles.row}>
+    <article className={styles.row} data-report-id={item.reportPublicId}>
       <div className={styles.rowBody}>
         <Group gap='xs'>
           <Badge variant='light'>{formatStatusLabel(item.targetKind)}</Badge>
@@ -30,7 +32,7 @@ export function SocialModerationQueueRow({
         </Text>
       </div>
       <div className={styles.rowActions}>
-        <Button loading={isOpening} size='xs' onClick={onOpen}>
+        <Button disabled={disabled} loading={isOpening} size='xs' onClick={onOpen}>
           Open report
         </Button>
       </div>

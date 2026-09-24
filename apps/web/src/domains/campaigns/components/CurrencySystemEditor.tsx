@@ -8,11 +8,14 @@ import {
   Stack,
   TextInput
 } from '@mantine/core'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
-import type { CurrencySystemDto, SaveCampaignCurrencySystemInput } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import type {
+  CurrencySystemDto,
+  SaveCampaignCurrencySystemInput
+} from '@artificer-toolkit/schema/api/campaignInventory'
 import * as sharedStyles from '../campaigns.css'
 import * as settingsStyles from './campaignSettings.css'
 
@@ -25,7 +28,8 @@ export function CurrencySystemEditor({
   campaignId: string
   systems: CurrencySystemDto[]
 }) {
-  const queryClient = useQueryClient()
+  const saveSystem = useConvexMutation(convexApi.campaigns.currencySystems.save)
+  const removeSystem = useConvexMutation(convexApi.campaigns.currencySystems.remove)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [label, setLabel] = useState('')
   const [isReference, setIsReference] = useState(false)
@@ -38,7 +42,7 @@ export function CurrencySystemEditor({
     mutationFn: () => {
       if (denominations.filter((denomination) => denomination.scaleInReference === 1).length !== 1)
         throw new Error('Exactly one denomination must use scale 1.')
-      return api.campaigns.inventory.saveCurrencySystem({
+      return saveSystem({
         campaignId,
         systemId: selected?.id,
         expectedVersion: selected?.version,
@@ -47,27 +51,22 @@ export function CurrencySystemEditor({
         denominations
       })
     },
-    onSuccess: async (system) => {
+    onSuccess: (system) => {
       setSelectedId(system.id)
       setValidationError(null)
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.currencySystems(campaignId)
-      })
     },
     onError: (error) => setValidationError(error.message)
   })
   const remove = useMutation({
     mutationFn: () => {
       if (!selected) throw new Error('Choose a currency system to delete.')
-      return api.campaigns.inventory.deleteCurrencySystem(campaignId, selected.id, selected.version)
+      return removeSystem({ campaignId, systemId: selected.id, expectedVersion: selected.version })
     },
-    onSuccess: async () => {
-      reset()
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.currencySystems(campaignId)
-      })
-    }
+    onSuccess: reset,
+    onError: (error) => setValidationError(error.message)
   })
+
+  const pending = save.isPending || remove.isPending
 
   function reset() {
     setSelectedId(null)
@@ -107,6 +106,7 @@ export function CurrencySystemEditor({
   return (
     <Stack gap='sm'>
       <Select
+        disabled={pending}
         clearable
         classNames={{ input: sharedStyles.input }}
         data={systems.map((system) => ({
@@ -120,6 +120,7 @@ export function CurrencySystemEditor({
       />
       {validationError ? <Alert color='red'>{validationError}</Alert> : null}
       <TextInput
+        disabled={pending}
         label='System name'
         classNames={{ input: sharedStyles.input }}
         required
@@ -127,6 +128,7 @@ export function CurrencySystemEditor({
         onChange={(event) => setLabel(event.currentTarget.value)}
       />
       <Checkbox
+        disabled={pending}
         checked={isReference}
         label='Reference system'
         onChange={(event) => setIsReference(event.currentTarget.checked)}
@@ -134,12 +136,14 @@ export function CurrencySystemEditor({
       {denominations.map((denomination, index) => (
         <div className={settingsStyles.denominationGrid} key={denomination.id ?? index}>
           <TextInput
+            disabled={pending}
             label='Denomination'
             classNames={{ input: sharedStyles.input }}
             value={denomination.label}
             onChange={(event) => updateDenomination(index, { label: event.currentTarget.value })}
           />
           <TextInput
+            disabled={pending}
             label='Abbreviation'
             classNames={{ input: sharedStyles.input }}
             value={denomination.abbreviation}
@@ -150,6 +154,7 @@ export function CurrencySystemEditor({
             }
           />
           <NumberInput
+            disabled={pending}
             label='Scale'
             classNames={{ input: sharedStyles.input }}
             min={1}
@@ -162,7 +167,7 @@ export function CurrencySystemEditor({
             }
           />
           <Button
-            disabled={denominations.length === 1}
+            disabled={pending || denominations.length === 1}
             variant='subtle'
             onClick={() =>
               setDenominations((current) => current.filter((_, itemIndex) => itemIndex !== index))
@@ -174,7 +179,7 @@ export function CurrencySystemEditor({
       ))}
       <Group>
         <Button
-          disabled={denominations.length >= 5}
+          disabled={pending || denominations.length >= 5}
           variant='default'
           onClick={() =>
             setDenominations((current) => [
@@ -185,12 +190,17 @@ export function CurrencySystemEditor({
         >
           Add denomination
         </Button>
-        <Button disabled={!label.trim()} loading={save.isPending} onClick={() => save.mutate()}>
+        <Button
+          disabled={pending || !label.trim() || Boolean(selectedId && !selected)}
+          loading={save.isPending}
+          onClick={() => save.mutate()}
+        >
           Save system
         </Button>
         {selected ? (
           <Button
             color='red'
+            disabled={pending}
             loading={remove.isPending}
             variant='subtle'
             onClick={() => remove.mutate()}

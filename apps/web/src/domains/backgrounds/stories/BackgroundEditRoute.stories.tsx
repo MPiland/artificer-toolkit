@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Route } from '#routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
 import {
   authoredRouteStoryParams,
@@ -11,15 +12,20 @@ import {
   expectOwnedDraftAuthoringRoute
 } from '#domains/authoredRouteStory.play'
 import {
-  authoredRouteNodeRuntimeHandlers,
+  configureAuthoredRouteStoryQueries,
   createAuthoredEditRouteOverrides
 } from '#domains/authoredRouteStory.utils'
 
 const meta = {
   title: 'Domains/Backgrounds/Routes/Edit',
+  decorators: [
+    (Story) => {
+      configureAuthoredRouteStoryQueries(useQueryClient())
+      return <Story />
+    }
+  ],
   parameters: {
     layout: 'fullscreen',
-    msw: { handlers: authoredRouteNodeRuntimeHandlers },
     tanstack: {
       router: {
         route: Route,

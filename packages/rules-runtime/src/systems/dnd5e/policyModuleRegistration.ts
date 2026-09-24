@@ -1,0 +1,61 @@
+import {
+  DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
+  DND5E_CLEAVING_OPERATION_KEY,
+  DND5E_DISARM_OPERATION_KEY,
+  DND5E_FACING_OPERATION_KEY,
+  DND5E_FLANKING_OPERATION_KEY,
+  DND5E_OVERRUN_OPERATION_KEY,
+  DND5E_SHOVE_ASIDE_OPERATION_KEY,
+  DND5E_TUMBLE_OPERATION_KEY
+} from '@artificer-toolkit/schema/shared/optionalCombat'
+
+import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+
+export const DND5E_FLANKING_POLICY_MODULE = {
+  key: DND5E_FLANKING_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_FACING_POLICY_MODULE = {
+  key: DND5E_FACING_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_DISARM_POLICY_MODULE = {
+  key: DND5E_DISARM_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_OVERRUN_POLICY_MODULE = {
+  key: DND5E_OVERRUN_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_SHOVE_ASIDE_POLICY_MODULE = {
+  key: DND5E_SHOVE_ASIDE_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_TUMBLE_POLICY_MODULE = {
+  key: DND5E_TUMBLE_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_CLEAVING_POLICY_MODULE = {
+  key: DND5E_CLEAVING_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const dnd5ePolicyModuleRegistration = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  policyModules: [
+    { key: DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY, contractVersion: 1 },
+    DND5E_FLANKING_POLICY_MODULE,
+    DND5E_FACING_POLICY_MODULE,
+    DND5E_DISARM_POLICY_MODULE,
+    DND5E_OVERRUN_POLICY_MODULE,
+    DND5E_SHOVE_ASIDE_POLICY_MODULE,
+    DND5E_TUMBLE_POLICY_MODULE,
+    DND5E_CLEAVING_POLICY_MODULE
+  ]
+} as const

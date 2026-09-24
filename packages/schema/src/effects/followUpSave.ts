@@ -1,5 +1,5 @@
 import { FOLLOW_UP_SAVE_TIMING, type FollowUpSaveTiming } from '@artificer-toolkit/shared/core'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { combatPerceptionRequirementDtoSchema } from '../shared/combatPerception.js'
@@ -13,7 +13,7 @@ const followUpSaveTimings = Object.values(FOLLOW_UP_SAVE_TIMING) as [
   ...FollowUpSaveTiming[]
 ]
 
-export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
+export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('END') }),
     z.object({ kind: z.literal('CONTINUE') }),
@@ -30,9 +30,9 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
       id: authoredIdentifierSchema,
       effectKind: z.literal('FOLLOW_UP_SAVE'),
       timing: z.enum(followUpSaveTimings),
-      repeatTiming: z.enum(followUpSaveTimings).optional(),
-      repeatRollInfluence: z
-        .object({
+      repeatTiming: z.optional(z.enum(followUpSaveTimings)),
+      repeatRollInfluence: z.optional(
+        z.object({
           influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
           when: z.object({
             kind: z.literal('PERCEPTION'),
@@ -41,58 +41,60 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
             requirement: combatPerceptionRequirementDtoSchema
           })
         })
-        .optional(),
+      ),
       savingThrow: savingThrowDtoSchema,
       attempts: z.discriminatedUnion('kind', [
-        z.object({ kind: z.literal('ONCE'), repeatOnFailure: z.boolean().optional() }),
+        z.object({ kind: z.literal('ONCE'), repeatOnFailure: z.optional(z.boolean()) }),
         z.object({
           kind: z.literal('THRESHOLDS'),
-          successesToEnd: z.number().int().positive(),
-          failuresToResolve: z.number().int().positive(),
+          successesToEnd: z.number().check(z.int()).check(z.positive()),
+          failuresToResolve: z.number().check(z.int()).check(z.positive()),
           consecutive: z.boolean()
         })
       ]),
       onSuccess: branchDtoSchema,
       onFailure: branchDtoSchema,
-      onDurationComplete: branchDtoSchema.optional()
+      onDurationComplete: z.optional(branchDtoSchema)
     })
-    .superRefine((value, context) => {
-      if (
-        value.attempts.kind === 'ONCE' &&
-        value.attempts.repeatOnFailure === true &&
-        value.timing === 'IMMEDIATE' &&
-        value.repeatTiming === undefined
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['repeatTiming'],
-          message: 'Immediate repeated saving throws require an exact repeat timing.'
-        })
-      }
-      if (
-        value.repeatTiming !== undefined &&
-        !(value.attempts.kind === 'ONCE' && value.attempts.repeatOnFailure === true)
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['repeatTiming'],
-          message: 'Repeat timing requires a repeated one-time saving throw.'
-        })
-      }
-      if (
-        value.repeatRollInfluence !== undefined &&
-        !(
+    .check(
+      z.superRefine((value, context) => {
+        if (
           value.attempts.kind === 'ONCE' &&
           value.attempts.repeatOnFailure === true &&
-          (value.timing === 'TARGET_TURN_END' ||
-            (value.timing === 'IMMEDIATE' && value.repeatTiming === 'TARGET_TURN_END'))
-        )
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['repeatRollInfluence'],
-          message: 'Repeat roll influence requires a repeated save at the end of the target turn.'
-        })
-      }
-    })
+          value.timing === 'IMMEDIATE' &&
+          value.repeatTiming === undefined
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatTiming'],
+            message: 'Immediate repeated saving throws require an exact repeat timing.'
+          })
+        }
+        if (
+          value.repeatTiming !== undefined &&
+          !(value.attempts.kind === 'ONCE' && value.attempts.repeatOnFailure === true)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatTiming'],
+            message: 'Repeat timing requires a repeated one-time saving throw.'
+          })
+        }
+        if (
+          value.repeatRollInfluence !== undefined &&
+          !(
+            value.attempts.kind === 'ONCE' &&
+            value.attempts.repeatOnFailure === true &&
+            (value.timing === 'TARGET_TURN_END' ||
+              (value.timing === 'IMMEDIATE' && value.repeatTiming === 'TARGET_TURN_END'))
+          )
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatRollInfluence'],
+            message: 'Repeat roll influence requires a repeated save at the end of the target turn.'
+          })
+        }
+      })
+    )
 }

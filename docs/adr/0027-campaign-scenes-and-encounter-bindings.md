@@ -5,7 +5,7 @@
 - **Scope:** Campaign VTT Scene ownership, Session presentation, Encounter spatial binding, and token identity
 - **Update when:** Scene persistence, Session presentation, Encounter admission, token binding, Scene commands, or spatial replay ownership changes
 - **Verification:** focused schema/repository/service/browser proofs plus the complete local Phase 08 lifecycle
-- **Supersedes:** the Encounter-owned live Scene materialization in [ADR 0020](0020-local-and-remote-live-session-host.md); its transport, authority, journal, and renderer boundaries remain in force
+- **Supersedes:** the Encounter-owned live Scene materialization in [ADR 0020](0020-local-and-remote-live-session-host.md). ADR 0029 separately supersedes ADR 0020's transport, durable authority, journal, and executor topology; the renderer boundary remains in force.
 
 ## Context
 
@@ -45,17 +45,18 @@ flowchart LR
 
 Scene commands are Scene-owned. Ordinary presentation and GM editing do not require an Encounter. If
 the presented Scene has an active Encounter binding, the authoritative service resolves that binding,
-locks the Encounter before the Scene, and runs the approved spatial mechanics. The Scene event records
+validates the Encounter and Scene in canonical dependency order, and runs the approved spatial
+mechanics. The Scene event records
 the physical mutation; the Encounter occurrence and receipt record the mechanical result. Neither
 aggregate duplicates the other's state.
 
-The canonical lock families are:
+The canonical transaction dependency order is:
 
-- Scene-only command: Campaign/member authority → Session → live-command lease → Scene → Scene event.
-- Encounter-bound Scene command: Campaign/member authority → Session → live-command lease → Encounter
-  → Scene → binding/actor-token rows → rule state/effects → Scene event and Encounter receipt.
-- Binding or presentation change: Campaign/member authority → Session → live-command lease when live
-  → Encounter when supplied → Scene → binding or Session presentation state.
+- Scene-only command: Campaign/member authority → Session → Scene → Scene event.
+- Encounter-bound Scene command: Campaign/member authority → Session → Encounter → Scene →
+  binding/actor-token records → rule state/effects → Scene event and Encounter receipt.
+- Binding or presentation change: Campaign/member authority → Session → Encounter when supplied →
+  Scene → binding or Session presentation state.
 
 The Session coordinator hydrates the Session's presented Scene independently from Encounter state. Its
 private projection may additionally contain the active Encounter binding and viewer-authorized combat
@@ -71,8 +72,8 @@ Encounter actors or token labels.
 The current `encounter_scenes`, Encounter-keyed Scene events, `EncounterSceneState`, Scene-command
 `encounterId`, and `SceneToken.actorId` contracts are transitional and must be replaced cleanly. Spatial
 effects remain Encounter-owned and reference the exact Encounter–Scene binding. Existing geometry,
-reducers, renderer, transport journal, private projection, rules kernel, Encounter mechanics, and
-Scene-definition authoring remain reusable.
+reducers, renderer, private projection, rules kernel, Encounter mechanics, and Scene-definition
+authoring remain reusable.
 
 The Phase 08 denominator does not change. Only acceptance cases whose behavior depends on Scene
 ownership, presentation, token binding, or reconnect are reopened; unaffected accepted evidence stays

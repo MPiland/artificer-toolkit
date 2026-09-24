@@ -1,5 +1,5 @@
 import { Badge, Group, Table, Text, Title } from '@mantine/core'
-import type { EntitlementProjectionDto } from '#app/lib/api'
+import type { EntitlementProjectionDto } from '@artificer-toolkit/schema/api/campaignCore'
 import * as styles from './settings.css'
 
 const tierLabels = {

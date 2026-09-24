@@ -1,18 +1,7 @@
 import type { MouseEvent } from 'react'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 
 export function buildTabletopHref(campaignPublicId: string, sessionNumber: number): string {
   return `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}/sessions/${sessionNumber}`
-}
-
-export function findCurrentTabletopSession(
-  sessions: readonly CampaignSessionDto[]
-): CampaignSessionDto | undefined {
-  return sessions.reduce<CampaignSessionDto | undefined>((current, session) => {
-    if (session.status !== 'OPEN') return current
-    if (!current || session.sessionNumber > current.sessionNumber) return session
-    return current
-  }, undefined)
 }
 
 export function openAuxiliaryWindow(

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
@@ -21,7 +21,7 @@ import {
   shapeKindSchema
 } from '../shared/enums.js'
 
-const emptyDomainDtoSchema = z.object({}).strict()
+const emptyDomainDtoSchema = z.strictObject({})
 
 const attackDomainParamDtoSchema = z.object({
   attackDomain: attackDomainCodeSchema
@@ -32,12 +32,13 @@ const abilityParamDtoSchema = z.object({
 })
 
 const abilityCheckParamDtoSchema = z.object({
-  ability: abilityCodeSchema.optional()
+  ability: z.optional(abilityCodeSchema)
 })
 
 const savingThrowParamDtoSchema = z.object({
   ability: abilityCodeSchema,
-  conditionTypeId: authoredIdentifierSchema.optional()
+  conditionTypeId: z.optional(authoredIdentifierSchema),
+  ruleDefinitionId: z.optional(postgresUuidSchema)
 })
 
 const skillParamDtoSchema = z.object({
@@ -53,49 +54,49 @@ const senseParamDtoSchema = z.object({
 })
 
 const spellLevelParamDtoSchema = z.object({
-  spellLevel: z.number().int()
+  spellLevel: z.number().check(z.int())
 })
 
 const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.FIXED),
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.FIXED),
     amount: z.number()
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.PROFICIENCY_BONUS),
-    multiplier: z.number().optional()
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.PROFICIENCY_BONUS),
+    multiplier: z.optional(z.number())
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.SKILL_BONUS),
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SKILL_BONUS),
     skillId: authoredIdentifierSchema,
-    multiplier: z.number().optional()
+    multiplier: z.optional(z.number())
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.CHARACTER_LEVEL),
-    multiplier: z.number().optional()
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.CHARACTER_LEVEL),
+    multiplier: z.optional(z.number())
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.CLASS_LEVEL),
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.CLASS_LEVEL),
     classId: authoredIdentifierSchema,
-    multiplier: z.number().optional()
+    multiplier: z.optional(z.number())
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.SPELL_SLOT_LEVEL),
-    multiplier: z.number().optional(),
-    subtractLevels: z.number().int().nonnegative().optional()
+    valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SPELL_SLOT_LEVEL),
+    multiplier: z.optional(z.number()),
+    subtractLevels: z.optional(z.number().check(z.int()).check(z.nonnegative()))
   })
 ])
 
 const abilityModifierBonusPayloadDtoSchema = z.object({
   ability: abilityCodeSchema,
-  multiplier: z.number().optional(),
-  min: z.number().optional(),
-  max: z.number().optional()
+  multiplier: z.optional(z.number()),
+  min: z.optional(z.number()),
+  max: z.optional(z.number())
 })
 
 const chargeLimitLevelDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  level: z.number().int(),
+  level: z.number().check(z.int()),
   amount: z.number()
 })
 
@@ -103,33 +104,35 @@ const modifyChargeLimitPayloadDtoSchema = z.union([
   z
     .object({
       limitKind: z.enum([
-        chargeLimitKindSchema.enum.CHARACTER_LEVEL,
-        chargeLimitKindSchema.enum.CLASS_LEVEL,
-        chargeLimitKindSchema.enum.PARENT_CLASS_LEVEL,
-        chargeLimitKindSchema.enum.SPELL_CAST_LEVEL
+        chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
       ]),
-      scalingKind: z.literal(scalingKindSchema.enum.NONE),
-      classId: authoredIdentifierSchema.optional(),
-      multiplier: z.number().optional(),
-      min: z.number().optional(),
-      max: z.number().optional()
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      classId: z.optional(authoredIdentifierSchema),
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
     })
-    .superRefine((value, ctx) => {
-      if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'classId is required for CLASS_LEVEL charge-limit modifiers'
-        })
-      }
-    }),
+    .check(
+      z.superRefine((value, ctx) => {
+        if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'classId is required for CLASS_LEVEL charge-limit modifiers'
+          })
+        }
+      })
+    ),
   z.object({
-    limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
-    scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.FIXED_AMOUNT),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
     amount: z.number()
   }),
   z.object({
-    limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+    limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.FIXED_AMOUNT),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.PER_LEVEL),
     levels: authoredNestedCollectionSchema(chargeLimitLevelDtoSchema)
   })
 ])
@@ -144,7 +147,7 @@ const optionPayloadByDomainDtoSchema = {
   MOVEMENT_MODE: z.object({ movementModeId: authoredIdentifierSchema })
 } as const
 
-const modifierGrantBaseDtoSchema = staticGrantBaseDtoSchema.extend({
+const modifierGrantBaseDtoSchema = z.extend(staticGrantBaseDtoSchema, {
   grantKind: z.literal('MODIFIER_GRANT'),
   scope: modifierScopeKindSchema,
   selectionKind: z.literal('GRANTED')
@@ -153,63 +156,63 @@ const modifierGrantBaseDtoSchema = staticGrantBaseDtoSchema.extend({
 const buildModifierGrantVariant = <V extends string, K extends z.infer<typeof modifierKindSchema>>(
   valueDomainCode: V,
   modifierKind: K,
-  domain: z.ZodTypeAny,
-  payload?: z.ZodTypeAny
+  domain: z.ZodMiniType,
+  payload?: z.ZodMiniType
 ) =>
-  modifierGrantBaseDtoSchema.extend({
+  z.extend(modifierGrantBaseDtoSchema, {
     valueDomainCode: z.literal(valueDomainCode),
     modifierKind: z.literal(modifierKind),
     domain,
-    ...(payload ? { payload } : { payload: z.undefined().optional() })
+    ...(payload ? { payload } : { payload: z.optional(z.undefined()) })
   })
 
 const modifierGrantVariants = [
   buildModifierGrantVariant(
     'HIT_POINTS_MAX',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'HIT_POINTS_MAX',
     'PENALTY',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'HIT_POINTS_MAX',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'PENALTY',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'ABILITY_MODIFIER_BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     abilityModifierBonusPayloadDtoSchema
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'OPTIONAL_ABILITY_MODIFIER_BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({
       abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
     })
@@ -217,35 +220,35 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'INITIATIVE',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'INITIATIVE',
     'PENALTY',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
-  buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema.optional()),
-  buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema.optional()),
+  buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', z.optional(emptyDomainDtoSchema)),
+  buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', z.optional(emptyDomainDtoSchema)),
   buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', abilityCheckParamDtoSchema),
   buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', abilityCheckParamDtoSchema),
   buildModifierGrantVariant(
     'SAVE_DC',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'SAVE_DC',
     'PENALTY',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'SAVE_DC',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
@@ -325,13 +328,13 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'PROFICIENCY_BONUS',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'PROFICIENCY_BONUS',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
@@ -375,37 +378,37 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'DAMAGE_RESISTANCE',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_RESISTANCE
   ),
   buildModifierGrantVariant(
     'DAMAGE_RESISTANCE',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_RESISTANCE
   ),
   buildModifierGrantVariant(
     'DAMAGE_IMMUNITY',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_IMMUNITY
   ),
   buildModifierGrantVariant(
     'DAMAGE_IMMUNITY',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_IMMUNITY
   ),
   buildModifierGrantVariant(
     'DAMAGE_VULNERABILITY',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_VULNERABILITY
   ),
   buildModifierGrantVariant(
     'DAMAGE_VULNERABILITY',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.DAMAGE_VULNERABILITY
   ),
   buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, modifierScalarValueDtoSchema),
@@ -419,13 +422,13 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'MOVEMENT_MODE',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.MOVEMENT_MODE
   ),
   buildModifierGrantVariant(
     'MOVEMENT_MODE',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.MOVEMENT_MODE
   ),
   buildModifierGrantVariant(
@@ -443,28 +446,27 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'RANGE',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
-    z
-      .object({
+    z.optional(emptyDomainDtoSchema),
+    z.union([
+      z.object({
         amount: z.number(),
         unit: authoredIdentifierSchema,
-        rangeKind: z.literal(rangeKindSchema.enum.DISTANCE)
+        rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
+      }),
+      z.object({
+        rangeKind: z.enum([
+          rangeKindSchema._zod.def.entries.SELF,
+          rangeKindSchema._zod.def.entries.TOUCH,
+          rangeKindSchema._zod.def.entries.SIGHT,
+          rangeKindSchema._zod.def.entries.UNLIMITED
+        ])
       })
-      .or(
-        z.object({
-          rangeKind: z.enum([
-            rangeKindSchema.enum.SELF,
-            rangeKindSchema.enum.TOUCH,
-            rangeKindSchema.enum.SIGHT,
-            rangeKindSchema.enum.UNLIMITED
-          ])
-        })
-      )
+    ])
   ),
   buildModifierGrantVariant(
     'RANGE',
     'REPLACE_RANGE_KIND',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({
       rangeKind: rangeKindSchema
     })
@@ -472,22 +474,31 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'DURATION',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
-    z
-      .object({
-        durationKind: z.literal(durationKindSchema.enum.INSTANTANEOUS)
+    z.optional(emptyDomainDtoSchema),
+    z.union([
+      z.object({
+        durationKind: z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
+      }),
+      z.object({
+        durationKind: z.enum([
+          durationKindSchema._zod.def.entries.UNTIL_DISPELLED,
+          durationKindSchema._zod.def.entries.TURN,
+          durationKindSchema._zod.def.entries.ROUND,
+          durationKindSchema._zod.def.entries.MINUTE,
+          durationKindSchema._zod.def.entries.HOUR,
+          durationKindSchema._zod.def.entries.DAY,
+          durationKindSchema._zod.def.entries.WEEK,
+          durationKindSchema._zod.def.entries.MONTH,
+          durationKindSchema._zod.def.entries.YEAR
+        ]),
+        amount: z.number()
       })
-      .or(
-        z.object({
-          durationKind: durationKindSchema.exclude([durationKindSchema.enum.INSTANTANEOUS]),
-          amount: z.number()
-        })
-      )
+    ])
   ),
   buildModifierGrantVariant(
     'DURATION',
     'REPLACE_DURATION_KIND',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({
       durationKind: durationKindSchema
     })
@@ -495,7 +506,7 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'SHAPE',
     'REPLACE_SHAPE_KIND',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({
       shapeKind: shapeKindSchema
     })
@@ -515,85 +526,85 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'SPELL_SLOT_LEVEL_MAX',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'SPELLS_KNOWN',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'SPELLS_KNOWN',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'SPELLS_PREPARED',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'SPELLS_PREPARED',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'ACTION_COUNT',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'ACTION_COUNT',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'BONUS_ACTION_COUNT',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'BONUS_ACTION_COUNT',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'REACTION_COUNT',
     'BONUS',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
   buildModifierGrantVariant(
     'REACTION_COUNT',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'CHARGE_LIMIT',
     'MODIFY_CHARGE_LIMIT',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     modifyChargeLimitPayloadDtoSchema
   ),
   buildModifierGrantVariant(
     'CHARGE_LIMIT',
     'SET_VALUE',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({ amount: z.number() })
   ),
   buildModifierGrantVariant(
     'CHARGE_RESET',
     'REPLACE_CHARGE_RESET_KIND',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     z.object({
       resetKind: chargeResetKindSchema
     })
@@ -601,40 +612,54 @@ const modifierGrantVariants = [
   buildModifierGrantVariant(
     'CONDITION',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.CONDITION
   ),
   buildModifierGrantVariant(
     'CONDITION',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.CONDITION
   ),
   buildModifierGrantVariant(
     'CONDITION_IMMUNITY',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY
   ),
   buildModifierGrantVariant(
     'CONDITION_IMMUNITY',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY
   ),
   buildModifierGrantVariant(
     'ATTRIBUTE',
     'ADD_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.ATTRIBUTE
   ),
   buildModifierGrantVariant(
     'ATTRIBUTE',
     'REMOVE_OPTION',
-    emptyDomainDtoSchema.optional(),
+    z.optional(emptyDomainDtoSchema),
     optionPayloadByDomainDtoSchema.ATTRIBUTE
   )
 ] as const
+
+const modifierVariantsByDomain = new Map<
+  string,
+  [(typeof modifierGrantVariants)[number], ...Array<(typeof modifierGrantVariants)[number]>]
+>()
+for (const variant of modifierGrantVariants) {
+  const domain = variant.shape.valueDomainCode._zod.def.values[0]
+  const variants = modifierVariantsByDomain.get(domain)
+  if (variants) variants.push(variant)
+  else modifierVariantsByDomain.set(domain, [variant])
+}
+const [firstModifierDomain, ...otherModifierDomains] = [...modifierVariantsByDomain.values()].map(
+  (variants) => z.discriminatedUnion('modifierKind', variants)
+)
 
 /**
  * Modifier grants are one of the highest-risk authored payloads because the
@@ -642,20 +667,24 @@ const modifierGrantVariants = [
  * `modifierKind`. We keep the schema explicit here so later API and seed data
  * validation catches drift early instead of accepting opaque objects.
  */
-export const modifierGrantDtoSchema = z.union(modifierGrantVariants).superRefine((value, ctx) => {
-  if (!value.modifierKind.includes('BONUS')) return
-  const payload: unknown = value.payload
-  if (typeof payload !== 'object' || payload === null) return
+export const modifierGrantDtoSchema = z
+  .discriminatedUnion('valueDomainCode', [firstModifierDomain, ...otherModifierDomains])
+  .check(
+    z.superRefine((value, ctx) => {
+      if (!value.modifierKind.includes('BONUS')) return
+      const payload: unknown = value.payload
+      if (typeof payload !== 'object' || payload === null) return
 
-  for (const field of ['amount', 'multiplier', 'min', 'max'] as const) {
-    const candidate = (payload as Record<string, unknown>)[field]
-    if (typeof candidate !== 'number' || candidate >= 0) continue
-    ctx.addIssue({
-      code: 'custom',
-      message: `${field} must be greater than or equal to 0 for bonus modifiers`,
-      path: ['payload', field]
+      for (const field of ['amount', 'multiplier', 'min', 'max'] as const) {
+        const candidate = (payload as Record<string, unknown>)[field]
+        if (typeof candidate !== 'number' || candidate >= 0) continue
+        ctx.addIssue({
+          code: 'custom',
+          message: `${field} must be greater than or equal to 0 for bonus modifiers`,
+          path: ['payload', field]
+        })
+      }
     })
-  }
-})
+  )
 
 export type ModifierGrantDto = z.infer<typeof modifierGrantDtoSchema>

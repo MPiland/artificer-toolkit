@@ -13,6 +13,12 @@ import {
 
 const FOG_CHUNK_SIDE = 32
 
+/** Geometry and one recipient's fog are sufficient; authored decoration is not an input. */
+export type SceneExplorationState = Pick<
+  CampaignSceneState,
+  'map' | 'grid' | 'tokens' | 'barriers' | 'doorStates' | 'fogMode' | 'fogLayers'
+>
+
 function decodeBase64(value: string): Uint8Array {
   const binary = atob(value)
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
@@ -80,7 +86,7 @@ function polygonBounds(polygon: ScenePolygon): {
   return { maximumX, maximumY, minimumX, minimumY }
 }
 
-function fogDimensions(state: CampaignSceneState): { height: number; width: number } {
+function fogDimensions(state: SceneExplorationState): { height: number; width: number } {
   const scale = Math.min(
     1,
     VTT_SCENE_LIMITS.fogCellsPerSide / Math.max(state.map.width, state.map.height)
@@ -135,7 +141,29 @@ function chunkFromMask(
   }
 }
 
-function visionRangeInMapPixels(state: CampaignSceneState, token: SceneToken): SceneToken | null {
+/** Preserve the union of explored cells while replacing arbitrary chunk layouts with canonical tiles. */
+export function canonicalizeSceneFogLayer(layer: SceneFogLayer): SceneFogLayer {
+  const mask = readLayerMask(layer)
+  const columns = Math.ceil(layer.width / FOG_CHUNK_SIDE)
+  return {
+    ...layer,
+    chunks: Array.from({ length: columns * Math.ceil(layer.height / FOG_CHUNK_SIDE) }, (_, index) =>
+      chunkFromMask(
+        mask,
+        layer.width,
+        index % columns,
+        Math.floor(index / columns),
+        columns,
+        layer.height
+      )
+    )
+  }
+}
+
+function visionRangeInMapPixels(
+  state: Pick<SceneExplorationState, 'grid'>,
+  token: SceneToken
+): SceneToken | null {
   if (!token.vision) return null
   const multiplier =
     state.grid.kind === 'GRIDLESS'
@@ -172,7 +200,7 @@ function squaredDistanceToSegment(point: ScenePoint, barrier: SceneBarrier): num
 
 /** Return vision-bearing tokens whose current sight radius can intersect changed barriers. */
 export function sceneTokenIdsAffectedByBarriers(
-  state: CampaignSceneState,
+  state: Pick<SceneExplorationState, 'tokens' | 'grid'>,
   barriers: readonly SceneBarrier[]
 ): string[] {
   if (barriers.length === 0) return []
@@ -191,7 +219,7 @@ export function sceneTokenIdsAffectedByBarriers(
 }
 
 function eligibleTokens(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   ownerUserId: string | null,
   tokenIds: ReadonlySet<string> | null
 ): SceneToken[] {
@@ -217,7 +245,7 @@ function eligibleTokens(
  * monotonic: already explored cells stay explored and an unchanged view returns null.
  */
 export function deriveSceneExplorationPatch(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   options: { ownerUserId: string | null; tokenIds?: readonly string[] }
 ): SceneFogLayer | null {
   const existing = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
@@ -300,7 +328,7 @@ export function deriveSceneExplorationPatch(
   }
 }
 
-function withFogPatch(state: CampaignSceneState, patch: SceneFogLayer): CampaignSceneState {
+function withFogPatch(state: SceneExplorationState, patch: SceneFogLayer): SceneExplorationState {
   const current = state.fogLayers.find((layer) => layer.ownerUserId === patch.ownerUserId)
   const chunks = new Map(current?.chunks.map((chunk) => [chunk.index, chunk]) ?? [])
   for (const chunk of patch.chunks) chunks.set(chunk.index, chunk)
@@ -317,7 +345,7 @@ function withFogPatch(state: CampaignSceneState, patch: SceneFogLayer): Campaign
 
 /** Derive one cumulative exploration patch for a token's validated movement path. */
 export function deriveSceneTokenPathExplorationPatch(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   options: { ownerUserId: string | null; path: readonly ScenePoint[]; tokenId: string }
 ): SceneFogLayer | null {
   const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
@@ -349,7 +377,7 @@ export function deriveSceneTokenPathExplorationPatch(
  * Owners receive all affected per-player layers so their explicit player-preview mode stays exact.
  */
 export function deriveSceneTokenPreviewFogLayers(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   options: { path: readonly ScenePoint[]; tokenId: string; viewer: SceneViewer }
 ): SceneFogLayer[] {
   const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
@@ -374,7 +402,7 @@ export function deriveSceneTokenPreviewFogLayers(
 
 /** Build a complete manual fog replacement for one shared or per-player layer. */
 export function createUniformSceneFogLayer(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   options: { explored: boolean; ownerUserId: string | null }
 ): SceneFogLayer {
   if (state.fogMode === 'SHARED_PARTY' && options.ownerUserId !== null) {
@@ -411,7 +439,7 @@ export function createUniformSceneFogLayer(
  * canonical chunks whose bits changed, so it composes with concurrent unrelated fog edits.
  */
 export function createSceneFogAreaPatch(
-  state: CampaignSceneState,
+  state: SceneExplorationState,
   options: {
     explored: boolean
     ownerUserId: string | null
@@ -493,7 +521,14 @@ export function isSceneFogCellExplored(layer: SceneFogLayer, x: number, y: numbe
       y < candidate.y + candidate.height
   )
   if (!chunk) return false
-  return bitIsSet(decodeBase64(chunk.data), (y - chunk.y) * chunk.width + x - chunk.x)
+  const bitIndex = (y - chunk.y) * chunk.width + x - chunk.x
+  const byteIndex = Math.floor(bitIndex / 8)
+  const blockStart = Math.floor(byteIndex / 3) * 4
+  // A cell needs only its three-byte Base64 block, even in a full-map chunk.
+  return bitIsSet(
+    decodeBase64(chunk.data.slice(blockStart, blockStart + 4)),
+    (byteIndex % 3) * 8 + (bitIndex % 8)
+  )
 }
 
 export function isScenePointExplored(
@@ -532,7 +567,26 @@ export function isSceneSegmentExplored(
         VTT_SCENE_LIMITS.fogCellsPerSide
     )
   )
-  for (let index = 0; index <= steps; index += 1) {
+  let start = 0
+  let end = 1
+  for (const [origin, delta, lower, upper] of [
+    [a.x, b.x - a.x, -halfCellX, state.map.width + halfCellX],
+    [a.y, b.y - a.y, -halfCellY, state.map.height + halfCellY]
+  ] as const) {
+    if (delta === 0) {
+      if (origin < lower || origin > upper) return false
+      continue
+    }
+    const first = (lower - origin) / delta
+    const last = (upper - origin) / delta
+    start = Math.max(start, Math.min(first, last))
+    end = Math.min(end, Math.max(first, last))
+    if (start > end) return false
+  }
+  // Keep the original sample lattice; off-map samples cannot explore any of the five probes.
+  const firstIndex = Math.max(0, Math.floor(start * steps) - 1)
+  const lastIndex = Math.min(steps, Math.ceil(end * steps) + 1)
+  for (let index = firstIndex; index <= lastIndex; index += 1) {
     const progress = index / steps
     const point = {
       x: a.x + (b.x - a.x) * progress,

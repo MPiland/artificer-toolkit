@@ -1,7 +1,7 @@
 import { Text } from '@mantine/core'
 import { ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
-import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import * as coreStyles from '../core/sheetShell.css'
 import * as overviewStyles from './overview.css'
 import * as proficiencyStyles from './proficiencies.css'

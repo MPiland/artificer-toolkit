@@ -5,7 +5,7 @@ describe('guest root route guard', () => {
   it('redirects authenticated users from marketing to home', () => {
     expect(
       shouldRedirectRootToHome({
-        id: 'user-1'
+        userId: 'a74454fc-4f74-4bdb-a47a-194bab7745ac'
       })
     ).toBe(true)
   })

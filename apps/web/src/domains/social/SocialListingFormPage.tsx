@@ -1,12 +1,13 @@
 import { Alert, Badge, Button, Group, Loader, Tabs, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { type SubmitEvent, useEffect, useState } from 'react'
-import { getCampaignList } from '#app/data/campaigns/queries'
-import { getSystemList } from '#app/data/systems/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { CatchBoundary, useNavigate } from '@tanstack/react-router'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
+import { type ComponentProps, type SubmitEvent, useEffect, useState } from 'react'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import { SocialInviteDialog } from './components/SocialInviteDialog'
 import { SocialListingApplications } from './components/listing-editor/SocialListingApplications'
 import { SocialListingInvitations } from './components/listing-editor/SocialListingInvitations'
@@ -27,7 +28,24 @@ import {
 } from './socialModels'
 import * as styles from './SocialListingFormPage.css'
 
-export function SocialListingFormPage({
+export function SocialListingFormPage(props: ComponentProps<typeof SocialListingEditor>) {
+  const listingPublicId = props.listingPublicId?.toLowerCase()
+  return (
+    <CatchBoundary getResetKey={() => listingPublicId ?? 'new'} errorComponent={ListingEditorError}>
+      <SocialListingEditor
+        {...props}
+        listingPublicId={listingPublicId}
+        key={listingPublicId ?? 'new'}
+      />
+    </CatchBoundary>
+  )
+}
+
+function ListingEditorError() {
+  return <Alert color='red'>The listing editor is unavailable.</Alert>
+}
+
+function SocialListingEditor({
   invitePublicId,
   listingPublicId,
   section = 'listing',
@@ -40,46 +58,56 @@ export function SocialListingFormPage({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const campaigns = useQuery({ ...getCampaignList(), enabled: section === 'listing' })
-  const systems = useQuery({ ...getSystemList(), enabled: section === 'listing' })
-  const listing = useQuery({
-    queryKey: queryKeys.socialHub.listing(listingPublicId ?? 'new'),
-    queryFn: () => api.socialHub.listings.getOwned(listingPublicId ?? ''),
-    enabled: Boolean(listingPublicId)
-  })
-  const applications = useQuery({
-    queryKey: queryKeys.socialHub.applicationsForListing(listingPublicId ?? 'new'),
-    queryFn: () => api.socialHub.applications.forListing(listingPublicId ?? ''),
-    enabled: Boolean(listingPublicId) && section === 'applications'
-  })
+  const campaigns = usePaginatedQuery(
+    convexApi.campaigns.queries.list,
+    section === 'listing' && !listingPublicId ? {} : 'skip',
+    { initialNumItems: 8 }
+  )
+  const systems = useSystemList(section === 'listing')
+  const listingQuery = convexQuery(
+    convexApi.social.listings.getOwned,
+    listingPublicId ? { listingPublicId } : 'skip'
+  )
+  const listing = useQuery(listingQuery)
+  const createListing = useConvexMutation(convexApi.social.listingDrafts.create)
+  const updateListing = useConvexMutation(convexApi.social.listings.update)
+  const openListing = useConvexMutation(convexApi.social.listings.open)
+  const closeListing = useConvexMutation(convexApi.social.listings.close)
+  const removeListing = useConvexMutation(convexApi.social.listingDrafts.remove)
   const [campaignId, setCampaignId] = useState('')
   const [draft, setDraft] = useState<SocialListingDraft>(createEmptySocialListingDraft)
-  const [hydratedListingId, setHydratedListingId] = useState<string>()
+  const [savedListing, setSavedListing] = useState<SocialListingDto>()
 
   useEffect(() => {
-    if (!listing.data || hydratedListingId === listing.data.listingPublicId) return
+    if (!listing.data || savedListing?.listingPublicId === listing.data.listingPublicId) return
     setDraft(socialListingToDraft(listing.data))
-    setHydratedListingId(listing.data.listingPublicId)
-  }, [hydratedListingId, listing.data])
+    setSavedListing(listing.data)
+  }, [savedListing, listing.data])
 
   const save = useMutation({
     mutationFn: () => {
       const fields = socialListingDraftToFields(draft)
-      if (listing.data) {
-        return api.socialHub.listings.update({
-          ...fields,
-          listingPublicId: listing.data.listingPublicId,
-          expectedVersion: listing.data.version
+      if (savedListing) {
+        return updateListing({
+          input: {
+            ...fields,
+            listingPublicId: savedListing.listingPublicId,
+            expectedVersion: savedListing.version
+          }
         })
       }
+      if (listingPublicId) throw new Error('Wait for the listing to load.')
       if (!campaignId) throw new Error('Choose a Campaign for this listing.')
-      return api.socialHub.listings.create({ ...fields, campaignId })
+      return createListing({ input: { ...fields, campaignId } })
     },
     onSuccess: (result) => {
-      queryClient.setQueryData(queryKeys.socialHub.listing(result.listingPublicId), result)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.listingsMine() })
+      queryClient.setQueryData(
+        convexQuery(convexApi.social.listings.getOwned, { listingPublicId: result.listingPublicId })
+          .queryKey,
+        result
+      )
       setDraft(socialListingToDraft(result))
-      setHydratedListingId(result.listingPublicId)
+      setSavedListing(result)
       notifications.show({ color: 'green', message: 'Listing saved.' })
       if (!listingPublicId) {
         void navigate({
@@ -93,31 +121,32 @@ export function SocialListingFormPage({
   })
   const changeStatus = useMutation({
     mutationFn: (action: 'open' | 'close') => {
-      if (!listing.data) throw new Error('Save the listing first.')
+      if (!savedListing) throw new Error('Save the listing first.')
       const input = {
-        listingPublicId: listing.data.listingPublicId,
-        expectedVersion: listing.data.version
+        listingPublicId: savedListing.listingPublicId,
+        expectedVersion: savedListing.version
       }
-      return action === 'open'
-        ? api.socialHub.listings.open(input)
-        : api.socialHub.listings.close(input)
+      return action === 'open' ? openListing(input) : closeListing(input)
     },
     onSuccess: (result) => {
-      queryClient.setQueryData(queryKeys.socialHub.listing(result.listingPublicId), result)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.listingsMine() })
+      queryClient.setQueryData(
+        convexQuery(convexApi.social.listings.getOwned, { listingPublicId: result.listingPublicId })
+          .queryKey,
+        result
+      )
+      setSavedListing(result)
       notifications.show({ color: 'green', message: `Listing ${result.status.toLowerCase()}.` })
     }
   })
   const deleteDraft = useMutation({
     mutationFn: async () => {
-      if (!listing.data) return
-      await api.socialHub.listings.deleteDraft({
-        listingPublicId: listing.data.listingPublicId,
-        expectedVersion: listing.data.version
+      if (!savedListing) throw new Error('Save the listing first.')
+      await removeListing({
+        listingPublicId: savedListing.listingPublicId,
+        expectedVersion: savedListing.version
       })
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.listingsMine() })
       void navigate({ to: '/social', search: { view: 'hosting' } })
     }
   })
@@ -125,11 +154,11 @@ export function SocialListingFormPage({
   if (listingPublicId && listing.isPending) {
     return <Loader aria-label='Loading listing editor' size='sm' />
   }
-  if (listing.isError || (section === 'listing' && (campaigns.isError || systems.isError))) {
+  if (listing.isError || (section === 'listing' && systems.isError)) {
     return <Alert color='red'>The listing editor is unavailable.</Alert>
   }
 
-  const ownedCampaigns = (campaigns.data ?? []).filter(
+  const ownedCampaigns = campaigns.results.filter(
     (campaign) => campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   )
   const selectedCampaign = listing.data
@@ -140,8 +169,8 @@ export function SocialListingFormPage({
         contentMaturity: listing.data.contentMaturity
       }
     : (ownedCampaigns.find((campaign) => campaign.id === campaignId) ?? null)
-  const hasUnsavedChanges = listing.data
-    ? JSON.stringify(draft) !== JSON.stringify(socialListingToDraft(listing.data))
+  const hasUnsavedChanges = savedListing
+    ? JSON.stringify(draft) !== JSON.stringify(socialListingToDraft(savedListing))
     : true
 
   return (
@@ -217,6 +246,15 @@ export function SocialListingFormPage({
             setDraft={setDraft}
             systems={systems.data ?? []}
           />
+          {!listingPublicId && campaigns.status === 'CanLoadMore' ? (
+            <Button variant='subtle' type='button' onClick={() => campaigns.loadMore(8)}>
+              Load more Campaigns
+            </Button>
+          ) : null}
+          {!listingPublicId &&
+          (campaigns.status === 'LoadingFirstPage' || campaigns.status === 'LoadingMore') ? (
+            <Loader aria-label='Loading Campaigns' size='sm' />
+          ) : null}
           <SocialListingScheduleSection
             campaignFormat={selectedCampaign?.format ?? 'ONGOING'}
             draft={draft}
@@ -224,15 +262,20 @@ export function SocialListingFormPage({
           />
           <SocialListingExpectationsSection draft={draft} setDraft={setDraft} />
 
+          {deleteDraft.error ? <Alert color='red'>{deleteDraft.error.message}</Alert> : null}
           {save.error ? <Alert color='red'>{save.error.message}</Alert> : null}
           {changeStatus.error ? <Alert color='red'>{changeStatus.error.message}</Alert> : null}
           <div className={styles.actions}>
-            <Button loading={save.isPending} type='submit'>
+            <Button
+              disabled={changeStatus.isPending || deleteDraft.isPending}
+              loading={save.isPending}
+              type='submit'
+            >
               {listing.data?.status === 'CLOSED' ? 'Return to draft' : 'Save listing'}
             </Button>
             {listing.data?.status === 'DRAFT' ? (
               <Button
-                disabled={hasUnsavedChanges}
+                disabled={hasUnsavedChanges || save.isPending || deleteDraft.isPending}
                 loading={changeStatus.isPending}
                 type='button'
                 variant='default'
@@ -243,6 +286,7 @@ export function SocialListingFormPage({
             ) : null}
             {listing.data?.status === 'OPEN' ? (
               <Button
+                disabled={save.isPending || deleteDraft.isPending}
                 loading={changeStatus.isPending}
                 type='button'
                 variant='default'
@@ -254,6 +298,7 @@ export function SocialListingFormPage({
             {listing.data?.status === 'DRAFT' ? (
               <Button
                 color='red'
+                disabled={save.isPending || changeStatus.isPending}
                 loading={deleteDraft.isPending}
                 type='button'
                 variant='subtle'
@@ -274,12 +319,7 @@ export function SocialListingFormPage({
       ) : null}
 
       {listing.data && section === 'applications' ? (
-        <SocialListingApplications
-          applications={applications.data ?? []}
-          isError={applications.isError}
-          isPending={applications.isPending}
-          listing={listing.data}
-        />
+        <SocialListingApplications listingPublicId={listing.data.listingPublicId} />
       ) : null}
 
       {listing.data && section === 'invitations' ? (

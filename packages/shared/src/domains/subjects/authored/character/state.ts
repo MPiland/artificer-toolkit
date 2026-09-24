@@ -9,6 +9,8 @@ export interface CharacterEquipmentItemState {
   containerId?: string
   customName?: string
   notes?: string
+  /** Server-owned raw acquired rules and source identities; travels with this held item. */
+  retainedRulesJson?: string
 }
 
 export interface CharacterEquipmentState {
@@ -51,6 +53,8 @@ export interface CharacterRosterEquipmentAssignmentState {
 
 export interface CharacterCurrencyAmountState {
   currencyId: string
+  kind?: 'RULESET' | 'CAMPAIGN'
+  campaignCurrencySystemId?: string
   amount: number
 }
 

@@ -7,5 +7,5 @@ export const Route = createFileRoute('/_authed/settings/profile')({
 
 function ProfileSettingsRoute() {
   const { user } = Route.useRouteContext()
-  return user ? <ProfileSettingsPage userId={user.id} /> : null
+  return user ? <ProfileSettingsPage userId={user.userId} /> : null
 }

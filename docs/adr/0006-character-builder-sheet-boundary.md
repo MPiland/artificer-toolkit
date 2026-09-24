@@ -4,7 +4,7 @@
 - **Date:** 2026-07-24
 - **Scope:** character creation, play-state interaction, and shared authored-content platform
 - **Update when:** character intent/state ownership, preview/commit flow, sheet commands, or Authoring Schema reuse boundaries change
-- **Verification:** `packages/shared/src/domains/subjects/authored/character`; `packages/shared/src/domains/character/events`; `packages/shared/src/domains/engine/snapshot.ts`; `packages/functions/src/services/character/builderService.ts`; `packages/functions/src/services/character/sheetService.ts`; `packages/functions/src/services/character/sheetProjection.ts`; `packages/functions/src/services/character/sheetCommandReducer.ts`; `apps/apis/src/trpc/characterRouter.ts`
+- **Verification:** `packages/shared/src/domains/subjects/authored/character`; `packages/schema/src/api/characters`; `packages/rules-runtime/src/character`; `apps/apis/convex/characters/builder.ts`; `apps/apis/convex/characters/sheet.ts`; `apps/apis/convex/characters/sheetCommands.ts`
 
 ## Context
 

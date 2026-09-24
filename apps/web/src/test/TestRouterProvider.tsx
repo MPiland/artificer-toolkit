@@ -1,4 +1,6 @@
 import type { MantineColorScheme } from '@mantine/core'
+import { ConvexQueryClient } from '@convex-dev/react-query'
+import { ConvexProviderWithAuth, ConvexReactClient } from 'convex/react'
 import {
   RouterContextProvider,
   createMemoryHistory,
@@ -6,8 +8,8 @@ import {
   createRoute,
   createRouter
 } from '@tanstack/react-router'
-import type { User } from '@supabase/supabase-js'
-import { type ReactNode, useState } from 'react'
+import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
+import { type ReactNode, useEffect, useState } from 'react'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteNotFound } from '#app/routeStates'
@@ -16,8 +18,9 @@ import type { AppRouterContext } from '#app/routerContext'
 interface TestRouterProviderProps {
   children: ReactNode
   initialPath?: string
-  user?: User | null
+  user?: AuthSessionUserDto | null
   defaultColorScheme?: MantineColorScheme
+  convexClient?: ConvexReactClient
 }
 
 function createStaticRoute(
@@ -35,8 +38,24 @@ function createTestRootRoute() {
   return createRootRouteWithContext<AppRouterContext>()()
 }
 
-function createTestRouter(initialPath: string, user: User | null) {
-  const queryClient = createAppQueryClient()
+function useTestConvexAuth() {
+  return {
+    isLoading: false,
+    isAuthenticated: false,
+    fetchAccessToken: async () => null
+  }
+}
+
+function createTestRouter(
+  initialPath: string,
+  user: AuthSessionUserDto | null,
+  convexClient?: ConvexReactClient
+) {
+  const client = convexClient ?? new ConvexReactClient('https://tests.convex.cloud')
+  const convex = new ConvexQueryClient(client)
+  const queryClient = createAppQueryClient(convex)
+  // Static query fixtures do not subscribe to the placeholder deployment.
+  if (!convexClient) convex.unsubscribe?.()
   const rootRoute = createTestRootRoute()
   const getParentRoute = () => rootRoute
 
@@ -72,22 +91,38 @@ function createTestRouter(initialPath: string, user: User | null) {
     defaultNotFoundComponent: RouteNotFound
   })
 
-  return { queryClient, router }
+  return { client, convex, queryClient, router }
 }
 
 export function TestRouterProvider({
   children,
   initialPath = '/',
   user = null,
-  defaultColorScheme
+  defaultColorScheme,
+  convexClient
 }: TestRouterProviderProps) {
-  const [{ queryClient, router }] = useState(() => createTestRouter(initialPath, user))
+  const [{ client, convex, queryClient, router }] = useState(() =>
+    createTestRouter(initialPath, user, convexClient)
+  )
+  useEffect(
+    () => () => {
+      queryClient.clear()
+      convex.unsubscribe?.()
+      if (!convexClient) void client.close()
+    },
+    [client, convex, convexClient, queryClient]
+  )
 
-  return (
+  const content = (
     <RouterContextProvider router={router}>
-      <AppProviders queryClient={queryClient} defaultColorScheme={defaultColorScheme}>
+      <AppProviders queryClient={queryClient} defaultColorScheme={defaultColorScheme} env='test'>
         {children}
       </AppProviders>
     </RouterContextProvider>
+  )
+  return (
+    <ConvexProviderWithAuth client={client} useAuth={useTestConvexAuth}>
+      {content}
+    </ConvexProviderWithAuth>
   )
 }

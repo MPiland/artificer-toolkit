@@ -1,6 +1,6 @@
 import { Badge, Text } from '@mantine/core'
 
-import type { CharacterSheetPanelNumericCalculationDto } from '#app/lib/api'
+import type { CharacterSheetPanelNumericCalculationDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { formatSigned } from '../core/characterSheet.utils'
 import * as inspectorShellStyles from './inspectorShell.css'
 

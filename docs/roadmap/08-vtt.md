@@ -42,7 +42,7 @@ authority.
 - Large map transfers use bounded R2 multipart upload. `VTT_MAP` accepts JPEG, PNG, and WebP up to 25 MiB, 8192 px per side, and 64 MP; Sharp generates renderer tiles without changing stable asset identity.
 - Manual fog is explicit Encounter/scene state with GM-only mutation in v1. Advanced lighting includes wall occlusion, point/cone lights, darkness polygons, and server/client-consistent exploration.
 - Every durable action is idempotent, versioned, authorized, replayable, and reconcilable after reconnect.
-- Recheck active Campaign membership roles on each 10-second authority renewal. Remove revoked or stale-role sockets without interrupting unaffected players.
+- Authenticate each socket on connection and again only after credential expiry or an explicit Worker challenge. Campaign membership removal, account deletion, auth-account suspension/deactivation, administrative revoke, Session finish, and Campaign archive/delete immediately evict the affected user or close the affected room without interrupting unrelated players.
 - Treat connectivity as intermittent: reconnect restores the committed scene from the authoritative Encounter projection/events, then resumes private invalidation and ephemeral cues without peer-hosted state.
 - Provide non-canvas alternatives for initiative, actor selection, token selection/movement, measurements, rolls, chat, and state inspection.
 

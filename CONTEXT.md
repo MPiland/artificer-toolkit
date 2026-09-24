@@ -108,11 +108,14 @@ execution plan.
 
 ### Persisted object
 
-The normalized database representation. Repositories hydrate persisted rows back into authored-shaped contracts; callers should not need to understand row layout to use a repository interface.
+The validated native document representation. Convex domain functions hydrate persisted documents into
+authored or play contracts; callers do not depend on table layout or storage internals.
 
 ### Master data and source data
 
-Seeded baseline content, such as SRD records, is master data. Repository-owned TypeScript source-data bundles express that content in authored/domain shapes before Kysely persistence. Master records are locked from direct UI editing but may be copied into owned drafts.
+Seeded baseline content, such as SRD records, is master data. Version-controlled bundles in
+`packages/source-data` express that content in authored/domain shapes before native Convex seed and
+audit. Master records are locked from direct UI editing but may be copied into owned drafts.
 
 ### Grant, effect, and outcome
 
@@ -130,7 +133,11 @@ A shared structural definition of authored content: steps, sections, nodes, path
 
 ### Authoring Schema runtime resolver
 
-The backend module that turns a shared node-map definition plus runtime scope and database-backed option sources into a transport-safe Authoring Schema result: root steps/sections/nodes, absolute nested scopes, and clear paths. It owns visibility, required state, relationship execution, option lookup, and normalization of values that are no longer valid. Rendering, navigation, and progress consume the same resolved scopes.
+The backend module that turns a shared node-map definition plus runtime scope and authorized native
+option sources into a transport-safe Authoring Schema result: root steps/sections/nodes, absolute nested
+scopes, and clear paths. It owns visibility, required state, relationship execution, option lookup, and
+normalization of values that are no longer valid. Rendering, navigation, and progress consume the same
+resolved scopes.
 
 ### Resolver
 
@@ -140,14 +147,16 @@ Use the specific resolver name when possible:
 - authored inheritance resolver: parent/child authored content composition;
 - character Builder resolver: eligible choices, provenance, reconciliation, readiness;
 - choice resolver: chosen-grant or selection-specific resolution;
-- repository hydrator: normalized rows back to authored shape;
+- persistence hydrator: native documents back to authored or play shape;
 - engine resolver: compiled grants and rules into derived character output.
 
 Do not use “resolver” as an unqualified name for unrelated behavior.
 
 ### Orchestrator
 
-An application module that composes validation, repository reads, compilation, persistence, reconciliation, or engine execution for a use case. Orchestration belongs in `packages/functions`; transport modules delegate to it.
+An application module that composes validation, native reads, compilation, persistence, reconciliation,
+or engine execution for a use case. Orchestration belongs in the owning `apps/apis/convex` domain
+function; public functions remain thin validated entry points.
 
 ### Rule-definition validator
 
@@ -232,13 +241,14 @@ privacy.
 
 ## Architectural invariants
 
-- `apps/apis` is the product-data seam for `apps/web`.
+- `apps/apis/convex` is the product-data, authentication, persistence and orchestration seam for
+  `apps/web`.
 - `packages/schema` owns transport contracts; `packages/shared` owns domain contracts and pure logic.
-- `packages/functions` owns use-case orchestration; `packages/db` owns persistence adapters.
-- SQL defines schema/bootstrap; Kysely owns application writes.
-- Repositories expose authored-shaped interfaces and enforce persistence invariants behind their seam.
-- Active authored roots retain one relational UUID envelope, one working draft, and one current
-  published typed document. Runtime does not expose authored version selection or upgrade workflows.
+- `packages/authoring` owns pure Authoring Schema resolution and publication validation.
+- `packages/rules-runtime` owns installed System policies and Kernel execution.
+- Convex domain functions enforce authorization, indexed reads, atomic writes, replay and cleanup.
+- Active authored roots retain one stable UUID, one working draft and one current published typed
+  document. Runtime does not expose authored version selection or upgrade workflows.
 - The selected Game System capability contract declares its root-domain adapters and reusable
   definition families. D&D's eight current roots are not universal engine concepts.
 - Node maps define reusable authored-content structure; character Builder and Sheet remain domain-specific modules.

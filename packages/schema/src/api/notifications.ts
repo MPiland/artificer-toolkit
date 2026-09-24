@@ -1,9 +1,9 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { timestampSchema, uuidSchema } from './campaignContractSchemas.js'
 
-const listingTitleSchema = z.string().trim().min(1).max(100)
-const usernameSchema = z.string().trim().min(3).max(30)
+const listingTitleSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))
+const usernameSchema = z.string().check(z.trim()).check(z.minLength(3)).check(z.maxLength(30))
 
 export const notificationWorkflowKeySchema = z.enum([
   'social-application-submitted',
@@ -27,23 +27,23 @@ const socialSourceSchema = z.strictObject({
   occurredAt: timestampSchema
 })
 
-export const socialApplicationSubmittedNotificationDataSchema = socialSourceSchema.extend({
+export const socialApplicationSubmittedNotificationDataSchema = z.extend(socialSourceSchema, {
   kind: z.literal('SOCIAL_APPLICATION_SUBMITTED'),
   applicantUsername: usernameSchema
 })
 
-export const socialApplicationDecidedNotificationDataSchema = socialSourceSchema.extend({
+export const socialApplicationDecidedNotificationDataSchema = z.extend(socialSourceSchema, {
   kind: z.literal('SOCIAL_APPLICATION_DECIDED'),
   decision: z.enum(['ACCEPTED', 'DECLINED'])
 })
 
-export const socialInvitationReceivedNotificationDataSchema = socialSourceSchema.extend({
+export const socialInvitationReceivedNotificationDataSchema = z.extend(socialSourceSchema, {
   kind: z.literal('SOCIAL_INVITATION_RECEIVED'),
   hostUsername: usernameSchema,
   expiresAt: timestampSchema
 })
 
-export const socialInvitationDecidedNotificationDataSchema = socialSourceSchema.extend({
+export const socialInvitationDecidedNotificationDataSchema = z.extend(socialSourceSchema, {
   kind: z.literal('SOCIAL_INVITATION_DECIDED'),
   recipientUsername: usernameSchema,
   decision: z.enum(['ACCEPTED', 'DECLINED'])
@@ -52,8 +52,8 @@ export const socialInvitationDecidedNotificationDataSchema = socialSourceSchema.
 export const campaignAnnouncementNotificationDataSchema = z.strictObject({
   kind: z.literal('CAMPAIGN_ANNOUNCEMENT'),
   announcementPublicId: uuidSchema,
-  campaignPublicId: z.string().trim().min(1).max(120),
-  summary: z.string().trim().min(1).max(240),
+  campaignPublicId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(120)),
+  summary: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
   scope: z.enum(['TABLE', 'PARTY']),
   occurredAt: timestampSchema
 })
@@ -73,16 +73,16 @@ export const notificationFeedItemDtoSchema = z.strictObject({
   workflowKey: notificationWorkflowKeySchema,
   sourceKind: notificationSourceKindSchema,
   sourcePublicId: uuidSchema,
-  groupingKey: z.string().trim().min(1).max(200).nullable(),
+  groupingKey: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200))),
   data: notificationIntentDataSchema,
   occurredAt: timestampSchema,
-  seenAt: timestampSchema.nullable(),
-  readAt: timestampSchema.nullable()
+  seenAt: z.nullable(timestampSchema),
+  readAt: z.nullable(timestampSchema)
 })
 
 export const notificationFeedDtoSchema = z.strictObject({
-  items: z.array(notificationFeedItemDtoSchema).max(25),
-  unseenCount: z.number().int().nonnegative()
+  items: z.array(notificationFeedItemDtoSchema).check(z.maxLength(25)),
+  unseenCount: z.number().check(z.int()).check(z.nonnegative())
 })
 
 export const notificationFeedItemIdInputSchema = z.strictObject({

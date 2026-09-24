@@ -1,23 +1,21 @@
-import { getSupabaseBrowserClient } from '../supabase/client'
-import { signUpFn } from '../server/auth/signUpFn'
-import { api } from '../lib/api'
 import {
-  authInvitationCompletionInputSchema,
-  authPasswordUpdateInputSchema,
+  authInvitationRedeemInputSchema,
+  authPasswordResetInputSchema,
   authPasswordRecoveryVerificationInputSchema,
+  authRecoveryCommandSchema,
   authSignInInputSchema,
-  type AuthInvitationCompletionInput,
+  authSignUpInputSchema,
+  type AuthInvitationRedeemInput,
+  type AuthPasswordResetInput,
   type AuthPasswordRecoveryVerificationInput,
-  type AuthPasswordUpdateInput,
   type AuthSignInInput,
   type AuthSignUpInput
 } from '@artificer-toolkit/schema/api/auth'
-import type { Session } from '@supabase/supabase-js'
+import { betterAuthClient } from './betterAuthClient'
 
 export interface AuthResult {
   ok: boolean
   message?: string
-  session?: Session | null
 }
 
 export type SignInInput = AuthSignInInput
@@ -28,11 +26,11 @@ export interface RequestPasswordResetInput {
   email: string
 }
 
-export type UpdatePasswordInput = AuthPasswordUpdateInput
+export type ResetPasswordInput = AuthPasswordResetInput
 
 export type VerifyPasswordRecoveryInput = AuthPasswordRecoveryVerificationInput
 
-export type CompleteInvitationInput = AuthInvitationCompletionInput
+export type CompleteInvitationInput = AuthInvitationRedeemInput
 
 export interface AuthClient {
   completeInvitation(input: CompleteInvitationInput): Promise<AuthResult>
@@ -40,83 +38,122 @@ export interface AuthClient {
   signUp(input: SignUpInput): Promise<AuthResult>
   requestPasswordReset(input: RequestPasswordResetInput): Promise<AuthResult>
   verifyPasswordRecovery(input: VerifyPasswordRecoveryInput): Promise<AuthResult>
-  updatePassword(input: UpdatePasswordInput): Promise<AuthResult>
+  resetPassword(input: ResetPasswordInput): Promise<AuthResult>
   signOut(): Promise<AuthResult>
 }
 
-function getAuthRedirectUrl(path: string) {
-  if (typeof window === 'undefined') return undefined
-  return `${window.location.origin}${path}`
+function isRateLimited(error: unknown) {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 429
 }
 
 export const browserAuthClient: AuthClient = {
   async completeInvitation(input) {
-    const parsed = authInvitationCompletionInputSchema.safeParse(input)
+    const parsed = authInvitationRedeemInputSchema.safeParse(input)
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message }
     }
 
     try {
-      await api.account.completeInvitation(parsed.data)
-      return { ok: true }
-    } catch (error) {
+      const result = await betterAuthClient.$fetch('/invitation/redeem', {
+        method: 'POST',
+        body: parsed.data
+      })
+      return result.error
+        ? { ok: false, message: 'Could not complete registration.' }
+        : { ok: true }
+    } catch {
       return {
         ok: false,
-        message: error instanceof Error ? error.message : 'Could not complete registration.'
+        message: 'Could not complete registration.'
       }
     }
   },
   async signIn(input) {
     const parsed = authSignInInputSchema.safeParse(input)
     if (!parsed.success) {
-      return { ok: false, message: 'Check your email or username and password, then try again.' }
-    }
-
-    const client = getSupabaseBrowserClient()
-    if (parsed.data.identifier.includes('@')) {
-      const { data, error } = await client.auth.signInWithPassword({
-        email: parsed.data.identifier,
-        password: parsed.data.password
-      })
-      return error
-        ? { ok: false, message: 'Check your email or username and password, then try again.' }
-        : { ok: true, session: data.session ?? null }
+      return {
+        ok: false,
+        message: 'Check your email or username and password, then try again.'
+      }
     }
 
     try {
-      const credentials = await api.account.signInWithUsername({
-        username: parsed.data.identifier,
-        password: parsed.data.password
-      })
-      const { data, error } = await client.auth.setSession({
-        access_token: credentials.accessToken,
-        refresh_token: credentials.refreshToken
-      })
-      return error
-        ? { ok: false, message: 'Check your email or username and password, then try again.' }
-        : { ok: true, session: data.session ?? null }
+      const result = parsed.data.identifier.includes('@')
+        ? await betterAuthClient.signIn.email({
+            email: parsed.data.identifier,
+            password: parsed.data.password
+          })
+        : await betterAuthClient.signIn.username({
+            username: parsed.data.identifier,
+            password: parsed.data.password
+          })
+      return result.error
+        ? {
+            ok: false,
+            message: isRateLimited(result.error)
+              ? 'Too many sign-in attempts. Try again shortly.'
+              : result.error.status === 403 && result.error.code === 'EMAIL_NOT_VERIFIED'
+                ? 'Confirm your email before signing in. Check your inbox for a new confirmation link.'
+                : 'Check your email or username and password, then try again.'
+          }
+        : { ok: true }
     } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        error.status === 429
-      ) {
-        return { ok: false, message: 'Too many sign-in attempts. Try again shortly.' }
+      if (isRateLimited(error)) {
+        return {
+          ok: false,
+          message: 'Too many sign-in attempts. Try again shortly.'
+        }
       }
-      return { ok: false, message: 'Check your email or username and password, then try again.' }
+      return {
+        ok: false,
+        message: 'Check your email or username and password, then try again.'
+      }
     }
   },
   async signUp(input) {
-    return signUpFn({ data: input })
+    const parsed = authSignUpInputSchema.safeParse(input)
+    if (!parsed.success) return { ok: false, message: 'Check the form and try again.' }
+
+    try {
+      const result = await betterAuthClient.signUp.email({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        name: parsed.data.username,
+        username: parsed.data.username
+      })
+      return result.error
+        ? { ok: false, message: 'Could not create your account. Try again.' }
+        : { ok: true }
+    } catch {
+      return {
+        ok: false,
+        message: 'Could not create your account. Try again.'
+      }
+    }
   },
   async requestPasswordReset(input) {
-    const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(input.email, {
-      redirectTo: getAuthRedirectUrl('/update-password')
+    const parsed = authRecoveryCommandSchema.safeParse({
+      ...input,
+      operation: 'REQUEST'
     })
-    return error
-      ? { ok: false, message: "We couldn't send a verification code. Try again." }
-      : { ok: true }
+    if (!parsed.success) return { ok: false, message: 'Check the email address and try again.' }
+
+    try {
+      const result = await betterAuthClient.emailOtp.requestPasswordReset({
+        email: parsed.data.email
+      })
+      return result.error
+        ? {
+            ok: false,
+            message: "We couldn't send a verification code. Try again."
+          }
+        : { ok: true }
+    } catch {
+      return {
+        ok: false,
+        message: "We couldn't send a verification code. Try again."
+      }
+    }
   },
   async verifyPasswordRecovery(input) {
     const parsed = authPasswordRecoveryVerificationInputSchema.safeParse(input)
@@ -124,30 +161,53 @@ export const browserAuthClient: AuthClient = {
       return { ok: false, message: parsed.error.issues[0]?.message }
     }
 
-    const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp({
-      email: parsed.data.email,
-      token: parsed.data.token,
-      type: 'recovery'
-    })
-    return error
-      ? { ok: false, message: 'That verification code is invalid or has expired.' }
-      : { ok: true, session: data.session ?? null }
+    try {
+      const result = await betterAuthClient.emailOtp.checkVerificationOtp({
+        email: parsed.data.email,
+        otp: parsed.data.token,
+        type: 'forget-password'
+      })
+      return result.error
+        ? {
+            ok: false,
+            message: 'That verification code is invalid or has expired.'
+          }
+        : { ok: true }
+    } catch {
+      return {
+        ok: false,
+        message: 'That verification code is invalid or has expired.'
+      }
+    }
   },
-  async updatePassword(input) {
-    const parsed = authPasswordUpdateInputSchema.safeParse(input)
+  async resetPassword(input) {
+    const parsed = authPasswordResetInputSchema.safeParse(input)
     if (!parsed.success) {
       return { ok: false, message: parsed.error.issues[0]?.message }
     }
 
-    const { error } = await getSupabaseBrowserClient().auth.updateUser({
-      password: parsed.data.password
-    })
-    return error
-      ? { ok: false, message: "We couldn't update your password. Try again." }
-      : { ok: true }
+    try {
+      const result = await betterAuthClient.emailOtp.resetPassword({
+        email: parsed.data.email,
+        otp: parsed.data.token,
+        password: parsed.data.password
+      })
+      return result.error
+        ? { ok: false, message: "We couldn't update your password. Try again." }
+        : { ok: true }
+    } catch {
+      return {
+        ok: false,
+        message: "We couldn't update your password. Try again."
+      }
+    }
   },
   async signOut() {
-    const { error } = await getSupabaseBrowserClient().auth.signOut()
-    return error ? { ok: false, message: error.message } : { ok: true }
+    try {
+      const result = await betterAuthClient.signOut()
+      return result.error ? { ok: false, message: 'Could not sign out. Try again.' } : { ok: true }
+    } catch {
+      return { ok: false, message: 'Could not sign out. Try again.' }
+    }
   }
 }

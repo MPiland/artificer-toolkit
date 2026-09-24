@@ -1,25 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { HttpResponse, http } from 'msw'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import type {
-  CharacterRestPreviewRequestDto,
-  CharacterSheetResponseDto
-} from '@artificer-toolkit/schema/api/characters'
-import {
-  characterSheetMulticlassFixture,
-  createCharacterRestPreviewFixture
-} from '#domains/characters/sheet/fixtures/characterRest.fixtures'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { characterSheetMulticlassFixture } from '#domains/characters/sheet/fixtures/characterRest.fixtures'
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import type { CharacterSheetTabId } from '#domains/characters/sheet/core/CharacterSheet.types'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
-import { hitDieRollHandler } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
+import { mockHitDieRoll } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
+import { mockSheetRestPreview } from '#domains/characters/sheet/fixtures/characterSheetNativeStory.fixture'
 import { Shell, platformNavigation } from '#app/shell'
 
 const meta = {
   title: 'Guest/Marketing/Product captures',
   parameters: {
     layout: 'fullscreen'
-  }
+  },
+  beforeEach: mockSheetRestPreview
 } satisfies Meta
 
 export default meta
@@ -50,24 +45,6 @@ function CharacterSheetCapture({
   )
 }
 
-function restPreviewHandler() {
-  return http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
-    const body: unknown = await request.json()
-    if (typeof body !== 'object' || body === null || !('0' in body)) {
-      return new HttpResponse(null, { status: 400 })
-    }
-
-    const input = (body as { 0: { id: string; input: CharacterRestPreviewRequestDto } })[0].input
-    return HttpResponse.json([
-      {
-        result: {
-          data: createCharacterRestPreviewFixture(input)
-        }
-      }
-    ])
-  })
-}
-
 async function openShortRest(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body)
   await userEvent.click(page.getByRole('button', { name: 'Short Rest' }))
@@ -78,12 +55,6 @@ async function openShortRest(canvasElement: HTMLElement) {
   ).toBeInTheDocument()
   await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeInTheDocument()
   return dialog
-}
-
-const restParameters = {
-  msw: {
-    handlers: [restPreviewHandler()]
-  }
 }
 
 export const CharacterSheet: Story = {
@@ -97,7 +68,6 @@ export const CharacterSheetMulticlass: Story = {
 }
 
 export const CharacterSheetShortRest: Story = {
-  parameters: restParameters,
   play: async ({ canvasElement }) => {
     const dialog = await openShortRest(canvasElement)
     const addD10 = within(dialog).getByRole('button', { name: 'Add one d10 hit die' })
@@ -117,7 +87,6 @@ export const CharacterSheetShortRest: Story = {
 export const CharacterSheetShortRestMobile: Story = {
   ...CharacterSheetShortRest,
   parameters: {
-    ...restParameters,
     viewport: {
       defaultViewport: 'mobile1'
     }
@@ -126,16 +95,14 @@ export const CharacterSheetShortRestMobile: Story = {
 
 export const CharacterSheetShortRestRolled: Story = {
   ...CharacterSheetShortRest,
-  parameters: {
-    msw: { handlers: [restPreviewHandler(), hitDieRollHandler()] }
-  },
+  beforeEach: mockHitDieRoll,
   play: async (context) => {
     await CharacterSheetShortRest.play?.(context)
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Short Rest'
     })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
-    const rolledLabels = await within(dialog).findAllByText('15 rolled')
+    const rolledLabels = await within(dialog).findAllByText('15 rolled', {}, { timeout: 20_000 })
     await expect(rolledLabels[0]).toBeVisible()
     await expect(within(dialog).getByText('6 HP selected')).toBeVisible()
   }

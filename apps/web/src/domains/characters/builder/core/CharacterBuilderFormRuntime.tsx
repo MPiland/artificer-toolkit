@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
-import type { CharacterBuilderPreviewPayloadDto } from '@artificer-toolkit/schema/api/characters'
+import type { CharacterBuilderPreviewOutput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { useAppForm } from '#forms/app-form/AppForm'
 import {
   useAuthoringForm,
@@ -19,7 +18,7 @@ import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { ReadyCharacterBuilderAuthoringSession } from '../state/characterBuilderAuthoringSession'
 import {
   buildCharacterDraftSaveInput,
-  normalizeCharacterForCommit
+  normalizeCharacterForDraft
 } from '../shared/formNormalization'
 import { getInactiveAbilityIntentMethodLabels } from '../steps/abilities/abilityGeneration'
 import type { CharacterFormValues } from './characterBuilder.types'
@@ -46,7 +45,7 @@ export function CharacterBuilderFormRuntime({
   const [draftSaveNoticeOpened, setDraftSaveNoticeOpened] = useState(false)
   const [draftSaveNoticeAcknowledged, setDraftSaveNoticeAcknowledged] = useState(false)
   const [draftSaveNoticeMethodLabels, setDraftSaveNoticeMethodLabels] = useState<string[]>([])
-  const [preview, setPreview] = useState<CharacterBuilderPreviewPayloadDto | null>(null)
+  const [preview, setPreview] = useState<CharacterBuilderPreviewOutput | null>(null)
   const [previewOpened, setPreviewOpened] = useState(false)
   const draftMutation = useSaveCharacterDraftMutation()
   const previewMutation = usePreviewCharacterSaveMutation()
@@ -57,9 +56,9 @@ export function CharacterBuilderFormRuntime({
     async (value: CharacterFormValues) => {
       try {
         const nextPreview = await previewMutation.mutateAsync({
-          character: normalizeCharacterForCommit(value),
-          mode: session.mode,
-          targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
+          character: normalizeCharacterForDraft(value),
+          expectedDraftId: session.draft.id,
+          mode: session.mode
         })
         setPreview(nextPreview)
         setPreviewOpened(true)
@@ -70,28 +69,33 @@ export function CharacterBuilderFormRuntime({
         })
       }
     },
-    [previewMutation, session.mode]
+    [previewMutation, session.draft.id, session.mode]
   )
 
+  const defaultValuesRef = useRef(session.initialValues)
   const form = useAppForm({
-    defaultValues: session.initialValues,
+    defaultValues: defaultValuesRef.current,
     onSubmit: async ({ value }) => {
       await handlePreviewFinalize(value)
     }
   })
 
   const handleResolve = useLatestCharacterResolution({
+    expectedDraftId: session.draft.id,
     mode: session.mode,
     onResolved: setPayload
   })
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     try {
+      const savedValues = form.state.values
       const draft = await draftMutation.mutateAsync(
-        buildCharacterDraftSaveInput(form.state.values, session.mode, {
-          baseActiveUpdatedAt: session.baseActiveUpdatedAt
-        })
+        buildCharacterDraftSaveInput(savedValues, session.mode, session.draft.id)
       )
+      if (form.state.values === savedValues) {
+        defaultValuesRef.current = savedValues
+        form.reset(savedValues)
+      }
       setDraftSaveNoticeAcknowledged(true)
       setDraftSaveNoticeOpened(false)
       notifications.show({ color: 'green', message: 'Character draft saved.' })
@@ -105,7 +109,7 @@ export function CharacterBuilderFormRuntime({
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that character draft yet.' })
     }
-  }, [draftMutation, form, navigate, router, session.baseActiveUpdatedAt, session.mode])
+  }, [draftMutation, form, navigate, router, session.draft.id, session.mode])
 
   const handleSaveDraft = useCallback(async () => {
     const inactiveAbilityMethodLabels = getInactiveAbilityIntentMethodLabels(form.state.values)
@@ -119,27 +123,16 @@ export function CharacterBuilderFormRuntime({
   }, [draftSaveNoticeAcknowledged, form, handleSaveDraftConfirmed])
 
   const handleConfirmFinalize = useCallback(async () => {
+    if (!preview) return
     try {
-      if (session.mode === 'edit') {
-        await draftMutation.mutateAsync(
-          buildCharacterDraftSaveInput(form.state.values, 'edit', {
-            baseActiveUpdatedAt: session.baseActiveUpdatedAt
-          })
-        )
-      }
       const response = await commitMutation.mutateAsync({
-        character: normalizeCharacterForCommit(form.state.values),
-        mode: session.mode,
-        targetStatus: AUTHORED_RECORD_STATUS.ACTIVE,
-        baseActiveUpdatedAt: session.mode === 'edit' ? session.baseActiveUpdatedAt : undefined,
-        authoredContentUpgradePreviewChecksum: preview?.authoredContentUpgrade?.previewChecksum
+        character: preview.character,
+        expectedDraftId: session.draft.id,
+        mode: session.mode
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await navigate({
-        params: buildCharacterRouteParams(
-          response.publicId ?? response.character.id,
-          response.character.label
-        ),
+        params: buildCharacterRouteParams(response.publicId, response.character.label),
         to: '/characters/$characterPublicId/$characterSlug'
       })
     } catch {
@@ -148,15 +141,7 @@ export function CharacterBuilderFormRuntime({
         message: 'Could not finalize the character. Try again, or save the draft and reload.'
       })
     }
-  }, [
-    commitMutation,
-    draftMutation,
-    form,
-    navigate,
-    preview?.authoredContentUpgrade?.previewChecksum,
-    session.baseActiveUpdatedAt,
-    session.mode
-  ])
+  }, [commitMutation, navigate, preview, session.draft.id, session.mode])
 
   const handleActivate = useCallback(async () => {
     if (!payload.view.review.ready) {
@@ -175,10 +160,11 @@ export function CharacterBuilderFormRuntime({
       onActivate: handleActivate,
       onCancel,
       onDiscardDraft,
-      onResetForm: () => form.reset(session.initialValues),
+      onDelete: onDiscardDraft,
+      onResetForm: () => form.reset(),
       onSaveDraft: handleSaveDraft
     }),
-    [form, handleActivate, handleSaveDraft, onCancel, onDiscardDraft, session.initialValues]
+    [form, handleActivate, handleSaveDraft, onCancel, onDiscardDraft]
   )
 
   useEffect(() => {
@@ -199,7 +185,12 @@ export function CharacterBuilderFormRuntime({
           <CharacterBuilderStateSync
             canSubmit={formState.canSubmit}
             hasChanges={formState.hasChanges}
-            isSubmitting={formState.isSubmitting}
+            isSubmitting={
+              formState.isSubmitting ||
+              draftMutation.isPending ||
+              previewMutation.isPending ||
+              commitMutation.isPending
+            }
             payload={payload}
             session={session}
             subjectLabel={formState.subjectLabel}

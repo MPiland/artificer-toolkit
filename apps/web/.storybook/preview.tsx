@@ -1,5 +1,16 @@
 import type { Preview } from '@storybook/tanstack-react'
 import { ColorSchemeScript } from '@mantine/core'
+import {
+  ConvexReactClient,
+  useAction,
+  useConvexAuth,
+  useConvex,
+  useMutation,
+  useQuery,
+  usePaginatedQuery as useNativePaginatedQuery
+} from 'convex/react'
+import { usePaginatedQuery } from 'convex-helpers/react'
+import { fn, mocked, sb } from 'storybook/test'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { initialize, mswLoader } from 'msw-storybook-addon'
@@ -9,9 +20,25 @@ import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
 import '@mantine/tiptap/styles.layer.css'
 
-initialize({
-  onUnhandledRequest: 'bypass'
+// Stories supply explicit native fixtures; never construct a live client through a class spy.
+sb.mock(import('convex/react'))
+sb.mock(import('convex-helpers/react'), { spy: true })
+
+async function unavailableConvexCall(): Promise<never> {
+  throw new Error('Convex calls require an explicit Storybook fixture.')
+}
+const unavailableConvexClient = new ConvexReactClient('https://story-fixture.convex.cloud', {
+  logger: false
 })
+Object.defineProperty(unavailableConvexClient, 'query', {
+  value: fn<ConvexReactClient['query']>().mockImplementation(unavailableConvexCall)
+})
+const unavailableConvexMutation: ReturnType<typeof useMutation> = Object.assign(
+  unavailableConvexCall,
+  { withOptimisticUpdate: () => unavailableConvexMutation }
+)
+
+initialize({ onUnhandledRequest: 'bypass' })
 
 type StoryColorScheme = 'dark' | 'light'
 type StoryQueryClient = ReturnType<typeof createAppQueryClient>
@@ -35,6 +62,7 @@ function getStoryQueryClient(storyId: string) {
   if (existingClient) return existingClient
 
   const queryClient = createAppQueryClient()
+  queryClient.setQueryDefaults(['convexQuery'], { queryFn: unavailableConvexCall })
   storyQueryClients.set(storyId, queryClient)
   return queryClient
 }
@@ -67,6 +95,27 @@ const preview: Preview = {
   loaders: [mswLoader],
   async beforeEach() {
     MockDate.set('2024-04-01T12:00:00Z')
+    mocked(useConvexAuth).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      isRefreshing: false
+    })
+    mocked(useConvex).mockReturnValue(unavailableConvexClient)
+    mocked(useQuery).mockReturnValue(undefined)
+    mocked(usePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [],
+      status: 'Exhausted'
+    })
+    mocked(useNativePaginatedQuery).mockReturnValue({
+      isLoading: false,
+      loadMore: () => undefined,
+      results: [],
+      status: 'Exhausted'
+    })
+    mocked(useAction).mockImplementation(() => unavailableConvexCall)
+    mocked(useMutation).mockImplementation(() => unavailableConvexMutation)
   },
   globalTypes: {
     theme: {

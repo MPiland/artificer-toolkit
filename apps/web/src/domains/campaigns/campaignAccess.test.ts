@@ -1,4 +1,4 @@
-import type { CampaignDetailDto } from '#app/lib/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCampaignTabs } from './campaignAccess'
 
 describe('Campaign access presentation', () => {

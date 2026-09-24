@@ -8,10 +8,9 @@ import {
   characterAuthoredDtoSchema,
   type CharacterAuthoredDto
 } from '@artificer-toolkit/schema/subjects/character'
-import type {
-  CharacterBuilderDraftSaveRequestDto,
-  CharacterBuilderPayloadDto
-} from '@artificer-toolkit/schema/api/characters'
+import { z } from 'zod/mini'
+import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
+import type { CharacterDraftSaveInput } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import {
   mergeActiveAbilityIntentCache,
@@ -20,9 +19,10 @@ import {
   toAbilityFormValues
 } from '../steps/abilities/abilityGeneration'
 
+const characterDraftSchema = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
+
 export function createFallbackCharacterFormValues(
-  systemId = 'pending-system',
-  primaryRulesCatalogueId = '00000000-0000-4000-8000-000000000301'
+  systemId = 'pending-system'
 ): CharacterFormValues {
   return {
     id: 'pending-character',
@@ -56,7 +56,6 @@ export function createFallbackCharacterFormValues(
         hitDice: []
       }
     },
-    primaryRulesCatalogueId,
     systemId,
     userId: 'server-owned'
   }
@@ -77,7 +76,7 @@ export function toCharacterFormValues(payload: CharacterBuilderPayloadDto): Char
 }
 
 export function normalizeCharacterForDraft(character: CharacterFormValues): CharacterAuthoredDto {
-  return characterAuthoredDtoSchema.parse({
+  return characterDraftSchema.parse({
     ...character,
     intent: {
       ...character.intent,
@@ -87,28 +86,16 @@ export function normalizeCharacterForDraft(character: CharacterFormValues): Char
   })
 }
 
-export function normalizeCharacterForCommit(character: CharacterFormValues): CharacterAuthoredDto {
-  return characterAuthoredDtoSchema.parse({
-    ...character,
-    intent: {
-      ...character.intent,
-      abilities: normalizeAbilityIntent(character.intent.abilities)
-    },
-    status: AUTHORED_RECORD_STATUS.ACTIVE
-  })
-}
-
 export function buildCharacterDraftSaveInput(
   character: CharacterFormValues,
-  mode: CharacterBuilderDraftSaveRequestDto['mode'],
-  options: {
-    baseActiveUpdatedAt?: string | null
-  } = {}
-): CharacterBuilderDraftSaveRequestDto {
+  mode: CharacterDraftSaveInput['mode'],
+  expectedDraftId: string
+): CharacterDraftSaveInput {
   return {
+    characterId: character.id,
+    expectedDraftId,
     character: normalizeCharacterForDraft(character),
     builderIntent: normalizeBuilderIntent(character),
-    mode,
-    baseActiveUpdatedAt: mode === 'edit' ? (options.baseActiveUpdatedAt ?? null) : null
+    mode
   }
 }

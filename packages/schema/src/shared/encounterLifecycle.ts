@@ -1,10 +1,10 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { ruleGraphPortNameDtoSchema } from '../api/rulesRuntime.js'
-import { serverUuidIdentityDtoSchema } from './rulesExecution.js'
+import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 
-const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
-const positiveVersionSchema = z.number().int().positive().max(10_000)
+const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+const positiveVersionSchema = z.number().check(z.int()).check(z.positive()).check(z.lte(10_000))
 
 /** Canonical D&D 5e lifecycle definition identities used by authored source data. */
 export const DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e2'
@@ -25,7 +25,7 @@ const legendaryActionDocumentDtoSchema = z.strictObject({
   kind: z.literal('LEGENDARY_ACTION'),
   id: serverUuidIdentityDtoSchema,
   gameSystemId: serverUuidIdentityDtoSchema,
-  eligibilityGraph: dnd5eEncounterLifecycleExactGraphPinDtoSchema.extend({
+  eligibilityGraph: z.extend(dnd5eEncounterLifecycleExactGraphPinDtoSchema, {
     eligibleOutput: ruleGraphPortNameDtoSchema
   }),
   windowStage: z.literal('END_OF_OTHER_ACTOR_TURN'),
@@ -39,7 +39,7 @@ const legendaryResistanceDocumentDtoSchema = z.strictObject({
   kind: z.literal('LEGENDARY_RESISTANCE'),
   id: serverUuidIdentityDtoSchema,
   gameSystemId: serverUuidIdentityDtoSchema,
-  choiceGraph: dnd5eEncounterLifecycleExactGraphPinDtoSchema.extend({
+  choiceGraph: z.extend(dnd5eEncounterLifecycleExactGraphPinDtoSchema, {
     useOutput: ruleGraphPortNameDtoSchema
   }),
   interruptedStage: z.literal('AFTER_FAILED_SAVE_BEFORE_OUTCOME'),
@@ -51,7 +51,7 @@ const rechargeDocumentDtoSchema = z.strictObject({
   kind: z.literal('RECHARGE'),
   id: serverUuidIdentityDtoSchema,
   gameSystemId: serverUuidIdentityDtoSchema,
-  rechargeGraph: dnd5eEncounterLifecycleExactGraphPinDtoSchema.extend({
+  rechargeGraph: z.extend(dnd5eEncounterLifecycleExactGraphPinDtoSchema, {
     rechargedOutput: ruleGraphPortNameDtoSchema
   }),
   boundary: z.literal('START_OF_TURN'),

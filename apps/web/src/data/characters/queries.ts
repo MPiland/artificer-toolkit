@@ -1,75 +1,130 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
-import type { CharacterSheetExtraCatalogInputDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
+import type { UseQueryOptions } from '@tanstack/react-query'
+import type { FunctionReturnType } from 'convex/server'
+import type { CharacterListResponseDto } from '@artificer-toolkit/schema/api/characterBuilder'
+import { usePaginatedQuery } from 'convex/react'
+import { useEffect } from 'react'
+import type { CharacterSheetExtraCatalogInputDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 
-export function getCharacterList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.list(),
-    queryFn: async () => await client.characters.list()
+export function useGetCharacterList(enabled = true) {
+  const active = usePaginatedQuery(convexApi.characters.list.list, enabled ? {} : 'skip', {
+    initialNumItems: 8
   })
-}
-
-export function useGetCharacterList() {
-  return useSuspenseQuery(getCharacterList())
-}
-
-export function getCharacter(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.detail(id),
-    queryFn: async () => await client.characters.get(id)
+  const drafts = usePaginatedQuery(convexApi.characters.drafts.list, enabled ? {} : 'skip', {
+    initialNumItems: 48
   })
+
+  useEffect(() => {
+    if (enabled && active.status === 'CanLoadMore') active.loadMore(8)
+    if (enabled && drafts.status === 'CanLoadMore') drafts.loadMore(48)
+  }, [active.loadMore, active.status, drafts.loadMore, drafts.status, enabled])
+
+  const isLoading = enabled && (active.status !== 'Exhausted' || drafts.status !== 'Exhausted')
+  const activeIds = new Set(active.results.map((character) => character.id))
+  const data: CharacterListResponseDto | undefined =
+    !enabled || isLoading
+      ? undefined
+      : {
+          items: [
+            ...active.results,
+            ...drafts.results
+              .filter(
+                (draft) => draft.draftState === 'DRAFT_ONLY' && !activeIds.has(draft.characterId)
+              )
+              .map((draft) => ({
+                id: draft.characterId,
+                publicId: draft.publicId,
+                label: draft.label,
+                status: 'DRAFT' as const,
+                systemId: draft.systemId,
+                streamVersion: 0,
+                draft
+              }))
+          ],
+          meta: {}
+        }
+
+  // ponytail: client filters require all summaries; add server filtering only for large lists.
+  return { data, isLoading }
 }
 
-export function getCharacterDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.draft(id),
-    queryFn: async () => await client.characters.getDraft(id)
-  })
+export function getCharacter(id: string) {
+  return convexQuery(convexApi.characters.builder.get, { id })
 }
 
-export function getCharacterSheet(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.sheet(id),
-    queryFn: async () => await client.characters.sheet(id)
-  })
+export function getCharacterDraft(id: string) {
+  return convexQuery(convexApi.characters.drafts.get, { id })
 }
 
-export function getCharacterSheetActions(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.actions(id),
-    queryFn: async () => await client.characters.actions(id)
-  })
+export function getCharacterSheet(id: string | undefined) {
+  return convexQuery(convexApi.characters.sheet.get, id ? { id } : 'skip')
 }
 
-export function getCharacterPreparationOptions(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.preparationOptions(id),
-    queryFn: async () => await client.characters.preparationOptions(id),
+export function getCharacterSheetActions(id: string | undefined) {
+  return {
+    ...convexQuery(convexApi.characters.sheet.get, id ? { id } : 'skip'),
+    select: (sheet: FunctionReturnType<typeof convexApi.characters.sheet.get>) =>
+      sheet?.actions.items ?? null
+  }
+}
+
+export function getCharacterSheetEquipmentOptions(
+  id: string | undefined,
+  campaignId?: string | null
+) {
+  return {
+    ...convexQuery(
+      convexApi.characters.equipmentOptions.list,
+      id ? { id, ...(campaignId ? { campaignId } : {}) } : 'skip'
+    ),
     retry: false
-  })
+  }
+}
+
+export function getCharacterPreparationOptions(
+  id: string | undefined,
+  campaignId?: string | null
+): UseQueryOptions<CharacterPreparationOptionsResponseDto | null> {
+  const queryKey = campaignId
+    ? convexQuery(
+        convexApi.campaigns.characterSheet.preparationOptions,
+        id ? { campaignId, characterId: id } : 'skip'
+      ).queryKey
+    : convexQuery(convexApi.characters.preparationOptions.get, id ? { id } : 'skip').queryKey
+  return {
+    queryKey,
+    staleTime: Infinity,
+    ...(id ? {} : { enabled: false }),
+    retry: false
+  }
 }
 
 export function getCharacterSheetExtraOptions(
-  id: string,
-  input: CharacterSheetExtraCatalogInputDto,
-  client: Api = api
+  id: string | undefined,
+  input: CharacterSheetExtraCatalogInputDto
 ) {
-  return queryOptions({
-    queryKey: queryKeys.characters.extraOptions(id, input),
-    queryFn: async () => await client.characters.extraOptions(id, input)
-  })
+  return convexQuery(convexApi.characters.extraOptions.list, id ? { id, ...input } : 'skip')
 }
 
 export function getCharacterSheetPanel(
   id: string,
   target: CharacterSheetPanelTargetDto,
-  client: Api = api
-) {
-  return queryOptions({
-    queryKey: queryKeys.characters.panel(id, target),
-    queryFn: async () => await client.characters.panel(id, target),
-    retry: false,
-    staleTime: Infinity
-  })
+  campaignId?: string | null
+): UseQueryOptions<CharacterSheetPanelDto | null> {
+  const queryKey = campaignId
+    ? convexQuery(convexApi.campaigns.characterSheet.panel, {
+        campaignId,
+        characterId: id,
+        target
+      }).queryKey
+    : convexQuery(convexApi.characters.panels.get, { id, target }).queryKey
+  return {
+    queryKey,
+    staleTime: Infinity,
+    retry: false
+  }
 }

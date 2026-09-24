@@ -1,68 +1,84 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import { characterMechanicSourceSchema } from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
+import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 import { abilityCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
-const identitySchema = z.string().trim().min(1).max(240)
-const spellCandidateIdentitySchema = z.string().trim().min(1).max(1_000)
+const stringSchema = z.string()
+const integerSchema = z.number().check(z.int())
+const finiteNumberSchema = z.number()
+const booleanSchema = z.boolean()
+
+const identitySchema = stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+const spellCandidateIdentitySchema = stringSchema
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(1_000))
 const actionAbilityDefinitionSchema = z.strictObject({
   id: postgresUuidSchema,
   code: identitySchema
 })
-const actionAbilityDefinitionsSchema = z
-  .array(actionAbilityDefinitionSchema)
-  .max(32)
-  .superRefine((definitions, context) => {
-    const ids = new Set<string>()
-    const codes = new Set<string>()
-    for (const [index, definition] of definitions.entries()) {
-      if (ids.has(definition.id)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'id'],
-          message: 'Action ability definition IDs must be unique.'
-        })
-      }
-      if (codes.has(definition.code)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, 'code'],
-          message: 'Action ability definition codes must be unique.'
-        })
-      }
-      ids.add(definition.id)
-      codes.add(definition.code)
-    }
-  })
-  .transform((definitions) =>
+const actionAbilityDefinitionsSchema = z.pipe(
+  z
+    .array(actionAbilityDefinitionSchema)
+    .check(z.maxLength(32))
+    .check(
+      z.superRefine((definitions, context) => {
+        const ids = new Set<string>()
+        const codes = new Set<string>()
+        for (const [index, definition] of definitions.entries()) {
+          if (ids.has(definition.id)) {
+            context.addIssue({
+              code: 'custom',
+              path: [index, 'id'],
+              message: 'Action ability definition IDs must be unique.'
+            })
+          }
+          if (codes.has(definition.code)) {
+            context.addIssue({
+              code: 'custom',
+              path: [index, 'code'],
+              message: 'Action ability definition codes must be unique.'
+            })
+          }
+          ids.add(definition.id)
+          codes.add(definition.code)
+        }
+      })
+    ),
+  z.transform((definitions) =>
     [...definitions].sort((left, right) => left.id.localeCompare(right.id))
   )
+)
 const canonicalConditionDefinitionIdSchema = z
   .string()
-  .regex(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-    'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+  .check(
+    z.regex(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+    )
   )
 
 const actionEquipmentStateSchema = z.strictObject({
   itemInstanceId: identitySchema,
-  equipmentId: identitySchema.nullable().optional(),
-  category: identitySchema.nullable().optional(),
-  properties: z.array(identitySchema).max(100).optional(),
-  equipped: z.boolean(),
-  attuned: z.boolean(),
-  requiresAttunement: z.boolean(),
-  requiresEquipped: z.boolean(),
-  requiresAttuned: z.boolean()
+  equipmentId: z.optional(z.nullable(identitySchema)),
+  category: z.optional(z.nullable(identitySchema)),
+  properties: z.optional(z.array(identitySchema).check(z.maxLength(100))),
+  equipped: booleanSchema,
+  attuned: booleanSchema,
+  requiresAttunement: booleanSchema,
+  requiresEquipped: booleanSchema,
+  requiresAttuned: booleanSchema
 })
 
 const actionResourceUseSchema = z.strictObject({
   chargeId: identitySchema,
-  cost: z.number().int().min(1).max(2_147_483_647),
-  poolId: identitySchema.nullable()
+  cost: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)),
+  poolId: z.nullable(characterResourcePoolIdentitySchema)
 })
 
 const actionMechanicsOwnerSchema = z.strictObject({
@@ -74,112 +90,116 @@ const actionDamageBonusSchema = z.discriminatedUnion('bonusKind', [
   z.strictObject({
     bonusKind: z.literal('ABILITY_BONUS'),
     ability: identitySchema,
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   }),
   z.strictObject({
     bonusKind: z.literal('SKILL_BONUS'),
     skillId: identitySchema,
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   }),
   z.strictObject({
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   })
 ])
 
 const actionDamageFactSchema = z.strictObject({
   kind: z.literal('DAMAGE'),
-  outcomeId: identitySchema.optional(),
+  outcomeId: z.optional(identitySchema),
   pathCode: identitySchema,
-  label: z.string().trim().min(1).max(500).nullable(),
+  label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
   damageTypeId: identitySchema,
   valueKind: z.enum(['DICE', 'FIXED', 'POOL']),
   scalingKind: z.enum(['NONE', 'PER_LEVEL', 'BREAKPOINTS']),
-  scalingSource: z
-    .enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
-    .nullable(),
-  classId: identitySchema.nullable(),
-  amountKind: z.enum(['FULL', 'HALF', 'DOUBLE']).nullable(),
-  amountMultiplier: z.number().finite().nullable(),
+  scalingSource: z.nullable(
+    z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
+  ),
+  classId: z.nullable(identitySchema),
+  amountKind: z.nullable(z.enum(['FULL', 'HALF', 'DOUBLE'])),
+  amountMultiplier: z.nullable(finiteNumberSchema),
   values: z
     .array(
       z.strictObject({
-        level: z.number().int().min(0).max(20).nullable(),
-        order: z.number().int(),
-        amount: z.number().finite().nullable(),
-        dice: z.string().trim().min(1).max(240).nullable(),
-        multiplier: z.number().finite().nullable(),
-        minimum: z.number().finite().nullable(),
-        maximum: z.number().finite().nullable()
+        level: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(20))),
+        order: integerSchema,
+        amount: z.nullable(finiteNumberSchema),
+        dice: z.nullable(
+          stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+        ),
+        multiplier: z.nullable(finiteNumberSchema),
+        minimum: z.nullable(finiteNumberSchema),
+        maximum: z.nullable(finiteNumberSchema)
       })
     )
-    .min(1)
-    .max(100),
-  bonuses: z.array(actionDamageBonusSchema).max(100)
+    .check(z.minLength(1))
+    .check(z.maxLength(100)),
+  bonuses: z.array(actionDamageBonusSchema).check(z.maxLength(100))
 })
 
 const actionHealBonusSchema = z.discriminatedUnion('bonusKind', [
   z.strictObject({
     bonusKind: z.literal('ABILITY_BONUS'),
     ability: identitySchema,
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   }),
   z.strictObject({
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   }),
   z.strictObject({
     bonusKind: z.literal('CLASS_LEVEL'),
     classId: identitySchema,
-    order: z.number().int(),
-    min: z.number().finite().nullable(),
-    max: z.number().finite().nullable(),
-    multiplier: z.number().finite().nullable()
+    order: integerSchema,
+    min: z.nullable(finiteNumberSchema),
+    max: z.nullable(finiteNumberSchema),
+    multiplier: z.nullable(finiteNumberSchema)
   })
 ])
 
 const actionHealFactSchema = z.strictObject({
   kind: z.literal('HEAL'),
-  outcomeId: identitySchema.optional(),
+  outcomeId: z.optional(identitySchema),
   pathCode: identitySchema,
-  label: z.string().trim().min(1).max(500).nullable(),
+  label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
   valueKind: z.enum(['DICE', 'FIXED', 'POOL']),
   scalingKind: z.enum(['NONE', 'PER_LEVEL', 'BREAKPOINTS']),
-  scalingSource: z
-    .enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
-    .nullable(),
-  classId: identitySchema.nullable(),
-  temporary: z.boolean(),
+  scalingSource: z.nullable(
+    z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
+  ),
+  classId: z.nullable(identitySchema),
+  temporary: booleanSchema,
   values: z
     .array(
       z.strictObject({
-        level: z.number().int().min(0).max(20).nullable(),
-        order: z.number().int(),
-        amount: z.number().finite().nullable(),
-        dice: z.string().trim().min(1).max(240).nullable(),
-        multiplier: z.number().finite().nullable(),
-        minimum: z.number().finite().nullable(),
-        maximum: z.number().finite().nullable()
+        level: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(20))),
+        order: integerSchema,
+        amount: z.nullable(finiteNumberSchema),
+        dice: z.nullable(
+          stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+        ),
+        multiplier: z.nullable(finiteNumberSchema),
+        minimum: z.nullable(finiteNumberSchema),
+        maximum: z.nullable(finiteNumberSchema)
       })
     )
-    .min(1)
-    .max(100),
-  bonuses: z.array(actionHealBonusSchema).max(100)
+    .check(z.minLength(1))
+    .check(z.maxLength(100)),
+  bonuses: z.array(actionHealBonusSchema).check(z.maxLength(100))
 })
 
 const actionSavingThrowBonusSchema = z.discriminatedUnion('bonusKind', [
@@ -188,28 +208,34 @@ const actionSavingThrowBonusSchema = z.discriminatedUnion('bonusKind', [
     abilityDefinitionId: postgresUuidSchema
   }),
   z.strictObject({ bonusKind: z.literal('PROFICIENCY_BONUS') }),
-  z.strictObject({ bonusKind: z.literal('STATIC_BONUS'), amount: z.number().int() })
+  z.strictObject({
+    bonusKind: z.literal('STATIC_BONUS'),
+    amount: integerSchema
+  })
 ])
 
 const actionInvocationFactSchema = z.strictObject({
   triggerCode: identitySchema,
-  activation: z
-    .strictObject({ code: identitySchema, amount: z.number().finite().nullable() })
-    .nullable(),
+  activation: z.nullable(
+    z.strictObject({
+      code: identitySchema,
+      amount: z.nullable(finiteNumberSchema)
+    })
+  ),
   range: z.strictObject({
     rangeKind: identitySchema,
-    amount: z.number().finite().nullable(),
-    unit: identitySchema.nullable()
+    amount: z.nullable(finiteNumberSchema),
+    unit: z.nullable(identitySchema)
   }),
-  savingThrow: z
-    .strictObject({
+  savingThrow: z.nullable(
+    z.strictObject({
       dcMethod: z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC']),
       abilityDefinitionId: postgresUuidSchema,
-      baseDc: z.number().int().nullable(),
-      bonuses: z.array(actionSavingThrowBonusSchema).max(100)
+      baseDc: z.nullable(integerSchema),
+      bonuses: z.array(actionSavingThrowBonusSchema).check(z.maxLength(100))
     })
-    .nullable(),
-  reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema.nullable()
+  ),
+  reactionMovementTrigger: z.nullable(reactionMovementTriggerBindingDtoSchema)
 })
 
 export const characterActionMechanicFactSchema = z.strictObject({
@@ -228,23 +254,25 @@ export const characterActionMechanicFactSchema = z.strictObject({
           kind: z.literal('EFFECT'),
           pathCode: identitySchema,
           effectKind: identitySchema,
-          label: z.string().trim().min(1).max(500).nullable()
+          label: z.nullable(
+            stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+          )
         })
       ])
     )
-    .max(1_000)
+    .check(z.maxLength(1_000))
 })
 
 const actionOutcomeScalingSchema = z.strictObject({
-  level: z.number().int().positive(),
-  expression: z.string().trim().min(1).max(500)
+  level: integerSchema.check(z.positive()),
+  expression: stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
 })
 
 const actionProficiencySchema = z.strictObject({
   kind: identitySchema,
   subjectId: identitySchema,
   scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
-  category: identitySchema.nullable()
+  category: z.nullable(identitySchema)
 })
 
 const actionModifierGroupSchema = z.strictObject({
@@ -253,47 +281,54 @@ const actionModifierGroupSchema = z.strictObject({
     .array(
       z.strictObject({
         sourceId: identitySchema,
-        value: z.number().finite(),
+        value: finiteNumberSchema,
         state: z.enum(['APPLIED', 'SUPPRESSED'])
       })
     )
-    .max(1_000)
+    .check(z.maxLength(1_000))
 })
 
 const actionItemAttackAdjustmentSchema = z.strictObject({
   itemInstanceId: identitySchema,
-  bonus: z.number().finite(),
-  override: z.number().finite().nullable()
+  bonus: finiteNumberSchema,
+  override: z.nullable(finiteNumberSchema)
 })
 
 export const characterResolvedActionMechanicSchema = z.strictObject({
   effectId: postgresUuidSchema,
   trigger: identitySchema,
-  activation: z
-    .strictObject({ kind: identitySchema, amount: z.number().int().positive() })
-    .nullable(),
-  rangeLabel: z.string().trim().min(1).max(500).nullable(),
-  attackBonus: z.number().int().nullable(),
-  attackRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).nullable(),
-  save: z.strictObject({ ability: abilityCodeSchema, dc: z.number().int().nullable() }).nullable(),
+  activation: z.nullable(
+    z.strictObject({ kind: identitySchema, amount: integerSchema.check(z.positive()) })
+  ),
+  rangeLabel: z.nullable(
+    stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+  ),
+  attackBonus: z.nullable(integerSchema),
+  attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+  save: z.nullable(
+    z.strictObject({
+      ability: abilityCodeSchema,
+      dc: z.nullable(integerSchema)
+    })
+  ),
   outcomes: z
     .array(
       z.discriminatedUnion('kind', [
         z.strictObject({
           kind: z.literal('DAMAGE'),
-          outcomeId: identitySchema.optional(),
+          outcomeId: z.optional(identitySchema),
           pathCode: identitySchema,
-          expression: z.string().trim().min(1).max(500),
+          expression: stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
           damageTypeId: identitySchema,
-          scaling: z.array(actionOutcomeScalingSchema).max(100)
+          scaling: z.array(actionOutcomeScalingSchema).check(z.maxLength(100))
         }),
         z.strictObject({
           kind: z.literal('HEAL'),
-          outcomeId: identitySchema.optional(),
+          outcomeId: z.optional(identitySchema),
           pathCode: identitySchema,
-          expression: z.string().trim().min(1).max(500),
-          temporary: z.boolean(),
-          scaling: z.array(actionOutcomeScalingSchema).max(100)
+          expression: stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+          temporary: booleanSchema,
+          scaling: z.array(actionOutcomeScalingSchema).check(z.maxLength(100))
         }),
         z.strictObject({
           kind: z.literal('CONDITION'),
@@ -304,58 +339,62 @@ export const characterResolvedActionMechanicSchema = z.strictObject({
           kind: z.literal('EFFECT'),
           pathCode: identitySchema,
           effectKind: identitySchema,
-          label: z.string().trim().min(1).max(500).nullable()
+          label: z.nullable(
+            stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+          )
         })
       ])
     )
-    .max(1_000)
+    .check(z.maxLength(1_000))
 })
 
 export const characterActionCandidatesSchema = z
   .array(
     z.strictObject({
-      sequence: z.number().int().min(0).max(9_999),
+      sequence: integerSchema.check(z.gte(0)).check(z.lte(9_999)),
       actionId: identitySchema,
       /** Optional display label retained for snapshot compatibility. */
-      label: z.string().trim().min(1).max(500).optional(),
+      label: z.optional(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
       effectId: postgresUuidSchema,
       sourceId: identitySchema,
       source: characterMechanicSourceSchema,
       mechanicsOwner: actionMechanicsOwnerSchema,
       activationSourceKind: z.enum(['ACTIVE_SOURCE', 'ACTIVE_EQUIPMENT']),
-      equipment: actionEquipmentStateSchema.nullable(),
-      resourceUse: actionResourceUseSchema.nullable(),
+      equipment: z.nullable(actionEquipmentStateSchema),
+      resourceUse: z.nullable(actionResourceUseSchema),
       mechanicFacts: characterActionMechanicFactSchema
     })
   )
-  .max(1_000)
-  .superRefine((candidates, context) => {
-    const actionIds = new Set<string>()
-    for (const [index, candidate] of candidates.entries()) {
-      if (candidate.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Action candidates must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(1_000))
+  .check(
+    z.superRefine((candidates, context) => {
+      const actionIds = new Set<string>()
+      for (const [index, candidate] of candidates.entries()) {
+        if (candidate.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Action candidates must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (actionIds.has(candidate.actionId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Action IDs must be unique',
+            path: [index, 'actionId']
+          })
+        }
+        if (candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' && candidate.equipment === null) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Equipment action candidates must include exact equipment state',
+            path: [index, 'equipment']
+          })
+        }
+        actionIds.add(candidate.actionId)
       }
-      if (actionIds.has(candidate.actionId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Action IDs must be unique',
-          path: [index, 'actionId']
-        })
-      }
-      if (candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' && candidate.equipment === null) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Equipment action candidates must include exact equipment state',
-          path: [index, 'equipment']
-        })
-      }
-      actionIds.add(candidate.actionId)
-    }
-  })
+    })
+  )
 
 export const characterActionReasonCodeSchema = z.enum([
   'SOURCE_NOT_EQUIPPED',
@@ -368,58 +407,71 @@ export const characterActionReasonCodeSchema = z.enum([
 export const characterActionDecisionsSchema = z
   .array(
     z.strictObject({
-      sequence: z.number().int().min(0).max(9_999),
+      sequence: integerSchema.check(z.gte(0)).check(z.lte(9_999)),
       actionId: identitySchema,
       effectId: postgresUuidSchema,
       sourceId: identitySchema,
       source: characterMechanicSourceSchema,
       mechanicsOwner: actionMechanicsOwnerSchema,
       status: z.enum(['AVAILABLE', 'UNAVAILABLE']),
-      reasonCode: characterActionReasonCodeSchema.nullable(),
-      resourcePoolId: identitySchema.nullable(),
-      resourceCost: z.number().int().min(1).max(2_147_483_647).nullable(),
+      reasonCode: z.nullable(characterActionReasonCodeSchema),
+      resourcePoolId: z.nullable(characterResourcePoolIdentitySchema),
+      resourceCost: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647))),
       mechanic: characterResolvedActionMechanicSchema
     })
   )
-  .max(1_000)
-  .superRefine((decisions, context) => {
-    const actionIds = new Set<string>()
-    for (const [index, decision] of decisions.entries()) {
-      if (decision.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Action decisions must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(1_000))
+  .check(
+    z.superRefine((decisions, context) => {
+      const actionIds = new Set<string>()
+      for (const [index, decision] of decisions.entries()) {
+        if (decision.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Action decisions must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (actionIds.has(decision.actionId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Action IDs must be unique',
+            path: [index, 'actionId']
+          })
+        }
+        const resourceBound = decision.resourcePoolId !== null || decision.resourceCost !== null
+        const resourceFieldsMatch =
+          (decision.resourcePoolId === null && decision.resourceCost === null) ||
+          (decision.resourcePoolId !== null && decision.resourceCost !== null)
+        const statusMatches =
+          decision.status === 'AVAILABLE'
+            ? decision.reasonCode === null
+            : decision.reasonCode !== null &&
+              (decision.reasonCode === 'INSUFFICIENT_RESOURCE' ? resourceBound : !resourceBound)
+        if (!resourceFieldsMatch || !statusMatches) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Action decision status, reason, and resource binding must agree',
+            path: [index]
+          })
+        }
+        actionIds.add(decision.actionId)
       }
-      if (actionIds.has(decision.actionId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Action IDs must be unique',
-          path: [index, 'actionId']
-        })
-      }
-      const resourceBound = decision.resourcePoolId !== null || decision.resourceCost !== null
-      const resourceFieldsMatch =
-        (decision.resourcePoolId === null && decision.resourceCost === null) ||
-        (decision.resourcePoolId !== null && decision.resourceCost !== null)
-      const statusMatches =
-        decision.status === 'AVAILABLE'
-          ? decision.reasonCode === null
-          : decision.reasonCode !== null &&
-            (decision.reasonCode === 'INSUFFICIENT_RESOURCE' ? resourceBound : !resourceBound)
-      if (!resourceFieldsMatch || !statusMatches) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Action decision status, reason, and resource binding must agree',
-          path: [index]
-        })
-      }
-      actionIds.add(decision.actionId)
-    }
-  })
+    })
+  )
 
 export type CharacterActionCandidate = z.infer<typeof characterActionCandidatesSchema>[number]
+
+/** Server-only exact compiled source retained until System capability discovery completes. */
+export interface CharacterActionRuleEntryPoint {
+  actionId: string
+  effectId: string
+  sourceId: string
+  source: CharacterActionCandidate['source']
+  mechanicsOwner: CharacterActionCandidate['mechanicsOwner']
+  activationSourceKind: CharacterActionCandidate['activationSourceKind']
+  compiledEffect: CompiledEffectGroup
+}
 export type CharacterActionDecision = z.infer<typeof characterActionDecisionsSchema>[number]
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 
@@ -449,104 +501,113 @@ export const characterSpellActionFactsSchema = z
             mechanicFacts: characterActionMechanicFactSchema
           })
         )
-        .max(100)
+        .check(z.maxLength(100))
     })
   )
-  .max(1_000)
-  .superRefine((spells, context) => {
-    const spellIds = new Set<string>()
-    for (const [index, spell] of spells.entries()) {
-      if (spellIds.has(spell.spellId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell action facts must use unique spell IDs',
-          path: [index, 'spellId']
-        })
-      }
-      const effectIds = new Set<string>()
-      for (const [effectIndex, effect] of spell.effects.entries()) {
-        if (effectIds.has(effect.effectId)) {
+  .check(z.maxLength(1_000))
+  .check(
+    z.superRefine((spells, context) => {
+      const spellIds = new Set<string>()
+      for (const [index, spell] of spells.entries()) {
+        if (spellIds.has(spell.spellId)) {
           context.addIssue({
             code: 'custom',
-            message: 'Spell action effects must use unique effect IDs',
-            path: [index, 'effects', effectIndex, 'effectId']
+            message: 'Spell action facts must use unique spell IDs',
+            path: [index, 'spellId']
           })
         }
-        effectIds.add(effect.effectId)
+        const effectIds = new Set<string>()
+        for (const [effectIndex, effect] of spell.effects.entries()) {
+          if (effectIds.has(effect.effectId)) {
+            context.addIssue({
+              code: 'custom',
+              message: 'Spell action effects must use unique effect IDs',
+              path: [index, 'effects', effectIndex, 'effectId']
+            })
+          }
+          effectIds.add(effect.effectId)
+        }
+        spellIds.add(spell.spellId)
       }
-      spellIds.add(spell.spellId)
-    }
-  })
+    })
+  )
 
-export const characterSpellCastCandidateIdSchema = z.string().trim().min(1).max(1_000)
+export const characterSpellCastCandidateIdSchema = stringSchema
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(1_000))
 
 export const characterSpellCastCandidateSchema = z.strictObject({
-  sequence: z.number().int().min(0).max(4_999),
+  sequence: integerSchema.check(z.gte(0)).check(z.lte(4_999)),
   candidateId: characterSpellCastCandidateIdSchema,
   /** Optional display label retained for snapshot compatibility. */
-  label: z.string().trim().min(1).max(500).optional(),
+  label: z.optional(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
   spellId: identitySchema,
   source: characterActionSpellSourceSchema,
-  spellLevel: z.number().int().min(0).max(9),
+  spellLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
   castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
-  castLevel: z.number().int().min(0).max(9),
-  baseEntry: z.boolean(),
-  resourceOwnerKey: identitySchema.nullable()
+  castLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
+  baseEntry: booleanSchema,
+  resourceOwnerKey: z.nullable(characterResourcePoolIdentitySchema)
 })
 
 export const characterSpellCastCandidatesSchema = z
   .array(characterSpellCastCandidateSchema)
-  .max(5_000)
-  .superRefine((candidates, context) => {
-    const candidateIds = new Set<string>()
-    for (const [index, candidate] of candidates.entries()) {
-      if (candidate.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell action candidates must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(5_000))
+  .check(
+    z.superRefine((candidates, context) => {
+      const candidateIds = new Set<string>()
+      for (const [index, candidate] of candidates.entries()) {
+        if (candidate.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell action candidates must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (candidateIds.has(candidate.candidateId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell action candidate IDs must be unique',
+            path: [index, 'candidateId']
+          })
+        }
+        if (candidate.spellId !== candidate.source.spellId) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell action candidate source must match its spell ID',
+            path: [index, 'source', 'spellId']
+          })
+        }
+        candidateIds.add(candidate.candidateId)
       }
-      if (candidateIds.has(candidate.candidateId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell action candidate IDs must be unique',
-          path: [index, 'candidateId']
-        })
-      }
-      if (candidate.spellId !== candidate.source.spellId) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell action candidate source must match its spell ID',
-          path: [index, 'source', 'spellId']
-        })
-      }
-      candidateIds.add(candidate.candidateId)
-    }
-  })
+    })
+  )
 
 export const characterSpellCastSlotsSchema = z
   .array(
     z.strictObject({
       slotKey: identitySchema,
       label: identitySchema,
-      level: z.number().int().min(1).max(9),
-      max: z.number().int().min(0).max(99),
-      remaining: z.number().int().min(0).max(99)
+      level: integerSchema.check(z.gte(1)).check(z.lte(9)),
+      max: integerSchema.check(z.gte(0)).check(z.lte(99)),
+      remaining: integerSchema.check(z.gte(0)).check(z.lte(99))
     })
   )
-  .max(99)
-  .superRefine((slots, context) => {
-    for (let index = 1; index < slots.length; index += 1) {
-      if (slots[index - 1]!.level > slots[index]!.level) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell cast slots must be ordered by level',
-          path: [index, 'level']
-        })
+  .check(z.maxLength(99))
+  .check(
+    z.superRefine((slots, context) => {
+      for (let index = 1; index < slots.length; index += 1) {
+        if (slots[index - 1]!.level > slots[index]!.level) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell cast slots must be ordered by level',
+            path: [index, 'level']
+          })
+        }
       }
-    }
-  })
+    })
+  )
 
 export const characterSpellCastReasonSchema = z.enum([
   'CANTRIP',
@@ -567,97 +628,101 @@ export const characterSpellCastDecisionsSchema = z
       candidateId: characterSpellCastCandidateIdSchema,
       status: z.enum(['AVAILABLE', 'UNAVAILABLE']),
       reasonCode: characterSpellCastReasonSchema,
-      slotKey: identitySchema.nullable()
+      slotKey: z.nullable(identitySchema)
     })
   )
-  .max(5_000)
+  .check(z.maxLength(5_000))
 
 const characterSpellSourceMechanicsSchema = z
   .array(
     z.strictObject({
       source: characterActionSpellSourceSchema,
-      attackBonus: z.number().int().nullable(),
-      saveDc: z.number().int().nullable(),
-      damageBonus: z.number().finite()
+      attackBonus: z.nullable(integerSchema),
+      saveDc: z.nullable(integerSchema),
+      damageBonus: finiteNumberSchema
     })
   )
-  .max(1_000)
+  .check(z.maxLength(1_000))
 
 export const characterSpellCastMechanicsSchema = z
   .array(
     z.strictObject({
-      sequence: z.number().int().min(0).max(4_999),
+      sequence: integerSchema.check(z.gte(0)).check(z.lte(4_999)),
       candidateId: spellCandidateIdentitySchema,
       spellId: identitySchema,
       source: characterActionSpellSourceSchema,
-      castLevel: z.number().int().min(0).max(9),
-      mechanics: z.array(characterResolvedActionMechanicSchema).max(100)
+      castLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
+      mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
     })
   )
-  .max(5_000)
-  .superRefine((mechanics, context) => {
-    const candidateIds = new Set<string>()
-    for (const [index, candidate] of mechanics.entries()) {
-      if (candidate.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell cast mechanics must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(5_000))
+  .check(
+    z.superRefine((mechanics, context) => {
+      const candidateIds = new Set<string>()
+      for (const [index, candidate] of mechanics.entries()) {
+        if (candidate.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell cast mechanics must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (candidateIds.has(candidate.candidateId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell cast mechanic candidate IDs must be unique',
+            path: [index, 'candidateId']
+          })
+        }
+        if (candidate.spellId !== candidate.source.spellId) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell cast mechanic source must match its spell ID',
+            path: [index, 'source', 'spellId']
+          })
+        }
+        candidateIds.add(candidate.candidateId)
       }
-      if (candidateIds.has(candidate.candidateId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell cast mechanic candidate IDs must be unique',
-          path: [index, 'candidateId']
-        })
-      }
-      if (candidate.spellId !== candidate.source.spellId) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell cast mechanic source must match its spell ID',
-          path: [index, 'source', 'spellId']
-        })
-      }
-      candidateIds.add(candidate.candidateId)
-    }
-  })
+    })
+  )
 
 export const characterSpellReferenceMechanicsSchema = z
   .array(
     z.strictObject({
-      sequence: z.number().int().min(0).max(999),
+      sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
       spellId: identitySchema,
-      mechanics: z.array(characterResolvedActionMechanicSchema).max(100)
+      mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
     })
   )
-  .max(1_000)
-  .superRefine((mechanics, context) => {
-    const spellIds = new Set<string>()
-    for (const [index, spell] of mechanics.entries()) {
-      if (spell.sequence !== index) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell reference mechanics must use contiguous source order',
-          path: [index, 'sequence']
-        })
+  .check(z.maxLength(1_000))
+  .check(
+    z.superRefine((mechanics, context) => {
+      const spellIds = new Set<string>()
+      for (const [index, spell] of mechanics.entries()) {
+        if (spell.sequence !== index) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell reference mechanics must use contiguous source order',
+            path: [index, 'sequence']
+          })
+        }
+        if (spellIds.has(spell.spellId)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Spell reference mechanics must use unique spell IDs',
+            path: [index, 'spellId']
+          })
+        }
+        spellIds.add(spell.spellId)
       }
-      if (spellIds.has(spell.spellId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Spell reference mechanics must use unique spell IDs',
-          path: [index, 'spellId']
-        })
-      }
-      spellIds.add(spell.spellId)
-    }
-  })
+    })
+  )
 
 export const characterActionModelOutputSchema = z.strictObject({
   actionDecisions: characterActionDecisionsSchema,
   spellCastMechanics: characterSpellCastMechanicsSchema,
   spellReferenceMechanics: characterSpellReferenceMechanicsSchema,
-  spellCastDecisions: characterSpellCastDecisionsSchema.default([])
+  spellCastDecisions: z._default(characterSpellCastDecisionsSchema, [])
 })
 
 export const CHARACTER_ACTION_MODEL_KEY = 'character-action-resolve'
@@ -665,29 +730,37 @@ export const CHARACTER_ACTION_MODEL_KEY = 'character-action-resolve'
 export const characterActionModelInputSchema = z.strictObject({
   candidates: characterActionCandidatesSchema,
   /** Exact ability definitions carried from the Character's frozen System snapshot. */
-  abilityDefinitions: actionAbilityDefinitionsSchema.default([]),
-  spellCandidates: characterSpellCastCandidatesSchema.default([]),
-  spellSlots: characterSpellCastSlotsSchema.default([]),
-  spellEffects: characterSpellActionFactsSchema.default([]),
-  spellMechanics: characterSpellSourceMechanicsSchema.default([]),
-  activeSourceIds: z.array(identitySchema).max(10_000),
-  activeEquipmentInstanceIds: z.array(identitySchema).max(1_000),
+  abilityDefinitions: z._default(actionAbilityDefinitionsSchema, []),
+  spellCandidates: z._default(characterSpellCastCandidatesSchema, []),
+  spellSlots: z._default(characterSpellCastSlotsSchema, []),
+  spellEffects: z._default(characterSpellActionFactsSchema, []),
+  spellMechanics: z._default(characterSpellSourceMechanicsSchema, []),
+  activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
+  activeEquipmentInstanceIds: z.array(identitySchema).check(z.maxLength(1_000)),
   resources: characterResourcesSchema,
-  proficiencies: z.array(actionProficiencySchema).max(1_000).default([]),
-  modifierGroups: z.array(actionModifierGroupSchema).max(1_000).default([]),
-  itemAttackAdjustments: z.array(actionItemAttackAdjustmentSchema).max(500).default([]),
-  totalLevel: z.number().int().min(0).max(20),
+  proficiencies: z._default(z.array(actionProficiencySchema).check(z.maxLength(1_000)), []),
+  modifierGroups: z._default(z.array(actionModifierGroupSchema).check(z.maxLength(1_000)), []),
+  itemAttackAdjustments: z._default(
+    z.array(actionItemAttackAdjustmentSchema).check(z.maxLength(500)),
+    []
+  ),
+  totalLevel: integerSchema.check(z.gte(0)).check(z.lte(20)),
   classLevels: z
-    .array(z.strictObject({ classId: identitySchema, level: z.number().int().min(0).max(20) }))
-    .max(20),
-  proficiencyBonus: z.number().int(),
+    .array(
+      z.strictObject({
+        classId: identitySchema,
+        level: integerSchema.check(z.gte(0)).check(z.lte(20))
+      })
+    )
+    .check(z.maxLength(20)),
+  proficiencyBonus: integerSchema,
   abilities: z
-    .array(z.strictObject({ abilityId: identitySchema, modifier: z.number().int() }))
-    .max(32),
-  skills: z.array(z.strictObject({ skillId: identitySchema, total: z.number().int() })).max(500),
-  spellcasting: z
-    .strictObject({ saveDc: z.number().int(), attackBonus: z.number().int() })
-    .nullable(),
+    .array(z.strictObject({ abilityId: identitySchema, modifier: integerSchema }))
+    .check(z.maxLength(32)),
+  skills: z
+    .array(z.strictObject({ skillId: identitySchema, total: integerSchema }))
+    .check(z.maxLength(500)),
+  spellcasting: z.nullable(z.strictObject({ saveDc: integerSchema, attackBonus: integerSchema })),
   attackRollModes: z.strictObject({
     MELEE: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
     RANGED: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
@@ -695,3 +768,6 @@ export const characterActionModelInputSchema = z.strictObject({
     UNARMED: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
   })
 })
+
+export type CharacterActionModelInput = z.infer<typeof characterActionModelInputSchema>
+export type CharacterActionModelOutput = z.infer<typeof characterActionModelOutputSchema>

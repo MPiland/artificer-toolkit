@@ -1,10 +1,12 @@
 # ADR 0018: Embedded rule packs and authoritative Encounter resolution
 
-- **Status:** historical — superseded by ADR 0023
+- **Status:** historical — superseded by [ADRs 0023](0023-shared-rules-kernel-and-system-capabilities.md) and [0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-13
 - **Scope:** rule-pack authoring, activation, simulation, and Encounter resolution
 - **Update when:** the rule-document format, activation gate, runtime deployment, Encounter outcome contract, or engine extraction boundary changes
-- **Verification:** `packages/schema/src/api/rules.ts`; `packages/functions/src/services/rules`; `packages/functions/src/services/encounter/encounterActionResolution.ts`; `packages/db/src/domains/rules`; Rule Studio and focused rule/Encounter tests
+- **Verification:** repository history for the retired rule-pack and Rule Studio implementation; current mechanics guidance in [ADR 0023](0023-shared-rules-kernel-and-system-capabilities.md)
+
+> Everything below records the retired GoRules, Rule Studio, SQL, and service-package implementation. It is not current mechanics or persistence guidance.
 
 ## Context
 

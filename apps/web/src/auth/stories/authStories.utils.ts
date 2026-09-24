@@ -35,7 +35,7 @@ export function createMockAuthClient(options: MockAuthClientOptions = {}): AuthC
       await wait(options.delayMs)
       return result
     }),
-    updatePassword: fn(async () => {
+    resetPassword: fn(async () => {
       await wait(options.delayMs)
       return result
     }),

@@ -42,7 +42,7 @@ import {
   VehicleAuthoringInputDto,
   VehicleAuthoredDto
 } from '@artificer-toolkit/schema/subjects/vehicle'
-import { api } from '#app/lib/api'
+import { createAuthoredOperations } from '#app/data/authoredOperations'
 import { queryKeys as globalQueryKeys } from '#app/lib/queryKeys'
 import {
   createEmptyBackground,
@@ -191,7 +191,11 @@ const backgroundFormFactory = {
     subjectKindLabel: 'Background'
   }),
   createEmptyValues: createEmptyBackground,
-  createSession: (input) => createAuthoredSession(input, backgroundSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...backgroundSessionConfig,
+      operations: createAuthoredOperations('BACKGROUND', input.convexClient)
+    }),
   normalizeForSubmit: normalizeBackgroundForSubmit,
   resolveCreateSystemId: resolveCreateBackgroundSystemId,
   toFormValues: normalizeBackgroundForSubmit
@@ -207,7 +211,11 @@ const classFormFactory = {
     subjectKindLabel: 'Class'
   }),
   createEmptyValues: createEmptyClass,
-  createSession: (input) => createAuthoredSession(input, classSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...classSessionConfig,
+      operations: createAuthoredOperations('CLASS', input.convexClient)
+    }),
   normalizeForSubmit: normalizeClassForSubmit,
   resolveCreateSystemId: resolveCreateClassSystemId,
   toFormValues: toClassFormValues
@@ -219,7 +227,11 @@ const creatureFormFactory = {
     subjectKindLabel: 'Creature'
   }),
   createEmptyValues: createEmptyCreature,
-  createSession: (input) => createAuthoredSession(input, creatureSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...creatureSessionConfig,
+      operations: createAuthoredOperations('CREATURE', input.convexClient)
+    }),
   normalizeForSubmit: normalizeCreatureForSubmit,
   resolveCreateSystemId: resolveCreateCreatureSystemId,
   toFormValues: toCreatureFormValues
@@ -231,7 +243,11 @@ const equipmentFormFactory = {
     subjectKindLabel: 'Equipment'
   }),
   createEmptyValues: createEmptyEquipment,
-  createSession: (input) => createAuthoredSession(input, equipmentSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...equipmentSessionConfig,
+      operations: createAuthoredOperations('EQUIPMENT', input.convexClient)
+    }),
   normalizeForSubmit: normalizeEquipmentForSubmit,
   resolveCreateSystemId: resolveCreateEquipmentSystemId,
   toFormValues: toEquipmentFormValues
@@ -247,7 +263,11 @@ const featFormFactory = {
     subjectKindLabel: 'Feat'
   }),
   createEmptyValues: createEmptyFeat,
-  createSession: (input) => createAuthoredSession(input, featSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...featSessionConfig,
+      operations: createAuthoredOperations('FEAT', input.convexClient)
+    }),
   normalizeForSubmit: normalizeFeatForSubmit,
   resolveCreateSystemId: resolveCreateFeatSystemId,
   toFormValues: normalizeFeatForSubmit
@@ -259,7 +279,11 @@ const raceFormFactory = {
     subjectKindLabel: 'Race'
   }),
   createEmptyValues: createEmptyRace,
-  createSession: (input) => createAuthoredSession(input, raceSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...raceSessionConfig,
+      operations: createAuthoredOperations('RACE', input.convexClient)
+    }),
   normalizeForSubmit: normalizeRaceForSubmit,
   resolveCreateSystemId: resolveCreateRaceSystemId,
   toFormValues: toRaceFormValues
@@ -271,7 +295,11 @@ const spellFormFactory = {
     subjectKindLabel: 'Spell'
   }),
   createEmptyValues: createEmptySpell,
-  createSession: (input) => createAuthoredSession(input, spellSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...spellSessionConfig,
+      operations: createAuthoredOperations('SPELL', input.convexClient)
+    }),
   normalizeForSubmit: normalizeSpellForSubmit,
   resolveCreateSystemId: (systems) => systems[0]?.id ?? null,
   toFormValues: (spell: SpellAuthoringInputDto | SpellAuthoredDto) => spell
@@ -287,7 +315,11 @@ const vehicleFormFactory = {
     subjectKindLabel: 'Vehicle'
   }),
   createEmptyValues: createEmptyVehicle,
-  createSession: (input) => createAuthoredSession(input, vehicleSessionConfig),
+  createSession: (input) =>
+    createAuthoredSession(input, {
+      ...vehicleSessionConfig,
+      operations: createAuthoredOperations('VEHICLE', input.convexClient)
+    }),
   normalizeForSubmit: normalizeVehicleForSubmit,
   resolveCreateSystemId: resolveCreateVehicleSystemId,
   toFormValues: toVehicleFormValues
@@ -325,13 +357,6 @@ const backgroundSessionConfig = {
   domain: 'background',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeBackgroundForSubmit(values),
-  operations: {
-    activate: api.content.backgrounds.activate,
-    deleteActive: api.content.backgrounds.deleteActive,
-    discardDraft: api.content.backgrounds.discardDraft,
-    duplicate: api.content.backgrounds.duplicate,
-    saveDraft: api.content.backgrounds.saveDraft
-  },
   queryKeys: globalQueryKeys.content.backgrounds,
   resolveCreateSystemId: (systems) => resolveCreateBackgroundSystemId(systems),
   schema: backgroundAuthoringInputDtoSchema,
@@ -339,12 +364,15 @@ const backgroundSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => normalizeBackgroundForSubmit(record)
-} satisfies AuthoredSessionConfig<
-  BackgroundAuthoringInputDto,
-  BackgroundAuthoringInputDto,
-  BackgroundAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<BackgroundAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    BackgroundAuthoringInputDto,
+    BackgroundAuthoringInputDto,
+    BackgroundAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<BackgroundAuthoredDto>
+  >,
+  'operations'
 >
 
 const classSessionConfig = {
@@ -353,13 +381,6 @@ const classSessionConfig = {
   domain: 'class',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeClassForSubmit(values),
-  operations: {
-    activate: api.content.classes.activate,
-    deleteActive: api.content.classes.deleteActive,
-    discardDraft: api.content.classes.discardDraft,
-    duplicate: api.content.classes.duplicate,
-    saveDraft: api.content.classes.saveDraft
-  },
   queryKeys: globalQueryKeys.content.classes,
   resolveCreateSystemId: (systems) => resolveCreateClassSystemId(systems),
   schema: classAuthoringInputDtoSchema,
@@ -367,12 +388,15 @@ const classSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => toClassFormValues(record)
-} satisfies AuthoredSessionConfig<
-  ClassFormValues,
-  ClassAuthoringInputDto,
-  ClassAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<ClassAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    ClassFormValues,
+    ClassAuthoringInputDto,
+    ClassAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<ClassAuthoredDto>
+  >,
+  'operations'
 >
 
 const creatureSessionConfig = {
@@ -381,13 +405,6 @@ const creatureSessionConfig = {
   domain: 'creature',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeCreatureForSubmit(values),
-  operations: {
-    activate: api.content.creatures.activate,
-    deleteActive: api.content.creatures.deleteActive,
-    discardDraft: api.content.creatures.discardDraft,
-    duplicate: api.content.creatures.duplicate,
-    saveDraft: api.content.creatures.saveDraft
-  },
   queryKeys: globalQueryKeys.content.creatures,
   resolveCreateSystemId: (systems) => resolveCreateCreatureSystemId(systems),
   schema: creatureAuthoringInputDtoSchema,
@@ -395,12 +412,15 @@ const creatureSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => toCreatureFormValues(record)
-} satisfies AuthoredSessionConfig<
-  CreatureFormValues,
-  CreatureAuthoringInputDto,
-  CreatureAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<CreatureAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    CreatureFormValues,
+    CreatureAuthoringInputDto,
+    CreatureAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<CreatureAuthoredDto>
+  >,
+  'operations'
 >
 
 const equipmentSessionConfig = {
@@ -409,15 +429,10 @@ const equipmentSessionConfig = {
   domain: 'equipment',
   getCreateContext: () => ({}),
   getCreateSystems: (data) => data.systems,
-  getEditContext: (data) => ({ parentEquipment: data.parentResponse?.item ?? undefined }),
+  getEditContext: (data) => ({
+    parentEquipment: data.parentResponse?.item ?? undefined
+  }),
   normalizeForSubmit: (values) => normalizeEquipmentForSubmit(values),
-  operations: {
-    activate: api.content.equipment.activate,
-    deleteActive: api.content.equipment.deleteActive,
-    discardDraft: api.content.equipment.discardDraft,
-    duplicate: api.content.equipment.duplicate,
-    saveDraft: api.content.equipment.saveDraft
-  },
   queryKeys: globalQueryKeys.content.equipment,
   resolveCreateSystemId: (systems) => resolveCreateEquipmentSystemId(systems),
   renderPreview: (previewContext, context) => {
@@ -441,13 +456,16 @@ const equipmentSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => toEquipmentFormValues(record)
-} satisfies AuthoredSessionConfig<
-  EquipmentFormValues,
-  EquipmentAuthoringInputDto,
-  EquipmentAuthoredDto,
-  AuthoredFormSystemCreateData,
-  EquipmentFormEditData,
-  EquipmentFormContext
+} satisfies Omit<
+  AuthoredSessionConfig<
+    EquipmentFormValues,
+    EquipmentAuthoringInputDto,
+    EquipmentAuthoredDto,
+    AuthoredFormSystemCreateData,
+    EquipmentFormEditData,
+    EquipmentFormContext
+  >,
+  'operations'
 >
 
 const featSessionConfig = {
@@ -456,13 +474,6 @@ const featSessionConfig = {
   domain: 'feat',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeFeatForSubmit(values),
-  operations: {
-    activate: api.content.feats.activate,
-    deleteActive: api.content.feats.deleteActive,
-    discardDraft: api.content.feats.discardDraft,
-    duplicate: api.content.feats.duplicate,
-    saveDraft: api.content.feats.saveDraft
-  },
   queryKeys: globalQueryKeys.content.feats,
   resolveCreateSystemId: (systems) => resolveCreateFeatSystemId(systems),
   schema: featAuthoringInputDtoSchema,
@@ -470,12 +481,15 @@ const featSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => normalizeFeatForSubmit(record)
-} satisfies AuthoredSessionConfig<
-  FeatAuthoringInputDto,
-  FeatAuthoringInputDto,
-  FeatAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<FeatAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    FeatAuthoringInputDto,
+    FeatAuthoringInputDto,
+    FeatAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<FeatAuthoredDto>
+  >,
+  'operations'
 >
 
 const raceSessionConfig = {
@@ -484,13 +498,6 @@ const raceSessionConfig = {
   domain: 'race',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeRaceForSubmit(values),
-  operations: {
-    activate: api.content.races.activate,
-    deleteActive: api.content.races.deleteActive,
-    discardDraft: api.content.races.discardDraft,
-    duplicate: api.content.races.duplicate,
-    saveDraft: api.content.races.saveDraft
-  },
   queryKeys: globalQueryKeys.content.races,
   resolveCreateSystemId: (systems) => resolveCreateRaceSystemId(systems),
   schema: raceAuthoringInputDtoSchema,
@@ -498,12 +505,15 @@ const raceSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => toRaceFormValues(record)
-} satisfies AuthoredSessionConfig<
-  RaceFormValues,
-  RaceAuthoringInputDto,
-  RaceAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<RaceAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    RaceFormValues,
+    RaceAuthoringInputDto,
+    RaceAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<RaceAuthoredDto>
+  >,
+  'operations'
 >
 
 const spellSessionConfig = {
@@ -515,13 +525,6 @@ const spellSessionConfig = {
   getCreateSystems: (data) => data.systems,
   getEditContext: getSpellFormContext,
   normalizeForSubmit: (values, context) => normalizeSpellForSubmit(values, context.magicSchoolId),
-  operations: {
-    activate: api.content.spells.activate,
-    deleteActive: api.content.spells.deleteActive,
-    discardDraft: api.content.spells.discardDraft,
-    duplicate: api.content.spells.duplicate,
-    saveDraft: api.content.spells.saveDraft
-  },
   queryKeys: globalQueryKeys.content.spells,
   resolveCreateSystemId: (systems) => systems[0]?.id ?? null,
   schema: spellAuthoringInputDtoSchema,
@@ -532,13 +535,16 @@ const spellSessionConfig = {
     ...record,
     magicSchoolId: record.magicSchoolId || context.magicSchoolId || ''
   })
-} satisfies AuthoredSessionConfig<
-  SpellAuthoringInputDto | SpellAuthoredDto,
-  SpellAuthoringInputDto,
-  SpellAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<SpellAuthoredDto>,
-  SpellFormContext
+} satisfies Omit<
+  AuthoredSessionConfig<
+    SpellAuthoringInputDto | SpellAuthoredDto,
+    SpellAuthoringInputDto,
+    SpellAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<SpellAuthoredDto>,
+    SpellFormContext
+  >,
+  'operations'
 >
 
 const vehicleSessionConfig = {
@@ -547,13 +553,6 @@ const vehicleSessionConfig = {
   domain: 'vehicle',
   getCreateSystems: (data) => data.systems,
   normalizeForSubmit: (values) => normalizeVehicleForSubmit(values),
-  operations: {
-    activate: api.content.vehicles.activate,
-    deleteActive: api.content.vehicles.deleteActive,
-    discardDraft: api.content.vehicles.discardDraft,
-    duplicate: api.content.vehicles.duplicate,
-    saveDraft: api.content.vehicles.saveDraft
-  },
   queryKeys: globalQueryKeys.content.vehicles,
   resolveCreateSystemId: (systems) => resolveCreateVehicleSystemId(systems),
   schema: vehicleAuthoringInputDtoSchema,
@@ -561,12 +560,15 @@ const vehicleSessionConfig = {
   toCreateData: toSystemCreateData,
   toEditData,
   toFormValues: (record) => toVehicleFormValues(record)
-} satisfies AuthoredSessionConfig<
-  VehicleFormValues,
-  VehicleAuthoringInputDto,
-  VehicleAuthoredDto,
-  AuthoredFormSystemCreateData,
-  AuthoredFormEditData<VehicleAuthoredDto>
+} satisfies Omit<
+  AuthoredSessionConfig<
+    VehicleFormValues,
+    VehicleAuthoringInputDto,
+    VehicleAuthoredDto,
+    AuthoredFormSystemCreateData,
+    AuthoredFormEditData<VehicleAuthoredDto>
+  >,
+  'operations'
 >
 
 function toSystemCreateData(data: unknown): AuthoredFormSystemCreateData {

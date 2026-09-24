@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { QueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import type { User } from '@supabase/supabase-js'
+import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import { vi } from 'vitest'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from './routeStates'
@@ -12,12 +14,13 @@ const sentryMocks = vi.hoisted(() => ({
 vi.mock('#app/observability/sentry.client', () => sentryMocks)
 
 const signedInUser = {
-  id: 'user-1',
-  app_metadata: {},
-  user_metadata: {},
-  aud: 'authenticated',
-  created_at: '2026-01-01T00:00:00.000Z'
-} satisfies User
+  userId: 'ee297ba9-fe47-4a57-a84b-470d4bd71ad7',
+  role: 'user',
+  email: 'user@example.invalid',
+  username: 'test_user',
+  registrationCompleted: true,
+  authoringExperience: 'guided'
+} satisfies AuthSessionUserDto
 
 describe('route states', () => {
   it('routes authenticated error recovery to the workspace home', () => {
@@ -30,6 +33,22 @@ describe('route states', () => {
     renderRouteError({ user: null })
 
     expect(screen.getByRole('link', { name: /go to homepage/i })).toHaveAttribute('href', '/')
+  })
+
+  it('resets failed queries before retrying the route', async () => {
+    const user = userEvent.setup()
+    const reset = vi.fn()
+    const resetQueries = vi.spyOn(QueryClient.prototype, 'resetQueries').mockResolvedValue()
+    renderWithRouter(
+      <RouteErrorState error={new Error('Campaign not found.')} reset={reset} />,
+      signedInUser
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(resetQueries).toHaveBeenCalledWith({ predicate: expect.any(Function) })
+    await waitFor(() => expect(reset).toHaveBeenCalledOnce())
+    resetQueries.mockRestore()
   })
 
   it('reports handled route errors to client observability', async () => {
@@ -53,7 +72,7 @@ describe('route states', () => {
   })
 })
 
-function renderRouteError({ user }: { user: User | null }) {
+function renderRouteError({ user }: { user: AuthSessionUserDto | null }) {
   const errorState = (
     <RouteErrorState error={new Error('The spells list failed to load.')} reset={() => undefined} />
   )
@@ -61,11 +80,11 @@ function renderRouteError({ user }: { user: User | null }) {
   return renderWithRouter(errorState, user)
 }
 
-function renderRouteNotFound({ user }: { user: User | null }) {
+function renderRouteNotFound({ user }: { user: AuthSessionUserDto | null }) {
   return renderWithRouter(<RouteNotFound />, user)
 }
 
-function renderWithRouter(children: ReactNode, user: User | null) {
+function renderWithRouter(children: ReactNode, user: AuthSessionUserDto | null) {
   return render(
     <TestRouterProvider initialPath='/spells' user={user}>
       {children}

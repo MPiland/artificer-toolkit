@@ -11,46 +11,18 @@ import {
   Title
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { SocialModerationEvidenceDto } from '@artificer-toolkit/schema/api/socialModeration'
+import type { TakeSocialModerationActionInput } from '@artificer-toolkit/schema/api/socialHub'
+import { useMutation } from '@tanstack/react-query'
+import { CatchBoundary } from '@tanstack/react-router'
+import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { useState } from 'react'
-import type { SocialModerationReportDto, TakeSocialModerationActionInput } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
 import { SocialModerationQueueRow } from './components/SocialModerationQueueRow'
 import { formatStatusLabel, socialModerationActions } from './socialModels'
 import * as styles from './SocialModerationPage.css'
 
 export function SocialModerationPage() {
-  const queryClient = useQueryClient()
-  const [openedReport, setOpenedReport] = useState<SocialModerationReportDto>()
-  const [action, setAction] = useState<TakeSocialModerationActionInput['action']>('START_REVIEW')
-  const [reason, setReason] = useState('')
-  const queue = useQuery({
-    queryKey: queryKeys.socialHub.moderationQueue(),
-    queryFn: () => api.socialHub.moderation.queue()
-  })
-  const openReport = useMutation({
-    mutationFn: (reportPublicId: string) => api.socialHub.moderation.openReport(reportPublicId),
-    onSuccess: setOpenedReport
-  })
-  const takeAction = useMutation({
-    mutationFn: () => {
-      if (!openedReport) throw new Error('Open a report first.')
-      return api.socialHub.moderation.takeAction({
-        reportPublicId: openedReport.reportPublicId,
-        action,
-        reason,
-        expectedVersion: openedReport.version
-      })
-    },
-    onSuccess: (result) => {
-      setOpenedReport(result)
-      setReason('')
-      notifications.show({ color: 'green', message: 'Moderation action recorded.' })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.moderationQueue() })
-    }
-  })
-
   return (
     <section className={styles.page} aria-labelledby='social-moderation-title'>
       <header className={styles.headerCopy}>
@@ -59,20 +31,85 @@ export function SocialModerationPage() {
         </Title>
         <Text c='dimmed'>Opening evidence is recorded in the audit log.</Text>
       </header>
-      {queue.isPending ? <Loader aria-label='Loading moderation queue' size='sm' /> : null}
-      {queue.isError ? <Alert color='red'>Moderation queue unavailable.</Alert> : null}
-      {queue.data?.length === 0 ? <Text c='dimmed'>No reports in the queue.</Text> : null}
-      {queue.data ? (
+      <CatchBoundary getResetKey={() => 'social-moderation'} errorComponent={SocialModerationError}>
+        <SocialModerationWorkspace />
+      </CatchBoundary>
+    </section>
+  )
+}
+
+function SocialModerationWorkspace() {
+  const [openedReport, setOpenedReport] = useState<SocialModerationEvidenceDto>()
+  const [action, setAction] = useState<TakeSocialModerationActionInput['action']>('START_REVIEW')
+  const [reason, setReason] = useState('')
+  const queue = usePaginatedQuery(convexApi.social.moderation.list, {}, { initialNumItems: 8 })
+  const open = useConvexMutation(convexApi.social.moderation.open)
+  const review = useConvexMutation(convexApi.social.moderation.review)
+  const moderateListing = useConvexMutation(convexApi.social.listingModeration.action)
+  const moderateProfile = useConvexMutation(convexApi.social.profileModeration.action)
+  const openReport = useMutation({
+    mutationFn: (reportPublicId: string) => open({ reportPublicId }),
+    onSuccess: (result) => {
+      setOpenedReport(result)
+      setReason('')
+      takeAction.reset()
+    }
+  })
+  const takeAction = useMutation({
+    mutationFn: () => {
+      if (!openedReport) throw new Error('Open a report first.')
+      const input = {
+        reportPublicId: openedReport.reportPublicId,
+        reason,
+        expectedVersion: openedReport.version
+      }
+      switch (action) {
+        case 'HIDE_LISTING':
+        case 'RESTORE_LISTING':
+          return moderateListing({ ...input, action })
+        case 'SUSPEND_PROFILE':
+        case 'RESTORE_PROFILE':
+          return moderateProfile({ ...input, action })
+        default:
+          return review({ ...input, action })
+      }
+    },
+    onSuccess: (result) => {
+      setOpenedReport(result)
+      setReason('')
+      notifications.show({ color: 'green', message: 'Moderation action recorded.' })
+    }
+  })
+
+  return (
+    <>
+      {queue.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading moderation queue' size='sm' />
+      ) : null}
+      {openReport.error ? <Alert color='red'>{openReport.error.message}</Alert> : null}
+      {queue.status === 'Exhausted' && queue.results.length === 0 ? (
+        <Text c='dimmed'>No reports in the queue.</Text>
+      ) : null}
+      {queue.status !== 'LoadingFirstPage' ? (
         <div className={styles.detailGrid}>
           <div className={styles.rows} aria-label='Moderation queue'>
-            {queue.data.map((item) => (
+            {queue.results.map((item) => (
               <SocialModerationQueueRow
                 item={item}
                 isOpening={openReport.isPending && openReport.variables === item.reportPublicId}
+                disabled={openReport.isPending || takeAction.isPending}
                 key={item.reportPublicId}
                 onOpen={() => openReport.mutate(item.reportPublicId)}
               />
             ))}
+            {queue.status === 'CanLoadMore' ? (
+              <Button variant='subtle' onClick={() => queue.loadMore(8)}>
+                Load more reports
+              </Button>
+            ) : null}
+            {queue.status === 'LoadingMore' ? (
+              <Loader aria-label='Loading more reports' size='sm' />
+            ) : null}
           </div>
           <aside className={styles.panel} aria-label='Opened report evidence'>
             {openedReport ? (
@@ -97,6 +134,7 @@ export function SocialModerationPage() {
                   <Select
                     data={socialModerationActions.map((option) => ({ ...option }))}
                     label='Action'
+                    disabled={openReport.isPending || takeAction.isPending}
                     value={action}
                     onChange={(value) => {
                       const next = socialModerationActions.find((option) => option.value === value)
@@ -106,6 +144,7 @@ export function SocialModerationPage() {
                   <Textarea
                     autosize
                     label='Audit reason'
+                    disabled={openReport.isPending || takeAction.isPending}
                     maxLength={4000}
                     minRows={3}
                     required
@@ -114,7 +153,7 @@ export function SocialModerationPage() {
                   />
                   {takeAction.error ? <Alert color='red'>{takeAction.error.message}</Alert> : null}
                   <Button
-                    disabled={!reason.trim()}
+                    disabled={openReport.isPending || !reason.trim()}
                     loading={takeAction.isPending}
                     onClick={() => takeAction.mutate()}
                   >
@@ -128,6 +167,17 @@ export function SocialModerationPage() {
           </aside>
         </div>
       ) : null}
-    </section>
+    </>
+  )
+}
+
+function SocialModerationError({ reset }: { reset: () => void }) {
+  return (
+    <Alert color='red'>
+      Moderation queue unavailable.
+      <Button mt='sm' size='xs' variant='default' onClick={reset}>
+        Retry queue
+      </Button>
+    </Alert>
   )
 }

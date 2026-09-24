@@ -1,10 +1,10 @@
 import { Alert, Button, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { type SubmitEvent, useEffect, useRef, useState } from 'react'
-import type { CampaignDetailDto, CampaignSessionNoteSectionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignSessionNotes, getCampaignSessions } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import * as sharedStyles from '../campaigns.css'
 import * as notesStyles from './notes.css'
@@ -18,9 +18,13 @@ export function CampaignSessionNotes({
   currentUserId: string
   embedded?: boolean
 }) {
-  const sessions = useQuery(getCampaignSessions(campaign.id))
+  const sessions = usePaginatedQuery(
+    convexApi.campaigns.sessions.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 8 }
+  )
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const sessionId = selectedSessionId ?? sessions.data?.[0]?.id ?? null
+  const sessionId = selectedSessionId ?? sessions.results[0]?.id ?? null
 
   return (
     <section
@@ -36,7 +40,7 @@ export function CampaignSessionNotes({
         </Text>
       </div>
       <Select
-        data={(sessions.data ?? []).map((session) => ({
+        data={sessions.results.map((session) => ({
           value: session.id,
           label: session.title
             ? session.scheduledStartAt
@@ -52,6 +56,11 @@ export function CampaignSessionNotes({
         value={sessionId}
         onChange={setSelectedSessionId}
       />
+      {sessions.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => sessions.loadMore(8)}>
+          Load more sessions
+        </Button>
+      ) : null}
       {sessionId ? (
         <CampaignSharedSessionNotes
           campaign={campaign}
@@ -81,13 +90,17 @@ export function CampaignSharedSessionNotes({
   currentUserId: string
   sessionId: string
 }) {
-  const queryClient = useQueryClient()
-  const notes = useQuery(getCampaignSessionNotes(campaign.id, sessionId))
+  const convex = useConvex()
+  const notes = usePaginatedQuery(
+    convexApi.campaigns.sessionNotes.list,
+    { campaignId: campaign.id, sessionId },
+    { initialNumItems: 8 }
+  )
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const create = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.notes.create({
+      convex.mutation(convexApi.campaigns.sessionNotes.create, {
         campaignId: campaign.id,
         sessionId,
         title,
@@ -95,18 +108,15 @@ export function CampaignSharedSessionNotes({
         visibility: 'SHARED',
         kind: 'SHARED_NOTE'
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setTitle('')
       setContent('')
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionNotes(campaign.id, sessionId)
-      })
     }
   })
 
   return (
     <Stack gap='md'>
-      {notes.data?.map((section) => (
+      {notes.results.map((section) => (
         <SessionSectionEditor
           campaignId={campaign.id}
           deletable={campaign.role === 'OWNER' || section.authorUserId === currentUserId}
@@ -115,6 +125,11 @@ export function CampaignSharedSessionNotes({
           section={section}
         />
       ))}
+      {notes.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => notes.loadMore(8)}>
+          Load more sections
+        </Button>
+      ) : null}
       {campaign.status === 'ACTIVE' ? (
         <form
           className={sharedStyles.form}
@@ -160,13 +175,13 @@ export function SessionSectionEditor({
   editable: boolean
   section: CampaignSessionNoteSectionDto
 }) {
-  const queryClient = useQueryClient()
+  const convex = useConvex()
   const [title, setTitle] = useState(section.title)
   const [content, setContent] = useState(section.content)
   const saved = useRef(section)
   const save = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.notes.update({
+      convex.mutation(convexApi.campaigns.sessionNotes.update, {
         campaignId,
         sessionId: section.sessionId,
         sectionId: section.id,
@@ -176,17 +191,14 @@ export function SessionSectionEditor({
       }),
     onSuccess: (updated) => {
       saved.current = updated
-      return queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionNotes(campaignId, section.sessionId)
-      })
     }
   })
   const remove = useMutation({
     mutationFn: () =>
-      api.campaigns.sessions.notes.delete(campaignId, section.sessionId, section.id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionNotes(campaignId, section.sessionId)
+      convex.mutation(convexApi.campaigns.sessionNotes.remove, {
+        campaignId,
+        sessionId: section.sessionId,
+        sectionId: section.id
       })
   })
 

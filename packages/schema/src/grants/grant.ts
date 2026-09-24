@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import {
   authoredIdentifierSchema,
@@ -24,13 +24,13 @@ function hasValue(value: unknown): boolean {
 
 export function validateChosenGrantSelectionFields(
   value: SelectionPolicyCandidate,
-  ctx: z.RefinementCtx,
+  ctx: z.core.$RefinementCtx,
   path: (string | number)[] = []
 ): void {
   if (value.selectionKind === 'CHOSEN') {
     if (!hasValue(value.count)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [...path, 'count'],
         message: 'count is required when selectionKind is CHOSEN'
       })
@@ -38,7 +38,7 @@ export function validateChosenGrantSelectionFields(
 
     if (!hasValue(value.selectionDuplicatePolicy)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [...path, 'selectionDuplicatePolicy'],
         message: 'selectionDuplicatePolicy is required when selectionKind is CHOSEN'
       })
@@ -48,7 +48,7 @@ export function validateChosenGrantSelectionFields(
   if (value.selectionKind === 'GRANTED') {
     if (hasValue(value.count)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [...path, 'count'],
         message: 'count is not allowed when selectionKind is GRANTED'
       })
@@ -56,7 +56,7 @@ export function validateChosenGrantSelectionFields(
 
     if (hasValue(value.selectionDuplicatePolicy)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [...path, 'selectionDuplicatePolicy'],
         message: 'selectionDuplicatePolicy is not allowed when selectionKind is GRANTED'
       })
@@ -66,64 +66,66 @@ export function validateChosenGrantSelectionFields(
 
 export const staticGrantBaseDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  order: z.number().int(),
-  restrictions: facetDtoSchema.optional()
+  order: z.number().check(z.int()),
+  restrictions: z.optional(facetDtoSchema)
 })
 
 export const grantPayloadDtoSchema = z.discriminatedUnion('authoringModeKind', [
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
+    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
   }),
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED)
+    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED)
   })
 ])
 
 export const scalingLevelDtoSchema = z.object({
   id: authoredIdentifierSchema,
-  level: z.number().int(),
-  order: z.number().int(),
-  count: z.number().int().optional(),
-  selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
+  level: z.number().check(z.int()),
+  order: z.number().check(z.int()),
+  count: z.optional(z.number().check(z.int())),
+  selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
 })
 
-export const scalingGrantBaseDtoSchema = staticGrantBaseDtoSchema
-  .extend({
+export const scalingGrantBaseDtoSchema = z
+  .extend(staticGrantBaseDtoSchema, {
     selectionKind: authoringSelectionKindSchema,
     scalingKind: scalingKindSchema,
-    count: z.number().int().optional(),
-    selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
+    count: z.optional(z.number().check(z.int())),
+    selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
   })
-  .superRefine((value, ctx) => {
-    if (value.scalingKind === 'NONE') {
-      validateChosenGrantSelectionFields(value, ctx)
-      return
-    }
+  .check(
+    z.superRefine((value, ctx) => {
+      if (value.scalingKind === 'NONE') {
+        validateChosenGrantSelectionFields(value, ctx)
+        return
+      }
 
-    if (value.count !== undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['count'],
-        message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
-      })
-    }
+      if (value.count !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['count'],
+          message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
+        })
+      }
 
-    if (value.selectionDuplicatePolicy !== undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['selectionDuplicatePolicy'],
-        message:
-          'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
-      })
-    }
-  })
+      if (value.selectionDuplicatePolicy !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['selectionDuplicatePolicy'],
+          message:
+            'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
+        })
+      }
+    })
+  )
 
 export const grantProgressionLevelDtoSchema = scalingLevelDtoSchema
 
-export function createGrantProgressionFieldsDtoSchema<TPayload extends z.ZodType>(
+export function createGrantProgressionFieldsDtoSchema<TPayload extends z.ZodMiniType>(
   levelPayloadSchema: TPayload
 ) {
-  const levelSchema = grantProgressionLevelDtoSchema.and(levelPayloadSchema)
+  const levelSchema = z.intersection(grantProgressionLevelDtoSchema, levelPayloadSchema)
 
   return z.object({
     progression: z.discriminatedUnion('scalingSource', [
@@ -154,7 +156,7 @@ export function validateGrantProgressionSelectionFields(
     scalingKind?: string
     progression?: { levels?: SelectionPolicyCandidate[] }
   },
-  ctx: z.RefinementCtx
+  ctx: z.core.$RefinementCtx
 ): void {
   if (value.scalingKind !== 'PER_LEVEL' || !value.progression?.levels) {
     return

@@ -12,11 +12,10 @@ When documents disagree, use this order:
 4. Product and design intent in `PRODUCT.md` and `DESIGN.md`.
 5. Root planning, review, critique, and phase documents, which are historical or transitional unless explicitly marked otherwise.
 
-The current documentation baseline is the working tree. Any unfinished or target behavior must be
-labeled instead of being presented as current fact. For the rules runtime, authored-content
-lifecycle, Campaign rules binding, and Encounter Blueprint/Run seams, ADRs 0023-0025 and
-`architecture/rules-runtime.md` override transitional guides that document the version-pinned
-implementation being replaced.
+The current Phase 8.2 product boundary is native Convex. Retired tRPC, Supabase, Kysely,
+GoRules, local session-host, and Netlify executor material is authoritative only when a document
+marks it as historical. Their runtime source has been removed from the current tree. Exact before copies remain under ignored
+validation evidence, and explicitly historical documents remain architectural history.
 
 ## Document status
 
@@ -27,55 +26,61 @@ Canonical documents should identify:
 - `Update when`: the code or contract changes that require review;
 - `Verification`: the key files, tests, or flows checked against the document.
 
-Keep intent at the interface it explains. Cross-module flows belong in architecture guides; load-bearing choices belong in ADRs; local non-obvious “why” belongs in concise code comments or JSDoc.
+Keep intent at the interface it explains. Cross-module flows belong in architecture guides,
+load-bearing choices belong in ADRs, and local non-obvious reasoning belongs in concise code comments
+or JSDoc.
 
 ## Architecture guides
 
 - [Overview](architecture/overview.md)
 - [Data lifecycle](architecture/data-lifecycle.md)
-- [Transport and tRPC](architecture/transport.md)
-- [Persistence and Kysely](architecture/persistence.md)
-- [Authoring Schema and runtime](architecture/authoring-schema.md)
+- [Transport boundary](architecture/transport.md)
+- [Persistence](architecture/persistence.md)
+- [Authoring Schema and resolution](architecture/authoring-schema.md)
 - [Character Builder, Sheet, and engine flow](architecture/character.md)
 - [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
-- [Shared rules runtime](architecture/rules-runtime.md) — canonical rebaseline target
-- [D&D 2014 optional combat](architecture/dnd5e-optional-combat.md) — canonical optional-combat target boundary
+- [Shared rules runtime](architecture/rules-runtime.md)
+- [D&D 2014 optional combat](architecture/dnd5e-optional-combat.md)
 - [Rules runtime domain ERDs](architecture/rules-runtime-erd.md)
-- [Live-session host](architecture/live-sessions.md)
-- [Versioned documents and correctness projections](architecture/versioned-projections.md) — transitional record; its rules/content pinning target is superseded by ADRs 0023-0025
+- [Live-session coordination](architecture/live-sessions.md)
+- [Versioned documents and correctness projections](architecture/versioned-projections.md) — historical implementation record superseded by ADRs 0023–0025 and 0029
 
-## Audits
+## Operator runbooks
+
+- [Phase 8.2 release lifecycle](runbooks/phase-8-2-release.md)
+- [Convex notification delivery](runbooks/convex-notification-delivery.md)
+- [Social Hub retention](runbooks/social-retention.md)
+- [VTT map R2](runbooks/vtt-map-r2.md)
+
+## Audits and research
 
 - [MVP readiness audit (2026-07-10)](audits/mvp-readiness-2026-07-10.md)
+- [Product and capability references](market-research.md) — transitional research notes
 
-## Market research
+## Roadmap and acceptance
 
-- [Product and capability references](market-research.md) — transitional notes on products worth evaluating for Campaign preparation, management, maps, and VTT workflows
-
-## Future roadmap
-
-- [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for Character Sheet play depth and overrides, media/files, native clients, Campaigns, notifications, Encounters, commerce, Social Hub, Marketplace, and VTT
-- [Phase 08 fixed acceptance ledger](roadmap/08-vtt-acceptance.md) — frozen 12/14/10/8/10 scenarios and gate governance
-- [Phase 8.2 Convex cutover acceptance](roadmap/08-2-convex-cutover-acceptance.md) — fixed 75-case pre-launch replacement ledger
+- [Future platform roadmap](roadmap/README.md)
+- [Phase 08 fixed acceptance ledger](roadmap/08-vtt-acceptance.md)
+- [Phase 8.2 Convex cutover acceptance](roadmap/08-2-convex-cutover-acceptance.md)
+- [Phase 8.2 living handoff](handoffs/phase-08-2-convex-cutover.md)
+- [Phase 8.2 local validation record](validation/phase-08-2/README.md)
 
 ## Decisions
 
 See [the ADR index](adr/README.md) for intentional architectural decisions and their current status.
 
-## Workspace entrypoints
-
-Each major module has a concise local README describing its interface and common flow:
+## Current workspace entrypoints
 
 - [Web](../apps/web/README.md)
-- [APIs](../apps/apis/README.md)
-- [Session host](../apps/session-host/README.md)
+- [Native Convex API](../apps/apis/README.md)
+- [Transient session Worker](../apps/session-worker/README.md)
 - [Schema](../packages/schema/README.md)
 - [Shared](../packages/shared/README.md)
-- [Functions](../packages/functions/README.md)
-- [DB](../packages/db/README.md)
-- [Supabase](../supabase/README.md)
+- [Authoring](../packages/authoring/README.md)
+- [Rules Runtime](../packages/rules-runtime/README.md)
 
 ## Historical material
 
-Existing root-level phase plans, critiques, implementation briefs, and rule-gap notes remain useful as project history. They are not the current architecture source unless explicitly linked from a canonical guide or ADR. Their status banners point back here.
+Root-level phase plans, critiques, implementation briefs, and rule-gap notes remain useful as project
+history. They are not current architecture unless an active canonical guide or ADR explicitly says so.

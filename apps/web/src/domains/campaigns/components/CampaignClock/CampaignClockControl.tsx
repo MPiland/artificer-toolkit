@@ -1,23 +1,22 @@
 import { ActionIcon, Badge, Group, Text, Tooltip } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
-import { useEffect } from 'react'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
+import { useEffect, useState } from 'react'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
 import { getCampaignClock } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
-import { CampaignClockEditor, formatTime } from './CampaignClockEditor'
+import { CampaignClockEditor } from './CampaignClockEditor'
+import { clockDisplayTime, formatTime } from './campaignClockTime'
 import * as styles from './CampaignClock.css'
 
 export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto }) {
-  const queryClient = useQueryClient()
+  const start = useConvexMutation(convexApi.campaigns.clock.start)
+  const pause = useConvexMutation(convexApi.campaigns.clock.pause)
+  const reconcileClock = useConvexMutation(convexApi.campaigns.clock.reconcile)
   const clock = useQuery(getCampaignClock(campaign.id))
+  const [now, setNow] = useState(Date.now)
   const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-  const refresh = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.campaigns.clock(campaign.id)
-    })
-  }
   const toggle = useMutation({
     mutationFn: () => {
       if (!clock.data) throw new Error('Set Campaign time first.')
@@ -26,26 +25,28 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
         commandId: crypto.randomUUID(),
         expectedVersion: clock.data.version
       }
-      return clock.data.running
-        ? api.campaigns.clock.pause(input)
-        : api.campaigns.clock.start(input)
-    },
-    onSuccess: refresh
+      return clock.data.running ? pause(input) : start(input)
+    }
+  })
+  const { mutate: reconcile, error: reconcileError } = useMutation({
+    mutationFn: () => {
+      if (!clock.data) throw new Error('Set Campaign time first.')
+      return reconcileClock({
+        campaignId: campaign.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: clock.data.version
+      })
+    }
   })
   useEffect(() => {
-    if (!clock.data?.running || !editable) return
+    if (!clock.data?.running) return
     const timer = window.setInterval(() => {
-      void api.campaigns.clock
-        .reconcile({
-          campaignId: campaign.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: clock.data!.version
-        })
-        .then(refresh)
-        .catch(() => undefined)
+      setNow(Date.now())
+      if (editable) reconcile()
     }, 30_000)
     return () => window.clearInterval(timer)
-  }, [campaign.id, clock.data, editable])
+  }, [clock.data?.running, editable, reconcile])
+  const display = clock.data ? clockDisplayTime(clock.data, now) : null
 
   return (
     <div className={styles.control} aria-label='World time'>
@@ -55,9 +56,13 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
         </Text>
         <Group gap='xs' wrap='nowrap'>
           <Text fw={700} size='sm'>
-            {clock.data
-              ? `Day ${clock.data.day} · ${formatTime(clock.data.minuteOfDay)}`
-              : 'Not set'}
+            {display
+              ? `Day ${display.day} · ${formatTime(display.minuteOfDay)}`
+              : clock.isPending
+                ? 'Loading…'
+                : clock.error
+                  ? 'Unavailable'
+                  : 'Not set'}
           </Text>
           {clock.data ? (
             <Badge color={clock.data.running ? 'green' : 'gray'} size='xs' variant='light'>
@@ -71,6 +76,11 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
           </Text>
         ) : null}
       </div>
+      {toggle.error || reconcileError ? (
+        <Text c='red' role='alert' size='xs'>
+          World time could not be updated. Try again.
+        </Text>
+      ) : null}
       {editable ? (
         <Group gap={4} wrap='nowrap'>
           {clock.data ? (
@@ -90,7 +100,7 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
               </ActionIcon>
             </Tooltip>
           ) : null}
-          <CampaignClockEditor campaign={campaign} clock={clock.data ?? null} onUpdated={refresh} />
+          <CampaignClockEditor campaign={campaign} clock={clock.data ?? null} />
         </Group>
       ) : null}
     </div>

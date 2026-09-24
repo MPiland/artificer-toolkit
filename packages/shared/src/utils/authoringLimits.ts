@@ -6,6 +6,7 @@ export const AUTHORED_LIMITS = {
   nestedCollectionItems: 100,
   referenceCollectionItems: 500,
   facetNestingDepth: 20,
+  jsonNestingDepth: 25,
   mutationPayloadBytes: 1_048_576
 } as const
 

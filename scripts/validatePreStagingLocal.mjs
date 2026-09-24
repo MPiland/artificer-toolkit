@@ -1,131 +1,111 @@
 import { createHash } from 'node:crypto'
 import { createWriteStream, existsSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { finished } from 'node:stream/promises'
 
 const root = resolve(import.meta.dirname, '..')
-const confirmation = 'validate-pre-staging-local'
 const localHosts = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 const remoteOnlyEnvironmentNames = new Set([
   'CONFIRM_MANAGED_VTT_SMOKE',
   'MANAGED_LIVE_SESSION_ENDPOINT',
   'MANAGED_VTT_BASE_URL',
-  'NETLIFY_AUTH_TOKEN',
-  'NETLIFY_SITE_ID',
   'SENTRY_AUTH_TOKEN',
   'SENTRY_DSN',
-  'SUPABASE_ACCESS_TOKEN',
-  'SUPABASE_PROJECT_ID',
-  'SUPABASE_PROJECT_REF',
   'VITE_SENTRY_DSN'
 ])
+const requiredLocalUrlNames = [
+  'CONVEX_SITE_URL',
+  'CONVEX_URL',
+  'CONVEX_SELF_HOSTED_URL',
+  'VITE_CONVEX_URL'
+]
 const optionalLocalUrlNames = [
   'APP_E2E_BASE_URL',
-  'LIVE_SESSION_EXECUTOR_URL',
-  'MANAGED_LIVE_SESSION_ENDPOINT',
   'SITE_URL',
-  'VITE_LIVE_SESSION_WEBSOCKET_URL'
+  'VITE_LIVE_SESSION_WEBSOCKET_URL',
+  'VITE_MEDIA_STORAGE_ORIGIN'
 ]
 const promotionContract = {
   localAuthority:
-    'Local is the complete functional correctness environment for migrations, reset/seed/audit, generated parity, builds, types, lint, tests, PostgreSQL proofs, and end-to-end journeys.',
+    'Local is the complete functional correctness environment for native Convex generation, fresh outputs, package checks, canonical seed/audit, transaction/replay/rollback/privacy proofs, and end-to-end journeys.',
   production:
     'Production requires a separate approval after staging and is never a discovery environment.',
   staging: {
     approval:
       'Every bounded staging attempt requires explicit user approval immediately before execution.',
     parity:
-      'Staging receives the exact locally accepted source, migrations, canonical seed shape, generated contracts, and built artifacts without staging-only fixes or overrides.',
+      'Staging receives the exact locally accepted source, canonical seed shape, generated contracts, and built artifacts without staging-only fixes or overrides.',
     responseToFailure:
       'Any functional failure that local could exercise stops promotion, adds or repairs local coverage, and requires the complete local lifecycle before one new staging attempt.',
     scope:
-      'One query- and egress-conscious managed-environment gate covers connection and pooler behavior, hosted Auth/RLS, Storage/Realtime/Edge/Netlify integration, secrets, TLS, packaging, and runtime parity.',
+      'One bounded managed-environment gate covers deployment packaging, managed secrets, external integrations, permissions, real network behavior, and managed performance.',
     state: 'FROZEN_PENDING_SEPARATE_USER_APPROVAL'
   }
 }
 const excludedArtifactPrefixes = [
   '.codex/validation/',
   '.impeccable/review/',
-  '.netlify/',
   'apps/session-worker/.wrangler/',
   'apps/session-worker/dist-staging/',
   'codex/'
 ]
 const generatedFiles = [
-  'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql',
-  'packages/db/src/types/supabase.database.ts'
+  'apps/apis/convex/_generated/api.d.ts',
+  'apps/apis/convex/_generated/api.js',
+  'apps/apis/convex/_generated/dataModel.d.ts',
+  'apps/apis/convex/_generated/server.d.ts',
+  'apps/apis/convex/_generated/server.js',
+  'apps/apis/convex/betterAuth/schema.ts',
+  'apps/apis/convex/content/srdManifest.generated.ts'
 ]
 const runtimeArtifactPaths = [
-  '.netlify/functions-internal',
   'apps/apis/dist',
   'apps/apis/tsconfig.build.tsbuildinfo',
-  'apps/session-host/dist',
-  'apps/session-host/tsconfig.build.tsbuildinfo',
   'apps/session-worker/dist',
   'apps/session-worker/dist-staging',
   'apps/web/.cache/tsc',
   'apps/web/dist',
-  'packages/db/dist',
-  'packages/db/tsconfig.build.tsbuildinfo',
+  'packages/authoring/dist',
+  'packages/authoring/tsconfig.build.tsbuildinfo',
   'packages/design-system/dist',
   'packages/design-system/tsconfig.build.tsbuildinfo',
   'packages/emails/dist',
   'packages/emails/tsconfig.build.tsbuildinfo',
-  'packages/functions/dist',
-  'packages/functions/tsconfig.build.tsbuildinfo',
-  'packages/functions/tsconfig.services.tsbuildinfo',
-  'packages/functions/tsconfig.tsbuildinfo',
+  'packages/rules-runtime/dist',
+  'packages/rules-runtime/tsconfig.build.tsbuildinfo',
   'packages/schema/dist',
   'packages/schema/tsconfig.build.tsbuildinfo',
   'packages/shared/dist',
-  'packages/shared/tsconfig.build.tsbuildinfo'
+  'packages/shared/tsconfig.build.tsbuildinfo',
+  'packages/source-data/dist',
+  'packages/source-data/tsconfig.build.tsbuildinfo'
 ]
 const phase08RecoveryMap = [
   {
     decision: 'KEEP',
     paths: [
       'apps/web/src/domains/campaigns/vtt/CampaignTabletop.stories.fixtures.ts',
-      'apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx',
-      'apps/web/src/domains/campaigns/vtt/liveSessionSceneState.test.ts'
+      'apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx'
     ],
     reason:
-      'The retained tabletop fixtures, role-separated surface, and private Scene convergence coverage remain current and are exercised by the final local browser lifecycle.'
+      'The retained tabletop fixtures and role-separated surface remain current and are exercised by the final native browser lifecycle.'
   },
   {
     decision: 'REIMPLEMENT',
     paths: [
-      'apps/session-host/integration/localPlay.ts',
-      'apps/session-host/src/dependencies.ts',
-      'apps/session-host/src/liveSessionRoom.ts',
-      'apps/session-host/src/sessionHost.test.ts',
-      'apps/session-worker/src/liveSessionRoom.ts',
-      'apps/session-worker/test/liveSessionRoom.test.ts',
-      'apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx',
-      'apps/web/src/domains/campaigns/vtt/liveSessionClient.test.ts',
+      'apps/apis/convex/liveSessions',
+      'apps/session-worker/src/durableCommandJournal.ts',
+      'apps/session-worker/src/nativeLiveSessionRoom.ts',
+      'apps/session-worker/src/nativeLiveSessionState.ts',
       'apps/web/src/domains/campaigns/vtt/liveSessionClient.ts',
-      'apps/web/src/domains/campaigns/vtt/useCampaignLiveSession.test.tsx',
       'apps/web/src/domains/campaigns/vtt/useCampaignLiveSession.ts',
-      'packages/functions/src/services/liveSession/liveSessionExecutor.ts',
-      'packages/functions/src/services/liveSession/liveSessionService.test.ts',
-      'packages/functions/src/services/liveSession/liveSessionService.ts',
-      'packages/schema/src/__tests__/live-session-contracts.test.ts',
-      'packages/schema/src/api/liveSessions.ts',
-      'docs/adr/0022-versioned-domain-documents-and-correctness-projections.md'
+      'packages/schema/src/api/liveSessionState.ts',
+      'packages/schema/src/api/liveSessions.ts'
     ],
     reason:
-      'Gate 5 reimplemented every recovery-changed live-session authority, membership, receipt, reconnect, and projection hunk on the clean aggregate-version contracts while retaining the transport and renderer foundation.'
-  },
-  {
-    decision: 'DROP',
-    paths: [
-      'apps/session-host/integration/campaignContentSharePostgresProof.ts',
-      'apps/session-host/integration/campaignSharedSpellCommandPostgresProof.ts',
-      'apps/session-host/integration/runCampaignSharedSpellCommandPostgresProof.ts'
-    ],
-    reason:
-      'The recovery-only proof runners and their approval-era assumptions are superseded by the accepted current-projection and direct-share Gate 2-4 runners.'
+      'The Session Durable Object is the active live-command authority: one SQLite transaction commits live state, the replay receipt and the ordered publication outbox before broadcast. Convex remains the durable product store and independently verifies each ordered publication for subscriptions and reconnect recovery.'
   },
   {
     decision: 'DROP',
@@ -136,7 +116,7 @@ const phase08RecoveryMap = [
       'apps/web/src/data/campaigns/useCampaignRealtime.test.tsx:onContentInvalidated'
     ],
     reason:
-      'The clean protocol uses exact aggregate versions and transactional renewal; no duplicate content checksum or Realtime authorization bridge remains.'
+      'The native protocol uses exact aggregate versions and transactional renewal; no duplicate content checksum or authorization bridge remains.'
   }
 ]
 
@@ -159,7 +139,7 @@ function parseEnvironment(source) {
   return values
 }
 
-async function loadLocalEnvironment() {
+async function loadLocalEnvironment(localEnvironmentFile) {
   const path = resolve(root, '.env.local')
   if (!existsSync(path)) throw new Error('Root .env.local is required.')
   const removedRemoteEnvironmentNames = new Set()
@@ -171,28 +151,46 @@ async function loadLocalEnvironment() {
     if (process.env[name] === undefined) process.env[name] = value
   }
 
+  let localEnvironment = null
+  if (localEnvironmentFile) {
+    const resolvedPath = resolve(root, localEnvironmentFile)
+    const relativePath = relative(root, resolvedPath).replaceAll('\\', '/')
+    if (
+      relativePath.startsWith('..') ||
+      isAbsolute(relativePath) ||
+      !relativePath.startsWith('.codex/validation/')
+    ) {
+      throw new Error('The local environment file must be retained under .codex/validation/.')
+    }
+    if (!existsSync(resolvedPath)) throw new Error('The local environment file does not exist.')
+    const source = await readFile(resolvedPath, 'utf8')
+    for (const [name, value] of Object.entries(parseEnvironment(source))) {
+      if (isRemoteOnlyEnvironmentName(name)) {
+        removedRemoteEnvironmentNames.add(name)
+        continue
+      }
+      process.env[name] = value
+    }
+    delete process.env.CONVEX_DEPLOYMENT
+    process.env.YARN_INJECT_ENVIRONMENT_FILES = resolvedPath
+    localEnvironment = { path: relativePath, sha256: checksum(source) }
+  }
+
   for (const name of Object.keys(process.env)) {
     if (!isRemoteOnlyEnvironmentName(name)) continue
     delete process.env[name]
     removedRemoteEnvironmentNames.add(name)
   }
 
-  if (process.env.MVP_AUDIT_EMAIL === undefined && process.env.MANAGED_VTT_GM_EMAIL !== undefined) {
-    process.env.MVP_AUDIT_EMAIL = process.env.MANAGED_VTT_GM_EMAIL
+  return {
+    localEnvironment,
+    removedRemoteEnvironmentNames: [...removedRemoteEnvironmentNames].sort()
   }
-  if (
-    process.env.MVP_AUDIT_PASSWORD === undefined &&
-    process.env.MANAGED_VTT_GM_PASSWORD !== undefined
-  ) {
-    process.env.MVP_AUDIT_PASSWORD = process.env.MANAGED_VTT_GM_PASSWORD
-  }
-
-  return [...removedRemoteEnvironmentNames].sort()
 }
 
 function isRemoteOnlyEnvironmentName(name) {
   return (
-    name.startsWith('NETLIFY_') ||
+    name.startsWith('MANAGED_') ||
     name.startsWith('PROD_') ||
     name.startsWith('STAGING_') ||
     name === 'DEPLOY_PRIME_URL' ||
@@ -215,9 +213,7 @@ function assertLoopbackUrl(name, value) {
 }
 
 function assertLocalLifecycleTarget(environment = process.env) {
-  assertLoopbackUrl('DATABASE_CONNECTION_STRING', environment.DATABASE_CONNECTION_STRING)
-  assertLoopbackUrl('SUPABASE_URL', environment.SUPABASE_URL)
-  assertLoopbackUrl('VITE_SUPABASE_URL', environment.VITE_SUPABASE_URL)
+  for (const name of requiredLocalUrlNames) assertLoopbackUrl(name, environment[name])
   for (const name of optionalLocalUrlNames) {
     if (environment[name]) assertLoopbackUrl(name, environment[name])
   }
@@ -226,14 +222,17 @@ function assertLocalLifecycleTarget(environment = process.env) {
       assertLoopbackUrl('LIVE_SESSION_ALLOWED_ORIGINS', value.trim())
     }
   }
-  for (const name of [
-    'CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET',
-    'CONFIRM_STAGING_PUBLIC_SCHEMA_RESET',
-    'CONFIRM_PRODUCTION_PUBLIC_SCHEMA_RESET'
-  ]) {
-    if (environment[name]) {
-      throw new Error(`${name} must not be armed during the local lifecycle.`)
-    }
+  if (
+    environment.CONVEX_DEPLOYMENT &&
+    !/^local:[a-z0-9][a-z0-9_-]*$/u.test(environment.CONVEX_DEPLOYMENT)
+  ) {
+    throw new Error('CONVEX_DEPLOYMENT may select only an explicit local deployment.')
+  }
+  if (!environment.CONVEX_SELF_HOSTED_ADMIN_KEY) {
+    throw new Error('CONVEX_SELF_HOSTED_ADMIN_KEY is required for the local lifecycle.')
+  }
+  if (new URL(environment.CONVEX_URL).href !== new URL(environment.CONVEX_SELF_HOSTED_URL).href) {
+    throw new Error('CONVEX_URL and CONVEX_SELF_HOSTED_URL must identify the same local backend.')
   }
 }
 
@@ -254,14 +253,15 @@ function localTargetMetadata(name, value) {
   return { host: url.hostname, name, port: url.port || null, protocol: url.protocol }
 }
 
-function run(command, args, { environment = {}, logPath }) {
+function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
   return new Promise((resolveRun, rejectRun) => {
     const childEnvironment = localChildEnvironment(environment)
     const useCorepackYarn = process.platform === 'win32' && command === 'yarn'
     const executable = useCorepackYarn ? process.execPath : command
+    const commandArgs = [...args, ...sensitiveArgs]
     const spawnArgs = useCorepackYarn
-      ? [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...args]
-      : args
+      ? [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...commandArgs]
+      : commandArgs
     const log = createWriteStream(logPath, { flags: 'a' })
     const child = spawn(executable, spawnArgs, {
       cwd: root,
@@ -298,52 +298,12 @@ function run(command, args, { environment = {}, logPath }) {
           logFailure ??
             (code === 0
               ? null
-              : new Error(`${command} ${args.join(' ')} failed (${signal ?? `exit ${code}`}).`))
+              : Object.assign(
+                  new Error(`${command} ${args.join(' ')} failed (${signal ?? `exit ${code}`}).`),
+                  { exitCode: code, signal }
+                ))
         )
     )
-  })
-}
-
-function redactSensitiveOutput(value) {
-  return value
-    .replace(
-      /("(?:ANON_KEY|JWT_SECRET|PUBLISHABLE_KEY|S3_PROTOCOL_ACCESS_KEY_ID|S3_PROTOCOL_ACCESS_KEY_SECRET|SECRET_KEY|SERVICE_ROLE_KEY)"\s*:\s*)"[^"]*"/gu,
-      '$1"[REDACTED]"'
-    )
-    .replace(/((?:https?|postgres(?:ql)?):\/\/)[^@\s"]+@/giu, '$1[REDACTED]@')
-}
-
-function runSanitized(command, args, { environment = {}, logPath }) {
-  return new Promise((resolveRun, rejectRun) => {
-    const childEnvironment = localChildEnvironment(environment)
-    const useCorepackYarn = process.platform === 'win32' && command === 'yarn'
-    const executable = useCorepackYarn ? process.execPath : command
-    const spawnArgs = useCorepackYarn
-      ? [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...args]
-      : args
-    const child = spawn(executable, spawnArgs, {
-      cwd: root,
-      env: childEnvironment,
-      shell: false,
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-    const chunks = []
-    child.stdout.on('data', (chunk) => chunks.push(chunk))
-    child.stderr.on('data', (chunk) => chunks.push(chunk))
-    child.once('error', rejectRun)
-    child.once('close', async (code, signal) => {
-      try {
-        await writeFile(logPath, redactSensitiveOutput(Buffer.concat(chunks).toString('utf8')), {
-          flag: 'a'
-        })
-      } catch (error) {
-        rejectRun(error)
-        return
-      }
-      if (code === 0) resolveRun()
-      else
-        rejectRun(new Error(`${command} ${args.join(' ')} failed (${signal ?? `exit ${code}`}).`))
-    })
   })
 }
 
@@ -477,33 +437,93 @@ async function collectWarningCounts(artifactDirectory, completedStages) {
   return warnings
 }
 
+const localConvexStageNames = new Set([
+  'convex-codegen',
+  'convex-local-deploy',
+  'convex-seed',
+  'convex-audit-after-seed',
+  'convex-audit-post-browser'
+])
+
+const releaseProofAttempt = Date.now().toString(36)
+const nativeProofModes = [
+  'encounter-blueprints',
+  'character-concurrency',
+  'notification-delivery',
+  'session-control',
+  'campaign-inventory',
+  'equipment-capacity',
+  'equipment-character',
+  'publication',
+  'publication-class',
+  'publication-feat',
+  'publication-equipment',
+  'encounter-lifecycle',
+  'encounter-reaction-contention',
+  'encounter-action-contention',
+  'campaign-item-producers',
+  'campaign-vehicle-producers',
+  'campaign-inventory-read-probe',
+  'campaign-membership-custody',
+  'campaign-currency-lifecycle',
+  'campaign-assignment-lifecycle',
+  'campaign-qualified-currency',
+  'campaign-custody-authored-delete'
+]
+const browserProofModes = [
+  'auth-browser',
+  'profile-browser',
+  'recovery-browser',
+  'social-browser',
+  'account-entitlements',
+  'publication-browser',
+  'publication-class-browser',
+  'publication-feat-browser',
+  'publication-equipment-browser',
+  'campaign-lifecycle',
+  'campaign-custody-browser',
+  'campaign-membership-browser',
+  'campaign-collaboration-browser',
+  'campaign-content-browser',
+  'scene-live-browser',
+  'vtt-map-retention',
+  'movement',
+  'passage',
+  'disarm-browser',
+  'effects-browser',
+  'account-deletion-browser',
+  'builder-browser',
+  'character-sheet-browser',
+  'character-sheet-spells-browser',
+  'vtt-browser',
+  'v15-workload'
+]
+function localProofStage(proof, kind) {
+  const proofName =
+    proof === 'account-deletion-browser'
+      ? `account-deletion-browser${releaseProofAttempt}`
+      : `r08-${releaseProofAttempt}-${kind}-${proof}`
+  return {
+    ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-File',
+      '.codex/validation/local-convex-linux-20260915/run-local-proof-with-native-log.ps1',
+      '-Name',
+      proofName,
+      '-Proof',
+      proof
+    ]),
+    proofName,
+    environment: proof === 'v15-workload' ? { V15_BROWSER_PROOF: '1' } : undefined
+  }
+}
 const stages = [
-  stage('supabase-status', 'Local Supabase status', 'yarn', ['supabase', 'status']),
-  stage('bootstrap-bundle', 'Generate database bootstrap bundle', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/db',
-    'generate:bootstrap-bundle'
-  ]),
-  stage('database-reset', 'Reset local Supabase', 'yarn', ['supabase', 'db', 'reset', '--local']),
-  stage('migration-parity', 'Require exact local migration parity', 'node', [
-    'scripts/verifyLocalMigrationParity.mjs'
-  ]),
-  stage('database-types', 'Generate local Supabase types', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/db',
-    'gen:types'
-  ]),
-  stage('generated-parity', 'Require generated artifact byte parity', 'internal', [
-    'verify-generated-artifacts-unchanged'
-  ]),
-  stage('format-check', 'Accepted working-tree format check', 'internal', [
-    'verify-accepted-format'
-  ]),
-  stage('diff-check', 'Working-tree whitespace error check', 'git', [
-    'diff',
-    '--check',
-    'HEAD',
-    '--'
+  stage('install', 'Install the immutable dependency graph', 'yarn', ['install', '--immutable']),
+  stage('workspace-list', 'List the surviving workspaces', 'yarn', [
+    'workspaces',
+    'list',
+    '--json'
   ]),
   stage('clean-runtime-artifacts', 'Clean exact runtime and incremental artifacts', 'internal', [
     'clean-runtime-artifacts'
@@ -515,7 +535,38 @@ const stages = [
     '--force',
     '--concurrency=1'
   ]),
-  stage('netlify-typecheck', 'Netlify typecheck', 'yarn', ['typecheck:netlify']),
+  stage('auth-codegen', 'Generate Better Auth schema', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'codegen:auth'
+  ]),
+  stage('srd-manifest', 'Generate compressed SRD seed manifest', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'generate:srd:manifest'
+  ]),
+  stage('convex-codegen', 'Generate native Convex bindings', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'codegen:convex',
+    '--typecheck',
+    'disable'
+  ]),
+  stage('generated-parity', 'Require generated artifact byte parity', 'internal', [
+    'verify-generated-artifacts-unchanged'
+  ]),
+  stage('native-boundary-audit', 'Audit final native runtime boundaries', 'node', [
+    'scripts/auditNativeBoundaries.mjs'
+  ]),
+  stage('format-check', 'Accepted working-tree format check', 'internal', [
+    'verify-accepted-format'
+  ]),
+  stage('diff-check', 'Working-tree whitespace error check', 'git', [
+    'diff',
+    '--check',
+    'HEAD',
+    '--'
+  ]),
   stage('typecheck', 'Forced serial workspace typecheck', 'yarn', [
     'turbo',
     'run',
@@ -523,64 +574,73 @@ const stages = [
     '--force',
     '--concurrency=1'
   ]),
+  stage('convex-typecheck', 'Native Convex typecheck', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'typecheck:convex'
+  ]),
   stage('lint', 'Repository lint', 'yarn', ['lint']),
   stage('schema-tests', 'Schema tests', 'yarn', ['workspace', '@artificer-toolkit/schema', 'test']),
   stage('shared-tests', 'Shared tests', 'yarn', ['workspace', '@artificer-toolkit/shared', 'test']),
-  stage('db-tests', 'Database tests', 'yarn', ['workspace', '@artificer-toolkit/db', 'test']),
-  stage('functions-tests', 'Functions tests', 'yarn', [
+
+  stage('source-data-tests', 'Source data tests', 'yarn', [
     'workspace',
-    '@artificer-toolkit/functions',
+    '@artificer-toolkit/source-data',
     'test'
   ]),
-  stage('apis-tests', 'API tests', 'yarn', ['workspace', '@artificer-toolkit/apis', 'test']),
+  stage('authoring-tests', 'Authoring tests', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/authoring',
+    'test'
+  ]),
+  stage('apis-tests', 'API transport tests', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'test'
+  ]),
+  ...[1, 2, 3, 4].map((shard) =>
+    stage(
+      `convex-tests-${shard}`,
+      `Native Convex transaction, replay, rollback, and privacy tests shard ${shard} of 4`,
+      'yarn',
+      [
+        'workspace',
+        '@artificer-toolkit/apis',
+        'test:convex',
+        '--maxWorkers=1',
+        '--no-file-parallelism',
+        `--shard=${shard}/4`
+      ]
+    )
+  ),
   stage('design-system-tests', 'Design system tests', 'yarn', [
     'workspace',
     '@artificer-toolkit/design-system',
     'test'
   ]),
   stage('emails-tests', 'Email tests', 'yarn', ['workspace', '@artificer-toolkit/emails', 'test']),
+  stage('netlify-tests', 'Netlify infrastructure tests', 'yarn', [
+    'vitest',
+    'run',
+    '--config',
+    'vitest.config.ts',
+    'netlify/tests'
+  ]),
   stage('session-worker-tests', 'Session Worker tests', 'yarn', [
     'workspace',
     '@artificer-toolkit/session-worker',
     'test'
   ]),
-  stage('session-host-tests', 'Session Host tests', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/session-host',
-    'test'
-  ]),
-  stage('web-unit-tests-1', 'Web unit tests shard 1 of 4', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/web',
-    'test',
-    '--maxWorkers=1',
-    '--no-file-parallelism',
-    '--shard=1/4'
-  ]),
-  stage('web-unit-tests-2', 'Web unit tests shard 2 of 4', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/web',
-    'test',
-    '--maxWorkers=1',
-    '--no-file-parallelism',
-    '--shard=2/4'
-  ]),
-  stage('web-unit-tests-3', 'Web unit tests shard 3 of 4', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/web',
-    'test',
-    '--maxWorkers=1',
-    '--no-file-parallelism',
-    '--shard=3/4'
-  ]),
-  stage('web-unit-tests-4', 'Web unit tests shard 4 of 4', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/web',
-    'test',
-    '--maxWorkers=1',
-    '--no-file-parallelism',
-    '--shard=4/4'
-  ]),
+  ...[1, 2, 3, 4].map((shard) =>
+    stage(`web-unit-tests-${shard}`, `Web unit tests shard ${shard} of 4`, 'yarn', [
+      'workspace',
+      '@artificer-toolkit/web',
+      'test',
+      '--maxWorkers=1',
+      '--no-file-parallelism',
+      `--shard=${shard}/4`
+    ])
+  ),
   stage('web-typecheck-tests', 'Web test typecheck', 'yarn', [
     'workspace',
     '@artificer-toolkit/web',
@@ -601,157 +661,78 @@ const stages = [
     '@artificer-toolkit/web',
     'test:storybook'
   ]),
-  stage('netlify-tests', 'Netlify function tests', 'yarn', [
-    'vitest',
+  stage('convex-local-deploy', 'Deploy final source to the isolated Convex backend', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
+    'deploy',
+    '--yes',
+    '--typecheck',
+    'disable',
+    '--codegen',
+    'disable'
+  ]),
+  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh.exe', [
+    '-NoProfile',
+    '-NonInteractive',
+    '-File',
+    '.codex/validation/local-convex-linux-20260915/reset-local-convex.ps1',
+    '-Name',
+    `r08-reset-${releaseProofAttempt}`
+  ]),
+  stage('convex-seed', 'Seed canonical source into the isolated Convex deployment', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
     'run',
-    '--config',
-    'vitest.config.ts',
-    'netlify/tests',
-    '--maxWorkers=1',
-    '--no-file-parallelism'
+    'content/seed:seed'
   ]),
-  stage('seed-and-audit', 'Seed local SRD and canonical rules', 'yarn', ['seed:srd:local']),
-  stage('srd-audit-after-seed', 'Audit freshly seeded local SRD', 'yarn', ['audit:srd']),
-  stage('srd-integration', 'SRD integration', 'yarn', ['test:srd:integration']),
-  stage('character-integration', 'Character lifecycle integration', 'yarn', [
-    'test:character:integration'
-  ]),
-  stage('character-sheet-integration', 'Character Sheet integration', 'yarn', [
-    'test:character-sheet:integration'
-  ]),
-  stage('authored-rate-limit-integration', 'Authored creation rate-limit integration', 'yarn', [
+  stage('convex-audit-after-seed', 'Audit freshly seeded Convex source', 'yarn', [
     'workspace',
-    '@artificer-toolkit/db',
-    'test:authored-creation-rate-limit:integration'
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
+    'run',
+    'content/seed:audit'
   ]),
-  stage('social-hub-integration', 'Social Hub integration', 'yarn', [
-    'test:social-hub:integration'
-  ]),
-  stage('campaign-announcement-integration', 'Campaign announcement integration', 'yarn', [
-    'test:campaign-announcement:integration'
-  ]),
-  stage('notifications-integration', 'Notifications integration', 'yarn', [
-    'test:notifications:integration'
-  ]),
-  stage('vtt-map-integration', 'VTT map integration', 'yarn', ['test:vtt-map:integration']),
-  stage('session-host-integration-typecheck', 'Session Host integration typecheck', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/session-host',
-    'typecheck:integration'
-  ]),
-  stage('character-caster-postgres', 'Representative Character caster PostgreSQL proof', 'yarn', [
-    'tsx',
-    'apps/session-host/integration/characterCasterLifecyclePostgresProof.ts'
-  ]),
-  stage(
-    'authored-current-catalog-postgres',
-    'Authored current projection catalog PostgreSQL proof',
-    'yarn',
-    [
-      'tsx',
-      'apps/session-host/integration/runAuthoredCurrentProjectionPostgresProof.ts',
-      '--group=catalog'
-    ]
-  ),
-  stage(
-    'authored-current-mechanics-postgres',
-    'Authored current projection mechanics PostgreSQL proof',
-    'yarn',
-    [
-      'tsx',
-      'apps/session-host/integration/runAuthoredCurrentProjectionPostgresProof.ts',
-      '--group=mechanics'
-    ]
-  ),
-  stage(
-    'authored-current-concurrency-postgres',
-    'Authored current projection concurrency PostgreSQL proof',
-    'yarn',
-    [
-      'tsx',
-      'apps/session-host/integration/runAuthoredCurrentProjectionPostgresProof.ts',
-      '--group=concurrency'
-    ]
-  ),
-  stage(
-    'campaign-share-foundation-postgres',
-    'Campaign direct-share foundation PostgreSQL proof',
-    'yarn',
-    ['tsx', 'apps/session-host/integration/runCampaignContentShareFoundationPostgresProof.ts']
-  ),
-  ...['unshare', 'membership', 'vehicle', 'activation', 'deletion'].map((group) =>
-    stage(
-      `campaign-share-${group}-postgres`,
-      `Campaign direct-share ${group} PostgreSQL proof`,
-      'yarn',
-      [
-        'tsx',
-        'apps/session-host/integration/runCampaignContentShareRemovalPostgresProof.ts',
-        `--group=${group}`
-      ]
-    )
-  ),
-  stage(
-    'campaign-gate4-closeout-postgres',
-    'Campaign/Social/Notifications/Media PostgreSQL closeout proof',
-    'yarn',
-    ['tsx', 'apps/session-host/integration/runCampaignGate4CloseoutPostgresProof.ts']
-  ),
-  stage(
-    'phase-8-1-postgres',
-    'Phase 8.1 lifecycle, replay, rollback, concurrency, privacy, and cleanup proof',
-    'yarn',
-    ['workspace', '@artificer-toolkit/session-host', 'proof:phase-8-1:local']
-  ),
-  stage('authored-projection-verify-pre-vtt', 'Verify local authored projections', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/functions',
-    'projections:verify:authored:local'
-  ]),
-  stage('character-projection-verify-pre-vtt', 'Verify local Character projections', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/functions',
-    'projections:verify:characters:local'
-  ]),
-  stage(
-    'vtt-provision',
-    'Provision local managed VTT fixture',
-    'yarn',
-    ['provision:vtt-managed-smoke:local'],
-    { CONFIRM_MANAGED_VTT_SMOKE_PROVISION: 'provision-managed-vtt-smoke' }
-  ),
-  stage('web-e2e', 'Web end-to-end suite', 'yarn', [
+  ...nativeProofModes.map((proof) => localProofStage(proof, 'native')),
+  stage('web-e2e', 'Public web and Storybook end-to-end suite', 'yarn', [
     'workspace',
     '@artificer-toolkit/web',
-    'test:e2e'
+    'test:e2e',
+    'tests/e2e/app/authConfirmation.spec.ts',
+    'tests/e2e/storybook/authoredCatalogueSearch.spec.ts',
+    'tests/e2e/storybook/authoringWalkthrough.spec.ts',
+    'tests/e2e/storybook/mobileCatalogueLayout.spec.ts',
+    'tests/e2e/storybook/notifications.spec.ts'
   ]),
-  stage('vtt-host', 'Local authoritative VTT host gate', 'yarn', ['test:session-host:local']),
-  stage('vtt-browser', 'Local exact browser VTT gate', 'yarn', ['test:web:e2e:vtt-local']),
+  ...browserProofModes.map((proof) => localProofStage(proof, 'browser')),
+
   stage('vtt-load', 'Local VTT renderer load gate', 'yarn', [
     'workspace',
     '@artificer-toolkit/web',
     'test:e2e:vtt-load'
   ]),
-  stage('authored-projection-verify-post-vtt', 'Reverify local authored projections', 'yarn', [
+  stage('convex-audit-post-browser', 'Reaudit Convex source after browser journeys', 'yarn', [
     'workspace',
-    '@artificer-toolkit/functions',
-    'projections:verify:authored:local'
-  ]),
-  stage('character-projection-verify-post-vtt', 'Reverify local Character projections', 'yarn', [
-    'workspace',
-    '@artificer-toolkit/functions',
-    'projections:verify:characters:local'
-  ]),
-  stage('srd-audit-post-vtt', 'Reaudit local SRD', 'yarn', ['audit:srd'])
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
+    'run',
+    'content/seed:audit'
+  ])
 ]
 
 function auditLocalStageCommands() {
   const forbiddenTokens = []
   for (const current of stages) {
     for (const token of [current.command, ...current.args]) {
+      const reviewedLocalDeploy = current.name === 'convex-local-deploy' && token === 'deploy'
       if (
         /(?:^|:)(?:staging|production)(?::|$)/iu.test(token) ||
-        /(?:^|:)deploy(?::|$)/iu.test(token) ||
+        (!reviewedLocalDeploy && /(?:^|:)deploy(?::|$)/iu.test(token)) ||
         /^--(?:linked|project-ref|remote|staging|production)$/iu.test(token)
       ) {
         forbiddenTokens.push({ stage: current.name, token })
@@ -764,16 +745,54 @@ function auditLocalStageCommands() {
   return { hostedOperationCount: 0, reviewedStageCount: stages.length }
 }
 
+async function readLocalProofEvidence(proofName) {
+  const packet = '.codex/validation/local-convex-linux-20260915'
+  const stem = `${packet}/${proofName}`
+  const paths = {
+    command: `${stem}.command.txt`,
+    guard: `${stem}.guard.json`,
+    metadata: `${stem}.metadata.json`,
+    nativeCapture: `${stem}.native-capture.json`,
+    nativeCaptureStatus: `${stem}.native-capture-status.json`,
+    nativeExecutions: `${stem}.native-executions.jsonl`,
+    proofExit: `${stem}.exit.txt`,
+    proofLog: `${stem}.log`,
+    sourceBefore: `${stem}.source-before.json`,
+    sourceParity: `${stem}.source-parity.json`
+  }
+  for (const path of Object.values(paths)) {
+    if (!existsSync(resolve(root, path))) throw new Error(`Missing native proof evidence: ${path}`)
+  }
+  const [metadata, capture, status, parity] = await Promise.all([
+    readFile(resolve(root, paths.metadata), 'utf8').then(JSON.parse),
+    readFile(resolve(root, paths.nativeCapture), 'utf8').then(JSON.parse),
+    readFile(resolve(root, paths.nativeCaptureStatus), 'utf8').then(JSON.parse),
+    readFile(resolve(root, paths.sourceParity), 'utf8').then(JSON.parse)
+  ])
+  if (
+    metadata.exitCode !== 0 ||
+    metadata.target !== 'phase82-local-linux' ||
+    status.proofExit !== 0 ||
+    status.collectorReady !== true ||
+    status.collectorCompleted !== true ||
+    status.collectorTimedOut !== false ||
+    status.collectorState !== 'Completed' ||
+    parity.matches !== true ||
+    !Number.isInteger(capture.entryCount) ||
+    capture.entryCount < 1
+  ) {
+    throw new Error(`Incomplete native proof, collector, or source parity: ${proofName}`)
+  }
+  return { paths, nativeExitCode: metadata.exitCode, nativeEntryCount: capture.entryCount }
+}
 function sanitizeLogExcerpt(value) {
-  return value
-    .replace(/postgres(?:ql)?:\/\/[^\s'"`]+/giu, '[REDACTED_CONNECTION_STRING]')
-    .replace(
-      /\b(?:access[_-]?token|api[_-]?key|password|secret|token)\s*[:=]\s*[^\s'"`]+/giu,
-      (match) => {
-        const separator = match.search(/[:=]/u)
-        return `${match.slice(0, separator + 1)} [REDACTED]`
-      }
-    )
+  return value.replace(
+    /\b(?:access[_-]?token|api[_-]?key|password|secret|token)\s*[:=]\s*[^\s'"`]+/giu,
+    (match) => {
+      const separator = match.search(/[:=]/u)
+      return `${match.slice(0, separator + 1)} [REDACTED]`
+    }
+  )
 }
 
 async function failureExcerpt(logPath) {
@@ -796,33 +815,31 @@ async function main() {
   }
 
   const startAtArgument = process.argv.find((argument) => argument.startsWith('--start-at='))
+  const stopAfterArgument = process.argv.find((argument) => argument.startsWith('--stop-after='))
   const provenanceArgument = process.argv.find((argument) =>
     argument.startsWith('--provenance-manifest=')
   )
+  const localEnvironmentArgument = process.argv.find((argument) =>
+    argument.startsWith('--local-env-file=')
+  )
   const startAt = startAtArgument?.slice('--start-at='.length)
+  const stopAfter = stopAfterArgument?.slice('--stop-after='.length)
   const provenanceManifestPath = provenanceArgument?.slice('--provenance-manifest='.length)
-  const reuseDatabaseEvidence = process.argv.includes('--reuse-database-evidence')
-  if (Boolean(startAt) !== Boolean(provenanceManifestPath)) {
-    throw new Error('--start-at and --provenance-manifest must be provided together.')
-  }
-  if (reuseDatabaseEvidence && !startAt) {
-    throw new Error('--reuse-database-evidence requires a resumed lifecycle.')
-  }
-  const requestedStartIndex = startAt ? stages.findIndex(({ name }) => name === startAt) : 0
+  if ((startAt === undefined) !== (provenanceManifestPath === undefined))
+    throw new Error('Resume requires both --start-at and --provenance-manifest.')
+  const requestedStartIndex = startAt ? stages.findIndex((current) => current.name === startAt) : 0
   if (requestedStartIndex < 0) throw new Error(`Unknown resume stage: ${startAt}.`)
+  const requestedStopIndex = stopAfterArgument
+    ? stages.findIndex((current) => current.name === stopAfter)
+    : stages.length - 1
+  if (requestedStopIndex < requestedStartIndex)
+    throw new Error(`Checkpoint stage must follow the start stage: ${stopAfter}.`)
 
-  const removedRemoteEnvironmentNames = await loadLocalEnvironment()
+  const { localEnvironment, removedRemoteEnvironmentNames } = await loadLocalEnvironment(
+    localEnvironmentArgument?.slice('--local-env-file='.length)
+  )
   assertLocalLifecycleTarget()
   const commandAudit = auditLocalStageCommands()
-  const databaseResetIndex = stages.findIndex(({ name }) => name === 'database-reset')
-  if (
-    requestedStartIndex <= databaseResetIndex &&
-    process.env.CONFIRM_PRE_STAGING_LOCAL_RESET !== confirmation
-  ) {
-    throw new Error(
-      `Set CONFIRM_PRE_STAGING_LOCAL_RESET=${confirmation} in the environment or .env.local.`
-    )
-  }
 
   const artifactDirectory = resolve(
     root,
@@ -832,6 +849,20 @@ async function main() {
   await mkdir(artifactDirectory, { recursive: true })
   const manifestPath = resolve(artifactDirectory, 'manifest.json')
   const generatedBaseline = await fileChecksums(generatedFiles)
+  for (const path of generatedFiles) {
+    const beforePath = resolve(artifactDirectory, 'generated-before', path)
+    await mkdir(dirname(beforePath), { recursive: true })
+    await copyFile(resolve(root, path), beforePath)
+  }
+  const proofToolDirectory = '.codex/validation/local-convex-linux-20260915'
+  const proofToolPaths = [
+    ...(await readdir(resolve(root, proofToolDirectory)))
+      .filter((name) => /^(?:run-local-.*|reset-local-convex)\.(?:mts|ps1)$/u.test(name))
+      .map((name) => `${proofToolDirectory}/${name}`),
+    `${proofToolDirectory}/local.credentials.json`,
+    `${proofToolDirectory}/local.application.env`
+  ].sort()
+  const proofToolBaseline = await fileChecksums(proofToolPaths)
   const packageMetadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
   const sourceStart = await sourceIdentity()
   let selectedStages = stages
@@ -856,9 +887,10 @@ async function main() {
       const current = JSON.parse(await readFile(resolvedPath, 'utf8'))
       if (
         current.source?.start?.branch !== sourceStart.branch ||
-        current.source?.start?.head !== sourceStart.head
+        current.source?.start?.head !== sourceStart.head ||
+        current.source?.start?.workingTreeChecksum !== sourceStart.workingTreeChecksum
       ) {
-        throw new Error('The provenance manifest does not match the current branch and HEAD.')
+        throw new Error('The provenance manifest does not match the current source identity.')
       }
       const inherited = current.provenance?.manifest
         ? await loadProvenanceChain(current.provenance.manifest)
@@ -888,27 +920,30 @@ async function main() {
         throw new Error(`The provenance manifest does not prove passed stage ${required.name}.`)
       }
     }
+    const vttTimingStage = recordedStages.find((stage) => stage.name === 'r08-browser-vtt-browser')
+    if (vttTimingStage?.status === 'passed' && vttTimingStage.proofEvidence?.paths.browserTimings) {
+      provenanceStageLogPaths.set(
+        'r08-browser-vtt-browser-timings',
+        resolve(root, vttTimingStage.proofEvidence.paths.browserTimings)
+      )
+    }
     selectedStages = stages.slice(requestedStartIndex)
-    const retainedDatabaseStages = reuseDatabaseEvidence
-      ? ['seed-and-audit', 'srd-audit-after-seed', 'srd-audit-post-vtt']
-      : []
-    selectedStages = selectedStages.filter(({ name }) => !retainedDatabaseStages.includes(name))
     provenance = {
       acceptedPassedStageCount: requiredPriorStages.length,
       manifest: relativeProvenancePath,
       priorWorkingTreeChecksum: prior.source.start.workingTreeChecksum,
-      retainedDatabaseStages,
       resumeFromStage: startAt
     }
   }
+  if (stopAfter)
+    selectedStages = selectedStages.slice(0, requestedStopIndex - requestedStartIndex + 1)
   const manifest = {
     artifactDirectory,
+    generatedBefore: { directory: 'generated-before', checksums: generatedBaseline },
     environment: {
       architecture: process.arch,
       localTargets: [
-        localTargetMetadata('DATABASE_CONNECTION_STRING', process.env.DATABASE_CONNECTION_STRING),
-        localTargetMetadata('SUPABASE_URL', process.env.SUPABASE_URL),
-        localTargetMetadata('VITE_SUPABASE_URL', process.env.VITE_SUPABASE_URL),
+        ...requiredLocalUrlNames.map((name) => localTargetMetadata(name, process.env[name])),
         ...optionalLocalUrlNames
           .filter((name) => process.env[name])
           .map((name) => localTargetMetadata(name, process.env[name]))
@@ -918,6 +953,7 @@ async function main() {
       platform: process.platform,
       remoteAccessFreeze: {
         commandAudit,
+        localEnvironment,
         removedRemoteEnvironmentNames,
         stagingState: 'UNTOUCHED_AND_FROZEN',
         target: 'LOCAL_LOOPBACK_ONLY'
@@ -928,26 +964,34 @@ async function main() {
     promotionContract,
     provenance,
     startedAt: new Date().toISOString(),
-    source: { start: sourceStart },
+    source: { start: sourceStart, proofTools: { start: proofToolBaseline } },
     stages: []
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-  for (const current of selectedStages) {
-    assertLocalLifecycleTarget()
-    const logPath = resolve(artifactDirectory, `${current.name}.log`)
-    const stageStart = Date.now()
-    const entry = {
-      command: [current.command, ...current.args],
-      name: current.name,
-      label: current.label,
-      startedAt: new Date().toISOString(),
-      status: 'running',
-      log: basename(logPath)
+  const verifySourceEnd = async () => {
+    const end = await sourceIdentity()
+    manifest.source.end = end
+    const proofToolPathsAtEnd = [
+      ...(await readdir(resolve(root, proofToolDirectory)))
+        .filter((name) => /^(?:run-local-.*|reset-local-convex)\.(?:mts|ps1)$/u.test(name))
+        .map((name) => `${proofToolDirectory}/${name}`),
+      `${proofToolDirectory}/local.credentials.json`,
+      `${proofToolDirectory}/local.application.env`
+    ].sort()
+    const proofToolEnd = await fileChecksums(proofToolPathsAtEnd)
+    manifest.source.proofTools.end = proofToolEnd
+    if (JSON.stringify(proofToolBaseline) !== JSON.stringify(proofToolEnd))
+      throw new Error('Ignored local proof tools or credentials changed during validation.')
+    if (JSON.stringify(manifest.source.start) !== JSON.stringify(end)) {
+      manifest.source.error = 'Source identity changed during validation.'
+      throw new Error(
+        'Source identity changed during validation; inspect the manifest before staging.'
+      )
     }
-    manifest.stages.push(entry)
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    console.log(`[pre-staging] ${current.label}`)
+  }
+
+  const executeStage = async (current, entry, logPath, stageStart) => {
     try {
       if (current.name === 'generated-parity') {
         const generatedCurrent = await fileChecksums(generatedFiles)
@@ -963,72 +1007,148 @@ async function main() {
         if (JSON.stringify(generatedBaseline) !== JSON.stringify(generatedCurrent)) {
           throw new Error('Generated artifacts changed after canonical regeneration.')
         }
-      } else if (current.name === 'supabase-status') {
-        await runSanitized(current.command, current.args, {
-          logPath,
-          environment: current.environment
-        })
       } else if (current.name === 'format-check') {
         const changedPaths = acceptedChangedPaths(manifest.source.start.status).filter(
-          (path) => !generatedFiles.includes(path)
-        )
-        const oxfmtPaths = changedPaths.filter((path) =>
-          /\.(?:js|jsx|md|mjs|mts|ts|tsx)$/iu.test(path)
-        )
-        const sqlPaths = changedPaths.filter(
           (path) =>
-            path.endsWith('.sql') &&
             !generatedFiles.includes(path) &&
-            path !== 'packages/db/src/domains/utils/create_database.sql' &&
-            path !== 'supabase/migrations/20260825061000_campaign_catalogue_content_binding.sql'
+            !path.startsWith('apps/apis/convex/_generated/') &&
+            !path.startsWith('apps/apis/convex/betterAuth/_generated/')
         )
-        await writeFile(logPath, `${JSON.stringify({ oxfmtPaths, sqlPaths })}\n`)
+        const oxfmtPaths = changedPaths.filter(
+          (path) =>
+            existsSync(resolve(root, path)) && /\.(?:js|jsx|md|mjs|mts|ts|tsx)$/iu.test(path)
+        )
+        await writeFile(logPath, `${JSON.stringify({ oxfmtPaths })}\n`)
         for (let index = 0; index < oxfmtPaths.length; index += 50) {
           await run('yarn', ['oxfmt', '--check', ...oxfmtPaths.slice(index, index + 50)], {
             logPath
           })
         }
-        if (sqlPaths.length > 0) {
-          await run(
-            'yarn',
-            [
-              'prettier',
-              '--plugin',
-              'prettier-plugin-sql-cst',
-              '--parser',
-              'postgresql',
-              '--check',
-              ...sqlPaths
-            ],
-            { logPath }
-          )
-        }
       } else if (current.name === 'clean-runtime-artifacts') {
         await cleanRuntimeArtifacts(logPath)
       } else {
+        if (current.name === 'convex-local-deploy') await verifySourceEnd()
         await run(current.command, current.args, {
           logPath,
-          environment: current.environment
+          environment: current.environment,
+          sensitiveArgs: localConvexStageNames.has(current.name)
+            ? [
+                '--url',
+                process.env.CONVEX_SELF_HOSTED_URL,
+                '--admin-key',
+                process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+              ]
+            : []
         })
+        if (current.name === 'convex-local-deploy') await verifySourceEnd()
       }
+      if (current.proofName) entry.proofEvidence = await readLocalProofEvidence(current.proofName)
+      if (current.name === 'convex-reset') {
+        const resetStem = `.codex/validation/local-convex-linux-20260915/r08-reset-${releaseProofAttempt}`
+        const reset = JSON.parse(await readFile(resolve(root, `${resetStem}.reset.json`), 'utf8'))
+        if (
+          reset.status !== 'passed' ||
+          reset.target !== 'phase82-local-linux' ||
+          reset.clearedTableCount !== reset.plannedTables?.length
+        ) {
+          throw new Error('The local reset did not complete its table audit.')
+        }
+        entry.resetEvidence = {
+          manifest: `${resetStem}.reset.json`,
+          backup: `${resetStem}.before.zip`,
+          backupSha256: reset.backupSha256,
+          postReset: `${resetStem}.after.zip`,
+          postResetSha256: reset.postResetSha256,
+          clearedTableCount: reset.clearedTableCount
+        }
+      }
+      if (current.name === 'r08-browser-vtt-browser') {
+        const source = resolve(root, '.codex/validation/phase82-vtt-browser/playwright.log')
+        const timingPath = resolve(artifactDirectory, 'r08-browser-vtt-browser.playwright.log')
+        if ((await stat(source)).mtimeMs < stageStart - 2000) {
+          throw new Error('The VTT browser timing log was not written by this proof.')
+        }
+        await copyFile(source, timingPath)
+        entry.proofEvidence.paths.browserTimings = relative(root, timingPath).replaceAll('\\', '/')
+      }
+      entry.exitCode = 0
       entry.status = 'passed'
       entry.completedAt = new Date().toISOString()
       entry.durationMs = Date.now() - stageStart
-    } catch {
+    } catch (error) {
+      entry.exitCode = Number.isInteger(error?.exitCode) ? error.exitCode : null
       entry.status = 'failed'
       entry.completedAt = new Date().toISOString()
       entry.durationMs = Date.now() - stageStart
       entry.error = 'Command failed; inspect the stage log.'
-      manifest.completedAt = entry.completedAt
+      return { current, logPath }
+    }
+    return null
+  }
+
+  for (let index = 0; index < selectedStages.length; ) {
+    const current = selectedStages[index]
+    const next = selectedStages[index + 1]
+    const pair =
+      (current.name === 'convex-tests-1' && next?.name === 'convex-tests-2') ||
+      (current.name === 'convex-tests-3' && next?.name === 'convex-tests-4')
+    const batch = pair ? [current, next] : [current]
+    const prepared = batch.map((stage) => {
+      assertLocalLifecycleTarget()
+      const logPath = resolve(artifactDirectory, `${stage.name}.log`)
+      const stageStart = Date.now()
+      const entry = {
+        command: [stage.command, ...stage.args],
+        name: stage.name,
+        label: stage.label,
+        startedAt: new Date().toISOString(),
+        status: 'running',
+        log: basename(logPath)
+      }
+      manifest.stages.push(entry)
+      console.log(`[pre-staging] ${stage.label}`)
+      return { current: stage, entry, logPath, stageStart }
+    })
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+    const results = await Promise.all(
+      prepared.map(({ current, entry, logPath, stageStart }) =>
+        executeStage(current, entry, logPath, stageStart)
+      )
+    )
+    const failures = results.filter(Boolean)
+    if (failures.length > 0) {
+      manifest.completedAt = new Date().toISOString()
       manifest.status = 'failed'
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-      const excerpt = await failureExcerpt(logPath)
-      console.error(`[pre-staging] FAILED: ${current.label}; see ${logPath}`)
-      if (excerpt) console.error(excerpt)
+    }
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+    if (failures.length > 0) {
+      for (const { current, logPath } of failures) {
+        const excerpt = await failureExcerpt(logPath)
+        console.error(`[pre-staging] FAILED: ${current.label}; see ${logPath}`)
+        if (excerpt) console.error(excerpt)
+      }
       process.exitCode = 1
       return
     }
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+    index += batch.length
+  }
+
+  if (stopAfter) {
+    try {
+      await verifySourceEnd()
+      manifest.completedAt = new Date().toISOString()
+      manifest.nextStage = stages[requestedStopIndex + 1]?.name ?? null
+      manifest.status = 'checkpoint'
+      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+      console.log(`[pre-staging] CHECKPOINT: ${artifactDirectory}`)
+    } catch (error) {
+      manifest.completedAt = new Date().toISOString()
+      manifest.finalizationError = error instanceof Error ? error.message : String(error)
+      manifest.status = 'failed'
+      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+      throw error
+    }
+    return
   }
 
   if (process.env.PRE_STAGING_INCLUDE_VTT_HARDWARE === '1') {
@@ -1052,10 +1172,12 @@ async function main() {
         logPath,
         environment: { VTT_HARDWARE_FPS_GATE: '1' }
       })
+      entry.exitCode = 0
       entry.status = 'passed'
       entry.completedAt = new Date().toISOString()
       entry.durationMs = Date.now() - stageStart
-    } catch {
+    } catch (error) {
+      entry.exitCode = Number.isInteger(error?.exitCode) ? error.exitCode : null
       entry.status = 'failed'
       entry.completedAt = new Date().toISOString()
       entry.durationMs = Date.now() - stageStart
@@ -1072,51 +1194,71 @@ async function main() {
   }
 
   try {
-    const end = await sourceIdentity()
-    manifest.source.end = end
-    if (JSON.stringify(manifest.source.start) !== JSON.stringify(end)) {
-      manifest.source.error = 'Source identity changed during validation.'
+    await verifySourceEnd()
+    const currentBrowserLogPath = resolve(
+      artifactDirectory,
+      'r08-browser-vtt-browser.playwright.log'
+    )
+    const browserLogPath = existsSync(currentBrowserLogPath)
+      ? currentBrowserLogPath
+      : provenanceStageLogPaths.get('r08-browser-vtt-browser-timings')
+    if (!browserLogPath) throw new Error('The native local VTT browser log was not retained.')
+    const browserLog = await readFile(browserLogPath, 'utf8')
+    const timingPrefix = 'Managed VTT convergence timings: '
+    const browserResult = browserLog
+      .split(/\r?\n/u)
+      .filter((line) => line.includes(timingPrefix))
+      .map((line) => JSON.parse(line.slice(line.indexOf(timingPrefix) + timingPrefix.length)))
+      .at(-1)
+    if (
+      !browserResult?.authoritative ||
+      !browserResult?.durable ||
+      !browserResult?.ephemeral ||
+      !browserResult?.ruleBound ||
+      !browserResult?.sceneOnly
+    ) {
       throw new Error(
-        'Source identity changed during validation; inspect the manifest before staging.'
+        'The native local VTT browser log did not contain the frozen workload metrics.'
       )
     }
-    const currentHostLogPath = resolve(artifactDirectory, 'vtt-host.log')
-    const hostLogPath = existsSync(currentHostLogPath)
-      ? currentHostLogPath
-      : provenanceStageLogPaths.get('vtt-host')
-    if (!hostLogPath) throw new Error('The local VTT host log was not retained in the lifecycle.')
-    const hostLog = await readFile(hostLogPath, 'utf8')
-    const hostResult = hostLog
-      .split(/\r?\n/u)
-      .filter((line) => line.startsWith('{') && line.includes('"hostMode"'))
-      .map((line) => JSON.parse(line))
-      .at(-1)
-    if (!hostResult?.timings) {
-      throw new Error('The local VTT host log did not contain bounded performance metrics.')
-    }
     manifest.performance = {
-      coldCommandReady: {
-        budgetMs: 500,
-        observedMs: hostResult.timings.coldCommandMs,
-        passed: hostResult.timings.coldCommandMs < 500
+      authoritativeBrowserConvergenceP95: {
+        budgetMs: 1000,
+        observedMs: browserResult.authoritative.p95,
+        passed: browserResult.authoritative.p95 < 1000
       },
-      ruleBoundHostP95: {
+      durableBrowserConvergenceP95: {
         budgetMs: 250,
-        observedMs: hostResult.timings.ruleBoundHostP95Ms,
-        passed: hostResult.timings.ruleBoundHostP95Ms < 250
+        observedMs: browserResult.durable.p95,
+        passed: browserResult.durable.p95 <= 250
       },
-      sceneOnlyHostP95: {
-        budgetMs: 100,
-        observedMs: hostResult.timings.sceneHostP95Ms,
-        passed: hostResult.timings.sceneHostP95Ms < 100
+      durableBrowserConvergenceP99: {
+        budgetMs: 500,
+        observedMs: browserResult.durable.p99,
+        passed: browserResult.durable.p99 <= 500
+      },
+      ephemeralBrowserConvergenceP95: {
+        budgetMs: 150,
+        observedMs: browserResult.ephemeral.p95,
+        passed: browserResult.ephemeral.p95 <= 150
+      },
+      ruleBrowserConvergenceP95: {
+        budgetMs: 1000,
+        observedMs: browserResult.ruleBound.p95,
+        passed: browserResult.ruleBound.p95 < 1000
+      },
+      sceneBrowserConvergenceP95: {
+        budgetMs: 1000,
+        observedMs: browserResult.sceneOnly.p95,
+        passed: browserResult.sceneOnly.p95 < 1000
       }
     }
     if (Object.values(manifest.performance).some(({ passed }) => !passed)) {
-      throw new Error('One or more retained local VTT performance budgets failed.')
+      throw new Error('One or more frozen local VTT performance budgets failed.')
     }
     manifest.warnings = await collectWarningCounts(artifactDirectory, manifest.stages)
     manifest.completedAt = new Date().toISOString()
-    manifest.releaseReadiness = 'READY_TO_RESUME_VTT_EXPANSION'
+    manifest.releaseReadiness = 'READY_FOR_BOUNDED_STAGING_REVIEW'
     manifest.status = 'passed'
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
     console.log(`[pre-staging] PASSED: ${artifactDirectory}`)

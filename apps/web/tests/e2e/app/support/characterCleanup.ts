@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import type { Page } from '@playwright/test'
-import { createCharacterRepository, createDb } from '@artificer-toolkit/db'
-import { getSupabaseAdminClient } from '../../../../src/supabase/admin.server'
-
-const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1'])
+import { api } from '@artificer-toolkit/apis/convex/api'
+import type { CharacterDraftListPage } from '@artificer-toolkit/schema/api/characterDrafts'
+import type { CharacterListPage } from '@artificer-toolkit/schema/api/characterList'
+import { ConvexHttpClient } from 'convex/browser'
+import { developmentCli } from '../../../../../apis/tests/developmentCli'
+import { developmentTarget } from '../../../../../apis/tests/developmentTarget'
 
 export type E2ECharacterCleanup = {
   captureRoute(page: Page): void
@@ -13,6 +15,12 @@ export type E2ECharacterCleanup = {
 type TrackedCharacter = {
   label: string
   publicId?: string
+}
+
+type FixtureCharacter = {
+  id: string
+  label: string
+  publicId: string
 }
 
 export function createE2ECharacterCleanup(): {
@@ -42,112 +50,122 @@ export function createE2ECharacterCleanup(): {
     async cleanup() {
       const target = tracked
       if (!target) return
-      const databaseUrl = requireLoopbackUrl('DATABASE_CONNECTION_STRING')
-      requireLoopbackUrl('SUPABASE_URL')
-      const expectedEmail = process.env.MVP_AUDIT_EMAIL?.trim().toLowerCase()
-      if (!expectedEmail) throw new Error('MVP_AUDIT_EMAIL is required for exact E2E cleanup.')
+      const email = process.env.MVP_AUDIT_EMAIL?.trim().toLowerCase()
+      assert.match(email ?? '', /^draft_[0-9a-f]{12}@example\.invalid$/)
+      const session = requireEnvironment('CONVEX_E2E_SESSION')
+      const userId = requireEnvironment('CONVEX_E2E_USER_ID')
+      const targetEnvironment = developmentTarget(process.env)
+      const token = await fetchConvexToken(targetEnvironment.siteUrl, session)
+      const client = new ConvexHttpClient(targetEnvironment.deploymentUrl.origin, { logger: false })
+      client.setAuth(token)
+      const identity = await client.query(api.account.identity, {})
+      assert.equal(identity.userId, userId, 'Cleanup session must belong to the fixture account.')
 
-      const db = createDb({ connectionString: databaseUrl.toString() })
-      try {
-        const deleted = await db.transaction().execute(async (trx) => {
-          const characters = await trx
-            .selectFrom('characters')
-            .select(['id', 'label', 'status', 'stream_version', 'user_id'])
-            .where('label', '=', target.label)
-            .forUpdate()
-            .execute()
-          assert.ok(characters.length <= 1, 'Exact E2E Character label is ambiguous.')
-          const character = characters[0]
-          if (!character) return null
-
-          const { data, error } = await getSupabaseAdminClient().auth.admin.getUserById(
-            character.user_id
-          )
-          if (error) throw error
-          assert.equal(data.user.email?.toLowerCase(), expectedEmail)
-
-          const routes = await trx
-            .selectFrom('authored_route_ids')
-            .select(['subject_kind', 'subject_id', 'public_id'])
-            .where('subject_kind', '=', 'CHARACTER')
-            .where('subject_id', '=', character.id)
-            .forUpdate()
-            .execute()
-          assert.equal(routes.length, 1, 'Persisted E2E Character must have one exact route.')
-          const route = routes[0]!
-          if (target.publicId) assert.equal(route.public_id, target.publicId)
-
-          const deletedCharacter = await trx
-            .deleteFrom('characters')
-            .where('id', '=', character.id)
-            .returning('id')
-            .execute()
-          assert.deepEqual(deletedCharacter, [{ id: character.id }])
-          const deletedRoute = await trx
-            .deleteFrom('authored_route_ids')
-            .where('subject_kind', '=', 'CHARACTER')
-            .where('subject_id', '=', character.id)
-            .where('public_id', '=', route.public_id)
-            .returning(['subject_id', 'public_id'])
-            .execute()
-          assert.deepEqual(deletedRoute, [{ public_id: route.public_id, subject_id: character.id }])
-
-          return { characterId: character.id, publicId: route.public_id }
-        })
-
-        if (!deleted) {
-          if (target.publicId) {
-            const route = await db
-              .selectFrom('authored_route_ids')
-              .select('subject_id')
-              .where('subject_kind', '=', 'CHARACTER')
-              .where('public_id', '=', target.publicId)
-              .execute()
-            assert.equal(route.length, 0)
-          }
-          console.info(
-            '[e2e-character-cleanup]',
-            JSON.stringify({ cleanup: 'ABSENT', label: target.label, localOnly: true })
-          )
-          return
-        }
-
-        assert.equal(await createCharacterRepository(db).findById(deleted.characterId), null)
-        const characterRows = await db
-          .selectFrom('characters')
-          .select('id')
-          .where('id', '=', deleted.characterId)
-          .execute()
-        const routeRows = await db
-          .selectFrom('authored_route_ids')
-          .select('subject_id')
-          .where('subject_kind', '=', 'CHARACTER')
-          .where((expression) =>
-            expression.or([
-              expression('subject_id', '=', deleted.characterId),
-              expression('public_id', '=', deleted.publicId)
-            ])
-          )
-          .execute()
-        assert.equal(characterRows.length, 0)
-        assert.equal(routeRows.length, 0)
+      const characters = await readFixtureCharacters(client)
+      const matches = [...characters.values()].filter(
+        (character) => character.label === target.label
+      )
+      assert.ok(matches.length <= 1, 'Exact E2E Character label is ambiguous.')
+      const [found] = matches
+      if (!found) {
+        await assertCharacterAbsent(client, target)
         console.info(
           '[e2e-character-cleanup]',
-          JSON.stringify({ cleanup: 'PASS', localOnly: true, ...deleted })
+          JSON.stringify({ cleanup: 'ABSENT', label: target.label, native: true })
         )
-      } finally {
-        await db.destroy()
+        return
       }
+      if (target.publicId) assert.equal(found.publicId, target.publicId)
+
+      await developmentCli(
+        'characters/development:removePersonalFixtureCharacter',
+        { userId, characterId: found.id },
+        false
+      )
+      await assertCharacterAbsent(client, target)
+      console.info(
+        '[e2e-character-cleanup]',
+        JSON.stringify({
+          cleanup: 'PASS',
+          label: target.label,
+          native: true,
+          publicId: found.publicId
+        })
+      )
     }
   }
 }
 
-function requireLoopbackUrl(name: string): URL {
-  const rawValue = process.env[name]?.trim()
-  if (!rawValue) throw new Error(`${name} is required for exact E2E cleanup.`)
-  const value = new URL(rawValue)
-  if (!loopbackHosts.has(value.hostname.toLowerCase())) {
-    throw new Error(`${name} must target loopback for exact E2E cleanup.`)
+async function fetchConvexToken(siteUrl: URL, session: string): Promise<string> {
+  const response = await fetch(new URL('/api/auth/convex/token', siteUrl), {
+    headers: { Authorization: `Bearer ${session}`, Origin: 'http://localhost:3000' },
+    signal: AbortSignal.timeout(30_000)
+  })
+  assert.equal(response.status, 200, 'Fixture session could not refresh its Convex token.')
+  const body: unknown = await response.json()
+  assert.ok(body && typeof body === 'object' && 'token' in body && typeof body.token === 'string')
+  return body.token
+}
+
+async function readFixtureCharacters(
+  client: ConvexHttpClient
+): Promise<Map<string, FixtureCharacter>> {
+  const characters = new Map<string, FixtureCharacter>()
+  let cursor: string | null = null
+  while (true) {
+    const active: CharacterListPage = await client.query(api.characters.list.list, {
+      paginationOpts: { cursor, numItems: 8 }
+    })
+    for (const character of active.page) {
+      const existing = characters.get(character.id)
+      if (existing) {
+        assert.equal(existing.label, character.label)
+        assert.equal(existing.publicId, character.publicId)
+      }
+      characters.set(character.id, character)
+    }
+    if (active.isDone) break
+    cursor = active.continueCursor
   }
+
+  cursor = null
+  while (true) {
+    const drafts: CharacterDraftListPage = await client.query(api.characters.drafts.list, {
+      paginationOpts: { cursor, numItems: 8 }
+    })
+    for (const draft of drafts.page) {
+      const existing = characters.get(draft.characterId)
+      if (existing) {
+        assert.equal(existing.label, draft.label)
+        assert.equal(existing.publicId, draft.publicId)
+      }
+      characters.set(draft.characterId, {
+        id: draft.characterId,
+        label: draft.label,
+        publicId: draft.publicId
+      })
+    }
+    if (drafts.isDone) break
+    cursor = drafts.continueCursor
+  }
+  return characters
+}
+
+async function assertCharacterAbsent(
+  client: ConvexHttpClient,
+  target: TrackedCharacter
+): Promise<void> {
+  const characters = await readFixtureCharacters(client)
+  assert.ok(
+    ![...characters.values()].some(
+      (character) => character.label === target.label || character.publicId === target.publicId
+    ),
+    'Tracked Character remains after native cleanup.'
+  )
+}
+
+function requireEnvironment(name: 'CONVEX_E2E_SESSION' | 'CONVEX_E2E_USER_ID'): string {
+  const value = process.env[name]?.trim()
+  if (!value) throw new Error(`${name} is required for native E2E cleanup.`)
   return value
 }

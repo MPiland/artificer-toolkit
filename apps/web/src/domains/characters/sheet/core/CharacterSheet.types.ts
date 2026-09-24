@@ -1,8 +1,6 @@
-import type {
-  CharacterSheetCommandInputDto,
-  CharacterSheetPanelTargetDto,
-  CharacterSheetResponseDto
-} from '#app/lib/api'
+import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 
 export type CharacterSheet = CharacterSheetResponseDto
 export type CharacterSheetCommandDraft = CharacterSheetCommandInputDto extends infer Command

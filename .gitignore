@@ -15,7 +15,9 @@ storybook-static/
 *.tsbuildinfo
 
 # Local tool state and generated test artifacts
+.netlify/
 .codex/
+/local-validation/
 .corepack/
 .impeccable/review/
 /artifacts/
@@ -35,8 +37,9 @@ tmp/
 .impeccable/live/app-root.json
 apps/*/.impeccable/live/*.json
 apps/web/.tanstack/tmp/
-supabase/.temp/
 /codex/validation/
+# Retired local Supabase CLI state; contains generated secrets.
+/supabase/.temp/
 
 # Editor directories and files
 .vscode/*
@@ -57,8 +60,7 @@ supabase/.temp/
 
 !jest.config.js
 *.d.ts
-packages/db/src/source-data/**/*.d.ts.map
-packages/db/src/source-data/**/*.js
-packages/db/src/source-data/**/*.js.map
+!apps/apis/convex/_generated/*.d.ts
+apps/apis/.convex/
 
 *storybook.log

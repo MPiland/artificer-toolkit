@@ -1,6 +1,5 @@
 import { Accordion, NumberInput, TextInput } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
-import { getSystemList } from '#app/data/systems/queries'
+import { useSystemList } from '#app/data/systems/useSystemList'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import {
@@ -29,7 +28,7 @@ export function SocialDiscoveryFilters({
   search: SocialHubSearch
   onSearchChange: (next: SocialHubSearch) => void
 }) {
-  const systems = useQuery(getSystemList())
+  const systems = useSystemList()
   const set = <TKey extends keyof SocialHubSearch>(key: TKey, value: SocialHubSearch[TKey]) =>
     onSearchChange({ ...search, [key]: value })
   const defaultSections = [

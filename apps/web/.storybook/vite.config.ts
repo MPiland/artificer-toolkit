@@ -6,11 +6,6 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true
   },
-  server: {
-    hmr: {
-      port: 24679
-    }
-  },
   plugins: [
     vanillaExtractPlugin({
       unstable_mode: 'inlineCssInDev'

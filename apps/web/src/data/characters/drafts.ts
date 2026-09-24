@@ -1,4 +1,5 @@
-import type { z } from 'zod'
+import { safeParse } from 'zod/mini'
+import type * as core from 'zod/v4/core'
 import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characters'
 
 export interface ParsedCharacterBuilderDraft<TValue> {
@@ -9,7 +10,7 @@ export interface ParsedCharacterBuilderDraft<TValue> {
 
 export function parseCharacterBuilderDraftPayload<TValue>(
   draft: CharacterBuilderDraftDto | null,
-  schema: z.ZodType<TValue>
+  schema: core.$ZodType<TValue>
 ): ParsedCharacterBuilderDraft<TValue> {
   if (!draft) {
     return {
@@ -19,7 +20,7 @@ export function parseCharacterBuilderDraftPayload<TValue>(
     }
   }
 
-  const result = schema.safeParse(draft.payload)
+  const result = safeParse(schema, draft.payload)
   if (!result.success) {
     return {
       draft,

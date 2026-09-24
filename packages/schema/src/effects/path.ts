@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
@@ -45,10 +45,13 @@ import {
 } from '../shared/authoredLimits.js'
 
 const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: boolean }) => {
-  const outcomePayloadDtoSchema: z.ZodTypeAny = z.lazy(() =>
+  const outcomePayloadDtoSchema: z.ZodMiniType = z.lazy(() =>
+    // Common closed/manual leaves avoid failed parsing of the deeper recursive branches.
     z.union(
       includeManifest
         ? [
+            closedRuleDtoSchema,
+            manualAdjudicationDtoSchema,
             damageDtoSchema,
             hitPointMaximumReductionDtoSchema,
             scalarReductionDtoSchema,
@@ -69,11 +72,11 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
-            actorRelationshipDtoSchema,
-            closedRuleDtoSchema,
-            manualAdjudicationDtoSchema
+            actorRelationshipDtoSchema
           ]
         : [
+            closedRuleDtoSchema,
+            manualAdjudicationDtoSchema,
             damageDtoSchema,
             hitPointMaximumReductionDtoSchema,
             scalarReductionDtoSchema,
@@ -93,9 +96,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
-            actorRelationshipDtoSchema,
-            closedRuleDtoSchema,
-            manualAdjudicationDtoSchema
+            actorRelationshipDtoSchema
           ]
     )
   )
@@ -104,9 +105,9 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
 }
 
 export const pathLifecycleDtoSchema = z.object({
-  recurringKind: pathLifecycleRecurringKindSchema.optional(),
-  consumeOnFirstEvent: pathLifecycleConsumeEventSchema.optional(),
-  endOnEvents: authoredReferenceCollectionSchema(pathLifecycleEndEventSchema).optional()
+  recurringKind: z.optional(pathLifecycleRecurringKindSchema),
+  consumeOnFirstEvent: z.optional(pathLifecycleConsumeEventSchema),
+  endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
 })
 
 const choiceOptionMetadataDtoSchema = z.object({
@@ -114,25 +115,25 @@ const choiceOptionMetadataDtoSchema = z.object({
   description: authoredRichTextSchema
 })
 
-const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) =>
+const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
   z.object({
     id: authoredIdentifierSchema,
     resultKind: z.enum(['SINGLE', 'SEQUENCE']),
-    maintenanceDefinitionId: postgresUuidSchema.optional(),
-    duration: durationDtoSchema.optional(),
-    lifecycle: pathLifecycleDtoSchema.optional(),
+    maintenanceDefinitionId: z.optional(postgresUuidSchema),
+    duration: z.optional(durationDtoSchema),
+    lifecycle: z.optional(pathLifecycleDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
-const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
-  const resultBlockDtoSchema: z.ZodTypeAny = z.lazy(() =>
+const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
+  const resultBlockDtoSchema: z.ZodMiniType = z.lazy(() =>
     createResultBlockDtoSchema(outcomePayloadDtoSchema)
   )
 
   const choiceOptionDtoSchema = z.object({
     id: authoredIdentifierSchema,
-    order: z.number().int(),
-    groupType: z.literal(pathGroupTypeSchema.enum.CHOICE).optional(),
+    order: z.number().check(z.int()),
+    groupType: z.optional(z.literal(pathGroupTypeSchema._zod.def.entries.CHOICE)),
     ...choiceOptionMetadataDtoSchema.shape,
     resultBlock: resultBlockDtoSchema
   })
@@ -145,68 +146,69 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
     z.object({
       resolutionKind: z.literal('REPEAT_TABLE'),
       repeat: z.object({
-        count: z.number().int().min(1).max(100),
+        count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(100)),
         rerollValues: authoredNestedCollectionSchema(
           z.object({
             id: authoredIdentifierSchema,
-            order: z.number().int(),
-            value: z.number().int()
+            order: z.number().check(z.int()),
+            value: z.number().check(z.int())
           })
         )
       })
     })
   ])
 
-  const exactRollTableRowDtoSchema = z
-    .object({
+  const exactRollTableRowDtoSchema = z.intersection(
+    z.object({
       id: authoredIdentifierSchema,
-      order: z.number().int(),
+      order: z.number().check(z.int()),
       rollValue: z.number()
-    })
-    .and(rollTableRowResolutionDtoSchema)
+    }),
+    rollTableRowResolutionDtoSchema
+  )
 
-  const rangeRollTableRowDtoSchema = z
-    .object({
+  const rangeRollTableRowDtoSchema = z.intersection(
+    z.object({
       id: authoredIdentifierSchema,
-      order: z.number().int(),
+      order: z.number().check(z.int()),
       rollRange: z.tuple([z.number(), z.number()])
-    })
-    .and(rollTableRowResolutionDtoSchema)
+    }),
+    rollTableRowResolutionDtoSchema
+  )
 
-  return z
-    .object({
+  return z.intersection(
+    z.object({
       id: authoredIdentifierSchema,
-      order: z.number().int(),
+      order: z.number().check(z.int()),
       pathCode: pathCodeSchema,
       groupType: pathGroupTypeSchema,
-      originKind: pathOriginKindSchema.optional(),
-      rangeOverride: rangeDtoSchema.optional(),
-      targetingOverride: targetingDtoSchema.optional()
-    })
-    .and(
-      z.union([
-        z.object({
-          selectionKind: z.literal('FIXED'),
-          resultBlock: resultBlockDtoSchema
-        }),
-        z.object({
-          selectionKind: z.literal('CHOICE'),
-          options: authoredNestedCollectionSchema(choiceOptionDtoSchema)
-        }),
-        z.object({
-          selectionKind: z.literal('ROLL_TABLE'),
-          rollTableKind: z.literal(pathRollTableKindSchema.enum.EXACT),
-          dieConfig: authoredIdentifierSchema,
-          rows: authoredNestedCollectionSchema(exactRollTableRowDtoSchema)
-        }),
-        z.object({
-          selectionKind: z.literal('ROLL_TABLE'),
-          rollTableKind: z.literal(pathRollTableKindSchema.enum.RANGE),
-          dieConfig: authoredIdentifierSchema,
-          rows: authoredNestedCollectionSchema(rangeRollTableRowDtoSchema)
-        })
-      ])
-    )
+      originKind: z.optional(pathOriginKindSchema),
+      rangeOverride: z.optional(rangeDtoSchema),
+      targetingOverride: z.optional(targetingDtoSchema)
+    }),
+    z.union([
+      z.object({
+        selectionKind: z.literal('FIXED'),
+        resultBlock: resultBlockDtoSchema
+      }),
+      z.object({
+        selectionKind: z.literal('CHOICE'),
+        options: authoredNestedCollectionSchema(choiceOptionDtoSchema)
+      }),
+      z.object({
+        selectionKind: z.literal('ROLL_TABLE'),
+        rollTableKind: z.literal(pathRollTableKindSchema._zod.def.entries.EXACT),
+        dieConfig: authoredIdentifierSchema,
+        rows: authoredNestedCollectionSchema(exactRollTableRowDtoSchema)
+      }),
+      z.object({
+        selectionKind: z.literal('ROLL_TABLE'),
+        rollTableKind: z.literal(pathRollTableKindSchema._zod.def.entries.RANGE),
+        dieConfig: authoredIdentifierSchema,
+        rows: authoredNestedCollectionSchema(rangeRollTableRowDtoSchema)
+      })
+    ])
+  )
 }
 
 const outcomePayloadDtoSchema = createOutcomePayloadDtoSchema({

@@ -1,10 +1,10 @@
-import { Alert, Button, Group, Select, Stack, Text, TextInput, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Alert, Button, Group, Loader, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { type SubmitEvent, useEffect, useRef, useState } from 'react'
-import type { CampaignDetailDto, CampaignNotebookSectionDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignNotebook } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import type { CampaignNotebookSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import { renderSanitizedRichHtml } from '#app/lib/richText'
 import * as sharedStyles from '../campaigns.css'
@@ -23,8 +23,12 @@ export function CampaignNotebook({
   visibilityFilter?: 'GM_PRIVATE' | 'SHARED'
   categoryFilter?: CampaignNotebookSectionDto['category']
 }) {
-  const queryClient = useQueryClient()
-  const notebook = useQuery(getCampaignNotebook(campaign.id))
+  const notebook = usePaginatedQuery(
+    convexApi.campaigns.notebooks.list,
+    { campaignId: campaign.id },
+    { initialNumItems: 8 }
+  )
+  const createNotebookSection = useConvexMutation(convexApi.campaigns.notebooks.create)
   const [newTitle, setNewTitle] = useState('')
   const [content, setContent] = useState('')
   const [visibility, setVisibility] = useState<'GM_PRIVATE' | 'SHARED'>(
@@ -32,23 +36,20 @@ export function CampaignNotebook({
   )
   const create = useMutation({
     mutationFn: () =>
-      api.campaigns.notebook.create({
+      createNotebookSection({
         campaignId: campaign.id,
         title: newTitle,
         content,
         visibility,
         category: categoryFilter ?? 'GENERAL'
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setNewTitle('')
       setContent('')
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.notebook(campaign.id)
-      })
     }
   })
 
-  const visibleSections = notebook.data?.filter(
+  const visibleSections = notebook.results.filter(
     (section) =>
       (visibilityFilter === undefined || section.visibility === visibilityFilter) &&
       (categoryFilter === undefined || section.category === categoryFilter)
@@ -70,9 +71,10 @@ export function CampaignNotebook({
             : 'Campaign lore maintained by the GM.'}
         </Text>
       </div>
-      {notebook.error ? <Alert color='red'>{notebook.error.message}</Alert> : null}
-      {visibleSections?.length === 0 ? <Text c='dimmed'>No sections yet.</Text> : null}
-      {visibleSections?.map((section) => (
+      {notebook.status === 'LoadingFirstPage' ? (
+        <Loader aria-label='Loading Campaign notes' size='sm' />
+      ) : null}
+      {visibleSections.map((section) => (
         <NotebookEditor
           campaignId={campaign.id}
           editable={campaign.status === 'ACTIVE' && campaign.role === 'OWNER'}
@@ -81,6 +83,17 @@ export function CampaignNotebook({
           section={section}
         />
       ))}
+      {notebook.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => notebook.loadMore(8)}>
+          Load more notes
+        </Button>
+      ) : null}
+      {notebook.status === 'LoadingMore' ? (
+        <Loader aria-label='Loading more Campaign notes' size='sm' />
+      ) : null}
+      {notebook.status === 'Exhausted' && visibleSections.length === 0 ? (
+        <Text c='dimmed'>No sections yet.</Text>
+      ) : null}
       {canCreate ? (
         <form
           className={sharedStyles.form}
@@ -90,6 +103,7 @@ export function CampaignNotebook({
           }}
         >
           <Title order={3}>New section</Title>
+          {create.error ? <Alert color='red'>{create.error.message}</Alert> : null}
           <TextInput
             label='Section title'
             classNames={{ input: sharedStyles.input }}
@@ -136,14 +150,15 @@ function NotebookEditor({
   canChangeVisibility: boolean
   section: CampaignNotebookSectionDto
 }) {
-  const queryClient = useQueryClient()
   const [title, setTitle] = useState(section.title)
   const [content, setContent] = useState(section.content)
   const [visibility, setVisibility] = useState(section.visibility)
   const saved = useRef(section)
+  const updateNotebookSection = useConvexMutation(convexApi.campaigns.notebooks.update)
+  const removeNotebookSection = useConvexMutation(convexApi.campaigns.notebooks.remove)
   const save = useMutation({
     mutationFn: () =>
-      api.campaigns.notebook.update({
+      updateNotebookSection({
         campaignId,
         sectionId: section.id,
         expectedVersion: saved.current.version,
@@ -153,17 +168,10 @@ function NotebookEditor({
       }),
     onSuccess: (updated) => {
       saved.current = updated
-      return queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.notebook(campaignId)
-      })
     }
   })
   const remove = useMutation({
-    mutationFn: () => api.campaigns.notebook.delete(campaignId, section.id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.notebook(campaignId)
-      })
+    mutationFn: () => removeNotebookSection({ campaignId, sectionId: section.id })
   })
 
   useEffect(() => {
@@ -208,6 +216,7 @@ function NotebookEditor({
           {save.error.message} Your local text was not overwritten.
         </Alert>
       ) : null}
+      {remove.error ? <Alert color='red'>{remove.error.message}</Alert> : null}
       <TextInput
         disabled={!editable}
         classNames={{ input: sharedStyles.input }}
@@ -241,7 +250,12 @@ function NotebookEditor({
       />
       {editable ? (
         <Group>
-          <Button color='red' variant='subtle' onClick={() => remove.mutate()}>
+          <Button
+            color='red'
+            disabled={remove.isPending}
+            variant='subtle'
+            onClick={() => remove.mutate()}
+          >
             Delete
           </Button>
           <Text aria-live='polite' c='dimmed' size='sm'>

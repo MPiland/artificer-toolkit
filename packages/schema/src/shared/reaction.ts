@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 
@@ -6,8 +6,12 @@ import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 
-const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
-const actionIdentitySchema = z.string().trim().min(1).max(240)
+const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+const actionIdentitySchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(240))
 
 /**
  * An authored reaction can bind to a movement lifecycle stage. The referenced
@@ -16,11 +20,11 @@ const actionIdentitySchema = z.string().trim().min(1).max(240)
 export const reactionMovementTriggerBindingDtoSchema = z.strictObject({
   kind: z.literal('MOVEMENT'),
   stage: z.enum(['BEFORE_LEAVE_REACH', 'ENTER_REACH']),
-  perceptionRequirement: combatPerceptionRequirementDtoSchema.nullable(),
+  perceptionRequirement: z.nullable(combatPerceptionRequirementDtoSchema),
   eligibilityDefinitionId: postgresUuidSchema,
   /** Explicit authored movement-only directive; no outcome/name inference. */
-  movementInterruption: z
-    .union([
+  movementInterruption: z._default(
+    z.union([
       z.null(),
       z.strictObject({
         kind: z.literal('STOP'),
@@ -40,8 +44,9 @@ export const reactionMovementTriggerBindingDtoSchema = z.strictObject({
           'ON_HP_ZERO'
         ])
       })
-    ])
-    .default(null)
+    ]),
+    null
+  )
 })
 
 /** Encounter-owned factual relationship. Game System policy interprets it. */
@@ -56,26 +61,28 @@ export const movementReactionEligibilityOutputDtoSchema = z
   .strictObject({
     eligible: z.boolean(),
     allowanceDefinitionId: postgresUuidSchema,
-    allowanceMaximum: z.number().int().positive().max(10_000),
+    allowanceMaximum: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
     allowanceRefreshBoundary: z.literal('START_OF_TURN'),
     selectionPolicy: z.enum(['AUTOMATIC', 'CHOICE']),
-    choiceDefinitionId: postgresUuidSchema.nullable(),
+    choiceDefinitionId: z.nullable(postgresUuidSchema),
     targetPolicy: z.literal('MOVER')
   })
-  .superRefine((policy, context) => {
-    if ((policy.selectionPolicy === 'CHOICE') !== (policy.choiceDefinitionId !== null)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['choiceDefinitionId'],
-        message: 'A movement reaction choice must bind exactly one published choice definition.'
-      })
-    }
-  })
+  .check(
+    z.superRefine((policy, context) => {
+      if ((policy.selectionPolicy === 'CHOICE') !== (policy.choiceDefinitionId !== null)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['choiceDefinitionId'],
+          message: 'A movement reaction choice must bind exactly one published choice definition.'
+        })
+      }
+    })
+  )
 
 export const movementReactionContactDtoSchema = z.strictObject({
   contact: spatialPointDtoSchema,
   movingActorId: postgresUuidSchema,
-  pathDistance: z.number().finite().nonnegative(),
+  pathDistance: z.number().check(z.nonnegative()),
   reactorActorId: postgresUuidSchema,
   reactorTokenId: postgresUuidSchema,
   sourceId: checksumSchema,
@@ -115,53 +122,55 @@ export const movementReactionChoiceSelectionDtoSchema = z.discriminatedUnion('ki
  */
 export const movementReactionChoiceGroupDtoSchema = z
   .strictObject({
-    pathDistance: z.number().finite().nonnegative(),
+    pathDistance: z.number().check(z.nonnegative()),
     reactorActorId: postgresUuidSchema,
     reactorTokenId: postgresUuidSchema,
     options: z
       .array(movementReactionChoiceOptionDtoSchema)
-      .min(1)
-      .max(RULE_GRAPH_LIMITS.NODES - 1)
+      .check(z.minLength(1))
+      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
   })
-  .superRefine((group, context) => {
-    const optionIds = new Set<string>()
-    for (const [index, option] of group.options.entries()) {
-      if (
-        option.candidate.pathDistance !== group.pathDistance ||
-        option.candidate.reactorActorId !== group.reactorActorId ||
-        option.candidate.reactorTokenId !== group.reactorTokenId ||
-        option.candidate.stage !== option.binding.stage ||
-        option.candidate.sourceId !== option.contactSourceId
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['options', index],
-          message: 'Movement reaction choice option does not match its exact contact group.'
-        })
+  .check(
+    z.superRefine((group, context) => {
+      const optionIds = new Set<string>()
+      for (const [index, option] of group.options.entries()) {
+        if (
+          option.candidate.pathDistance !== group.pathDistance ||
+          option.candidate.reactorActorId !== group.reactorActorId ||
+          option.candidate.reactorTokenId !== group.reactorTokenId ||
+          option.candidate.stage !== option.binding.stage ||
+          option.candidate.sourceId !== option.contactSourceId
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['options', index],
+            message: 'Movement reaction choice option does not match its exact contact group.'
+          })
+        }
+        if (optionIds.has(option.optionId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['options', index, 'optionId'],
+            message: 'Movement reaction choice option identities must be unique.'
+          })
+        }
+        optionIds.add(option.optionId)
+        const prior = group.options[index - 1]
+        if (
+          prior &&
+          (prior.actionId.localeCompare(option.actionId) > 0 ||
+            (prior.actionId === option.actionId &&
+              prior.optionId.localeCompare(option.optionId) >= 0))
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['options', index],
+            message: 'Movement reaction choices must retain canonical action order.'
+          })
+        }
       }
-      if (optionIds.has(option.optionId)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['options', index, 'optionId'],
-          message: 'Movement reaction choice option identities must be unique.'
-        })
-      }
-      optionIds.add(option.optionId)
-      const prior = group.options[index - 1]
-      if (
-        prior &&
-        (prior.actionId.localeCompare(option.actionId) > 0 ||
-          (prior.actionId === option.actionId &&
-            prior.optionId.localeCompare(option.optionId) >= 0))
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['options', index],
-          message: 'Movement reaction choices must retain canonical action order.'
-        })
-      }
-    }
-  })
+    })
+  )
 
 /**
  * Server-owned movement reaction timeline. Automatic actions never pass through
@@ -173,89 +182,95 @@ export const movementReactionTimelineEntryDtoSchema = z.discriminatedUnion('kind
       kind: z.literal('AUTOMATIC_ACTION'),
       option: movementReactionChoiceOptionDtoSchema
     })
-    .superRefine((entry, context) => {
-      if (
-        entry.option.policy.selectionPolicy !== 'AUTOMATIC' ||
-        entry.option.policy.choiceDefinitionId !== null
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['option'],
-          message:
-            'Automatic reaction timeline entries require an automatic policy without a choice definition.'
-        })
-      }
-    }),
+    .check(
+      z.superRefine((entry, context) => {
+        if (
+          entry.option.policy.selectionPolicy !== 'AUTOMATIC' ||
+          entry.option.policy.choiceDefinitionId !== null
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['option'],
+            message:
+              'Automatic reaction timeline entries require an automatic policy without a choice definition.'
+          })
+        }
+      })
+    ),
   z
     .strictObject({
       kind: z.literal('CONTROLLER_CHOICE'),
       group: movementReactionChoiceGroupDtoSchema
     })
-    .superRefine((entry, context) => {
-      const definitionId = entry.group.options[0]?.policy.choiceDefinitionId
-      if (
-        !definitionId ||
-        entry.group.options.some(
-          (option) =>
-            option.policy.selectionPolicy !== 'CHOICE' ||
-            option.policy.choiceDefinitionId !== definitionId
-        )
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['group'],
-          message:
-            'Controller reaction timeline entries require one exact choice policy definition.'
-        })
-      }
-    })
+    .check(
+      z.superRefine((entry, context) => {
+        const definitionId = entry.group.options[0]?.policy.choiceDefinitionId
+        if (
+          !definitionId ||
+          entry.group.options.some(
+            (option) =>
+              option.policy.selectionPolicy !== 'CHOICE' ||
+              option.policy.choiceDefinitionId !== definitionId
+          )
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['group'],
+            message:
+              'Controller reaction timeline entries require one exact choice policy definition.'
+          })
+        }
+      })
+    )
 ])
 
 export const movementReactionTimelineDtoSchema = z
   .array(movementReactionTimelineEntryDtoSchema)
-  .max(RULE_GRAPH_LIMITS.NODES)
-  .superRefine((timeline, context) => {
-    let prior: {
-      pathDistance: number
-      reactorActorId: string
-      reactorTokenId: string
-      kindOrdinal: number
-      actionId: string
-      optionId: string
-    } | null = null
-    for (const [index, entry] of timeline.entries()) {
-      const option = entry.kind === 'AUTOMATIC_ACTION' ? entry.option : entry.group.options[0]!
-      const current = {
-        pathDistance: option.candidate.pathDistance,
-        reactorActorId: option.candidate.reactorActorId,
-        reactorTokenId: option.candidate.reactorTokenId,
-        kindOrdinal: entry.kind === 'AUTOMATIC_ACTION' ? 0 : 1,
-        actionId: option.actionId,
-        optionId: option.optionId
+  .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  .check(
+    z.superRefine((timeline, context) => {
+      let prior: {
+        pathDistance: number
+        reactorActorId: string
+        reactorTokenId: string
+        kindOrdinal: number
+        actionId: string
+        optionId: string
+      } | null = null
+      for (const [index, entry] of timeline.entries()) {
+        const option = entry.kind === 'AUTOMATIC_ACTION' ? entry.option : entry.group.options[0]!
+        const current = {
+          pathDistance: option.candidate.pathDistance,
+          reactorActorId: option.candidate.reactorActorId,
+          reactorTokenId: option.candidate.reactorTokenId,
+          kindOrdinal: entry.kind === 'AUTOMATIC_ACTION' ? 0 : 1,
+          actionId: option.actionId,
+          optionId: option.optionId
+        }
+        if (
+          prior &&
+          (current.pathDistance < prior.pathDistance ||
+            (current.pathDistance === prior.pathDistance &&
+              (current.reactorActorId < prior.reactorActorId ||
+                (current.reactorActorId === prior.reactorActorId &&
+                  (current.reactorTokenId < prior.reactorTokenId ||
+                    (current.reactorTokenId === prior.reactorTokenId &&
+                      (current.kindOrdinal < prior.kindOrdinal ||
+                        (current.kindOrdinal === prior.kindOrdinal &&
+                          (current.actionId < prior.actionId ||
+                            (current.actionId === prior.actionId &&
+                              current.optionId <= prior.optionId))))))))))
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: [index],
+            message: 'Movement reaction timeline entries must retain strict canonical order.'
+          })
+        }
+        prior = current
       }
-      if (
-        prior &&
-        (current.pathDistance < prior.pathDistance ||
-          (current.pathDistance === prior.pathDistance &&
-            (current.reactorActorId < prior.reactorActorId ||
-              (current.reactorActorId === prior.reactorActorId &&
-                (current.reactorTokenId < prior.reactorTokenId ||
-                  (current.reactorTokenId === prior.reactorTokenId &&
-                    (current.kindOrdinal < prior.kindOrdinal ||
-                      (current.kindOrdinal === prior.kindOrdinal &&
-                        (current.actionId < prior.actionId ||
-                          (current.actionId === prior.actionId &&
-                            current.optionId <= prior.optionId))))))))))
-      ) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index],
-          message: 'Movement reaction timeline entries must retain strict canonical order.'
-        })
-      }
-      prior = current
-    }
-  })
+    })
+  )
 
 export type ReactionMovementTriggerBindingDto = z.infer<
   typeof reactionMovementTriggerBindingDtoSchema

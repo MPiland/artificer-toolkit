@@ -14,6 +14,9 @@ const parentEquipment = authoredRouteStoryEquipmentParentResponse.item
 if (!parentEquipment) throw new Error('Expected the equipment parent fixture.')
 
 const queryClient = new QueryClient()
+queryClient.setQueryDefaults(getEquipment(parentEquipment.id).queryKey, {
+  queryFn: async () => authoredRouteStoryEquipmentParentResponse
+})
 queryClient.setQueryData(getEquipment(parentEquipment.id).queryKey, {
   ...authoredRouteStoryEquipmentParentResponse,
   item: parentEquipment

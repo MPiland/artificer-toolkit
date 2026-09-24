@@ -1,9 +1,9 @@
 # ADR 0012: Private media assets with domain-owned references
 
-- **Status:** decision
+- **Status:** decision — stable asset identity and domain references retained; Supabase persistence and storage topology superseded by [ADR 0029](0029-convex-backend-cutover.md)
 - **Date:** 2026-08-05
 
-> `VTT_MAP` byte storage is amended by [ADR 0028](0028-r2-vtt-map-storage.md). Stable asset identity and domain-owned references remain unchanged.
+> Stable asset identity and domain-owned references remain unchanged. ADR 0029 makes Convex authoritative for metadata and R2 authoritative for media bytes; the former Supabase and `packages/functions`/`packages/db` implementation is historical.
 
 ## Context
 
@@ -11,7 +11,7 @@ Account avatars, Character portraits, authored artwork, future Campaign files, M
 
 ## Decision
 
-Store stable asset and immutable variant metadata in Supabase Postgres and bytes in one private Supabase Storage bucket. `apps/apis` authorizes exact signed transfer permissions while `packages/functions` verifies, normalizes, attaches, and deletes assets through `packages/db` repositories.
+Store stable asset and immutable variant metadata in Convex and bytes in private R2 storage. Convex media functions authorize exact signed transfer permissions and verify, normalize, attach, and delete asset metadata under the owning domain policy.
 
 Domain tables own real references: profiles own avatars, Characters own portraits, and authored route identities own explicit active/draft image slots. Authored activation promotes draft artwork transactionally under [ADR 0011](0011-active-authored-content-and-json-drafts.md). No authored revision or generic `owner_type + owner_id` model is introduced.
 

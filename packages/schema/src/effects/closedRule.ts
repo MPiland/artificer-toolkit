@@ -1,5 +1,5 @@
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 

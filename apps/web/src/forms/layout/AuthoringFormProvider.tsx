@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useConvex } from 'convex/react'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBlocker, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
 import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { ApiError } from '#lib/api'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import {
   AuthoringFormContext,
@@ -33,7 +33,6 @@ import type {
 } from '../factories/authoredFormFactories.types'
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import { areAuthoringFieldPathsRelated, toAuthoringFieldName } from '../utils/pathUtils'
-import { findAuthoringValidationTarget } from './authoringNavigation'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   startCharacterBuilderTiming
@@ -59,6 +58,7 @@ import {
   resolveRequestedNavigation
 } from './authoringSessionState'
 
+const EMPTY_NAVIGATION_TARGETS: NonNullable<AuthoringFormSessionState['navigationTargets']> = []
 const EMPTY_OPERATION_CONFIG: AuthoredFormSession['operations'] = {
   activate: async () => undefined,
   saveDraft: async () => {
@@ -88,6 +88,7 @@ export function AuthoringFormProvider({
   kind,
   mode
 }: AuthoringFormProviderProps) {
+  const convexClient = useConvex()
   const requestedStepId = useRouterState({
     select: (state) => readAuthoringStep(state.location.search)
   })
@@ -95,7 +96,7 @@ export function AuthoringFormProvider({
     select: (state) => isAuthoringStepNavigationState(state.location.state)
   })
   const [session, setSession] = useState<AuthoringFormSessionState>(() =>
-    createInitialSession({ data, domain, kind, mode, requestedStepId })
+    createInitialSession({ data, domain, kind, mode, requestedStepId }, convexClient)
   )
   const [cancelConfirmationOpened, setCancelConfirmationOpened] = useState(false)
   const sessionRef = useRef(session)
@@ -173,38 +174,10 @@ export function AuthoringFormProvider({
     })
   }, [isCurrentNavigationEntryMarked, navigate])
   const operations = authoredSession?.operations ?? EMPTY_OPERATION_CONFIG
-  const recordValidationIssues = useCallback(
-    (error: unknown) => {
-      if (!(error instanceof ApiError) || error.validationIssues.length === 0) return
-
-      const current = sessionRef.current
-      const target = error.validationIssues
-        .map((issue) => findAuthoringValidationTarget(issue.path, current.navigationTargets ?? []))
-        .find((candidate) => candidate !== undefined)
-      const fallbackStepId =
-        current.activeStepId || current.navigationTargets?.find((entry) => entry.stepId)?.stepId
-
-      setSession((latest) => ({
-        ...latest,
-        ...(target
-          ? {
-              activeNavigationTargetId: target.id,
-              activeStepId: target.stepId ?? target.canvasStepId ?? fallbackStepId,
-              activeStepLabel: target.canvasLabel ?? target.label,
-              fieldPathPrefix: target.fieldPathPrefix,
-              visitedStepIds: addVisitedStep(latest.visitedStepIds, target.id)
-            }
-          : {}),
-        validationIssues: error.validationIssues
-      }))
-      if (target) navigateToAuthoringStep(target.id)
-    },
-    [navigateToAuthoringStep]
-  )
   const resolvedModel = session.resolvedModel
   const modelVisibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
   const visibleSteps = session.visibleSteps ?? modelVisibleSteps
-  const navigationTargets = session.navigationTargets ?? []
+  const navigationTargets = session.navigationTargets ?? EMPTY_NAVIGATION_TARGETS
   const activeNavigationTarget =
     navigationTargets.find((target) => target.id === session.activeNavigationTargetId) ??
     navigationTargets[0]
@@ -220,7 +193,6 @@ export function AuthoringFormProvider({
     : -1
   const activateMutation = useMutation({
     mutationFn: (payload: object) => operations.activate(payload),
-    onError: recordValidationIssues,
     onSuccess: async (response: ActivatedAuthoringResponse) => {
       setSession((current) => ({ ...current, validationIssues: [] }))
       await operations.onActivateSuccess?.(queryClient, response)
@@ -228,7 +200,6 @@ export function AuthoringFormProvider({
   })
   const saveDraftMutation = useMutation({
     mutationFn: (payload: object) => operations.saveDraft(payload),
-    onError: recordValidationIssues,
     onSuccess: async (draft: DraftAuthoringResponse) => {
       setSession((current) => ({ ...current, validationIssues: [] }))
       await operations.onSaveDraftSuccess?.(queryClient, draft)
@@ -342,14 +313,14 @@ export function AuthoringFormProvider({
       setSession((current) => {
         const registered =
           typeof registration === 'string'
-            ? applyDomainRegistration(current, { domain: registration })
-            : applyDomainRegistration(current, registration)
+            ? applyDomainRegistration(current, { domain: registration }, convexClient)
+            : applyDomainRegistration(current, registration, convexClient)
         const next = resolveRequestedNavigation(registered, requestedStepIdRef.current)
 
         return isSameSession(current, next) ? current : next
       })
     },
-    []
+    [convexClient]
   )
   useEffect(() => {
     if (kind === 'character-builder') {
@@ -385,17 +356,21 @@ export function AuthoringFormProvider({
 
     setSession((current) => {
       const next = resolveRequestedNavigation(
-        applyDomainRegistration(current, {
-          data,
-          domain,
-          mode
-        }),
+        applyDomainRegistration(
+          current,
+          {
+            data,
+            domain,
+            mode
+          },
+          convexClient
+        ),
         requestedStepIdRef.current
       )
 
       return isSameSession(current, next) ? current : next
     })
-  }, [data, domain, kind, mode])
+  }, [data, domain, kind, mode, convexClient])
 
   useEffect(() => {
     if (!session.domain) return
@@ -404,17 +379,21 @@ export function AuthoringFormProvider({
       if (!current.domain) return current
 
       const next = resolveRequestedNavigation(
-        applyDomainRegistration(current, {
-          data: current.domainData,
-          domain: current.domain,
-          mode: current.mode
-        }),
+        applyDomainRegistration(
+          current,
+          {
+            data: current.domainData,
+            domain: current.domain,
+            mode: current.mode
+          },
+          convexClient
+        ),
         requestedStepIdRef.current
       )
 
       return isSameSession(current, next) ? current : next
     })
-  }, [session.domain, session.domainData, session.mode])
+  }, [session.domain, session.domainData, session.mode, convexClient])
 
   const updateAuthoringFormState = useCallback((patch: AuthoringFormStatePatch) => {
     setSession((current) => {

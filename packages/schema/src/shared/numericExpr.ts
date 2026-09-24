@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { abilityCodeSchema } from './enums.js'
 import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
 
@@ -37,7 +37,7 @@ const numericAtomSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('CLASS_LEVEL'),
-    classId: authoredIdentifierSchema.optional()
+    classId: z.optional(authoredIdentifierSchema)
   }),
   z.object({
     kind: z.literal('SPELL_LEVEL')
@@ -57,19 +57,19 @@ const numericTermSchema = z.union([numericAtomSchema, numericMulSchema])
 
 const numericAddSchema = z.object({
   kind: z.literal('ADD'),
-  args: authoredNestedCollectionSchema(numericTermSchema).min(1)
+  args: authoredNestedCollectionSchema(numericTermSchema).check(z.minLength(1))
 })
 
-export const numericExprSchema: z.ZodTypeAny = z.lazy(() =>
+export const numericExprSchema: z.ZodMiniType = z.lazy(() =>
   z.discriminatedUnion('kind', [
-    ...numericAtomSchema.options,
+    ...numericAtomSchema._zod.def.options,
     numericMulSchema,
     numericAddSchema,
     z.object({
       kind: z.literal('CLAMP'),
       value: z.union([numericAddSchema, numericTermSchema]),
-      min: z.number().optional(),
-      max: z.number().optional()
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
     })
   ])
 )

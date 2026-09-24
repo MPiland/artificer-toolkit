@@ -7,11 +7,7 @@ import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
-const serverOnlyEnvKeys = [
-  'DATABASE_CONNECTION_STRING',
-  'LIBRARY_IMPORT_ENABLED',
-  'PUBLIC_SIGN_UP_ENABLED'
-] as const
+const serverOnlyEnvKeys = ['CONVEX_SITE_URL', 'AUTH_PROXY_SECRET'] as const
 type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
@@ -51,6 +47,9 @@ export default defineConfig(({ mode }) => {
     envDir: repoRoot,
     optimizeDeps: {
       include: [
+        'better-auth/react',
+        'better-auth/client/plugins',
+        'better-auth/cookies',
         '@tanstack/history',
         '@tanstack/router-core',
         '@tanstack/router-core/ssr/client',
@@ -64,6 +63,7 @@ export default defineConfig(({ mode }) => {
     },
     ssr: {
       noExternal: [
+        '@convex-dev/better-auth',
         'domhandler',
         'html-dom-parser',
         'html-react-parser',
@@ -86,7 +86,16 @@ export default defineConfig(({ mode }) => {
       tanstackStart({
         router: {
           routesDirectory: 'routes',
-          generatedRouteTree: 'routeTree.gen.ts'
+          generatedRouteTree: 'routeTree.gen.ts',
+          codeSplittingOptions: {
+            defaultBehavior: [
+              ['loader'],
+              ['component'],
+              ['pendingComponent'],
+              ['errorComponent'],
+              ['notFoundComponent']
+            ]
+          }
         }
       }),
       netlify(),

@@ -1,29 +1,71 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  liveSessionCommandDtoSchema,
-  liveSessionExecutorRequestDtoSchema,
-  liveSessionExecutorResponseDtoSchema,
   liveSessionJoinOptionsDtoSchema,
+  liveSessionTicketAdmissionDtoSchema,
   liveSessionTicketClaimsDtoSchema,
+  liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
   LIVE_SESSION_TICKET_AUDIENCE,
   LIVE_SESSION_TICKET_ISSUER
 } from '../api/liveSessions.js'
+import {
+  liveSessionPublishInputSchema,
+  liveSessionPublishResponseSchema
+} from '../api/liveSessionState.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
   session: '00000000-0000-4000-8000-000000000002',
-  character: '00000000-0000-4000-8000-000000000003',
-  encounter: '00000000-0000-4000-8000-000000000004',
-  command: '00000000-0000-4000-8000-000000000005',
-  scene: '00000000-0000-4000-8000-000000000006',
-  token: '00000000-0000-4000-8000-000000000007',
-  user: '00000000-0000-4000-8000-000000000008'
+  scene: '00000000-0000-4000-8000-000000000003',
+  token: '00000000-0000-4000-8000-000000000004',
+  barrier: '00000000-0000-4000-8000-000000000010',
+  user: '00000000-0000-4000-8000-000000000005',
+  authorityEpoch: '00000000-0000-4000-8000-000000000006',
+  character: '00000000-0000-4000-8000-000000000007',
+  encounter: '00000000-0000-4000-8000-000000000008',
+  command: '00000000-0000-4000-8000-000000000009'
 } as const
 
+const envelope = {
+  baselineVersion: 1,
+  kind: 'POINTER_PREVIEW' as const,
+  position: { x: 4, y: 8 },
+  sceneId: ids.scene,
+  sequence: 2
+}
+
+const scene = {
+  annotations: [],
+  ambientIllumination: 'BRIGHT' as const,
+  barriers: [],
+  campaignId: ids.campaign,
+  darknessZones: [],
+  definitionId: ids.scene,
+  definitionVersion: 1,
+  doorStates: {},
+  fogLayers: [],
+  fogMode: 'SHARED_PARTY' as const,
+  grid: {
+    cellSize: 50,
+    diagonalPolicy: 'EQUAL' as const,
+    distancePerCell: 5,
+    kind: 'SQUARE' as const,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET' as const
+  },
+  id: ids.scene,
+  lights: [],
+  map: { assetId: ids.token, height: 1_000, tileManifestAssetId: null, width: 1_000 },
+  measurements: [],
+  name: 'Dungeon',
+  tokens: [],
+  version: 2,
+  visionRevealMode: 'ON_DRAG' as const
+}
+
 describe('live-session contracts', () => {
-  it('accepts exact room identity and existing Character or Encounter commands', () => {
+  it('defines the exact room and short-lived ticket identity', () => {
     expect(
       liveSessionJoinOptionsDtoSchema.parse({
         campaignId: ids.campaign,
@@ -32,74 +74,24 @@ describe('live-session contracts', () => {
     ).toEqual({ campaignId: ids.campaign, sessionId: ids.session })
 
     expect(
-      liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'CHARACTER',
-        characterId: ids.character,
-        command: {
-          type: 'SET_INSPIRATION',
-          commandId: ids.command,
-          expectedVersion: 3,
-          inspired: true
-        }
-      }).aggregateKind
-    ).toBe('CHARACTER')
-    expect(
-      liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'ENCOUNTER',
-        command: {
-          type: 'ADVANCE_TURN',
-          encounterId: ids.encounter,
-          commandId: ids.command,
-          expectedVersion: 4
-        }
-      }).aggregateKind
-    ).toBe('ENCOUNTER')
-    expect(
-      liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'SCENE',
-        command: {
-          commandId: ids.command,
-          expectedEncounterVersion: 4,
-          expectedSceneVersion: 4,
-          movementKind: 'VOLUNTARY',
-          path: [
-            { x: 10, y: 10 },
-            { x: 11, y: 11 }
-          ],
-          sceneId: ids.scene,
-          tokenId: ids.token,
-          type: 'MOVE_SCENE_TOKEN'
-        }
-      }).aggregateKind
-    ).toBe('SCENE')
-    expect(
-      liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'ENCOUNTER',
-        command: {
-          commandId: ids.command,
-          encounterId: ids.encounter,
-          type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
-        }
-      }).command.type
-    ).toBe('BIND_ENCOUNTER_TO_PRESENTED_SCENE')
-    expect(
-      liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'SESSION',
-        command: {
-          commandId: ids.command,
-          expectedPresentationVersion: null,
-          sceneId: ids.scene,
-          sessionId: ids.session,
-          type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
-        }
-      }).aggregateKind
-    ).toBe('SESSION')
-  })
-
-  it('defines a short-lived room-ticket identity and a provider-only executor envelope', () => {
+      liveSessionTicketAdmissionDtoSchema.parse({
+        authorityEpoch: ids.authorityEpoch,
+        campaignId: ids.campaign,
+        role: 'PLAYER',
+        sessionId: ids.session,
+        sub: ids.user
+      })
+    ).toEqual({
+      authorityEpoch: ids.authorityEpoch,
+      campaignId: ids.campaign,
+      role: 'PLAYER',
+      sessionId: ids.session,
+      sub: ids.user
+    })
     expect(
       liveSessionTicketClaimsDtoSchema.parse({
         aud: LIVE_SESSION_TICKET_AUDIENCE,
+        authorityEpoch: ids.authorityEpoch,
         campaignId: ids.campaign,
         exp: 2,
         iat: 1,
@@ -110,93 +102,371 @@ describe('live-session contracts', () => {
         sub: ids.user,
         v: 1
       })
-    ).toMatchObject({ campaignId: ids.campaign, role: 'PLAYER', sub: ids.user })
+    ).toMatchObject({
+      authorityEpoch: ids.authorityEpoch,
+      campaignId: ids.campaign,
+      role: 'PLAYER',
+      sub: ids.user
+    })
+  })
 
+  it('accepts durable commands and resume while preserving transient messages', () => {
     expect(
-      liveSessionExecutorRequestDtoSchema.parse({
-        authorityId: 'durable-object-id',
-        campaignId: ids.campaign,
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        accessToken: 'access-token',
+        type: 'AUTHENTICATE'
+      })
+    ).toEqual({ accessToken: 'access-token', type: 'AUTHENTICATE' })
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({ envelope, type: 'TRANSIENT' })
+    ).toEqual({ envelope, type: 'TRANSIENT' })
+
+    const characterCommand = {
+      type: 'COMMAND' as const,
+      expectedSessionSequence: 7,
+      command: {
+        scope: 'CHARACTER_SHEET' as const,
+        characterId: ids.character,
         command: {
-          aggregateKind: 'CHARACTER',
-          characterId: ids.character,
+          commandId: ids.command,
+          expectedVersion: 4,
+          type: 'ADJUST_HIT_POINTS' as const,
+          mode: 'DAMAGE' as const,
+          amount: 3
+        }
+      }
+    }
+    expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(characterCommand).success).toBe(
+      false
+    )
+    const sceneCommand = {
+      type: 'COMMAND' as const,
+      expectedSessionSequence: 7,
+      command: {
+        scope: 'SCENE' as const,
+        command: {
+          commandId: ids.command,
+          expectedSceneVersion: 2,
+          sceneId: ids.scene,
+          type: 'SET_SCENE_VISION_REVEAL_MODE' as const,
+          mode: 'ON_DROP' as const
+        }
+      }
+    }
+    expect(liveSessionWebSocketClientMessageDtoSchema.parse(sceneCommand)).toEqual(sceneCommand)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        type: 'COMMAND',
+        expectedSessionSequence: 7,
+        command: {
+          scope: 'ENCOUNTER',
           command: {
             commandId: ids.command,
+            encounterId: ids.encounter,
             expectedVersion: 3,
-            inspired: true,
-            type: 'SET_INSPIRATION'
+            type: 'SET_ROUND',
+            round: 2
           }
-        },
-        operation: 'COMMAND',
-        sceneVisionContext: { characterVisions: [], encounterCharacterBindings: [] },
-        sessionId: ids.session,
-        userId: ids.user
-      }).operation
-    ).toBe('COMMAND')
-
+        }
+      }).success
+    ).toBe(false)
     expect(
-      liveSessionExecutorResponseDtoSchema.parse({
-        aggregateVersions: [{ aggregateId: ids.character, aggregateKind: 'CHARACTER', version: 3 }],
-        memberships: [{ role: 'PLAYER', userId: ids.user }],
-        ok: true,
-        operation: 'RENEW'
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        expectedPresentationVersion: 5,
+        expectedSessionVersion: 4,
+        sceneId: ids.scene,
+        type: 'SYNCHRONIZE_SCENE',
+        version: 2
       })
-    ).toEqual({
-      aggregateVersions: [{ aggregateId: ids.character, aggregateKind: 'CHARACTER', version: 3 }],
-      memberships: [{ role: 'PLAYER', userId: ids.user }],
-      ok: true,
-      operation: 'RENEW'
+    ).toMatchObject({
+      expectedPresentationVersion: 5,
+      expectedSessionVersion: 4,
+      sceneId: ids.scene,
+      type: 'SYNCHRONIZE_SCENE',
+      version: 2
     })
     expect(
-      liveSessionExecutorResponseDtoSchema.safeParse({ ok: true, operation: 'RENEW' }).success
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        sceneId: ids.scene,
+        type: 'SYNCHRONIZE_SCENE',
+        version: 2
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        lastAppliedSequence: 6,
+        type: 'RESUME'
+      })
+    ).toEqual({ lastAppliedSequence: 6, type: 'RESUME' })
+
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        ...sceneCommand,
+        expectedSessionSequence: -1
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        ...sceneCommand,
+        unvalidated: true
+      }).success
     ).toBe(false)
   })
 
-  it('distinguishes committed native WebSocket messages by aggregate kind', () => {
-    const base = {
-      acceptedSequence: 1,
-      changedAggregates: [],
-      deliverySequence: 1,
-      originCommandId: ids.command,
-      replayed: false,
-      type: 'COMMAND_COMMITTED' as const,
-      version: 1
+  it('accepts only Scene state for either recipient role', () => {
+    for (const recipientRole of ['OWNER', 'PLAYER'] as const) {
+      const message = {
+        authorityEpoch: ids.authorityEpoch,
+        sequence: 8,
+        state: { recipientRole, scene },
+        type: 'STATE_SYNC'
+      }
+      expect(liveSessionWebSocketServerMessageDtoSchema.parse(message)).toEqual(message)
+      for (const extra of [{ characters: [] }, { encounter: null }, { notes: {} }]) {
+        expect(
+          liveSessionWebSocketServerMessageDtoSchema.safeParse({
+            ...message,
+            state: { ...message.state, ...extra }
+          }).success
+        ).toBe(false)
+      }
     }
+  })
+
+  it('accepts commits and typed corrections without an accepted intermediate state', () => {
     expect(
-      [
-        liveSessionWebSocketServerMessageDtoSchema.parse({
-          ...base,
-          aggregateId: ids.character,
-          aggregateKind: 'CHARACTER',
-          response: null
-        }),
-        liveSessionWebSocketServerMessageDtoSchema.parse({
-          ...base,
-          aggregateId: ids.encounter,
-          aggregateKind: 'ENCOUNTER',
-          encounterActorTokenBindings: [],
-          encounterSceneBindings: [],
-          response: null
-        }),
-        liveSessionWebSocketServerMessageDtoSchema.parse({
-          ...base,
-          aggregateId: ids.session,
-          aggregateKind: 'SESSION',
-          response: {
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId: ids.command,
+        delta: {
+          scope: 'SCENE',
+          result: {
             commandId: ids.command,
+            delta: { barrierId: ids.barrier, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+            occurrence: null,
             replayed: false,
             sceneId: ids.scene,
-            sessionId: ids.session,
-            version: 1
+            version: 3
           }
-        }),
-        liveSessionWebSocketServerMessageDtoSchema.parse({
-          ...base,
-          aggregateId: ids.scene,
-          aggregateKind: 'SCENE',
-          delta: null,
-          snapshot: null
-        })
-      ].map((message) => (message.type === 'COMMAND_COMMITTED' ? message.aggregateKind : null))
-    ).toEqual(['CHARACTER', 'ENCOUNTER', 'SESSION', 'SCENE'])
+        },
+        sequence: 9,
+        type: 'COMMAND_COMMITTED'
+      })
+    ).toMatchObject({ commandId: ids.command, sequence: 9 })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId: ids.command,
+        delta: {
+          scope: 'SCENE_VERSION',
+          sceneId: ids.scene,
+          version: 3
+        },
+        sequence: 10,
+        type: 'COMMAND_COMMITTED'
+      })
+    ).toMatchObject({
+      delta: { scope: 'SCENE_VERSION', sceneId: ids.scene, version: 3 }
+    })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        commandId: ids.command,
+        delta: null,
+        sequence: 10,
+        type: 'COMMAND_COMMITTED'
+      })
+    ).toEqual({
+      commandId: ids.command,
+      delta: null,
+      sequence: 10,
+      type: 'COMMAND_COMMITTED'
+    })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        commandId: ids.command,
+        sequence: 10,
+        type: 'COMMAND_COMMITTED'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        code: 'STALE_STATE',
+        commandId: ids.command,
+        correction: { scope: 'SCENE', state: scene },
+        currentSequence: 9,
+        message: 'Scene state changed.',
+        type: 'COMMAND_REJECTED'
+      })
+    ).toMatchObject({ commandId: ids.command, code: 'STALE_STATE', currentSequence: 9 })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        code: 'SOMETHING_ELSE',
+        commandId: ids.command,
+        currentSequence: 9,
+        message: 'No.',
+        type: 'COMMAND_REJECTED'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        commandId: ids.command,
+        type: 'COMMAND_ACCEPTED'
+      }).success
+    ).toBe(false)
+  })
+
+  it('accepts the live-authority Scene commands in an outbox publication', () => {
+    const sceneResult = {
+      commandId: ids.command,
+      delta: {
+        barrierId: ids.barrier,
+        kind: 'DOOR_STATE_SET' as const,
+        state: 'OPEN' as const
+      },
+      occurrence: null,
+      replayed: false,
+      sceneId: ids.scene,
+      version: 3
+    }
+    const publication = {
+      actorUserId: ids.user,
+      actorRole: 'OWNER' as const,
+      campaignId: ids.campaign,
+      command: {
+        scope: 'SCENE' as const,
+        command: {
+          barrierId: ids.barrier,
+          commandId: ids.command,
+          expectedSceneVersion: 2,
+          sceneId: ids.scene,
+          state: 'OPEN' as const,
+          type: 'SET_SCENE_DOOR_STATE' as const
+        },
+        session: {
+          expectedPresentationVersion: 5,
+          expectedSessionVersion: 4,
+          sessionId: ids.session
+        }
+      },
+      epoch: ids.authorityEpoch,
+      expectedSceneResult: sceneResult,
+      expectedStateChecksum: 'a'.repeat(64),
+      occurredAt: '2026-09-22T12:00:00.000Z',
+      receiptId: ids.command,
+      sequence: 8,
+      sessionId: ids.session,
+      stateChecksum: 'b'.repeat(64)
+    }
+    expect(liveSessionPublishInputSchema.parse(publication)).toEqual(publication)
+
+    const movementPublication = {
+      ...publication,
+      command: {
+        ...publication.command,
+        command: {
+          commandId: ids.command,
+          correlationId: null,
+          expectedEncounterVersion: null,
+          expectedSceneVersion: 2,
+          movementKind: 'VOLUNTARY' as const,
+          path: [
+            { x: 1, y: 1 },
+            { x: 2, y: 2 }
+          ],
+          sceneId: ids.scene,
+          tokenId: ids.token,
+          type: 'MOVE_SCENE_TOKEN' as const
+        }
+      },
+      expectedSceneResult: {
+        ...sceneResult,
+        delta: {
+          kind: 'TOKEN_MOVED' as const,
+          position: { x: 2, y: 2 },
+          tokenId: ids.token
+        }
+      }
+    }
+    expect(liveSessionPublishInputSchema.parse(movementPublication)).toEqual(movementPublication)
+
+    const undoPublication = {
+      ...publication,
+      command: {
+        ...publication.command,
+        command: {
+          commandId: ids.command,
+          expectedSceneVersion: 2,
+          sceneId: ids.scene,
+          type: 'UNDO_LAST_SCENE_MOVE' as const
+        }
+      },
+      expectedSceneResult: {
+        ...sceneResult,
+        delta: {
+          kind: 'TOKEN_MOVE_UNDONE' as const,
+          position: { x: 1, y: 1 },
+          tokenId: ids.token,
+          undoneCommandId: ids.command
+        }
+      }
+    }
+    expect(liveSessionPublishInputSchema.parse(undoPublication)).toEqual(undoPublication)
+    expect(
+      liveSessionPublishResponseSchema.parse({
+        authority: {
+          activationFingerprint: 'c'.repeat(64),
+          campaignId: ids.campaign,
+          createdAt: '2026-09-22T12:00:00.000Z',
+          epoch: ids.authorityEpoch,
+          persistedSequence: 8,
+          persistedStateChecksum: 'b'.repeat(64),
+          phase: 'DO_ACTIVE',
+          sessionId: ids.session,
+          updatedAt: '2026-09-22T12:00:00.000Z'
+        },
+        sceneResult,
+        scope: 'SCENE'
+      })
+    ).toMatchObject({ scope: 'SCENE', sceneResult })
+
+    expect(
+      liveSessionPublishInputSchema.safeParse({
+        ...publication,
+        command: {
+          ...publication.command,
+          command: {
+            commandId: ids.command,
+            expectedSceneVersion: 2,
+            mode: 'ON_DROP',
+            sceneId: ids.scene,
+            type: 'SET_SCENE_VISION_REVEAL_MODE'
+          }
+        }
+      }).success
+    ).toBe(false)
+  })
+
+  it('preserves existing authentication and transient server messages', () => {
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({ type: 'AUTHENTICATION_REQUIRED' })
+    ).toEqual({ type: 'AUTHENTICATION_REQUIRED' })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        campaignId: ids.campaign,
+        sessionId: ids.session,
+        type: 'TRANSIENT_READY'
+      })
+    ).toEqual({
+      campaignId: ids.campaign,
+      sessionId: ids.session,
+      type: 'TRANSIENT_READY'
+    })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        message: { envelope, userId: ids.user },
+        type: 'TRANSIENT'
+      })
+    ).toEqual({
+      message: { envelope, userId: ids.user },
+      type: 'TRANSIENT'
+    })
   })
 })

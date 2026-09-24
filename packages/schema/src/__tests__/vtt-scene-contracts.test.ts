@@ -8,6 +8,7 @@ import {
   sceneDefinitionDtoSchema,
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
+  sceneGeometryCommandInputDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
 
@@ -15,7 +16,8 @@ const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
   map: '00000000-0000-4000-8000-000000000002',
   scene: '00000000-0000-4000-8000-000000000003',
-  token: '00000000-0000-4000-8000-000000000004'
+  token: '00000000-0000-4000-8000-000000000004',
+  barrier: '00000000-0000-4000-8000-000000000005'
 } as const
 
 function sceneDefinition() {
@@ -170,6 +172,84 @@ describe('VTT scene contracts', () => {
         }
       }).success
     ).toBe(false)
+  })
+
+  it('accepts only the five geometry commands with full-schema parity', () => {
+    const commandBase = {
+      commandId: ids.campaign,
+      expectedSceneVersion: 3,
+      sceneId: ids.scene
+    }
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }
+    const barrier = {
+      a: { x: 0, y: 0 },
+      b: { x: 10, y: 0 },
+      blocksLight: true,
+      blocksMovement: true,
+      id: ids.barrier,
+      kind: 'WALL' as const
+    }
+    const geometryCommands = [
+      { ...commandBase, token, type: 'UPSERT_SCENE_TOKEN' as const },
+      { ...commandBase, tokenId: ids.token, type: 'REMOVE_SCENE_TOKEN' as const },
+      {
+        ...commandBase,
+        barrierId: ids.barrier,
+        state: 'OPEN' as const,
+        type: 'SET_SCENE_DOOR_STATE' as const
+      },
+      { ...commandBase, barrier, type: 'UPSERT_SCENE_BARRIER' as const },
+      { ...commandBase, barrierId: ids.barrier, type: 'REMOVE_SCENE_BARRIER' as const }
+    ] as const
+
+    for (const command of geometryCommands) {
+      expect(sceneGeometryCommandInputDtoSchema.parse(command)).toEqual(
+        sceneCommandInputDtoSchema.parse(command)
+      )
+    }
+
+    const missingTokenId = { ...commandBase, type: 'REMOVE_SCENE_TOKEN' }
+    for (const schema of [sceneGeometryCommandInputDtoSchema, sceneCommandInputDtoSchema])
+      expect(schema.safeParse(missingTokenId).success).toBe(false)
+
+    const invalidTokenId = { ...geometryCommands[1], tokenId: 'not-a-uuid' }
+    for (const schema of [sceneGeometryCommandInputDtoSchema, sceneCommandInputDtoSchema])
+      expect(schema.safeParse(invalidTokenId).success).toBe(false)
+
+    const move = {
+      ...commandBase,
+      correlationId: null,
+      expectedEncounterVersion: null,
+      movementKind: 'VOLUNTARY' as const,
+      path: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ],
+      tokenId: ids.token,
+      type: 'MOVE_SCENE_TOKEN' as const
+    }
+    const undo = { ...commandBase, type: 'UNDO_LAST_SCENE_MOVE' as const }
+    const nonGeometry = {
+      ...commandBase,
+      illumination: 'DIM' as const,
+      type: 'SET_SCENE_AMBIENT_ILLUMINATION' as const
+    }
+    for (const command of [move, undo, nonGeometry]) {
+      expect(sceneGeometryCommandInputDtoSchema.safeParse(command).success).toBe(false)
+      expect(sceneCommandInputDtoSchema.safeParse(command).success).toBe(true)
+    }
   })
 
   it('rejects oversized maps and duplicate structural IDs', () => {

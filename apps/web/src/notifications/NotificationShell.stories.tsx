@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, userEvent, waitFor, within } from 'storybook/test'
-import { http, HttpResponse } from 'msw'
+import { useQueryClient } from '@tanstack/react-query'
+import { useConvexAuth, useMutation as useConvexMutation } from 'convex/react'
+import { getFunctionName } from 'convex/server'
+import { expect, mocked, userEvent, waitFor, within } from 'storybook/test'
+import { notificationFeedQuery } from '#app/data/notifications'
 import { Shell } from '#app/shell/Shell'
 import { storybookNavigation } from '#app/shell/navigation'
 import { NotificationsPage } from './NotificationsPage'
@@ -16,36 +19,39 @@ const meta = {
     navigation: storybookNavigation,
     userEmail: 'story@example.com'
   },
+  beforeEach: () => {
+    mocked(useConvexAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      isRefreshing: false
+    })
+    mocked(useConvexMutation).mockImplementation((reference) => {
+      const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+        async () => {
+          const name = getFunctionName(reference)
+          if (name !== 'notifications:markAllSeen' && name !== 'notifications:markRead') {
+            throw new Error(`Unexpected native mutation ${name}`)
+          }
+          return { ok: true }
+        },
+        { withOptimisticUpdate: () => mutate }
+      )
+      return mutate
+    })
+  },
   decorators: [
-    (Story) => (
-      <NotificationsProvider>
-        <Story />
-      </NotificationsProvider>
-    )
-  ],
-  parameters: {
-    msw: {
-      handlers: [
-        http.get('*/api/trpc/notifications.feed,media.getImage', () =>
-          HttpResponse.json([
-            {
-              result: {
-                data: {
-                  items: [],
-                  unseenCount: 1
-                }
-              }
-            },
-            { result: { data: null } }
-          ])
-        ),
-        http.get('*/api/trpc/notifications.feed', () => trpcJson({ items: [], unseenCount: 1 })),
-        http.get('*/api/trpc/media.getImage', () => trpcJson(null)),
-        http.post('*/api/trpc/notifications.markAllSeen', () => trpcJson({ ok: true })),
-        http.post('*/api/trpc/notifications.markRead', () => trpcJson({ ok: true }))
-      ]
+    (Story) => {
+      const queryClient = useQueryClient()
+      queryClient.setQueryDefaults(notificationFeedQuery.queryKey, {
+        queryFn: async () => ({ items: [], unseenCount: 1 })
+      })
+      return (
+        <NotificationsProvider>
+          <Story />
+        </NotificationsProvider>
+      )
     }
-  }
+  ]
 } satisfies Meta<typeof Shell>
 
 export default meta
@@ -71,8 +77,4 @@ export const MobilePage: Story = {
     currentPath: '/notifications'
   },
   parameters: { viewport: { defaultViewport: 'mobile1' } }
-}
-
-function trpcJson(data: unknown) {
-  return HttpResponse.json([{ result: { data } }])
 }

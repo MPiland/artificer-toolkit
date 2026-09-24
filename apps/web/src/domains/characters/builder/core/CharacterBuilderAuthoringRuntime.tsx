@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import {
@@ -8,7 +8,11 @@ import {
   type AuthoringFormStatePatch
 } from '#forms/layout/AuthoringFormContext'
 import { InvalidDraftAlert } from '#forms/layout/Editor/SectionRow/InvalidDraftAlert'
-import { useDiscardCharacterDraftMutation } from '#app/data/characters/mutations'
+import {
+  useCreateCharacterDraftMutation,
+  useDiscardCharacterDraftMutation
+} from '#app/data/characters/mutations'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type {
   CharacterBuilderAuthoringSession,
   ReadyCharacterBuilderAuthoringSession
@@ -22,34 +26,77 @@ export function CharacterBuilderAuthoringRuntime({
 }) {
   const navigate = useNavigate()
   const router = useRouter()
-  const discardDraftMutation = useDiscardCharacterDraftMutation(
-    session.characterId ?? 'missing-character'
-  )
+  const discardDraftMutation = useDiscardCharacterDraftMutation()
+  const { mutateAsync: createDraft } = useCreateCharacterDraftMutation()
+  const [newCharacterId] = useState(() => crypto.randomUUID())
+  const [openAttempt, setOpenAttempt] = useState(0)
+  const [draftOpenFailed, setDraftOpenFailed] = useState(false)
   const { cancelHref, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+
+  useEffect(() => {
+    if (session.draft || session.notFound || !session.systemId) return
+    let current = true
+    setDraftOpenFailed(false)
+    // Opening is a mounted-client operation, never an SSR or preload mutation.
+    void createDraft({ id: session.characterId ?? newCharacterId, systemId: session.systemId })
+      .then(async (draft) => {
+        if (!current) return
+        if (!session.characterId) {
+          await navigate({
+            params: buildCharacterRouteParams(draft.publicId, draft.label),
+            replace: true,
+            to: '/characters/$characterPublicId/$characterSlug/edit'
+          })
+        } else {
+          await router.invalidate()
+        }
+      })
+      .catch(() => {
+        if (current) setDraftOpenFailed(true)
+      })
+    return () => {
+      current = false
+    }
+  }, [
+    createDraft,
+    navigate,
+    newCharacterId,
+    openAttempt,
+    router,
+    session.characterId,
+    session.draft,
+    session.notFound,
+    session.systemId
+  ])
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: cancelHref ?? '/characters' })
   }, [cancelHref, navigate])
 
   const handleDiscardDraft = useCallback(async () => {
-    if (!session.characterId) return
+    const draft = session.draft
+    if (!draft) return
 
     try {
-      await discardDraftMutation.mutateAsync()
+      await discardDraftMutation.mutateAsync({ id: draft.characterId, expectedDraftId: draft.id })
       notifications.show({ color: 'green', message: 'Character draft discarded.' })
-      await router.invalidate()
-      if (session.invalidDraftOnly) {
+      if (draft.draftState === 'DRAFT_ONLY') {
         await navigate({ to: '/characters' })
+      } else {
+        await navigate({
+          params: buildCharacterRouteParams(draft.publicId, session.subjectLabel),
+          to: '/characters/$characterPublicId/$characterSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not discard that character draft yet.' })
     }
-  }, [discardDraftMutation, navigate, router, session.characterId, session.invalidDraftOnly])
+  }, [discardDraftMutation, navigate, session.draft, session.subjectLabel])
 
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Activate',
-      canSaveDraft: Boolean(session.payload),
+      canSaveDraft: Boolean(session.payload && session.draft),
       hasActiveDraft: session.hasActiveDraft,
       isDraft: session.isDraft,
       mode: session.mode,
@@ -64,6 +111,7 @@ export function CharacterBuilderAuthoringRuntime({
       session.isDraft,
       session.mode,
       session.payload,
+      session.draft,
       session.readOnly,
       session.subjectKindLabel,
       session.subjectLabel,
@@ -109,7 +157,25 @@ export function CharacterBuilderAuthoringRuntime({
     )
   }
 
-  if (session.notFound || !session.payload || !session.initialValues) {
+  if (!session.draft && !session.notFound) {
+    return (
+      <Stack>
+        {draftOpenFailed ? (
+          <>
+            <Alert color='red'>Could not open that character draft.</Alert>
+            <Button onClick={() => setOpenAttempt((attempt) => attempt + 1)}>Try again</Button>
+          </>
+        ) : (
+          <Text role='status'>Opening character draft…</Text>
+        )}
+        <Button variant='default' onClick={() => void handleCancel()}>
+          Back to characters
+        </Button>
+      </Stack>
+    )
+  }
+
+  if (session.notFound || !session.draft || !session.payload || !session.initialValues) {
     return (
       <Stack>
         <Alert color='yellow'>That character could not be found.</Alert>
@@ -120,6 +186,7 @@ export function CharacterBuilderAuthoringRuntime({
 
   const readySession: ReadyCharacterBuilderAuthoringSession = {
     ...session,
+    draft: session.draft,
     initialValues: session.initialValues,
     payload: session.payload
   }

@@ -1,5 +1,6 @@
 import { type SubmitEvent, useState } from 'react'
 import { Anchor, Button, TextInput } from '@mantine/core'
+import { useHydrated } from '@tanstack/react-router'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
@@ -22,6 +23,7 @@ export function ResetPasswordForm({
   onCodeSent,
   onSuccess
 }: AuthFormProps & { onCodeSent?: (email: string) => void | Promise<void> }) {
+  const hydrated = useHydrated()
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -65,10 +67,10 @@ export function ResetPasswordForm({
         placeholder='you@example.com'
         value={email}
         onChange={(event) => setEmail(event.currentTarget.value)}
-        disabled={isSubmitting}
+        disabled={!hydrated || isSubmitting}
         required
       />
-      <Button className={authButton} type='submit' loading={isSubmitting}>
+      <Button className={authButton} type='submit' disabled={!hydrated} loading={isSubmitting}>
         Send verification code
       </Button>
       {feedback && (

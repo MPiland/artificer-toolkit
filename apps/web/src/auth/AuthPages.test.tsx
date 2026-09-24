@@ -1,10 +1,12 @@
 import { screen } from '@testing-library/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { InviteLinkErrorPage, SignUpPage } from './pages'
+import { AuthConfirmedPage, InviteLinkErrorPage, SignUpPage } from './pages'
 
 describe('SignUpPage', () => {
   it('renders the existing registration form when public sign-up is enabled', () => {
-    renderWithAppProviders(<SignUpPage publicSignUpEnabled />, { initialPath: '/sign-up' })
+    renderWithAppProviders(<SignUpPage publicSignUpEnabled />, {
+      initialPath: '/sign-up'
+    })
 
     expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument()
   })
@@ -23,14 +25,42 @@ describe('SignUpPage', () => {
   })
 
   it('renders a recovery state for unavailable invitation links', () => {
-    renderWithAppProviders(<InviteLinkErrorPage />, { initialPath: '/auth/confirmed' })
+    renderWithAppProviders(<InviteLinkErrorPage />, {
+      initialPath: '/auth/confirmed'
+    })
 
     expect(
-      screen.getByRole('heading', { name: 'This invitation link is unavailable' })
+      screen.getByRole('heading', {
+        name: 'This invitation link is unavailable'
+      })
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
       'href',
       '/sign-in'
     )
   })
+})
+
+describe('AuthConfirmedPage', () => {
+  it.each([false, true])(
+    'renders the verification outcome without authenticating: %s',
+    (verificationFailed) => {
+      renderWithAppProviders(<AuthConfirmedPage verificationFailed={verificationFailed} />, {
+        initialPath: '/auth/confirmed'
+      })
+      expect(
+        screen.getByRole('heading', {
+          name: verificationFailed
+            ? 'This confirmation link is unavailable'
+            : 'Your account is confirmed.'
+        })
+      ).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Continue to sign in' })).toHaveAttribute(
+        'href',
+        '/sign-in'
+      )
+      if (verificationFailed)
+        expect(screen.getByText(/request a new confirmation link/)).toBeInTheDocument()
+    }
+  )
 })

@@ -1,30 +1,25 @@
-import type { Api, AuthoredDetailRequestDto, ClassListRequestDto } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
+import { convexQuery } from '@convex-dev/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  authoredDetailReadInputSchema,
+  classResponseDtoSchema,
+  type AuthoredDetailRequestDto
+} from '@artificer-toolkit/schema/api/content'
 
 type DetailInput = string | AuthoredDetailRequestDto
 
-const classQueries = createAuthoredContentQueries(
-  (client) => client.content.classes,
-  queryKeys.content.classes
-)
-
-export function getClassList(input: ClassListRequestDto, client?: Api) {
-  return classQueries.getList(input, client)
-}
-
-export function useGetClassList(input: ClassListRequestDto) {
-  return classQueries.useList(input)
-}
-
-export function getClass(input: DetailInput, client?: Api) {
-  return classQueries.getDetail(input, client)
+export function getClass(input: DetailInput) {
+  const args = authoredDetailReadInputSchema.parse({
+    ...(typeof input === 'string' ? { id: input } : input),
+    subjectKind: 'CLASS'
+  })
+  return queryOptions({
+    ...convexQuery(convexApi.content.details.get, args),
+    select: (result) => classResponseDtoSchema.parse(result)
+  })
 }
 
 export function useGetClass(input: DetailInput) {
-  return classQueries.useDetail(input)
-}
-
-export function getClassDraft(id: string, client?: Api) {
-  return classQueries.getDraft(id, client)
+  return useSuspenseQuery(getClass(input))
 }

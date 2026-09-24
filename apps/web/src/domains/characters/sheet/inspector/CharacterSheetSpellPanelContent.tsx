@@ -1,7 +1,7 @@
 import { Accordion, Badge, Button, Switch, Text } from '@mantine/core'
 
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
 import { CharacterSheetSpellCustomizationEditor } from './CharacterSheetSpellCustomizationEditor'

@@ -29,16 +29,6 @@ function authoredDetailKey(domain: string, id: string, options: AuthoredDetailQu
 }
 
 export const queryKeys = {
-  account: {
-    entitlements: () => ['account', 'entitlements'] as const
-  },
-
-  notifications: {
-    all: () => ['notifications'] as const,
-    feed: () => ['notifications', 'feed'] as const,
-    preferences: () => ['notifications', 'preferences'] as const
-  },
-
   campaigns: {
     all: () => ['campaigns'] as const,
     list: () => ['campaigns', 'list'] as const,
@@ -52,6 +42,8 @@ export const queryKeys = {
     notebook: (campaignId: string) => ['campaigns', campaignId, 'notebook'] as const,
     sessions: (campaignId: string) => ['campaigns', campaignId, 'sessions'] as const,
     scenes: (campaignId: string) => ['campaigns', campaignId, 'scenes'] as const,
+    sceneDefinition: (campaignId: string, sceneId: string | null) =>
+      ['campaigns', campaignId, 'scenes', 'definition', sceneId] as const,
     liveScenes: (campaignId: string) => ['campaigns', campaignId, 'scenes', 'live'] as const,
     session: (campaignId: string, sessionNumber: number) =>
       ['campaigns', campaignId, 'sessions', sessionNumber] as const,
@@ -72,7 +64,6 @@ export const queryKeys = {
       ['campaigns', campaignId, 'inventory', 'audit'] as const,
     content: (campaignId: string) => ['campaigns', campaignId, 'content'] as const,
     vehicles: (campaignId: string) => ['campaigns', campaignId, 'vehicles'] as const,
-    attachments: (campaignId: string) => ['campaigns', campaignId, 'attachments'] as const,
     announcements: (campaignId: string) => ['campaigns', campaignId, 'announcements'] as const,
     announcement: (campaignId: string, announcementPublicId: string) =>
       ['campaigns', campaignId, 'announcements', announcementPublicId] as const
@@ -121,10 +112,6 @@ export const queryKeys = {
     preparationOptions: (id: string) => ['characters', 'sheet', id, 'preparation-options'] as const,
     panels: (id: string) => ['characters', 'sheet', id, 'panel'] as const,
     panel: (id: string, target: object) => ['characters', 'sheet', id, 'panel', target] as const
-  },
-
-  rolls: {
-    history: () => ['rolls', 'history'] as const
   },
 
   routeIds: {
@@ -219,24 +206,10 @@ export const queryKeys = {
     }
   },
 
-  systems: {
-    all: () => ['systems'] as const,
-    list: () => ['systems', 'list'] as const,
-    detail: (id: string) => ['systems', 'detail', id] as const,
-    definitions: (id: string) => ['systems', 'detail', id, 'definitions'] as const,
-    definition: (id: string) => ['systems', 'definitions', id] as const
-  },
-
   nodeRuntime: {
     all: () => ['node-runtime'] as const,
     resolve: (mapId: string, fingerprint: string) => ['node-runtime', mapId, fingerprint] as const,
     normalizeValues: (mapId: string, fingerprint: string) =>
       ['node-runtime', mapId, 'normalize-values', fingerprint] as const
-  },
-  rules: {
-    all: () => ['rules'] as const,
-    packs: () => ['rules', 'packs'] as const,
-    revisions: (packId: string) => ['rules', 'packs', packId, 'revisions'] as const,
-    revision: (revisionId: string) => ['rules', 'revisions', revisionId] as const
   }
 } as const

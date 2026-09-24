@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import ILogo from '#assets/icons/ILogo'
-import { ThemeToggle } from '#ui/primitives'
+import { ThemeToggle } from '#ui/primitives/ThemeToggle/ThemeToggle'
 import * as styles from '../auth.css'
 import { MoveLeft } from 'lucide-react'
 

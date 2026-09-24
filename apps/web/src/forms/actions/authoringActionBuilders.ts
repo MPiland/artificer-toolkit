@@ -1,3 +1,5 @@
+import { ConvexError } from 'convex/values'
+import { authoredPublicationNameErrorSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import type {
   ActivatedAuthoringItem,
   CreateActivateActionArgs,
@@ -46,8 +48,20 @@ export function createActivateAction<
       }
 
       await router?.invalidate()
-    } catch {
-      notifier.show({ color: 'red', message: messages.activateError })
+    } catch (error) {
+      const nameError = authoredPublicationNameErrorSchema.safeParse(
+        error instanceof ConvexError ? error.data : undefined
+      )
+      let message = messages.activateError
+      if (nameError.success) {
+        message =
+          nameError.data.code === 'ACTIVE_NAME_INDEX_INCOMPLETE'
+            ? 'Active names need indexing before activation. Your draft is unchanged.'
+            : nameError.data.scope === 'PARENT_CLASS'
+              ? 'You already have an active subclass with this name under this parent. Rename this draft before activating.'
+              : 'You already have an active item of this type with this name in this System. Rename this draft before activating.'
+      }
+      notifier.show({ color: 'red', message })
     }
   }
 }

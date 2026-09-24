@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import {
+  characterDraftCreateInputSchema,
+  characterDraftSaveInputSchema
+} from '../api/characterDrafts.js'
 
 import {
   characterBuilderDraftPayloadDtoSchema,
@@ -57,6 +61,23 @@ const baseRequest = {
 }
 
 describe('character builder contracts', () => {
+  it('creates native drafts within a System and rejects a Character-level catalogue binding', () => {
+    const request = {
+      id: '00000000-0000-4000-8000-000000000003',
+      systemId: baseRequest.character.systemId
+    }
+    expect(characterDraftCreateInputSchema.parse(request)).toEqual(request)
+    expect(
+      characterDraftCreateInputSchema.safeParse({
+        ...request,
+        primaryRulesCatalogueId: baseRequest.character.primaryRulesCatalogueId
+      }).success
+    ).toBe(false)
+    expect(characterDraftSaveInputSchema.shape.character.shape).not.toHaveProperty(
+      'primaryRulesCatalogueId'
+    )
+  })
+
   it('keeps preview flexible while commit only accepts active targets', () => {
     expect(
       characterBuilderSaveRequestDtoSchema.parse({

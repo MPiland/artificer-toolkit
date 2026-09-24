@@ -1,4 +1,4 @@
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   astralTearChargeId,
   astralTearEquipmentId,

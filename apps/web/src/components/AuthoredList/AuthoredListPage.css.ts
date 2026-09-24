@@ -9,7 +9,7 @@ export const listStack = style({
     [app]: {
       display: 'grid',
       gridTemplateRows: 'auto auto auto minmax(0, 1fr)',
-      height: `calc(100dvh - 48px - ${foundationVars.space[8]} - ${foundationVars.space[8]})`,
+      height: `calc(100dvh - 56px - ${foundationVars.space[8]} - ${foundationVars.space[8]})`,
       minWidth: 0,
       minHeight: 0,
       gap: foundationVars.space[5],

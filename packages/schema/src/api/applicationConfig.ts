@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 export const applicationFeatureFlagsDtoSchema = z.object({
   libraryImportEnabled: z.boolean(),

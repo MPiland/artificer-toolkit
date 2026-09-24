@@ -1,0 +1,424 @@
+import { makeFunctionReference } from 'convex/server'
+import type { z } from 'zod'
+import type {
+  CampaignDetailDto,
+  CreateCampaignInput
+} from '@artificer-toolkit/schema/api/campaignCore'
+import type {
+  CampaignSessionDto,
+  createCampaignSessionInputSchema
+} from '@artificer-toolkit/schema/api/campaignSessions'
+import type {
+  CampaignPlaySettingsDto,
+  SaveCampaignPlaySettingsInput
+} from '@artificer-toolkit/schema/api/campaignSettings'
+import {
+  encounterGmProjectionDtoSchema,
+  type CreateEncounterBlueprintInputDto,
+  type CreateEncounterInputDto,
+  type EncounterBlueprintDto,
+  type EncounterGmProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
+  DND5E_EFFECT_ACTION_FAMILY_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_SAVE_DC_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  DND5E_TARGET_ACTOR_FACT_KEY,
+  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
+  DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+import {
+  createDnd5eRechargeDefinition,
+  createDnd5eRechargeLifecycleDefinition
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/encounterLifecyclePolicy'
+import { fixture } from './characters'
+import { setupCharacterRun } from './encounterCharacter'
+import {
+  automaticChargedBiteFeatureId,
+  automaticChargedCreature,
+  automaticChargedCreatureId
+} from './encounterAction'
+import { createEncounterInitiativeDefinitions } from './encounterInitiative'
+import { importedSubject } from './publication'
+import { api, components, internal } from '../../convex/_generated/api'
+import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
+import { createRulesRuntime } from '../../convex/rules/runtime'
+
+const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
+  'campaigns/create:create'
+)
+const createSession = makeFunctionReference<
+  'mutation',
+  z.input<typeof createCampaignSessionInputSchema>,
+  CampaignSessionDto
+>('campaigns/sessions:create')
+const createBlueprint = makeFunctionReference<
+  'mutation',
+  CreateEncounterBlueprintInputDto,
+  EncounterBlueprintDto
+>('encounters/blueprints:create')
+const createRun = makeFunctionReference<
+  'mutation',
+  CreateEncounterInputDto,
+  EncounterGmProjectionDto
+>('encounters/runs:create')
+const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
+  'campaigns/playSettings:get'
+)
+const saveSettings = makeFunctionReference<
+  'mutation',
+  SaveCampaignPlaySettingsInput,
+  CampaignPlaySettingsDto
+>('campaigns/playSettings:save')
+
+export async function turnActiveEffectFixture(
+  mode: 'AUTOMATIC' | 'ASSISTED',
+  procedure: 'ACTOR_ROLL' | 'DECLARED_ACTION_ROLL' = 'ACTOR_ROLL'
+) {
+  const base = await fixture()
+  await base.t.run(async (ctx) => {
+    for (const [index, userId] of [base.owner.userId, base.other.userId].entries()) {
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .unique()
+      if (!profile) throw new Error('Missing turn-effect fixture profile.')
+      await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+        input: {
+          model: 'user',
+          where: [{ field: '_id', value: profile.authUserId }],
+          update: { email: `draft_123456abcde${index}@example.invalid` }
+        }
+      })
+    }
+  })
+  const initiative = createEncounterInitiativeDefinitions([{ procedure, cadence: 'EACH_ROUND' }])
+  const recharge = createDnd5eRechargeDefinition(5)
+  const lifecycle = createDnd5eRechargeLifecycleDefinition(5)
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: [
+      ...initiative.definitions,
+      {
+        id: recharge.id,
+        definitionFamilyKey: recharge.definitionFamilyKey,
+        label: 'Turn Recharge',
+        description: 'Turn Recharge',
+        document: recharge.definition,
+        checksum: recharge.checksum
+      },
+      {
+        id: lifecycle.id,
+        definitionFamilyKey: 'dnd5e-encounter-lifecycle',
+        label: 'Turn Recharge lifecycle',
+        description: 'Turn Recharge lifecycle',
+        document: lifecycle,
+        checksum: checksumRuleDocument(lifecycle)
+      }
+    ]
+  })
+  await base.t.mutation(internal.content.import.importSubjects, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    subjects: [
+      importedSubject({
+        ...automaticChargedCreature,
+        subjectKind: 'CREATURE',
+        document: {
+          ...automaticChargedCreature,
+          features: automaticChargedCreature.features?.map((feature) =>
+            feature.id === automaticChargedBiteFeatureId
+              ? { ...feature, ruleDefinitionIds: [lifecycle.id] }
+              : feature
+          )
+        }
+      })
+    ]
+  })
+  const campaign = await base.owner.caller.mutation(createCampaign, {
+    name: 'Encounter execution fixture',
+    format: 'ONGOING',
+    toneTags: ['HEROIC'],
+    contentMaturity: 'STANDARD',
+    gameSystemId: srdSystemRecord.id,
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+  })
+  const settings = await base.owner.caller.query(getSettings, {
+    campaignId: campaign.id
+  })
+  const { version, updatedAt: _updatedAt, ...fields } = settings
+  await base.owner.caller.mutation(saveSettings, {
+    ...fields,
+    expectedVersion: version,
+    automationMode: mode,
+    manualReminderMode: 'OFF',
+    initiativePolicyDefinitionId: initiative.policyIds[0]!,
+    initiativeTieDefinitionId: null
+  })
+  await base.t.run((ctx) =>
+    ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId: base.other.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+  )
+  const session = await base.owner.caller.mutation(createSession, {
+    campaignId: campaign.id
+  })
+  const blueprint = await base.owner.caller.mutation(createBlueprint, {
+    gameSystemId: campaign.gameSystemId,
+    name: 'Turn active effects',
+    commandId: crypto.randomUUID(),
+    enemies: [{ kind: 'CREATURE', sourceId: automaticChargedCreatureId }]
+  })
+  const run = await base.owner.caller.mutation(createRun, {
+    campaignId: campaign.id,
+    sessionId: session.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  return { ...base, campaign, run }
+}
+
+export async function turnCharacterEffectFixture() {
+  const base = await setupCharacterRun()
+  const sheet = await base.player.caller.query(api.characters.sheet.get, { id: base.character.id })
+  if (!sheet) throw new Error('Expected the assigned Character Sheet.')
+  let characterVersion = base.actorSourceRevision
+  for (const item of sheet.inventory.items) {
+    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: base.character.id,
+      command: {
+        type: 'EQUIP_ITEM',
+        commandId: crypto.randomUUID(),
+        expectedVersion: characterVersion,
+        itemId: item.id
+      }
+    })
+    characterVersion += 1
+  }
+  const initiative = createEncounterInitiativeDefinitions([
+    { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
+  ])
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: initiative.definitions
+  })
+  const settings = await base.owner.caller.query(getSettings, { campaignId: base.campaign.id })
+  const { version, updatedAt: _updatedAt, ...fields } = settings
+  await base.owner.caller.mutation(saveSettings, {
+    ...fields,
+    expectedVersion: version,
+    automationMode: 'ASSISTED',
+    manualReminderMode: 'OFF',
+    initiativePolicyDefinitionId: initiative.policyIds[0]!,
+    initiativeTieDefinitionId: null
+  })
+  const blueprint = await base.owner.caller.mutation(createBlueprint, {
+    gameSystemId: base.campaign.gameSystemId,
+    name: 'Player declaration effect privacy',
+    commandId: crypto.randomUUID(),
+    enemies: [{ kind: 'CUSTOM', label: 'Required fixture opponent', maxHitPoints: 3 }]
+  })
+  const created = await base.owner.caller.mutation(createRun, {
+    campaignId: base.campaign.id,
+    sessionId: base.run.sessionId,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
+  if (!opponent) throw new Error('Expected the fixture opponent.')
+  const removed = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    command: {
+      type: 'REMOVE_ACTOR',
+      encounterId: created.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: created.version,
+      actorId: opponent.id
+    }
+  })
+  return { ...base, run: encounterGmProjectionDtoSchema.parse(removed.projection) }
+}
+
+export async function seedTurnSaveEffect(
+  base: Awaited<ReturnType<typeof turnActiveEffectFixture>>,
+  input: {
+    stage: 'START_OF_TURN' | 'END_OF_TURN'
+    ticks: number
+    damage: number
+  }
+) {
+  const definitionId = crypto.randomUUID()
+  const entryId = crypto.randomUUID()
+  const occurrenceId = crypto.randomUUID()
+  const actor = base.run.actors[0]!
+  const graph = {
+    schemaVersion: 1,
+    id: definitionId,
+    gameSystemId: srdSystemRecord.id,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 }
+        }
+      },
+      {
+        id: 'test',
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        inputs: {
+          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+          naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
+          threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
+          contributorChecksum: {
+            kind: 'FACT',
+            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
+          }
+        }
+      },
+      {
+        id: 'proposal-on_save_fail',
+        operation: {
+          key: DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+          contractVersion: 1
+        },
+        inputs: {
+          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+          resolvedPath: {
+            kind: 'NODE_OUTPUT',
+            nodeId: 'test',
+            port: 'resultPath'
+          },
+          authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' },
+          targetStateChecksum: {
+            kind: 'FACT',
+            factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
+          },
+          amount: { kind: 'LITERAL', value: input.damage },
+          damageTypeId: { kind: 'LITERAL', value: crypto.randomUUID() }
+        }
+      }
+    ],
+    outputs: {
+      targetActorId: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'test',
+        port: 'targetActorId'
+      },
+      naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'naturalD20' },
+      total: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'total' },
+      resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
+      contributorChecksum: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'test',
+        port: 'contributorChecksum'
+      }
+    },
+    sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: 'proposal-on_save_fail' }]
+  } satisfies RuleGraphDefinition
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: [
+      {
+        id: graph.id,
+        definitionFamilyKey: graph.definitionFamilyKey,
+        label: 'Turn saving throw damage',
+        description: 'Turn saving throw damage',
+        document: graph,
+        checksum: checksumRuleDocument(graph)
+      }
+    ]
+  })
+  return base.t.run(async (ctx) => {
+    const runtime = await createRulesRuntime(ctx, base.owner.userId)
+    const prepared = await runtime.executeResolvedWithGraph?.({
+      command: {
+        definitionId,
+        occurrenceId,
+        facts: {
+          [DND5E_TARGET_ACTOR_FACT_KEY]: actor.id,
+          [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+          [DND5E_SAVE_DC_FACT_KEY]: 30,
+          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
+          [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
+            targetActorId: actor.id,
+            currentHitPoints: actor.currentHitPoints,
+            temporaryHitPoints: 0,
+            maximumHitPoints: actor.maxHitPoints,
+            conditionIds: []
+          })
+        }
+      },
+      published: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: definitionId,
+        gameSystemId: srdSystemRecord.id,
+        definitionFamilyKey: graph.definitionFamilyKey,
+        checksum: checksumRuleDocument(graph),
+        definition: graph
+      })
+    })
+    if (!prepared) throw new Error('Frozen turn-effect graph compilation unavailable.')
+    return createActiveRuleEffectStore(ctx).create({
+      id: crypto.randomUUID(),
+      owner:
+        actor.kind === 'CHARACTER' && actor.sourceId
+          ? { kind: 'CHARACTER', characterId: actor.sourceId }
+          : { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: actor.id },
+      definition: activeRuleEffectDefinitionDtoSchema.parse({
+        schemaVersion: 1,
+        origin: {
+          kind: 'ENCOUNTER',
+          sourceAggregateId: base.run.id,
+          sourceOccurrenceId: occurrenceId,
+          rootCommandId: crypto.randomUUID(),
+          sourceActorId: actor.id
+        },
+        authoredEffectId: definitionId,
+        compiledEntryId: entryId,
+        frozenGraphNodeId: 'proposal-on_save_fail',
+        frozenGraph: prepared.graph,
+        adapterFacts: {
+          [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
+            SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+          [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20',
+          [DND5E_SAVE_DC_FACT_KEY]: 30
+        },
+        perceptionContributions: [],
+        recurrence: {
+          recurrenceStage: input.stage,
+          consumeOnFirstEvent: null,
+          endOnEvents: [],
+          lifetimeScope: 'ENCOUNTER',
+          expiration: {
+            kind: 'TICKS',
+            initialRemaining: input.ticks,
+            decrementStage: input.stage
+          }
+        }
+      }),
+      lifecycle: { schemaVersion: 1, remainingTicks: input.ticks }
+    })
+  })
+}

@@ -1,0 +1,684 @@
+import type { z } from 'zod'
+import { makeFunctionReference } from 'convex/server'
+import { expect, it } from 'vitest'
+import {
+  encounterCommandResultDtoSchema,
+  type EncounterCommandResultDto,
+  type EncounterTimelineDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type {
+  BindEncounterToPresentedSceneInputDto,
+  BindEncounterToPresentedSceneResultDto,
+  RemoveEncounterSceneActorTokenBindingInputDto,
+  EncounterActorTokenBindingCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneTokenMovementCommandInputDtoSchema,
+  type SceneGeometryCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
+import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  sceneStoredLiveEntitySchema,
+  sceneStoredLiveStateSchema
+} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  createEncounterSceneFixture as setup,
+  createRun
+} from '../../tests/fixtures/encounterScene'
+import { execute as registeredExecute } from './actorTokenBindings'
+
+const bindScene = makeFunctionReference<
+  'mutation',
+  BindEncounterToPresentedSceneInputDto,
+  BindEncounterToPresentedSceneResultDto
+>('encounters/sceneBindings:bind')
+const execute = makeFunctionReference<
+  'mutation',
+  { input: EncounterActorTokenBindingCommandInputDto },
+  EncounterCommandResultDto
+>('encounters/actorTokenBindings:execute')
+const executeGeometry = makeFunctionReference<
+  'action',
+  { input: SceneGeometryCommandInputDto },
+  SceneGeometryCommandResult
+>('scenes/geometryActions:execute')
+
+it('exports object-form mutation arguments for Convex deployment packaging', () => {
+  const registered: unknown = registeredExecute
+  if (
+    typeof registered !== 'function' ||
+    !('exportArgs' in registered) ||
+    typeof registered.exportArgs !== 'function'
+  )
+    throw new Error('Registered mutation does not expose Convex exportArgs.')
+  const exported: unknown = JSON.parse(registered.exportArgs())
+  expect(exported).toHaveProperty('type', 'object')
+})
+
+it('removes a bound actor token atomically, versions the Run, and replays its receipt', async () => {
+  const base = await setup()
+  await base.other.caller.mutation(bindScene, {
+    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+    commandId: crypto.randomUUID(),
+    encounterId: base.run.id
+  })
+  const actorId = base.run.actors[0]?.id
+  if (!actorId) throw new Error('Missing Encounter actor')
+  const tokenId = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    ctx.db.insert(
+      'encounterActorTokenBindings',
+      encounterActorTokenBindingSchema.parse({
+        encounterId: base.run.id,
+        actorId,
+        sceneId: base.sceneId,
+        tokenId
+      })
+    )
+  )
+  const input: RemoveEncounterSceneActorTokenBindingInputDto = {
+    type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+    commandId: crypto.randomUUID(),
+    encounterId: base.run.id,
+    expectedEncounterVersion: base.run.version,
+    actorId,
+    sceneId: base.sceneId
+  }
+  const result = await base.other.caller.mutation(execute, { input })
+  expect(result.projection.version).toBe(base.run.version + 1)
+  expect(await base.other.caller.mutation(execute, { input })).toEqual(result)
+  expect(await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())).toEqual(
+    []
+  )
+}, 60000)
+
+const timeline = makeFunctionReference<
+  'query',
+  { encounterId: string; limit: number },
+  EncounterTimelineDto
+>('encounters/timelineReads:timeline')
+
+async function boundFixture() {
+  const base = await setup()
+  await base.other.caller.mutation(bindScene, {
+    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+    commandId: crypto.randomUUID(),
+    encounterId: base.run.id
+  })
+  const input: EncounterActorTokenBindingCommandInputDto = {
+    type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+    commandId: crypto.randomUUID(),
+    encounterId: base.run.id,
+    actorId: base.run.actors[0]!.id,
+    sceneId: base.sceneId,
+    tokenId: base.tokens[0]!.id,
+    expectedEncounterVersion: base.run.version
+  }
+  return { ...base, input }
+}
+
+async function replaceBindingReceiptWithMovement(base: Awaited<ReturnType<typeof boundFixture>>) {
+  const result = await base.other.caller.mutation(execute, { input: base.input })
+  const input: z.infer<typeof sceneTokenMovementCommandInputDtoSchema> = {
+    type: 'MOVE_SCENE_TOKEN',
+    commandId: base.input.commandId,
+    sceneId: base.sceneId,
+    expectedSceneVersion: 0,
+    expectedEncounterVersion: base.run.version,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    tokenId: base.tokens[0]!.id,
+    path: [base.tokens[0]!.position, { x: base.tokens[0]!.position.x + 1, y: 0 }]
+  }
+  await base.t.run(async (ctx) => {
+    const command = await ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
+      )
+      .unique()
+    if (!command) throw new Error('Missing binding receipt')
+    await ctx.db.patch(command._id, {
+      commandType: input.type,
+      commandJson: JSON.stringify(input),
+      commandFingerprint: checksumCanonicalJson(input),
+      ruleOccurrenceId: crypto.randomUUID(),
+      ruleResultChecksum: '0'.repeat(64),
+      optionalCombatSnapshotChecksum: '0'.repeat(64)
+    })
+  })
+  return result
+}
+
+async function publishFixtureSceneSource(base: Awaited<ReturnType<typeof boundFixture>>) {
+  await base.t.run(async (ctx) => {
+    const scene = await ctx.db
+      .query('campaignScenes')
+      .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
+      .unique()
+    if (!scene) throw new Error('Missing fixture Scene')
+    const counts = {
+      annotations: 0,
+      barriers: 0,
+      darknessZones: 0,
+      lights: 0,
+      tokens: base.tokens.length
+    }
+    await ctx.db.insert(
+      'sceneDefinitionSaves',
+      sceneStoredDefinitionSaveSchema.parse({
+        id: base.saveId,
+        commandId: scene.materializationCommandId,
+        commandFingerprint: '0'.repeat(64),
+        ownerUserId: base.other.userId,
+        definitionId: scene.definitionId,
+        expectedVersion: null,
+        settings: {
+          campaignId: scene.campaignId,
+          name: scene.name,
+          ambientIllumination: scene.ambientIllumination,
+          fogMode: scene.fogMode,
+          visionRevealMode: scene.visionRevealMode,
+          grid: scene.grid,
+          map: scene.map
+        },
+        counts,
+        received: counts,
+        status: 'PUBLISHED',
+        liveSceneId: scene.id,
+        entitiesRemoved: false,
+        createdAt: scene.createdAt,
+        expiresAt: Date.now() + 60_000
+      })
+    )
+  })
+}
+
+async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
+  return base.t.run(async (ctx) => ({
+    runs: await ctx.db.query('encounterRuns').collect(),
+    scenes: await ctx.db.query('campaignScenes').collect(),
+    tokens: await ctx.db.query('sceneDefinitionEntities').collect(),
+    liveStates: await ctx.db.query('sceneLiveStates').collect(),
+    liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
+    bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
+    commands: await ctx.db.query('encounterRunCommands').collect()
+  }))
+}
+
+async function seedLiveToken(
+  base: Awaited<ReturnType<typeof boundFixture>>,
+  tokenId: string,
+  value: Awaited<ReturnType<typeof setup>>['tokens'][number] | null,
+  version = 1,
+  entityVersion = version
+) {
+  const baseIndex = base.tokens.findIndex(
+    (token) => token.id.toLowerCase() === tokenId.toLowerCase()
+  )
+  const tokenCount =
+    base.tokens.length + (value && baseIndex < 0 ? 1 : !value && baseIndex >= 0 ? -1 : 0)
+  const head: ReturnType<typeof sceneStoredLiveStateSchema.parse> = {
+    sceneId: base.sceneId,
+    version,
+    fogLayerCount: 0,
+    nextFogOrdinal: 0,
+    settings: {
+      ambientIllumination: { value: 'BRIGHT', version: 0 },
+      visionRevealMode: { value: 'ON_DRAG', version: 0 }
+    },
+    counts: {
+      annotations: 0,
+      barriers: 0,
+      darknessZones: 0,
+      lights: 0,
+      tokens: tokenCount,
+      measurements: 0
+    },
+    nextOrdinals: {
+      annotations: 0,
+      barriers: 0,
+      darknessZones: 0,
+      lights: 0,
+      tokens: base.tokens.length + (value && baseIndex < 0 ? 1 : 0),
+      measurements: 0
+    }
+  }
+  await base.t.run(async (ctx) => {
+    await ctx.db.insert('sceneLiveStates', sceneStoredLiveStateSchema.parse(head))
+    const change = {
+      sceneId: base.sceneId,
+      collection: 'tokens' as const,
+      entityId: tokenId.toLowerCase(),
+      value: value
+        ? { collection: 'tokens' as const, entity: { ...value, id: tokenId.toLowerCase() } }
+        : null,
+      ordinal: value ? (baseIndex < 0 ? base.tokens.length : baseIndex) : null,
+      version: entityVersion
+    }
+    await ctx.db.insert(
+      'sceneLiveEntities',
+      sceneStoredLiveEntitySchema.parse({ ...change, checksum: checksumCanonicalJson(change) })
+    )
+  })
+}
+
+it('binds a token supplied only by the current Scene override without changing Scene state', async () => {
+  const base = await boundFixture()
+  const overrideToken = { ...base.tokens[0]!, id: crypto.randomUUID() }
+  await seedLiveToken(base, overrideToken.id, overrideToken)
+  const before = await snapshot(base)
+  const result = await base.other.caller.mutation(execute, {
+    input: { ...base.input, tokenId: overrideToken.id }
+  })
+  expect(result.projection.version).toBe(base.run.version + 1)
+  const after = await snapshot(base)
+  expect(after.liveStates).toEqual(before.liveStates)
+  expect(after.liveEntities).toEqual(before.liveEntities)
+  expect(after.scenes).toEqual(before.scenes)
+  expect(after.bindings).toMatchObject([{ tokenId: overrideToken.id }])
+})
+
+it('rejects a current Scene tombstone over a base token atomically', async () => {
+  const base = await boundFixture()
+  await seedLiveToken(base, base.tokens[0]!.id.toLowerCase(), null)
+  const before = await snapshot(base)
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'Scene token was not found.'
+  )
+  expect(await snapshot(base)).toEqual(before)
+})
+
+it('rejects future-version live token overrides atomically', async () => {
+  const base = await boundFixture()
+  await seedLiveToken(base, base.tokens[0]!.id.toLowerCase(), base.tokens[0]!, 1, 2)
+  const before = await snapshot(base)
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'Stored live Scene entity is inconsistent.'
+  )
+  expect(await snapshot(base)).toEqual(before)
+})
+
+it('rejects corrupt live token overrides atomically', async () => {
+  const base = await boundFixture()
+  await seedLiveToken(base, base.tokens[0]!.id.toLowerCase(), base.tokens[0]!)
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('sceneLiveEntities')
+      .withIndex('by_sceneId_collection_entityId', (q) =>
+        q
+          .eq('sceneId', base.sceneId)
+          .eq('collection', 'tokens')
+          .eq('entityId', base.tokens[0]!.id.toLowerCase())
+      )
+      .unique()
+    if (!row) throw new Error('Missing live token')
+    await ctx.db.patch(row._id, { checksum: '0'.repeat(64) })
+  })
+  const before = await snapshot(base)
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'Stored live Scene entity is inconsistent.'
+  )
+  expect(await snapshot(base)).toEqual(before)
+})
+
+it('replays a committed binding receipt after its Scene token is tombstoned', async () => {
+  const base = await boundFixture()
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  await seedLiveToken(base, base.tokens[0]!.id.toLowerCase(), null)
+  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
+})
+
+it('follows native geometry token removal and restoration for Encounter binding', async () => {
+  const base = await boundFixture()
+  await publishFixtureSceneSource(base)
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  const tokenId = base.tokens[0]!.id
+  const removed: SceneGeometryCommandInputDto = {
+    sceneId: base.sceneId,
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: 0,
+    type: 'REMOVE_SCENE_TOKEN',
+    tokenId
+  }
+  await base.other.caller.action(executeGeometry, { input: removed })
+  const preserved = await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())
+  expect(preserved).toMatchObject([{ actorId: base.input.actorId, tokenId: tokenId.toLowerCase() }])
+  await expect(
+    base.other.caller.mutation(execute, {
+      input: {
+        ...base.input,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: first.projection.version
+      }
+    })
+  ).rejects.toThrow('Scene token was not found.')
+  expect(await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())).toEqual(
+    preserved
+  )
+  const restored: SceneGeometryCommandInputDto = {
+    sceneId: base.sceneId,
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: 1,
+    type: 'UPSERT_SCENE_TOKEN',
+    token: { ...base.tokens[0]!, id: tokenId }
+  }
+  await base.other.caller.action(executeGeometry, { input: restored })
+  const rebound = await base.other.caller.mutation(execute, {
+    input: {
+      ...base.input,
+      commandId: crypto.randomUUID(),
+      expectedEncounterVersion: first.projection.version
+    }
+  })
+  expect(rebound.projection.version).toBe(first.projection.version + 1)
+  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
+  expect(
+    await base.t.run((ctx) => ctx.db.query('encounterActorTokenBindings').collect())
+  ).toMatchObject([{ actorId: base.input.actorId, tokenId: tokenId.toLowerCase() }])
+}, 60000)
+
+it('sets and replaces tokens, preserves exact historical replay and exposes binding receipts in timeline', async () => {
+  const base = await boundFixture()
+  const before = await snapshot(base)
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  expect(first.projection.version).toBe(base.run.version + 1)
+  const replaced = await base.other.caller.mutation(execute, {
+    input: {
+      ...base.input,
+      commandId: crypto.randomUUID(),
+      tokenId: base.tokens[1]!.id,
+      expectedEncounterVersion: first.projection.version
+    }
+  })
+  expect(replaced.projection.version).toBe(first.projection.version + 1)
+  expect(
+    await base.other.caller.mutation(execute, {
+      input: {
+        ...base.input,
+        commandId: base.input.commandId.toUpperCase(),
+        actorId: base.input.actorId.toUpperCase(),
+        encounterId: base.run.id.toUpperCase(),
+        sceneId: base.sceneId.toUpperCase(),
+        tokenId: base.tokens[0]!.id.toLowerCase()
+      }
+    })
+  ).toEqual(first)
+  const after = await snapshot(base)
+  expect(after.bindings).toMatchObject([
+    { actorId: base.input.actorId, tokenId: base.tokens[1]!.id }
+  ])
+  expect(after.scenes).toEqual(before.scenes)
+  expect(after.tokens).toEqual(before.tokens)
+  expect(after.commands).toHaveLength(before.commands.length + 2)
+  const history = await base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
+  expect(
+    history.entries.filter((entry) => entry.commandType.includes('TOKEN_BINDING'))
+  ).toHaveLength(2)
+  const removed = await base.other.caller.mutation(execute, {
+    input: {
+      type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+      commandId: crypto.randomUUID(),
+      actorId: base.input.actorId,
+      encounterId: base.run.id,
+      sceneId: base.sceneId,
+      expectedEncounterVersion: replaced.projection.version
+    }
+  })
+  expect(removed.projection.version).toBe(replaced.projection.version + 1)
+  expect((await snapshot(base)).bindings).toEqual([])
+})
+
+it('reads a terminal Scene movement receipt from the Encounter timeline', async () => {
+  const base = await boundFixture()
+  const result = await replaceBindingReceiptWithMovement(base)
+
+  const history = await base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
+
+  expect(history.entries).toContainEqual(
+    expect.objectContaining({
+      commandType: 'MOVE_SCENE_TOKEN',
+      version: result.projection.version,
+      visibility: 'PRIVATE'
+    })
+  )
+})
+
+it('rejects a Scene movement receipt with a bad fingerprint or expected Encounter version', async () => {
+  const base = await boundFixture()
+  await replaceBindingReceiptWithMovement(base)
+  const command = await base.t.run((ctx) =>
+    ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
+      )
+      .unique()
+  )
+  if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
+    throw new Error('Missing movement receipt')
+  await base.t.run((ctx) => ctx.db.patch(command._id, { commandFingerprint: '0'.repeat(64) }))
+  await expect(
+    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
+  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
+
+  const input = sceneTokenMovementCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
+  if (input.expectedEncounterVersion === null) throw new Error('Expected bound movement receipt')
+  const mismatchedVersion = {
+    ...input,
+    expectedEncounterVersion: input.expectedEncounterVersion + 1
+  }
+  await base.t.run((ctx) =>
+    ctx.db.patch(command._id, {
+      commandFingerprint: checksumCanonicalJson(mismatchedVersion),
+      commandJson: JSON.stringify(mismatchedVersion)
+    })
+  )
+  await expect(
+    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
+  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
+})
+
+it('rejects a Scene movement receipt whose result belongs to another Encounter', async () => {
+  const base = await boundFixture()
+  await replaceBindingReceiptWithMovement(base)
+  const command = await base.t.run((ctx) =>
+    ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
+      )
+      .unique()
+  )
+  if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
+    throw new Error('Missing movement receipt')
+  const result = encounterCommandResultDtoSchema.parse(JSON.parse(command.resultJson))
+  const mismatched = encounterCommandResultDtoSchema.parse({
+    ...result,
+    projection: { ...result.projection, id: crypto.randomUUID() }
+  })
+  await base.t.run((ctx) =>
+    ctx.db.patch(command._id, {
+      resultJson: JSON.stringify(mismatched),
+      resultChecksum: checksumCanonicalJson(mismatched)
+    })
+  )
+
+  await expect(
+    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
+  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
+})
+
+it('enforces token uniqueness within a Run and allows stable token identity across Runs', async () => {
+  const base = await boundFixture()
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  const before = await snapshot(base)
+  await expect(
+    base.other.caller.mutation(execute, {
+      input: {
+        ...base.input,
+        commandId: crypto.randomUUID(),
+        actorId: base.run.actors[1]!.id,
+        expectedEncounterVersion: first.projection.version
+      }
+    })
+  ).rejects.toThrow('already bound')
+  expect(await snapshot(base)).toEqual(before)
+  const second = await base.other.caller.mutation(createRun, {
+    campaignId: base.campaign.id,
+    sessionId: base.session.id,
+    blueprintId: base.blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  await base.other.caller.mutation(bindScene, {
+    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+    commandId: crypto.randomUUID(),
+    encounterId: second.id
+  })
+  await base.other.caller.mutation(execute, {
+    input: {
+      ...base.input,
+      commandId: crypto.randomUUID(),
+      encounterId: second.id,
+      actorId: second.actors[0]!.id,
+      expectedEncounterVersion: second.version
+    }
+  })
+  expect((await snapshot(base)).bindings).toHaveLength(2)
+  expect((await snapshot(base)).scenes).toEqual(before.scenes)
+})
+
+it('rejects stale, divergent, missing and corrupt inputs and atomically rolls back nested writes', async () => {
+  const base = await boundFixture()
+  const before = await snapshot(base)
+  const createReceipt = before.commands.find((row) => row.commandType === 'CREATE')!
+  for (const input of [
+    { ...base.input, expectedEncounterVersion: 999 },
+    { ...base.input, commandId: createReceipt.commandId },
+    { ...base.input, actorId: crypto.randomUUID() },
+    { ...base.input, tokenId: crypto.randomUUID() },
+    { ...base.input, sceneId: crypto.randomUUID() }
+  ]) {
+    await expect(base.other.caller.mutation(execute, { input })).rejects.toThrow()
+    expect(await snapshot(base)).toEqual(before)
+  }
+  await expect(
+    base.other.caller.run(async (ctx) => {
+      await ctx.runMutation(execute, { input: base.input })
+      throw new Error('Injected binding rollback')
+    })
+  ).rejects.toThrow('Injected binding rollback')
+  expect(await snapshot(base)).toEqual(before)
+  const token = before.tokens.find((row) => row.entityId === base.tokens[0]!.id)!
+  await base.t.run((ctx) => ctx.db.patch(token._id, { checksum: '0'.repeat(64) }))
+  const corrupted = await snapshot(base)
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'inconsistent'
+  )
+  expect(await snapshot(base)).toEqual(corrupted)
+  await base.t.run((ctx) => ctx.db.patch(token._id, { checksum: token.checksum }))
+  const duplicateId = await base.t.run((ctx) =>
+    ctx.db.insert('sceneDefinitionEntities', {
+      saveId: token.saveId,
+      entityId: token.entityId.toLowerCase(),
+      ordinal: 2,
+      value: token.value,
+      checksum: token.checksum
+    })
+  )
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'token was not found'
+  )
+  await base.t.run((ctx) => ctx.db.delete(duplicateId))
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  await expect(
+    base.other.caller.mutation(execute, { input: { ...base.input, tokenId: base.tokens[1]!.id } })
+  ).rejects.toThrow('different input')
+  const receipt = (await snapshot(base)).commands.find(
+    (row) => row.commandId === base.input.commandId
+  )!
+  const invalidResult = {
+    ...first,
+    projection: { ...first.projection, sessionId: crypto.randomUUID() }
+  }
+  await base.t.run((ctx) =>
+    ctx.db.patch(receipt._id, {
+      resultJson: JSON.stringify(invalidResult),
+      resultChecksum: checksumCanonicalJson(invalidResult)
+    })
+  )
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'receipt mismatch'
+  )
+})
+
+it('rejects anonymous, player, revoked, pending and completed fresh writes', async () => {
+  const base = await boundFixture()
+  const before = await snapshot(base)
+  await expect(base.t.mutation(execute, { input: base.input })).rejects.toThrow('Unauthenticated')
+  await expect(base.owner.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'Campaign not found'
+  )
+  expect(await snapshot(base)).toEqual(before)
+  const pending = await base.t.run((ctx) =>
+    ctx.db.insert('encounterRuleOccurrences', {
+      id: crypto.randomUUID(),
+      campaignId: base.campaign.id,
+      encounterId: base.run.id,
+      rootCommandId: crypto.randomUUID(),
+      state: 'PENDING',
+      version: 0,
+      expectedEncounterVersion: base.run.version,
+      pendingSnapshotJson: '{}',
+      pendingSnapshotChecksum: '0'.repeat(64),
+      completedAt: null,
+      createdAt: base.run.createdAt,
+      updatedAt: base.run.updatedAt
+    })
+  )
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'pending'
+  )
+  expect((await snapshot(base)).bindings).toEqual([])
+  await base.t.run((ctx) => ctx.db.delete(pending))
+  const first = await base.other.caller.mutation(execute, { input: base.input })
+  const run = (await snapshot(base)).runs[0]!
+  const state = { ...encounterRunStateSchema.parse(JSON.parse(run.stateJson)), status: 'COMPLETED' }
+  const projection = { ...first.projection, status: 'COMPLETED' }
+  await base.t.run((ctx) =>
+    ctx.db.patch(run._id, {
+      status: 'COMPLETED',
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state),
+      projectionJson: JSON.stringify(projection),
+      projectionChecksum: checksumCanonicalJson(projection)
+    })
+  )
+  await expect(
+    base.other.caller.mutation(execute, {
+      input: {
+        ...base.input,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: first.projection.version
+      }
+    })
+  ).rejects.toThrow('Completed')
+  expect(await base.other.caller.mutation(execute, { input: base.input })).toEqual(first)
+  await base.t.run(async (ctx) => {
+    const member = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) =>
+        q.eq('campaignId', base.campaign.id).eq('userId', base.other.userId)
+      )
+      .unique()
+    if (!member) throw new Error('Missing owner')
+    await ctx.db.patch(member._id, { status: 'LEFT' })
+  })
+  await expect(base.other.caller.mutation(execute, { input: base.input })).rejects.toThrow(
+    'Campaign not found'
+  )
+})

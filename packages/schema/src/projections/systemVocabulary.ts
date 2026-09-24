@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
 import {
@@ -16,14 +16,16 @@ export const systemVocabularySnapshotSchema = z
     checksum: projectionChecksumSchema,
     document: systemAuthoredDtoSchema
   })
-  .superRefine((value, context) => {
-    if (value.document.id !== value.systemId) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Vocabulary document identity must match its snapshot system identity.',
-        path: ['document', 'id']
-      })
-    }
-  })
+  .check(
+    z.superRefine((value, context) => {
+      if (value.document.id !== value.systemId) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Vocabulary document identity must match its snapshot system identity.',
+          path: ['document', 'id']
+        })
+      }
+    })
+  )
 
 export type SystemVocabularySnapshot = z.infer<typeof systemVocabularySnapshotSchema>

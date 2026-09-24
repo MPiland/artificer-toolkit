@@ -11,13 +11,9 @@ import {
   selectBuilderOption,
   selectBuilderOptionAtIndexAndResolve,
   selectBuilderOptionAndResolve,
-  selectBuilderSpellChoiceAndResolve
+  selectBuilderSpellChoiceAndResolve,
+  waitForBuilderResolution
 } from './support/characterBuilder'
-import {
-  runAndWaitForSuccessfulTrpcProcedure,
-  waitForSuccessfulTrpcBatch,
-  waitForSuccessfulTrpcProcedure
-} from './support/trpc'
 
 test.describe('MVP character Builder to Sheet', () => {
   test.describe.configure({ mode: 'serial' })
@@ -41,12 +37,8 @@ test.describe('MVP character Builder to Sheet', () => {
 
     await goToBuilderStep(page, 'Classes')
     await selectBuilderCatalogOptionAndResolve(page, 'Add Class', 'Choose a class', 'Fighter')
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.resolve',
-      async () => page.getByRole('textbox', { name: 'Fighter level' }).fill('2'),
-      { method: 'POST' }
-    )
+    await page.getByRole('textbox', { name: 'Fighter level' }).fill('2')
+    await waitForBuilderResolution(page)
     await selectBuilderClassProficiencyAndResolve(page, 'Athletics')
     await selectBuilderClassProficiencyAndResolve(page, 'Perception')
     await selectBuilderGrantChoiceAndResolve(page, 'Fighting Style', 'Defense')
@@ -73,11 +65,7 @@ test.describe('MVP character Builder to Sheet', () => {
     await selectBuilderGrantChoiceAndResolve(page, 'Expertise', 'Athletics')
     await selectBuilderGrantChoiceAndResolve(page, 'Expertise', 'Perception')
 
-    const hitPointSyncPromise = waitForSuccessfulTrpcProcedure(page, 'characters.resolve', {
-      method: 'POST'
-    })
     await goToBuilderStep(page, 'Abilities & HP')
-    await hitPointSyncPromise
     expect((await readHitPointProgression(page)).map((row) => row.classProgression)).toEqual([
       'Fighter 1',
       'Fighter 2',
@@ -90,25 +78,14 @@ test.describe('MVP character Builder to Sheet', () => {
       'Rogue 1'
     ])
 
-    const equipmentDefaultsResolvePromise = waitForSuccessfulTrpcProcedure(
-      page,
-      'characters.resolve',
-      { method: 'POST' }
-    )
     await goToBuilderStep(page, 'Equipment & Currency')
-    await equipmentDefaultsResolvePromise
     await completeFighterAndAcolyteEquipment(page)
 
     await goToBuilderStep(page, 'Review')
     await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
     const editRedirectPromise = page.waitForURL(/\/characters\/[^/]+\/[^/]+\/edit$/)
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.saveDraft',
-      async () => page.getByRole('button', { name: 'Save Draft', exact: true }).click(),
-      { method: 'POST' }
-    )
+    await page.getByRole('button', { name: 'Save Draft', exact: true }).click()
     await editRedirectPromise
     characterCleanup.captureRoute(page)
     expect(new URL(page.url()).pathname).toMatch(
@@ -116,6 +93,7 @@ test.describe('MVP character Builder to Sheet', () => {
     )
     await expectBuilderReady(page)
 
+    await page.waitForLoadState('networkidle')
     await page.reload({ waitUntil: 'networkidle' })
     await expectBuilderReady(page)
     await goToBuilderStep(page, 'Basics')
@@ -124,31 +102,16 @@ test.describe('MVP character Builder to Sheet', () => {
     await goToBuilderStep(page, 'Review')
     await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.previewSave',
-      async () => page.getByRole('button', { name: 'Activate', exact: true }).click(),
-      { method: 'POST', timeout: 120_000 }
-    )
+    await page.getByRole('button', { name: 'Activate', exact: true }).click()
     await expect(page.getByRole('dialog', { name: 'Finalize Character' })).toBeVisible()
 
-    const sheetResponsePromise = waitForSuccessfulTrpcBatch(
-      page,
-      ['characters.sheet', 'characters.getDraft'],
-      { method: 'GET', timeout: 120_000 }
-    )
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.upsert',
-      async () =>
-        page
-          .getByRole('dialog', { name: 'Finalize Character' })
-          .getByRole('button', { name: 'Finalize', exact: true })
-          .click(),
-      { method: 'POST', timeout: 60_000 }
-    )
-    await sheetResponsePromise
-    await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible()
+    await page
+      .getByRole('dialog', { name: 'Finalize Character' })
+      .getByRole('button', { name: 'Finalize', exact: true })
+      .click()
+    await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
+      timeout: 120_000
+    })
     await expect(page.getByRole('heading', { name: characterName, exact: true })).toBeVisible()
 
     const beforeReload = await readCoreSheetSnapshot(page)
@@ -162,6 +125,7 @@ test.describe('MVP character Builder to Sheet', () => {
     expect(beforeReload.abilities).toContain('STR')
     expect(beforeReload.abilities).toContain('CHA')
 
+    await page.waitForLoadState('networkidle')
     await page.reload({ waitUntil: 'networkidle' })
     await expect(page.getByRole('heading', { name: characterName, exact: true })).toBeVisible({
       timeout: 120_000
@@ -196,13 +160,7 @@ test.describe('MVP character Builder to Sheet', () => {
     await completeAcolyteBackground(page)
     await completeStandardAbilitiesAndHitPoints(page)
 
-    const equipmentDefaultsResolvePromise = waitForSuccessfulTrpcProcedure(
-      page,
-      'characters.resolve',
-      { method: 'POST' }
-    )
     await goToBuilderStep(page, 'Equipment & Currency')
-    await equipmentDefaultsResolvePromise
     await selectBuilderOptionAtIndexAndResolve(page, 'Choose one', 0, 'Mace')
     await selectBuilderOptionAtIndexAndResolve(page, 'Choose one', 1, 'Chain Mail')
     await selectBuilderOptionAtIndexAndResolve(
@@ -236,52 +194,66 @@ test.describe('MVP character Builder to Sheet', () => {
     await expect(page.getByRole('region', { name: 'Spells', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Manage Spells', exact: true }).click()
 
-    const manageSpellsDrawer = page.getByRole('dialog', { name: 'Manage Spells' })
+    const manageSpellsDrawer = page.getByRole('dialog', {
+      name: 'Manage Spells'
+    })
     const healingWordRow = getSheetDetailRow(manageSpellsDrawer, 'Healing Word')
     await expect(healingWordRow.getByRole('button', { name: 'Prepare', exact: true })).toBeVisible()
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.command',
-      async () => healingWordRow.getByRole('button', { name: 'Prepare', exact: true }).click(),
-      { method: 'POST' }
-    )
+    await healingWordRow.getByRole('button', { name: 'Prepare', exact: true }).click()
     await expect(
       healingWordRow.getByRole('button', { name: 'Unprepare', exact: true })
     ).toBeVisible()
+    await expect(
+      healingWordRow.getByRole('button', { name: 'Unprepare', exact: true })
+    ).toBeEnabled()
     await page.keyboard.press('Escape')
     await expect(manageSpellsDrawer).toBeHidden()
 
-    const spellsPanel = page.getByRole('region', { name: 'Spells', exact: true })
+    const spellsPanel = page.getByRole('region', {
+      name: 'Spells',
+      exact: true
+    })
     await expect(
-      spellsPanel.getByRole('button', { name: 'Level 1: 2 of 2 remaining', exact: true })
+      spellsPanel.getByRole('button', {
+        name: 'Level 1: 2 of 2 remaining',
+        exact: true
+      })
     ).toBeVisible()
     const preparedHealingWordRow = spellsPanel.getByRole('group', {
       name: 'Healing Word from Cleric at level 1',
       exact: true
     })
     await expect(preparedHealingWordRow).toBeVisible()
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.command',
-      async () =>
-        preparedHealingWordRow
-          .getByRole('button', {
-            name: 'Cast Healing Word from Cleric at level 1',
-            exact: true
-          })
-          .click(),
-      { method: 'POST' }
-    )
+    await preparedHealingWordRow
+      .getByRole('button', {
+        name: 'Cast Healing Word from Cleric at level 1',
+        exact: true
+      })
+      .click()
     await expect(
-      spellsPanel.getByRole('button', { name: 'Level 1: 1 of 2 remaining', exact: true })
+      spellsPanel.getByRole('button', {
+        name: 'Level 1: 1 of 2 remaining',
+        exact: true
+      })
     ).toBeVisible()
 
+    // The slot count is optimistic; networkidle does not await the Convex WebSocket mutation.
+    await expect(
+      spellsPanel.getByRole('button', {
+        name: 'Cast Healing Word from Cleric at level 1',
+        exact: true
+      })
+    ).toBeEnabled()
+    await page.waitForLoadState('networkidle')
     await page.reload({ waitUntil: 'networkidle' })
     await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
       timeout: 120_000
     })
     await page.getByRole('tab', { name: 'Spells', exact: true }).click()
-    const reloadedSpellsPanel = page.getByRole('region', { name: 'Spells', exact: true })
+    const reloadedSpellsPanel = page.getByRole('region', {
+      name: 'Spells',
+      exact: true
+    })
     await expect(
       reloadedSpellsPanel.getByRole('button', {
         name: 'Level 1: 1 of 2 remaining',
@@ -313,12 +285,8 @@ test.describe('MVP character Builder to Sheet', () => {
 
     await goToBuilderStep(page, 'Classes')
     await selectBuilderCatalogOptionAndResolve(page, 'Add Class', 'Choose a class', 'Fighter')
-    await runAndWaitForSuccessfulTrpcProcedure(
-      page,
-      'characters.resolve',
-      async () => page.getByRole('textbox', { name: 'Fighter level' }).fill('3'),
-      { method: 'POST' }
-    )
+    await page.getByRole('textbox', { name: 'Fighter level' }).fill('3')
+    await waitForBuilderResolution(page)
     await selectBuilderOptionAndResolve(page, 'Subclass', 'Champion')
     await selectBuilderClassProficiencyAndResolve(page, 'Athletics')
     await selectBuilderClassProficiencyAndResolve(page, 'Perception')
@@ -327,13 +295,7 @@ test.describe('MVP character Builder to Sheet', () => {
     await completeAcolyteBackground(page)
     await completeStandardAbilitiesAndHitPoints(page)
 
-    const equipmentDefaultsResolvePromise = waitForSuccessfulTrpcProcedure(
-      page,
-      'characters.resolve',
-      { method: 'POST' }
-    )
     await goToBuilderStep(page, 'Equipment & Currency')
-    await equipmentDefaultsResolvePromise
     await completeFighterAndAcolyteEquipment(page)
 
     await saveReloadPreviewAndFinalize(
@@ -349,7 +311,10 @@ test.describe('MVP character Builder to Sheet', () => {
     expect(sheetSnapshot.identity).not.toMatch(/\bLevel 3\b/i)
 
     await page.getByRole('tab', { name: 'Features', exact: true }).click()
-    const featuresPanel = page.getByRole('region', { name: 'Features', exact: true })
+    const featuresPanel = page.getByRole('region', {
+      name: 'Features',
+      exact: true
+    })
     await expect(featuresPanel.getByText('Improved Critical', { exact: true })).toBeVisible()
     await expect(featuresPanel.getByText('Breath Weapon', { exact: true })).toBeVisible()
   })
@@ -392,11 +357,7 @@ async function completeAcolyteBackground(page: Page): Promise<void> {
 }
 
 async function completeStandardAbilitiesAndHitPoints(page: Page): Promise<void> {
-  const hitPointSyncPromise = waitForSuccessfulTrpcProcedure(page, 'characters.resolve', {
-    method: 'POST'
-  })
   await goToBuilderStep(page, 'Abilities & HP')
-  await hitPointSyncPromise
   await expect(page.getByRole('combobox', { name: 'Ability Method' })).toHaveValue('Standard Array')
   await completeStandardAbilityAssignments(page, DEFAULT_STANDARD_ABILITY_ASSIGNMENTS)
 }
@@ -470,16 +431,12 @@ async function saveReloadPreviewAndFinalize(
   await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
   const editRedirectPromise = page.waitForURL(/\/characters\/[^/]+\/[^/]+\/edit$/)
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.saveDraft',
-    async () => page.getByRole('button', { name: 'Save Draft', exact: true }).click(),
-    { method: 'POST' }
-  )
+  await page.getByRole('button', { name: 'Save Draft', exact: true }).click()
   await editRedirectPromise
   characterCleanup.captureRoute(page)
   expect(new URL(page.url()).pathname).toMatch(/^\/characters\/[^/]+\/[^/]+\/edit$/)
 
+  await page.waitForLoadState('networkidle')
   await page.reload({ waitUntil: 'networkidle' })
   await expectBuilderReady(page)
   await goToBuilderStep(page, 'Basics')
@@ -488,31 +445,16 @@ async function saveReloadPreviewAndFinalize(
 
   await goToBuilderStep(page, 'Review')
   await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.previewSave',
-    async () => page.getByRole('button', { name: 'Activate', exact: true }).click(),
-    { method: 'POST', timeout: 120_000 }
-  )
+  await page.getByRole('button', { name: 'Activate', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Finalize Character' })).toBeVisible()
 
-  const sheetResponsePromise = waitForSuccessfulTrpcBatch(
-    page,
-    ['characters.sheet', 'characters.getDraft'],
-    { method: 'GET', timeout: 120_000 }
-  )
-  await runAndWaitForSuccessfulTrpcProcedure(
-    page,
-    'characters.upsert',
-    async () =>
-      page
-        .getByRole('dialog', { name: 'Finalize Character' })
-        .getByRole('button', { name: 'Finalize', exact: true })
-        .click(),
-    { method: 'POST', timeout: 60_000 }
-  )
-  await sheetResponsePromise
-  await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible()
+  await page
+    .getByRole('dialog', { name: 'Finalize Character' })
+    .getByRole('button', { name: 'Finalize', exact: true })
+    .click()
+  await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
+    timeout: 120_000
+  })
   await expect(page.getByRole('heading', { name: characterName, exact: true })).toBeVisible()
 }
 
@@ -538,7 +480,10 @@ async function assertPersistedClericChoices(page: Page): Promise<void> {
   await assertPersistedAcolyteAndAbilities(page, 1)
 
   await goToBuilderStep(page, 'Equipment & Currency')
-  const equipmentChoices = page.getByRole('combobox', { name: 'Choose one', exact: true })
+  const equipmentChoices = page.getByRole('combobox', {
+    name: 'Choose one',
+    exact: true
+  })
   await expect(equipmentChoices).toHaveCount(4)
   await expect(equipmentChoices.nth(0)).toHaveValue('Mace')
   await expect(equipmentChoices.nth(1)).toHaveValue('Chain Mail')
@@ -549,7 +494,9 @@ async function assertPersistedClericChoices(page: Page): Promise<void> {
     'Holy Symbol: Amulet'
   )
   await expect(
-    page.getByRole('combobox', { name: /^Choose 1 Prayer Book or Prayer Wheel/ })
+    page.getByRole('combobox', {
+      name: /^Choose 1 Prayer Book or Prayer Wheel/
+    })
   ).toHaveValue('Prayer Book')
 }
 
@@ -633,7 +580,10 @@ async function assertPersistedMulticlassChoices(
 
 async function assertPersistedFighterAndAcolyteEquipment(page: Page): Promise<void> {
   await goToBuilderStep(page, 'Equipment & Currency')
-  const equipmentChoices = page.getByRole('combobox', { name: 'Choose one', exact: true })
+  const equipmentChoices = page.getByRole('combobox', {
+    name: 'Choose one',
+    exact: true
+  })
   await expect(equipmentChoices).toHaveCount(4)
   await expect(equipmentChoices.nth(0)).toHaveValue('Chain Mail')
   await expect(equipmentChoices.nth(1)).toHaveValue('Choose 1 martial weapon and Choose 1 shield')
@@ -644,7 +594,9 @@ async function assertPersistedFighterAndAcolyteEquipment(page: Page): Promise<vo
   )
   await expect(page.getByRole('combobox', { name: /^Choose 1 shield$/i })).toHaveValue('Shield')
   await expect(
-    page.getByRole('combobox', { name: /^Choose 1 Prayer Book or Prayer Wheel/ })
+    page.getByRole('combobox', {
+      name: /^Choose 1 Prayer Book or Prayer Wheel/
+    })
   ).toHaveValue('Prayer Book')
 }
 
@@ -682,10 +634,16 @@ async function expectStandardAbilityAssignments(
 ): Promise<void> {
   for (const [index, assignment] of assignments.entries()) {
     await expect(
-      page.getByRole('combobox', { name: `Score for assignment ${index + 1}`, exact: true })
+      page.getByRole('combobox', {
+        name: `Score for assignment ${index + 1}`,
+        exact: true
+      })
     ).toHaveValue(assignment.score)
     await expect(
-      page.getByRole('combobox', { name: `Ability for assignment ${index + 1}`, exact: true })
+      page.getByRole('combobox', {
+        name: `Ability for assignment ${index + 1}`,
+        exact: true
+      })
     ).toHaveValue(assignment.ability)
   }
 }
@@ -713,7 +671,10 @@ function normalizeText(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-function readHitPointPair(vitals: string): { current: number; maximum: number } {
+function readHitPointPair(vitals: string): {
+  current: number
+  maximum: number
+} {
   const match = /\bHP\s+(\d+)\s*\/\s*(\d+)\b/i.exec(vitals)
   const current = match?.[1]
   const maximum = match?.[2]

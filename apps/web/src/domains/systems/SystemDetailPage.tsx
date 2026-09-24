@@ -1,14 +1,19 @@
 import { Alert, Badge, Card, Container, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { getSystem, getSystemList, getSystemRuleCapability } from '#app/data/systems/queries'
+import { REUSABLE_DEFINITION_AUTHORING_FAMILY_KEYS } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { getSystem, getSystemSummary, getSystemRuleCapability } from '#app/data/systems/queries'
 import { PageHeader } from '#app/shell'
 import { SystemDefinitionWorkspace } from './SystemDefinitionWorkspace'
+import { formatDefinitionFamily } from './systemDefinitionModel'
 
 export function SystemDetailPage({ systemId }: { systemId: string }) {
   const { data: system } = useSuspenseQuery(getSystem(systemId))
-  const { data: systems } = useSuspenseQuery(getSystemList())
+  const { data: summary } = useSuspenseQuery(getSystemSummary(systemId))
   const { data: capability } = useSuspenseQuery(getSystemRuleCapability(systemId))
-  const summary = systems.find((candidate) => candidate.id === systemId)
+  const authoringFamilies =
+    capability?.definitionFamilyKeys.filter((family) =>
+      REUSABLE_DEFINITION_AUTHORING_FAMILY_KEYS.some((supported) => supported === family)
+    ) ?? []
 
   if (!system || !summary) return <Alert color='red'>This Game System is unavailable.</Alert>
 
@@ -35,7 +40,7 @@ export function SystemDetailPage({ systemId }: { systemId: string }) {
             <CapabilityCard
               title='Reusable definitions'
               description='Typed definition families available to System and homebrew content.'
-              values={capability.definitionFamilyKeys}
+              values={authoringFamilies}
             />
             <CapabilityCard
               title='Facts'
@@ -72,7 +77,8 @@ export function SystemDetailPage({ systemId }: { systemId: string }) {
         </Card>
         {capability ? (
           <SystemDefinitionWorkspace
-            definitionFamilyKeys={capability.definitionFamilyKeys}
+            key={systemId}
+            definitionFamilyKeys={authoringFamilies}
             gameSystemId={systemId}
           />
         ) : null}
@@ -109,7 +115,7 @@ function CapabilityCard({
           ) : (
             values.map((value) => (
               <Badge key={value} variant='light'>
-                {formatCapability(value)}
+                {formatDefinitionFamily(value)}
               </Badge>
             ))
           )}
@@ -117,12 +123,4 @@ function CapabilityCard({
       </Stack>
     </Card>
   )
-}
-
-function formatCapability(value: string) {
-  return value
-    .split(/[.-]/)
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(' ')
 }

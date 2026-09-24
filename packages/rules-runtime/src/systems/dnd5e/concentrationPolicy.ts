@@ -1,0 +1,237 @@
+import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import {
+  compareCanonicalD20Contributors,
+  RULE_GRAPH_LIMITS,
+  RULE_VALUE_KIND,
+  type GameSystemRuleCapabilityContract,
+  type PureRuleOperationContract,
+  type RuleGraphDefinition,
+  type RuleValue
+} from '@artificer-toolkit/shared/rules'
+
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
+import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
+
+export const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
+export const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'
+/** UUID identity from the D&D System vocabulary snapshot, not an ability code. */
+export const DND5E_CONSTITUTION_ABILITY_DEFINITION_ID = '00000000-0000-0000-0011-000300000000'
+export const DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY = 'dnd5e.concentration-target-actor-id'
+export const DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY = 'dnd5e.concentration-applied-damage'
+export const DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY = 'dnd5e.concentration-save-modifier'
+export const DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY =
+  'dnd5e.concentration-contributor-checksum'
+
+export interface Dnd5eConcentrationContributor {
+  sourceId: string
+  grantId: string | null
+  domainKey: string | null
+  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+}
+
+/** Rejects noncanonical or altered contributor evidence before it enters a child receipt. */
+export function validateDnd5eConcentrationContributors(
+  contributors: readonly Dnd5eConcentrationContributor[],
+  contributorChecksum: string
+): void {
+  if (contributors.length > RULE_GRAPH_LIMITS.NODES)
+    throw new Error('D&D concentration saving-throw contributors exceed the rules-runtime limit.')
+  let prior: Dnd5eConcentrationContributor | null = null
+  for (const contributor of contributors) {
+    if (prior !== null && compareCanonicalD20Contributors(prior, contributor) >= 0)
+      throw new Error('D&D concentration saving-throw contributors are not canonical.')
+    prior = contributor
+  }
+  if (checksumRuleDocument(contributors) !== contributorChecksum)
+    throw new Error('D&D concentration saving-throw contributor evidence is invalid.')
+}
+
+function positiveSafeInteger(value: RuleValue | undefined, label: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)
+    throw new Error(`${label} must be a positive safe integer.`)
+  return value
+}
+
+/** D&D 2014 concentration damage-check DC: max(10, floor(applied damage / 2)). */
+export const dnd5eConcentrationDamageDcOperation: PureRuleOperationContract = {
+  key: DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: { appliedDamage: RULE_VALUE_KIND.NUMBER },
+  outputs: { dc: RULE_VALUE_KIND.NUMBER },
+  execute(inputs) {
+    const appliedDamage = positiveSafeInteger(inputs.appliedDamage, 'Applied damage')
+    return { dc: Math.max(10, Math.floor(appliedDamage / 2)) }
+  }
+}
+
+/**
+ * Contribution merged into the one D&D System capability registration. The
+ * runtime deliberately permits one complete capability contract per System.
+ */
+export const dnd5eConcentrationCapabilityContribution = {
+  definitionFamilyKeys: [RULE_RUNTIME_GRAPH_FAMILY_KEY],
+  factContracts: [
+    { key: DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
+    { key: DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
+    {
+      key: DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.TEXT
+    }
+  ],
+  operationContracts: [{ key: DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY, contractVersion: 1 }]
+} as const satisfies Pick<
+  GameSystemRuleCapabilityContract,
+  'definitionFamilyKeys' | 'factContracts' | 'operationContracts'
+>
+
+/**
+ * Derives the D&D-specific saving-throw facts consumed by the portable
+ * concentration graph. The D&D policy binding supplies the exact ability
+ * identity; no default modifier, contributor set, code, or display label is
+ * permitted here.
+ */
+export function resolveDnd5eConcentrationSaveFacts(input: {
+  appliedDamage: number
+  targetActorId: string
+  rulePolicyOutput: {
+    savingThrowDefinitions?: readonly {
+      abilityDefinitionId: string
+      ruleDefinitionId?: string
+      modifier: number
+      rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+      contributors: readonly Dnd5eConcentrationContributor[]
+    }[]
+  }
+}): {
+  facts: Record<string, string | number>
+  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  modifier: number
+  contributors: ReadonlyArray<Dnd5eConcentrationContributor>
+  contributorChecksum: string
+} {
+  const appliedDamage = positiveSafeInteger(input.appliedDamage, 'Applied damage')
+  const constitutionSaves = (input.rulePolicyOutput.savingThrowDefinitions ?? []).filter(
+    (candidate) => candidate.abilityDefinitionId === DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+  )
+  const scopedSaves = constitutionSaves.filter(
+    (candidate) => candidate.ruleDefinitionId === DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+  )
+  const savingThrow =
+    scopedSaves.length > 0
+      ? scopedSaves
+      : constitutionSaves.filter((candidate) => candidate.ruleDefinitionId === undefined)
+  if (savingThrow.length !== 1 || !Number.isSafeInteger(savingThrow[0]!.modifier))
+    throw new Error('D&D concentration saving throw is unavailable.')
+  const rollMode = savingThrow[0]!.rollMode
+  if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
+    throw new Error('D&D concentration saving-throw roll mode is unavailable.')
+  const contributors = savingThrow[0]!.contributors
+  if (!Array.isArray(contributors))
+    throw new Error('D&D concentration saving-throw contributors are unavailable.')
+  const normalizedContributors = contributors
+    .map(({ sourceId, grantId, domainKey, influence }) => ({
+      sourceId,
+      grantId,
+      domainKey,
+      influence
+    }))
+    .sort(compareCanonicalD20Contributors)
+  const contributorChecksum = checksumRuleDocument(normalizedContributors)
+  validateDnd5eConcentrationContributors(normalizedContributors, contributorChecksum)
+  return {
+    facts: {
+      [DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY]: input.targetActorId,
+      [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: appliedDamage,
+      [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: savingThrow[0]!.modifier,
+      [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+    },
+    rollMode,
+    modifier: savingThrow[0]!.modifier,
+    contributors: normalizedContributors,
+    contributorChecksum
+  }
+}
+
+/**
+ * Creates the canonical reusable D&D concentration-check definition. Later
+ * baseline seeding owns publication; this factory has no persistence effect.
+ */
+export function createDnd5eConcentrationCheckDefinition() {
+  const definition: RuleGraphDefinition = {
+    schemaVersion: 1,
+    id: DND5E_CONCENTRATION_CHECK_DEFINITION_ID,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    vocabularyBindings: [
+      { kind: 'ABILITY', definitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID }
+    ],
+    nodes: [
+      {
+        id: 'damage_dc',
+        operation: { key: DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY, contractVersion: 1 },
+        inputs: {
+          appliedDamage: {
+            kind: 'FACT',
+            factKey: DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY
+          }
+        }
+      },
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 }
+        }
+      },
+      {
+        id: 'save',
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        inputs: {
+          targetActorId: {
+            kind: 'FACT',
+            factKey: DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY
+          },
+          naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          modifier: {
+            kind: 'FACT',
+            factKey: DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY
+          },
+          threshold: { kind: 'NODE_OUTPUT', nodeId: 'damage_dc', port: 'dc' },
+          contributorChecksum: {
+            kind: 'FACT',
+            factKey: DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY
+          }
+        }
+      }
+    ],
+    outputs: {
+      targetActorId: { kind: 'NODE_OUTPUT', nodeId: 'save', port: 'targetActorId' },
+      appliedDamage: {
+        kind: 'FACT',
+        factKey: DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY
+      },
+      dc: { kind: 'NODE_OUTPUT', nodeId: 'damage_dc', port: 'dc' },
+      naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'save', port: 'naturalD20' },
+      total: { kind: 'NODE_OUTPUT', nodeId: 'save', port: 'total' },
+      resultPath: { kind: 'NODE_OUTPUT', nodeId: 'save', port: 'resultPath' },
+      contributorChecksum: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'save',
+        port: 'contributorChecksum'
+      }
+    }
+  }
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: definition.id,
+    gameSystemId: definition.gameSystemId,
+    definitionFamilyKey: definition.definitionFamilyKey,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
+}

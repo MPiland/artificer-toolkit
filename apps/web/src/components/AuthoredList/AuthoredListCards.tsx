@@ -24,6 +24,7 @@ export function AuthoredListCards({
   paddingTop,
   paddingBottom,
   viewportRef,
+  embedded = false,
   onView,
   onViewIntent,
   actionHandlers,
@@ -35,14 +36,15 @@ export function AuthoredListCards({
   renderedRows: number[]
   paddingTop: number
   paddingBottom: number
-  viewportRef: RefObject<HTMLDivElement | null>
+  viewportRef?: RefObject<HTMLDivElement | null>
+  embedded?: boolean
   onView?: (item: AuthoredListItem) => void
   onViewIntent?: (item: AuthoredListItem) => void
   actionHandlers: AuthoredListActionHandlers
   useMenuActions: boolean
 }) {
   return (
-    <div className={styles.cardViewport} ref={viewportRef}>
+    <div className={embedded ? undefined : styles.cardViewport} ref={viewportRef}>
       {paddingTop > 0 ? <div aria-hidden='true' style={{ height: paddingTop }} /> : null}
       <div className={styles.cardStack}>
         {renderedRows.map((rowIndex) => {

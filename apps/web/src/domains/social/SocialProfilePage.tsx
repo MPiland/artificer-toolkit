@@ -1,44 +1,70 @@
 import { Alert, Button, Group, Loader, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '#app/lib/api'
+import { convexQuery } from '@convex-dev/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { SocialReportDialog } from './components/SocialReportDialog'
 import * as styles from './SocialProfilePage.css'
 
 export function SocialProfilePage({ profilePublicId }: { profilePublicId: string }) {
   const queryClient = useQueryClient()
-  const profile = useQuery({
-    queryKey: queryKeys.socialHub.profile(profilePublicId),
-    queryFn: () => api.socialHub.profiles.get(profilePublicId)
-  })
-  const eligibility = useQuery({
-    queryKey: queryKeys.socialHub.eligibility(),
-    queryFn: () => api.socialHub.eligibility.get()
-  })
-  const blocks = useQuery({
-    queryKey: queryKeys.socialHub.blocks(),
-    queryFn: () => api.socialHub.blocks.list()
-  })
-  const blocked = blocks.data?.some((entry) => entry.profile.profilePublicId === profilePublicId)
+  const targetId = profilePublicId.toLowerCase()
+  const eligibility = useQuery(convexQuery(convexApi.social.profiles.getEligibility, {}))
+  const status = useQuery(
+    convexQuery(convexApi.social.blocks.getStatus, { profilePublicId: targetId })
+  )
+  const profile = useQuery(
+    convexQuery(
+      convexApi.social.discovery.getProfile,
+      status.data?.blocked === false ? { profilePublicId: targetId } : 'skip'
+    )
+  )
+  const createBlock = useConvexMutation(convexApi.social.blocks.create)
+  const removeBlock = useConvexMutation(convexApi.social.blocks.remove)
   const block = useMutation({
-    mutationFn: () => api.socialHub.blocks.create(profilePublicId),
+    mutationFn: () => createBlock({ profilePublicId: targetId }),
     onSuccess: () => {
       notifications.show({ message: 'Profile blocked in Social Hub.' })
       void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
     }
   })
   const unblock = useMutation({
-    mutationFn: () => api.socialHub.blocks.remove(profilePublicId),
+    mutationFn: () => removeBlock({ profilePublicId: targetId }),
     onSuccess: () => {
       notifications.show({ message: 'Social Hub block removed.' })
       void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
     }
   })
 
+  if (status.isPending || eligibility.isPending)
+    return <Loader aria-label='Loading Social profile' size='sm' />
+  if (status.isError || eligibility.isError)
+    return <Alert color='red'>Block status is unavailable.</Alert>
+  if (status.data.blocked)
+    return (
+      <section className={styles.narrowPage} aria-labelledby='social-profile-title'>
+        <div className={styles.panel}>
+          <Title id='social-profile-title' order={1}>
+            Blocked profile
+          </Title>
+          <Text>You have blocked this profile in Social Hub.</Text>
+          {unblock.isError ? (
+            <Alert color='red'>The block could not be removed. Try again.</Alert>
+          ) : null}
+          <Group gap='xs'>
+            <Button loading={unblock.isPending} variant='default' onClick={() => unblock.mutate()}>
+              Unblock
+            </Button>
+            <SocialReportDialog target={{ targetKind: 'PROFILE', targetPublicId: targetId }} />
+          </Group>
+        </div>
+      </section>
+    )
   if (profile.isPending) return <Loader aria-label='Loading Social profile' size='sm' />
   if (profile.isError) return <Alert color='red'>This profile is unavailable.</Alert>
-  const isSelf = eligibility.data?.profilePublicId === profilePublicId
+  const isSelf = eligibility.data.profilePublicId === targetId
 
   return (
     <section className={styles.narrowPage} aria-labelledby='social-profile-title'>
@@ -47,16 +73,18 @@ export function SocialProfilePage({ profilePublicId }: { profilePublicId: string
           @{profile.data.username}
         </Title>
         <Text c='dimmed'>Social Hub profile</Text>
-        {blocks.isError ? <Alert color='red'>Block status is unavailable.</Alert> : null}
+        {block.isError ? (
+          <Alert color='red'>The profile could not be blocked. Try again.</Alert>
+        ) : null}
         {!isSelf ? (
           <Group gap='xs'>
             <Button
-              color={blocked ? 'gray' : 'red'}
-              loading={block.isPending || unblock.isPending}
+              color='red'
+              loading={block.isPending}
               variant='default'
-              onClick={() => (blocked ? unblock.mutate() : block.mutate())}
+              onClick={() => block.mutate()}
             >
-              {blocked ? 'Unblock' : 'Block'}
+              Block
             </Button>
             <SocialReportDialog
               target={{ targetKind: 'PROFILE', targetPublicId: profilePublicId }}

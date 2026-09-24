@@ -7,53 +7,57 @@ import {
   semanticTextStyles,
   semanticTextTones
 } from '@artificer-toolkit/design-system'
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 
-export const nodeRuntimePathSegmentDtoSchema = z.union([z.string(), z.number().int().nonnegative()])
-export const nodeRuntimePathDtoSchema = z.array(nodeRuntimePathSegmentDtoSchema).readonly()
+export const nodeRuntimePathSegmentDtoSchema = z.union([
+  z.string(),
+  z.number().check(z.int()).check(z.nonnegative())
+])
+export const nodeRuntimePathDtoSchema = z.readonly(z.array(nodeRuntimePathSegmentDtoSchema))
 
 export const nodeRuntimeValuesDtoSchema = z.record(z.string(), z.unknown())
 
 export const nodeRuntimeContextDtoSchema = z
   .strictObject({
-    mapId: z.string().min(1),
-    values: nodeRuntimeValuesDtoSchema.default({}),
-    parentValues: nodeRuntimeValuesDtoSchema.optional(),
-    ancestors: z
-      .array(nodeRuntimeValuesDtoSchema)
-      .max(AUTHORED_LIMITS.facetNestingDepth)
-      .optional(),
-    systemId: z.string().min(1)
+    mapId: z.string().check(z.minLength(1)),
+    values: z._default(nodeRuntimeValuesDtoSchema, {}),
+    parentValues: z.optional(nodeRuntimeValuesDtoSchema),
+    ancestors: z.optional(
+      z.array(nodeRuntimeValuesDtoSchema).check(z.maxLength(AUTHORED_LIMITS.jsonNestingDepth))
+    ),
+    systemId: z.string().check(z.minLength(1))
   })
-  .superRefine((request, context) => {
-    const roots = [request.values, request.parentValues, ...(request.ancestors ?? [])]
-    for (const root of roots) {
-      if (root && exceedsNodeRuntimeStructureLimits(root)) {
+  .check(
+    z.superRefine((request, context) => {
+      const roots = [request.values, request.parentValues, ...(request.ancestors ?? [])]
+      for (const root of roots) {
+        if (root && exceedsNodeRuntimeStructureLimits(root)) {
+          context.addIssue({
+            code: 'custom',
+            message: `Node runtime values may nest at most ${AUTHORED_LIMITS.jsonNestingDepth} levels and arrays may contain at most ${AUTHORED_LIMITS.referenceCollectionItems} items.`
+          })
+          return
+        }
+      }
+
+      if (
+        new TextEncoder().encode(JSON.stringify(request)).byteLength >
+        AUTHORED_LIMITS.mutationPayloadBytes
+      ) {
         context.addIssue({
           code: 'custom',
-          message: `Node runtime values may nest at most ${AUTHORED_LIMITS.facetNestingDepth} levels and arrays may contain at most ${AUTHORED_LIMITS.referenceCollectionItems} items.`
+          message: `Node runtime requests must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
         })
-        return
       }
-    }
-
-    if (
-      new TextEncoder().encode(JSON.stringify(request)).byteLength >
-      AUTHORED_LIMITS.mutationPayloadBytes
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message: `Node runtime requests must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
-      })
-    }
-  })
+    })
+  )
 
 function exceedsNodeRuntimeStructureLimits(value: unknown): boolean {
   const pending: Array<{ depth: number; value: unknown }> = [{ depth: 0, value }]
   while (pending.length > 0) {
     const current = pending.pop()!
-    if (current.depth > AUTHORED_LIMITS.facetNestingDepth) return true
+    if (current.depth > AUTHORED_LIMITS.jsonNestingDepth) return true
     if (Array.isArray(current.value)) {
       if (current.value.length > AUTHORED_LIMITS.referenceCollectionItems) return true
       for (const child of current.value) pending.push({ depth: current.depth + 1, value: child })
@@ -73,10 +77,10 @@ export const nodeRuntimeNormalizeValuesRequestDtoSchema = nodeRuntimeContextDtoS
 export const nodeRuntimeOptionDtoSchema = z.strictObject({
   value: z.string(),
   label: z.string(),
-  description: z.string().optional(),
-  disabled: z.boolean().optional(),
-  group: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  description: z.optional(z.string()),
+  disabled: z.optional(z.boolean()),
+  group: z.optional(z.string()),
+  metadata: z.optional(z.record(z.string(), z.unknown()))
 })
 
 const nodeRuntimeActionAppearanceBaseShape = {
@@ -99,8 +103,8 @@ const nodeRuntimeActionAppearanceDtoSchema = z.discriminatedUnion('display', [
 
 const nodeRuntimeActionPresentationDtoSchema = z.strictObject({
   default: nodeRuntimeActionAppearanceDtoSchema,
-  compact: nodeRuntimeActionAppearanceDtoSchema.optional(),
-  wide: nodeRuntimeActionAppearanceDtoSchema.optional()
+  compact: z.optional(nodeRuntimeActionAppearanceDtoSchema),
+  wide: z.optional(nodeRuntimeActionAppearanceDtoSchema)
 })
 
 const nodeRuntimeTextAppearanceDtoSchema = z.strictObject({
@@ -110,8 +114,8 @@ const nodeRuntimeTextAppearanceDtoSchema = z.strictObject({
 
 const nodeRuntimeTextPresentationDtoSchema = z.strictObject({
   default: nodeRuntimeTextAppearanceDtoSchema,
-  compact: nodeRuntimeTextAppearanceDtoSchema.optional(),
-  wide: nodeRuntimeTextAppearanceDtoSchema.optional()
+  compact: z.optional(nodeRuntimeTextAppearanceDtoSchema),
+  wide: z.optional(nodeRuntimeTextAppearanceDtoSchema)
 })
 
 const nodeRuntimeSurfaceAppearanceDtoSchema = z.strictObject({
@@ -120,30 +124,30 @@ const nodeRuntimeSurfaceAppearanceDtoSchema = z.strictObject({
 
 const nodeRuntimeSurfacePresentationDtoSchema = z.strictObject({
   default: nodeRuntimeSurfaceAppearanceDtoSchema,
-  compact: nodeRuntimeSurfaceAppearanceDtoSchema.optional(),
-  wide: nodeRuntimeSurfaceAppearanceDtoSchema.optional()
+  compact: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema),
+  wide: z.optional(nodeRuntimeSurfaceAppearanceDtoSchema)
 })
 
 const nodeRuntimeGroupAppearanceDtoSchema = z.strictObject({
-  heading: nodeRuntimeTextPresentationDtoSchema.optional(),
-  surface: nodeRuntimeSurfacePresentationDtoSchema.optional()
+  heading: z.optional(nodeRuntimeTextPresentationDtoSchema),
+  surface: z.optional(nodeRuntimeSurfacePresentationDtoSchema)
 })
 
 const nodeRuntimeActionBaseDtoSchema = z.strictObject({
-  label: z.string().min(1),
+  label: z.string().check(z.minLength(1)),
   presentation: nodeRuntimeActionPresentationDtoSchema
 })
 
-const nodeRuntimeCollectionAddActionDtoSchema = nodeRuntimeActionBaseDtoSchema.extend({
+const nodeRuntimeCollectionAddActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
   type: z.literal('collection.add')
 })
-const nodeRuntimeCollectionEditActionDtoSchema = nodeRuntimeActionBaseDtoSchema.extend({
+const nodeRuntimeCollectionEditActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
   type: z.literal('collection.edit')
 })
-const nodeRuntimeCollectionDuplicateActionDtoSchema = nodeRuntimeActionBaseDtoSchema.extend({
+const nodeRuntimeCollectionDuplicateActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
   type: z.literal('collection.duplicate')
 })
-const nodeRuntimeCollectionRemoveActionDtoSchema = nodeRuntimeActionBaseDtoSchema.extend({
+const nodeRuntimeCollectionRemoveActionDtoSchema = z.extend(nodeRuntimeActionBaseDtoSchema, {
   type: z.literal('collection.remove')
 })
 
@@ -163,17 +167,14 @@ const nodeRuntimeCollectionOrderingDtoSchema = z.discriminatedUnion('mode', [
   z.strictObject({ mode: z.literal('derived') }),
   z.strictObject({
     mode: z.literal('manual'),
-    identityPath: z.tuple([z.string().min(1)]).readonly(),
-    orderPath: z
-      .tuple([z.string().min(1)])
-      .readonly()
-      .optional()
+    identityPath: z.readonly(z.tuple([z.string().check(z.minLength(1))])),
+    orderPath: z.optional(z.readonly(z.tuple([z.string().check(z.minLength(1))])))
   })
 ])
 
 function rejectDuplicateActionTypes(
   actions: readonly { type: string }[],
-  context: z.RefinementCtx
+  context: z.core.$RefinementCtx
 ): void {
   const seen = new Set<string>()
   actions.forEach((action, index) => {
@@ -189,19 +190,18 @@ function rejectDuplicateActionTypes(
 }
 
 export const nodeRuntimeCollectionAuthoringDtoSchema = z.strictObject({
-  actions: z
-    .array(nodeRuntimeCollectionActionDtoSchema)
-    .superRefine(rejectDuplicateActionTypes)
-    .readonly(),
+  actions: z.readonly(
+    z.array(nodeRuntimeCollectionActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
+  ),
   ordering: nodeRuntimeCollectionOrderingDtoSchema,
-  itemLabel: z.string().min(1).optional(),
-  emptyLabel: z.string().min(1).optional(),
-  showHeading: z.boolean().optional(),
-  join: z.enum(['AND', 'OR']).optional(),
-  rowLayout: z.enum(['default', 'card', 'flat', 'compact']).optional(),
-  rowExpansion: z.enum(['collapsible', 'expanded']).optional(),
-  rowSummary: z
-    .enum([
+  itemLabel: z.optional(z.string().check(z.minLength(1))),
+  emptyLabel: z.optional(z.string().check(z.minLength(1))),
+  showHeading: z.optional(z.boolean()),
+  join: z.optional(z.enum(['AND', 'OR'])),
+  rowLayout: z.optional(z.enum(['default', 'card', 'flat', 'compact'])),
+  rowExpansion: z.optional(z.enum(['collapsible', 'expanded'])),
+  rowSummary: z.optional(
+    z.enum([
       'default',
       'facet-context',
       'facet-condition',
@@ -211,7 +211,7 @@ export const nodeRuntimeCollectionAuthoringDtoSchema = z.strictObject({
       'outcome',
       'speed'
     ])
-    .optional()
+  )
 })
 
 const nodeRuntimeInputAuthoringDtoSchema = z.strictObject({
@@ -220,24 +220,23 @@ const nodeRuntimeInputAuthoringDtoSchema = z.strictObject({
 
 const nodeRuntimeObjectAuthoringDtoSchema = z.strictObject({
   exposure: z.enum(['author', 'system']),
-  actions: z
-    .array(nodeRuntimeObjectActionDtoSchema)
-    .superRefine(rejectDuplicateActionTypes)
-    .readonly(),
-  appearance: nodeRuntimeGroupAppearanceDtoSchema.optional(),
-  emptyLabel: z.string().min(1).optional()
+  actions: z.readonly(
+    z.array(nodeRuntimeObjectActionDtoSchema).check(z.superRefine(rejectDuplicateActionTypes))
+  ),
+  appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
+  emptyLabel: z.optional(z.string().check(z.minLength(1)))
 })
 
 export const nodeRuntimeAuthoringDtoSchema = z.strictObject({
   exposure: z.enum(['author', 'system']),
-  appearance: nodeRuntimeGroupAppearanceDtoSchema.optional(),
+  appearance: z.optional(nodeRuntimeGroupAppearanceDtoSchema),
   collection: nodeRuntimeCollectionAuthoringDtoSchema
 })
 
 const nodeRuntimeNodeBaseShape = {
-  id: z.string().min(1),
+  id: z.string().check(z.minLength(1)),
   path: nodeRuntimePathDtoSchema,
-  label: z.string().min(1),
+  label: z.string().check(z.minLength(1)),
   visible: z.boolean(),
   required: z.boolean(),
   hiddenBehavior: z.enum(['KEEP', 'CLEAR']),
@@ -245,9 +244,9 @@ const nodeRuntimeNodeBaseShape = {
 }
 
 const nodeRuntimeInputConstraintsDtoSchema = z.strictObject({
-  maximum: z.number().optional(),
-  maximumLength: z.number().int().positive().optional(),
-  minimum: z.number().optional()
+  maximum: z.optional(z.number()),
+  maximumLength: z.optional(z.number().check(z.int()).check(z.positive())),
+  minimum: z.optional(z.number())
 })
 
 const nodeRuntimeScalarInputDtoSchemas = ['TEXT', 'NUMBER', 'RICH_TEXT', 'TOGGLE'] as const
@@ -257,7 +256,7 @@ const scalarInputSchemas = nodeRuntimeScalarInputDtoSchemas.map((type) =>
     ...nodeRuntimeNodeBaseShape,
     kind: z.literal('INPUT'),
     type: z.literal(type),
-    constraints: nodeRuntimeInputConstraintsDtoSchema.optional(),
+    constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
     authoring: nodeRuntimeInputAuthoringDtoSchema
   })
 )
@@ -269,8 +268,8 @@ const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] a
       kind: z.literal('INPUT'),
       type: z.literal(type),
       options: z.array(nodeRuntimeOptionDtoSchema),
-      preserveUnknownOptions: z.boolean().optional(),
-      constraints: nodeRuntimeInputConstraintsDtoSchema.optional(),
+      preserveUnknownOptions: z.optional(z.boolean()),
+      constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
       authoring: nodeRuntimeInputAuthoringDtoSchema
     })
 )
@@ -280,7 +279,7 @@ const nodeRuntimeObjectGroupDtoSchema = z.strictObject({
   kind: z.literal('GROUP'),
   groupKind: z.literal('OBJECT'),
   presentation: z.enum(['inline', 'branch']),
-  childMapId: z.string().min(1),
+  childMapId: z.string().check(z.minLength(1)),
   authoring: nodeRuntimeObjectAuthoringDtoSchema
 })
 
@@ -289,7 +288,7 @@ const nodeRuntimeArrayGroupDtoSchema = z.strictObject({
   kind: z.literal('GROUP'),
   groupKind: z.literal('ARRAY'),
   presentation: z.enum(['inline', 'table', 'summary', 'branch', 'focused']),
-  childMapId: z.string().min(1),
+  childMapId: z.string().check(z.minLength(1)),
   authoring: nodeRuntimeAuthoringDtoSchema
 })
 
@@ -310,7 +309,7 @@ export const nodeRuntimeSectionDtoSchema = z.strictObject({
 export const nodeRuntimeStepDtoSchema = z.strictObject({
   id: z.string(),
   label: z.string(),
-  description: z.string().optional(),
+  description: z.optional(z.string()),
   order: z.number(),
   sections: z.array(nodeRuntimeSectionDtoSchema)
 })

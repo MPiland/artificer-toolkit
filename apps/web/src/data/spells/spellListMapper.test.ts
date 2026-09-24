@@ -6,7 +6,7 @@ import {
   summarizeSpellList
 } from './spellListMapper'
 import { foundationVars } from '#css/foundations.css'
-import type { SpellListResponseDto } from '#lib/api'
+import type { SpellListResponseDto } from '@artificer-toolkit/schema/api/content'
 
 const response: SpellListResponseDto = {
   items: [

@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { api } from '#app/lib/api'
+import { useMediaImage } from '#app/data/media'
 import type { MediaImageTarget } from './MediaImage.types'
 import * as styles from './MediaImage.css'
 
@@ -10,10 +9,7 @@ export function MediaImageView({
   target: MediaImageTarget
   variant?: 'detail' | 'inspector'
 }) {
-  const imageQuery = useQuery({
-    queryKey: ['media', target.lookup, 'DISPLAY'],
-    queryFn: () => api.media.getImage({ target: target.lookup, variantKind: 'DISPLAY' })
-  })
+  const imageQuery = useMediaImage(target, 'DISPLAY')
   const image = imageQuery.data
   if (!image) return null
   return (

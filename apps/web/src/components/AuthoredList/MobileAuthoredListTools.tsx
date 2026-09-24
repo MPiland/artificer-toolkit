@@ -1,4 +1,4 @@
-import { Button, Drawer, TextInput } from '@mantine/core'
+import { Button, Drawer, Text, TextInput } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { SlidersHorizontal } from 'lucide-react'
 import { AppSelect } from '#ui/primitives/Select'
@@ -18,6 +18,7 @@ interface MobileAuthoredListToolsProps {
   defaultSort: string
   defaultSortLabel: string
   resultCount: number
+  rankedSearch?: boolean
   onQueryChange: (query: string) => void
   onFilterChange: (key: string, value: string | null) => void
   onClearFilters: () => void
@@ -35,6 +36,7 @@ export function MobileAuthoredListTools({
   defaultSort,
   defaultSortLabel,
   resultCount,
+  rankedSearch = false,
   onQueryChange,
   onFilterChange,
   onClearFilters,
@@ -93,14 +95,20 @@ export function MobileAuthoredListTools({
                 onChange={(value) => onFilterChange(filter.key, value)}
               />
             ))}
-            <AppSelect
-              label='Sort'
-              data={sortOptions}
-              placeholder={defaultSortLabel}
-              value={sort === defaultSort ? null : sort}
-              allowDeselect={false}
-              onChange={(value) => onSortChange(value ?? defaultSort)}
-            />
+            {rankedSearch ? (
+              <Text size='sm' c='dimmed'>
+                Sorted by relevance
+              </Text>
+            ) : (
+              <AppSelect
+                label='Sort'
+                data={sortOptions}
+                placeholder={defaultSortLabel}
+                value={sort === defaultSort ? null : sort}
+                allowDeselect={false}
+                onChange={(value) => onSortChange(value ?? defaultSort)}
+              />
+            )}
           </div>
           <div className={styles.mobileDrawerActions}>
             <Button
@@ -112,7 +120,7 @@ export function MobileAuthoredListTools({
               Clear filters
             </Button>
             <Button type='button' onClick={close}>
-              Show {resultLabel}
+              {rankedSearch ? 'Show results' : `Show ${resultLabel}`}
             </Button>
           </div>
         </div>

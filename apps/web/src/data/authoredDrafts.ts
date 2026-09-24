@@ -1,4 +1,5 @@
-import type { z } from 'zod'
+import { safeParse } from 'zod/mini'
+import type * as core from 'zod/v4/core'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
 export interface ParsedAuthoredDraft<TValue> {
@@ -9,7 +10,7 @@ export interface ParsedAuthoredDraft<TValue> {
 
 export function parseAuthoredDraftPayload<TValue>(
   draft: AuthoredDraftDto | null,
-  schema: z.ZodType<TValue>
+  schema: core.$ZodType<TValue>
 ): ParsedAuthoredDraft<TValue> {
   if (!draft) {
     return {
@@ -19,7 +20,7 @@ export function parseAuthoredDraftPayload<TValue>(
     }
   }
 
-  const result = schema.safeParse(draft.payload)
+  const result = safeParse(schema, draft.payload)
   if (!result.success) {
     return {
       draft,

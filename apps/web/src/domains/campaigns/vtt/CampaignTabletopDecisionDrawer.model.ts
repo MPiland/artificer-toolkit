@@ -20,10 +20,12 @@ export function adjudicationSelectionValues(
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {
   if (kind === 'D20_EVIDENCE') return 'Roll required'
   if (kind === 'MOVEMENT_REACTION') return 'Reaction available'
+  if (kind === 'MOVEMENT_PASSAGE_CHOICE') return 'Passage choice'
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
   if (kind === 'LEGENDARY_ACTION_CHOICE') return 'Legendary Action'
   if (kind === 'INITIATIVE_EVIDENCE') return 'Initiative roll required'
   if (kind === 'INITIATIVE_DECLARATION') return 'Initiative declaration required'
   if (kind === 'RECHARGE_EVIDENCE') return 'Recharge roll required'
+  if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
   return 'Initiative order required'
 }

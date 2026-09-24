@@ -1,8 +1,9 @@
 import { Button, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import { getCampaignList } from '#app/data/campaigns/queries'
 import { SocialApplicationsView } from './components/SocialApplicationsView'
 import { SocialDiscoveryView } from './components/SocialDiscoveryView'
 import { SocialHostingView } from './components/SocialHostingView'
@@ -19,10 +20,8 @@ export function SocialHubPage({
   onSearchChange: (next: SocialHubSearch) => void
 }) {
   const navigate = useNavigate()
-  const campaigns = useQuery(getCampaignList())
-  const canCreatePost = (campaigns.data ?? []).some(
-    (campaign) => campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-  )
+  const entitlements = useQuery(convexQuery(convexApi.accountEntitlements.get, {}))
+  const canCreatePost = (entitlements.data?.usage.activeHostedCampaigns ?? 0) > 0
 
   return (
     <section className={styles.page} aria-labelledby='social-hub-title'>
@@ -36,7 +35,7 @@ export function SocialHubPage({
           </Text>
         </div>
         <Button
-          disabled={campaigns.isPending || !canCreatePost}
+          disabled={entitlements.isPending || !canCreatePost}
           leftSection={<Plus size={16} aria-hidden='true' />}
           onClick={() => navigate({ to: '/social/hosting/new' })}
         >

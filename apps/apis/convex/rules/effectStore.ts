@@ -1,0 +1,617 @@
+import {
+  activeRuleEffectDefinitionDtoSchema,
+  activeRuleEffectStateDtoSchema,
+  encounterMaintainedEffectDescriptorDtoSchema,
+  MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
+  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR,
+  MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR,
+  type ActiveRuleEffectDefinitionDto,
+  type EncounterMaintainedEffectDescriptorDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import {
+  activeRuleEffectLifecycleDtoSchema,
+  type ActiveRuleEffectLifecycleDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
+import {
+  activeRuleEffectRecordSchema,
+  characterActiveRuleEffectStoredSchema,
+  encounterActiveRuleEffectStoredSchema,
+  encounterMaintainedEffectStateRecordSchema,
+  encounterMaintainedEffectStateStoredSchema,
+  type ActiveRuleEffectOwner,
+  type ActiveRuleEffectRecord,
+  type EncounterMaintainedEffectStateRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  ownerFor,
+  prepareActiveRuleEffectRecord,
+  prepareMaintainedEffectStateRecord,
+  requireDefinitionOwner,
+  sourceEncounterIdForDefinition
+} from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { z } from 'zod'
+
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import type { Doc } from '../_generated/dataModel'
+
+const positiveIntegerSchema = z.number().int().positive()
+
+function parseJson(value: string, message: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    throw new Error(message)
+  }
+}
+
+function parseDefinition(value: string): ActiveRuleEffectDefinitionDto {
+  return activeRuleEffectDefinitionDtoSchema.parse(
+    parseJson(value, 'Active rule-effect definition JSON is invalid.')
+  )
+}
+
+function parseLifecycle(definition: ActiveRuleEffectDefinitionDto, value: unknown) {
+  const lifecycle = activeRuleEffectLifecycleDtoSchema.parse(value)
+  return activeRuleEffectStateDtoSchema.parse({ definition, lifecycle }).lifecycle
+}
+
+export function readCharacterEffect(
+  row: Doc<'characterActiveRuleEffects'>
+): ActiveRuleEffectRecord {
+  const { _id, _creationTime, ...stored } = row
+  const value = characterActiveRuleEffectStoredSchema.parse(stored)
+  const definition = parseDefinition(value.definitionJson)
+  const lifecycle = parseLifecycle(definition, value.lifecycle)
+  if (checksumCanonicalJson(definition) !== value.definitionChecksum)
+    throw new Error(
+      'Active rule-effect definition checksum does not match its persisted definition.'
+    )
+  if (checksumCanonicalJson(lifecycle) !== value.lifecycleChecksum)
+    throw new Error('Active rule-effect lifecycle checksum does not match its persisted lifecycle.')
+  if (value.sourceEncounterId !== sourceEncounterIdForDefinition(definition))
+    throw new Error(
+      'Character active rule-effect source Encounter does not match immutable definition provenance.'
+    )
+  return activeRuleEffectRecordSchema.parse({
+    id: value.id,
+    owner: { kind: 'CHARACTER', characterId: value.characterId },
+    sourceEncounterId: value.sourceEncounterId,
+    maintainedEffectStateId: value.maintainedEffectStateId,
+    createdOrdinal: value.createdOrdinal,
+    version: value.version,
+    definition,
+    definitionChecksum: value.definitionChecksum,
+    lifecycle,
+    lifecycleChecksum: value.lifecycleChecksum,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  })
+}
+
+export function readEncounterEffect(
+  row: Doc<'encounterActiveRuleEffects'>
+): ActiveRuleEffectRecord {
+  const { _id, _creationTime, ...stored } = row
+  const value = encounterActiveRuleEffectStoredSchema.parse(stored)
+  const definition = parseDefinition(value.definitionJson)
+  const lifecycle = parseLifecycle(definition, value.lifecycle)
+  if (checksumCanonicalJson(definition) !== value.definitionChecksum)
+    throw new Error(
+      'Active rule-effect definition checksum does not match its persisted definition.'
+    )
+  if (checksumCanonicalJson(lifecycle) !== value.lifecycleChecksum)
+    throw new Error('Active rule-effect lifecycle checksum does not match its persisted lifecycle.')
+  requireDefinitionOwner(
+    { kind: 'ENCOUNTER_ACTOR', encounterId: value.encounterId, targetActorId: value.targetActorId },
+    definition
+  )
+  return activeRuleEffectRecordSchema.parse({
+    id: value.id,
+    owner: {
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: value.encounterId,
+      targetActorId: value.targetActorId
+    },
+    sourceEncounterId: null,
+    maintainedEffectStateId: value.maintainedEffectStateId,
+    createdOrdinal: value.createdOrdinal,
+    version: value.version,
+    definition,
+    definitionChecksum: value.definitionChecksum,
+    lifecycle,
+    lifecycleChecksum: value.lifecycleChecksum,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  })
+}
+
+export function readMaintainedState(
+  row: Doc<'encounterMaintainedEffectStates'>
+): EncounterMaintainedEffectStateRecord {
+  const { _id, _creationTime, ...stored } = row
+  const value = encounterMaintainedEffectStateStoredSchema.parse(stored)
+  const descriptor = encounterMaintainedEffectDescriptorDtoSchema.parse(
+    parseJson(value.descriptorJson, 'Maintained effect descriptor JSON is invalid.')
+  )
+  if (checksumCanonicalJson(descriptor) !== value.descriptorChecksum)
+    throw new Error('Maintained effect descriptor checksum does not match persisted state.')
+  if (descriptor.maintenanceDefinitionId !== value.maintenanceDefinitionId)
+    throw new Error('Maintained effect definition identity does not match persisted state.')
+  if (descriptor.sourceActorId !== value.ownerActorId)
+    throw new Error('Maintained effect descriptor source actor does not match its owner.')
+  const { descriptorJson: _descriptorJson, ...record } = value
+  return encounterMaintainedEffectStateRecordSchema.parse({ ...record, descriptor })
+}
+
+async function requireCharacter(ctx: QueryCtx, characterId: string) {
+  const character = await ctx.db
+    .query('characters')
+    .withIndex('by_publicId', (q) => q.eq('id', characterId))
+    .unique()
+  if (!character) throw new Error('Active rule-effect Character owner is unavailable.')
+}
+
+async function requireEncounterActor(ctx: QueryCtx, encounterId: string, actorId: string) {
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+    .unique()
+  if (!run) throw new Error('Active rule-effect Encounter owner is unavailable.')
+  const actor = await ctx.db
+    .query('encounterRunActors')
+    .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actorId))
+    .unique()
+  if (!actor) throw new Error('Active rule-effect Encounter actor is unavailable.')
+}
+
+async function requireOwner(ctx: QueryCtx, owner: ActiveRuleEffectOwner) {
+  if (owner.kind === 'CHARACTER') return requireCharacter(ctx, owner.characterId)
+  return requireEncounterActor(ctx, owner.encounterId, owner.targetActorId)
+}
+
+async function listOwner(ctx: QueryCtx, owner: ActiveRuleEffectOwner) {
+  if (owner.kind === 'CHARACTER')
+    return (
+      await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_createdOrdinal_id', (q) =>
+          q.eq('characterId', owner.characterId)
+        )
+        .take(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER + 1)
+    ).map(readCharacterEffect)
+  return (
+    await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+        q.eq('encounterId', owner.encounterId).eq('targetActorId', owner.targetActorId)
+      )
+      .take(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER + 1)
+  ).map(readEncounterEffect)
+}
+
+export async function listActiveRuleEffects(
+  ctx: QueryCtx,
+  inputOwner: ActiveRuleEffectOwner
+): Promise<ActiveRuleEffectRecord[]> {
+  const owner = ownerFor(inputOwner)
+  await requireOwner(ctx, owner)
+  const effects = await listOwner(ctx, owner)
+  if (effects.length > MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)
+    throw new Error('Active rule effects exceed the supported bound.')
+  return effects
+}
+
+/** Internal mutation helper. Callers authorize the aggregate and compose all writes in this mutation. */
+export function createActiveRuleEffectStore(ctx: MutationCtx) {
+  async function findEffectById(owner: ActiveRuleEffectOwner, id: string) {
+    if (owner.kind === 'CHARACTER') {
+      const row = await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', owner.characterId).eq('id', id))
+        .unique()
+      return row ? readCharacterEffect(row) : null
+    }
+    const row = await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_id', (q) =>
+        q.eq('encounterId', owner.encounterId).eq('targetActorId', owner.targetActorId).eq('id', id)
+      )
+      .unique()
+    return row ? readEncounterEffect(row) : null
+  }
+
+  async function findStateById(encounterId: string, stateId: string) {
+    const row = await ctx.db
+      .query('encounterMaintainedEffectStates')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', stateId))
+      .unique()
+    if (!row) return null
+    const state = readMaintainedState(row)
+    await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
+    return state
+  }
+
+  async function dependentEffects(encounterId: string, stateId: string) {
+    const characters = (
+      await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_state_source_owner_order', (q) =>
+          q.eq('maintainedEffectStateId', stateId).eq('sourceEncounterId', encounterId)
+        )
+        .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
+    ).map(readCharacterEffect)
+    const actors = (
+      await ctx.db
+        .query('encounterActiveRuleEffects')
+        .withIndex('by_state_encounter_owner_order', (q) =>
+          q.eq('maintainedEffectStateId', stateId).eq('encounterId', encounterId)
+        )
+        .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
+    ).map(readEncounterEffect)
+    if (characters.length + actors.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+      throw new Error('Maintained effect dependents exceed the supported bound.')
+    for (const effect of [...characters, ...actors]) await requireOwner(ctx, effect.owner)
+    return { characters, actors }
+  }
+
+  async function listStates(encounterId: string, ownerActorId: string) {
+    const rows = await ctx.db
+      .query('encounterMaintainedEffectStates')
+      .withIndex('by_encounter_owner_definition_order', (q) =>
+        q.eq('encounterId', encounterId).eq('ownerActorId', ownerActorId)
+      )
+      .take(MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR + 1)
+    if (rows.length > MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR)
+      throw new Error('Maintained effect states exceed the supported bound.')
+    const states = rows.map(readMaintainedState)
+    for (const state of states)
+      await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
+    return states
+  }
+
+  async function maintainedDependentCount(encounterId: string, ownerActorId: string) {
+    const states = await listStates(encounterId, ownerActorId)
+    let count = 0
+    for (const state of states) {
+      const dependents = await dependentEffects(encounterId, state.id)
+      count += dependents.characters.length + dependents.actors.length
+      if (count > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+        throw new Error('Maintained effect dependents exceed the supported bound.')
+    }
+    return count
+  }
+
+  return {
+    async list(inputOwner: ActiveRuleEffectOwner): Promise<ActiveRuleEffectRecord[]> {
+      return listActiveRuleEffects(ctx, inputOwner)
+    },
+    async findById(inputOwner: ActiveRuleEffectOwner, inputId: string) {
+      const owner = ownerFor(inputOwner)
+      const id = serverUuidIdentityDtoSchema.parse(inputId)
+      await requireOwner(ctx, owner)
+      return findEffectById(owner, id)
+    },
+    async findMaintainedState(input: {
+      encounterId: string
+      ownerActorId: string
+      maintenanceDefinitionId: string
+    }) {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
+      const maintenanceDefinitionId = serverUuidIdentityDtoSchema.parse(
+        input.maintenanceDefinitionId
+      )
+      const row = await ctx.db
+        .query('encounterMaintainedEffectStates')
+        .withIndex('by_encounter_owner_definition', (q) =>
+          q
+            .eq('encounterId', encounterId)
+            .eq('ownerActorId', ownerActorId)
+            .eq('maintenanceDefinitionId', maintenanceDefinitionId)
+        )
+        .unique()
+      if (!row) return null
+      const state = readMaintainedState(row)
+      await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
+      return state
+    },
+    async findMaintainedStateById(input: { encounterId: string; stateId: string }) {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const stateId = serverUuidIdentityDtoSchema.parse(input.stateId)
+      return findStateById(encounterId, stateId)
+    },
+    async listMaintainedStatesByOwner(input: { encounterId: string; ownerActorId: string }) {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
+      return listStates(encounterId, ownerActorId)
+    },
+    async createMaintainedState(input: {
+      id: string
+      encounterId: string
+      ownerActorId: string
+      descriptor: EncounterMaintainedEffectDescriptorDto
+      occurredAt?: string
+    }): Promise<EncounterMaintainedEffectStateRecord> {
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
+      const descriptor = encounterMaintainedEffectDescriptorDtoSchema.parse(input.descriptor)
+      await requireEncounterActor(ctx, encounterId, ownerActorId)
+      if (descriptor.sourceActorId !== ownerActorId)
+        throw new Error('Maintained effect descriptor source actor does not match its owner.')
+      const duplicateId = await ctx.db
+        .query('encounterMaintainedEffectStates')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique()
+      if (duplicateId) throw new Error('Maintained effect state ID already exists.')
+      const existing = await ctx.db
+        .query('encounterMaintainedEffectStates')
+        .withIndex('by_encounter_owner_definition', (q) =>
+          q
+            .eq('encounterId', encounterId)
+            .eq('ownerActorId', ownerActorId)
+            .eq('maintenanceDefinitionId', descriptor.maintenanceDefinitionId)
+        )
+        .unique()
+      if (existing) throw new Error('Maintained effect state already exists for this definition.')
+      const states = await listStates(encounterId, ownerActorId)
+      if (states.length >= MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR)
+        throw new Error(
+          `An Encounter actor may own at most ${MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR} maintained effect states.`
+        )
+      const record = prepareMaintainedEffectStateRecord({
+        id,
+        encounterId,
+        ownerActorId,
+        descriptor,
+        occurredAt: input.occurredAt ?? new Date().toISOString()
+      })
+      const { descriptor: _descriptor, ...fields } = record
+      const stored = encounterMaintainedEffectStateStoredSchema.parse({
+        ...fields,
+        descriptorJson: JSON.stringify(descriptor)
+      })
+      const rowId = await ctx.db.insert('encounterMaintainedEffectStates', stored)
+      const row = await ctx.db.get(rowId)
+      if (!row) throw new Error('Maintained effect state was not created.')
+      return readMaintainedState(row)
+    },
+    async listDependentEffects(input: { encounterId: string; stateId: string }) {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const stateId = serverUuidIdentityDtoSchema.parse(input.stateId)
+      const dependents = await dependentEffects(encounterId, stateId)
+      return [...dependents.characters, ...dependents.actors]
+    },
+    async deleteMaintainedStateCas(input: {
+      id: string
+      encounterId: string
+      ownerActorId: string
+      expectedVersion: number
+    }): Promise<void> {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const row = await ctx.db
+        .query('encounterMaintainedEffectStates')
+        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', id))
+        .unique()
+      if (!row || row.ownerActorId !== ownerActorId || row.version !== expectedVersion)
+        throw new Error('Maintained effect state changed before deletion.')
+      readMaintainedState(row)
+      const dependents = await dependentEffects(encounterId, id)
+      if (dependents.characters.length)
+        throw new Error('Maintained effect state still has Character dependents.')
+      for (const effect of dependents.actors) {
+        const actorRow = await ctx.db
+          .query('encounterActiveRuleEffects')
+          .withIndex('by_encounterId_targetActorId_id', (q) => {
+            const owner = effect.owner
+            if (owner.kind !== 'ENCOUNTER_ACTOR')
+              throw new Error('Stored dependent owner is invalid.')
+            return q
+              .eq('encounterId', owner.encounterId)
+              .eq('targetActorId', owner.targetActorId)
+              .eq('id', effect.id)
+          })
+          .unique()
+        if (!actorRow) throw new Error('Maintained effect state changed before deletion.')
+        await ctx.db.delete(actorRow._id)
+      }
+      await ctx.db.delete(row._id)
+    },
+    async create(input: {
+      id: string
+      owner: ActiveRuleEffectOwner
+      definition: ActiveRuleEffectDefinitionDto
+      lifecycle: ActiveRuleEffectLifecycleDto
+      maintainedEffectStateId?: string | null
+      occurredAt?: string
+    }): Promise<ActiveRuleEffectRecord> {
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const owner = ownerFor(input.owner)
+      const definition = activeRuleEffectDefinitionDtoSchema.parse(input.definition)
+      const lifecycle = activeRuleEffectStateDtoSchema.parse({
+        definition,
+        lifecycle: activeRuleEffectLifecycleDtoSchema.parse(input.lifecycle)
+      }).lifecycle
+      requireDefinitionOwner(owner, definition)
+      await requireOwner(ctx, owner)
+      const maintainedEffectStateId =
+        input.maintainedEffectStateId == null
+          ? null
+          : serverUuidIdentityDtoSchema.parse(input.maintainedEffectStateId)
+      if (maintainedEffectStateId !== null) {
+        const sourceEncounterId = sourceEncounterIdForDefinition(definition)
+        if (
+          sourceEncounterId === null ||
+          definition.origin.kind !== 'ENCOUNTER' ||
+          !definition.origin.sourceActorId
+        )
+          throw new Error('Maintained active effects require an Encounter actor source.')
+        const state = await findStateById(sourceEncounterId, maintainedEffectStateId)
+        if (!state || state.ownerActorId !== definition.origin.sourceActorId)
+          throw new Error('Maintained effect state does not match the immutable Encounter source.')
+        if (
+          (await maintainedDependentCount(state.encounterId, state.ownerActorId)) >=
+          MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+        )
+          throw new Error(
+            `An Encounter actor may own at most ${MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR} maintained dependent effects.`
+          )
+      }
+      const current = await listOwner(ctx, owner)
+      if (current.length >= MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)
+        throw new Error(
+          `An owner may have at most ${MAX_ACTIVE_RULE_EFFECTS_PER_OWNER} active rule effects.`
+        )
+      const duplicate =
+        owner.kind === 'CHARACTER'
+          ? await ctx.db
+              .query('characterActiveRuleEffects')
+              .withIndex('by_publicId', (q) => q.eq('id', id))
+              .unique()
+          : await ctx.db
+              .query('encounterActiveRuleEffects')
+              .withIndex('by_publicId', (q) => q.eq('id', id))
+              .unique()
+      if (duplicate) throw new Error('Active rule effect ID already exists.')
+      const effect = prepareActiveRuleEffectRecord({
+        id,
+        owner,
+        definition,
+        lifecycle,
+        maintainedEffectStateId,
+        currentEffects: current,
+        occurredAt: input.occurredAt ?? new Date().toISOString()
+      })
+      const common = {
+        id: effect.id,
+        maintainedEffectStateId: effect.maintainedEffectStateId,
+        createdOrdinal: effect.createdOrdinal,
+        version: effect.version,
+        definitionJson: JSON.stringify(effect.definition),
+        definitionChecksum: effect.definitionChecksum,
+        lifecycle: effect.lifecycle,
+        lifecycleChecksum: effect.lifecycleChecksum,
+        createdAt: effect.createdAt,
+        updatedAt: effect.updatedAt
+      }
+      if (owner.kind === 'CHARACTER') {
+        const rowId = await ctx.db.insert(
+          'characterActiveRuleEffects',
+          characterActiveRuleEffectStoredSchema.parse({
+            ...common,
+            characterId: owner.characterId,
+            sourceEncounterId: effect.sourceEncounterId
+          })
+        )
+        const row = await ctx.db.get(rowId)
+        if (!row) throw new Error('Active rule effect was not created.')
+        return readCharacterEffect(row)
+      }
+      const rowId = await ctx.db.insert(
+        'encounterActiveRuleEffects',
+        encounterActiveRuleEffectStoredSchema.parse({
+          ...common,
+          encounterId: owner.encounterId,
+          targetActorId: owner.targetActorId
+        })
+      )
+      const row = await ctx.db.get(rowId)
+      if (!row) throw new Error('Active rule effect was not created.')
+      return readEncounterEffect(row)
+    },
+    async updateLifecycleCas(input: {
+      id: string
+      owner: ActiveRuleEffectOwner
+      expectedVersion: number
+      lifecycle: ActiveRuleEffectLifecycleDto
+    }): Promise<ActiveRuleEffectRecord> {
+      const owner = ownerFor(input.owner)
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const current = await findEffectById(owner, id)
+      if (!current || current.version !== expectedVersion)
+        throw new Error('Active rule effect changed before lifecycle update.')
+      const lifecycle = activeRuleEffectStateDtoSchema.parse({
+        definition: current.definition,
+        lifecycle: activeRuleEffectLifecycleDtoSchema.parse(input.lifecycle)
+      }).lifecycle
+      const now = new Date().toISOString()
+      if (owner.kind === 'CHARACTER') {
+        const row = await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) =>
+            q.eq('characterId', owner.characterId).eq('id', id)
+          )
+          .unique()
+        if (!row || row.version !== expectedVersion)
+          throw new Error('Active rule effect changed before lifecycle update.')
+        await ctx.db.patch(row._id, {
+          lifecycle,
+          lifecycleChecksum: checksumCanonicalJson(lifecycle),
+          version: expectedVersion + 1,
+          updatedAt: now
+        })
+        const updated = await ctx.db.get(row._id)
+        if (!updated) throw new Error('Active rule effect changed before lifecycle update.')
+        return readCharacterEffect(updated)
+      }
+      const row = await ctx.db
+        .query('encounterActiveRuleEffects')
+        .withIndex('by_encounterId_targetActorId_id', (q) =>
+          q
+            .eq('encounterId', owner.encounterId)
+            .eq('targetActorId', owner.targetActorId)
+            .eq('id', id)
+        )
+        .unique()
+      if (!row || row.version !== expectedVersion)
+        throw new Error('Active rule effect changed before lifecycle update.')
+      await ctx.db.patch(row._id, {
+        lifecycle,
+        lifecycleChecksum: checksumCanonicalJson(lifecycle),
+        version: expectedVersion + 1,
+        updatedAt: now
+      })
+      const updated = await ctx.db.get(row._id)
+      if (!updated) throw new Error('Active rule effect changed before lifecycle update.')
+      return readEncounterEffect(updated)
+    },
+    async deleteCas(input: { id: string; owner: ActiveRuleEffectOwner; expectedVersion: number }) {
+      const owner = ownerFor(input.owner)
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const current = await findEffectById(owner, id)
+      if (!current || current.version !== expectedVersion)
+        throw new Error('Active rule effect changed before deletion.')
+      if (owner.kind === 'CHARACTER') {
+        const row = await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) =>
+            q.eq('characterId', owner.characterId).eq('id', id)
+          )
+          .unique()
+        if (!row || row.version !== expectedVersion)
+          throw new Error('Active rule effect changed before deletion.')
+        await ctx.db.delete(row._id)
+        return
+      }
+      const row = await ctx.db
+        .query('encounterActiveRuleEffects')
+        .withIndex('by_encounterId_targetActorId_id', (q) =>
+          q
+            .eq('encounterId', owner.encounterId)
+            .eq('targetActorId', owner.targetActorId)
+            .eq('id', id)
+        )
+        .unique()
+      if (!row || row.version !== expectedVersion)
+        throw new Error('Active rule effect changed before deletion.')
+      await ctx.db.delete(row._id)
+    }
+  }
+}

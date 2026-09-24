@@ -12,10 +12,6 @@ const skippedDirectories = new Set([
   'storybook-static',
   'test-results'
 ])
-const allowlistedScriptSqlPaths = new Set([
-  'packages/db/src/scripts/auditSrdData.ts',
-  'packages/db/src/scripts/testCharacterSheetStatePatchIntegration.ts'
-])
 
 function toPortablePath(filePath: string): string {
   return filePath.split(path.sep).join('/')
@@ -52,8 +48,11 @@ describe('static security posture', () => {
   const webFiles = productionFiles(collectSourceFiles(path.join(repoRoot, 'apps', 'web', 'src')))
   const runtimeServerFiles = productionFiles([
     ...collectSourceFiles(path.join(repoRoot, 'apps', 'apis', 'src')),
-    ...collectSourceFiles(path.join(repoRoot, 'packages', 'db', 'src')),
-    ...collectSourceFiles(path.join(repoRoot, 'packages', 'functions', 'src'))
+    ...collectSourceFiles(path.join(repoRoot, 'apps', 'apis', 'convex')),
+    ...collectSourceFiles(path.join(repoRoot, 'apps', 'session-worker', 'src')),
+    ...collectSourceFiles(path.join(repoRoot, 'packages', 'authoring', 'src')),
+    ...collectSourceFiles(path.join(repoRoot, 'packages', 'rules-runtime', 'src')),
+    ...collectSourceFiles(path.join(repoRoot, 'packages', 'shared', 'src'))
   ])
 
   it('keeps web product data away from DB and function internals', () => {
@@ -122,12 +121,6 @@ describe('static security posture', () => {
     const offenders = runtimeServerFiles
       .filter((filePath) => /sql\.raw\s*\(/.test(read(filePath)))
       .map(toPortablePath)
-      .filter(
-        (filePath) =>
-          !Array.from(allowlistedScriptSqlPaths).some((allowedPath) =>
-            filePath.endsWith(`/${allowedPath}`)
-          )
-      )
 
     expect(offenders).toEqual([])
   })

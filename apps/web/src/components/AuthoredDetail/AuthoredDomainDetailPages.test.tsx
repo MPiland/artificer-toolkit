@@ -1,4 +1,6 @@
 import { screen, within } from '@testing-library/react'
+import { beforeEach, vi } from 'vitest'
+import { getFunctionName } from 'convex/server'
 import type {
   AuthoredDraftDto,
   ClassResponseDto,
@@ -26,6 +28,24 @@ import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import { SpellDetailPage } from '#domains/spells/pages/SpellDetailPage'
 import { ownedVehicleResponseFixture } from '#domains/vehicles/vehicle.fixtures'
 import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
+
+const nativeQueries = vi.hoisted(() => ({ parent: vi.fn() }))
+
+beforeEach(() => nativeQueries.parent.mockReset())
+
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useAction: () => vi.fn(),
+  useConvex: () => undefined,
+  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+  useMutation: () => vi.fn(),
+  useQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) =>
+    getFunctionName(reference) === 'content/details:get'
+      ? args === 'skip'
+        ? undefined
+        : nativeQueries.parent(args)
+      : { assetId: null, revision: 0 }
+}))
 
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',
@@ -156,7 +176,10 @@ const detailReferences = {
   skills: [{ value: 'performance', label: 'Performance' }],
   speeds: [],
   classes: [
-    { value: ownedClassResponseFixture.item.id, label: ownedClassResponseFixture.item.label }
+    {
+      value: ownedClassResponseFixture.item.id,
+      label: ownedClassResponseFixture.item.label
+    }
   ],
   creatures: [],
   equipment: [
@@ -361,6 +384,17 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
     userId: 'master',
     systemId: 'system-5e'
   },
+  meta: {
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
+    damageTypes: [],
+    equipment: [],
+    speeds: [
+      { value: 'walk', label: 'Walking Speed' },
+      { value: 'fly', label: 'Flying Speed' }
+    ]
+  },
   provenance: { kind: 'MASTER', ownerUserId: null },
   permissions: {
     canView: true,
@@ -433,8 +467,7 @@ describe('authored domain detail pages', () => {
     renderWithAppProviders(
       <SpellDetailPage
         draft={null}
-        references={spellReferences}
-        response={spellResponse}
+        response={{ ...spellResponse, meta: spellReferences }}
         spellId='spell-sea-step'
         view='active'
       />
@@ -463,9 +496,9 @@ describe('authored domain detail pages', () => {
     renderWithAppProviders(
       <SpellDetailPage
         draft={null}
-        references={cachedSpellListReferences}
         response={{
           ...spellResponse,
+          meta: cachedSpellListReferences,
           item: {
             ...spellResponse.item!,
             description: '<p>The target takes acid damage.</p>'
@@ -591,17 +624,6 @@ describe('authored domain detail pages', () => {
       <CreatureDetailPage
         creatureId='adult-brass-dragon'
         draft={null}
-        references={{
-          challengeRatings: [],
-          conditionTypes: [],
-          creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
-          damageTypes: [],
-          equipment: [],
-          speeds: [
-            { value: 'walk', label: 'Walking Speed' },
-            { value: 'fly', label: 'Flying Speed' }
-          ]
-        }}
         response={brassDragonResponse}
         view='active'
       />
@@ -660,14 +682,6 @@ describe('authored domain detail pages', () => {
       <CreatureDetailPage
         creatureId='adult-brass-dragon'
         draft={null}
-        references={{
-          challengeRatings: [],
-          conditionTypes: [],
-          creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
-          damageTypes: [],
-          equipment: [],
-          speeds: []
-        }}
         response={response}
         view='active'
       />
@@ -681,7 +695,6 @@ describe('authored domain detail pages', () => {
       <RaceDetailPage
         draft={null}
         raceId='dragonborn'
-        references={{ speeds: [{ value: 'walk', label: 'Walking Speed' }] }}
         response={dragonbornResponse}
         view='active'
       />
@@ -747,21 +760,20 @@ describe('authored domain detail pages', () => {
       }
     }
 
+    nativeQueries.parent.mockReturnValue(parentResponse)
     renderWithAppProviders(
-      <RaceDetailPage
-        draft={null}
-        parentResponse={parentResponse}
-        raceId='wood-elf'
-        references={{ speeds: [{ value: 'walk', label: 'Walking Speed' }] }}
-        response={subraceResponse}
-        view='active'
-      />
+      <RaceDetailPage draft={null} raceId='wood-elf' response={subraceResponse} view='active' />
     )
 
     expect(screen.getByRole('heading', { name: /wood elf/i })).toBeInTheDocument()
     expect(screen.getByText('Playable')).toBeInTheDocument()
     expect(screen.getByText('Elves carry ancient senses.')).toBeInTheDocument()
     expect(screen.getByText('Darkvision')).toBeInTheDocument()
+    expect(nativeQueries.parent).toHaveBeenCalledWith({
+      id: 'elf',
+      subjectKind: 'RACE',
+      view: 'active'
+    })
     expect(screen.getByText('Wood elves move quietly through the wild.')).toBeInTheDocument()
     expect(screen.getByText('Fleet of Foot')).toBeInTheDocument()
     expect(screen.queryByText('Category')).not.toBeInTheDocument()
@@ -960,7 +972,9 @@ describe('authored domain detail pages', () => {
     )
 
     const hitPoints = screen.getByRole('heading', { name: 'Hit Points' })
-    const proficiencies = screen.getByRole('heading', { name: 'Proficiencies' })
+    const proficiencies = screen.getByRole('heading', {
+      name: 'Proficiencies'
+    })
 
     expect(
       hitPoints.compareDocumentPosition(proficiencies) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -975,7 +989,9 @@ describe('authored domain detail pages', () => {
       within(progressionTable).getByRole('columnheader', { name: 'Known' })
     ).toBeInTheDocument()
     expect(
-      within(progressionTable).getByRole('columnheader', { name: 'Spell Slots per Spell Level' })
+      within(progressionTable).getByRole('columnheader', {
+        name: 'Spell Slots per Spell Level'
+      })
     ).toBeInTheDocument()
     expect(within(progressionTable).getByRole('columnheader', { name: '1st' })).toBeInTheDocument()
     expect(within(progressionTable).getByRole('columnheader', { name: '2nd' })).toBeInTheDocument()

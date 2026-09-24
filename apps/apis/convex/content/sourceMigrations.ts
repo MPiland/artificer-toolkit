@@ -1,0 +1,40 @@
+import { Migrations } from '@convex-dev/migrations'
+import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
+import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { components } from '../_generated/api'
+import schema from '../schema'
+import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
+import { internalMutation } from '../lib/mutations'
+
+const migrations = new Migrations(components.migrations, { schema, internalMutation })
+
+export const backfillAuthoringSources = migrations.define({
+  table: 'authoredRoots',
+  // One authored document can contain an entire Class progression.
+  batchSize: 1,
+  customRange: (query) => query.withIndex('by_publicId'),
+  migrateOne: async (ctx, root) => {
+    if (!(await canReadAuthoredRoot(ctx, root, root.ownerUserId ?? null)))
+      throw new Error('Stored authored content ownership mismatch.')
+    const version = await readAuthoredVersion(ctx, root)
+    const parsed = authoredDocumentVersionSchema.parse({
+      subjectKind: version.subjectKind,
+      subjectId: version.id,
+      versionId: version.versionId,
+      version: version.version,
+      documentSchemaVersion: version.documentSchemaVersion,
+      checksum: version.checksum,
+      document: await readPublishedDocument(ctx, root, version)
+    })
+    if (checksumRuleDocument(parsed.document) !== root.checksum)
+      throw new Error('Stored authored content is not schema-normalized.')
+    const authoringSources = authoredSourceFacts(parsed)
+    if (root.authoringSources !== undefined) {
+      if (checksumRuleDocument(root.authoringSources) !== checksumRuleDocument(authoringSources))
+        throw new Error('Stored authoring source facts conflict.')
+      return
+    }
+    await ctx.db.patch(root._id, { authoringSources })
+  }
+})

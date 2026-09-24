@@ -4,20 +4,14 @@ import {
   sentryGlobalRequestMiddleware
 } from '@sentry/tanstackstart-react'
 import { createMiddleware, createStart } from '@tanstack/react-start'
-import { getResponseHeaders } from '@tanstack/react-start/server'
-import { createSecurityHeaders } from '#app/server/securityHeaders'
+import { withSecurityHeaders } from '#app/server/securityHeaders'
 
-const securityHeadersMiddleware = createMiddleware().server(({ next }) => {
+const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
   const nonce = randomBytes(16).toString('base64')
-
-  const responseHeaders = getResponseHeaders()
-  for (const [name, value] of Object.entries(createSecurityHeaders({ nonce }))) {
-    responseHeaders.set(name, value)
-  }
-
-  return next({
+  const result = await next({
     context: { nonce }
   })
+  return { ...result, response: withSecurityHeaders(result.response, { nonce }) }
 })
 
 export const startInstance = createStart(() => ({

@@ -1,9 +1,14 @@
-import { HttpResponse, http } from 'msw'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import type { NodeRuntimeResolveRequestDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import type { User } from '@supabase/supabase-js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  nodeRuntimeResolveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { getFunctionName } from 'convex/server'
+import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import {
   authoredCreateRouteLoaderData,
   authoredEditRouteLoaderData,
@@ -12,22 +17,51 @@ import {
   authoredRouteStorySystem
 } from '#domains/authoredRouteStory.fixtures'
 import { TestRouterProvider } from '#test/TestRouterProvider'
-import { server } from '#test/msw/server'
 import { AuthoringLayout, AuthoringLayoutContent } from '../layout/AuthoringLayout'
 import { AuthoringFormProvider } from '../layout/AuthoringFormProvider'
 import { useAuthoringForm } from '../layout/AuthoringFormContext'
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
-const mocks = vi.hoisted(() => ({
-  updateAuthUser: vi.fn()
+const convexMocks = vi.hoisted(() => ({
+  loadMore: vi.fn(),
+  mutation: vi.fn(),
+  nodeRuntimeResolve: vi.fn(),
+  query: vi.fn(),
+  usePaginatedQuery: vi.fn()
 }))
 
-vi.mock('#supabase/client', () => ({
-  getSupabaseBrowserClient: () => ({
-    auth: { updateUser: mocks.updateAuthUser }
-  })
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useAction: () => vi.fn(),
+  useConvex: () => convexMocks,
+  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+  useMutation: () => vi.fn(),
+  useQuery: () => ({ assetId: null, revision: 0 })
 }))
+
+vi.mock('convex-helpers/react', () => ({
+  usePaginatedQuery: convexMocks.usePaginatedQuery
+}))
+
+vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#app/query/createAppQueryClient')>()
+  return {
+    ...actual,
+    createAppQueryClient: () => {
+      const client = actual.createAppQueryClient()
+      client.setQueryDefaults(['convexQuery'], {
+        queryFn: () => {
+          throw new Error('Unexpected native query in authored layout fixture.')
+        }
+      })
+      client.setQueryDefaults(['convexQuery', 'authoring/nodeRuntime:resolve'], {
+        queryFn: ({ queryKey }) => convexMocks.nodeRuntimeResolve(queryKey)
+      })
+      return client
+    }
+  }
+})
 
 const DOMAINS = [
   'background',
@@ -39,6 +73,58 @@ const DOMAINS = [
   'spell',
   'vehicle'
 ] satisfies AuthoredFormDomain[]
+
+const nativeRaceCatalogueItems = [
+  {
+    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
+    category: 'BASE',
+    description: 'Elves are magical people of otherworldly grace.',
+    id: '00000000-0000-4000-8000-000000000001',
+    label: 'Elf',
+    permissions: { canCopy: true, canDelete: false, canEdit: false, canView: true },
+    provenance: { kind: 'MASTER', ownerUserId: null },
+    publicId: 'elf',
+    status: 'ACTIVE',
+    systemId: authoredRouteStorySystem.id
+  },
+  {
+    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
+    category: 'BASE',
+    description: 'Owned base race.',
+    id: authoredRouteStoryRecords.race.id,
+    label: 'Owned base race',
+    permissions: { canCopy: true, canDelete: false, canEdit: false, canView: true },
+    provenance: { kind: 'OWNED', ownerUserId: 'story-user' },
+    publicId: 'current-race',
+    status: 'ACTIVE',
+    systemId: authoredRouteStorySystem.id
+  },
+  {
+    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
+    category: 'SUBRACE',
+    description: 'Not a parent.',
+    id: '00000000-0000-4000-8000-000000000002',
+    label: 'Wood Elf',
+    permissions: { canCopy: true, canDelete: false, canEdit: false, canView: true },
+    provenance: { kind: 'MASTER', ownerUserId: null },
+    publicId: 'wood-elf',
+    status: 'ACTIVE',
+    systemId: authoredRouteStorySystem.id
+  }
+]
+
+beforeEach(() => {
+  convexMocks.loadMore.mockClear()
+  convexMocks.mutation.mockReset().mockResolvedValue(authoredRouteStoryDrafts.race)
+  convexMocks.nodeRuntimeResolve.mockReset().mockImplementation(resolveStaticNodeRuntimeQuery)
+  convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
+  convexMocks.usePaginatedQuery.mockReset().mockReturnValue({
+    isLoading: false,
+    loadMore: convexMocks.loadMore,
+    results: nativeRaceCatalogueItems,
+    status: 'Exhausted'
+  })
+})
 
 describe('non-character authored domain layout coverage', () => {
   it.each(DOMAINS)('renders the %s create authoring route data', async (domain) => {
@@ -74,14 +160,6 @@ describe('non-character authored domain layout coverage', () => {
   it('keeps starting-point UI state clean until an inline copy is confirmed', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
-    let duplicateRequests = 0
-    server.use(
-      http.post('*/api/trpc/content.races.duplicate', () => {
-        duplicateRequests += 1
-        return trpcJson(authoredRouteStoryDrafts.race)
-      })
-    )
-
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
 
     expect(await screen.findByText('All changes saved')).toBeInTheDocument()
@@ -90,7 +168,12 @@ describe('non-character authored domain layout coverage', () => {
     const picker = await screen.findByRole('combobox', { name: /Search races/i })
     expect(picker).toBeInTheDocument()
     expect(screen.getByText(/nothing is copied until you confirm/i)).toBeInTheDocument()
-    expect(duplicateRequests).toBe(0)
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
+    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(
+      expect.anything(),
+      { subjectKind: 'RACE', systemId: authoredRouteStorySystem.id },
+      { initialNumItems: 48 }
+    )
     await user.click(picker)
     await user.type(picker, 'Elf')
     await user.click(await screen.findByRole('option', { name: 'Elf', hidden: true }))
@@ -98,15 +181,53 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByText('SRD')).toBeInTheDocument()
     expect(screen.getByText(/Elves are magical people/i)).toBeInTheDocument()
     expect(screen.getByText('All changes saved')).toBeInTheDocument()
-    expect(duplicateRequests).toBe(0)
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
 
     const createCopy = screen.getByRole('button', { name: /Create copy/i })
     expect(createCopy).toBeEnabled()
     await user.click(createCopy)
-    await waitFor(() => expect(duplicateRequests).toBe(1))
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalledOnce())
+    expect(convexMocks.mutation).toHaveBeenCalledWith(expect.anything(), {
+      subjectKind: 'RACE',
+      subjectId: nativeRaceCatalogueItems[0].id
+    })
 
     expect(screen.queryByText('Could not duplicate that race yet.')).not.toBeInTheDocument()
     expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
+  })
+
+  it('loads native Race parents only for a subrace and excludes subrace parents', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    convexMocks.usePaginatedQuery.mockReturnValue({
+      isLoading: false,
+      loadMore: convexMocks.loadMore,
+      results: nativeRaceCatalogueItems,
+      status: 'CanLoadMore'
+    })
+
+    render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
+    await user.click(await screen.findByRole('button', { name: /Start from scratch/i }))
+    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(expect.anything(), 'skip', {
+      initialNumItems: 48
+    })
+
+    await user.click(screen.getByRole('combobox', { name: 'Type' }))
+    await user.click(await screen.findByRole('option', { name: 'Subrace', hidden: true }))
+
+    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(
+      expect.anything(),
+      { subjectKind: 'RACE', systemId: authoredRouteStorySystem.id },
+      { initialNumItems: 48 }
+    )
+    expect(convexMocks.loadMore).toHaveBeenCalledWith(48)
+    const parent = screen.getByRole('combobox', { name: 'Parent race' })
+    await user.click(parent)
+    expect(await screen.findByRole('option', { name: 'Elf', hidden: true })).toBeInTheDocument()
+    expect(
+      screen.getByRole('option', { name: 'Owned base race', hidden: true })
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Wood Elf', hidden: true })).not.toBeInTheDocument()
   })
 
   it('updates the live preview title from the current form name', async () => {
@@ -208,23 +329,10 @@ describe('non-character authored domain layout coverage', () => {
       releaseModel = resolve
     })
 
-    server.use(
-      http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
-        const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
-        await pendingModel
-
-        return trpcBatchJson(
-          inputs.map((input) =>
-            createStaticResolvedFormModel(input.mapId, {
-              ancestors: input.ancestors,
-              parentValues: input.parentValues,
-              system: authoredRouteStorySystem,
-              values: input.values
-            })
-          )
-        )
-      })
-    )
+    convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey) => {
+      await pendingModel
+      return resolveStaticNodeRuntimeQuery(queryKey)
+    })
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
 
@@ -243,23 +351,10 @@ describe('non-character authored domain layout coverage', () => {
       releaseModel = resolve
     })
 
-    server.use(
-      http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
-        const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
-        await pendingModel
-
-        return trpcBatchJson(
-          inputs.map((input) =>
-            createStaticResolvedFormModel(input.mapId, {
-              ancestors: input.ancestors,
-              parentValues: input.parentValues,
-              system: authoredRouteStorySystem,
-              values: input.values
-            })
-          )
-        )
-      })
-    )
+    convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey) => {
+      await pendingModel
+      return resolveStaticNodeRuntimeQuery(queryKey)
+    })
 
     render(
       <TestRouterProvider user={createAdvancedAuthoringUser()}>
@@ -276,9 +371,34 @@ describe('non-character authored domain layout coverage', () => {
     expect(await screen.findByRole('heading', { name: 'Basics' })).toBeInTheDocument()
   })
 
+  it('recovers an authoring resolution failure without losing unsaved form values', async () => {
+    const user = userEvent.setup()
+    convexMocks.nodeRuntimeResolve.mockRejectedValue(new Error('Native resolution failed.'))
+
+    render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
+
+    await user.click(await screen.findByRole('button', { name: /Start from scratch/i }))
+    await user.type(await screen.findByRole('textbox', { name: 'Spell name' }), 'Unsaved spell')
+    await user.click(screen.getByRole('button', { name: /switch to advanced/i }))
+
+    const alert = await screen.findByRole(
+      'alert',
+      { name: 'Could not load authoring tools' },
+      { timeout: 3000 }
+    )
+    expect(alert).toHaveTextContent('Could not load authoring tools')
+    expect(screen.queryByText('Loading authoring tools…')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Unsaved spell' })).toBeInTheDocument()
+
+    useStaticNodeRuntimeResolver()
+    await user.click(within(alert).getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('Unsaved spell')
+    expect(screen.queryByText('Could not load authoring tools')).not.toBeInTheDocument()
+  })
+
   it('preserves a guided spell when switching through Advanced', async () => {
     const user = userEvent.setup()
-    mocks.updateAuthUser.mockResolvedValue({ error: null })
     useStaticNodeRuntimeResolver()
 
     render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
@@ -341,12 +461,6 @@ describe('non-character authored domain layout coverage', () => {
   it('marks an unchanged submitted draft as saved without reloading the editor', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
-    server.use(
-      http.post('*/api/trpc/content.spells.saveDraft', () =>
-        trpcJson(authoredRouteStoryDrafts.spell)
-      )
-    )
-
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
     const name = await screen.findByRole('textbox', { name: /name/i })
@@ -435,7 +549,7 @@ describe('non-character authored domain layout coverage', () => {
   it('preserves the Spell branch when normalization fails', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
-    server.use(http.post('*/api/trpc/nodeRuntime.normalizeValues*', () => HttpResponse.error()))
+    convexMocks.query.mockRejectedValue(new Error('Native normalization failed.'))
 
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
@@ -447,30 +561,58 @@ describe('non-character authored domain layout coverage', () => {
     expect(await screen.findByText('This change could not be verified. Try again.')).toBeVisible()
     expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
   })
+
+  it('loads native Spell copy sources after selection', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+
+    render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
+
+    await user.click(await screen.findByRole('button', { name: /Use an existing spell/i }))
+
+    expect(convexMocks.usePaginatedQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      { subjectKind: 'SPELL', systemId: authoredRouteStorySystem.id },
+      { initialNumItems: 48 }
+    )
+  })
 })
 
 function useStaticNodeRuntimeResolver() {
-  server.use(
-    http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
-      const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
+  convexMocks.nodeRuntimeResolve.mockImplementation(resolveStaticNodeRuntimeQuery)
+}
 
-      return trpcBatchJson(
-        inputs.map(
-          (input) =>
-            createStaticResolvedFormModel(input.mapId, {
-              ancestors: input.ancestors,
-              parentValues: input.parentValues,
-              system: authoredRouteStorySystem,
-              values: input.values
-            }) ?? {
-              mapId: input.mapId,
-              steps: [],
-              clearPaths: []
-            }
-        )
-      )
-    })
-  )
+function resolveStaticNodeRuntimeQuery(queryKey: readonly unknown[]) {
+  const input = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+  const model = createStaticResolvedFormModel(input.mapId, {
+    ancestors: input.ancestors,
+    parentValues: input.parentValues,
+    system: authoredRouteStorySystem,
+    values: input.values
+  })
+  if (!model) throw new Error('Expected an authored form model.')
+  return compactNodeRuntimeResponse(model)
+}
+
+function resolveStaticNormalization(
+  reference: Parameters<typeof getFunctionName>[0],
+  input: unknown
+) {
+  if (getFunctionName(reference) !== 'authoring/nodeRuntime:normalizeValues') {
+    throw new Error('Expected native node-runtime normalization.')
+  }
+  const request = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(input)
+  const model = createStaticResolvedFormModel(request.mapId, {
+    ancestors: request.ancestors,
+    parentValues: request.parentValues,
+    system: authoredRouteStorySystem,
+    values: request.values
+  })
+  if (!model) throw new Error('Expected an authored form model.')
+  return nodeRuntimeNormalizeValuesResponseDtoSchema.parse({
+    clearedPaths: model.clearPaths,
+    values: request.values
+  })
 }
 
 function renderCreateLayout(domain: AuthoredFormDomain) {
@@ -542,13 +684,14 @@ function renderCreateLayout(domain: AuthoredFormDomain) {
   }
 }
 
-function createAdvancedAuthoringUser(): User {
+function createAdvancedAuthoringUser(): AuthSessionUserDto {
   return {
-    id: 'advanced-author',
-    app_metadata: {},
-    aud: 'authenticated',
-    created_at: '2026-01-01T00:00:00.000Z',
-    user_metadata: { authoring_experience: 'advanced' }
+    userId: '13c13d4a-1a19-4cdc-8dc8-a9cac3492b1e',
+    role: 'user',
+    email: 'author@example.invalid',
+    username: 'advanced_author',
+    registrationCompleted: true,
+    authoringExperience: 'advanced'
   }
 }
 
@@ -644,22 +787,4 @@ function SpellResetHarness() {
       <AuthoringLayoutContent />
     </>
   )
-}
-
-function trpcBatchJson(data: readonly unknown[]) {
-  return HttpResponse.json(data.map((item) => ({ result: { data: item } })))
-}
-
-function trpcJson(data: unknown) {
-  return HttpResponse.json([{ result: { data } }])
-}
-
-function readBatchedInputs<TInput>(body: unknown): TInput[] {
-  if (typeof body !== 'object' || body === null || !('0' in body)) {
-    throw new Error('Expected batched tRPC input.')
-  }
-
-  return Object.entries(body as Record<string, TInput>)
-    .sort(([left], [right]) => Number(left) - Number(right))
-    .map(([, input]) => input)
 }

@@ -1,8 +1,9 @@
 import { Button, Loader, Stack, Text } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { notificationPreferencesQuery } from '#app/data/notifications'
 import { useNotificationAvailability } from './notificationContext'
 import { NotificationPreferencesView } from './NotificationPreferencesView'
 import { readNotificationChannels, type ChannelPreferences } from './notificationPreferencesModel'
@@ -23,14 +24,12 @@ export function NotificationPreferences() {
 
 function ConnectedNotificationPreferences() {
   const queryClient = useQueryClient()
-  const preferencesKey = queryKeys.notifications.preferences()
-  const preferences = useQuery({
-    queryKey: preferencesKey,
-    queryFn: () => api.notifications.preferences()
-  })
+  const preferencesKey = notificationPreferencesQuery.queryKey
+  const preferences = useQuery(notificationPreferencesQuery)
+  const savePreferences = useConvexMutation(api.notifications.updatePreferences)
   const updatePreferences = useMutation({
     mutationFn: (input: { category: 'SOCIAL' | 'CAMPAIGN'; channels: ChannelPreferences }) =>
-      api.notifications.updatePreferences({ category: input.category, ...input.channels })
+      savePreferences({ category: input.category, ...input.channels })
   })
   const [isRetrying, setIsRetrying] = useState(false)
   const [optimistic, setOptimistic] = useState<

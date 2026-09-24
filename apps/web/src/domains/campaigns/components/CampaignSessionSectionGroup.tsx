@@ -1,9 +1,8 @@
 import { Accordion, Alert, Button, Group, Menu, Stack, Text } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignSessionNotes } from '#app/data/campaigns/queries'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useMutation } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { useConvex, usePaginatedQuery } from 'convex/react'
 import { SessionSectionEditor } from './CampaignSessionNotes'
 import {
   campaignSessionSectionDescription,
@@ -23,31 +22,30 @@ export function CampaignSessionSectionGroup({
   kinds: readonly CampaignSessionSectionKind[]
   readOnly?: boolean
 }) {
-  const queryClient = useQueryClient()
-  const notes = useQuery(getCampaignSessionNotes(campaign.id, sessionId))
+  const convex = useConvex()
+  const notes = usePaginatedQuery(
+    convexApi.campaigns.sessionNotes.list,
+    { campaignId: campaign.id, sessionId },
+    { initialNumItems: 8 }
+  )
   const create = useMutation({
     mutationFn: (kind: CampaignSessionSectionKind) =>
-      api.campaigns.sessions.notes.create({
+      convex.mutation(convexApi.campaigns.sessionNotes.create, {
         campaignId: campaign.id,
         sessionId,
         title: campaignSessionSectionLabel(kind),
         content: '',
         visibility: 'GM_PRIVATE',
         kind
-      }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.sessionNotes(campaign.id, sessionId)
       })
   })
   const editable = campaign.status === 'ACTIVE' && !readOnly
 
-  if (notes.isPending) return <Text c='dimmed'>Loading Session sections…</Text>
-  if (notes.error) return <Alert color='red'>Session sections couldn’t be loaded.</Alert>
+  if (notes.status === 'LoadingFirstPage') return <Text c='dimmed'>Loading Session sections…</Text>
 
   const sectionsByKind = kinds.map((kind) => ({
     kind,
-    sections: (notes.data ?? []).filter((section) => section.kind === kind)
+    sections: notes.results.filter((section) => section.kind === kind)
   }))
   const populatedKinds = sectionsByKind.filter(({ sections }) => sections.length > 0)
 
@@ -110,6 +108,11 @@ export function CampaignSessionSectionGroup({
         ) : null}
       </Group>
       {create.error ? <Alert color='red'>That section couldn’t be created.</Alert> : null}
+      {notes.status === 'CanLoadMore' ? (
+        <Button variant='subtle' onClick={() => notes.loadMore(8)}>
+          Load more sections
+        </Button>
+      ) : null}
     </Stack>
   )
 }

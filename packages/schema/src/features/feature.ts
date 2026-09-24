@@ -1,31 +1,21 @@
-import { z } from 'zod'
+import { z } from '../zod.js'
 
 import { featureBaseDtoObject } from './base.js'
+import { featureReferenceDtoSchema } from './reference.js'
 import { featureOptionDtoSchema } from './option.js'
 import { authoredNestedCollectionSchema } from '../shared/authoredLimits.js'
 
 export const featureOptionChoiceDtoSchema = z.object({
-  level: z.number().int(),
-  count: z.number().int(),
-  replaceCount: z.number().int().nullable().optional()
+  level: z.number().check(z.int()),
+  count: z.number().check(z.int()),
+  replaceCount: z.optional(z.nullable(z.number().check(z.int())))
 })
 
-export const featureDtoSchema = featureBaseDtoObject.extend({
-  section: z
-    .enum([
-      'TRAIT',
-      'ACTION',
-      'BONUS_ACTION',
-      'REACTION',
-      'LEGENDARY_ACTION',
-      'LAIR_ACTION',
-      'REGIONAL_EFFECT',
-      'OTHER'
-    ])
-    .optional(),
-  optionChoices: authoredNestedCollectionSchema(featureOptionChoiceDtoSchema).optional(),
-  options: authoredNestedCollectionSchema(featureOptionDtoSchema).optional(),
-  availableAtLevel: z.number().int().optional()
+export const featureDtoSchema = z.extend(featureBaseDtoObject, {
+  section: featureReferenceDtoSchema.shape.section,
+  optionChoices: z.optional(authoredNestedCollectionSchema(featureOptionChoiceDtoSchema)),
+  options: z.optional(authoredNestedCollectionSchema(featureOptionDtoSchema)),
+  availableAtLevel: z.optional(z.number().check(z.int()))
 })
 
 export type FeatureDto = z.infer<typeof featureDtoSchema>

@@ -1,5 +1,8 @@
 import { Alert, Badge, Button, Select, Text } from '@mantine/core'
-import type { CharacterSheetPanelDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetAbilityPanels } from './CharacterSheetAbilityPanels'

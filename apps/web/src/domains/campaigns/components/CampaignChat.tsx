@@ -1,14 +1,16 @@
 import { Alert, Button, SegmentedControl, Text, Textarea } from '@mantine/core'
 import { useReducedMotion } from '@mantine/hooks'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type SubmitEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { type SubmitEvent, useEffect, useRef, useState } from 'react'
 import { Send } from 'lucide-react'
-import type { CampaignChatEntryDto, CampaignDetailDto } from '#app/lib/api'
-import { api } from '#app/lib/api'
-import { getCampaignChat, getCampaignConversations } from '#app/data/campaigns/queries'
-import { getCampaignEncounters, getEncounterTimeline } from '#app/data/encounters/queries'
+import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { getCampaignConversations } from '#app/data/campaigns/queries'
+import { useCampaignChatHistory } from '#app/data/campaigns/useCampaignChatHistory'
 import { getRollHistory } from '#app/data/rolls'
-import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignChatHistory } from './CampaignChatHistory'
 import { CampaignChatNavigation } from './CampaignChatNavigation'
 import * as chatStyles from './CampaignChat.css'
@@ -21,7 +23,10 @@ export function CampaignChat({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const queryClient = useQueryClient()
+  const sendEntry = useConvexMutation(convexApi.campaigns.chat.send)
+  const editEntry = useConvexMutation(convexApi.campaigns.chat.edit)
+  const unsendEntry = useConvexMutation(convexApi.campaigns.chat.unsend)
+  const markConversationRead = useConvexMutation(convexApi.campaigns.conversations.markRead)
   const [room, setRoom] = useState<CampaignChatRoom>('TABLE')
   const [directUserId, setDirectUserId] = useState<string>()
   const [rollView, setRollView] = useState<CampaignRollView>(null)
@@ -33,30 +38,35 @@ export function CampaignChat({
   const currentMember = campaign.memberships.find((member) => member.userId === currentUserId)
   const assignedCharacter = currentMember?.assignedCharacter ?? null
   const conversations = useQuery(getCampaignConversations(campaign.id))
-  const encounters = useQuery({
-    ...getCampaignEncounters(campaign.id),
-    enabled: campaign.role === 'OWNER'
-  })
-  const activeEncounter = encounters.data?.find((encounter) => encounter.status === 'ACTIVE')
-  const encounterTimeline = useQuery({
-    ...getEncounterTimeline(activeEncounter?.id ?? ''),
-    enabled: rollView === 'ENCOUNTER' && Boolean(activeEncounter)
-  })
-  const privateRolls = useQuery({ ...getRollHistory(), enabled: rollView === 'MINE' })
-  const showRolls = rollView !== null
-  const history = useInfiniteQuery({
-    ...getCampaignChat(campaign.id, room, api, directUserId),
-    enabled: !showRolls && (room !== 'DIRECT' || Boolean(directUserId))
-  })
-  const entries = useMemo(() => {
-    const entriesById = new Map<string, CampaignChatEntryDto>()
-    for (const page of history.data?.pages ?? []) {
-      for (const entry of page.entries) entriesById.set(entry.id, entry)
-    }
-    return [...entriesById.values()].sort((left, right) =>
-      left.createdAt.localeCompare(right.createdAt)
+  const encounters = useQuery(
+    convexQuery(
+      convexApi.encounters.projectionReads.active,
+      campaign.role === 'OWNER' ? { campaignId: campaign.id } : 'skip'
     )
-  }, [history.data])
+  )
+  const activeEncounter = encounters.data
+  const encounterTimeline = useQuery(
+    convexQuery(
+      convexApi.encounters.timelineReads.timeline,
+      rollView === 'ENCOUNTER' && activeEncounter
+        ? { encounterId: activeEncounter.id, limit: 50 }
+        : 'skip'
+    )
+  )
+  const privateRolls = useQuery(getRollHistory(rollView === 'MINE'))
+  const showRolls = rollView !== null
+  const history = useCampaignChatHistory(
+    {
+      campaignId: campaign.id,
+      room,
+      ...(room === 'DIRECT' && directUserId ? { directUserId } : {})
+    },
+    `${currentUserId}:${currentMember?.accessStartedAt ?? ''}`,
+    campaign.capabilities.readTableChat &&
+      !showRolls &&
+      (room !== 'DIRECT' || Boolean(directUserId))
+  )
+  const entries = history.entries
   const directMembers = campaign.memberships
     .filter((member) => member.userId !== currentUserId)
     .map((member) => ({
@@ -91,24 +101,13 @@ export function CampaignChat({
     })
   }, [newestEntryId, reduceMotion])
 
-  function refreshChat() {
-    return Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.campaigns.chat(campaign.id, room, directUserId)
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.conversations(campaign.id) })
-    ])
-  }
-
   const { mutate: markRead } = useMutation({
     mutationFn: (entry: CampaignChatEntryDto) =>
-      api.campaigns.conversations.markRead({
+      markConversationRead({
         campaignId: campaign.id,
         conversationId: entry.conversationId,
         entryId: entry.id
-      }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.conversations(campaign.id) })
+      })
   })
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export function CampaignChat({
       newest &&
       readKey &&
       lastMarkedRead.current !== readKey &&
-      (history.data?.pages[0]?.unreadCount ?? 0) > 0
+      history.unreadCount > 0
     ) {
       lastMarkedRead.current = readKey
       markRead(newest, {
@@ -128,11 +127,11 @@ export function CampaignChat({
         }
       })
     }
-  }, [entries, history.data?.pages, markRead, showRolls])
+  }, [entries, history.unreadCount, markRead, showRolls])
 
   const send = useMutation({
     mutationFn: () =>
-      api.campaigns.chat.send({
+      sendEntry({
         campaignId: campaign.id,
         room,
         directUserId: room === 'DIRECT' ? directUserId : undefined,
@@ -141,9 +140,8 @@ export function CampaignChat({
         assignedCharacterId: mode === 'ROLEPLAY' ? assignedCharacter?.id : undefined,
         clientNonce: crypto.randomUUID()
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setBody('')
-      await refreshChat()
     }
   })
   const entryAction = useMutation({
@@ -153,13 +151,12 @@ export function CampaignChat({
         | { kind: 'UNSEND'; entry: CampaignChatEntryDto }
     ) => {
       if (action.kind === 'UNSEND') {
-        return api.campaigns.chat.unsend(campaign.id, action.entry.id)
+        return unsendEntry({ campaignId: campaign.id, entryId: action.entry.id })
       }
       const nextBody = window.prompt('Edit message', action.entry.body ?? '')
       if (nextBody === null || nextBody.trim() === '') return action.entry
-      return api.campaigns.chat.edit(campaign.id, action.entry.id, nextBody)
-    },
-    onSuccess: refreshChat
+      return editEntry({ campaignId: campaign.id, entryId: action.entry.id, body: nextBody })
+    }
   })
 
   function submitMessage(event: SubmitEvent) {
@@ -184,7 +181,8 @@ export function CampaignChat({
     return <Alert color='red'>You do not have access to this Campaign chat.</Alert>
   }
 
-  const error = send.error ?? entryAction.error
+  const error =
+    send.error ?? entryAction.error ?? history.error ?? conversations.error ?? encounters.error
   const roomUnread = (kind: Exclude<CampaignChatRoom, 'DIRECT'>) =>
     conversations.data?.find((conversation) => conversation.kind === kind)?.unreadCount ?? 0
   const directUnread = directMembers.reduce((total, member) => total + member.unreadCount, 0)

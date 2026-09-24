@@ -1,10 +1,5 @@
-export * from '../shared/index.js'
-export * from '../effects/index.js'
-export * from '../grants/index.js'
-export * from '../features/index.js'
-
 import { PREPARE_LIMIT_METHOD_KIND } from '@artificer-toolkit/shared/subjects/core'
-import { z } from 'zod'
+import { z } from '../zod.js'
 import { chargeDtoSchema } from '../shared/charge.js'
 import {
   authoredIdentifierSchema,
@@ -24,39 +19,39 @@ import {
 } from '../shared/enums.js'
 
 export const classSpellSlotDtoSchema = z.object({
-  spellLevel: z.number().int(),
-  slotCount: z.number().int()
+  spellLevel: z.number().check(z.int()),
+  slotCount: z.number().check(z.int())
 })
 export type ClassSpellSlotDto = z.infer<typeof classSpellSlotDtoSchema>
 
 export const classSpellLimitDtoSchema = z.object({
-  classLevel: z.number().int(),
+  classLevel: z.number().check(z.int()),
   slots: authoredNestedCollectionSchema(classSpellSlotDtoSchema),
-  learnedSpellsLimit: z.number().int().optional(),
-  preparedSpellsLimit: z.number().int().optional(),
-  cantripsLimit: z.number().int().optional()
+  learnedSpellsLimit: z.optional(z.number().check(z.int())),
+  preparedSpellsLimit: z.optional(z.number().check(z.int())),
+  cantripsLimit: z.optional(z.number().check(z.int()))
 })
 export type ClassSpellLimitDto = z.infer<typeof classSpellLimitDtoSchema>
 
 export const classPrepareLimitPerLevelDtoSchema = z.object({
-  classLevel: z.number().int(),
-  amount: z.number().int()
+  classLevel: z.number().check(z.int()),
+  amount: z.number().check(z.int())
 })
 
 export const classPrepareLimitDtoSchema = z.object({
   methodKinds: authoredReferenceCollectionSchema(z.enum(PREPARE_LIMIT_METHOD_KIND)),
-  scaling: scalingAmountKindSchema.optional(),
-  rounding: roundingCodeSchema.optional(),
-  perLevel: authoredNestedCollectionSchema(classPrepareLimitPerLevelDtoSchema).optional()
+  scaling: z.optional(scalingAmountKindSchema),
+  rounding: z.optional(roundingCodeSchema),
+  perLevel: z.optional(authoredNestedCollectionSchema(classPrepareLimitPerLevelDtoSchema))
 })
 export type ClassPrepareLimitDto = z.infer<typeof classPrepareLimitDtoSchema>
 
 export const classResourceDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  description: authoredRichTextSchema.optional(),
-  availableAtLevel: z.number().int(),
-  order: z.number().int().optional(),
+  description: z.optional(authoredRichTextSchema),
+  availableAtLevel: z.number().check(z.int()),
+  order: z.optional(z.number().check(z.int())),
   charges: chargeDtoSchema
 })
 export type ClassResourceDto = z.infer<typeof classResourceDtoSchema>
@@ -68,7 +63,7 @@ export const classHitpointDtoSchema = z.object({
 export type ClassHitpointDto = z.infer<typeof classHitpointDtoSchema>
 
 export const classStartingGoldDtoSchema = z.object({
-  multiplier: z.number().int(),
+  multiplier: z.number().check(z.int()),
   currencyId: authoredIdentifierSchema,
   dieConfig: authoredIdentifierSchema
 })
@@ -77,7 +72,7 @@ export type ClassStartingGoldDto = z.infer<typeof classStartingGoldDtoSchema>
 export const classMulticlassRequirementDtoSchema = z.object({
   id: authoredIdentifierSchema,
   ability: abilityCodeSchema,
-  min: z.number().int()
+  min: z.number().check(z.int())
 })
 
 export const classMulticlassRequirementGroupDtoSchema = z.object({
@@ -92,14 +87,14 @@ export const classMulticlassRequirementGroupsDtoSchema = z.object({
 export const classMulticlassDtoSchema = z.object({
   id: authoredIdentifierSchema,
   requirementGroups: classMulticlassRequirementGroupsDtoSchema,
-  proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema).optional()
+  proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema))
 })
 export type ClassMulticlassDto = z.infer<typeof classMulticlassDtoSchema>
 
 export const classSpecializationDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  order: z.number().int()
+  order: z.number().check(z.int())
 })
 export type ClassSpecializationDto = z.infer<typeof classSpecializationDtoSchema>
 
@@ -107,14 +102,14 @@ export const raceAncestryOptionDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
   description: authoredRichTextSchema,
-  order: z.number().int(),
-  features: authoredNestedCollectionSchema(featureDtoSchema).optional()
+  order: z.number().check(z.int()),
+  features: z.optional(authoredNestedCollectionSchema(featureDtoSchema))
 })
 
 export const raceAncestryDtoSchema = z.object({
   id: authoredIdentifierSchema,
   label: authoredShortTextSchema,
-  description: authoredRichTextSchema.nullable().optional(),
+  description: z.optional(z.nullable(authoredRichTextSchema)),
   options: authoredNestedCollectionSchema(raceAncestryOptionDtoSchema)
 })
 
@@ -151,7 +146,4 @@ export const equipmentAbilityDtoSchema = z.object({
   )
 })
 
-export const castingTimeDtoSchema = z.object({
-  unit: z.enum(['ROUND', 'MINUTE', 'HOUR']),
-  amount: z.number()
-})
+export { castingTimeDtoSchema } from './castingTime.js'

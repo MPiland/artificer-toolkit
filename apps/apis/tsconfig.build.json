@@ -4,6 +4,7 @@
     "composite": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "types": ["node"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

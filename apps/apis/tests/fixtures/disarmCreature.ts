@@ -1,0 +1,68 @@
+import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
+
+export const disarmHeldEntryId = '10000000-0000-4000-8000-000000000201'
+export const disarmOtherEntryId = '10000000-0000-4000-8000-000000000202'
+
+// Pure authored records shared by transactional and real-backend Disarm proofs.
+export function createDisarmWeapon(id = '10000000-0000-4000-8000-000000000203') {
+  return {
+    ...club,
+    id,
+    effects: club.effects?.map((effect) => ({
+      ...effect,
+      invocation: {
+        ...effect.invocation,
+        range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
+        targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+      }
+    }))
+  }
+}
+
+export function createDisarmCreature(weapon: typeof club, id = wolf.id) {
+  const bite = wolf.features?.find((feature) => feature.label === 'Bite')
+  if (!bite) throw new Error('Missing Wolf Bite.')
+  return {
+    ...wolf,
+    id,
+    features: wolf.features?.map((feature) =>
+      feature.id === bite.id
+        ? {
+            ...feature,
+            effects: weapon.effects,
+            rollDefinitions: [
+              {
+                id: crypto.randomUUID(),
+                label: 'Disarm weapon attack',
+                kind: 'ATTACK' as const,
+                expression: { count: 1, die: 20, modifier: 4 },
+                rollMode: 'NORMAL' as const,
+                chargeCost: null,
+                order: 1
+              }
+            ]
+          }
+        : feature
+    ),
+    equipmentLoadout: [
+      {
+        id: disarmHeldEntryId,
+        equipmentId: weapon.id,
+        quantity: 1,
+        useState: 'HELD' as const,
+        attuned: false,
+        actionFeatureIds: [bite.id]
+      },
+      {
+        id: disarmOtherEntryId,
+        equipmentId: dagger.id,
+        quantity: 1,
+        useState: 'CARRIED' as const,
+        attuned: false,
+        actionFeatureIds: []
+      }
+    ]
+  }
+}

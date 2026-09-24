@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { ConvexReactClient } from 'convex/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
@@ -29,6 +30,7 @@ export type AuthoredFormFactoryBase = {
 }
 
 export type AuthoredFormSessionInput = {
+  convexClient?: ConvexReactClient
   data: unknown
   mode: AuthoringFormMode
 }

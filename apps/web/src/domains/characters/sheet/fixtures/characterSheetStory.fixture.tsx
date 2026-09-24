@@ -1,194 +1,137 @@
-import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import type { Decorator, Meta, StoryObj } from '@storybook/tanstack-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Box } from '@mantine/core'
-import { HttpResponse, delay, http } from 'msw'
-import { expect, userEvent, within } from 'storybook/test'
-import type { CharacterRestPreviewRequestDto, CharacterSheetPanelDto } from '#app/lib/api'
+import { delay } from 'msw'
+import { expect, mocked, userEvent, within } from 'storybook/test'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { getFunctionName } from 'convex/server'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { characterSheetPanelInputSchema } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { characterSheetExecuteInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { characterSheetExtraCatalogReadInputSchema } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
-import { createCharacterRestPreviewFixture } from './characterRest.fixtures'
+import { mockSheetRestPreview } from './characterSheetNativeStory.fixture'
 import { characterSheetFixture } from './characterSheet.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
 import { companionPanelFixture, vehiclePanelFixture } from '../inspector/inspector.fixtures'
 
-export function panelHandler(panel: CharacterSheetPanelDto) {
-  return http.get('*/api/trpc/characters.panel', () =>
-    HttpResponse.json([{ result: { data: panel } }])
-  )
+export function withSheetPanel(panel: CharacterSheetPanelDto): Decorator {
+  return (Story) => {
+    const queryClient = useQueryClient()
+    queryClient.setQueryDefaults(
+      ['convexQuery', getFunctionName(convexApi.characters.panels.get)],
+      {
+        queryFn: async () => panel
+      }
+    )
+    queryClient.setQueryDefaults(
+      ['convexQuery', getFunctionName(convexApi.characters.preparationOptions.get)],
+      {
+        queryFn: async () =>
+          ({
+            characterId: panel.characterId,
+            streamVersion: characterSheetFixture.meta.streamVersion,
+            classes: []
+          }) satisfies CharacterPreparationOptionsResponseDto
+      }
+    )
+    return <Story />
+  }
 }
 
-export function spellsPanelHandler(panel: Extract<CharacterSheetPanelDto, { kind: 'SPELLS' }>) {
-  const preparationOptions = {
-    characterId: panel.characterId,
-    streamVersion: characterSheetFixture.meta.streamVersion,
-    classes: []
-  } satisfies CharacterPreparationOptionsResponseDto
-
-  return http.get('*/api/trpc/characters.panel,characters.preparationOptions', () =>
-    HttpResponse.json([{ result: { data: panel } }, { result: { data: preparationOptions } }])
+export const withExtrasPanels: Decorator = (Story) => {
+  const queryClient = useQueryClient()
+  queryClient.setQueryDefaults(
+    ['convexQuery', getFunctionName(convexApi.characters.extraOptions.list)],
+    {
+      queryFn: async ({ queryKey }) => {
+        const input = characterSheetExtraCatalogReadInputSchema.parse(queryKey[2])
+        const items =
+          input.kind === 'CREATURE'
+            ? [{ id: companionPanelFixture.creatureId, label: 'Owl' }]
+            : [{ id: '00000000-0000-4000-8000-000000000504', label: 'Sailing Ship' }]
+        return {
+          items: items.filter((item) =>
+            item.label.toLowerCase().includes(input.query?.toLowerCase() ?? '')
+          ),
+          nextCursor: null
+        }
+      }
+    }
   )
+  queryClient.setQueryDefaults(['convexQuery', getFunctionName(convexApi.characters.panels.get)], {
+    queryFn: async ({ queryKey }) => {
+      const { target } = characterSheetPanelInputSchema.parse(queryKey[2])
+      return target.kind === 'VEHICLE' ? vehiclePanelFixture : companionPanelFixture
+    }
+  })
+  return <Story />
 }
 
-export function extrasPanelHandler() {
-  return http.get('*/api/trpc/characters.panel', ({ request }) => {
-    const panel = request.url.includes('VEHICLE') ? vehiclePanelFixture : companionPanelFixture
-    return HttpResponse.json([{ result: { data: panel } }])
+const hitDieRollFixture = {
+  id: '00000000-0000-4000-8000-000000000701',
+  characterId: characterSheetFixture.meta.characterId,
+  characterLabel: characterSheetFixture.identity.label,
+  source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
+  ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
+  normalizedExpression: '1d10 + 1d8 + 4',
+  evidence: {
+    terms: [
+      { count: 1, die: 10, rolls: [6], subtotal: 6 },
+      { count: 1, die: 8, rolls: [5], subtotal: 5 }
+    ],
+    modifier: 4,
+    mode: 'NORMAL',
+    subtotal: 11,
+    transform: { kind: 'NONE' },
+    total: 15
+  },
+  createdAt: '2026-08-20T12:00:00.000Z'
+} satisfies RollRecordDto
+
+export function mockHitDieRoll() {
+  mocked(useConvexMutation).mockImplementation((reference) => {
+    const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+      async () => {
+        if (getFunctionName(reference) === 'rolls:execute') return hitDieRollFixture
+        if (getFunctionName(reference) === 'rolls:discard') return { ok: true }
+        throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
+      },
+      { withOptimisticUpdate: () => mutate }
+    )
+    return mutate
   })
 }
 
-export function extrasOptionsHandler() {
-  return http.get('*/api/trpc/characters.extraOptions', () =>
-    HttpResponse.json([
-      {
-        result: {
-          data: {
-            items: [
-              { id: companionPanelFixture.creatureId, label: 'Owl' },
-              { id: '00000000-0000-4000-8000-000000000504', label: 'Sailing Ship' }
-            ],
-            nextCursor: null
-          }
+export function mockExtraCommands(fail = false) {
+  mocked(useConvexMutation).mockImplementation((reference) => {
+    const mutate: ReturnType<typeof useConvexMutation> = Object.assign(
+      async (args?: unknown) => {
+        if (getFunctionName(reference) !== 'characters/sheetCommands:execute') {
+          throw new Error(`Unconfigured native mutation: ${getFunctionName(reference)}`)
         }
-      }
-    ])
-  )
-}
-
-export function hitDieRollHandler() {
-  const roll = {
-    id: '00000000-0000-4000-8000-000000000701',
-    characterId: characterSheetFixture.meta.characterId,
-    characterLabel: characterSheetFixture.identity.label,
-    source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
-    ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
-    normalizedExpression: '1d10 + 1d8 + 4',
-    evidence: {
-      terms: [
-        { count: 1, die: 10, rolls: [6], subtotal: 6 },
-        { count: 1, die: 8, rolls: [5], subtotal: 5 }
-      ],
-      modifier: 4,
-      mode: 'NORMAL',
-      subtotal: 11,
-      transform: { kind: 'NONE' },
-      total: 15
-    },
-    createdAt: '2026-08-20T12:00:00.000Z'
-  } satisfies RollRecordDto
-
-  return http.post('*/api/trpc/rolls.execute', () =>
-    HttpResponse.json([{ result: { data: roll } }])
-  )
-}
-
-export function extrasCommandHandler() {
-  return http.post('*/api/trpc/characters.command', () =>
-    HttpResponse.json([
-      {
-        result: {
-          data: {
-            characterId: characterSheetFixture.meta.characterId,
-            streamVersion: characterSheetFixture.meta.streamVersion + 1,
-            sheet: {
-              ...characterSheetFixture,
-              meta: {
-                ...characterSheetFixture.meta,
-                streamVersion: characterSheetFixture.meta.streamVersion + 1
-              },
-              extras: {
-                kindOptions: [{ code: 'COMPANION', label: 'Companion' }],
-                originOptions: [{ code: 'SUMMONED', label: 'Summoned' }],
-                items: [
-                  {
-                    id: companionPanelFixture.companionInstanceId,
-                    kind: 'COMPANION',
-                    kindLabel: 'Companion',
-                    creatureId: companionPanelFixture.creatureId,
-                    relationshipKind: 'COMPANION',
-                    relationshipLabel: 'Companion',
-                    originKind: 'SUMMONED',
-                    originLabel: 'Summoned',
-                    authoredName: 'Owl',
-                    displayName: 'Ferdinand',
-                    customName: 'Ferdinand',
-                    isActive: true,
-                    armorClass: 11,
-                    speedLabel: 'Flying 60 feet',
-                    hitPoints: { current: 1, temp: 0, maximum: 1 },
-                    hitDice: [],
-                    actions: [],
-                    features: [],
-                    equipmentItemIds: []
-                  },
-                  {
-                    id: '00000000-0000-4000-8000-000000000503',
-                    kind: 'VEHICLE',
-                    kindLabel: 'Vehicle',
-                    vehicleId: '00000000-0000-4000-8000-000000000504',
-                    authoredName: 'Sailing Ship',
-                    displayName: 'Sailing Ship',
-                    categoryLabel: 'Water vehicle',
-                    isActive: true,
-                    speedLabel: '4 mph',
-                    crewLabel: '20 crew',
-                    passengerCapacity: 20,
-                    cargoCapacityLabel: '100 tons',
-                    hitPoints: { current: 300, maximum: 300 },
-                    actions: [],
-                    features: [],
-                    equipmentItemIds: []
-                  },
-                  {
-                    id: '00000000-0000-4000-8000-000000000509',
-                    kind: 'COMPANION',
-                    kindLabel: 'Companion',
-                    creatureId: companionPanelFixture.creatureId,
-                    relationshipKind: 'COMPANION',
-                    relationshipLabel: 'Companion',
-                    originKind: 'SUMMONED',
-                    originLabel: 'Summoned',
-                    authoredName: 'Owl',
-                    displayName: 'Owl',
-                    isActive: true,
-                    armorClass: 11,
-                    speedLabel: 'Flying 60 feet',
-                    hitPoints: { current: 1, temp: 0, maximum: 1 },
-                    hitDice: [],
-                    actions: [],
-                    features: [],
-                    equipmentItemIds: []
-                  }
-                ]
-              }
+        characterSheetExecuteInputSchema.parse(args)
+        if (fail) {
+          await delay(1_500)
+          throw new Error('The server rejected this change.')
+        }
+        return {
+          characterId: characterSheetFixture.meta.characterId,
+          streamVersion: characterSheetFixture.meta.streamVersion + 1,
+          sheet: {
+            ...characterSheetFixture,
+            meta: {
+              ...characterSheetFixture.meta,
+              streamVersion: characterSheetFixture.meta.streamVersion + 1
             }
           }
         }
-      }
-    ])
-  )
-}
-
-export function extrasCommandErrorHandler() {
-  return http.post('*/api/trpc/characters.command', async () => {
-    await delay(1_500)
-    return new HttpResponse(null, { status: 500 })
-  })
-}
-
-export function restPreviewHandler() {
-  return http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
-    const body: unknown = await request.json()
-    if (typeof body !== 'object' || body === null || !('0' in body)) {
-      return new HttpResponse(null, { status: 400 })
-    }
-
-    const input = (body as { 0: { id: string; input: CharacterRestPreviewRequestDto } })[0].input
-    return HttpResponse.json([
-      {
-        result: {
-          data: createCharacterRestPreviewFixture(input)
-        }
-      }
-    ])
+      },
+      { withOptimisticUpdate: () => mutate }
+    )
+    return mutate
   })
 }
 
@@ -196,6 +139,7 @@ export const characterSheetStoryMeta = {
   title: 'Domains/Characters/CharacterSheetView',
   component: CharacterSheetView,
   tags: ['autodocs'],
+  beforeEach: mockSheetRestPreview,
   decorators: [
     (Story) => (
       <Box bg='var(--mantine-color-body)' h='100dvh' p={{ base: 'md', md: 'xl' }}>

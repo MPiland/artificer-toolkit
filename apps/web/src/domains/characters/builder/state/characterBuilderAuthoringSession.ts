@@ -12,7 +12,6 @@ import {
 } from './characterBuilderAuthoringState'
 
 export type CharacterBuilderAuthoringSession = {
-  baseActiveUpdatedAt: string | null
   characterId?: string
   draft: CharacterEditAuthoringData['draft'] | null
   fallbackLabel: string
@@ -35,6 +34,7 @@ export type CharacterBuilderAuthoringSession = {
 }
 
 export type ReadyCharacterBuilderAuthoringSession = CharacterBuilderAuthoringSession & {
+  draft: NonNullable<CharacterBuilderAuthoringSession['draft']>
   initialValues: NonNullable<CharacterBuilderAuthoringSession['initialValues']>
   payload: NonNullable<CharacterBuilderAuthoringSession['payload']>
 }
@@ -51,69 +51,56 @@ export function createCharacterBuilderAuthoringSession({
 
 function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringSession {
   const loaderData = data as CharacterCreateAuthoringData
-  const payload = loaderData.payload
-  const initialValues = payload ? toCharacterFormValues(payload) : undefined
-  const subjectLabel = payload?.character.label || 'Untitled Character'
+  const systemId = loaderData.systems[0]?.id
 
   return {
-    baseActiveUpdatedAt: null,
     draft: null,
     fallbackLabel: 'Untitled Character',
-    formKey: payload ? 'character:create:ready' : 'character:create:system-required',
+    formKey: 'character:create',
     hasActiveDraft: false,
     hasInvalidDraft: false,
-    initialAuthoringState:
-      payload && initialValues
-        ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
-        : undefined,
-    initialValues,
     invalidDraftOnly: false,
     isDraft: true,
     kind: 'character-builder',
     mode: 'create',
     notFound: false,
-    payload,
-    readOnly: false,
+    payload: null,
+    readOnly: true,
     subjectKindLabel: 'Character',
-    subjectLabel,
-    systemId: payload?.character.systemId,
-    systemRequired: !payload
+    subjectLabel: 'Untitled Character',
+    systemId,
+    systemRequired: !systemId
   }
 }
 
 function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSession {
   const loaderData = data as CharacterEditAuthoringData
-  const payload = loaderData.draftPayload ?? loaderData.response
-  const invalidDraftOnly =
-    !loaderData.response && !loaderData.draftPayload && Boolean(loaderData.draft)
-  const notFound = !loaderData.response && !loaderData.draftPayload && !loaderData.draft
-  const baseActiveUpdatedAt = loaderData.draftPayload
-    ? (loaderData.draft?.baseActiveUpdatedAt ?? loaderData.response?.baseActiveUpdatedAt ?? null)
-    : (loaderData.response?.baseActiveUpdatedAt ?? null)
+  const { payload, draft } = loaderData
+  const invalidDraftOnly = !payload && draft?.draftState === 'DRAFT_ONLY'
+  const notFound = !payload && !draft
   const subjectLabel =
     payload?.character.label || loaderData.breadcrumbLabel || 'Untitled Character'
   const initialValues = payload ? toCharacterFormValues(payload) : undefined
 
   return {
-    baseActiveUpdatedAt,
     characterId: loaderData.characterId,
     draft: loaderData.draft,
     fallbackLabel: 'Untitled Character',
-    formKey: `character:${loaderData.characterId}:${loaderData.draft?.updatedAt ?? payload?.character.id ?? 'missing'}`,
-    hasActiveDraft: Boolean(loaderData.response && loaderData.draftPayload),
-    hasInvalidDraft: Boolean(loaderData.draft && !loaderData.draftPayload),
+    formKey: `character:${loaderData.characterId}:${draft?.id ?? 'active'}`,
+    hasActiveDraft: draft?.draftState === 'ACTIVE_WITH_DRAFT',
+    hasInvalidDraft: Boolean(draft && !payload),
     initialAuthoringState:
       payload && initialValues
         ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
         : undefined,
     initialValues,
     invalidDraftOnly,
-    isDraft: Boolean(loaderData.draftPayload),
+    isDraft: Boolean(draft),
     kind: 'character-builder',
-    mode: 'edit',
+    mode: draft?.mode ?? 'edit',
     notFound,
     payload,
-    readOnly: false,
+    readOnly: !draft,
     subjectKindLabel: 'Character',
     subjectLabel,
     systemId: payload?.character.systemId,

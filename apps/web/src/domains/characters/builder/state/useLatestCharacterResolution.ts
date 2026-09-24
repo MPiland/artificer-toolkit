@@ -8,15 +8,16 @@ import { getCharacterBuilderResolutionFingerprint } from './resolutionFingerprin
 type CharacterBuilderMode = 'create' | 'edit'
 
 type InFlightCharacterResolution = {
-  controller: AbortController
   fingerprint: string
   promise: Promise<void>
 }
 
 export function useLatestCharacterResolution({
+  expectedDraftId,
   mode,
   onResolved
 }: {
+  expectedDraftId: string
   mode: CharacterBuilderMode
   onResolved: (payload: CharacterBuilderPayloadDto) => void
 }) {
@@ -31,33 +32,27 @@ export function useLatestCharacterResolution({
     return () => {
       mountedRef.current = false
       latestRequestIdRef.current += 1
-      inFlightRef.current?.controller.abort()
       inFlightRef.current = null
     }
-  }, [])
+  }, [expectedDraftId, mode])
 
   return useCallback(
     (character: CharacterFormValues) => {
-      const fingerprint = `${mode}:${getCharacterBuilderResolutionFingerprint(character)}`
+      const fingerprint = `${expectedDraftId}:${mode}:${getCharacterBuilderResolutionFingerprint(character)}`
       const currentRequest = inFlightRef.current
       if (currentRequest?.fingerprint === fingerprint) return currentRequest.promise
 
-      currentRequest?.controller.abort()
       const requestId = latestRequestIdRef.current + 1
       latestRequestIdRef.current = requestId
-      const controller = new AbortController()
       const inFlight: InFlightCharacterResolution = {
-        controller,
         fingerprint,
         promise: Promise.resolve()
       }
 
       inFlight.promise = mutateAsync({
-        request: {
-          character: normalizeCharacterForDraft(character),
-          mode
-        },
-        signal: controller.signal
+        character: normalizeCharacterForDraft(character),
+        expectedDraftId,
+        mode
       })
         .then((nextPayload) => {
           if (!mountedRef.current || requestId !== latestRequestIdRef.current) return
@@ -73,6 +68,6 @@ export function useLatestCharacterResolution({
       inFlightRef.current = inFlight
       return inFlight.promise
     },
-    [mode, mutateAsync, onResolved]
+    [expectedDraftId, mode, mutateAsync, onResolved]
   )
 }

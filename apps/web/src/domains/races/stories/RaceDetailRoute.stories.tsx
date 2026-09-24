@@ -12,9 +12,7 @@ const meta = {
   component: RaceDetailPage,
   args: {
     draft: activeRaceDetailLoaderData.draft,
-    parentResponse: activeRaceDetailLoaderData.parentResponse,
     raceId: activeRaceDetailLoaderData.raceId,
-    references: activeRaceDetailLoaderData.references,
     response: activeRaceDetailLoaderData.response,
     view: activeRaceDetailLoaderData.view
   },
@@ -46,9 +44,7 @@ export const Active: Story = {
 export const Draft: Story = {
   args: {
     draft: draftRaceDetailLoaderData.draft,
-    parentResponse: draftRaceDetailLoaderData.parentResponse,
     raceId: draftRaceDetailLoaderData.raceId,
-    references: draftRaceDetailLoaderData.references,
     response: draftRaceDetailLoaderData.response,
     view: draftRaceDetailLoaderData.view
   },

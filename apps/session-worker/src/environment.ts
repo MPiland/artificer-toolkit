@@ -1,7 +1,7 @@
 export interface SessionWorkerEnvironment {
   LIVE_SESSION_ALLOWED_ORIGINS: string
-  LIVE_SESSION_EXECUTOR_SECRET: string
-  LIVE_SESSION_EXECUTOR_URL: string
+  LIVE_SESSION_WORKER_SECRET: string
+  CONVEX_SITE_URL: string
   LIVE_SESSION_ROOMS: DurableObjectNamespace
   LIVE_SESSION_TICKET_SECRET: string
 }
