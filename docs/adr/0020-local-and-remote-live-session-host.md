@@ -1,6 +1,6 @@
 # ADR 0020: Local and remote authoritative live-session coordination
 
-- **Status:** historical — durable session-host, executor, journal, and command authority superseded by [ADR 0029](0029-convex-backend-cutover.md)
+- **Status:** historical — durable session-host, executor, journal, and command authority superseded by [ADR 0029](0029-convex-backend-cutover.md); Session-scoped room identity superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md)
 - **Date:** 2026-08-14
 - **Revised:** 2026-09-22
 - **Scope:** live VTT coordination, local hosting, remote hosting, and the deployment boundary around Zen
@@ -8,9 +8,13 @@
 - **Verification:** Worker workerd tests; session-host build and authenticated local join, replay, reconnect, persistence, broadcast, and latency gates
 - **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaced command-time Character reconstruction at the former executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replaced rule pins with capability discovery and frozen occurrence snapshots. [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md) replaced Encounter-owned live Scene materialization. ADR 0029 supersedes this ADR's transport, durable authority, journal, and executor topology.
 
-## Current superseding amendment — 2026-09-22
+## Superseded amendment — 2026-09-22
 
-ADR 0029 now makes one Session Durable Object the active live-command authority. It owns the minimum
+> Historical: the live Character command path described here was removed by ADR 0029's Character
+> authority amendment (2026-09-23); all Character Sheet writes stay in Convex. See ADR 0029 and
+> [live-session coordination](../architecture/live-sessions.md) for current ownership.
+
+ADR 0029 then made one Session Durable Object the active live-command authority. It owns the minimum
 live projection and ordered execution for Door changes, standalone token movement/undo, and the live
 Character command path. Each accepted command atomically commits SQLite live state, its replay receipt,
 and an ordered Convex publication outbox entry before broadcasting success. Recipient-filtered previews

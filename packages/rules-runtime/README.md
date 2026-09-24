@@ -30,6 +30,7 @@ optional-combat validation, active-effect execution, occurrence handling, moveme
 Builder/Sheet composition, and deterministic replay helpers. Backends provide trusted current sources,
 authority, timestamps and transaction storage; this package remains persistence-independent.
 
-Use `yarn workspace @artificer-toolkit/rules-runtime test` and
-`yarn workspace @artificer-toolkit/rules-runtime typecheck` for focused changes. See the
+Use `yarn workspace @artificer-toolkit/rules-runtime typecheck` for focused changes. The package has
+no local test script; its behavior is covered by the Convex domain tests
+(`yarn workspace @artificer-toolkit/apis test:convex <focused-test-path>`). See the
 [canonical Rules Runtime guide](../../docs/architecture/rules-runtime.md) for contracts and ownership.

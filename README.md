@@ -81,5 +81,5 @@ global hash. Root scripts select workspaces through `yarn workspace` or Turbo fi
 - Need a new persistence write or hydration path? Start with [docs/architecture/persistence.md](docs/architecture/persistence.md), `apps/apis/convex`, and the shared contract in `packages/schema`.
 - Need a new product-data procedure? Start with [docs/architecture/transport.md](docs/architecture/transport.md), `apps/apis/convex`, and the owning adapter in `apps/web/src/data`.
 - Need a character Builder or Sheet behavior? Start with [docs/architecture/character.md](docs/architecture/character.md), then the character module landing page.
-- Need a rules calculation? Start with [docs/architecture/engine.md](docs/architecture/engine.md); assemble typed facts and execute the installed System through the native Kernel.
+- Need a rules calculation? Start with [docs/architecture/rules-runtime.md](docs/architecture/rules-runtime.md); assemble typed facts and execute the installed System through the native Kernel.
 - Need live-session coordination? Start with [docs/architecture/live-sessions.md](docs/architecture/live-sessions.md), `apps/session-worker`, and `apps/apis/convex/liveSessions`.

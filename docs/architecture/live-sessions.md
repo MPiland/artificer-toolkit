@@ -8,6 +8,11 @@
 >
 > Verification: `apps/session-worker/src/nativeLiveSessionRoom.ts`, `apps/session-worker/src/durableCommandJournal.ts`, `apps/apis/convex/liveSessions/{authority,state,bootstrap}.ts`, `apps/web/src/domains/campaigns/vtt/liveSessionClient.ts`, and [ADR 0029](../adr/0029-convex-backend-cutover.md)
 
+> Transitional: [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (approved, implementation
+> in progress) replaces the Session-keyed room below with one live table per Campaign, opened by any
+> ACTIVE member, and removes Session gating from live play. Until that lands, this guide describes the
+> current Session-keyed implementation.
+
 A live Session has one temporary live-command authority and one durable product store. While an
 authority epoch is active, its Session Durable Object is the single authority for the supported Door
 and standalone token move/undo paths. It also streams recipient-filtered ephemeral previews.

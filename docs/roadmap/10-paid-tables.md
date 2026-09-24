@@ -1,5 +1,7 @@
 # Phase 10 — Paid tables and Pro GM economics
 
+> **Stale architecture:** This plan predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its tRPC, Supabase, Postgres/Kysely, `packages/functions`, and `packages/db` assumptions are superseded; re-plan the implementation against the [architecture overview](../architecture/overview.md) before this phase begins.
+
 > **Status:** planned; commercial/legal decisions required before implementation
 > **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), [Phase 05 notifications](05-notifications-and-delivery.md), [Phase 06 live play](06-live-campaign-play.md), and [Phase 09](09-entitlements-and-subscriptions.md)
 > **Unlocks:** professional-GM monetization and the public web viability gate

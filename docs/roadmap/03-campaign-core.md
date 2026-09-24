@@ -1,5 +1,7 @@
 # Phase 03 — Campaign Core
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** implemented baseline; approved Campaign-management extension planned
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-dice-and-roll-infrastructure.md), and [Phase 02](02-media-and-file-pipeline.md)
 > **Unlocks:** [Phase 04 Social Hub](04-social-hub.md), [Phase 05 notifications](05-notifications-and-delivery.md), [Phase 06 live play](06-live-campaign-play.md), [Phase 07 Encounters](07-encounters.md), and Campaign-scoped content

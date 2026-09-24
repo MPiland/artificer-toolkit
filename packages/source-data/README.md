@@ -2,10 +2,10 @@
 
 This workspace owns the complete canonical corpus, independent of the database implementation.
 `src/srd` retains authored definitions, stable UUIDs, semantic ledgers, the original SRD PDF/text,
-and supporting assets. Do not remove these files when retiring `packages/db`.
+and supporting assets. These files survived the retirement of `packages/db` and remain canonical.
 
 Consumers import `@artificer-toolkit/source-data`, `/content`, `/srd`, or an exact `/srd/*.js`
-subpath. Database and Convex importers own persistence and owner assignment; this package performs
+subpath. The Convex importer owns persistence and owner assignment; this package performs
 no database, filesystem, network, or environment lookup while loading the corpus.
 
 The Phase 8.2 extraction preserved 1,083 files and 1,051 unique root UUIDs. Only the semantic-ledger
@@ -17,7 +17,7 @@ Run its focused checks with `yarn workspace @artificer-toolkit/source-data test`
 
 `/srd/catalogue.js` owns the existing catalogue/content-source UUIDs and the complete collection
 of 50 reusable sense, capability, condition, optional-combat, lifecycle, and concentration definitions.
-The transitional SQL seed uses this same collection; do not maintain a second list in an importer.
+The Convex seed uses this same collection; do not maintain a second list in an importer.
 `/srd/import.js` prepares a deterministic JSON manifest, validates all 1,051 authored documents and
 the System against their existing schemas, rejects silent field removal, and checks duplicate UUIDs,
 definition checksums, and typed parent/class/equipment references. `/srd/audit.js` retains the existing

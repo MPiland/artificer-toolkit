@@ -7,8 +7,9 @@ Builder and Sheet, Campaigns, Encounters, the VTT, and browser presentation.
 
 Browser and SSR data adapters use generated Convex queries, mutations and actions from
 `apps/apis/convex`. Better Auth supplies the session. During active room authority, the live-session
-WebSocket carries the supported Door, standalone token move/undo and live Character commands plus
-recipient-filtered ephemeral previews. Durable publication converges through Convex subscriptions.
+WebSocket carries the supported Door and standalone token move/undo commands plus recipient-filtered
+ephemeral previews. Character Sheet and Encounter rule commands keep their owning Convex mutations.
+Durable publication converges through Convex subscriptions.
 
 ```mermaid
 flowchart LR
@@ -271,7 +272,7 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
 - Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; Better Auth independently enforces it and requires email verification.
 - Library import remains hidden unless the server-owned `LIBRARY_IMPORT_ENABLED` flag is exactly `true`. Disabled direct-route requests return to the authenticated Home surface.
-- Supabase Postgres owns product-notification feed engagement and channel preferences. Authenticated notification APIs resolve only the caller; private Realtime messages invalidate cached state but never replace the authoritative API read. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
+- (Historical) Supabase Postgres owned product-notification feed engagement and channel preferences. Authenticated notification APIs resolve only the caller; private Realtime messages invalidate cached state but never replace the authoritative API read. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
 - `/auth/confirmed` is Better Auth's informational email-verification landing. Failed links show fixed recovery guidance; the page neither verifies tokens nor creates a session. The native sender sets this callback for signup and sign-in resends. Browser sign-in leaves its callback unset so the router retains ownership of successful-login navigation. Initial invitations instead use fragment-based `/update-password` setup and atomic native redemption. Public signup requires a username; sign-in accepts email or username without exposing the associated email. Password recovery and confirmation remain independent of the public-registration flag. See the [native verification contract](../../docs/architecture/transport.md).
 
 ### Focused validation

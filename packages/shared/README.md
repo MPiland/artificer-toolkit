@@ -42,7 +42,8 @@ checksum protocol for the other. Its compatibility test uses independent Web Cry
 
 Use `yarn workspace @artificer-toolkit/shared test` for maps, compilers, and character-domain behavior;
 use `yarn workspace @artificer-toolkit/shared typecheck` for contract changes. Installed System
-validation and execution tests live in `packages/rules-runtime`.
+validation and execution are implemented in `packages/rules-runtime` and tested through the Convex
+domain tests in `apps/apis`.
 
 ## Canonical references
 
@@ -50,4 +51,4 @@ validation and execution tests live in `packages/rules-runtime`.
 - [Data lifecycle](../../docs/architecture/data-lifecycle.md)
 - [Authoring Schema](../../docs/architecture/authoring-schema.md)
 - [Character Builder and Sheet](../../docs/architecture/character.md)
-- [Engine](../../docs/architecture/engine.md)
+- [Rules Runtime](../../docs/architecture/rules-runtime.md) (the former [Engine](../../docs/architecture/engine.md) guide is historical)

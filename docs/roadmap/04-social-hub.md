@@ -1,5 +1,7 @@
 # Phase 04 — Social Hub and free table formation
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** implemented
 > **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline; notification integration follows [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** public table discovery and the paid-table extension

@@ -1,5 +1,7 @@
 # Phase 08 Gate 2 PostgreSQL acceptance schedules
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Authority:** [Phase 08 fixed acceptance ledger](08-vtt-acceptance.md)
 >
 > **Purpose:** run the fourteen Gate 2 `DATABASE` cases as six bounded local schedules after the

@@ -1,6 +1,6 @@
 # ADR 0027: Campaign-owned live Scenes and optional Encounter bindings
 
-- **Status:** decision
+- **Status:** decision — Campaign-owned Scenes and optional Encounter bindings retained; Session presentation and the `Campaign → Session → …` dependency order superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md)
 - **Date:** 2026-08-30
 - **Scope:** Campaign VTT Scene ownership, Session presentation, Encounter spatial binding, and token identity
 - **Update when:** Scene persistence, Session presentation, Encounter admission, token binding, Scene commands, or spatial replay ownership changes

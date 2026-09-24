@@ -1,5 +1,7 @@
 # Phase 08 fixed acceptance ledger
 
+> **Note:** Implementation references in this ledger to PostgreSQL/Supabase, the Netlify executor, `apps/session-host`, Zen/rule packs, and SQL schedules predate the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)) and are historical. Convex cutover acceptance is tracked in the [Phase 8.2 ledger](08-2-convex-cutover-acceptance.md).
+
 > **Status:** active rebaseline
 >
 > **Scope:** fixed product acceptance scenarios for the rules runtime, Encounter automation, VTT workflows, presentation, and complete local release proof

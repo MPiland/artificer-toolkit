@@ -28,6 +28,20 @@ The character play surface. It exposes mutable play-state interaction through co
 
 The private aggregate for one table, whether its format is a one-shot or ongoing game. It owns tone and maturity policy as well as membership, collaboration, preparation, sessions, and play state. An owner may copy reusable Campaign preparation into a fresh aggregate without copying cohort or run state.
 
+### Live table
+
+The Campaign's live play room: the Session Durable Object in `apps/session-worker` plus
+`apps/apis/convex/liveSessions`. The technical name "live session" is retained. Transitional: the
+current implementation opens one room per OPEN Campaign Session;
+[ADR 0033](docs/adr/0033-campaign-owned-play-and-session-log.md) (approved, implementation in
+progress) makes it one room per Campaign that any ACTIVE member may open.
+
+### Session
+
+A Campaign Session record for scheduling, RSVP, attendance, notes, references and recap. Under
+[ADR 0033](docs/adr/0033-campaign-owned-play-and-session-log.md) it becomes an optional log that no
+longer gates live play, Scene presentation or Encounter Runs, which become Campaign-owned.
+
 ### Social profile
 
 The authenticated table-formation identity for an account whose user represents that they are at least 13 under the platform Terms. It exposes only a random public ID and current username. Its private record separately retains the default-Standard viewing preference and an optional adult-attestation timestamp created only when Mature viewing is enabled; a submitted birth date is discarded. It is not the private account profile or an authorization grant.
@@ -46,7 +60,7 @@ A directional persisted choice enforced symmetrically across Social discovery an
 
 ### Notification projection
 
-A Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; protected Postgres tables own feed/read/seen state and channel preferences, while a narrow transactional delivery intent tracks bounded Edge delivery. A notification public source ID or deep link never grants access and must be reauthorized when opened.
+A Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; Convex feed items own read/seen state, the account profile owns channel preferences, and a narrow transactional delivery intent tracks bounded Resend email delivery. A notification public source ID or deep link never grants access and must be reauthorized when opened.
 
 ## Data model
 
@@ -223,9 +237,9 @@ The compiled content registry supplied to the engine for the character's selecte
 ### Rules runtime
 
 The server runtime that performs capability discovery and executes validated rule graphs using the
-shared Rules Kernel, mechanics operations, and the selected platform-owned Game System module. Zen
-may implement bounded pure formulas or tables behind typed operations; it is not a global D&D model
-selector. I/O, authorization, persistence, mutation, clocks, and random generation remain application
+shared Rules Kernel, mechanics operations, and the selected platform-owned Game System module. It is
+native TypeScript in `packages/rules-runtime`; the retired GoRules/Zen evaluator is not a runtime
+dependency. I/O, authorization, persistence, mutation, clocks, and random generation remain application
 owned. Arbitrary authored code is forbidden.
 
 ### Derived output

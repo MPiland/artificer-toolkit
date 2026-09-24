@@ -1,5 +1,7 @@
 # Phase 08 pre-rebaseline salvage map
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** transitional implementation evidence
 >
 > **Snapshot:** `codex/vtt-pre-rebaseline-snapshot` at `0cdc7d5b26a01d2d0baa99b745098a9bc3655444`

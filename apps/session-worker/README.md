@@ -2,6 +2,8 @@
 
 `apps/session-worker` is the Phase 8.2 WebSocket edge. One hibernatable Session Durable Object is addressed per Campaign Session, and the stable `LiveSessionRoom` export points to `NativeLiveSessionRoom`. While its authority epoch is active, the room is the single live-command authority for Door changes and standalone token move/undo. It also handles recipient-filtered transient fanout. Currently, Character Sheet mutations and Encounter rules execution still run in Convex.
 
+Transitional: [ADR 0033](../../docs/adr/0033-campaign-owned-play-and-session-log.md) (approved; implementation in progress) addresses one room per Campaign instead of per Campaign Session. The name "live session" is retained for this Worker and `liveSessions/*`.
+
 The approved cutover target moves heavy live rules and fact preparation into this Session DO using the existing TypeScript rules runtime. Character Sheet writes stay in Convex, atomically with the corresponding Encounter result. The DO must receive the validated Convex commit receipt before acknowledging those commands. Authorized input capture, commit validation and that command route remain incomplete; see ADR 0029 before extending this boundary.
 
 `nativeCharacterRules` now prepares Character facts from the protected `/live-sessions/character-rules` capture endpoint using the existing context, Builder and Sheet algorithms. It retains each read request/checksum for atomic commit validation, including missing sources and catalogue membership. It performs no writes or acknowledgements; connecting it to the command coordinator remains required. Publication pages bound ordinary payload reads, while maximum-size shared parent chains still need local backend validation.

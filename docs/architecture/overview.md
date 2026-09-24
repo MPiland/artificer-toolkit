@@ -62,6 +62,10 @@ commits durable cross-session/system state, drives subscriptions, and bootstraps
 or eviction. The same room relays recipient-filtered ephemeral previews. See
 [Live-session coordination](live-sessions.md).
 
+Transitional: [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (approved; implementation
+in progress) makes the live table one room per Campaign and Encounter Runs Campaign-owned, with
+Sessions reduced to an optional log. The paragraphs above describe the current Session-keyed room.
+
 ## Read this next
 
 - [Data lifecycle](data-lifecycle.md) for authored, persisted, and execution representations.

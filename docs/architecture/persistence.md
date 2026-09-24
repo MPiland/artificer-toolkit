@@ -80,6 +80,10 @@ they cannot restore authority or expose a partial account.
 
 ## Active live-session authority — accepted 2026-09-22
 
+> Transitional: [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (approved; implementation
+> in progress) re-keys room identity, authority, presentation and Encounter Runs from the Campaign
+> Session to the Campaign. This section describes the current Session-keyed implementation.
+
 ```mermaid
 flowchart LR
   Command["Supported live command"] --> Room["Session Durable Object"]
@@ -3286,7 +3290,7 @@ Ordered authored collections must persist their source order explicitly. For exa
 
 Character Sheet adjustment intent is stored outside `CharacterAuthored` in closed relational family tables. Each row has a constrained target/value shape, character ownership, optional `source_note`, actor IDs, and timestamps. `source_note` is the only manual adjustment metadata across every family; authored provenance remains derived in calculation breakdowns. Item and companion targets use owned-instance UUIDs; definition-owned repeated sources include their persisted acquisition/source-record identity. `createCharacterSheetAdjustmentRepository` validates hydrated rows through the shared transport schema, supports typed upsert/removal, and owns movement-display preferences. No generic path/value or derived-total table is permitted.
 
-### Character Extras (Branch 05 target)
+### Historical: SQL Character Extras (Branch 05 target)
 
 Creature and vehicle records are character-owned Sheet instances. Hydration returns complete instance state rather than raw rows: immutable authored source identity and name, persisted `customName`/notes/active state, and the current instance-owned play state needed by the Sheet. For creatures, the persisted relationship role is limited to `COMPANION`, `MOUNT`, or `OWNED`; `origin_kind` is a separate constrained `WORLD`/`SUMMONED` column. The migration converts legacy `SUMMONED` roles to `COMPANION` plus `SUMMONED` origin and assigns `WORLD` to every other existing creature row before enforcing the new constraints.
 
@@ -3315,7 +3319,7 @@ Chosen grant selections are unique by character, grant, provenance identity, and
 
 For authored roots, normalized domain rows are canonical active content. `authored_drafts` stores complete JSON drafts separately; readable draft detail validates that payload while active detail hydrates the domain aggregate. Activation locks the draft, rejects a stale `base_active_updated_at`, replaces the active aggregate, and deletes the draft inside one transaction. Seed/source data follows the typed aggregate upsert path without creating parallel definition or revision records. Baseline synchronization is authoritative only for master roots in the target system: stale masters and their route identities are pruned transactionally, while owned records and other systems are untouched.
 
-The committed SRD semantic ledger has exactly one entry per seeded root. It records the reviewed text/PDF source location, tracked-source hashes, canonical authored-data hash, prose/mechanics status, and exact manual-exception IDs. `yarn audit:srd` rejects missing, duplicate, unmatched, or stale entries before auditing the persisted corpus. There is intentionally no checked-in auto-update command: changed SRD or authored data requires a new human semantic review before the ledger hash is replaced.
+The committed SRD semantic ledger has exactly one entry per seeded root. It records the reviewed text/PDF source location, tracked-source hashes, canonical authored-data hash, prose/mechanics status, and exact manual-exception IDs. The retired SQL-era `yarn audit:srd` rejected missing, duplicate, unmatched, or stale entries before auditing the persisted corpus. There is intentionally no checked-in auto-update command: changed SRD or authored data requires a new human semantic review before the ledger hash is replaced.
 
 Creation of a previously unseen owned root consumes the account's fixed UTC creation windows in the same transaction as its first draft: at most 25 per minute and 100 per hour across all eight domains. The minute window permits one maximum-size import batch without bypassing the shared limiter. The private authored-content creation-rate row is locked before increment, has RLS enabled with no client policies or grants, and is not deleted when an authored root is deleted. Existing-root saves and other lifecycle mutations do not consume it, and there is no lifetime authored-record quota.
 

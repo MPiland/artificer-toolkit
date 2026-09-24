@@ -1,5 +1,7 @@
 # Phase 02 — Media and supporting-file pipeline
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** complete — Phase 02 image scope delivered; supporting-file profiles remain deferred to their owning phases
 > **Completed:** 2026-08-06
 > **Depends on:** the current authenticated API baseline

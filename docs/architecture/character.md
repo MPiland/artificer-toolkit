@@ -6,7 +6,7 @@
 >
 > Update when: Builder or Sheet contracts, source-loss behavior, command receipts, or Character authority changes
 >
-> Verification: `apps/apis/convex/characters`, Character schema/tests, `packages/rules-runtime/character`, and the owning web Builder/Sheet adapters
+> Verification: `apps/apis/convex/characters`, Character schema/tests, `packages/rules-runtime/src/character`, and the owning web Builder/Sheet adapters
 
 Characters are playable aggregates rather than generic authored forms. Builder owns structural choices
 and reconciliation. Sheet owns play-state commands. Both resolve current readable authored sources and

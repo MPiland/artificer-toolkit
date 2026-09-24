@@ -7,6 +7,8 @@
 
 This roadmap turns the alpha and post-alpha product direction into bounded implementation phases. It is planning guidance, not current product behavior. Current code, tests, canonical architecture guides, and accepted ADRs take precedence when a phase begins.
 
+> **Superseded architecture:** Most of this plan predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). The Design diagram, Architecture guardrails, and Technology direction below still name the retired tRPC, `packages/functions`, `packages/db`, Kysely, Supabase Postgres/RLS/Auth/Storage/Realtime/Edge, and GoRules stack. Current equivalents are native Convex functions in `apps/apis/convex` (orchestration, authorization, persistence, subscriptions, notifications with Resend), Better Auth identity, private R2 media through Convex, and the `apps/session-worker` Durable Object for live tables. Re-plan each future phase against the [architecture overview](../architecture/overview.md) before implementation. Phase 8.2 itself is tracked in the [cutover acceptance ledger](08-2-convex-cutover-acceptance.md).
+
 ## Goal
 
 Evolve Artificer Toolkit from its current web-first character and authored-content platform into a connected tabletop play platform. First complete and validate the web loop from creation and table formation through Campaign, Encounter, and VTT play. Add paid plans and professional-GM tables to test sustainable demand. Native clients follow demonstrated web viability, and creator Marketplace work remains last.
@@ -74,7 +76,7 @@ After web viability, native iOS and Android clients become first-class play clie
 
 ### Media and supporting files
 
-The completed private-by-default asset pipeline serves account avatars, Character portraits, authored-content source images, Campaign files, and VTT maps through purpose-specific profiles without replacing stable asset identity. Ordinary media uses Supabase Storage; new VTT maps use private R2. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. The API approves every object key and domain reference; clients transfer bytes directly to the selected store only through short-lived permissions.
+The completed private-by-default asset pipeline serves account avatars, Character portraits, authored-content source images, Campaign files, and VTT maps through purpose-specific profiles without replacing stable asset identity. Ordinary media originally used Supabase Storage; since the Phase 8.2 cutover all media bytes use private R2 through Convex. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. The API approves every object key and domain reference; clients transfer bytes directly to the selected store only through short-lived permissions.
 
 ### Campaigns and live play
 
@@ -106,6 +108,8 @@ creature/custom state remains Encounter-local.
 Social Hub launches with private and public free tables so table formation, moderation, and Campaign conversion can be validated before payments. Plans and paid-table commerce then establish Player, GM, and Pro GM economics on web. The creator Marketplace is a separate post-viability, post-native track; it begins with free licensing before paid creator commerce.
 
 ## Design
+
+> **Historical (pre-ADR 0029):** retired-stack references in this section are superseded; see the note at the top of this roadmap.
 
 ```mermaid
 flowchart LR
@@ -172,6 +176,8 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 
 ## Architecture guardrails
 
+> **Historical (pre-ADR 0029):** retired-stack references in this section are superseded; see the note at the top of this roadmap.
+
 - Keep the modular monolith. Add domains, contracts, services, repositories, and client surfaces inside the existing workspaces.
 - Put transport DTOs and validation in `packages/schema`; pure rules, dice contracts, and platform-neutral scene state in `packages/shared`; orchestration and authorization in `packages/functions`; persistence in `packages/db`; and thin procedures in `apps/apis`.
 - Add `packages/api-client` only with `apps/mobile`. It owns typed tRPC construction, shared API errors, query-key factories, and token injection. It must not own product rules or platform navigation.
@@ -191,6 +197,8 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 - Bind authored artwork to its owned root or draft and Marketplace artwork to exact immutable releases. Builder replacement writes cannot delete Character portraits or Campaign-owned assets.
 
 ## Technology direction
+
+> **Historical (pre-ADR 0029):** retired-stack references in this section are superseded; see the note at the top of this roadmap.
 
 | Area                 | Direction                                                                                                                                                                               |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

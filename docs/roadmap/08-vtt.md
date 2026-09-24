@@ -1,5 +1,7 @@
 # Phase 08 — Web VTT
 
+> **Note:** Implementation references in this ledger to PostgreSQL/Supabase, the Netlify executor, `apps/session-host`, Zen/rule packs, and SQL schedules predate the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)) and are historical. Convex cutover acceptance is tracked in the [Phase 8.2 ledger](08-2-convex-cutover-acceptance.md).
+
 > **Status:** rebaselined — retained scene/live-session foundation is implemented; rules runtime, authoritative combat, authoring workflows, and presentation follow the fixed acceptance ledger
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), [Phase 06](06-live-campaign-play.md), and [Phase 07](07-encounters.md)
 > **Unlocks:** the complete connected web play loop and its viability test

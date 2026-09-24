@@ -39,7 +39,7 @@ or JSDoc.
 - [Authoring Schema and resolution](architecture/authoring-schema.md)
 - [Character Builder, Sheet, and engine flow](architecture/character.md)
 - [Media lifecycle and delivery](architecture/media.md)
-- [Engine](architecture/engine.md)
+- [Engine](architecture/engine.md) — historical Character engine record superseded by the shared rules runtime
 - [Shared rules runtime](architecture/rules-runtime.md)
 - [D&D 2014 optional combat](architecture/dnd5e-optional-combat.md)
 - [Rules runtime domain ERDs](architecture/rules-runtime-erd.md)
@@ -52,10 +52,13 @@ or JSDoc.
 - [Convex notification delivery](runbooks/convex-notification-delivery.md)
 - [Social Hub retention](runbooks/social-retention.md)
 - [VTT map R2](runbooks/vtt-map-r2.md)
+- Historical only: [Novu notification delivery](runbooks/notification-delivery.md) and [Supabase notification delivery](runbooks/supabase-notification-delivery.md)
 
 ## Audits and research
 
-- [MVP readiness audit (2026-07-10)](audits/mvp-readiness-2026-07-10.md)
+- [MVP readiness audit (2026-07-10)](audits/mvp-readiness-2026-07-10.md) — historical (pre-Convex)
+- [Authoring workspace audit (2026-07-12)](audits/authoring-workspace-2026-07-12.md) — historical
+- [MVP acceptance ledger (2026-07-13)](audits/mvp-acceptance-ledger-2026-07-13.md) — historical (pre-Convex)
 - [Product and capability references](market-research.md) — transitional research notes
 
 ## Roadmap and acceptance
@@ -79,6 +82,10 @@ See [the ADR index](adr/README.md) for intentional architectural decisions and t
 - [Shared](../packages/shared/README.md)
 - [Authoring](../packages/authoring/README.md)
 - [Rules Runtime](../packages/rules-runtime/README.md)
+- [Source data](../packages/source-data/README.md)
+- [Emails](../packages/emails/README.md)
+- [Design system](../packages/design-system/README.md)
+- [Web form platform](../apps/web/src/forms/README.md)
 
 ## Historical material
 

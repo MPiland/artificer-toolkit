@@ -6,7 +6,7 @@
 >
 > Update when: a model is renamed, a compiler changes output, or a new persistence/engine boundary is added
 >
-> Verification: `apps/apis/convex/content`, `apps/apis/convex/characters`, `packages/authoring`, `packages/shared/src/domains`, and `packages/shared/src/domains/engine/snapshot.ts`
+> Verification: `apps/apis/convex/content`, `apps/apis/convex/characters`, `packages/authoring`, `packages/shared/src/domains`, and `packages/shared/src/domains/character/ruleSnapshot.ts`
 
 The same game concept appears in several representations. Names are intentional; do not collapse them because their fields look similar.
 
@@ -41,7 +41,7 @@ flowchart LR
 - **Authored draft** is a complete JSON payload for a new root or an edit of an active Background, Class, Creature, Equipment, Feat, Race, Spell, or Vehicle. An active root has at most one edit draft.
 - **Published aggregate** is the validated root plus its current immutable authored-version document and owned identities. Draft activation replaces the current publication atomically.
 - **Validated authored** is the application boundary: Convex functions validate stored documents through shared schemas before compiling or projecting them. Callers do not depend on storage layout.
-- **CharacterBuildSnapshot** is ephemeral. It is assembled from current character state and compiled registry content before each engine run and is never persisted (`packages/shared/src/domains/engine/snapshot.ts`).
+- **CharacterBuildSnapshot** is ephemeral. It is assembled from current character state and compiled registry content before each engine run and is never persisted (`packages/shared/src/domains/character/ruleSnapshot.ts`).
 - **Engine output** is derived play state (ability modifiers, proficiencies, spell slots, resources, senses, and item contributions). It is recomputed; it is not a second source of authored truth.
 
 ## Invariants

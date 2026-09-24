@@ -1,5 +1,7 @@
 # MVP acceptance ledger - 2026-07-13
 
+> **Historical:** This gate was recorded against the retired Supabase/SQL, tRPC, `packages/functions`, and `packages/db` stack. Its commands (for example `yarn audit:srd` and `yarn test:srd:integration`) and file paths no longer exist. Current acceptance lives in the [Phase 8.2 cutover ledger](../roadmap/08-2-convex-cutover-acceptance.md).
+
 > Status: MVP release gate complete
 > Scope: D&D 5e 2014 authored content, authoring workspace, Character Builder, and Character Sheet
 > Supersedes: `mvp-readiness-2026-07-10.md` as the current readiness decision

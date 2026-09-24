@@ -340,7 +340,7 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 
 - **Component Stories:** Small reusable components use inline minimal data and decorators for visual framing.
 - **Composite Stories:** Shell and authoring workspace stories compose the real components and should not use custom story-only CSS that hides layout bugs.
-- **Route-Backed Stories:** Migrated domains should get a route-backed Storybook story before visual sign-off. Use mocked auth/data behavior rather than real Supabase login.
+- **Route-Backed Stories:** Migrated domains should get a route-backed Storybook story before visual sign-off. Use mocked auth/data behavior rather than real Better Auth login.
 - **Controls:** Stories should expose useful controls for theme, active step, responsive mode, dirty/valid/error state, drawer opened state, and preview presence when those controls help inspect UI behavior.
 
 ### Theme Toggle

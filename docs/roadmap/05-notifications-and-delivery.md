@@ -1,5 +1,7 @@
 # Phase 05 — Notifications and delivery
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** Complete — Supabase-native feed, preferences, Realtime invalidation, and Edge delivery replace Novu; production smoke remains a pre-launch release gate
 > **Completed:** 2026-08-12
 > **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), and the authenticated account/profile baseline

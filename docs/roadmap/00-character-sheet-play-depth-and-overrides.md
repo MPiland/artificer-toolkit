@@ -1,5 +1,7 @@
 # Phase 00 — Character Sheet play depth and overrides
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** complete — final-validated in the [Phase 00 implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md)
 > **Depends on:** current authenticated Character Builder, Sheet, engine, and web baseline
 > **Unlocks:** transparent Character inspection, complete web play controls, portable Sheet panels, native Sheet parity, and future Campaign GM inspection

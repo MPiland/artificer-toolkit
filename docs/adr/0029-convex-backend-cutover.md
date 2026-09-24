@@ -1,6 +1,6 @@
 # ADR 0029: Convex backend cutover
 
-- **Status:** decision
+- **Status:** decision (Session-scoped room identity and Session presentation superseded by [ADR 0033](0033-campaign-owned-play-and-session-log.md))
 - **Date:** 2026-09-03
 - **Revised:** 2026-09-24
 
@@ -373,9 +373,9 @@ frontend cutover remain separately tracked in C06.
 - This is a backend cutover, not a persistence-driver substitution.
 - Existing pure domain, node-map, compiler, and kernel tests remain. Persistence and transport proofs
   use Convex transactions, OCC, subscriptions, and authorization.
-- `packages/schema`, `packages/shared`, and `packages/emails` remain. Canonical data moves to
-  `packages/source-data`. `packages/functions` and `packages/db` are deleted only after reusable pure
-  code is extracted and no accepted runtime depends on them.
+- `packages/schema`, `packages/shared`, and `packages/emails` remain. Canonical data moved to
+  `packages/source-data`. `packages/functions` and `packages/db` have been deleted after their reusable
+  pure code was extracted.
 - The existing Authoring Schema resolver is extracted once into `packages/authoring`, depending
   on `schema` and `shared`. Convex and the temporary SQL adapter supply trusted source reads;
   neither owns a duplicate resolver. This avoids a dependency cycle through `shared` and is not

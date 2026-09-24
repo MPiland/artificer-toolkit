@@ -46,7 +46,7 @@ is not current deployment guidance or acceptance status.
 
 ### Original media guide
 
-> **Status:** canonical
+> **Status:** historical (retired Supabase/`packages/functions`/`packages/db` media implementation; paths below no longer exist)
 > **Scope:** image and restricted Campaign-file asset identity, processing, domain references, and private delivery
 > **Update when:** asset profiles, lifecycle states, variants, storage provider, or attachment ownership changes
 > **Verification:** `packages/schema/src/api/media.ts`, `packages/functions/src/services/media`, `packages/db/src/domains/subjects/repositories/media.ts`, and the Phase 02 media tests
@@ -278,7 +278,7 @@ Phase 06 adds `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`. Campaign files accept 
 
 Phase 08 adds `VTT_MAP` for Campaign owners. Maps are JPEG, PNG, or WebP up to 25 MiB, 8,192 px per side, and 64 MP. New maps use private R2 multipart upload with exact 6 MiB parts (at most five); the browser receives only part-specific two-hour URLs and returns exact ETags to the completion command. Finalization verifies the source dimensions, produces immutable display and thumbnail variants, and generates 1,024 px renderer tiles (at most 64) in the same persisted provider. Delivery returns five-minute signed overview and tile URLs only after current Campaign authorization. Existing Supabase-backed map rows remain readable through their persisted `storage_provider`; they are not copied during this cutover. A scene definition continues to reference the stable asset ID, and database triggers prevent deleting or changing an asset while any scene definition or Encounter snapshot references it.
 
-`yarn test:vtt-map:integration` is the local proof for this seam. It creates disposable local Supabase Auth/Campaign fixtures and an in-process loopback R2 substitute, then exercises interrupted/resumed multipart upload, idempotent completion, finalization, signed delivery, scene reference protection, oversized-map rejection, and exact cleanup. It refuses non-loopback Supabase URLs and is never a managed-data operation.
+The retired `yarn test:vtt-map:integration` script was the local proof for this seam. It creates disposable local Supabase Auth/Campaign fixtures and an in-process loopback R2 substitute, then exercises interrupted/resumed multipart upload, idempotent completion, finalization, signed delivery, scene reference protection, oversized-map rejection, and exact cleanup. It refuses non-loopback Supabase URLs and is never a managed-data operation.
 
 ### Lifecycle
 

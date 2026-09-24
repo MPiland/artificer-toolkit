@@ -1,5 +1,7 @@
 # Phase 07 — Rules Platform and Encounter Resolution
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** complete as of 2026-08-15; rules-runtime convergence, legacy-engine removal, bounded Character and Encounter command policies, exact committed snapshots, cross-process active-session command authority, and authenticated local/Linux recovery and latency gates are validated
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 03](03-campaign-core.md), and the relevant live-play primitives from [Phase 06](06-live-campaign-play.md)
 > **Unlocks:** authoritative tactical play for one-shot and ongoing Campaigns and the [Phase 08 web VTT](08-vtt.md)

@@ -1,5 +1,7 @@
 # Phase 09 — Plans, entitlements, and subscriptions
 
+> **Stale architecture:** This plan predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its tRPC, Supabase, Postgres/Kysely, `packages/functions`, and `packages/db` assumptions are superseded; re-plan the implementation against the [architecture overview](../architecture/overview.md) before this phase begins.
+
 > **Status:** planned
 > **Depends on:** the [Phase 03](03-campaign-core.md) entitlement projection and manual-tier baseline; [Phase 04](04-social-hub.md), [Phase 07](07-encounters.md), and [Phase 08](08-vtt.md) provide remaining enforced capabilities
 > **Unlocks:** the public web plan model, [Phase 10 paid tables](10-paid-tables.md), and the web viability gate

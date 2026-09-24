@@ -1,5 +1,7 @@
 # Phase 06 — Live Campaign play
 
+> **Historical:** This phase record predates the Phase 8.2 Convex cutover ([ADR 0029](../adr/0029-convex-backend-cutover.md)). Its Supabase/Postgres, Kysely/SQL, tRPC, `packages/functions`, `packages/db`, `apps/session-host`, GoRules/Zen, Rule Studio, and Netlify-function references, commands, and paths describe retired implementation. Current behavior is in the [architecture guides](../architecture/overview.md).
+
 > **Status:** Complete — implementation and local integration validation are complete; the Supabase-native notification migration is ready for deployment and the operator-owned production smoke remains a pre-launch release gate
 > **Completed:** 2026-08-12
 > **Depends on:** [Phase 02](02-media-and-file-pipeline.md), [Phase 03](03-campaign-core.md), and [Phase 05](05-notifications-and-delivery.md)

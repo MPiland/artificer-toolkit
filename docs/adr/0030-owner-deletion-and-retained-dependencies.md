@@ -47,5 +47,5 @@ The final-source release lifecycle remains R08 work.
 The [persistence guide](../architecture/persistence.md#owner-deletion-cannot-be-vetoed-by-another-user--approved-2026-09-18)
 owns lifecycle invariants. The implementation is centered in
 [`accountDeletion.ts`](../../apps/apis/convex/accountDeletion.ts),
-[`accountDeparture.ts`](../../apps/apis/convex/campaigns/accountDeparture.ts) and
+[`accountDeparture.helper.ts`](../../apps/apis/convex/campaigns/accountDeparture.helper.ts) and
 [`content/deletion.ts`](../../apps/apis/convex/content/deletion.ts).

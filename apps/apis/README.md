@@ -18,12 +18,12 @@ flowchart LR
   Worker --> Live[("SQLite live state + receipts + outbox")]
 ```
 
-During an active live Session, its Durable Object is the single authority for the supported Door,
-standalone token move/undo and live Character command paths. It atomically commits the minimum SQLite
+During an active live Session, its Durable Object is the single authority for the supported Door and
+standalone token move/undo command paths. It atomically commits the minimum SQLite
 live projection, replay receipt and ordered Convex publication outbox before broadcasting success.
 Convex independently revalidates those publications, fences overlapping direct writes while room
 authority is active, drives subscriptions, and supplies recovery state after release or eviction.
-Other product and Encounter commands use their owning Convex functions. The Worker also carries
+Character Sheet, Encounter rule and other product commands use their owning Convex functions. The Worker also carries
 recipient-filtered ephemeral previews. Canonical source import reads the preserved
 `packages/source-data` corpus; media, notifications and cleanup use native Convex components.
 
@@ -33,8 +33,8 @@ Use the workspace scripts for focused work:
 yarn workspace @artificer-toolkit/apis codegen:convex
 yarn workspace @artificer-toolkit/apis typecheck:convex
 yarn workspace @artificer-toolkit/apis test:convex
-yarn seed:srd:convex:local
-yarn audit:srd:convex:local
+yarn workspace @artificer-toolkit/apis seed:srd:convex:local
+yarn workspace @artificer-toolkit/apis audit:srd:convex:local
 ```
 
 Generated `convex/_generated` bindings are committed and must be regenerated, never hand-edited.

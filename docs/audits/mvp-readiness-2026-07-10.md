@@ -1,6 +1,6 @@
 # MVP readiness audit — 2026-07-10
 
-> Superseded as the current release decision by `mvp-acceptance-ledger-2026-07-13.md`. This file remains a historical audit snapshot.
+> Superseded as the current release decision by [`mvp-acceptance-ledger-2026-07-13.md`](mvp-acceptance-ledger-2026-07-13.md). This file remains a historical audit snapshot; its `packages/functions`, `packages/db`, and Supabase paths are retired.
 
 ## Decision
 

@@ -6,7 +6,7 @@
 
 - `src/api` contains app-facing request/response contracts for content, characters, node runtime, route IDs, and systems. The node-runtime response validates explicit platform-neutral presentation on every group node, including array-only `focused` editing.
 - `src/subjects`, `src/features`, `src/grants`, `src/effects`, `src/shared`, and `src/vocabulary` hold reusable domain contracts and parsing helpers.
-- Package exports provide narrow subpaths such as `@artificer-toolkit/schema/api/characters` and `.../subjects/class`.
+- Package exports provide narrow subpaths such as `@artificer-toolkit/schema/api/characterBuilder` and `.../subjects/class`.
 - Does not own persisted documents, orchestration, React form state, or engine resolution. It describes interfaces between those modules.
 
 ## Key flow

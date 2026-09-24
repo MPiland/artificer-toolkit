@@ -38,5 +38,5 @@ Use `yarn workspace @artificer-toolkit/web test:forms` and `test:authoring`, the
 
 - [Authoring Schema](../../../../docs/architecture/authoring-schema.md)
 - [Character Builder and Sheet](../../../../docs/architecture/character.md)
-- [Transport and tRPC](../../../../docs/architecture/transport.md)
+- [Transport](../../../../docs/architecture/transport.md)
 - [Product intent](../../../../PRODUCT.md) and [design system](../../../../DESIGN.md)
