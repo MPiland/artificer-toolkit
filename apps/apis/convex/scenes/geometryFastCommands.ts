@@ -39,9 +39,8 @@ import {
   readLiveScene,
   readLiveSceneForUser
 } from './liveDocuments'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
-import { assertConvexOwnsCampaignLiveState } from '../liveSessions/authorityGuard'
-import { requireSession } from '../campaigns/sessionDocuments'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
+import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 
 const fastEntityLimit = 16
 const saveWindow = 24 * 60 * 60_000
@@ -181,16 +180,13 @@ async function executeGeometryFast(
   )
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN')
-    await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
-  if (args.session) {
-    const presented = await readPresentedVisionSession(ctx, {
+    await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+  if (args.presentation) {
+    const presented = await readPresentedVisionScene(ctx, {
       campaignId: campaign.id,
-      sceneId: header.id,
-      sessionId: args.session.sessionId
+      sceneId: header.id
     })
-    if (presented.session.version !== args.session.expectedSessionVersion)
-      throw new Error('Scene vision Session is not current and open.')
-    if (presented.presentation.version !== args.session.expectedPresentationVersion)
+    if (presented.presentation.version !== args.presentation.expectedPresentationVersion)
       throw new Error('Scene vision presentation is stale.')
   }
 
@@ -427,22 +423,16 @@ export async function publishResolvedGeometryCommand(
     actorUserId: string
     actorRole: 'OWNER' | 'PLAYER'
     campaignId: string
-    sessionId: string
     authorityScope: import('../campaigns/authority').CampaignInternalScope
     command: ResolvedGeometryCommand
-    session: {
-      sessionId: string
-      expectedSessionVersion: number
-      expectedPresentationVersion: number
-    }
+    presentation: { expectedPresentationVersion: number }
     expectedResult: SceneCommandResultDto
   }
 ) {
   const input = normalizeGeometryInput(args.command)
   if (input.type !== 'SET_SCENE_DOOR_STATE' && input.type !== 'MOVE_SCENE_TOKEN')
     throw new Error('Live Session Scene publication command is unsupported.')
-  if (args.session.sessionId !== args.sessionId)
-    throw new Error('Live Session Scene publication Session identity mismatch.')
+
   if (input.type === 'SET_SCENE_DOOR_STATE' && args.actorRole !== 'OWNER')
     throw new Error('Only the committed Campaign owner may set a Scene door state.')
 
@@ -455,7 +445,6 @@ export async function publishResolvedGeometryCommand(
   )
   if (campaign.id !== args.campaignId)
     throw new Error('Live Session Scene publication Campaign identity mismatch.')
-  await requireSession(ctx, campaign.id, args.sessionId)
 
   const inputChecksum = checksumCanonicalJson(input)
   const [priorSaveRow, priorCommandRow] = await Promise.all([

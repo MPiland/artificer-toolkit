@@ -60,19 +60,8 @@ const socketAttachmentSchema = z.strictObject({
   campaignId: z.string().uuid(),
   membershipEpoch: z.nullable(z.iso.datetime({ offset: true })),
   role: z.enum(['OWNER', 'PLAYER']),
-  sessionId: z.string().uuid(),
   socketId: z.string().uuid(),
   ticketExpiresAt: z.number().int().positive(),
-  transientSequences: z.record(z.string(), z.number().int().nonnegative()).optional(),
-  transientTokenPaths: z
-    .record(
-      z.string(),
-      z
-        .array(z.strictObject({ x: z.number().finite(), y: z.number().finite() }))
-        .min(1)
-        .max(256)
-    )
-    .optional(),
   userId: z.string().uuid()
 })
 type SocketAttachment = z.infer<typeof socketAttachmentSchema>
@@ -91,13 +80,12 @@ interface TransientCache {
   key: string
   scene: CampaignSceneStateDto | null
   sceneEncounterBound: boolean
-  session: LiveSessionScenePublicationDto['session'] | null
+  presentation: LiveSessionScenePublicationDto['presentation'] | null
   synchronized: boolean
 }
 
 interface NativeRoomIdentityRow extends Record<string, SqlStorageValue> {
   campaign_id: string
-  session_id: string
 }
 
 function attachment(socket: WebSocket): SocketAttachment | null {
@@ -128,7 +116,6 @@ function cacheKey(capture: LiveSessionTransientCapture): string {
     presentation: capture.presentation,
     sceneEncounterBound: capture.sceneEncounterBound,
     sceneHeader: capture.sceneHeader,
-    session: capture.session,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness,
     observedCharacterRevisions: capture.observedCharacterRevisions
@@ -145,7 +132,6 @@ function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
     ),
     sceneEncounterBound: capture.sceneEncounterBound,
     sceneHeader: capture.sceneHeader,
-    session: capture.session,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness
   }
@@ -186,8 +172,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
           id INTEGER PRIMARY KEY CHECK (id = 1),
-          campaign_id TEXT NOT NULL,
-          session_id TEXT NOT NULL
+          campaign_id TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS used_tickets (
           jti TEXT PRIMARY KEY,
@@ -197,17 +182,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const liveSocketIds = new Set<string>()
       for (const socket of ctx.getWebSockets()) {
         const value = attachment(socket)
-        if (!value) continue
-        liveSocketIds.add(value.socketId)
-        if (value.transientSequences || value.transientTokenPaths) {
-          this.#transients.migrate(
-            value.socketId,
-            value.transientSequences ?? {},
-            value.transientTokenPaths ?? {}
-          )
-          const { transientSequences: _sequences, transientTokenPaths: _paths, ...identity } = value
-          socket.serializeAttachment(identity)
-        }
+        if (value) liveSocketIds.add(value.socketId)
       }
       this.#transients.forgetClosedSockets(liveSocketIds)
     })
@@ -219,16 +194,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
         return new Response('Invalid live-session control request.', { status: 400 })
-      const existing = this.ctx.storage.sql
-        .exec<NativeRoomIdentityRow>(
-          'SELECT campaign_id, session_id FROM native_room_identity WHERE id = 1'
-        )
-        .toArray()[0]
-      if (
-        existing &&
-        (existing.campaign_id !== parsed.data.campaignId ||
-          existing.session_id !== parsed.data.sessionId)
-      )
+      const roomCampaignId = this.#roomCampaignId()
+      if (roomCampaignId && roomCampaignId !== parsed.data.campaignId)
         return new Response('Live-session room identity does not match.', { status: 409 })
       if (parsed.data.operation.type === 'SET_SCENE_PRESENTATION') {
         const input = { ...parsed.data, operation: parsed.data.operation }
@@ -247,7 +214,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         closed:
           parsed.data.operation.type === 'EVICT_USER'
             ? this.#closeSockets(parsed.data.operation)
-            : await this.#closeRoom(parsed.data.campaignId, parsed.data.sessionId)
+            : await this.#closeRoom(parsed.data.campaignId)
       })
     }
     if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket')
@@ -261,21 +228,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     } catch {
       return new Response('Live-session ticket is invalid.', { status: 401 })
     }
-    const existing = this.ctx.storage.sql
-      .exec<NativeRoomIdentityRow>(
-        'SELECT campaign_id, session_id FROM native_room_identity WHERE id = 1'
-      )
-      .toArray()[0]
-    if (
-      existing &&
-      (existing.campaign_id !== claims.campaignId || existing.session_id !== claims.sessionId)
-    )
+    const roomCampaignId = this.#roomCampaignId()
+    if (roomCampaignId && roomCampaignId !== claims.campaignId)
       return new Response('Live-session room identity does not match.', { status: 403 })
-    if (!existing)
+    if (!roomCampaignId)
       this.ctx.storage.sql.exec(
-        'INSERT INTO native_room_identity (id, campaign_id, session_id) VALUES (1, ?, ?)',
-        claims.campaignId,
-        claims.sessionId
+        'INSERT INTO native_room_identity (id, campaign_id) VALUES (1, ?)',
+        claims.campaignId
       )
     const nowSeconds = Math.floor(Date.now() / 1_000)
     this.ctx.storage.sql.exec('DELETE FROM used_tickets WHERE expires_at <= ?', nowSeconds)
@@ -296,7 +255,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       campaignId: claims.campaignId,
       membershipEpoch: null,
       role: claims.role,
-      sessionId: claims.sessionId,
       socketId: crypto.randomUUID(),
       ticketExpiresAt: claims.exp,
       userId: claims.sub
@@ -359,7 +317,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           socket,
           message.sceneId,
           message.version,
-          message.expectedSessionVersion,
           message.expectedPresentationVersion
         )
       )
@@ -451,8 +408,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         expectedUserId: value.userId,
         mode: 'AUTHORITY',
         observedCharacterRevisions: [],
-        recipientUserIds: this.#recipientUserIds(),
-        sessionId: value.sessionId
+        recipientUserIds: this.#recipientUserIds()
       })
       if (
         capture.origin.userId !== value.userId ||
@@ -462,7 +418,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#closeIfCurrent(socket, generation, 'Live-session membership changed.')
         return
       }
-      if (capture.campaignId !== value.campaignId || capture.session.id !== value.sessionId) {
+      if (capture.campaignId !== value.campaignId) {
         this.#challenge(socket, generation)
         return
       }
@@ -483,11 +439,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         else
           this.#cache = {
             ...this.#cache,
-            session: {
-              expectedPresentationVersion: capture.presentation.version,
-              expectedSessionVersion: capture.session.version,
-              sessionId: capture.session.id
-            }
+            presentation: { expectedPresentationVersion: capture.presentation.version }
           }
       }
       const admitted: Admission = {
@@ -531,7 +483,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       ) {
         send(socket, {
           campaignId: value.campaignId,
-          sessionId: value.sessionId,
           type: 'TRANSIENT_READY'
         })
         this.#sendStateSync(socket, current)
@@ -564,8 +515,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           authorityEpoch: value.authorityEpoch,
           campaignId: value.campaignId,
           expectedRole: role,
-          expectedUserId: userId,
-          sessionId: value.sessionId
+          expectedUserId: userId
         })
         let current = this.#journal.readCurrent()
         if (
@@ -612,7 +562,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             activationFingerprint: bootstrap.activationFingerprint,
             campaignId: value.campaignId,
             epoch: value.authorityEpoch,
-            sessionId: value.sessionId,
             stateChecksum: current.stateChecksum
           })
           if (
@@ -746,7 +695,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (
       !synchronized?.scene ||
-      !synchronized.session ||
+      !synchronized.presentation ||
       synchronized.scene.id !== scene.id ||
       synchronized.scene.version !== scene.version
     ) {
@@ -820,7 +769,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       command: {
         command,
         scope: 'SCENE',
-        session: synchronized.session
+        presentation: synchronized.presentation
       },
       epoch: value.authorityEpoch,
       expectedSceneResult,
@@ -828,7 +777,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       occurredAt,
       receiptId: commandId,
       sequence: committed.sequence,
-      sessionId: value.sessionId,
       stateChecksum: next.stateChecksum
     })
     const result = this.#journal.commit({
@@ -1055,18 +1003,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   #matchesSceneSynchronization(
-    value: SocketAttachment,
     sceneId: string,
     version: number,
-    expectedSessionVersion: number,
     expectedPresentationVersion: number
   ): boolean {
     return (
       this.#cache?.scene?.id === sceneId &&
       this.#cache.scene.version >= version &&
-      this.#cache.session?.sessionId === value.sessionId &&
-      this.#cache.session.expectedSessionVersion === expectedSessionVersion &&
-      this.#cache.session.expectedPresentationVersion === expectedPresentationVersion
+      this.#cache.presentation?.expectedPresentationVersion === expectedPresentationVersion
     )
   }
 
@@ -1074,22 +1018,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     socket: WebSocket,
     sceneId: string,
     version: number,
-    expectedSessionVersion: number,
     expectedPresentationVersion: number
   ): Promise<void> {
     const value = attachment(socket)
     const admission = this.#liveAdmission(socket)
     if (!value || !admission) return this.#challenge(socket)
     this.#overlayDurableSceneCache(sceneId)
-    if (
-      this.#matchesSceneSynchronization(
-        value,
-        sceneId,
-        version,
-        expectedSessionVersion,
-        expectedPresentationVersion
-      )
-    ) {
+    if (this.#matchesSceneSynchronization(sceneId, version, expectedPresentationVersion)) {
       if (!this.#cache) throw new Error('Synchronized Scene cache is missing.')
       this.#cache = { ...this.#cache, synchronized: true }
       this.#broadcastStateSync()
@@ -1105,15 +1040,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     try {
       await sync
       this.#overlayDurableSceneCache(sceneId)
-      if (
-        this.#matchesSceneSynchronization(
-          value,
-          sceneId,
-          version,
-          expectedSessionVersion,
-          expectedPresentationVersion
-        )
-      ) {
+      if (this.#matchesSceneSynchronization(sceneId, version, expectedPresentationVersion)) {
         if (!this.#cache) throw new Error('Synchronized Scene cache is missing.')
         this.#cache = { ...this.#cache, synchronized: true }
         this.#broadcastStateSync()
@@ -1188,12 +1115,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       key: cacheKey(finalCapture),
       scene,
       sceneEncounterBound: finalCapture.sceneEncounterBound,
-      session: finalCapture.presentation
-        ? {
-            expectedPresentationVersion: finalCapture.presentation.version,
-            expectedSessionVersion: finalCapture.session.version,
-            sessionId: finalCapture.session.id
-          }
+      presentation: finalCapture.presentation
+        ? { expectedPresentationVersion: finalCapture.presentation.version }
         : null,
       synchronized: false
     }
@@ -1212,10 +1135,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       expectedUserId: admission.userId,
       mode,
       observedCharacterRevisions,
-      recipientUserIds: [
-        ...new Set(candidates.map(({ admission: candidate }) => candidate.userId))
-      ],
-      sessionId: value.sessionId
+      recipientUserIds: [...new Set(candidates.map(({ admission: candidate }) => candidate.userId))]
     })
   }
 
@@ -1231,12 +1151,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const originMember = capture?.origin ?? originAdmission
     if (!this.#matchesCurrent(origin, originAdmission, originMember)) return
     const key = streamKey(envelope)
-    const retained = this.#transients.read(
-      originAttachment.socketId,
-      key,
-      envelope.sceneId,
-      envelope.baselineVersion
-    )
+    const retained = this.#transients.read(originAttachment.socketId, key)
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
       if (!scene) return
       const currentAttachment = attachment(origin)
@@ -1453,6 +1368,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       : capture.recipients.find((member) => member.userId === admission.userId)
   }
 
+  /** The Campaign this room is bound to by its first admitted ticket, if any. */
+  #roomCampaignId(): string | null {
+    return (
+      this.ctx.storage.sql
+        .exec<NativeRoomIdentityRow>('SELECT campaign_id FROM native_room_identity WHERE id = 1')
+        .toArray()[0]?.campaign_id ?? null
+    )
+  }
+
   #liveAdmission(socket: WebSocket): Admission | null {
     const current = this.#admissions.get(socket)
     if (!current || !this.#isLive(current)) {
@@ -1536,7 +1460,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         throw new Error('Live Session publication is incomplete.')
       return await callLiveSessionRoute(this.env, null, 'present', {
         campaignId: input.campaignId,
-        sessionId: input.sessionId,
         actorUserId: input.operation.actorUserId,
         epoch: input.operation.epoch,
         input: input.operation.input,
@@ -1551,7 +1474,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
   }
 
-  async #closeRoom(campaignId: string, sessionId: string): Promise<number> {
+  async #closeRoom(campaignId: string): Promise<number> {
     const current = this.#journal.readCurrent()
     if (!current || current.status === 'RELEASED') return this.#closeSockets({ type: 'CLOSE_ROOM' })
 
@@ -1564,7 +1487,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const closed = this.#closeSockets({ type: 'CLOSE_ROOM' })
     const input = {
       campaignId,
-      sessionId,
       epoch: fence.authorityEpoch,
       finalSequence: fence.finalSequence,
       finalStateChecksum: fence.finalStateChecksum
@@ -1612,7 +1534,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (socket.readyState === WebSocket.OPEN)
         socket.close(
           1008,
-          operation.type === 'CLOSE_ROOM' ? 'Live Session ended.' : 'Campaign access ended.'
+          operation.type === 'CLOSE_ROOM' ? 'The Campaign live table closed.' : 'Campaign access ended.'
         )
       closed += 1
     }

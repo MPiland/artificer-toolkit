@@ -35,15 +35,7 @@ async function prepare() {
   if (deletingEffect.owner.kind !== 'CHARACTER')
     throw new Error('Expected a Character-owned active effect fixture.')
 
-  await base.t.run(async (ctx) => {
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
-      .unique()
-    if (!session) throw new Error('Missing fixture Encounter Session.')
-    await ctx.db.patch(session._id, { status: 'FINISHED' })
-    await removeAccountCampaignMemberships(ctx, base.player.userId)
-  })
+  await base.t.run((ctx) => removeAccountCampaignMemberships(ctx, base.player.userId))
 
   const active = await base.t.run((ctx) =>
     ctx.db

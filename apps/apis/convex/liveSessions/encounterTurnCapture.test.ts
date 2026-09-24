@@ -25,7 +25,6 @@ async function setup() {
   await base.t.run(async (ctx) => {
     await insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.session.id,
       epoch,
       createdAt: base.campaign.createdAt
     })
@@ -39,7 +38,6 @@ async function setup() {
   })
   const input: LiveSessionEncounterRulesInput = {
     campaignId: base.campaign.id,
-    sessionId: base.session.id,
     authorityEpoch: epoch,
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',

@@ -1,29 +1,22 @@
-import { makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { LiveSessionTransientCaptureInput } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { createSceneDefinitionFixture } from '../../tests/fixtures/sceneDefinitions'
 
 const secret = 'test-live-session-executor-secret-that-is-long-enough'
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
-)
 
 beforeEach(() => vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret))
 afterEach(() => vi.unstubAllEnvs())
 
 async function setup() {
   const base = await createSceneDefinitionFixture()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
   const input: LiveSessionTransientCaptureInput = {
     campaignId: base.campaign.id,
     expectedRole: 'OWNER',
     expectedUserId: base.owner.userId,
     observedCharacterRevisions: [],
-    recipientUserIds: [base.owner.userId, base.other.userId],
-    sessionId: session.id
+    recipientUserIds: [base.owner.userId, base.other.userId]
   }
-  return { base, input, session }
+  return { base, input }
 }
 
 function request(input: unknown, headers: Record<string, string>): RequestInit {

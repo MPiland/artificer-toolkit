@@ -1,11 +1,10 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
+import { v } from 'convex/values'
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
 import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
   liveSessionCharacterRulesInputSchema,
   liveSessionCharacterRulesResponseSchema,
-  type LiveSessionCharacterRulesInput,
   type LiveSessionCharacterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -18,7 +17,6 @@ import {
 } from '../campaigns/characterState'
 import { readCampaignSharedRoot } from '../campaigns/contentAccess'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { readCharacterSources, recordCharacterSourceIdentity } from '../characters/sourceReads'
@@ -42,7 +40,7 @@ import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
 /** Raw stored inputs only; the Session DO owns Character rule preparation and evaluation. */
 export async function readCharacterRulesCapture(
   ctx: QueryCtx,
-  args: LiveSessionCharacterRulesInput
+  args: unknown
 ): Promise<LiveSessionCharacterRulesResponse> {
   const input = liveSessionCharacterRulesInputSchema.parse(args)
   const { userId } = await requireIdentity(ctx)
@@ -67,7 +65,6 @@ export async function readCharacterRulesCapture(
   const concentrationAdmission = input.concentrationResponse
     ? await readLiveConcentrationResponseAdmission(ctx, {
         campaignId: input.campaignId,
-        sessionId: input.sessionId,
         authorityEpoch: input.authorityEpoch,
         expectedUserId: input.expectedUserId,
         expectedRole: input.expectedRole,
@@ -120,13 +117,9 @@ export async function readCharacterRulesCapture(
   if (!movementAdmission) {
     await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
   }
-  const session =
-    movementAdmission?.session ?? (await requireSession(ctx, campaign.id, input.sessionId))
-  if (session.status !== 'OPEN') throw new Error('Live Session is not open.')
   const { assignment } = await requireCampaignCharacterAuthority(
     ctx,
     campaign.id,
@@ -151,7 +144,6 @@ export async function readCharacterRulesCapture(
   const revisions = await readLiveSessionRulesRevisions(ctx, {
     systemId: active.systemId,
     campaignId: campaign.id,
-    sessionId: session.id,
     characterId: active.id
   })
 
@@ -361,8 +353,8 @@ export async function readCharacterRulesCapture(
   }
 }
 
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const capture = internalQuery({
-  args: zodToConvex(liveSessionCharacterRulesInputSchema),
-  returns: zodToConvex(liveSessionCharacterRulesResponseSchema),
+  args: v.any(),
   handler: readCharacterRulesCapture
 })

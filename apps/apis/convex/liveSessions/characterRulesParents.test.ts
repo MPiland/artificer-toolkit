@@ -35,14 +35,12 @@ async function setup() {
   await fixture.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
       createdAt: fixture.campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionCharacterRulesInput, 'request'> = {
     campaignId: fixture.campaign.id,
-    sessionId: fixture.run.sessionId,
     authorityEpoch,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER',

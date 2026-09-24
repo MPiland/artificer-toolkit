@@ -84,7 +84,6 @@ export async function readNativeLiveMovementInputs(input: {
     state.id !== input.scope.movement.encounterId ||
     state.version !== scope.expectedVersion ||
     state.campaignId !== scope.campaignId ||
-    state.sessionId !== scope.sessionId ||
     state.gameSystemId !== system.id ||
     state.status !== 'ACTIVE' ||
     save.input.type !== 'MOVE_SCENE_TOKEN' ||

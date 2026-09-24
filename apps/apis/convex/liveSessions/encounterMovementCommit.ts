@@ -1,7 +1,4 @@
-import {
-  liveSessionMovementCommitInputSchema,
-  type LiveSessionMovementCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { liveSessionMovementCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
@@ -92,7 +89,7 @@ function retainedContactChecks<
 }
 
 /** Called inside the private movement mutation's single Convex transaction. */
-export async function commitLiveMovement(ctx: MutationCtx, args: LiveSessionMovementCommitInput) {
+export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
   const input = liveSessionMovementCommitInputSchema.parse(args)
   const { userId } = await requireIdentity(ctx)
   if (
@@ -103,7 +100,6 @@ export async function commitLiveMovement(ctx: MutationCtx, args: LiveSessionMove
     throw new Error('Live movement commit identity or save mismatch.')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
-    sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
   const current = await readGeometrySave(ctx, input.movement.saveId)
@@ -114,7 +110,7 @@ export async function commitLiveMovement(ctx: MutationCtx, args: LiveSessionMove
     campaign.status !== 'ACTIVE' ||
     membership.role !== input.expectedRole ||
     save.actorUserId !== userId ||
-    save.sessionVision?.sessionId !== input.sessionId ||
+    save.sessionVision?.campaignId !== input.campaignId ||
     preparation?.encounterId !== input.movement.encounterId ||
     checksumCanonicalJson(preparation) !== checksumCanonicalJson(input.preparation)
   )

@@ -1,12 +1,54 @@
 # Phase 8.2 Convex cutover handoff
 
-**Status:** stopped at the user's request; declaration patch is applied but not verified.  
-**Updated:** 2026-09-24 15:28 UTC.  
-**Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup. This checkout has a large intentional uncommitted relocation; preserve unrelated edits. No completion commit is claimed.
+**Status:** active; S0–S3 committed locally, S4–S7 in progress (see Current progress).  
+**Updated:** 2026-09-24 (later session).  
+**Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup. The relocation is committed (`85443906`); later slices are separate commits. No phase completion is claimed.
+
+## Current progress (2026-09-24, later session)
+
+The approved completion plan runs S0–S7: checkpoint, code-quality groundwork, continuation secret, Campaign-owned play (ADR 0033), R06 room dispatch, security hardening, gameplay rules, final proof. Done and committed locally on this branch:
+
+- **S0:** checkpoint of Codex's previously untracked relocation.
+- **S1:**
+  - Shared guards; one `stateHttp` route factory; aliases and dead code removed.
+  - Worker route table `callLiveSessionRoute`, with `LIVE_SESSION_ROUTE_PATHS` shared with Convex `http.ts`.
+  - Pure `planLiveSceneCommand` extracted from the room.
+  - Test fixtures consolidated.
+- **S2:** dedicated `RULES_CONTINUATION_SECRET` with `deriveRulesContinuationKey` (v2 label).
+- **Cleanup:**
+  - Deleted the stale `packages/db` corpus copy and the orphaned rule-path manifest.
+  - `AGENTS.md` and the docs corrected (link check clean).
+  - Dead `campaigns/inventoryPurge` removed; the ADR 0032 deletion job already purges all of its tables.
+- **S3 ([ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md)):**
+  - Campaign-keyed live table, presentation, tickets (v2) and Encounter Runs; `PLAY` revision scope.
+  - Session finish no longer touches play.
+  - `campaigns/playMigrations.ts` migrates development rows.
+  - Web tabletop is at `/tabletop/campaigns/$campaignPublicId`, with a Campaign encounter panel and PREPARED Run deletion.
+  - Acceptance amended with the user's approval: P15, V05, V08, V09, V14 and F12 reopened, count 59/75.
+- **Deployability fixes found by the first real codegen push:** both defects were pre-existing.
+  - `encounterMovement:begin` declared union arguments; Convex requires an object.
+  - Worker-boundary capture/commit modules exceeded Convex's 64 MB module-load budget (`encounterRulesCapture` needed 65.8 MB). They now validate with their Zod contracts in the handler behind `args: v.any()` and use about 30 MB. See [live-session coordination](../architecture/live-sessions.md).
+
+Validation at the S3 commit:
+
+- Full Convex suite: 624 files, 2,095/2,095 tests.
+- Schema 449/449, Worker 70/70, focused web tests.
+- apis/worker/schema/shared/rules-runtime/web typechecks.
+- Local codegen push against `phase82-convex-local-linux`.
+
+Rule from here on: run a local codegen push for every slice that touches Convex (see `AGENTS.md` validation guidance), and serialize compiler/test runs with the validation lock described in `AGENTS.md`.
+
+Next:
+
+- **S4:** R06 room dispatch, capture cache, closing the public Encounter path, deleting the Convex-side rules path and the retired rule-pack feature.
+- **In parallel under the validation lock:**
+  - S5 Convex hardening: rate limiter, startup-lock cap, publication role check, eviction retry, retention.
+  - S6 rules: weapons count as drawn; pure shield-conflict evaluator.
+- **Waiting on S4:** the S5 room limits and the S6 shield prompt and GM-preview privacy, because they live in the room file.
 
 ## Authority and present state
 
-The fixed [75-case acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) is **65/75**. Open cases are **V15, R01–R06 and R08–R10**; R07 is accepted. The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) controls exact case status. Scoped V07, V10 and V13 acceptance remains intact; combined final-system proof belongs to R08 and V15. Portable helpers, focused tests and typechecks do not accept R06.
+The fixed [75-case acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) is **59/75**. Open cases are **P15, V05, V08, V09, V14, F12 (reopened by the ADR 0033 amendment), V15, R01–R06 and R08–R10**; R07 is accepted. The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) controls exact case status. Scoped V07, V10 and V13 acceptance remains intact; combined final-system proof belongs to R08 and V15. Portable helpers, focused tests and typechecks do not accept R06.
 
 The cutover keeps heavy live rules **and heavy fact preparation** in the Session Durable Object (DO). Convex owns atomic Character Sheet and Encounter writes and their receipts; Scene publication uses per-entity deltas. Existing TypeScript rules and typed planners are shared by native and DO paths. The DO's ordered room dispatch and crash recovery are still missing, so **do not run or claim V15** yet. No staging, production, retirement, deployment, database reset, journal deletion or real continuation-key transfer is authorized by this handoff.
 
@@ -14,7 +56,7 @@ Current architecture is defined by [ADR 0029](../adr/0029-convex-backend-cutover
 
 ## Verified local checkpoints
 
-The latest *completed* movement-response checkpoint passed **31 focused cases in 8 files**, serial API/Convex/Worker types **10/10**, formatter/lint on **39 TypeScript files**, and an 8-root private import check with no heavy preparation or emitted Kernel/compiler imports. It includes actual private final Passage rollback, one allowance consumption and replay; PLAYER movement Concentration response, child receipt and revoked-assignment refusal; and initial/response movement admission. The source manifest is SHA-256 `27047BE566B2B6180396F7B024054B4D9B03A6ED396C2C4F554C2FC12C373F90` **before** the declaration edits and checkout relocation. The ordered commands, failures corrected before that checkpoint and limits are in [the durable movement summary](../validation/phase-08-2/README.md). They do **not** certify the current working tree.
+The latest _completed_ movement-response checkpoint passed **31 focused cases in 8 files**, serial API/Convex/Worker types **10/10**, formatter/lint on **39 TypeScript files**, and an 8-root private import check with no heavy preparation or emitted Kernel/compiler imports. It includes actual private final Passage rollback, one allowance consumption and replay; PLAYER movement Concentration response, child receipt and revoked-assignment refusal; and initial/response movement admission. The source manifest is SHA-256 `27047BE566B2B6180396F7B024054B4D9B03A6ED396C2C4F554C2FC12C373F90` **before** the declaration edits and checkout relocation. The ordered commands, failures corrected before that checkpoint and limits are in [the durable movement summary](../validation/phase-08-2/README.md). They do **not** certify the current working tree.
 
 Initial START and initiative evidence/order responses had separately passed: fresh serial types **10/10**, START/Recharge and round-wrap response cases, exact prior-round history and replay. Round 1 is inserted without replacement, no outgoing effect is applied, and incoming effect ordinal is zero. This does not cover declaration responses or room dispatch. The earlier native+private action, concentration and movement receipts remain supporting scoped evidence in the retained local validation archive, not final-source release proof.
 

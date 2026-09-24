@@ -48,7 +48,7 @@ import {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
-import { getCampaignDetail, getCampaignSession } from '#app/data/campaigns/queries'
+import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
   createTabletopCampaign,
   tabletopCampaignId,
@@ -56,8 +56,7 @@ import {
   tabletopGmEncounter,
   tabletopLiveScene,
   tabletopMapDelivery,
-  tabletopPlayerEncounter,
-  tabletopSession
+  tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
 
@@ -93,8 +92,7 @@ type Story = StoryObj<typeof meta>
 export const GmWindow: Story = {
   args: {
     campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId,
-    sessionNumber: tabletopSession.sessionNumber
+    currentUserId: tabletopCurrentUserId
   },
   render: (args) => renderWindow(args, createTabletopCampaign('OWNER')),
   play: async ({ canvasElement }) => {
@@ -132,11 +130,7 @@ export const GmWindow: Story = {
           sceneId: tabletopLiveScene.id,
           type: 'UPSERT_SCENE_BARRIER'
         }),
-        session: {
-          expectedPresentationVersion: 0,
-          expectedSessionVersion: tabletopSession.version,
-          sessionId: tabletopSession.id
-        }
+        presentation: { expectedPresentationVersion: 0 }
       })
     })
     await userEvent.click(page.getByRole('button', { name: 'Close live scene editor' }))
@@ -221,11 +215,7 @@ export const GmWindow: Story = {
     await waitFor(async () => {
       await expect(fogBegin).toHaveBeenCalledWith({
         input: expect.objectContaining({
-          session: {
-            expectedPresentationVersion: 0,
-            expectedSessionVersion: tabletopSession.version,
-            sessionId: tabletopSession.id
-          },
+          presentation: { expectedPresentationVersion: 0 },
           type: 'PATCH_SCENE_FOG'
         })
       })
@@ -260,8 +250,7 @@ export const GmWindow: Story = {
 export const PlayerWindow: Story = {
   args: {
     campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId,
-    sessionNumber: tabletopSession.sessionNumber
+    currentUserId: tabletopCurrentUserId
   },
   render: (args) => renderWindow(args, createTabletopCampaign('PLAYER')),
   play: async ({ canvasElement }) => {
@@ -307,19 +296,11 @@ function renderWindow(
   queryClient.setQueryDefaults(getCampaignDetail(tabletopCampaignId).queryKey, {
     queryFn: async () => campaign
   })
-  queryClient.setQueryDefaults(
-    getCampaignSession(tabletopCampaignId, tabletopSession.sessionNumber).queryKey,
-    { queryFn: async () => tabletopSession }
-  )
   // This Scene fixture has no Character Sheet action data.
   queryClient.setQueryDefaults(['convexQuery', 'characters/sheet:get'], {
     queryFn: async () => null
   })
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)
-  queryClient.setQueryData(
-    getCampaignSession(tabletopCampaignId, tabletopSession.sessionNumber).queryKey,
-    tabletopSession
-  )
   const encounter = campaign.role === 'OWNER' ? tabletopGmEncounter : tabletopPlayerEncounter
   const scene = projectScene(campaign.role)
   const header = recipientHeader(scene)
@@ -342,8 +323,8 @@ function renderWindow(
     sceneId: scene.id
   })
   const presentation = {
+    campaignId: tabletopCampaignId,
     sceneId: scene.id,
-    sessionId: tabletopSession.id,
     version: 0
   }
   geometryExecute.mockReset().mockImplementation(async (raw) => {
@@ -362,8 +343,7 @@ function renderWindow(
   })
   mediaGetDelivery.mockReset().mockResolvedValue(tabletopMapDelivery)
   const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
-    campaignId: tabletopCampaignId,
-    sessionId: tabletopSession.id
+    campaignId: tabletopCampaignId
   })
   const headerQuery = convexQuery(convexApi.scenes.recipientReads.header, {
     sceneId: scene.id,
@@ -376,9 +356,8 @@ function renderWindow(
   const encountersQuery = convexQuery(convexApi.encounters.projectionReads.list, {
     campaignId: tabletopCampaignId
   })
-  const encounterSessionStateQuery = convexQuery(convexApi.encounters.sessionReads.active, {
-    campaignId: tabletopCampaignId,
-    sessionId: tabletopSession.id
+  const activeEncounterQuery = convexQuery(convexApi.encounters.activeReads.active, {
+    campaignId: tabletopCampaignId
   })
   const pendingPreparedQuery = convexQuery(convexApi.encounters.projectionReads.pendingPrepared, {
     campaignId: tabletopCampaignId
@@ -396,7 +375,7 @@ function renderWindow(
   queryClient.setQueryDefaults(encountersQuery.queryKey, {
     queryFn: async () => [encounter]
   })
-  queryClient.setQueryDefaults(encounterSessionStateQuery.queryKey, {
+  queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
     queryFn: async () => ({ encounter, pending: null })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
@@ -407,7 +386,7 @@ function renderWindow(
   queryClient.setQueryData(headerQuery.queryKey, header)
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   queryClient.setQueryData(encountersQuery.queryKey, [encounter])
-  queryClient.setQueryData(encounterSessionStateQuery.queryKey, { encounter, pending: null })
+  queryClient.setQueryData(activeEncounterQuery.queryKey, { encounter, pending: null })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   const convex = new ConvexReactClient('https://story-fixture.convex.cloud', {
     logger: false
@@ -416,7 +395,7 @@ function renderWindow(
     value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.projectionReads.list)) return [encounter]
-      if (name === getFunctionName(convexApi.encounters.sessionReads.active))
+      if (name === getFunctionName(convexApi.encounters.activeReads.active))
         return { encounter, pending: null }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.presentations.get)) return presentation
@@ -500,8 +479,8 @@ function renderWindow(
         return setCampaignLiveScenePresentationResultDtoSchema.parse({
           commandId: input.commandId,
           replayed: false,
+          campaignId: input.campaignId,
           sceneId: input.sceneId,
-          sessionId: input.sessionId,
           version: presentation.version + 1
         })
       }
@@ -675,11 +654,7 @@ function renderWindow(
     <StoryLiveSessionTransport state={recipientState}>
       <StoryConvexFixture client={convex}>
         <QueryClientProvider client={queryClient}>
-          <CampaignTabletopWindow
-            campaignId={args.campaignId}
-            currentUserId={args.currentUserId}
-            sessionNumber={args.sessionNumber}
-          />
+          <CampaignTabletopWindow campaignId={args.campaignId} currentUserId={args.currentUserId} />
         </QueryClientProvider>
       </StoryConvexFixture>
     </StoryLiveSessionTransport>
@@ -735,7 +710,6 @@ function StoryLiveSessionTransport({
     const originalWebSocket = globalThis.WebSocket
     const readyMessage = {
       campaignId: tabletopCampaignId,
-      sessionId: tabletopSession.id,
       type: 'TRANSIENT_READY'
     } satisfies LiveSessionWebSocketServerMessageDto
     const stateSyncMessage = {

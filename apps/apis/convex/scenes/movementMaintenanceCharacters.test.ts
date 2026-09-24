@@ -195,7 +195,6 @@ async function setup() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -275,9 +274,7 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
     if (binding) await ctx.db.delete(binding._id)
     for (const row of await ctx.db
       .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', value.campaign.id).eq('sessionId', value.run.sessionId)
-      )
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', value.campaign.id))
       .collect())
       await ctx.db.delete(row._id)
     const run = await ctx.db

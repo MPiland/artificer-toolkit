@@ -15,15 +15,13 @@ export const sceneSessionVisionCaptureInputSchema = z.strictObject({
   systemId: postgresUuidSchema,
   sceneId: postgresUuidSchema,
   expectedSceneVersion: version,
-  sessionId: postgresUuidSchema,
-  expectedSessionVersion: version,
   expectedPresentationVersion: version
 })
 
 export const sceneSessionVisionFreshnessSchema = z.strictObject({
   system: z.nullable(postgresUuidSchema),
   campaign: z.nullable(postgresUuidSchema),
-  session: z.nullable(postgresUuidSchema)
+  play: z.nullable(postgresUuidSchema)
 })
 
 export const sceneSessionVisionScopeSchema = z.extend(sceneSessionVisionCaptureInputSchema, {

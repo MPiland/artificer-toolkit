@@ -10,7 +10,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { LiveSessionPresentationCommitInput } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
-  CampaignSessionScenePresentationDto,
+  CampaignScenePresentationDto,
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -33,8 +33,8 @@ const finishSession = makeFunctionReference<
 >('campaigns/sessionFinish:finish')
 const get = makeFunctionReference<
   'query',
-  { campaignId: string; sessionId: string },
-  CampaignSessionScenePresentationDto | null
+  { campaignId: string },
+  CampaignScenePresentationDto | null
 >('scenes/presentations:get')
 const set = makeFunctionReference<
   'mutation',
@@ -53,14 +53,13 @@ const setFromRoom = makeFunctionReference<
 >('scenes/presentations:setFromRoom')
 const claim = makeFunctionReference<
   'mutation',
-  { campaignId: string; sessionId: string },
+  { campaignId: string },
   { epoch: string; activationFingerprint: string }
 >('liveSessions/authority:claim')
 const activate = makeFunctionReference<
   'mutation',
   {
     campaignId: string
-    sessionId: string
     epoch: string
     activationFingerprint: string
     stateChecksum: string
@@ -182,23 +181,41 @@ async function seedReadyMapScene(base: Awaited<ReturnType<typeof setup>>) {
   return { mapId, sceneId }
 }
 
-it('creates, replays, clears and reads one Session presentation without duplicating receipts', async () => {
-  const base = await setup()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const input: SetCampaignLiveScenePresentationInputDto = {
+function presentationInput(
+  base: Awaited<ReturnType<typeof setup>>,
+  sceneId: string | null = null
+): SetCampaignLiveScenePresentationInputDto {
+  return {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sessionId: session.id,
-    sceneId: null
+    campaignId: base.campaign.id,
+    sceneId
   }
+}
+
+function readPresentations(base: Awaited<ReturnType<typeof setup>>) {
+  return base.t.run((ctx) =>
+    ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+      .collect()
+  )
+}
+
+it('creates, replays, clears and reads one Campaign presentation without duplicating receipts', async () => {
+  const base = await setup()
+  const input = presentationInput(base)
   const first = await base.owner.caller.mutation(set, input)
-  expect(first).toMatchObject({ sessionId: session.id, sceneId: null, version: 0, replayed: false })
+  expect(first).toMatchObject({
+    campaignId: base.campaign.id,
+    sceneId: null,
+    version: 0,
+    replayed: false
+  })
   expect(await base.owner.caller.mutation(set, input)).toEqual({ ...first, replayed: true })
-  expect(
-    await base.other.caller.query(get, { campaignId: base.campaign.id, sessionId: session.id })
-  ).toEqual({
-    sessionId: session.id,
+  expect(await base.other.caller.query(get, { campaignId: base.campaign.id })).toEqual({
+    campaignId: base.campaign.id,
     sceneId: null,
     version: 0
   })
@@ -210,7 +227,8 @@ it('creates, replays, clears and reads one Session presentation without duplicat
   expect(second).toMatchObject({ version: 1, replayed: false })
   await expect(
     base.owner.caller.mutation(set, { ...input, commandId: crypto.randomUUID() })
-  ).rejects.toThrow('stale')
+  ).rejects.toThrow('Campaign Scene presentation version is stale')
+  expect(await readPresentations(base)).toHaveLength(1)
   expect(
     await base.t.run((ctx) =>
       ctx.db
@@ -223,35 +241,23 @@ it('creates, replays, clears and reads one Session presentation without duplicat
 
 it('fences direct writes and commits a live presentation only at the matching room state', async () => {
   const base = await setup()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const authority = await base.owner.caller.mutation(claim, {
-    campaignId: base.campaign.id,
-    sessionId: session.id
-  })
-  const input: SetCampaignLiveScenePresentationInputDto = {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    sessionId: session.id,
-    sceneId: null
-  }
+  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
+  const input = presentationInput(base)
   const commit: LiveSessionPresentationCommitInput = {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     actorUserId: base.owner.userId,
     epoch: authority.epoch,
     input,
     expectedSequence: 0,
     expectedStateChecksum: null
   }
-  await expect(base.owner.caller.mutation(set, input)).rejects.toThrow('owned by its live Session')
+  await expect(base.owner.caller.mutation(set, input)).rejects.toThrow(
+    'owned by the Campaign live table'
+  )
   await expect(base.other.caller.action(setLive, input)).rejects.toThrow('Campaign not found')
   await expect(
     base.t.mutation(setFromRoom, { ...commit, epoch: crypto.randomUUID() })
   ).rejects.toThrow('stale')
-  await expect(
-    base.t.mutation(setFromRoom, { ...commit, sessionId: crypto.randomUUID() })
-  ).rejects.toThrow('Session mismatch')
   await expect(
     base.t.mutation(setFromRoom, { ...commit, campaignId: crypto.randomUUID() })
   ).rejects.toThrow('Campaign mismatch')
@@ -262,12 +268,11 @@ it('fences direct writes and commits a live presentation only at the matching ro
     base.t.mutation(setFromRoom, { ...commit, expectedStateChecksum: 'a'.repeat(64) })
   ).rejects.toThrow('state is stale')
   const first = await base.t.mutation(setFromRoom, commit)
-  expect(first).toMatchObject({ version: 0, replayed: false })
+  expect(first).toMatchObject({ campaignId: base.campaign.id, version: 0, replayed: false })
 
   const checksum = 'b'.repeat(64)
   await base.t.mutation(activate, {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     activationFingerprint: authority.activationFingerprint,
     stateChecksum: checksum
@@ -286,25 +291,16 @@ it('fences direct writes and commits a live presentation only at the matching ro
       commandId: crypto.randomUUID(),
       expectedPresentationVersion: 1
     })
-  ).rejects.toThrow('owned by its live Session')
+  ).rejects.toThrow('owned by the Campaign live table')
+  expect(await readPresentations(base)).toHaveLength(1)
 })
 
 it('authorizes live control before sending trusted actor and epoch', async () => {
   const base = await setup()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const input: SetCampaignLiveScenePresentationInputDto = {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    sessionId: session.id,
-    sceneId: null
-  }
+  const input = presentationInput(base)
   const direct = await base.owner.caller.action(setLive, input)
   expect(direct).toMatchObject({ version: 0, replayed: false })
-  const authority = await base.owner.caller.mutation(claim, {
-    campaignId: base.campaign.id,
-    sessionId: session.id
-  })
+  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   vi.stubEnv('LIVE_SESSION_WORKER_URL', 'https://live.example.invalid')
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', 'test-live-session-worker-secret-long-enough')
   const result = { ...direct, replayed: true }
@@ -314,9 +310,8 @@ it('authorizes live control before sending trusted actor and epoch', async () =>
   vi.stubGlobal('fetch', request)
   expect(await base.owner.caller.action(setLive, input)).toEqual(result)
   expect(request).toHaveBeenCalledOnce()
-  expect(JSON.parse(String(request.mock.calls[0]?.[1]?.body))).toMatchObject({
+  expect(JSON.parse(String(request.mock.calls[0]?.[1]?.body))).toEqual({
     campaignId: base.campaign.id,
-    sessionId: session.id,
     operation: {
       type: 'SET_SCENE_PRESENTATION',
       actorUserId: base.owner.userId,
@@ -328,25 +323,14 @@ it('authorizes live control before sending trusted actor and epoch', async () =>
 
 it('protects the room presentation endpoint and validates its commit fence', async () => {
   const base = await setup()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const authority = await base.owner.caller.mutation(claim, {
-    campaignId: base.campaign.id,
-    sessionId: session.id
-  })
+  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   const secret = 'test-live-session-worker-secret-long-enough'
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
   const input: LiveSessionPresentationCommitInput = {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     actorUserId: base.owner.userId,
     epoch: authority.epoch,
-    input: {
-      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-      commandId: crypto.randomUUID(),
-      expectedPresentationVersion: null,
-      sessionId: session.id,
-      sceneId: null
-    },
+    input: presentationInput(base),
     expectedSequence: 0,
     expectedStateChecksum: null
   }
@@ -373,24 +357,10 @@ it('protects the room presentation endpoint and validates its commit fence', asy
   expect(await response.json()).toMatchObject({ commandId: input.input.commandId, replayed: false })
 })
 
-it('rejects player, archived and finished Session presentation writes before replay', async () => {
+it('rejects player and archived Campaign presentation writes before replay', async () => {
   const base = await setup()
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const input: SetCampaignLiveScenePresentationInputDto = {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    sessionId: session.id,
-    sceneId: null
-  }
+  const input = presentationInput(base)
   await expect(base.other.caller.mutation(set, input)).rejects.toThrow('Campaign not found')
-  await base.owner.caller.mutation(finishSession, {
-    campaignId: base.campaign.id,
-    sessionId: session.id,
-    expectedVersion: session.version,
-    commandId: crypto.randomUUID()
-  })
-  await expect(base.owner.caller.mutation(set, input)).rejects.toThrow('Finished')
   await base.t.run(async (ctx) => {
     const campaign = await ctx.db
       .query('campaigns')
@@ -401,123 +371,38 @@ it('rejects player, archived and finished Session presentation writes before rep
   await expect(base.owner.caller.mutation(set, input)).rejects.toThrow('Archived')
 })
 
-it('shares one ready Scene across open Sessions, clears independently, and revokes only the finished Session map', async () => {
+it('keeps one Campaign presentation and its map across Session finish until the Scene is cleared', async () => {
   const base = await setup()
   const { mapId, sceneId } = await seedReadyMapScene(base)
-  const firstSession = await base.owner.caller.mutation(createSession, {
-    campaignId: base.campaign.id
-  })
-  const secondSession = await base.owner.caller.mutation(createSession, {
-    campaignId: base.campaign.id
-  })
-  const firstInput: SetCampaignLiveScenePresentationInputDto = {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    expectedPresentationVersion: null,
-    sessionId: firstSession.id,
-    sceneId
-  }
-  const first = await base.owner.caller.mutation(set, firstInput)
+  const input = presentationInput(base, sceneId)
+  const first = await base.owner.caller.mutation(set, input)
   expect(first).toMatchObject({ sceneId, version: 0, replayed: false })
-  expect(await base.owner.caller.mutation(set, firstInput)).toEqual({ ...first, replayed: true })
-  await expect(base.owner.caller.mutation(set, { ...firstInput, sceneId: null })).rejects.toThrow(
+  expect(await base.owner.caller.mutation(set, input)).toEqual({ ...first, replayed: true })
+  await expect(base.owner.caller.mutation(set, { ...input, sceneId: null })).rejects.toThrow(
     'already used'
   )
-  const second = await base.owner.caller.mutation(set, {
-    ...firstInput,
-    commandId: crypto.randomUUID(),
-    sessionId: secondSession.id
+  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
+  await base.owner.caller.mutation(finishSession, {
+    campaignId: base.campaign.id,
+    sessionId: session.id,
+    expectedVersion: session.version,
+    commandId: crypto.randomUUID()
   })
-  expect(second).toMatchObject({ sceneId, version: 0 })
-  expect(
-    await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignScenePresentations')
-        .withIndex('by_campaignId_activeMapAssetId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('activeMapAssetId', mapId)
-        )
-        .collect()
-    )
-  ).toHaveLength(2)
+  const presented = await readPresentations(base)
+  expect(presented).toHaveLength(1)
+  expect(presented[0]).toMatchObject({ sceneId, version: 0, activeMapAssetId: mapId })
+  expect(await base.other.caller.query(get, { campaignId: base.campaign.id })).toEqual({
+    campaignId: base.campaign.id,
+    sceneId,
+    version: 0
+  })
   await base.owner.caller.mutation(set, {
-    ...firstInput,
+    ...input,
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: 0,
     sceneId: null
   })
-  const active = await base.t.run((ctx) =>
-    ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId_activeMapAssetId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('activeMapAssetId', mapId)
-      )
-      .collect()
-  )
-  expect(active).toHaveLength(1)
-  expect(active[0]?.sessionId).toBe(secondSession.id)
-  await base.owner.caller.mutation(finishSession, {
-    campaignId: base.campaign.id,
-    sessionId: secondSession.id,
-    expectedVersion: secondSession.version,
-    commandId: crypto.randomUUID()
-  })
-  expect(
-    await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', secondSession.id)
-        )
-        .unique()
-    )
-  ).toMatchObject({ sceneId, version: 0, activeMapAssetId: null })
-  expect(
-    await base.other.caller.query(get, {
-      campaignId: base.campaign.id,
-      sessionId: secondSession.id
-    })
-  ).toEqual({ sessionId: secondSession.id, sceneId, version: 0 })
-  expect(
-    await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignScenePresentations')
-        .withIndex('by_campaignId_activeMapAssetId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('activeMapAssetId', mapId)
-        )
-        .collect()
-    )
-  ).toEqual([])
-})
-
-it('never retains player map access when Scene selection races Session finish', async () => {
-  const base = await setup()
-  const { mapId, sceneId } = await seedReadyMapScene(base)
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
-  const [selection, finish] = await Promise.allSettled([
-    base.owner.caller.mutation(set, {
-      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-      commandId: crypto.randomUUID(),
-      sessionId: session.id,
-      sceneId,
-      expectedPresentationVersion: null
-    }),
-    base.owner.caller.mutation(finishSession, {
-      campaignId: base.campaign.id,
-      sessionId: session.id,
-      expectedVersion: session.version,
-      commandId: crypto.randomUUID()
-    })
+  expect(await readPresentations(base)).toEqual([
+    expect.objectContaining({ sceneId: null, version: 1, activeMapAssetId: null })
   ])
-  expect(finish.status).toBe('fulfilled')
-  if (selection.status === 'rejected') expect(String(selection.reason)).toContain('Finished')
-  expect(
-    await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignScenePresentations')
-        .withIndex('by_campaignId_activeMapAssetId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('activeMapAssetId', mapId)
-        )
-        .collect()
-    )
-  ).toEqual([])
 })

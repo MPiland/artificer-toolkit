@@ -80,6 +80,7 @@ import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport } from 
 import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
 import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/index'
+import { Route as AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport } from './routes/_authed/tabletop/campaigns/$campaignPublicId/index'
 import { Route as AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/index'
 import { Route as AuthedRacesRacePublicIdRaceSlugIndexRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/index'
 import { Route as AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/index'
@@ -101,7 +102,6 @@ import { Route as AuthedClassesClassPublicIdClassSlugEditRouteImport } from './r
 import { Route as AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport } from './routes/_authed/characters/$characterPublicId/$characterSlug/edit'
 import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
-import { Route as AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRouteImport } from './routes/_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
 import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -482,6 +482,12 @@ const AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute =
     path: '/$vehicleSlug/',
     getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
   } as any)
+const AuthedTabletopCampaignsCampaignPublicIdIndexRoute =
+  AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport.update({
+    id: '/tabletop/campaigns/$campaignPublicId/',
+    path: '/tabletop/campaigns/$campaignPublicId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedSpellsSpellPublicIdSpellSlugIndexRoute =
   AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport.update({
     id: '/',
@@ -610,14 +616,6 @@ const AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute =
     getParentRoute: () =>
       AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute,
   } as any)
-const AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute =
-  AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRouteImport.update(
-    {
-      id: '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber',
-      path: '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber',
-      getParentRoute: () => AuthedRoute,
-    } as any,
-  )
 const AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute =
   AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRouteImport.update(
     {
@@ -716,9 +714,9 @@ export interface FileRoutesByFullPath {
   '/feats/$featPublicId/$featSlug/': typeof AuthedFeatsFeatPublicIdFeatSlugIndexRoute
   '/races/$racePublicId/$raceSlug/': typeof AuthedRacesRacePublicIdRaceSlugIndexRoute
   '/spells/$spellPublicId/$spellSlug/': typeof AuthedSpellsSpellPublicIdSpellSlugIndexRoute
+  '/tabletop/campaigns/$campaignPublicId/': typeof AuthedTabletopCampaignsCampaignPublicIdIndexRoute
   '/vehicles/$vehiclePublicId/$vehicleSlug/': typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute
   '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber': typeof AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute
-  '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber': typeof AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute
 }
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
@@ -801,9 +799,9 @@ export interface FileRoutesByTo {
   '/feats/$featPublicId/$featSlug': typeof AuthedFeatsFeatPublicIdFeatSlugIndexRoute
   '/races/$racePublicId/$raceSlug': typeof AuthedRacesRacePublicIdRaceSlugIndexRoute
   '/spells/$spellPublicId/$spellSlug': typeof AuthedSpellsSpellPublicIdSpellSlugIndexRoute
+  '/tabletop/campaigns/$campaignPublicId': typeof AuthedTabletopCampaignsCampaignPublicIdIndexRoute
   '/vehicles/$vehiclePublicId/$vehicleSlug': typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute
   '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber': typeof AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute
-  '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber': typeof AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -898,9 +896,9 @@ export interface FileRoutesById {
   '/_authed/feats/$featPublicId/$featSlug/': typeof AuthedFeatsFeatPublicIdFeatSlugIndexRoute
   '/_authed/races/$racePublicId/$raceSlug/': typeof AuthedRacesRacePublicIdRaceSlugIndexRoute
   '/_authed/spells/$spellPublicId/$spellSlug/': typeof AuthedSpellsSpellPublicIdSpellSlugIndexRoute
+  '/_authed/tabletop/campaigns/$campaignPublicId/': typeof AuthedTabletopCampaignsCampaignPublicIdIndexRoute
   '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/': typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute
   '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber': typeof AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute
-  '/_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber': typeof AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -993,9 +991,9 @@ export interface FileRouteTypes {
     | '/feats/$featPublicId/$featSlug/'
     | '/races/$racePublicId/$raceSlug/'
     | '/spells/$spellPublicId/$spellSlug/'
+    | '/tabletop/campaigns/$campaignPublicId/'
     | '/vehicles/$vehiclePublicId/$vehicleSlug/'
     | '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
-    | '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1078,9 +1076,9 @@ export interface FileRouteTypes {
     | '/feats/$featPublicId/$featSlug'
     | '/races/$racePublicId/$raceSlug'
     | '/spells/$spellPublicId/$spellSlug'
+    | '/tabletop/campaigns/$campaignPublicId'
     | '/vehicles/$vehiclePublicId/$vehicleSlug'
     | '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
-    | '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
   id:
     | '__root__'
     | '/_authed'
@@ -1174,9 +1172,9 @@ export interface FileRouteTypes {
     | '/_authed/feats/$featPublicId/$featSlug/'
     | '/_authed/races/$racePublicId/$raceSlug/'
     | '/_authed/spells/$spellPublicId/$spellSlug/'
+    | '/_authed/tabletop/campaigns/$campaignPublicId/'
     | '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/'
     | '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
-    | '/_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1684,6 +1682,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport
       parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
     }
+    '/_authed/tabletop/campaigns/$campaignPublicId/': {
+      id: '/_authed/tabletop/campaigns/$campaignPublicId/'
+      path: '/tabletop/campaigns/$campaignPublicId'
+      fullPath: '/tabletop/campaigns/$campaignPublicId/'
+      preLoaderRoute: typeof AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/spells/$spellPublicId/$spellSlug/': {
       id: '/_authed/spells/$spellPublicId/$spellSlug/'
       path: '/'
@@ -1830,13 +1835,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
       preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport
       parentRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute
-    }
-    '/_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber': {
-      id: '/_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
-      path: '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
-      fullPath: '/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
-      preLoaderRoute: typeof AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRouteImport
-      parentRoute: typeof AuthedRoute
     }
     '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber': {
       id: '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
@@ -2222,7 +2220,7 @@ interface AuthedRouteChildren {
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
   AuthedVehiclesIndexRoute: typeof AuthedVehiclesIndexRoute
-  AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute: typeof AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute
+  AuthedTabletopCampaignsCampaignPublicIdIndexRoute: typeof AuthedTabletopCampaignsCampaignPublicIdIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
@@ -2269,8 +2267,8 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
   AuthedVehiclesIndexRoute: AuthedVehiclesIndexRoute,
-  AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute:
-    AuthedTabletopCampaignsCampaignPublicIdSessionsSessionNumberRoute,
+  AuthedTabletopCampaignsCampaignPublicIdIndexRoute:
+    AuthedTabletopCampaignsCampaignPublicIdIndexRoute,
 }
 
 const AuthedRouteWithChildren =

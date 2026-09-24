@@ -40,7 +40,6 @@ export const issue = action({
       authorityEpoch: admission.authorityEpoch,
       campaignId: admission.campaignId,
       role: admission.role,
-      sessionId: admission.sessionId,
       v: LIVE_SESSION_TICKET_VERSION
     })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })

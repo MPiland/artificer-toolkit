@@ -10,18 +10,18 @@ import type { EncounterBlueprintDto } from '@artificer-toolkit/schema/api/encoun
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { CampaignEncounterBuilderPage } from './CampaignEncounterBuilderPage'
-import { CampaignSessionEncounters } from './components/CampaignSessionEncounters'
+import { CampaignEncounters } from './components/CampaignEncounters'
 import {
   createTabletopCampaign,
   tabletopCurrentUserId,
-  tabletopGmEncounter,
-  tabletopSession
+  tabletopGmEncounter
 } from './vtt/CampaignTabletop.stories.fixtures'
 
 const campaign = createTabletopCampaign('OWNER')
 const blueprintId = '99999999-9999-4999-8999-999999999903'
 const createBlueprint = fn()
 const createEncounterRun = fn()
+const deleteEncounterRun = fn()
 let encounterRunCreated = false
 
 const creatureCatalogue = {
@@ -79,11 +79,10 @@ const createdEncounter = {
 function EncounterRunFixture() {
   return (
     <Stack p='xl'>
-      <CampaignSessionEncounters
+      <CampaignEncounters
         campaign={campaign}
         currentUserId={tabletopCurrentUserId}
         mode='PREPARE'
-        session={tabletopSession}
       />
     </Stack>
   )
@@ -95,6 +94,7 @@ const meta = {
   beforeEach: () => {
     createBlueprint.mockClear()
     createEncounterRun.mockClear()
+    deleteEncounterRun.mockClear()
     encounterRunCreated = false
     const client = new ConvexReactClient('https://story-fixture.convex.cloud', { logger: false })
     Object.defineProperty(client, 'query', {
@@ -123,6 +123,11 @@ const meta = {
             createEncounterRun(input)
             encounterRunCreated = true
             return createdEncounter
+          }
+          if (name === getFunctionName(convexApi.encounters.runs.deletePrepared)) {
+            deleteEncounterRun(input)
+            encounterRunCreated = false
+            return { campaignId: campaign.id, encounterId: createdEncounter.id }
           }
           throw new Error(`Unexpected encounter fixture mutation: ${name}`)
         }
@@ -191,7 +196,7 @@ export const CreateEncounterRun: Story = {
     const page = within(canvasElement.ownerDocument.body)
 
     await expect(
-      await canvas.findByText('No encounters have been added to this Session.')
+      await canvas.findByText('No encounters have been added to this Campaign.')
     ).toBeVisible()
     await userEvent.click(canvas.getByRole('button', { name: 'Add encounter' }))
     await userEvent.click(await canvas.findByLabelText('Encounter Blueprint'))
@@ -201,5 +206,21 @@ export const CreateEncounterRun: Story = {
     await waitFor(() => expect(createEncounterRun).toHaveBeenCalledTimes(1))
     await expect(await canvas.findByRole('heading', { name: 'Vault sentries' })).toBeVisible()
     await expect(canvas.getByText('Ready')).toBeVisible()
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Delete encounter' }))
+    const dialog = within(await page.findByRole('dialog', { name: 'Delete encounter?' }))
+    await userEvent.click(dialog.getByRole('button', { name: 'Delete encounter' }))
+    await waitFor(() =>
+      expect(deleteEncounterRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          campaignId: campaign.id,
+          encounterId: createdEncounter.id,
+          expectedVersion: createdEncounter.version
+        })
+      )
+    )
+    await expect(
+      await canvas.findByText('No encounters have been added to this Campaign.')
+    ).toBeVisible()
   }
 }

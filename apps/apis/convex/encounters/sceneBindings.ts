@@ -16,12 +16,11 @@ import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readRunProjection, readRunState } from './documents'
 import { internalQuery, query, type QueryCtx } from '../_generated/server'
 import { readRecipientContext } from '../scenes/recipientContext'
-import { assertConvexOwnsCampaignLiveState } from '../liveSessions/authorityGuard'
+import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 
 async function readBoundSceneScope(
   ctx: QueryCtx,
@@ -49,16 +48,13 @@ async function readBoundSceneScope(
     throw new Error('Encounter version is stale.')
   readRunState(run)
   readRunProjection(run)
-  const session = await requireSession(ctx, campaign.id, run.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Encounter Session is not current and open.')
+
   const { capture } = await readRecipientContext(ctx, input.sceneId, input.expectedVersion, userId)
   if (capture.header.campaignId !== campaign.id)
     throw new Error('Encounter and Scene Campaign identity does not match.')
   const presentation = await ctx.db
     .query('campaignScenePresentations')
-    .withIndex('by_campaignId_sessionId', (q) =>
-      q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-    )
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
     .unique()
   if (presentation?.sceneId !== input.sceneId) throw new Error('Scene presentation is stale.')
   const binding = await ctx.db
@@ -151,11 +147,8 @@ export const bind = mutation({
     )
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
     if (encounter.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
-    const session = await requireSession(ctx, campaign.id, encounter.sessionId)
-    if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
     readRunState(encounter)
     readRunProjection(encounter)
     const commandFingerprint = checksumCanonicalJson(input)
@@ -179,12 +172,11 @@ export const bind = mutation({
     }
     const presentation = await ctx.db
       .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-      )
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
       .unique()
     const sceneId = presentation?.sceneId
-    if (!sceneId) throw new Error('The Session is not presenting a Campaign Scene.')
+    if (!sceneId) throw new Error('The Campaign is not presenting a Scene.')
+    await assertConvexOwnsSceneLiveState(ctx, campaign.id, sceneId)
     const scene = await ctx.db
       .query('campaignScenes')
       .withIndex('by_publicId', (q) => q.eq('id', sceneId))

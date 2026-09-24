@@ -81,7 +81,6 @@ async function pendingFixture() {
     ])
     await insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       epoch: fixture.run.id,
       createdAt: fixture.campaign.createdAt
     })
@@ -101,7 +100,6 @@ async function pendingFixture() {
   })
   const ownerScope = {
     campaignId: fixture.campaign.id,
-    sessionId: fixture.run.sessionId,
     authorityEpoch: fixture.run.id,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER' as const,
@@ -200,7 +198,6 @@ it.each([
     }
     const scope = {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       authorityEpoch: fixture.run.id,
       expectedUserId: actor.userId,
       expectedRole: responder,

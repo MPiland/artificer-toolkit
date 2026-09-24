@@ -19,16 +19,10 @@ export function stubLiveSessionFetch(
 
 export function insertActiveLiveAuthority(
   ctx: MutationCtx,
-  {
-    campaignId,
-    sessionId,
-    epoch,
-    createdAt
-  }: { campaignId: string; sessionId: string; epoch: string; createdAt: string }
+  { campaignId, epoch, createdAt }: { campaignId: string; epoch: string; createdAt: string }
 ) {
   return ctx.db.insert('campaignLiveAuthorities', {
     campaignId,
-    sessionId,
     epoch,
     phase: 'DO_ACTIVE',
     activationFingerprint: '0'.repeat(64),

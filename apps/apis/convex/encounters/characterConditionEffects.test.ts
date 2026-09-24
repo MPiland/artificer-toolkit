@@ -227,9 +227,6 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: campaign.id
-  })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Character condition action fixture',
@@ -238,7 +235,6 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
   })
   let run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

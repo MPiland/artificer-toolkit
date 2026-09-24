@@ -16,18 +16,20 @@ import type { SceneAtomicDelta } from '@artificer-toolkit/shared/vtt/scene'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { readLiveScene, parseLiveEntity, advanceLiveState } from './liveDocuments'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
-import { sceneGeometrySessionInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
+import { scenePresentationFenceSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 
 export const execute = mutation({
   args: {
     input: zodToConvex(sceneLiveCommandInputDtoSchema),
-    session: v.optional(zodToConvex(sceneGeometrySessionInputSchema))
+    presentation: v.optional(zodToConvex(scenePresentationFenceSchema))
   },
   returns: zodToConvex(sceneCommandResultDtoSchema),
   handler: async (ctx, args): Promise<SceneCommandResultDto> => {
     const parsed = sceneLiveCommandInputDtoSchema.parse(args.input)
-    const session = args.session ? sceneGeometrySessionInputSchema.parse(args.session) : undefined
+    const fence = args.presentation
+      ? scenePresentationFenceSchema.parse(args.presentation)
+      : undefined
     const input = {
       ...parsed,
       sceneId: parsed.sceneId.toLowerCase(),
@@ -41,12 +43,8 @@ export const execute = mutation({
       isMeasurement ? 'MEMBER' : 'OWNER'
     )
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    const presented = session
-      ? await readPresentedVisionSession(ctx, {
-          campaignId: campaign.id,
-          sceneId: header.id,
-          sessionId: session.sessionId
-        })
+    const presented = fence
+      ? await readPresentedVisionScene(ctx, { campaignId: campaign.id, sceneId: header.id })
       : null
     if (
       membership.role !== 'OWNER' &&
@@ -81,9 +79,7 @@ export const execute = mutation({
         throw new Error('Players may only replay their own Scene commands.')
       return { ...prior.result, replayed: true }
     }
-    if (presented && presented.session.version !== session?.expectedSessionVersion)
-      throw new Error('Scene vision Session is not current and open.')
-    if (presented && presented.presentation.version !== session?.expectedPresentationVersion)
+    if (presented && presented.presentation.version !== fence?.expectedPresentationVersion)
       throw new Error('Scene vision presentation is stale.')
     if (
       input.type === 'UPSERT_SCENE_DARKNESS' &&

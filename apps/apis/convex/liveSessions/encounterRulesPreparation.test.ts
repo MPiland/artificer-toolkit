@@ -117,7 +117,6 @@ it('plans the same Character action and target facts in the Worker using private
   await fixture.t.run(async (ctx) => {
     await insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
       createdAt: fixture.campaign.createdAt
     })
@@ -261,7 +260,6 @@ it('plans the same Character action and target facts in the Worker using private
   expect(actionId).toContain(clubItem.id)
   const scope = {
     campaignId: fixture.campaign.id,
-    sessionId: fixture.run.sessionId,
     authorityEpoch,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER' as const,
@@ -535,7 +533,6 @@ it('plans the same Character action and target facts in the Worker using private
           (
             await readCharacterRulesCapture(ctx, {
               campaignId: scope.campaignId,
-              sessionId: scope.sessionId,
               authorityEpoch,
               expectedUserId: scope.expectedUserId,
               expectedRole: scope.expectedRole,
@@ -625,18 +622,17 @@ it('plans the same Character action and target facts in the Worker using private
   if (settlementProofError) throw settlementProofError
   expect(await storedRecords()).toEqual(beforePlanning)
 
-  const sessionRevision = async () =>
+  const playRevision = async () =>
     (
       await fixture.owner.caller.run((ctx) =>
         readLiveSessionRulesRevisions(ctx, {
           systemId: fixture.campaign.gameSystemId,
-          campaignId: fixture.campaign.id,
-          sessionId: fixture.run.sessionId
+          campaignId: fixture.campaign.id
         })
       )
-    ).find((entry) => entry.scope === 'SESSION')?.revision
+    ).find((entry) => entry.scope === 'PLAY')?.revision
   for (const table of ['encounterInitiativeRounds', 'encounterInitiativeParticipants'] as const) {
-    const beforeRevision = await sessionRevision()
+    const beforeRevision = await playRevision()
     await fixture.t.run(async (rawCtx) => {
       const ctx = withSceneVisionTracking(rawCtx)
       if (table === 'encounterInitiativeRounds') {
@@ -663,7 +659,7 @@ it('plans the same Character action and target facts in the Worker using private
         })
       }
     })
-    expect(await sessionRevision()).not.toBe(beforeRevision)
+    expect(await playRevision()).not.toBe(beforeRevision)
   }
   const initiativeHeader = await fixture.t.run((ctx) =>
     ctx.db
@@ -773,8 +769,7 @@ it('plans the same Character action and target facts in the Worker using private
   const beforeVocabularyChange = await fixture.owner.caller.run((ctx) =>
     readLiveSessionRulesRevisions(ctx, {
       systemId: fixture.campaign.gameSystemId,
-      campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId
+      campaignId: fixture.campaign.id
     })
   )
   await fixture.t.run(async (rawCtx) => {
@@ -784,8 +779,7 @@ it('plans the same Character action and target facts in the Worker using private
   const afterVocabularyChange = await fixture.owner.caller.run((ctx) =>
     readLiveSessionRulesRevisions(ctx, {
       systemId: fixture.campaign.gameSystemId,
-      campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId
+      campaignId: fixture.campaign.id
     })
   )
   expect(afterVocabularyChange.find((entry) => entry.scope === 'SYSTEM')?.revision).not.toBe(
@@ -796,7 +790,6 @@ it('plans the same Character action and target facts in the Worker using private
       assertLiveSessionRulesRevisions(ctx, beforeVocabularyChange, {
         systemId: fixture.campaign.gameSystemId,
         campaignId: fixture.campaign.id,
-        sessionId: fixture.run.sessionId,
         characterIds: []
       })
     )

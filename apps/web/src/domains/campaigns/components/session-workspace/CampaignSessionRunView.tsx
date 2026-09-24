@@ -3,7 +3,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignSessionAttendance } from '../CampaignSessionAttendance'
 import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
-import { CampaignSessionEncounters } from '../CampaignSessionEncounters'
+import { CampaignEncounters } from '../CampaignEncounters'
 import { CampaignSessionPartySummary } from '../CampaignSessionPartySummary'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
@@ -25,12 +25,8 @@ export function CampaignSessionRunView({
   if (campaign.role === 'PLAYER') {
     return (
       <Stack gap='lg'>
-        <CampaignTabletopLauncher campaign={campaign} session={session} />
-        <CampaignSessionPlayerEncounters
-          campaign={campaign}
-          sessionId={session.id}
-          sessionOpen={session.status === 'OPEN'}
-        />
+        <CampaignTabletopLauncher campaign={campaign} />
+        <CampaignSessionPlayerEncounters campaign={campaign} />
         <CampaignFileList
           campaign={campaign}
           currentUserId={currentUserId}
@@ -52,13 +48,8 @@ export function CampaignSessionRunView({
 
   return (
     <Stack gap='lg'>
-      <CampaignTabletopLauncher campaign={campaign} session={session} />
-      <CampaignSessionEncounters
-        campaign={campaign}
-        currentUserId={currentUserId}
-        mode='RUN'
-        session={session}
-      />
+      <CampaignTabletopLauncher campaign={campaign} />
+      <CampaignEncounters campaign={campaign} currentUserId={currentUserId} mode='RUN' />
       <CampaignFileList campaign={campaign} currentUserId={currentUserId} sessionId={session.id} />
       <section className={styles.sessionUtilityPanel} aria-label='Session attendance'>
         <CampaignSessionAttendance campaign={campaign} session={session} />

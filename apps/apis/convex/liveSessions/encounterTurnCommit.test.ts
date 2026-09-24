@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -68,11 +63,6 @@ afterEach(() => {
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -126,7 +116,6 @@ async function setup() {
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Turn commit target',
@@ -138,7 +127,6 @@ async function setup() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -172,14 +160,12 @@ async function setup() {
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: session.id,
       epoch,
       createdAt: campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionEncounterRulesInput, 'request'> = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch: epoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER',
@@ -192,7 +178,7 @@ async function setup() {
     commandId: crypto.randomUUID(),
     expectedVersion: started.projection.version
   }
-  return { ...base, campaign, session, run, started, scope, command }
+  return { ...base, campaign, run, started, scope, command }
 }
 
 async function turnRuntime() {

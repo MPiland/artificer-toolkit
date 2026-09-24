@@ -8,7 +8,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -37,9 +36,6 @@ const capture = makeFunctionReference<
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
-)
 
 async function setup() {
   const base = await readySheetFixture()
@@ -51,7 +47,6 @@ async function setup() {
     gameSystemId: base.character.systemId,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.other.caller.mutation(createSession, { campaignId: campaign.id })
   const epoch = crypto.randomUUID()
   const assignmentId = await base.t.run(async (ctx) => {
     await ctx.db.insert('campaignMemberships', {
@@ -65,7 +60,6 @@ async function setup() {
     })
     await insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: session.id,
       epoch,
       createdAt: campaign.createdAt
     })
@@ -80,7 +74,6 @@ async function setup() {
   if (!stored) throw new Error('Missing Character fixture.')
   const input: LiveSessionCharacterRulesInput = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch: epoch,
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',
@@ -88,7 +81,7 @@ async function setup() {
     expectedStreamVersion: stored.streamVersion,
     request: { kind: 'INPUTS' }
   }
-  return { ...base, campaign, session, stored, input, assignmentId }
+  return { ...base, campaign, stored, input, assignmentId }
 }
 
 async function captureSourceIndex(
@@ -152,7 +145,7 @@ it('captures the assigned player Character stored inputs for the GM and rejects 
     revisions: expect.arrayContaining([
       { scope: 'SYSTEM', id: base.stored.systemId, revision: expect.any(String) },
       { scope: 'CAMPAIGN', id: base.campaign.id, revision: expect.any(String) },
-      { scope: 'SESSION', id: base.session.id, revision: expect.any(String) },
+      { scope: 'PLAY', id: base.campaign.id, revision: null },
       { scope: 'CHARACTER', id: base.character.id, revision: expect.any(String) }
     ])
   })

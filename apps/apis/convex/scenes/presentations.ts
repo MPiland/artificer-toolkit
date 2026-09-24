@@ -9,11 +9,11 @@ import type {
 import { liveSessionPresentationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   campaignLiveScenePresentationReceiptDtoSchema,
-  campaignSessionScenePresentationDtoSchema,
-  getCampaignSessionScenePresentationInputSchema,
+  campaignScenePresentationDtoSchema,
+  getCampaignScenePresentationInputSchema,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema,
-  type CampaignSessionScenePresentationDto,
+  type CampaignScenePresentationDto,
   type SetCampaignLiveScenePresentationInputDto,
   type SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -21,15 +21,13 @@ import { encodeCampaignEvent } from '@artificer-toolkit/schema/api/campaignEvent
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import { sceneStoredPresentationSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { action, internalQuery, query, type MutationCtx } from '../_generated/server'
+import { action, internalQuery, query, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireSceneMap } from '../media/vttMapDocuments'
 import {
-  assertConvexOwnsCampaignLiveState,
-  isExpiredActivatingAuthority,
-  readCampaignLiveAuthority,
+  readLiveCampaignAuthority,
   requireCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 
@@ -49,29 +47,26 @@ const presentReference = makeFunctionReference<
   SetCampaignLiveScenePresentationResultDto
 >('liveSessions/control:present')
 
+function readPresentation(ctx: QueryCtx, campaignId: string) {
+  return ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+    .unique()
+}
+
 export const get = query({
-  args: zodToConvexFields(getCampaignSessionScenePresentationInputSchema.shape),
+  args: zodToConvexFields(getCampaignScenePresentationInputSchema.shape),
   get returns() {
-    return zodToConvex(nullable(campaignSessionScenePresentationDtoSchema))
+    return zodToConvex(nullable(campaignScenePresentationDtoSchema))
   },
-  handler: async (ctx, args): Promise<CampaignSessionScenePresentationDto | null> => {
-    const input = getCampaignSessionScenePresentationInputSchema.parse(args)
+  handler: async (ctx, args): Promise<CampaignScenePresentationDto | null> => {
+    const input = getCampaignScenePresentationInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign } = await requireCampaignAuthority(ctx, input.campaignId.toLowerCase(), userId)
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', input.sessionId.toLowerCase()))
-      .unique()
-    if (!session || session.campaignId !== campaign.id) return null
-    const row = await ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-      )
-      .unique()
+    const row = await readPresentation(ctx, campaign.id)
     if (!row) return null
-    return campaignSessionScenePresentationDtoSchema.parse({
-      sessionId: row.sessionId,
+    return campaignScenePresentationDtoSchema.parse({
+      campaignId: row.campaignId,
       sceneId: row.sceneId,
       version: row.version
     })
@@ -87,24 +82,12 @@ export const preflight = internalQuery({
   }),
   handler: async (ctx, args) => {
     const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', input.sessionId.toLowerCase()))
-      .unique()
-    if (!session) throw new Error('Campaign Session is unavailable.')
     const { userId } = await requireIdentity(ctx)
-    const { campaign, membership } = await requireCampaignAuthority(ctx, session.campaignId, userId)
+    const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot present Scenes.')
-    const authority = await readCampaignLiveAuthority(ctx, campaign.id)
-    if (authority && !isExpiredActivatingAuthority(authority) && authority.sessionId !== session.id)
-      throw new Error('Another Session owns this Campaign live state.')
-    return {
-      campaignId: campaign.id,
-      actorUserId: userId,
-      epoch: authority && !isExpiredActivatingAuthority(authority) ? authority.epoch : null
-    }
+    const authority = await readLiveCampaignAuthority(ctx, campaign.id)
+    return { campaignId: campaign.id, actorUserId: userId, epoch: authority?.epoch ?? null }
   }
 })
 
@@ -117,7 +100,6 @@ export const setLive = action({
     if (preflight.epoch === null) return ctx.runMutation(setReference, input)
     return ctx.runAction(presentReference, {
       campaignId: preflight.campaignId,
-      sessionId: input.sessionId,
       operation: {
         type: 'SET_SCENE_PRESENTATION',
         actorUserId: preflight.actorUserId,
@@ -147,8 +129,8 @@ export const setFromRoom = internalMutation({
   returns: zodToConvex(setCampaignLiveScenePresentationResultDtoSchema),
   handler: async (ctx, args): Promise<SetCampaignLiveScenePresentationResultDto> => {
     const commit = liveSessionPresentationCommitInputSchema.parse(args)
-    if (commit.sessionId.toLowerCase() !== commit.input.sessionId.toLowerCase())
-      throw new Error('Live Session presentation Session mismatch.')
+    if (commit.campaignId.toLowerCase() !== commit.input.campaignId.toLowerCase())
+      throw new Error('Live Session presentation Campaign mismatch.')
     return setPresentation(ctx, commit.input, commit.actorUserId, commit)
   }
 })
@@ -160,18 +142,9 @@ async function setPresentation(
   commit: LiveSessionPresentationCommitInput | null
 ): Promise<SetCampaignLiveScenePresentationResultDto> {
   const commandId = input.commandId.toLowerCase()
-  const sessionId = input.sessionId.toLowerCase()
-  const session = await ctx.db
-    .query('campaignSessions')
-    .withIndex('by_publicId', (q) => q.eq('id', sessionId))
-    .unique()
-  if (!session) throw new Error('Campaign Session is unavailable.')
-  const { campaign, membership } = await requireCampaignAuthority(ctx, session.campaignId, userId)
+  const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
   if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot present Scenes.')
-  if (commit && commit.campaignId.toLowerCase() !== campaign.id)
-    throw new Error('Live Session presentation Campaign mismatch.')
   const commandFingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db
     .query('campaignEvents')
@@ -188,7 +161,7 @@ async function setPresentation(
       prior.inputFingerprint !== commandFingerprint ||
       receipt.commandFingerprint !== commandFingerprint ||
       receipt.result.commandId !== commandId ||
-      receipt.result.sessionId !== sessionId
+      receipt.result.campaignId !== campaign.id
     )
       throw new Error('This command ID was already used with different input.')
     return setCampaignLiveScenePresentationResultDtoSchema.parse({
@@ -206,7 +179,8 @@ async function setPresentation(
         : authority.persistedStateChecksum !== commit.expectedStateChecksum)
     )
       throw new Error('Live Session presentation state is stale.')
-  } else await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
+  } else if (await readLiveCampaignAuthority(ctx, campaign.id))
+    throw new Error('Scene presentation is currently owned by the Campaign live table.')
   let activeMapAssetId: string | null = null
   const sceneId = input.sceneId === null ? null : input.sceneId.toLowerCase()
   if (sceneId !== null) {
@@ -219,22 +193,17 @@ async function setPresentation(
     await requireSceneMap(ctx, campaign.id, scene.map)
     activeMapAssetId = scene.map.assetId.toLowerCase()
   }
-  const current = await ctx.db
-    .query('campaignScenePresentations')
-    .withIndex('by_campaignId_sessionId', (q) =>
-      q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-    )
-    .unique()
+  const current = await readPresentation(ctx, campaign.id)
+
   if (
     current
       ? current.version !== input.expectedPresentationVersion
       : input.expectedPresentationVersion !== null
   )
-    throw new Error('Session Scene presentation version is stale.')
+    throw new Error('Campaign Scene presentation version is stale.')
   const now = new Date().toISOString()
   const presentation = sceneStoredPresentationSchema.parse({
     campaignId: campaign.id,
-    sessionId: session.id,
     sceneId,
     version: current ? current.version + 1 : 0,
     activeMapAssetId,
@@ -246,7 +215,7 @@ async function setPresentation(
   const result = setCampaignLiveScenePresentationResultDtoSchema.parse({
     commandId,
     replayed: false,
-    sessionId: session.id,
+    campaignId: campaign.id,
     sceneId,
     version: presentation.version
   })

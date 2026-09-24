@@ -547,7 +547,6 @@ describe('turn damage concentration ordering', () => {
       await base.t.run((ctx) =>
         insertActiveLiveAuthority(ctx, {
           campaignId: base.campaign.id,
-          sessionId: base.run.sessionId,
           epoch: authorityEpoch,
           createdAt: base.campaign.createdAt
         })
@@ -579,7 +578,6 @@ describe('turn damage concentration ordering', () => {
           throw new Error('Expected concentration response command.')
         const scope = {
           campaignId: base.campaign.id,
-          sessionId: base.run.sessionId,
           authorityEpoch,
           expectedUserId: controller.userId,
           expectedRole: 'PLAYER' as const,
@@ -696,7 +694,6 @@ it('commits ordered Automatic turn concentration through the private DO terminal
     await base.t.run((ctx) =>
       insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         epoch: authorityEpoch,
         createdAt: base.campaign.createdAt
       })
@@ -731,7 +728,6 @@ it('commits ordered Automatic turn concentration through the private DO terminal
       'fixture-access-token',
       {
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         authorityEpoch,
         expectedUserId: base.owner.userId,
         expectedRole: 'OWNER',

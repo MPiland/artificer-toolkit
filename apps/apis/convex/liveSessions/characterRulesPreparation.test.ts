@@ -22,14 +22,12 @@ it('prepares the same Character facts in the Worker through authenticated captur
   await fixture.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
       createdAt: fixture.campaign.createdAt
     })
   )
   const scope = {
     campaignId: fixture.campaign.id,
-    sessionId: fixture.run.sessionId,
     authorityEpoch,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER' as const,

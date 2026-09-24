@@ -102,7 +102,6 @@ export async function prepareNativeLiveMovementTarget(input: {
     actor.kind === 'CHARACTER'
       ? await prepareNativeLiveCharacterSheet(input.environment, input.accessToken, {
           campaignId: scope.campaignId,
-          sessionId: scope.sessionId,
           authorityEpoch: scope.authorityEpoch,
           expectedUserId: scope.expectedUserId,
           expectedRole: scope.expectedRole,

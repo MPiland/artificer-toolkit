@@ -1,9 +1,5 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
-import {
-  liveSessionEncounterTurnPendingInputSchema,
-  type LiveSessionEncounterTurnPendingInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
+import { v } from 'convex/values'
+import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
@@ -21,12 +17,10 @@ import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterTurnAdmission, assertLiveTurnRevisions } from './encounterTurnAdmission'
 
 /** Stores one DO-prepared pending turn without advancing the Run or Character state. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commitPending = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterTurnPendingInput>>(
-    liveSessionEncounterTurnPendingInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema),
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterTurnPendingInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
     if (admission.kind !== 'READY') return admission.result

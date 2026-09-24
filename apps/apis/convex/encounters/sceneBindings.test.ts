@@ -16,11 +16,9 @@ const bind = makeFunctionReference<
   BindEncounterToPresentedSceneInputDto,
   BindEncounterToPresentedSceneResultDto
 >('encounters/sceneBindings:bind')
-const claim = makeFunctionReference<
-  'mutation',
-  { campaignId: string; sessionId: string },
-  LiveSessionAuthorityDto
->('liveSessions/authority:claim')
+const claim = makeFunctionReference<'mutation', { campaignId: string }, LiveSessionAuthorityDto>(
+  'liveSessions/authority:claim'
+)
 
 describe('native Encounter Scene bindings', () => {
   it('binds the presented Scene and replays the original result after presentation changes', async () => {
@@ -40,9 +38,7 @@ describe('native Encounter Scene bindings', () => {
     await base.t.run(async (ctx) => {
       const presentation = await ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
-        )
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
       if (!presentation) throw new Error('Missing presentation')
       await ctx.db.patch(presentation._id, { sceneId: null, version: 1 })
@@ -82,9 +78,7 @@ describe('native Encounter Scene bindings', () => {
         .unique(),
       presentation: await ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
-        )
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
     }))
     if (!before.presentation || !before.scene) throw new Error('Missing Scene fixture')
@@ -125,19 +119,17 @@ describe('native Encounter Scene bindings', () => {
     ).toEqual({ run: before.run, scene: before.scene })
   }, 30000)
 
-  it('rejects a new binding while the live Session owns Campaign state', async () => {
+  it('rejects a new binding while the Campaign live table owns the presented Scene', async () => {
     const base = await setup()
-    await base.other.caller.mutation(claim, {
-      campaignId: base.campaign.id,
-      sessionId: base.session.id
-    })
+    await base.other.caller.mutation(claim, { campaignId: base.campaign.id })
+
     await expect(
       base.other.caller.mutation(bind, {
         type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
         commandId: crypto.randomUUID(),
         encounterId: base.run.id
       })
-    ).rejects.toThrow('owned by its live Session')
+    ).rejects.toThrow('owned by its Campaign live table')
     await expect(
       base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())
     ).resolves.toEqual([])
@@ -246,17 +238,6 @@ describe('native Encounter Scene bindings', () => {
     await expect(base.other.caller.mutation(bind, input)).rejects.toThrow(
       'different Campaign Scene binding'
     )
-    await base.t.run(async (ctx) => {
-      const session = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('id', base.session.id)
-        )
-        .unique()
-      if (!session) throw new Error('Missing Session')
-      await ctx.db.patch(session._id, { status: 'FINISHED' })
-    })
-    await expect(base.other.caller.mutation(bind, input)).rejects.toThrow('Finished')
     expect(
       await base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())
     ).toHaveLength(1)

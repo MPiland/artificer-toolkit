@@ -194,13 +194,13 @@ export async function prepareEncounterMovementFixture({
     campaignId,
     characterId: playerCharacterId
   })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
+  const currentPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   const presentation = await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: scene.liveSceneId,
-    expectedPresentationVersion: null
+    expectedPresentationVersion: currentPresentation?.version ?? null
   })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
@@ -210,7 +210,6 @@ export async function prepareEncounterMovementFixture({
   })
   const created = await owner.mutation(api.encounters.runs.create, {
     campaignId,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -313,7 +312,6 @@ export async function prepareEncounterMovementFixture({
       tokenId: reactorTokenId
     },
     run,
-    scene,
-    session
+    scene
   }
 }

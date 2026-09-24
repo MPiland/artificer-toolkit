@@ -26,7 +26,6 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import * as z from 'zod/mini'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { snapshotBlueprintEnemies } from './blueprintSnapshots'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative'
@@ -111,8 +110,6 @@ export async function reinforceEncounterActors(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const session = await requireSession(ctx, campaign.id, row.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const fingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db
@@ -138,7 +135,6 @@ export async function reinforceEncounterActors(
       checksumCanonicalJson(actor) !== prior.reinforcedActorStateChecksum ||
       projection.id !== row.id ||
       projection.campaignId !== campaign.id ||
-      projection.sessionId !== session.id ||
       projection.gameSystemId !== campaign.gameSystemId ||
       projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||

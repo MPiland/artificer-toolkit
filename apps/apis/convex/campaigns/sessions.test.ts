@@ -174,15 +174,7 @@ describe('native Campaign sessions', () => {
         .collect()
         .then((jobs) => jobs.filter((job) => job.name === 'liveSessions/control:send'))
     )
-    expect(closures.map((job) => job.args)).toEqual(
-      [newer, older].map((session) => [
-        {
-          campaignId: campaign.id,
-          sessionId: session.id,
-          operation: { type: 'CLOSE_ROOM' }
-        }
-      ])
-    )
+    expect(closures).toEqual([])
     await expect(t.query(latestOpen, { campaignId: campaign.id })).rejects.toThrow()
   })
 

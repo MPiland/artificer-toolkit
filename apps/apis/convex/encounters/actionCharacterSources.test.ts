@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -48,11 +43,6 @@ import { createActiveRuleEffectStore } from '../rules/effectStore'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -224,27 +214,6 @@ async function setup(
     campaignId: campaign.id,
     characterId: character.id
   })
-  const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
-  await owner.caller.mutation(
-    makeFunctionReference<
-      'mutation',
-      {
-        campaignId: string
-        sessionId: string
-        characterId: string
-        present: boolean
-        expectedVersion: number
-      },
-      { present: boolean }
-    >('campaigns/sessionAttendance:set'),
-    {
-      campaignId: campaign.id,
-      sessionId: session.id,
-      characterId: character.id,
-      present: true,
-      expectedVersion: session.version
-    }
-  )
   const blueprint = await owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Character source',
@@ -253,7 +222,6 @@ async function setup(
   })
   const run = await owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

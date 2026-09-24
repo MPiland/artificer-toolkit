@@ -38,7 +38,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       .take(3),
     ctx.db
       .query('encounterRuns')
-      .withIndex('by_campaignId_sessionId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
       .take(10),
     ctx.db
       .query('campaignMemberships')
@@ -58,12 +58,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     ) ||
     sessions.length > 2 ||
     (sessions[1] !== undefined && sessions[1].status !== 'OPEN') ||
-    runs.length > 9 ||
-    sessions.some(
-      (session, index) =>
-        runs.filter((run) => run.sessionId === session.id).length > (index === 0 ? 8 : 1)
-    ) ||
-    runs.some((run) => !sessions.some((session) => run.sessionId === session.id))
+    runs.length > 9
   )
     throw new Error('Fixture Run ownership or bounds mismatch.')
   const children = await Promise.all(

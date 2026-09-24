@@ -20,7 +20,6 @@ export const bootstrap = internalQuery({
     if (membership.role !== input.expectedRole) throw new Error('Live Session role mismatch.')
     const authority = await requireCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
     if (authority.phase !== 'ACTIVATING' && authority.phase !== 'DO_ACTIVE')

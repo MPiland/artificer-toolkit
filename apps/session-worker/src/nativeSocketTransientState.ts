@@ -27,7 +27,7 @@ export class NativeSocketTransientState {
     )`)
   }
 
-  read(socketId: string, streamKey: string, sceneId?: string, baselineVersion?: number) {
+  read(socketId: string, streamKey: string) {
     const row = this.storage.sql
       .exec<TransientRow>(
         `SELECT sequence, scene_id, baseline_version, path_json
@@ -39,20 +39,11 @@ export class NativeSocketTransientState {
     if (!row) return null
     if (!Number.isSafeInteger(row.sequence) || row.sequence < 0)
       throw new Error('Stored transient sequence is invalid.')
-    const encoded: unknown = row.path_json === null ? null : JSON.parse(row.path_json)
-    const legacyPath =
-      row.scene_id === null &&
-      encoded !== null &&
-      sceneId !== undefined &&
-      baselineVersion !== undefined
-        ? z.record(z.string(), pathSchema).parse(encoded)[`${sceneId}:${baselineVersion}`]
-        : undefined
     return {
       sequence: row.sequence,
-      sceneId: legacyPath ? sceneId : row.scene_id,
-      baselineVersion: legacyPath ? baselineVersion : row.baseline_version,
-      path:
-        legacyPath ?? (row.scene_id !== null && encoded !== null ? pathSchema.parse(encoded) : null)
+      sceneId: row.scene_id,
+      baselineVersion: row.baseline_version,
+      path: row.path_json === null ? null : pathSchema.parse(JSON.parse(row.path_json))
     }
   }
 
@@ -78,40 +69,6 @@ export class NativeSocketTransientState {
       baselineVersion,
       path ? JSON.stringify(path) : null
     )
-  }
-
-  migrate(
-    socketId: string,
-    sequences: Record<string, number>,
-    paths: Record<string, TokenPath>
-  ): void {
-    const tokenPaths = new Map<string, Record<string, TokenPath>>()
-    for (const [key, path] of Object.entries(paths)) {
-      const [sceneId, version, tokenId] = key.split(':')
-      const baselineVersion = Number(version)
-      if (!sceneId || !tokenId || !Number.isSafeInteger(baselineVersion) || baselineVersion < 0)
-        throw new Error('Stored transient path identity is invalid.')
-      const streamKey = `TOKEN_DRAG_PREVIEW:${tokenId}`
-      const retained = tokenPaths.get(streamKey) ?? {}
-      retained[`${sceneId}:${baselineVersion}`] = path
-      tokenPaths.set(streamKey, retained)
-    }
-    this.storage.transactionSync(() => {
-      for (const [streamKey, sequence] of Object.entries(sequences)) {
-        const retained = tokenPaths.get(streamKey)
-        this.storage.sql.exec(
-          `INSERT OR IGNORE INTO native_socket_transients
-           (socket_id, stream_key, sequence, scene_id, baseline_version, path_json)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          socketId,
-          streamKey,
-          sequence,
-          null,
-          null,
-          retained ? JSON.stringify(retained) : null
-        )
-      }
-    })
   }
 
   forget(socketId: string): void {

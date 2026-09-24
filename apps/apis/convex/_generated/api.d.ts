@@ -45224,6 +45224,408 @@ export declare const api: {
         }
       >;
     };
+    activeReads: {
+      active: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        {
+          encounter:
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  currentHitPoints: number;
+                  encounterId: string;
+                  features?: Array<{
+                    description: string;
+                    id: string;
+                    label: string;
+                    resource?: {
+                      maximum: number;
+                      remaining: number;
+                      resetKind:
+                        | "DAILY"
+                        | "DAWN"
+                        | "DUSK"
+                        | "LONG_REST"
+                        | "SHORT_REST"
+                        | "MANUAL";
+                      used: number;
+                    } | null;
+                    rollDefinitions?: Array<{
+                      chargeCost?: number | null;
+                      expression: {
+                        count: number;
+                        die: number;
+                        modifier: number;
+                      };
+                      id: string;
+                      kind:
+                        | "ATTACK"
+                        | "DAMAGE"
+                        | "HEALING"
+                        | "ABILITY_CHECK"
+                        | "SAVING_THROW";
+                      label: string;
+                      order: number;
+                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    }>;
+                    section?:
+                      | "TRAIT"
+                      | "ACTION"
+                      | "BONUS_ACTION"
+                      | "REACTION"
+                      | "LEGENDARY_ACTION"
+                      | "LAIR_ACTION"
+                      | "REGIONAL_EFFECT"
+                      | "OTHER";
+                  }>;
+                  gmNotes: string | null;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  maxHitPoints: number;
+                  public: boolean;
+                  resources:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                  stableTieKey: string;
+                  statBlock: {
+                    abilityScores: Record<string, number> | null;
+                    armorClass: number | null;
+                    conditionImmunities: Array<string>;
+                    damageImmunities: Array<string>;
+                    damageResistances: Array<string>;
+                    damageVulnerabilities: Array<string>;
+                    senses: Array<string>;
+                    speeds: Array<any>;
+                  } | null;
+                  systemId: string | null;
+                  tempHitPoints: number;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                manualReminderMode: "OFF" | "SUBTLE";
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                reminders?: Array<{
+                  actorId: string | null;
+                  id: string;
+                  label: string;
+                  notes: string | null;
+                  order: number;
+                  public: boolean;
+                  round: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              }
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  encounterId: string;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  public: boolean;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              }
+            | null;
+          pending:
+            | {
+                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "D20_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: {
+                  max: 20;
+                  min: 1;
+                  requestId: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "ACTION_OUTCOME_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: number; min: number; requestId: string };
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                choice: {
+                  options: Array<{
+                    actionId: string;
+                    actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                    optionId: string;
+                  }>;
+                  pathDistance: number;
+                  reactorActorId: string;
+                  reactorTokenId: string;
+                };
+                encounterVersion: number;
+                kind: "MOVEMENT_REACTION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "LEGENDARY_RESISTANCE_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string }>;
+                targetActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "LEGENDARY_ACTION_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  actionId: string;
+                  optionId: string;
+                  ownerFeatureId: string;
+                  targetActorId: string;
+                }>;
+                ownerActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "OPTIONAL_COMBAT_CLEAVING";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string; targetActorId: string }>;
+                sourceActorId: string;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                encounterVersion: number;
+                kind: "MOVEMENT_PASSAGE_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  economy: "ACTION" | "BONUS_ACTION";
+                  optionId: string;
+                  ruleKind: "OVERRUN" | "TUMBLE";
+                }>;
+                sourceActorId: string;
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "INITIATIVE_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: number; min: number; requestId: string };
+              }
+            | {
+                actorId: string;
+                adjudicationFields: Array<
+                  | {
+                      key: "actorSize";
+                      kind: "SELECT";
+                      label: string;
+                      options: Array<{ label: string; value: string }>;
+                      required: true;
+                    }
+                  | {
+                      key: "actionFactors";
+                      kind: "MULTI_SELECT";
+                      label: string;
+                      maximumSelections: number;
+                      minimumSelections: number;
+                      options: Array<{ label: string; value: string }>;
+                    }
+                  | {
+                      key: "spellLevel";
+                      kind: "NULLABLE_INTEGER";
+                      label: string;
+                      maximum: number;
+                      minimum: number;
+                    }
+                >;
+                allowedResponses: Array<"INITIATIVE_DECLARATION">;
+                bonusOptions: Array<{
+                  kind:
+                    | "CHARACTER_ACTION"
+                    | "CHARACTER_SPELL_CAST"
+                    | "CREATURE_FEATURE_ACTION"
+                    | "GM_ADJUDICATED";
+                  label: string;
+                  optionId: string;
+                  selectionContract: string;
+                }>;
+                encounterVersion: number;
+                kind: "INITIATIVE_DECLARATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                primaryOptions: Array<{
+                  kind:
+                    | "CHARACTER_ACTION"
+                    | "CHARACTER_SPELL_CAST"
+                    | "CREATURE_FEATURE_ACTION"
+                    | "GM_ADJUDICATED";
+                  label: string;
+                  optionId: string;
+                  selectionContract: string;
+                }>;
+                requestId: string;
+              }
+            | {
+                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                encounterVersion: number;
+                kind: "RECHARGE_EVIDENCE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                request: { max: 6; min: 1; requestId: string };
+              }
+            | {
+                allowedResponses: Array<"INITIATIVE_ENTITY">;
+                encounterVersion: number;
+                entityKind: "ACTOR" | "SIDE";
+                kind: "INITIATIVE_ORDER";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                optionIds: Array<string>;
+                requestId: string;
+              }
+            | null;
+        }
+      >;
+    };
     actorTokenBindings: {
       execute: FunctionReference<
         "mutation",
@@ -45572,7 +45974,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -45645,7 +46046,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -47711,7 +48111,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -47784,7 +48183,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -49730,7 +50128,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -49803,7 +50200,6 @@ export declare const api: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -51846,7 +52242,6 @@ export declare const api: {
             }>;
             round: number;
             rulePackRevisionId?: string | null;
-            sessionId: string;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -51915,7 +52310,6 @@ export declare const api: {
             }>;
             round: number;
             rulePackRevisionId?: string | null;
-            sessionId: string;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -52080,7 +52474,6 @@ export declare const api: {
             }>;
             round: number;
             rulePackRevisionId?: string | null;
-            sessionId: string;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -52149,7 +52542,6 @@ export declare const api: {
             }>;
             round: number;
             rulePackRevisionId?: string | null;
-            sessionId: string;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -52307,7 +52699,6 @@ export declare const api: {
               }>;
               round: number;
               rulePackRevisionId?: string | null;
-              sessionId: string;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -52376,7 +52767,6 @@ export declare const api: {
               }>;
               round: number;
               rulePackRevisionId?: string | null;
-              sessionId: string;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -52535,7 +52925,6 @@ export declare const api: {
               }>;
               round: number;
               rulePackRevisionId?: string | null;
-              sessionId: string;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -52604,7 +52993,6 @@ export declare const api: {
               }>;
               round: number;
               rulePackRevisionId?: string | null;
-              sessionId: string;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -52616,12 +53004,7 @@ export declare const api: {
       create: FunctionReference<
         "mutation",
         "public",
-        {
-          blueprintId: string;
-          campaignId: string;
-          commandId: string;
-          sessionId: string;
-        },
+        { blueprintId: string; campaignId: string; commandId: string },
         {
           actors: Array<{
             conditions:
@@ -52765,11 +53148,21 @@ export declare const api: {
           }>;
           round: number;
           rulePackRevisionId?: string | null;
-          sessionId: string;
           status: "PREPARED" | "ACTIVE" | "COMPLETED";
           updatedAt: string;
           version: number;
         }
+      >;
+      deletePrepared: FunctionReference<
+        "mutation",
+        "public",
+        {
+          campaignId: string;
+          commandId: string;
+          encounterId: string;
+          expectedVersion: number;
+        },
+        { campaignId: string; encounterId: string }
       >;
     };
     sceneBindings: {
@@ -52797,410 +53190,6 @@ export declare const api: {
           encounterVersion: number;
           sceneId: string;
         } | null
-      >;
-    };
-    sessionReads: {
-      active: FunctionReference<
-        "query",
-        "public",
-        { campaignId: string; sessionId: string },
-        {
-          encounter:
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  currentHitPoints: number;
-                  encounterId: string;
-                  features?: Array<{
-                    description: string;
-                    id: string;
-                    label: string;
-                    resource?: {
-                      maximum: number;
-                      remaining: number;
-                      resetKind:
-                        | "DAILY"
-                        | "DAWN"
-                        | "DUSK"
-                        | "LONG_REST"
-                        | "SHORT_REST"
-                        | "MANUAL";
-                      used: number;
-                    } | null;
-                    rollDefinitions?: Array<{
-                      chargeCost?: number | null;
-                      expression: {
-                        count: number;
-                        die: number;
-                        modifier: number;
-                      };
-                      id: string;
-                      kind:
-                        | "ATTACK"
-                        | "DAMAGE"
-                        | "HEALING"
-                        | "ABILITY_CHECK"
-                        | "SAVING_THROW";
-                      label: string;
-                      order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                    }>;
-                    section?:
-                      | "TRAIT"
-                      | "ACTION"
-                      | "BONUS_ACTION"
-                      | "REACTION"
-                      | "LEGENDARY_ACTION"
-                      | "LAIR_ACTION"
-                      | "REGIONAL_EFFECT"
-                      | "OTHER";
-                  }>;
-                  gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  maxHitPoints: number;
-                  public: boolean;
-                  resources:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                  stableTieKey: string;
-                  statBlock: {
-                    abilityScores: Record<string, number> | null;
-                    armorClass: number | null;
-                    conditionImmunities: Array<string>;
-                    damageImmunities: Array<string>;
-                    damageResistances: Array<string>;
-                    damageVulnerabilities: Array<string>;
-                    senses: Array<string>;
-                    speeds: Array<any>;
-                  } | null;
-                  systemId: string | null;
-                  tempHitPoints: number;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                reminders?: Array<{
-                  actorId: string | null;
-                  id: string;
-                  label: string;
-                  notes: string | null;
-                  order: number;
-                  public: boolean;
-                  round: number | null;
-                  timing:
-                    | "ROUND_START"
-                    | "ROUND_END"
-                    | "ROUND_NUMBER"
-                    | "TURN_START"
-                    | "TURN_END";
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                sessionId: string;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              }
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  public: boolean;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                sessionId: string;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              }
-            | null;
-          pending:
-            | {
-                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
-                encounterVersion: number;
-                kind: "D20_EVIDENCE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                request: {
-                  max: 20;
-                  min: 1;
-                  requestId: string;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
-              }
-            | {
-                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                encounterVersion: number;
-                kind: "ACTION_OUTCOME_EVIDENCE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                request: { max: number; min: number; requestId: string };
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                choice: {
-                  options: Array<{
-                    actionId: string;
-                    actionSourceKind: "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                    optionId: string;
-                  }>;
-                  pathDistance: number;
-                  reactorActorId: string;
-                  reactorTokenId: string;
-                };
-                encounterVersion: number;
-                kind: "MOVEMENT_REACTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                encounterVersion: number;
-                kind: "LEGENDARY_RESISTANCE_CHOICE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                options: Array<{ optionId: string }>;
-                targetActorId: string;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                encounterVersion: number;
-                kind: "LEGENDARY_ACTION_CHOICE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                options: Array<{
-                  actionId: string;
-                  optionId: string;
-                  ownerFeatureId: string;
-                  targetActorId: string;
-                }>;
-                ownerActorId: string;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                encounterVersion: number;
-                kind: "OPTIONAL_COMBAT_CLEAVING";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                options: Array<{ optionId: string; targetActorId: string }>;
-                sourceActorId: string;
-              }
-            | {
-                allowedResponses: Array<"DECLINE" | "OPTION">;
-                encounterVersion: number;
-                kind: "MOVEMENT_PASSAGE_CHOICE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                options: Array<{
-                  economy: "ACTION" | "BONUS_ACTION";
-                  optionId: string;
-                  ruleKind: "OVERRUN" | "TUMBLE";
-                }>;
-                sourceActorId: string;
-              }
-            | {
-                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                encounterVersion: number;
-                kind: "INITIATIVE_EVIDENCE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                request: { max: number; min: number; requestId: string };
-              }
-            | {
-                actorId: string;
-                adjudicationFields: Array<
-                  | {
-                      key: "actorSize";
-                      kind: "SELECT";
-                      label: string;
-                      options: Array<{ label: string; value: string }>;
-                      required: true;
-                    }
-                  | {
-                      key: "actionFactors";
-                      kind: "MULTI_SELECT";
-                      label: string;
-                      maximumSelections: number;
-                      minimumSelections: number;
-                      options: Array<{ label: string; value: string }>;
-                    }
-                  | {
-                      key: "spellLevel";
-                      kind: "NULLABLE_INTEGER";
-                      label: string;
-                      maximum: number;
-                      minimum: number;
-                    }
-                >;
-                allowedResponses: Array<"INITIATIVE_DECLARATION">;
-                bonusOptions: Array<{
-                  kind:
-                    | "CHARACTER_ACTION"
-                    | "CHARACTER_SPELL_CAST"
-                    | "CREATURE_FEATURE_ACTION"
-                    | "GM_ADJUDICATED";
-                  label: string;
-                  optionId: string;
-                  selectionContract: string;
-                }>;
-                encounterVersion: number;
-                kind: "INITIATIVE_DECLARATION";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                primaryOptions: Array<{
-                  kind:
-                    | "CHARACTER_ACTION"
-                    | "CHARACTER_SPELL_CAST"
-                    | "CREATURE_FEATURE_ACTION"
-                    | "GM_ADJUDICATED";
-                  label: string;
-                  optionId: string;
-                  selectionContract: string;
-                }>;
-                requestId: string;
-              }
-            | {
-                allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                encounterVersion: number;
-                kind: "RECHARGE_EVIDENCE";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                request: { max: 6; min: 1; requestId: string };
-              }
-            | {
-                allowedResponses: Array<"INITIATIVE_ENTITY">;
-                encounterVersion: number;
-                entityKind: "ACTOR" | "SIDE";
-                kind: "INITIATIVE_ORDER";
-                occurrenceId: string;
-                occurrenceVersion: number;
-                optionIds: Array<string>;
-                requestId: string;
-              }
-            | null;
-        }
       >;
     };
     timelineReads: {
@@ -53890,7 +53879,7 @@ export declare const api: {
       issue: FunctionReference<
         "action",
         "public",
-        { campaignId: string; sessionId: string },
+        { campaignId: string },
         { expiresAt: string; ticket: string }
       >;
     };
@@ -54592,11 +54581,7 @@ export declare const api: {
                 type: "REMOVE_SCENE_DARKNESS";
                 zoneId: string;
               };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         {
           commandId: string;
@@ -55726,12 +55711,8 @@ export declare const api: {
               ownerUserId: string | null;
               width: number;
             };
+            presentation?: { expectedPresentationVersion: number };
             sceneId: string;
-            session?: {
-              expectedPresentationVersion: number;
-              expectedSessionVersion: number;
-              sessionId: string;
-            };
             type: "PATCH_SCENE_FOG";
           };
         },
@@ -55970,11 +55951,7 @@ export declare const api: {
                 tokenId: string;
                 type: "MOVE_SCENE_TOKEN";
               };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         {
           commandId: string;
@@ -56656,11 +56633,7 @@ export declare const api: {
                 tokenId: string;
                 type: "MOVE_SCENE_TOKEN";
               };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         {
           commandId: string;
@@ -58224,24 +58197,24 @@ export declare const api: {
       get: FunctionReference<
         "query",
         "public",
-        { campaignId: string; sessionId: string },
-        { sceneId: string | null; sessionId: string; version: number } | null
+        { campaignId: string },
+        { campaignId: string; sceneId: string | null; version: number } | null
       >;
       set: FunctionReference<
         "mutation",
         "public",
         {
+          campaignId: string;
           commandId: string;
           expectedPresentationVersion: number | null;
           sceneId: string | null;
-          sessionId: string;
           type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
         },
         {
+          campaignId: string;
           commandId: string;
           replayed: boolean;
           sceneId: string | null;
-          sessionId: string;
           version: number;
         }
       >;
@@ -58249,17 +58222,17 @@ export declare const api: {
         "action",
         "public",
         {
+          campaignId: string;
           commandId: string;
           expectedPresentationVersion: number | null;
           sceneId: string | null;
-          sessionId: string;
           type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
         },
         {
+          campaignId: string;
           commandId: string;
           replayed: boolean;
           sceneId: string | null;
-          sessionId: string;
           version: number;
         }
       >;
@@ -58650,11 +58623,7 @@ export declare const api: {
             sceneId: string;
             type: "UNDO_LAST_SCENE_MOVE";
           };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         {
           commandId: string;
@@ -58681,11 +58650,7 @@ export declare const api: {
             sceneId: string;
             type: "UNDO_LAST_SCENE_MOVE";
           };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         {
           commandId: string;
@@ -61479,7 +61444,7 @@ export declare const internal: {
         "query",
         "internal",
         { jobId: Id<"campaignDeletionJobs">; revision: number },
-        null | { campaignId: string; sessionId: string }
+        null | { campaignId: string }
       >;
       failed: FunctionReference<
         "mutation",
@@ -61693,35 +61658,6 @@ export declare const internal: {
         }
       >;
     };
-    inventoryPurge: {
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          grant: {
-            actorUserId: string;
-            campaignId: string;
-            campaignRootId: Id<"campaigns">;
-            campaignVersion: number;
-            cleanupId: string;
-            grantChecksum: string;
-          };
-          jobId?: string;
-          phase:
-            | "VEHICLE_JOB"
-            | "VEHICLE_JOB_TOTALS"
-            | "VEHICLE_JOB_SEGMENTS"
-            | "PARTY_ITEMS"
-            | "PARTY_CURRENCY_GROUPS"
-            | "PARTY_CURRENCIES"
-            | "PARTY_INVENTORIES"
-            | "CURRENCY_DENOMINATIONS"
-            | "CURRENCY_SYSTEMS"
-            | "VEHICLES";
-        },
-        null
-      >;
-    };
     inventoryTransferCommands: {
       transfer: FunctionReference<
         "mutation",
@@ -61851,6 +61787,176 @@ export declare const internal: {
           splitCursor?: string | null;
           version: number;
         }
+      >;
+    };
+    playMigrations: {
+      deletionJobs: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterRuleReceipts: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterRunCommands: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterRuns: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      fogCommands: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      fogSaves: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      geometrySaves: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      liveAuthorities: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      presentationEvents: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      presentations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      visionRevisions: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
     vehicleCleanup: {
@@ -70528,12 +70634,11 @@ export declare const internal: {
       authorize: FunctionReference<
         "mutation",
         "internal",
-        { campaignId: string; expiresAt: number; sessionId: string },
+        { campaignId: string; expiresAt: number },
         {
           authorityEpoch: string;
           campaignId: string;
           role: "OWNER" | "PLAYER";
-          sessionId: string;
           sub: string;
         }
       >;
@@ -70547,7 +70652,6 @@ export declare const internal: {
           epoch: string;
           expectedStateChecksum: string;
           sequence: number;
-          sessionId: string;
           stateChecksum: string;
         },
         {
@@ -70561,7 +70665,6 @@ export declare const internal: {
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-          sessionId: string;
           updatedAt: string;
         }
       >;
@@ -70573,7 +70676,6 @@ export declare const internal: {
           epoch: string;
           finalSequence: number;
           finalStateChecksum: string;
-          sessionId: string;
         },
         {
           activationExpiresAt?: number;
@@ -70586,14 +70688,13 @@ export declare const internal: {
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-          sessionId: string;
           updatedAt: string;
         }
       >;
       claim: FunctionReference<
         "mutation",
         "internal",
-        { campaignId: string; sessionId: string },
+        { campaignId: string },
         {
           activationExpiresAt?: number;
           activationFingerprint: string;
@@ -70605,7 +70706,6 @@ export declare const internal: {
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-          sessionId: string;
           updatedAt: string;
         }
       >;
@@ -70616,7 +70716,6 @@ export declare const internal: {
           activationFingerprint: string;
           campaignId: string;
           epoch: string;
-          sessionId: string;
           stateChecksum: string;
         },
         {
@@ -70630,7 +70729,6 @@ export declare const internal: {
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-          sessionId: string;
           updatedAt: string;
         }
       >;
@@ -70642,7 +70740,6 @@ export declare const internal: {
           epoch: string;
           finalSequence: number;
           finalStateChecksum: string;
-          sessionId: string;
         },
         null
       >;
@@ -70656,7 +70753,6 @@ export declare const internal: {
           campaignId: string;
           expectedRole: "OWNER" | "PLAYER";
           expectedUserId: string;
-          sessionId: string;
         },
         {
           activationFingerprint: string;
@@ -70664,6 +70760,9 @@ export declare const internal: {
           persistedStateChecksum: string;
         }
       >;
+    };
+    characterRulesCapture: {
+      capture: FunctionReference<"query", "internal", any, any>;
     };
     control: {
       evictUser: FunctionReference<
@@ -70681,21 +70780,20 @@ export declare const internal: {
             actorUserId: string;
             epoch: string;
             input: {
+              campaignId: string;
               commandId: string;
               expectedPresentationVersion: number | null;
               sceneId: string | null;
-              sessionId: string;
               type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
             };
             type: "SET_SCENE_PRESENTATION";
           };
-          sessionId: string;
         },
         {
+          campaignId: string;
           commandId: string;
           replayed: boolean;
           sceneId: string | null;
-          sessionId: string;
           version: number;
         }
       >;
@@ -70711,26 +70809,40 @@ export declare const internal: {
                 actorUserId: string;
                 epoch: string;
                 input: {
+                  campaignId: string;
                   commandId: string;
                   expectedPresentationVersion: number | null;
                   sceneId: string | null;
-                  sessionId: string;
                   type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
                 };
                 type: "SET_SCENE_PRESENTATION";
               };
-          sessionId: string;
         },
         null
       >;
     };
-    controlQueries: {
-      openSessionIds: FunctionReference<
-        "query",
-        "internal",
-        { campaignId: string },
-        Array<string>
-      >;
+    encounterAction: {
+      commitPending: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterActionCommit: {
+      commit: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterConcentrationCommit: {
+      commit: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterMovement: {
+      begin: FunctionReference<"mutation", "internal", any, any>;
+      commit: FunctionReference<"mutation", "internal", any, any>;
+      prepare: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterRulesCapture: {
+      capture: FunctionReference<"query", "internal", any, any>;
+    };
+    encounterTurn: {
+      commitPending: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterTurnCommit: {
+      commit: FunctionReference<"mutation", "internal", any, any>;
     };
     state: {
       activate: FunctionReference<
@@ -70740,7 +70852,6 @@ export declare const internal: {
           activationFingerprint: string;
           campaignId: string;
           epoch: string;
-          sessionId: string;
           stateChecksum: string;
         },
         {
@@ -70754,7 +70865,6 @@ export declare const internal: {
           persistedSequence: number;
           persistedStateChecksum: string;
           phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-          sessionId: string;
           updatedAt: string;
         }
       >;
@@ -70774,7 +70884,6 @@ export declare const internal: {
             persistedSequence: number;
             persistedStateChecksum: string;
             phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-            sessionId: string;
             updatedAt: string;
           };
           sceneResult: {
@@ -71353,7 +71462,6 @@ export declare const internal: {
             revision: string | null;
           }>;
           recipientUserIds: Array<string>;
-          sessionId: string;
         },
         {
           campaignId: string;
@@ -71367,8 +71475,8 @@ export declare const internal: {
             userId: string;
           };
           presentation: {
+            campaignId: string;
             sceneId: string | null;
-            sessionId: string;
             version: number;
           } | null;
           recipients: Array<{
@@ -71577,11 +71685,10 @@ export declare const internal: {
             version: number;
             visionRevealMode?: "ON_DRAG" | "ON_DROP";
           } | null;
-          session: { id: string; version: number };
           systemId: string;
           visionFreshness: {
             campaign: string | null;
-            session: string | null;
+            play: string | null;
             system: string | null;
           } | null;
         }
@@ -73884,11 +73991,7 @@ export declare const internal: {
                 tokenId: string;
                 type: "MOVE_SCENE_TOKEN";
               };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         | {
             kind: "REPLAY";
@@ -74635,14 +74738,12 @@ export declare const internal: {
               campaignId: string;
               expectedPresentationVersion: number;
               expectedSceneVersion: number;
-              expectedSessionVersion: number;
               freshness: {
                 campaign: string | null;
-                session: string | null;
+                play: string | null;
                 system: string | null;
               };
               sceneId: string;
-              sessionId: string;
               systemId: string;
             };
           }
@@ -127673,7 +127774,6 @@ export declare const internal: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -127746,7 +127846,6 @@ export declare const internal: {
                 }>;
                 round: number;
                 rulePackRevisionId?: string | null;
-                sessionId: string;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -128811,14 +128910,12 @@ export declare const internal: {
               campaignId: string;
               expectedPresentationVersion: number;
               expectedSceneVersion: number;
-              expectedSessionVersion: number;
               freshness: {
                 campaign: string | null;
-                session: string | null;
+                play: string | null;
                 system: string | null;
               };
               sceneId: string;
-              sessionId: string;
               systemId: string;
             };
           }
@@ -128830,10 +128927,10 @@ export declare const internal: {
         "query",
         "internal",
         {
+          campaignId: string;
           commandId: string;
           expectedPresentationVersion: number | null;
           sceneId: string | null;
-          sessionId: string;
           type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
         },
         { actorUserId: string; campaignId: string; epoch: string | null }
@@ -128848,19 +128945,18 @@ export declare const internal: {
           expectedSequence: number;
           expectedStateChecksum: string | null;
           input: {
+            campaignId: string;
             commandId: string;
             expectedPresentationVersion: number | null;
             sceneId: string | null;
-            sessionId: string;
             type: "SET_CAMPAIGN_LIVE_SCENE_PRESENTATION";
           };
-          sessionId: string;
         },
         {
+          campaignId: string;
           commandId: string;
           replayed: boolean;
           sceneId: string | null;
-          sessionId: string;
           version: number;
         }
       >;
@@ -129094,10 +129190,9 @@ export declare const internal: {
           expectedEncounterVersion: number;
           expectedPresentationVersion: number;
           expectedSceneVersion: number;
-          expectedSessionVersion: number;
           freshness: {
             campaign: string | null;
-            session: string | null;
+            play: string | null;
             system: string | null;
           };
           paginationOpts: {
@@ -129107,7 +129202,6 @@ export declare const internal: {
             numItems: number;
           };
           sceneId: string;
-          sessionId: string;
           systemId: string;
         },
         {
@@ -129121,14 +129215,12 @@ export declare const internal: {
             expectedEncounterVersion: number;
             expectedPresentationVersion: number;
             expectedSceneVersion: number;
-            expectedSessionVersion: number;
             freshness: {
               campaign: string | null;
-              session: string | null;
+              play: string | null;
               system: string | null;
             };
             sceneId: string;
-            sessionId: string;
             streamVersion: number;
             systemId: string;
             tokenId: string;
@@ -129144,23 +129236,19 @@ export declare const internal: {
           campaignId: string;
           expectedPresentationVersion: number;
           expectedSceneVersion: number;
-          expectedSessionVersion: number;
           sceneId: string;
-          sessionId: string;
           systemId: string;
         },
         {
           campaignId: string;
           expectedPresentationVersion: number;
           expectedSceneVersion: number;
-          expectedSessionVersion: number;
           freshness: {
             campaign: string | null;
-            session: string | null;
+            play: string | null;
             system: string | null;
           };
           sceneId: string;
-          sessionId: string;
           systemId: string;
         }
       >;
@@ -129175,14 +129263,12 @@ export declare const internal: {
           expectedEncounterVersion: number;
           expectedPresentationVersion: number;
           expectedSceneVersion: number;
-          expectedSessionVersion: number;
           freshness: {
             campaign: string | null;
-            session: string | null;
+            play: string | null;
             system: string | null;
           };
           sceneId: string;
-          sessionId: string;
           streamVersion: number;
           systemId: string;
           tokenId: string;
@@ -129224,10 +129310,9 @@ export declare const internal: {
           campaignId: string;
           expectedPresentationVersion: number;
           expectedSceneVersion: number;
-          expectedSessionVersion: number;
           freshness: {
             campaign: string | null;
-            session: string | null;
+            play: string | null;
             system: string | null;
           };
           paginationOpts: {
@@ -129237,7 +129322,6 @@ export declare const internal: {
             numItems: number;
           };
           sceneId: string;
-          sessionId: string;
           systemId: string;
         },
         {
@@ -129249,14 +129333,12 @@ export declare const internal: {
             expectedEncounterVersion: number;
             expectedPresentationVersion: number;
             expectedSceneVersion: number;
-            expectedSessionVersion: number;
             freshness: {
               campaign: string | null;
-              session: string | null;
+              play: string | null;
               system: string | null;
             };
             sceneId: string;
-            sessionId: string;
             systemId: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -181830,11 +181912,7 @@ export declare const internal: {
             sceneId: string;
             type: "UNDO_LAST_SCENE_MOVE";
           };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
           targetCommandId: string;
         },
         {
@@ -181863,11 +181941,7 @@ export declare const internal: {
             sceneId: string;
             type: "UNDO_LAST_SCENE_MOVE";
           };
-          session?: {
-            expectedPresentationVersion: number;
-            expectedSessionVersion: number;
-            sessionId: string;
-          };
+          presentation?: { expectedPresentationVersion: number };
         },
         | {
             kind: "REPLAY";

@@ -45,12 +45,11 @@ const setPresentation = makeFunctionReference<
 async function setup() {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
   await base.owner.caller.mutation(setPresentation, {
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
     sceneId,
-    sessionId: session.id,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
   const input: LiveSessionTransientCaptureInput = {
@@ -59,20 +58,19 @@ async function setup() {
     expectedUserId: base.owner.userId,
     mode: 'FULL',
     observedCharacterRevisions: [],
-    recipientUserIds: [base.owner.userId, base.other.userId],
-    sessionId: session.id
+    recipientUserIds: [base.owner.userId, base.other.userId]
   }
-  return { base, input, sceneId, session }
+  return { base, input, sceneId }
 }
 
 it('captures current authenticated admission, presentation, active recipient epochs, and Scene freshness', async () => {
-  const { base, input, sceneId, session } = await setup()
+  const { base, input, sceneId } = await setup()
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
     campaignId: base.campaign.id,
     systemId: base.campaign.gameSystemId,
     observedCharacterRevisions: [],
     origin: { role: 'OWNER', userId: base.owner.userId },
-    presentation: { sceneId, sessionId: session.id, version: 0 },
+    presentation: { campaignId: base.campaign.id, sceneId, version: 0 },
     recipients: expect.arrayContaining([
       expect.objectContaining({ userId: base.owner.userId }),
       expect.objectContaining({ role: 'PLAYER', userId: base.other.userId })
@@ -80,7 +78,6 @@ it('captures current authenticated admission, presentation, active recipient epo
     sceneEncounterBound: false,
     sceneHeader: { id: sceneId, version: 0 },
     sceneSnapshot: expect.objectContaining({ id: sceneId, version: 0 }),
-    session: { id: session.id, version: session.version },
     visionFreshness: expect.any(Object)
   })
   await base.t.run((ctx) =>
@@ -157,7 +154,7 @@ it('omits departed recipients and returns their new epoch after rejoin', async (
   })
 })
 
-it('rejects archived, finished, and cross-Campaign Session captures', async () => {
+it('rejects archived and cross-Campaign captures, and ignores finished Campaign Sessions', async () => {
   const archived = await setup()
   await archived.base.t.run(async (ctx) => {
     const campaign = await ctx.db
@@ -172,41 +169,41 @@ it('rejects archived, finished, and cross-Campaign Session captures', async () =
   ).rejects.toThrow('Archived')
 
   const finished = await setup()
+  const finishedSession = await finished.base.owner.caller.mutation(createSession, {
+    campaignId: finished.base.campaign.id
+  })
   await finished.base.t.run(async (ctx) => {
     const session = await ctx.db
       .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', finished.session.id))
+      .withIndex('by_publicId', (q) => q.eq('id', finishedSession.id))
       .unique()
     if (!session) throw new Error('Missing Session.')
     await ctx.db.patch(session._id, { finishedAt: new Date().toISOString(), status: 'FINISHED' })
   })
   await expect(
     finished.base.owner.caller.query(capture, { ...finished.input, mode: 'AUTHORITY' })
-  ).rejects.toThrow('not open')
+  ).resolves.toMatchObject({ campaignId: finished.base.campaign.id })
 
   const foreign = await setup()
   const foreignCampaign = await foreign.base.other.caller.mutation(createCampaign, {
-    name: 'Foreign Session',
+    name: 'Foreign Campaign',
     format: 'ONGOING',
     toneTags: ['HEROIC'],
     contentMaturity: 'STANDARD',
     gameSystemId: foreign.base.campaign.gameSystemId,
     primaryRulesCatalogueId: foreign.base.campaign.primaryRulesCatalogueId
   })
-  const foreignSession = await foreign.base.other.caller.mutation(createSession, {
-    campaignId: foreignCampaign.id
-  })
   await expect(
     foreign.base.owner.caller.query(capture, {
       ...foreign.input,
       mode: 'AUTHORITY',
-      sessionId: foreignSession.id
+      campaignId: foreignCampaign.id
     })
-  ).rejects.toThrow('Session not found')
+  ).rejects.toThrow('Campaign not found')
 })
 
 it('captures a changed Scene header and presentation revision, then rejects stale Character observations', async () => {
-  const { base, input, sceneId, session } = await setup()
+  const { base, input, sceneId } = await setup()
   await base.owner.caller.mutation(executeScene, {
     input: {
       commandId: crypto.randomUUID(),
@@ -223,12 +220,12 @@ it('captures a changed Scene header and presentation revision, then rejects stal
   await base.owner.caller.mutation(setPresentation, {
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: 0,
+    campaignId: base.campaign.id,
     sceneId: null,
-    sessionId: session.id,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
-    presentation: { sceneId: null, sessionId: session.id, version: 1 },
+    presentation: { campaignId: base.campaign.id, sceneId: null, version: 1 },
     sceneEncounterBound: false,
     sceneHeader: null,
     sceneSnapshot: null,

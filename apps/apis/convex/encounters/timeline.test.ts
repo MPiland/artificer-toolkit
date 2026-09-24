@@ -1,15 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import migrations from '@convex-dev/migrations/test'
 import { describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -33,11 +28,6 @@ import { fixture } from '../../tests/fixtures/characters'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -75,7 +65,6 @@ async function setup() {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Timeline fixture',
@@ -84,7 +73,6 @@ async function setup() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -99,7 +87,7 @@ async function setup() {
       leftAt: null
     })
   )
-  return { ...base, campaign, session, blueprint, run }
+  return { ...base, campaign, blueprint, run }
 }
 
 async function writeHistory(
@@ -158,7 +146,6 @@ describe('native Encounter timeline reads', () => {
     const first = await setup()
     const second = await first.owner.caller.mutation(createRun, {
       campaignId: first.campaign.id,
-      sessionId: first.session.id,
       blueprintId: first.blueprint.id,
       commandId: crypto.randomUUID()
     })

@@ -23,8 +23,7 @@ export const encounterTables = {
   encounterRuns: defineTable(zodToConvexFields(encounterStoredRunSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_status', ['campaignId', 'status'])
-    .index('by_campaignId_sessionId_status', ['campaignId', 'sessionId', 'status'])
-    .index('by_campaignId_sessionId_createdAt_id', ['campaignId', 'sessionId', 'createdAt', 'id']),
+    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id']),
   encounterRunActors: defineTable(zodToConvexFields(encounterStoredRunActorSchema.shape)).index(
     'by_encounterId_id',
     ['encounterId', 'id']

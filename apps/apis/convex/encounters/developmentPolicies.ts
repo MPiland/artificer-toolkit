@@ -92,7 +92,7 @@ export const removeFixtureState = internalMutation({
         )
         .take(101),
       ctx.db.query('reusableDefinitionDrafts').withIndex('by_definitionId').take(101),
-      ctx.db.query('encounterRuns').withIndex('by_campaignId_sessionId_createdAt_id').take(101)
+      ctx.db.query('encounterRuns').withIndex('by_campaignId_createdAt_id').take(101)
     ])
     const characterDraftPayloadRows = await Promise.all(
       characterDrafts.flatMap((draft) =>

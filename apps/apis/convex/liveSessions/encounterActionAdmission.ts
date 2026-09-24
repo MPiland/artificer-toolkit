@@ -26,7 +26,6 @@ export async function readLiveEncounterActionAdmission(
     throw new Error('Live Session Encounter command scope mismatch.')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
-    sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
   let responseAdmission = null
@@ -49,7 +48,6 @@ export async function readLiveEncounterActionAdmission(
     (await readNativeEncounterActionAdmission(ctx, input.command, userId))
   if (
     admission.state.campaignId !== input.campaignId ||
-    admission.state.sessionId !== input.sessionId ||
     (responseAdmission && checksumCanonicalJson(input.command) !== admission.fingerprint)
   )
     throw new Error('Live Session Encounter scope mismatch.')

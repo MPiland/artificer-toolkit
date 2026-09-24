@@ -43,19 +43,11 @@ export const readDelivery = internalQuery({
         )
         .first()
       if (!presentation || presentation.sceneId === null) throw new Error('Map is unavailable.')
-      const session = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) =>
-          q.eq('campaignId', campaign.id).eq('id', presentation.sessionId)
-        )
-        .unique()
       const scene = await ctx.db
         .query('campaignScenes')
         .withIndex('by_publicId', (q) => q.eq('id', presentation.sceneId!))
         .unique()
       if (
-        !session ||
-        session.status !== 'OPEN' ||
         !scene ||
         scene.campaignId !== campaign.id ||
         scene.map.assetId.toLowerCase() !== asset.id

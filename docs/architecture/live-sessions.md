@@ -8,10 +8,9 @@
 >
 > Verification: `apps/session-worker/src/nativeLiveSessionRoom.ts`, `apps/session-worker/src/durableCommandJournal.ts`, `apps/apis/convex/liveSessions/{authority,state,bootstrap}.ts`, `apps/web/src/domains/campaigns/vtt/liveSessionClient.ts`, and [ADR 0029](../adr/0029-convex-backend-cutover.md)
 
-> Transitional: [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (approved, implementation
-> in progress) replaces the Session-keyed room below with one live table per Campaign, opened by any
-> ACTIVE member, and removes Session gating from live play. Until that lands, this guide describes the
-> current Session-keyed implementation.
+> [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) is implemented locally: there is one
+> live table per Campaign, opened by any ACTIVE member, and no Campaign Session gates live play. The name
+> "live session" below means that Campaign table; Campaign Sessions are an optional log.
 
 A live Session has one temporary live-command authority and one durable product store. While an
 authority epoch is active, its Session Durable Object is the single authority for the supported Door
@@ -30,7 +29,7 @@ commands relying on a Convex transaction cannot acknowledge success before that 
 
 The private `/live-sessions/character-rules` and `/live-sessions/encounter-rules` captures now supply
 authorized stored inputs to Worker preparation. Each response includes compact System, Campaign,
-Session and relevant Character revisions read in the same transaction as its payload. Preparation
+Campaign play (`PLAY`) and relevant Character revisions read in the same transaction as its payload. Preparation
 merges these observations and rejects a changed revision across pages or Character/Encounter reads.
 The existing `sceneVisionRevisions` table tracks source publications, authority inputs, Run actors,
 active effects, maintained/spatial effects, normalized initiative rounds/sides/participants and pending
@@ -45,7 +44,7 @@ pending-response and complete contextual coordination remain unfinished.
 
 Ordinary action preparation starts with `ACTION_COMMAND` on the private Encounter capture route.
 It shares the native command's admission and complete receipt verification, including Character
-concentration cleanup. Current GM access, open Session and live epoch remain mandatory. An exact
+concentration cleanup. Current GM access and the live epoch remain mandatory. An exact
 completed or pending retry returns its stored result before checking the latest Run version or
 loading Character inputs. A fresh command must pass the existing version, turn and pending-occurrence
 checks before preparation starts. Admission returns its normalized command and fingerprint, reads no
@@ -74,7 +73,7 @@ remains unresolved, and the room does not yet call this planning path.
 
 The `INITIATIVE_ROUND` capture reads only the authorized Run's current round, using the same bounded
 indexed reader as native projection. Active projections require that stored round, the Run's policy
-snapshot and its exact actor/side cursor. The capture adds its Session revision to the final plan;
+snapshot and its exact actor/side cursor. The capture adds its Campaign play revision to the final plan;
 changes to any normalized initiative table invalidate a plan captured before that change.
 
 The read-only `SYSTEM_VOCABULARY` capture exposes the existing persisted snapshot used by native
@@ -106,7 +105,7 @@ use the private DO path below; contextual choice responses remain unfinished.
 
 The private `/live-sessions/encounter-action-pending` mutation accepts the Worker-computed sealed
 ordinary action request. It requires both the Worker secret and the current GM's authenticated
-identity, rechecks the open Session, live epoch, Run, root fingerprint, System and bound Scene, then
+identity, rechecks the live epoch, Run, root fingerprint, System and bound Scene, then
 compares all captured revisions before inserting or advancing the pending occurrence. Detached maintenance owners
 must still have a real dependent in the acting actor's current stored slot. The mutation advances no
 Run or Character version and spends no resources. It returns only the existing recipient-safe result;
@@ -138,7 +137,7 @@ coordination remain unfinished.
 
 The private `/live-sessions/encounter-concentration` transaction completes an admitted Assisted
 concentration response for the GM or the assigned Character's player. Private captures require the
-Worker secret, current user identity, open Session, active DO epoch and that exact pending child.
+Worker secret, current user identity, active DO epoch and that exact pending child.
 The DO prepares current facts, checks the sealed continuation and parent damage envelope, resumes
 the existing Kernel, and plans any cleanup or next decision. A successful save preserves the Run
 version and stored projection. A failed save atomically removes the exact maintained slot and
@@ -237,6 +236,16 @@ only the persistence and projection pieces. Local transaction tests cover respon
 one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. Durable
 room dispatch/recovery remains unfinished. These private routes alone do not establish command acceptance.
 
+**Worker-boundary validators.** The private rules captures and commits
+(`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,
+encounterConcentrationCommit,encounterMovement,encounterTurn,encounterTurnCommit}.ts`) are internal
+functions reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no
+`returns` validator; each handler takes `unknown` and parses it with its shared Zod contract before
+any read, and the Worker parses every response with the same contracts. Converting these large
+unions into duplicate Convex validators cost about 28 MB per module and pushed several modules past
+the 64 MB module-load budget (for example `encounterRulesCapture` needed 65.8 MB to evaluate; it now
+needs about 30 MB). Public functions keep generated Convex argument validators.
+
 An admitted movement can apply rules to another assigned Character. The private mechanics helper
 validates that Character's current Campaign assignment using the Campaign owner, matching the existing
 persistence writer. It retains the authenticated initiator in Character and Encounter receipts. Token
@@ -329,10 +338,10 @@ issued evidence while subscriptions expose the latest published durable state.
 
 ## Ticket and authentication flow
 
-`liveSessions/tickets:issue` authorizes the current Campaign member and open Session before signing a
+`liveSessions/tickets:issue` authorizes the current ACTIVE Campaign member before signing a
 60-second HS256 ticket. The ticket issuer is `artificer-convex`; its subject, Campaign, Session, role,
 unique ticket ID, audience, version, issue time, and expiry are signed. A room consumes each ticket ID
-once and binds its persisted room identity to the exact Campaign and Session.
+once and binds its persisted room identity to the exact Campaign; the WebSocket path segment is the Campaign ID.
 
 The signing key is checked before reserving authority. An `ACTIVATING` reservation expires at the
 latest ticket expiry issued for that epoch; issuing another ticket extends that deadline without
@@ -372,8 +381,8 @@ authentication and Convex recaptures product authority before transient readines
 
 Lifecycle producers invalidate rooms immediately. Campaign leave/removal evicts that membership
 generation. Account deletion, auth-account suspension/deactivation, and administrative auth-session
-revocation evict the exact user from active rooms. Session finish and Campaign archive/delete close the
-affected rooms. Sign-out and password/security actions close the browser's live socket; a later explicit
+revocation evict the exact user from active rooms. Campaign archive/delete close the Campaign's room;
+finishing a Campaign Session does not affect live play. Sign-out and password/security actions close the browser's live socket; a later explicit
 reconnect authenticates normally when the underlying auth session remains valid. Social profile
 suspension is separate and continues to preserve Campaign access.
 
@@ -456,21 +465,21 @@ returns both values as null. Scene bindings and prepared Encounter decisions ret
 
 ## Configuration
 
-| Owner               | Name                              | Purpose                                                                                     |
-| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                             |
-| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                             |
-| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                                 |
-| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                                |
-| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                                  |
-| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                 |
-| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                          |
-| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker |
-| Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                           |
-| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                       |
-| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                         |
-| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching capture/hydrate caller secret                                                      |
-| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                            |
+| Owner               | Name                              | Purpose                                                                                           |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                                   |
+| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                                   |
+| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                                       |
+| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                                      |
+| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                                        |
+| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                       |
+| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                                |
+| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker       |
+| Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                                 |
+| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                             |
+| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                               |
+| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching capture/hydrate caller secret                                                            |
+| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                                  |
 | Convex + Worker     | `RULES_CONTINUATION_SECRET`       | At least 32-byte rules continuation sealing secret; identical on both sides, never sent over HTTP |
 
 Browser variables must never contain either secret. Staging and production bind each Worker to the

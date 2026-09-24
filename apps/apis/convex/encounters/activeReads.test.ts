@@ -1,15 +1,10 @@
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -41,11 +36,6 @@ import { internal } from '../_generated/api'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -77,16 +67,16 @@ const pending = makeFunctionReference<
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
-const sessionState = makeFunctionReference<
+const activeState = makeFunctionReference<
   'query',
-  { campaignId: string; sessionId: string },
+  { campaignId: string },
   EncounterSessionStateDto
->('encounters/sessionReads:active')
+>('encounters/activeReads:active')
 
 it('reads the active projection and pending decision together with existing visibility and membership rules', async () => {
   const base = await fixture()
   const campaign = await base.owner.caller.mutation(createCampaign, {
-    name: 'Session encounter read',
+    name: 'Campaign encounter read',
     format: 'ONGOING',
     toneTags: ['HEROIC'],
     contentMaturity: 'STANDARD',
@@ -114,11 +104,9 @@ it('reads the active projection and pending decision together with existing visi
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
-  const otherSession = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
-    name: 'Session encounter read',
+    name: 'Campaign encounter read',
     commandId: crypto.randomUUID(),
     enemies: [
       { kind: 'CREATURE', sourceId: wolf.id },
@@ -127,17 +115,16 @@ it('reads the active projection and pending decision together with existing visi
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const input = { campaignId: campaign.id, sessionId: session.id }
-  expect(await base.owner.caller.query(sessionState, input)).toEqual({
+  const input = { campaignId: campaign.id }
+  expect(await base.owner.caller.query(activeState, input)).toEqual({
     encounter: null,
     pending: null
   })
-  await expect(base.t.query(sessionState, input)).rejects.toThrow('Unauthenticated')
-  await expect(base.other.caller.query(sessionState, input)).rejects.toThrow('Campaign not found')
+  await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
+  await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
   await base.t.run((ctx) =>
     ctx.db.insert('campaignMemberships', {
       campaignId: campaign.id,
@@ -218,14 +205,14 @@ it('reads the active projection and pending decision together with existing visi
     })
   })
 
-  const ownerState = await base.owner.caller.query(sessionState, input)
+  const ownerState = await base.owner.caller.query(activeState, input)
   expect(ownerState).toEqual({
     encounter: await base.owner.caller.query(active, { campaignId: campaign.id }),
     pending: await base.owner.caller.query(pending, { encounterId: run.id })
   })
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
   expect(ownerState.pending).not.toBeNull()
-  const playerState = await base.other.caller.query(sessionState, input)
+  const playerState = await base.other.caller.query(activeState, input)
   expect(playerState).toEqual({
     encounter: await base.other.caller.query(active, { campaignId: campaign.id }),
     pending: await base.other.caller.query(pending, { encounterId: run.id })
@@ -234,12 +221,6 @@ it('reads the active projection and pending decision together with existing visi
   expect(playerState.encounter?.actors).toHaveLength(1)
   expect(JSON.stringify(playerState)).not.toContain('private encounter note')
   expect(JSON.stringify(playerState)).not.toContain(ownerState.encounter?.actors[1]?.id)
-  expect(
-    await base.owner.caller.query(sessionState, {
-      campaignId: campaign.id,
-      sessionId: otherSession.id
-    })
-  ).toEqual({ encounter: null, pending: null })
   await base.t.run(async (ctx) => {
     const membership = await ctx.db
       .query('campaignMemberships')
@@ -250,5 +231,5 @@ it('reads the active projection and pending decision together with existing visi
     if (!membership) throw new Error('Missing membership.')
     await ctx.db.patch(membership._id, { status: 'LEFT', leftAt: campaign.createdAt })
   })
-  await expect(base.other.caller.query(sessionState, input)).rejects.toThrow('Campaign not found')
+  await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
 }, 60000)

@@ -530,7 +530,6 @@ it('enforces token uniqueness within a Run and allows stable token identity acro
   expect(await snapshot(base)).toEqual(before)
   const second = await base.other.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.session.id,
     blueprintId: base.blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -603,7 +602,7 @@ it('rejects stale, divergent, missing and corrupt inputs and atomically rolls ba
   )!
   const invalidResult = {
     ...first,
-    projection: { ...first.projection, sessionId: crypto.randomUUID() }
+    projection: { ...first.projection, campaignId: crypto.randomUUID() }
   }
   await base.t.run((ctx) =>
     ctx.db.patch(receipt._id, {

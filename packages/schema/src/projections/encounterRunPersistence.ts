@@ -7,7 +7,6 @@ import { encounterCreatureEquipmentReplacementSchema } from './encounterCreature
 export const encounterStoredRunSchema = z.strictObject({
   id: postgresUuidSchema,
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   gameSystemId: postgresUuidSchema,
   status: z.enum(['PREPARED', 'ACTIVE', 'COMPLETED']),
   version: z.number().check(z.int()).check(z.nonnegative()),

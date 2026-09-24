@@ -1,7 +1,6 @@
 import { Button, Group, Text } from '@mantine/core'
 import { ExternalLink, Gamepad2 } from 'lucide-react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   buildTabletopHref,
   openAuxiliaryWindow,
@@ -9,14 +8,8 @@ import {
 } from './CampaignTabletopWindow.model'
 import * as styles from '../campaignSessions.css'
 
-export function CampaignTabletopLauncher({
-  campaign,
-  session
-}: {
-  campaign: CampaignDetailDto
-  session: CampaignSessionDto
-}) {
-  const href = buildTabletopHref(campaign.publicId, session.sessionNumber)
+export function CampaignTabletopLauncher({ campaign }: { campaign: CampaignDetailDto }) {
+  const href = buildTabletopHref(campaign.publicId)
 
   return (
     <section className={styles.sessionUtilityPanel} aria-labelledby='session-tabletop-title'>
@@ -29,7 +22,7 @@ export function CampaignTabletopLauncher({
             </Text>
           </Group>
           <Text c='dimmed' size='sm'>
-            Open the map in its own window so this Session workspace stays available.
+            Open the Campaign's live table in its own window so this workspace stays available.
           </Text>
         </div>
         <Button
@@ -38,9 +31,7 @@ export function CampaignTabletopLauncher({
           leftSection={<ExternalLink aria-hidden size={16} />}
           rel='noopener noreferrer'
           target='_blank'
-          onClick={(event) =>
-            openAuxiliaryWindow(event, tabletopWindowName(campaign.publicId, session.sessionNumber))
-          }
+          onClick={(event) => openAuxiliaryWindow(event, tabletopWindowName(campaign.publicId))}
         >
           Open tabletop window
         </Button>

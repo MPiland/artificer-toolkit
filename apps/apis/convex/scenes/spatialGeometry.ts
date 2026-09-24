@@ -38,11 +38,8 @@ export async function readSpatialSceneGeometry(
       ]
     : await ctx.db
         .query('encounterRuns')
-        .withIndex('by_campaignId_sessionId_status', (q) =>
-          q
-            .eq('campaignId', header.campaignId)
-            .eq('sessionId', save.sessionVision!.sessionId)
-            .eq('status', 'ACTIVE')
+        .withIndex('by_campaignId_status', (q) =>
+          q.eq('campaignId', header.campaignId).eq('status', 'ACTIVE')
         )
         .take(2)
   if (runs.length !== 1 || !runs[0])
@@ -51,7 +48,7 @@ export async function readSpatialSceneGeometry(
   if (
     state.status !== 'ACTIVE' ||
     state.campaignId !== header.campaignId ||
-    state.sessionId !== save.sessionVision.sessionId ||
+    state.campaignId !== save.sessionVision.campaignId ||
     state.gameSystemId !== save.sessionVision.systemId ||
     state.version !== save.input.expectedEncounterVersion
   )

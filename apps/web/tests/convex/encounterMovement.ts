@@ -51,7 +51,6 @@ export type EncounterMovementBrowserInput = {
   owner: EncounterMovementAccount
   player: EncounterMovementAccount
   campaign: { id: string; publicId: string }
-  session: { id: string; number: number }
   scene: { id: string; name: string; map: { width: number; height: number } }
   mover: {
     actorId: string
@@ -366,7 +365,7 @@ export async function verifyEncounterMovementBrowser(
   } finally {
     await browser.close()
     for (const diagnostic of abortedRequests.values()) diagnostics.push(diagnostic)
-    const tabletopPath = `/tabletop/campaigns/${encodeURIComponent(input.campaign.publicId)}/sessions/${input.session.number}`
+    const tabletopPath = `/tabletop/campaigns/${encodeURIComponent(input.campaign.publicId)}`
     const unexpectedDiagnostics = diagnostics.filter(
       (entry) => !isExpectedSceneLiveDiagnostic(entry, tabletopPath)
     )
@@ -404,10 +403,10 @@ async function openTabletop(
   session: { authenticated: boolean }
 ): Promise<void> {
   session.authenticated = false
-  await page.goto(
-    `${origin}/tabletop/campaigns/${encodeURIComponent(input.campaign.publicId)}/sessions/${input.session.number}`,
-    { waitUntil: 'domcontentloaded', timeout: 90_000 }
-  )
+  await page.goto(`${origin}/tabletop/campaigns/${encodeURIComponent(input.campaign.publicId)}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 90_000
+  })
   await expect.poll(() => session.authenticated).toBe(true)
   await waitForRouterIdle(page)
 }

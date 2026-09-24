@@ -668,9 +668,20 @@ describe('native Campaign custody deletion', () => {
       })
       for (const name of tableNames.filter((name) => name !== 'campaignDeletionJobs'))
         expect(after.tables[name], name).toEqual(expected[name])
+      // Archive always schedules the room close; its run state is the only scheduler change.
+      const roomControl = 'liveSessions/control:send'
       expect(
-        after.scheduled.filter((row) => !row.name?.startsWith('campaigns/deletionJobs:'))
-      ).toEqual(expectedSnapshot.scheduled)
+        after.scheduled.filter(
+          (row) => !row.name?.startsWith('campaigns/deletionJobs:') && row.name !== roomControl
+        )
+      ).toEqual(expectedSnapshot.scheduled.filter((row) => row.name !== roomControl))
+      expect(
+        after.scheduled.filter((row) => row.name === roomControl).map((row) => row.args)
+      ).toEqual(
+        status === 'ARCHIVED'
+          ? [[{ campaignId: target.id, operation: { type: 'CLOSE_ROOM' } }]]
+          : []
+      )
       expect(
         after.tables.accountUsageEntries?.filter(
           (row) =>

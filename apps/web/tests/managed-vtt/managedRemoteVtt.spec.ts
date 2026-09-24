@@ -342,7 +342,7 @@ async function resolveManagedPaths(page: Page, gm: ManagedClient): Promise<Manag
     throw new Error(`Managed smoke Campaign ${JSON.stringify(campaignName)} has no route identity.`)
   }
   const campaignPublicId = testId.slice('campaign-'.length)
-  const tabletop = `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}/sessions/1`
+  const tabletop = `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}`
   await openTabletop(gm, { tabletop })
   await expectManagedSocket(gm)
   const playCharacter = card.getByRole('button', { name: 'Play Character' })

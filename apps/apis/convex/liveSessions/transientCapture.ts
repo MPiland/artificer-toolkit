@@ -8,7 +8,6 @@ import {
 import type { Doc } from '../_generated/dataModel'
 import { internalQuery } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { readCompactScene } from '../scenes/recipientReads'
@@ -40,17 +39,13 @@ export const capture = internalQuery({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (userId !== input.expectedUserId || membership.role !== input.expectedRole)
       throw new Error('Live Session socket identity no longer matches its admission.')
-    const session = await requireSession(ctx, campaign.id, input.sessionId)
-    if (session.status !== 'OPEN') throw new Error('Live Session is not open.')
 
     const fullCapture = input.mode !== 'AUTHORITY'
     if (fullCapture) await assertSceneVisionCharacters(ctx, input.observedCharacterRevisions)
 
     const presentation = await ctx.db
       .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-      )
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
       .unique()
     const scene =
       presentation?.sceneId === null || presentation === null
@@ -99,7 +94,7 @@ export const capture = internalQuery({
       observedCharacterRevisions: input.observedCharacterRevisions,
       origin,
       presentation: presentation
-        ? { sceneId: presentation.sceneId, sessionId: session.id, version: presentation.version }
+        ? { campaignId: campaign.id, sceneId: presentation.sceneId, version: presentation.version }
         : null,
       recipients: recipients.filter(
         (recipient): recipient is LiveSessionTransientMember => recipient !== null
@@ -107,12 +102,10 @@ export const capture = internalQuery({
       sceneEncounterBound,
       sceneHeader: scene?.header ?? null,
       ...(sceneSnapshot === undefined ? {} : { sceneSnapshot }),
-      session: { id: session.id, version: session.version },
       visionFreshness:
         fullCapture && scene
           ? await readSceneVisionFreshness(ctx, {
               campaignId: campaign.id,
-              sessionId: session.id,
               systemId: campaign.gameSystemId
             })
           : null

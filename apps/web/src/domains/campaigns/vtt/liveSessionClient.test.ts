@@ -11,7 +11,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
-const sessionId = '00000000-0000-4000-8000-000000000002'
 const sceneId = '00000000-0000-4000-8000-000000000003'
 const userId = '00000000-0000-4000-8000-000000000004'
 const authorityEpoch = '00000000-0000-4000-8000-000000000006'
@@ -139,38 +138,36 @@ describe('live-session browser connection', () => {
       },
       onStatus: (status) => statuses.push(status),
       onTransient: (message) => transients.push(message),
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const socket = FakeSocket.instances[0]!
-    expect(socket.url).toBe(`wss://live.example.test/live-session/${sessionId}`)
+    expect(socket.url).toBe(`wss://live.example.test/live-session/${campaignId}`)
     expect(socket.protocols).toEqual(['artificer.live-session.v1', 'artificer.ticket.ticket-1'])
     socket.open()
     await vi.waitFor(() =>
       expect(socket.sent).toEqual(['{"accessToken":"access-token","type":"AUTHENTICATE"}'])
     )
     expect(statuses).not.toContain('CONNECTED')
-    connection.synchronizeScene(sceneId, 7, 3, 11)
+    connection.synchronizeScene(sceneId, 7, 11)
     expect(socket.sent).toHaveLength(1)
     expect(connection.sendTransient(envelope)).toBe(false)
     expect(socket.sent).toHaveLength(1)
 
-    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(statuses.at(-1)).toBe('CONNECTED')
     expect(JSON.parse(socket.sent[1]!) as unknown).toEqual({
       expectedPresentationVersion: 11,
-      expectedSessionVersion: 3,
       sceneId,
       type: 'SYNCHRONIZE_SCENE',
       version: 7
     })
-    connection.synchronizeScene(sceneId, 7, 3, 11)
+    connection.synchronizeScene(sceneId, 7, 11)
     expect(socket.sent).toHaveLength(2)
-    connection.synchronizeScene(sceneId, 7, 3, 12)
+    connection.synchronizeScene(sceneId, 7, 12)
     expect(JSON.parse(socket.sent[2]!) as unknown).toEqual({
       expectedPresentationVersion: 12,
-      expectedSessionVersion: 3,
       sceneId,
       type: 'SYNCHRONIZE_SCENE',
       version: 7
@@ -197,14 +194,14 @@ describe('live-session browser connection', () => {
       onError: (error) => errors.push(error),
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const socket = FakeSocket.instances[0]!
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
-    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(connection.sendCommand(command)).toBe(false)
 
     socket.receive({
@@ -294,15 +291,15 @@ describe('live-session browser connection', () => {
       },
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const socket = FakeSocket.instances[0]!
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
-    connection.synchronizeScene(sceneId, sceneState.version, 3, 11)
-    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    connection.synchronizeScene(sceneId, sceneState.version, 11)
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     socket.receive({
       authorityEpoch,
       sequence: 4,
@@ -338,7 +335,7 @@ describe('live-session browser connection', () => {
     const beforeRenewedReadiness = socket.sent.length
     expect(connection.sendTransient(envelope)).toBe(false)
     expect(socket.sent).toHaveLength(beforeRenewedReadiness)
-    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(connection.sendTransient(envelope)).toBe(true)
     expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
     const beforeUnsynchronizedState = socket.sent.length
@@ -404,14 +401,14 @@ describe('live-session browser connection', () => {
       onError: (error) => errors.push(error),
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const socket = FakeSocket.instances[0]!
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
-    socket.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     socket.receive({
       authorityEpoch,
       sequence: 4,
@@ -498,7 +495,6 @@ describe('live-session browser connection', () => {
     expect(
       liveSessionWebSocketClientMessageDtoSchema.safeParse({
         expectedPresentationVersion: 2,
-        expectedSessionVersion: 3,
         sceneId,
         type: 'SYNCHRONIZE_SCENE',
         version: 0
@@ -507,7 +503,6 @@ describe('live-session browser connection', () => {
     expect(
       liveSessionWebSocketClientMessageDtoSchema.safeParse({
         expectedPresentationVersion: 2,
-        expectedSessionVersion: 3,
         sceneId,
         type: 'SYNCHRONIZE_SCENE',
         version: -1
@@ -516,7 +511,6 @@ describe('live-session browser connection', () => {
     expect(
       liveSessionWebSocketClientMessageDtoSchema.safeParse({
         expectedPresentationVersion: 2,
-        expectedSessionVersion: 3,
         extra: true,
         sceneId,
         type: 'SYNCHRONIZE_SCENE',
@@ -540,7 +534,7 @@ describe('live-session browser connection', () => {
       },
       onStatus: (status) => statuses.push(status),
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
@@ -571,7 +565,7 @@ describe('live-session browser connection', () => {
       },
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
@@ -599,14 +593,14 @@ describe('live-session browser connection', () => {
       onError: () => undefined,
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
     const first = FakeSocket.instances[0]!
     first.open()
     await vi.waitFor(() => expect(first.sent).toHaveLength(1))
-    first.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    first.receive({ campaignId, type: 'TRANSIENT_READY' })
     first.receive({ authorityEpoch, sequence: 4, state: recipientState, type: 'STATE_SYNC' })
     const committed = connection.submitCommand(command)
     expect(JSON.parse(first.sent.at(-1)!) as unknown).toEqual({
@@ -621,7 +615,7 @@ describe('live-session browser connection', () => {
     expect(second.protocols[1]).toBe('artificer.ticket.ticket-2')
     second.open()
     await vi.waitFor(() => expect(second.sent).toHaveLength(1))
-    second.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    second.receive({ campaignId, type: 'TRANSIENT_READY' })
     second.receive({
       authorityEpoch,
       sequence: 5,
@@ -646,7 +640,7 @@ describe('live-session browser connection', () => {
     expect(third.protocols[1]).toBe('artificer.ticket.ticket-3')
     third.open()
     await vi.waitFor(() => expect(third.sent).toHaveLength(1))
-    third.receive({ campaignId, sessionId, type: 'TRANSIENT_READY' })
+    third.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(JSON.parse(third.sent[1]!) as unknown).toEqual({
       lastAppliedSequence: 8,
       type: 'RESUME'
@@ -664,7 +658,7 @@ describe('live-session browser connection', () => {
       onError,
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
 
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
@@ -693,7 +687,7 @@ describe('live-session browser connection', () => {
       onError: invalidError,
       onStatus: () => undefined,
       onTransient: () => undefined,
-      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
     })
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
     const invalidSocket = FakeSocket.instances[1]!
@@ -711,7 +705,7 @@ describe('live-session browser connection', () => {
   })
 
   it('rejects unsupported endpoint protocols before connecting', () => {
-    expect(() => resolveLiveSessionWebSocketUrl('ftp://live.example.test', sessionId)).toThrow(
+    expect(() => resolveLiveSessionWebSocketUrl('ftp://live.example.test', campaignId)).toThrow(
       'Live-session URL must use ws, wss, http, or https.'
     )
   })

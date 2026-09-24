@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -33,11 +28,6 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -212,7 +202,6 @@ describe('native initiative corrections', () => {
       initiativePolicyDefinitionId: null,
       initiativeTieDefinitionId: null
     })
-    const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
     const blueprint = await base.owner.caller.mutation(createBlueprint, {
       gameSystemId: campaign.gameSystemId,
       name: 'Two actors',
@@ -224,7 +213,6 @@ describe('native initiative corrections', () => {
     })
     const run = await base.owner.caller.mutation(createRun, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

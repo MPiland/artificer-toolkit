@@ -15,16 +15,11 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
-import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { z } from 'zod'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
@@ -35,11 +30,6 @@ import { createActiveRuleEffectStore } from './effectStore'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -163,20 +153,6 @@ async function fixture() {
       assignedAt: campaign.createdAt
     })
   })
-  const session = await base.other.caller.mutation(createSession, { campaignId: campaign.id })
-  await base.t.run(async (ctx) => {
-    const attendance = await ctx.db
-      .query('campaignSessionAttendance')
-      .withIndex('by_campaignId_sessionId_characterId', (q) =>
-        q
-          .eq('campaignId', campaign.id)
-          .eq('sessionId', session.id)
-          .eq('characterId', base.character.id)
-      )
-      .unique()
-    if (!attendance) throw new Error('Missing fixture attendance.')
-    await ctx.db.patch(attendance._id, { present: true })
-  })
   const blueprint = await base.other.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Effect store fixture',
@@ -185,7 +161,6 @@ async function fixture() {
   })
   const run = await base.other.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

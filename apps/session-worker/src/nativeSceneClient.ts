@@ -42,8 +42,7 @@ function authority(capture: LiveSessionTransientCapture): LiveSessionTransientHy
   return {
     campaignId: capture.campaignId,
     expectedRole: capture.origin.role,
-    expectedUserId: capture.origin.userId,
-    sessionId: capture.session.id
+    expectedUserId: capture.origin.userId
   }
 }
 
@@ -105,12 +104,10 @@ function sameScope(left: SceneSessionVisionScope, right: SceneSessionVisionScope
     left.systemId === right.systemId &&
     left.sceneId === right.sceneId &&
     left.expectedSceneVersion === right.expectedSceneVersion &&
-    left.sessionId === right.sessionId &&
-    left.expectedSessionVersion === right.expectedSessionVersion &&
     left.expectedPresentationVersion === right.expectedPresentationVersion &&
     left.freshness.system === right.freshness.system &&
     left.freshness.campaign === right.freshness.campaign &&
-    left.freshness.session === right.freshness.session
+    left.freshness.play === right.freshness.play
   )
 }
 
@@ -250,10 +247,8 @@ async function loadVision(
     campaignId: capture.campaignId,
     expectedPresentationVersion: presentation.version,
     expectedSceneVersion: header.version,
-    expectedSessionVersion: capture.session.version,
     freshness,
     sceneId: header.id,
-    sessionId: capture.session.id,
     systemId: capture.systemId
   }
   const selectedTokens = new Set(

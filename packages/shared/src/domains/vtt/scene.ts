@@ -283,12 +283,6 @@ export interface SceneEvent {
   version: number
 }
 
-export interface SceneSnapshot {
-  campaignId: string
-  scene: CampaignSceneState
-  sessionId: string
-}
-
 export type SceneTransientEnvelope =
   | {
       baselineVersion: number

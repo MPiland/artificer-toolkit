@@ -1377,7 +1377,7 @@ export const removeFixtureState = internalMutation({
         .first(),
       ctx.db
         .query('encounterRuns')
-        .withIndex('by_campaignId_sessionId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
+        .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
         .first(),
       ctx.db
         .query('campaignContentShares')
@@ -1405,7 +1405,7 @@ export const removeFixtureState = internalMutation({
         .first(),
       ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) => q.eq('campaignId', campaign.id))
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .first()
     ])
     if (residualDependencies.some((row) => row !== null))

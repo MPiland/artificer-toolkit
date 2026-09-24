@@ -1,6 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput,
@@ -11,10 +10,6 @@ import {
   type CampaignPlaySettingsOptionsDto,
   type SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaignSettings'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -57,11 +52,6 @@ const save = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -192,7 +182,6 @@ async function frozenOptionalRun(
     ...input(settings),
     optionalCombatRuleDefinitionIds: [optionalId]
   })
-  const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Frozen policy fixture',
@@ -201,7 +190,6 @@ async function frozenOptionalRun(
   })
   const run = await owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -209,7 +197,7 @@ async function frozenOptionalRun(
     ...input(selected),
     optionalCombatRuleDefinitionIds: []
   })
-  return { ...base, campaign: updated, run, session, contentSourceId }
+  return { ...base, campaign: updated, run, contentSourceId }
 }
 
 async function optionalCatalogue(base: Awaited<ReturnType<typeof setup>>) {
@@ -479,7 +467,6 @@ describe('native Campaign play settings', () => {
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id
     })
-    const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
     const blueprint = await owner.caller.mutation(createBlueprint, {
       gameSystemId: campaign.gameSystemId,
       name: 'Frozen initiative fixture',
@@ -488,7 +475,6 @@ describe('native Campaign play settings', () => {
     })
     await owner.caller.mutation(createRun, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

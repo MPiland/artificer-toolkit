@@ -1,9 +1,5 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
-import {
-  liveSessionEncounterConcentrationCommitInputSchema,
-  type LiveSessionEncounterConcentrationCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
+import { v } from 'convex/values'
+import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
@@ -35,12 +31,10 @@ import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 
 /** Commits one admitted child, its cleanup, receipt and next decision in the same transaction. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commit = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterConcentrationCommitInput>>(
-    liveSessionEncounterConcentrationCommitInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema),
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterConcentrationCommitInputSchema.parse(args)
     const admission = await readLiveConcentrationResponseAdmission(ctx, input)
     // The successful write consumed these versions; an exact retry must return before checking them.
@@ -207,7 +201,6 @@ export const commit = internalMutation({
     await assertLiveSessionRulesRevisions(ctx, input.revisions, {
       systemId: state.gameSystemId,
       campaignId: state.campaignId,
-      sessionId: state.sessionId,
       characterIds: [...characterIds]
     })
     let actors = admission.actors

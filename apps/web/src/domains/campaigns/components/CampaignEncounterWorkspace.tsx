@@ -41,13 +41,11 @@ export function CampaignEncounterWorkspace({
   campaign,
   currentUserId,
   encounter,
-  sessionOpen,
   onUpdated
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
   encounter: EncounterGmProjectionDto
-  sessionOpen: boolean
   onUpdated: (encounter: EncounterGmProjectionDto) => void
 }) {
   const queryClient = useQueryClient()
@@ -62,7 +60,8 @@ export function CampaignEncounterWorkspace({
     encounter.status === 'PREPARED' &&
     encounter.rulePackRevisionId === null &&
     encounter.actors.every((actor) => actor.systemId === null)
-  const systems = useSystemList(needsExplicitSystem && campaign.role === 'OWNER' && sessionOpen)
+  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const systems = useSystemList(needsExplicitSystem && canManage)
   const [openedActorId, setOpenedActorId] = useState<string | null>(
     encounter.currentActorId ??
       encounter.actors.find((actor) => actor.initiative === null)?.id ??
@@ -96,7 +95,6 @@ export function CampaignEncounterWorkspace({
       onUpdated(updated)
     }
   })
-  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE' && sessionOpen
   const readOnly = !canManage || encounter.status === 'COMPLETED'
   const pendingDecision = useQuery({
     ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {

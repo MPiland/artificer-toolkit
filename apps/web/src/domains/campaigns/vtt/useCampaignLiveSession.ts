@@ -21,13 +21,11 @@ const localSessionHostUrl = 'ws://127.0.0.1:8787'
 export function useCampaignLiveSession({
   campaignId,
   enabled,
-  onTransient,
-  sessionId
+  onTransient
 }: {
   campaignId: string
   enabled: boolean
   onTransient: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
-  sessionId: string
 }) {
   const connection = useRef<LiveSessionConnection | null>(null)
   const onTransientRef = useRef(onTransient)
@@ -65,7 +63,7 @@ export function useCampaignLiveSession({
         if (!accessToken) throw new Error('Unable to authenticate live play.')
         return accessToken
       },
-      getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId, sessionId }),
+      getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
       onError: (nextError) => setError(nextError.message),
       onCommandRejected: setRejection,
       onDurableState: (state) => {
@@ -75,14 +73,14 @@ export function useCampaignLiveSession({
       },
       onStatus: setStatus,
       onTransient: (message) => onTransientRef.current(message),
-      url: resolveLiveSessionWebSocketUrl(configuredUrl, sessionId)
+      url: resolveLiveSessionWebSocketUrl(configuredUrl, campaignId)
     })
     connection.current = liveConnection
     return () => {
       if (connection.current === liveConnection) connection.current = null
       liveConnection.close()
     }
-  }, [campaignId, convex, enabled, sessionId])
+  }, [campaignId, convex, enabled])
 
   const sendCommand = useCallback(
     (command: LiveSessionCommandDto): Promise<LiveSessionCommandCommit> => {
@@ -97,18 +95,8 @@ export function useCampaignLiveSession({
     return connection.current?.sendTransient(envelope) ?? false
   }, [])
   const synchronizeScene = useCallback(
-    (
-      sceneId: string,
-      version: number,
-      expectedSessionVersion: number,
-      expectedPresentationVersion: number
-    ) => {
-      connection.current?.synchronizeScene(
-        sceneId,
-        version,
-        expectedSessionVersion,
-        expectedPresentationVersion
-      )
+    (sceneId: string, version: number, expectedPresentationVersion: number) => {
+      connection.current?.synchronizeScene(sceneId, version, expectedPresentationVersion)
     },
     []
   )

@@ -23,7 +23,7 @@ import { internalMutation, mutation } from '../lib/mutations'
 import { advanceLiveState, readLiveScene } from './liveDocuments'
 import { parseFogCommand, parseFogSave, readFogSave } from './fogDocuments'
 import { publishFogLayer } from './fogPublication'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
 const cleanupReference = makeFunctionReference<'mutation', { saveId: string }, null>(
@@ -46,9 +46,6 @@ function normalizeBegin(input: SceneFogPatchInput): SceneFogPatchInput {
     ...input,
     sceneId: input.sceneId.toLowerCase(),
     commandId: input.commandId.toLowerCase(),
-    ...(input.session
-      ? { session: { ...input.session, sessionId: input.session.sessionId.toLowerCase() } }
-      : {}),
     layer: {
       ...input.layer,
       ownerUserId: input.layer.ownerUserId?.toLowerCase() ?? null
@@ -64,22 +61,16 @@ function assertActive(campaign: { status: string }) {
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
 }
 
-async function assertFogSession(
+async function assertFogPresentation(
   ctx: MutationCtx,
   campaignId: string,
   input: SceneFogPatchInput,
   replayed: boolean
 ): Promise<void> {
-  if (!input.session) return
-  const current = await readPresentedVisionSession(ctx, {
-    campaignId,
-    sceneId: input.sceneId,
-    sessionId: input.session.sessionId
-  })
+  if (!input.presentation) return
+  const current = await readPresentedVisionScene(ctx, { campaignId, sceneId: input.sceneId })
   if (replayed) return
-  if (current.session.version !== input.session.expectedSessionVersion)
-    throw new Error('Scene vision Session is not current and open.')
-  if (current.presentation.version !== input.session.expectedPresentationVersion)
+  if (current.presentation.version !== input.presentation.expectedPresentationVersion)
     throw new Error('Scene vision presentation is stale.')
 }
 async function exactBatchReplay(
@@ -145,7 +136,7 @@ export const begin = mutation({
         q.eq('sceneId', header.id).eq('commandId', input.commandId)
       )
       .unique()
-    await assertFogSession(ctx, campaign.id, input, priorCommand !== null)
+    await assertFogPresentation(ctx, campaign.id, input, priorCommand !== null)
     if (priorCommand) {
       if (priorCommand.encoding !== 'FOG_PATCH')
         throw new Error('Scene command ID was already used.')
@@ -210,7 +201,7 @@ export const append = mutation({
     if (save.geometrySaveId) throw new Error('Derived Scene fog saves cannot be changed manually.')
     assertActive(campaign)
     if (save.actorUserId !== userId) throw new Error('Scene fog save is unavailable.')
-    await assertFogSession(ctx, campaign.id, save.input, save.status === 'PUBLISHED')
+    await assertFogPresentation(ctx, campaign.id, save.input, save.status === 'PUBLISHED')
     validateAppend(save, input)
     const replay = await exactBatchReplay(ctx, save, input)
     if (save.status === 'PUBLISHED') {
@@ -258,7 +249,7 @@ export const publish = mutation({
         q.eq('sceneId', header.id).eq('commandId', save.commandId)
       )
       .unique()
-    await assertFogSession(ctx, campaign.id, save.input, priorRow !== null)
+    await assertFogPresentation(ctx, campaign.id, save.input, priorRow !== null)
     if (priorRow) {
       if (priorRow.encoding !== 'FOG_PATCH') throw new Error('Scene command ID was already used.')
       const prior = parseFogCommand(priorRow, header.version)

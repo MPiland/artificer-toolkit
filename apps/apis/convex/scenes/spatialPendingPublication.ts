@@ -150,7 +150,7 @@ export async function publishSpatialPending<TSettlement>(
   if (
     !save.sessionVision ||
     state.campaignId !== campaign.id ||
-    state.sessionId !== save.sessionVision.sessionId ||
+    state.campaignId !== save.sessionVision.campaignId ||
     state.gameSystemId !== save.sessionVision.systemId
   )
     throw new Error('Spatial pending Encounter scope is stale.')

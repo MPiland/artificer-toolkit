@@ -144,7 +144,6 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     owner: clients.owner,
     player: clients.player,
     campaignId: campaign.id,
-    session: result.session,
     blueprint: result.blueprint,
     characterId: character.id,
     policies,

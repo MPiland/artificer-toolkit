@@ -66,13 +66,11 @@ export async function readNativeEncounterCommandReplay(
   {
     input,
     row,
-    campaign,
-    session
+    campaign
   }: {
     input: Exclude<EncounterCommandInputDto, { type: 'CREATE' }>
     row: Doc<'encounterRuns'>
     campaign: Doc<'campaigns'>
-    session: Doc<'campaignSessions'>
   }
 ): Promise<{ fingerprint: string; result: EncounterCommandResultDto | null }> {
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
@@ -98,7 +96,6 @@ export async function readNativeEncounterCommandReplay(
       checksumCanonicalJson(result) !== prior.resultChecksum ||
       projection.id !== row.id ||
       projection.campaignId !== campaign.id ||
-      projection.sessionId !== session.id ||
       projection.gameSystemId !== campaign.gameSystemId ||
       projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||

@@ -29,7 +29,7 @@ async function preparation(
   return base.owner.caller.run(async (ctx) => {
     const valueOccurrenceId = crypto.randomUUID()
     const { save } = await readGeometrySave(ctx, saveId)
-    const { session } = await readSessionVisionScope(ctx, save.sessionVision!)
+    const { presentation } = await readSessionVisionScope(ctx, save.sessionVision!)
     return {
       encounterId: base.run.id,
       expectedEncounterVersion: value.input.expectedEncounterVersion!,
@@ -51,7 +51,7 @@ async function preparation(
           reactionExecutions: [],
           terminalPosition: { x: 10, y: 0 }
         }),
-        selectionChecksum: checksumCanonicalJson({ session: session.id }),
+        selectionChecksum: checksumCanonicalJson({ presentation: presentation.version }),
         currentnessChecksum: checksumCanonicalJson({ scene: save.snapshotVersion })
       }
     } satisfies SceneSpatialPreparation
@@ -202,7 +202,7 @@ describe('spatial preparation persistence', () => {
     ).rejects.toThrow('Spatial pending preparation identity is inconsistent.')
   })
 
-  it.each(['actor', 'run', 'binding', 'session', 'scene', 'expired', 'fog'] as const)(
+  it.each(['actor', 'run', 'binding', 'presentation', 'scene', 'expired', 'fog'] as const)(
     'rejects a stale %s fence without retaining evidence',
     async (fence) => {
       const value = await setup()
@@ -227,12 +227,10 @@ describe('spatial preparation persistence', () => {
             .unique()
           if (!row) throw new Error('Fixture binding missing')
           await ctx.db.patch(row._id, { sceneId: crypto.randomUUID() })
-        } else if (fence === 'session') {
+        } else if (fence === 'presentation') {
           const row = await ctx.db
             .query('campaignScenePresentations')
-            .withIndex('by_campaignId_sessionId', (q) =>
-              q.eq('campaignId', value.base.campaign.id).eq('sessionId', value.base.session.id)
-            )
+            .withIndex('by_campaignId', (q) => q.eq('campaignId', value.base.campaign.id))
             .unique()
           if (!row) throw new Error('Fixture presentation missing')
           await ctx.db.patch(row._id, { version: row.version + 1 })
@@ -254,7 +252,7 @@ describe('spatial preparation persistence', () => {
         actor: 'Scene geometry save is unavailable or expired.',
         run: 'Spatial preparation Encounter scope is stale.',
         binding: 'Spatial preparation Scene binding is stale.',
-        session: 'Scene vision presentation is stale.',
+        presentation: 'Scene vision presentation is stale.',
         scene: 'Scene changed before geometry publication.',
         expired: 'Scene geometry save is unavailable or expired.',
         fog: 'Spatial preparation must precede fog staging.'

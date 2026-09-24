@@ -294,9 +294,6 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })
-  const session = await fixture.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: fixture.campaign.id
-  })
   const blueprint = await fixture.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: fixture.campaign.gameSystemId,
     name: 'V15 movement receipt proof',
@@ -309,7 +306,6 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
   const run = encounterGmProjectionDtoSchema.parse(
     await fixture.owner.caller.mutation(api.encounters.runs.create, {
       campaignId: fixture.campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -317,6 +313,27 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
   const [reactor, mover] = run.actors
   if (!reactor || !mover) throw new Error('Missing V15 movement actors.')
   await fixture.t.run(async (ctx) => {
+    // A Campaign has one ACTIVE Run, so retire the fixture Run before activating this proof Run.
+    const fixtureRunRow = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
+      .unique()
+    if (!fixtureRunRow) throw new Error('Missing fixture Run.')
+    const completed = encounterRunStateSchema.parse({
+      ...JSON.parse(fixtureRunRow.stateJson),
+      status: 'COMPLETED'
+    })
+    const completedProjection = encounterGmProjectionDtoSchema.parse({
+      ...JSON.parse(fixtureRunRow.projectionJson),
+      status: 'COMPLETED'
+    })
+    await ctx.db.patch(fixtureRunRow._id, {
+      status: 'COMPLETED',
+      stateJson: JSON.stringify(completed),
+      stateChecksum: checksumCanonicalJson(completed),
+      projectionJson: JSON.stringify(completedProjection),
+      projectionChecksum: checksumCanonicalJson(completedProjection)
+    })
     const runRow = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', run.id))

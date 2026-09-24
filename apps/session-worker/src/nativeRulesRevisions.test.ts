@@ -10,7 +10,6 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 
 const systemId = '00000000-0000-4000-8000-000000000001'
 const campaignId = '00000000-0000-4000-8000-000000000002'
-const sessionId = '00000000-0000-4000-8000-000000000003'
 const firstRevision = '00000000-0000-4000-8000-000000000004'
 const secondRevision = '00000000-0000-4000-8000-000000000005'
 const characterId = '00000000-0000-4000-8000-000000000006'
@@ -18,7 +17,7 @@ const characterId = '00000000-0000-4000-8000-000000000006'
 const base: LiveSessionRulesRevisions = [
   { scope: 'SYSTEM', id: systemId, revision: firstRevision },
   { scope: 'CAMPAIGN', id: campaignId, revision: null },
-  { scope: 'SESSION', id: sessionId, revision: firstRevision }
+  { scope: 'PLAY', id: campaignId, revision: firstRevision }
 ]
 
 describe('native rules revisions', () => {

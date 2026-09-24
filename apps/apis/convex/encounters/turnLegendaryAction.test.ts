@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -85,11 +80,6 @@ const rechargeChargeId = '00000000-0000-4000-8000-000000000a22'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -394,7 +384,6 @@ async function setup(
       leftAt: null
     })
   )
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Legendary turn fixture',
@@ -406,7 +395,6 @@ async function setup(
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -1080,7 +1068,6 @@ describe('private DO turn Legendary Action response', () => {
     await base.t.run((ctx) =>
       insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         epoch,
         createdAt: base.campaign.createdAt
       })
@@ -1111,7 +1098,6 @@ describe('private DO turn Legendary Action response', () => {
     })
     const scope = {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       authorityEpoch: epoch,
       expectedUserId: base.owner.userId,
       expectedRole: 'OWNER' as const,
@@ -1366,7 +1352,6 @@ describe('private DO turn Legendary Action response', () => {
     await base.t.run((ctx) =>
       insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         epoch,
         createdAt: base.campaign.createdAt
       })
@@ -1387,7 +1372,6 @@ describe('private DO turn Legendary Action response', () => {
     })
     const scope = {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       authorityEpoch: epoch,
       expectedUserId: base.owner.userId,
       expectedRole: 'OWNER' as const,

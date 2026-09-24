@@ -4,12 +4,12 @@ import { expect, it } from 'vitest'
 import schema from '../schema'
 import { withSceneVisionTracking } from './mutations'
 
-it('refreshes only the owning Character or Session revision for Rule Effect and occurrence changes', async () => {
+it('refreshes only the owning Character or Campaign play revision for Rule Effect and occurrence changes', async () => {
   const t = convexTest(schema)
   const characterId = crypto.randomUUID()
   const otherCharacterId = crypto.randomUUID()
-  const sessionId = crypto.randomUUID()
-  const otherSessionId = crypto.randomUUID()
+  const campaignId = crypto.randomUUID()
+  const otherCampaignId = crypto.randomUUID()
   const encounterId = crypto.randomUUID()
   const now = new Date().toISOString()
   const checksum = 'a'.repeat(64)
@@ -17,8 +17,7 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
   await t.run(async (ctx) => {
     await ctx.db.insert('encounterRuns', {
       id: encounterId,
-      campaignId: crypto.randomUUID(),
-      sessionId,
+      campaignId,
       gameSystemId: crypto.randomUUID(),
       status: 'ACTIVE',
       version: 0,
@@ -32,8 +31,8 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
     for (const [scope, id] of [
       ['CHARACTER', characterId],
       ['CHARACTER', otherCharacterId],
-      ['SESSION', sessionId],
-      ['SESSION', otherSessionId]
+      ['PLAY', campaignId],
+      ['PLAY', otherCampaignId]
     ] as const) {
       await ctx.db.insert('sceneVisionRevisions', { scope, id, revision: crypto.randomUUID() })
     }
@@ -42,7 +41,7 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
   await t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
     const revisions = async () => {
-      const read = async (scope: 'CHARACTER' | 'SESSION', id: string) =>
+      const read = async (scope: 'CHARACTER' | 'PLAY', id: string) =>
         (
           await ctx.db
             .query('sceneVisionRevisions')
@@ -52,15 +51,15 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
       return {
         character: await read('CHARACTER', characterId),
         otherCharacter: await read('CHARACTER', otherCharacterId),
-        session: await read('SESSION', sessionId),
-        otherSession: await read('SESSION', otherSessionId)
+        play: await read('PLAY', campaignId),
+        otherPlay: await read('PLAY', otherCampaignId)
       }
     }
-    const check = async <T>(owner: 'character' | 'session', write: () => Promise<T>) => {
+    const check = async <T>(owner: 'character' | 'play', write: () => Promise<T>) => {
       const before = await revisions()
       const result = await write()
       const after = await revisions()
-      for (const key of ['character', 'otherCharacter', 'session', 'otherSession'] as const) {
+      for (const key of ['character', 'otherCharacter', 'play', 'otherPlay'] as const) {
         if (key === owner) expect(after[key]).not.toBe(before[key])
         else expect(after[key]).toBe(before[key])
       }
@@ -89,7 +88,7 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
     await check('character', () => ctx.db.patch(characterEffectId, { version: 2 }))
     await check('character', () => ctx.db.delete(characterEffectId))
 
-    const encounterEffectId = await check('session', () =>
+    const encounterEffectId = await check('play', () =>
       ctx.db.insert('encounterActiveRuleEffects', {
         ...effect,
         id: crypto.randomUUID(),
@@ -98,10 +97,10 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
         targetActorId: crypto.randomUUID()
       })
     )
-    await check('session', () => ctx.db.patch(encounterEffectId, { version: 2 }))
-    await check('session', () => ctx.db.delete(encounterEffectId))
+    await check('play', () => ctx.db.patch(encounterEffectId, { version: 2 }))
+    await check('play', () => ctx.db.delete(encounterEffectId))
 
-    const maintainedId = await check('session', () =>
+    const maintainedId = await check('play', () =>
       ctx.db.insert('encounterMaintainedEffectStates', {
         id: crypto.randomUUID(),
         encounterId,
@@ -114,10 +113,10 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
         updatedAt: now
       })
     )
-    await check('session', () => ctx.db.patch(maintainedId, { version: 2 }))
-    await check('session', () => ctx.db.delete(maintainedId))
+    await check('play', () => ctx.db.patch(maintainedId, { version: 2 }))
+    await check('play', () => ctx.db.delete(maintainedId))
 
-    const spatialId = await check('session', () =>
+    const spatialId = await check('play', () =>
       ctx.db.insert('encounterSpatialRuleEffects', {
         ...effect,
         id: crypto.randomUUID(),
@@ -142,13 +141,13 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
         spatialStateChecksum: checksum
       })
     )
-    await check('session', () => ctx.db.patch(spatialId, { version: 2 }))
-    await check('session', () => ctx.db.delete(spatialId))
+    await check('play', () => ctx.db.patch(spatialId, { version: 2 }))
+    await check('play', () => ctx.db.delete(spatialId))
 
-    const occurrenceId = await check('session', () =>
+    const occurrenceId = await check('play', () =>
       ctx.db.insert('encounterRuleOccurrences', {
         id: crypto.randomUUID(),
-        campaignId: crypto.randomUUID(),
+        campaignId,
         encounterId,
         rootCommandId: crypto.randomUUID(),
         state: 'PENDING',
@@ -161,7 +160,7 @@ it('refreshes only the owning Character or Session revision for Rule Effect and 
         updatedAt: now
       })
     )
-    await check('session', () => ctx.db.patch(occurrenceId, { version: 1 }))
-    await check('session', () => ctx.db.delete(occurrenceId))
+    await check('play', () => ctx.db.patch(occurrenceId, { version: 1 }))
+    await check('play', () => ctx.db.delete(occurrenceId))
   })
 })

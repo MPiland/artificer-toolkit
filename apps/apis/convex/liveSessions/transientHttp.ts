@@ -113,16 +113,13 @@ function requireVisionFence(
     !freshness ||
     request.campaignId !== captureResult.campaignId ||
     request.systemId !== captureResult.systemId ||
-    request.sessionId !== captureResult.session.id ||
-    request.expectedSessionVersion !== captureResult.session.version ||
-    presentation.sessionId !== request.sessionId ||
     presentation.version !== request.expectedPresentationVersion
   )
     throw new Error('Scene vision snapshot is stale.')
   if (
     request.freshness.system !== freshness.system ||
     request.freshness.campaign !== freshness.campaign ||
-    request.freshness.session !== freshness.session
+    request.freshness.play !== freshness.play
   )
     throw new Error('Scene vision snapshot is stale.')
   return header

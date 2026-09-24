@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -68,11 +63,6 @@ import {
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -184,7 +174,6 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Action admission fixture',
@@ -198,7 +187,6 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -272,14 +260,12 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: session.id,
       epoch: authorityEpoch,
       createdAt: campaign.createdAt
     })
   )
   const scope = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER' as const,

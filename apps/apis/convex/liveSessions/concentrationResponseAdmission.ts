@@ -25,7 +25,6 @@ export async function readLiveConcentrationResponseAdmission(
     throw new Error('Live Session concentration response scope mismatch.')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
-    sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
   const admission = await readNativeConcentrationResponseAdmission(ctx, response, userId)
@@ -33,7 +32,6 @@ export async function readLiveConcentrationResponseAdmission(
     !admission ||
     admission.state.id !== input.encounterId ||
     admission.state.campaignId !== input.campaignId ||
-    admission.state.sessionId !== input.sessionId ||
     admission.membership.role !== input.expectedRole
   )
     throw new Error('Live Session concentration response is unavailable.')

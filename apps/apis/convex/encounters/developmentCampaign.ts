@@ -89,7 +89,7 @@ export const removeFixtureCampaign = internalMutation({
         .first(),
       ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) => q.eq('campaignId', campaign.id))
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .first()
     ])
     if (sceneReferences.some((reference) => reference !== null))
@@ -150,7 +150,7 @@ export const removeFixtureCampaign = internalMutation({
         .take(2),
       ctx.db
         .query('encounterRuns')
-        .withIndex('by_campaignId_sessionId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
+        .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
         .take(8),
       ctx.db
         .query('campaignContentShares')
@@ -224,11 +224,6 @@ export const removeFixtureCampaign = internalMutation({
       commands.length > 1 ||
       (sessions[0]?.status === 'FINISHED' && finishCommand === null) ||
       runs.length > 7 ||
-      sessions.some(
-        (session, index) =>
-          runs.filter((run) => run.sessionId === session.id).length > (index === 0 ? 6 : 1)
-      ) ||
-      runs.some((run) => !sessions.some((session) => run.sessionId === session.id)) ||
       (finishCommand !== null &&
         (finishCommand.commandType !== 'FINISH_SESSION' ||
           !sessions[0] ||

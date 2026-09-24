@@ -9,10 +9,7 @@ import { requireIdentity } from '../lib/identity'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { readCampaignDetail, requireCampaignAuthority } from './documents'
 import { closeCampaignAdmission } from '../social/admissionClosure'
-import {
-  openLiveSessionIds,
-  scheduleLiveSessionRoomClosures
-} from '../liveSessions/controlScheduling'
+import { scheduleLiveSessionRoomClosure } from '../liveSessions/controlScheduling'
 
 export const archive = mutation({
   args: zodToConvexFields(archiveCampaignInputSchema.shape),
@@ -26,7 +23,6 @@ export const archive = mutation({
     if (campaign.version !== expectedVersion)
       throw new Error('Campaign changed before this action completed.')
 
-    const liveSessionIds = await openLiveSessionIds(ctx, campaign.id)
     const now = new Date(Math.max(Date.now(), Date.parse(campaign.updatedAt) + 1)).toISOString()
     await closeCampaignAdmission(ctx, campaign, campaign.ownerUserId, now)
     await ctx.db.patch(campaign._id, {
@@ -35,7 +31,7 @@ export const archive = mutation({
       updatedAt: now
     })
     await syncAccountUsage(ctx, 'activeHostedCampaigns', campaign.id)
-    await scheduleLiveSessionRoomClosures(ctx, campaign.id, liveSessionIds)
+    await scheduleLiveSessionRoomClosure(ctx, campaign.id)
     return readCampaignDetail(ctx, await requireCampaignAuthority(ctx, campaignId, userId))
   }
 })

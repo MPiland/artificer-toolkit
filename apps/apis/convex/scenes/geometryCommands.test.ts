@@ -19,7 +19,11 @@ import type {
   SceneFogSaveProgress,
   SceneFogCommandResult
 } from '@artificer-toolkit/schema/api/sceneFog'
-import type { SceneGeometryCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  SceneGeometryCommandInputDto,
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type {
   SceneBarrier,
   SceneFogChunk,
@@ -62,6 +66,11 @@ const fastExecute = makeFunctionReference<
   SceneGeometryExecuteInput,
   SceneGeometryCommandResult
 >('scenes/geometryFastCommands:execute')
+const setPresentation = makeFunctionReference<
+  'mutation',
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+>('scenes/presentations:set')
 const commandChunks = makeFunctionReference<
   'query',
   {
@@ -250,19 +259,16 @@ it('commits a compact no-vision door command in one mutation with exact replay s
   })
 }, 20_000)
 
-it('validates current Session and owner before replaying ahead of fast eligibility', async () => {
+it('validates current presentation and owner before replaying ahead of fast eligibility', async () => {
   const base = await createSceneDefinitionFixture()
   const initialDoor = door()
   const scene = await published(base, [], [initialDoor])
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: base.campaign.id
-  })
-  const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId: scene.sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId: scene.sceneId
   })
   const request: SceneGeometryExecuteInput = {
     input: {
@@ -273,19 +279,15 @@ it('validates current Session and owner before replaying ahead of fast eligibili
       barrierId: initialDoor.id,
       state: 'OPEN'
     },
-    session: {
-      sessionId: session.id,
-      expectedSessionVersion: session.version,
-      expectedPresentationVersion: presentation.version
-    }
+    presentation: { expectedPresentationVersion: presentation.version }
   }
 
   await expect(
     base.owner.caller.mutation(fastExecute, {
       ...request,
-      session: { ...request.session!, expectedSessionVersion: session.version + 1 }
+      presentation: { expectedPresentationVersion: presentation.version + 1 }
     })
-  ).rejects.toThrow('not current')
+  ).rejects.toThrow('presentation is stale')
   const committed = await base.owner.caller.mutation(fastExecute, request)
   await base.t.run((ctx) =>
     ctx.db.insert('encounterSceneBindings', {
@@ -302,29 +304,29 @@ it('validates current Session and owner before replaying ahead of fast eligibili
     replayed: true
   })
 
-  const cleared = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const cleared = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: presentation.version,
-    sceneId: null,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId: null
   })
   await expect(
     base.owner.caller.mutation(fastExecute, {
       ...request,
-      session: { ...request.session!, expectedPresentationVersion: cleared.version }
+      presentation: { expectedPresentationVersion: cleared.version }
     })
   ).rejects.toThrow('presentation is stale')
-  const restored = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const restored = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: cleared.version,
-    sceneId: scene.sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId: scene.sceneId
   })
   const currentRequest: SceneGeometryExecuteInput = {
     ...request,
-    session: { ...request.session!, expectedPresentationVersion: restored.version }
+    presentation: { expectedPresentationVersion: restored.version }
   }
   await base.t.run(async (ctx) => {
     const campaign = await ctx.db

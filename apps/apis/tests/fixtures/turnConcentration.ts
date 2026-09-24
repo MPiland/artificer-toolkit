@@ -27,17 +27,7 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const attendanceSet = makeFunctionReference<
-  'mutation',
-  {
-    campaignId: string
-    sessionId: string
-    characterId: string
-    present: boolean
-    expectedVersion: number
-  },
-  { present: boolean }
->('campaigns/sessionAttendance:set')
+
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -128,13 +118,7 @@ export async function turnConcentrationFixture(mode: 'AUTOMATIC' | 'ASSISTED') {
     campaignId: base.campaign.id,
     characterId: target.character.id
   })
-  await base.owner.caller.mutation(attendanceSet, {
-    campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
-    characterId: target.character.id,
-    present: true,
-    expectedVersion: 0
-  })
+
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
   ])
@@ -169,7 +153,6 @@ export async function turnConcentrationFixture(mode: 'AUTOMATIC' | 'ASSISTED') {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

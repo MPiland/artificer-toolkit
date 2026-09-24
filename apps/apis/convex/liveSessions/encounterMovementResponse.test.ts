@@ -67,14 +67,12 @@ it('stages a current movement choice only for its live authority and actor, with
   await value.base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
-      sessionId: value.base.run.sessionId,
       epoch,
       createdAt: value.base.campaign.createdAt
     })
   )
   const input: LiveSessionMovementBeginInput = {
     campaignId: value.base.campaign.id,
-    sessionId: value.base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: value.owner.userId,
     expectedRole: 'OWNER',
@@ -96,13 +94,12 @@ it('stages a current movement choice only for its live authority and actor, with
   const beforeSaves = await saves()
 
   await expect(value.owner.caller.mutation(nativeBegin, command)).rejects.toThrow(
-    'currently owned by its live Session'
+    'currently owned by its Campaign live table'
   )
   for (const change of [
     { expectedUserId: value.player.userId },
     { expectedRole: 'PLAYER' as const },
     { authorityEpoch: crypto.randomUUID() },
-    { sessionId: crypto.randomUUID() },
     { campaignId: crypto.randomUUID() }
   ])
     await expect(

@@ -56,7 +56,6 @@ async function readSessionVisionRun(
   if (
     !run ||
     run.campaignId !== scope.campaign.id ||
-    run.sessionId !== scope.session.id ||
     run.gameSystemId !== input.systemId ||
     run.version !== input.expectedEncounterVersion
   )
@@ -80,9 +79,7 @@ export const runs = internalQuery({
     const scope = await readSessionVisionScope(ctx, scopeInput)
     const result = await ctx.db
       .query('encounterRuns')
-      .withIndex('by_campaignId_sessionId_createdAt_id', (q) =>
-        q.eq('campaignId', scope.campaign.id).eq('sessionId', scope.session.id)
-      )
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', scope.campaign.id))
       .paginate({
         // This action scan reads at most four documents, independent of reactive page ranges.
         cursor: paginationOpts.cursor,
@@ -90,11 +87,7 @@ export const runs = internalQuery({
       })
     const page: SceneSessionVisionRun[] = []
     for (const run of result.page) {
-      if (
-        run.campaignId !== scope.campaign.id ||
-        run.sessionId !== scope.session.id ||
-        run.gameSystemId !== input.systemId
-      )
+      if (run.campaignId !== scope.campaign.id || run.gameSystemId !== input.systemId)
         throw new Error('Scene vision Encounter identity is inconsistent.')
       readRunState(run)
       const sceneBinding = await ctx.db
@@ -140,16 +133,7 @@ export const bindings = internalQuery({
       if (actor.kind !== 'CHARACTER') continue
       const characterId = actor.sourceId
       if (!characterId) throw new Error('Scene vision Character actor source is unavailable.')
-      const attendance = await ctx.db
-        .query('campaignSessionAttendance')
-        .withIndex('by_campaignId_sessionId_characterId', (q) =>
-          q
-            .eq('campaignId', scope.campaign.id)
-            .eq('sessionId', scope.session.id)
-            .eq('characterId', characterId)
-        )
-        .unique()
-      if (!attendance?.present) continue
+
       const { assignment } = await requireCampaignCharacterAuthority(
         ctx,
         scope.campaign.id,
@@ -201,17 +185,7 @@ export const character = internalQuery({
       .unique()
     if (tokenBinding?.sceneId !== scope.header.id || tokenBinding.tokenId !== input.tokenId)
       throw new Error('Scene vision actor token binding is unavailable.')
-    const attendance = await ctx.db
-      .query('campaignSessionAttendance')
-      .withIndex('by_campaignId_sessionId_characterId', (q) =>
-        q
-          .eq('campaignId', scope.campaign.id)
-          .eq('sessionId', scope.session.id)
-          .eq('characterId', input.characterId)
-      )
-      .unique()
-    if (!attendance?.present)
-      throw new Error('Scene vision Character is not present in this Session.')
+
     // Run sourceRevision describes its original actor snapshot, not the Character's current passive facts.
     const characterVision = await ctx.runQuery(readCharacterVision, {
       campaignId: scope.campaign.id,

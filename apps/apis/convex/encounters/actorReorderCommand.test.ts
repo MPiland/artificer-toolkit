@@ -49,7 +49,6 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
   })
   let projection = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

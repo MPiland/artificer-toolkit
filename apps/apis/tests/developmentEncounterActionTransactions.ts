@@ -63,10 +63,8 @@ export async function verifyEncounterActionTransactions({
       initiativePolicyDefinitionId,
       initiativeTieDefinitionId: null
     })
-    const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
     const run = await owner.mutation(api.encounters.runs.create, {
       campaignId,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

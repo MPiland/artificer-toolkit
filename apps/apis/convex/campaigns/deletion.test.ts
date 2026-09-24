@@ -96,9 +96,7 @@ describe('native Campaign deletion', () => {
   it('removes Session and Run state while preserving the personal Blueprint and an unrelated draft', async () => {
     const base = await fixture()
     const campaign = await base.owner.caller.mutation(create, campaignInput)
-    const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-      campaignId: campaign.id
-    })
+    await base.owner.caller.mutation(api.campaigns.sessions.create, { campaignId: campaign.id })
     const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
       gameSystemId: campaign.gameSystemId,
       name: 'Keep personal Blueprint',
@@ -110,7 +108,6 @@ describe('native Campaign deletion', () => {
     })
     await base.owner.caller.mutation(api.encounters.runs.create, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -169,7 +166,7 @@ describe('native Campaign deletion', () => {
       expect(after.tables[name], name).toEqual(before.tables[name])
     expect(
       after.tables.sceneVisionRevisions.filter(
-        (row) => 'scope' in row && (row.scope === 'CAMPAIGN' || row.scope === 'SESSION')
+        (row) => 'scope' in row && (row.scope === 'CAMPAIGN' || row.scope === 'PLAY')
       )
     ).toEqual([])
   }, 60_000)

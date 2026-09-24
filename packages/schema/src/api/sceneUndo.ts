@@ -1,13 +1,13 @@
 import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { scenePointDtoSchema, sceneUndoLastMoveCommandInputDtoSchema } from './vttScenes.js'
-import { sceneGeometrySessionInputSchema } from './sceneGeometry.js'
+import { scenePresentationFenceSchema } from './sceneGeometry.js'
 
 const version = z.number().check(z.int()).check(z.nonnegative())
 
 export const sceneUndoExecuteInputSchema = z.strictObject({
   input: sceneUndoLastMoveCommandInputDtoSchema,
-  session: z.optional(sceneGeometrySessionInputSchema)
+  presentation: z.optional(scenePresentationFenceSchema)
 })
 
 export const sceneUndoCommandResultSchema = z.strictObject({

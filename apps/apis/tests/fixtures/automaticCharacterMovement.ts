@@ -5,7 +5,6 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SetCampaignSessionAttendanceInput } from '@artificer-toolkit/schema/api/campaignSessions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -35,11 +34,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const setAttendance = makeFunctionReference<
-  'mutation',
-  SetCampaignSessionAttendanceInput,
-  { present: boolean }
->('campaigns/sessionAttendance:set')
 
 async function addFixturePlayer(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
   const user = await base.t.run(async (ctx) =>
@@ -139,20 +133,7 @@ export async function setupAutomaticCharacterMovement(
       campaignId: base.campaign.id,
       characterId: character.id
     })
-    const session = await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignSessions')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
-        .unique()
-    )
-    if (!session) throw new Error('Additional Character Session is unavailable.')
-    await base.owner.caller.mutation(setAttendance, {
-      campaignId: base.campaign.id,
-      sessionId: session.id,
-      characterId: character.id,
-      present: true,
-      expectedVersion: session.version
-    })
+
     additionalCharacter = character
   }
   const definitions = policies.map((policy) => eligibility(policy, crypto.randomUUID()))
@@ -257,7 +238,6 @@ export async function setupAutomaticCharacterMovement(
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

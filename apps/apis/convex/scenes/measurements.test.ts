@@ -7,7 +7,6 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { SceneGeometryExecuteInput } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type {
   SceneLiveChangesPageInput,
@@ -31,12 +30,12 @@ import {
 
 const execute = makeFunctionReference<
   'mutation',
-  { input: SceneLiveCommandInputDto; session?: NonNullable<SceneGeometryExecuteInput['session']> },
+  {
+    input: SceneLiveCommandInputDto
+    presentation?: NonNullable<SceneGeometryExecuteInput['presentation']>
+  },
   SceneCommandResultDto
 >('scenes/commands:execute')
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
-)
 const setPresentation = makeFunctionReference<
   'mutation',
   SetCampaignLiveScenePresentationInputDto,
@@ -71,31 +70,23 @@ function measurement(createdByUserId: string, id = crypto.randomUUID(), pointCou
 async function command(
   caller: Awaited<ReturnType<typeof createSceneDefinitionFixture>>['owner']['caller'],
   input: SceneLiveCommandInputDto,
-  session?: NonNullable<SceneGeometryExecuteInput['session']>
+  presentation?: NonNullable<SceneGeometryExecuteInput['presentation']>
 ) {
-  return caller.mutation(execute, session ? { input, session } : { input })
+  return caller.mutation(execute, presentation ? { input, presentation } : { input })
 }
 
-async function presentSession(
+async function presentScene(
   base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>,
   sceneId: string
 ) {
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
   const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId
   })
-  return {
-    session,
-    context: {
-      expectedPresentationVersion: presentation.version,
-      expectedSessionVersion: session.version,
-      sessionId: session.id
-    }
-  }
+  return { expectedPresentationVersion: presentation.version }
 }
 
 async function liveRows(base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>) {
@@ -280,10 +271,10 @@ it('allows players to change only their own measurements and limits replays to t
   ).rejects.toThrow('Campaign not found')
 })
 
-it('fences inline owner and player commands to the current presented open Session before replay', async () => {
+it('fences inline owner and player commands to the current Campaign presentation before replay', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const { session, context } = await presentSession(base, sceneId)
+  const context = await presentScene(base, sceneId)
   const ownerInput: SceneLiveCommandInputDto = {
     type: 'UPSERT_SCENE_ANNOTATION',
     sceneId,
@@ -320,70 +311,32 @@ it('fences inline owner and player commands to the current presented open Sessio
       visibility: 'TABLE'
     }
   }
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', session.id))
-      .unique()
-    if (!row) throw new Error('Missing Session.')
-    await ctx.db.patch(row._id, { version: row.version + 1 })
-  })
-  await expect(command(base.owner.caller, ownerInput, context)).resolves.toMatchObject({
-    replayed: true
-  })
-  await expect(command(base.owner.caller, fresh, context)).rejects.toThrow(
-    'Session is not current and open'
-  )
-  const refreshedSessionContext = {
-    ...context,
-    expectedSessionVersion: context.expectedSessionVersion + 1
-  }
   await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: context.expectedPresentationVersion,
-    sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId
   })
   await expect(command(base.owner.caller, ownerInput, context)).resolves.toMatchObject({
     replayed: true
   })
-  await expect(command(base.owner.caller, fresh, refreshedSessionContext)).rejects.toThrow(
-    'presentation is stale'
-  )
+  await expect(command(base.owner.caller, fresh, context)).rejects.toThrow('presentation is stale')
   await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: context.expectedPresentationVersion + 1,
-    sceneId: null,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId: null
   })
   await expect(command(base.owner.caller, ownerInput, context)).rejects.toThrow(
     'presentation is stale'
   )
   await expect(
     command(base.owner.caller, fresh, {
-      ...refreshedSessionContext,
       expectedPresentationVersion: context.expectedPresentationVersion + 2
     })
   ).rejects.toThrow('presentation is stale')
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', session.id))
-      .unique()
-    if (!row) throw new Error('Missing Session.')
-    await ctx.db.patch(row._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
-  })
-  await expect(command(base.owner.caller, ownerInput, context)).rejects.toThrow(
-    'Session is not current and open'
-  )
-  await expect(
-    command(base.owner.caller, fresh, {
-      ...refreshedSessionContext,
-      expectedPresentationVersion: context.expectedPresentationVersion + 2
-    })
-  ).rejects.toThrow('Session is not current and open')
 })
 
 it('denies player-only owner reads and commands while exposing the bounded measurement page', async () => {

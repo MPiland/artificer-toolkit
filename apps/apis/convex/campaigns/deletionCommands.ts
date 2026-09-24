@@ -80,9 +80,7 @@ export const remove = internalMutation({
       ownerUserId: userId,
       expectedVersion,
       stage: 'DRAIN_ROOM',
-      liveAuthority: liveAuthority
-        ? { sessionId: liveAuthority.sessionId, epoch: liveAuthority.epoch }
-        : null,
+      liveAuthority: liveAuthority ? { epoch: liveAuthority.epoch } : null,
       ...(liveAuthority ? { liveAuthorityId: liveAuthority._id } : {}),
       phase: 0,
       revision: 0,

@@ -74,11 +74,7 @@ export async function verifyEncounterEffectsBrowser(
       signIn(playerPage, input.player, playerSession)
     ])
     const tabletopUrl =
-      origin +
-      '/tabletop/campaigns/' +
-      encodeURIComponent(input.campaign.publicId) +
-      '/sessions/' +
-      input.session.number
+      origin + '/tabletop/campaigns/' + encodeURIComponent(input.campaign.publicId)
     async function open(page: Page, session: { authenticated: boolean }) {
       session.authenticated = false
       await page.goto(tabletopUrl, { waitUntil: 'domcontentloaded', timeout: 90_000 })

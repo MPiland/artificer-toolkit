@@ -553,7 +553,6 @@ async function liveCharacterTurn(
   })
   const created = await fixture.owner.caller.mutation(createRun, {
     campaignId: fixture.campaign.id,
-    sessionId: fixture.run.sessionId,
     blueprintId: fixture.run.blueprintId,
     commandId: crypto.randomUUID()
   })
@@ -583,14 +582,12 @@ async function liveCharacterTurn(
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       epoch,
       createdAt: base.campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionEncounterRulesInput, 'request'> = {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER',
@@ -682,7 +679,6 @@ describe('native public turn active-effect journeys', () => {
     })
     const created = await fixture.owner.caller.mutation(createRun, {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       blueprintId: fixture.run.blueprintId,
       commandId: crypto.randomUUID()
     })

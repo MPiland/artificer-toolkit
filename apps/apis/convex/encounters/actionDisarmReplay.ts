@@ -103,7 +103,6 @@ export async function readNativeDisarmReplay(
     metadata.optionalCombatSnapshotChecksum !== receipt.optionalCombatSnapshotChecksum ||
     result.projection.id !== run.id ||
     result.projection.campaignId !== run.campaignId ||
-    result.projection.sessionId !== run.sessionId ||
     result.projection.version !== receipt.version ||
     result.occurrence?.occurrenceId !== occurrence.id ||
     result.occurrence.occurrenceVersion !== occurrence.version ||

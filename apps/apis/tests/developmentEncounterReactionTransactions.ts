@@ -48,12 +48,11 @@ export async function verifyEncounterReactionTransactions({
     tokenId: fixture.mover.tokenId,
     path: [initial.token.position, { x: 350, y: 50 }]
   }
-  const session = {
-    sessionId: fixture.session.id,
-    expectedSessionVersion: fixture.session.version,
-    expectedPresentationVersion: fixture.presentation.version
-  }
-  const issued = await player.action(api.scenes.geometryActions.execute, { input: move, session })
+  const presentation = { expectedPresentationVersion: fixture.presentation.version }
+  const issued = await player.action(api.scenes.geometryActions.execute, {
+    input: move,
+    presentation
+  })
   assert.ok(issued.occurrence)
   assert.equal(issued.occurrence.status, 'PENDING')
   assert.equal(
@@ -378,7 +377,10 @@ export async function verifyEncounterReactionTransactions({
     await owner.action(api.encounters.commandActions.execute, { command: terminalCommand }),
     terminal
   )
-  const replay = await player.action(api.scenes.geometryActions.execute, { input: move, session })
+  const replay = await player.action(api.scenes.geometryActions.execute, {
+    input: move,
+    presentation
+  })
   assert.equal(replay.replayed, true)
   assert.equal(replay.occurrence?.occurrenceId, issuedOccurrenceId)
   assert.equal(replay.occurrence?.status, 'COMPLETE')

@@ -128,7 +128,6 @@ async function preparePrivateCommit(value: Fixture) {
   await value.base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
-      sessionId: value.base.run.sessionId,
       epoch,
       createdAt: value.base.campaign.createdAt
     })
@@ -136,13 +135,11 @@ async function preparePrivateCommit(value: Fixture) {
   const revisions = await value.owner.caller.run((ctx) =>
     readLiveSessionRulesRevisions(ctx, {
       systemId: value.base.campaign.gameSystemId,
-      campaignId: value.base.campaign.id,
-      sessionId: value.base.run.sessionId
+      campaignId: value.base.campaign.id
     })
   )
   const base: Omit<LiveSessionMovementCommitInput, 'rules' | 'settlements'> = {
     campaignId: value.base.campaign.id,
-    sessionId: value.base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: value.owner.userId,
     expectedRole: 'OWNER',

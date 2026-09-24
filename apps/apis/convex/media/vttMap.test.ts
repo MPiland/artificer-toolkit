@@ -283,25 +283,14 @@ it('requires the active Campaign owner and retains a ready map while a published
     height: 64
   })
   await expect(base.other.caller.action(getDelivery, lookup)).rejects.toThrow('unavailable')
-  const firstSession = await base.owner.caller.mutation(createSession, {
-    campaignId: base.campaign.id
-  })
-  const secondSession = await base.owner.caller.mutation(createSession, {
-    campaignId: base.campaign.id
-  })
   const presentation: SetCampaignLiveScenePresentationInputDto = {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: firstSession.id,
+    campaignId: base.campaign.id,
     sceneId: save.liveSceneId,
     expectedPresentationVersion: null
   }
   await base.owner.caller.mutation(setPresentation, presentation)
-  await base.owner.caller.mutation(setPresentation, {
-    ...presentation,
-    commandId: crypto.randomUUID(),
-    sessionId: secondSession.id
-  })
   const delivery = await base.other.caller.action(getDelivery, lookup)
   expect(Date.parse(delivery.expiresAt) - Date.now()).toBe(300_000)
   expect(delivery.tiles).toHaveLength(1)
@@ -329,20 +318,21 @@ it('requires the active Campaign owner and retains a ready map while a published
       leftAt: null
     })
   )
+  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
+  await base.owner.caller.mutation(finishSession, {
+    campaignId: base.campaign.id,
+    sessionId: session.id,
+    expectedVersion: session.version,
+    commandId: crypto.randomUUID()
+  })
+  expect(await base.other.caller.action(getDelivery, lookup)).toMatchObject({
+    assetId: intent.assetId
+  })
   await base.owner.caller.mutation(setPresentation, {
     ...presentation,
     commandId: crypto.randomUUID(),
     sceneId: null,
     expectedPresentationVersion: 0
-  })
-  expect(await base.other.caller.action(getDelivery, lookup)).toMatchObject({
-    assetId: intent.assetId
-  })
-  await base.owner.caller.mutation(finishSession, {
-    campaignId: base.campaign.id,
-    sessionId: secondSession.id,
-    expectedVersion: secondSession.version,
-    commandId: crypto.randomUUID()
   })
   await expect(base.other.caller.action(getDelivery, lookup)).rejects.toThrow('unavailable')
   expect(await base.owner.caller.action(getDelivery, lookup)).toMatchObject({

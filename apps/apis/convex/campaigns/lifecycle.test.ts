@@ -161,9 +161,6 @@ describe('native Campaign creation and member reads', () => {
         leftAt: null
       })
     )
-    const liveSession = await owner.caller.mutation(api.campaigns.sessions.create, {
-      campaignId: campaign.id
-    })
     const before = await stored(t)
     await expect(other.caller.mutation(archive, command)).rejects.toThrow('cannot perform')
     await expect(
@@ -181,12 +178,8 @@ describe('native Campaign creation and member reads', () => {
         .collect()
         .then((jobs) => jobs.filter((job) => job.name === 'liveSessions/control:send'))
     )
-    expect(closures.map((job) => job.args)).toContainEqual([
-      {
-        campaignId: campaign.id,
-        sessionId: liveSession.id,
-        operation: { type: 'CLOSE_ROOM' }
-      }
+    expect(closures.map((job) => job.args)).toEqual([
+      [{ campaignId: campaign.id, operation: { type: 'CLOSE_ROOM' } }]
     ])
     expect(archived).toMatchObject({
       ...campaign,

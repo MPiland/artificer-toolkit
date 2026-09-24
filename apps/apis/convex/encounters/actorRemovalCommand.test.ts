@@ -46,6 +46,9 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
+const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
+  'campaigns/sessions:create'
+)
 const finishSession = makeFunctionReference<
   'mutation',
   FinishCampaignSessionInput,
@@ -95,7 +98,6 @@ async function setup(mode: 'MANUAL' | 'ASSISTED' | 'AUTOMATIC' = 'MANUAL') {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -710,17 +712,11 @@ describe('native actor removal transaction', () => {
     expect(await capture(base)).toEqual(before)
   }, 30000)
 
-  it('preserves active Runs from a finished Session without reading a missing Character source', async () => {
+  it('still removes Character actors from unfinished Runs after a Campaign Session finishes', async () => {
     const base = await setup()
-    const session = await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('id', base.run.sessionId)
-        )
-        .unique()
-    )
-    if (!session) throw new Error('Missing Session fixture.')
+    const session = await base.owner.caller.mutation(createSession, {
+      campaignId: base.campaign.id
+    })
     const finished = await base.owner.caller.mutation(finishSession, {
       campaignId: base.campaign.id,
       sessionId: session.id,
@@ -728,18 +724,14 @@ describe('native actor removal transaction', () => {
       expectedVersion: session.version
     })
     expect(finished.status).toBe('FINISHED')
-    await base.t.run(async (ctx) => {
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!character) throw new Error('Missing historical Character source fixture.')
-      await ctx.db.delete(character._id)
-    })
-    const before = await capture(base)
+    const characterActors = async () =>
+      (await capture(base)).actors.filter(
+        (actor) => JSON.parse(actor.stateJson).sourceId === base.character.id
+      )
+    expect(await characterActors()).not.toEqual([])
     await base.t.run((ctx) =>
       removeAccountCharacterActors(ctx, base.campaign.id, base.player.userId)
     )
-    expect(await capture(base)).toEqual(before)
+    expect(await characterActors()).toEqual([])
   }, 30000)
 })

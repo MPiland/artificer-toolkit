@@ -163,7 +163,6 @@ export async function openV15WorkloadBrowser(input: {
   owner: Account
   players: readonly Account[]
   campaignPublicId: string
-  sessionNumber: number
   evidenceDirectory?: string
   map: { width: number; height: number }
   tokenPosition: { x: number; y: number }
@@ -355,7 +354,7 @@ export async function openV15WorkloadBrowser(input: {
       const session = watchAuthenticatedSession(page)
       await signIn(page, account, session)
       await page.goto(
-        `${origin}/tabletop/campaigns/${encodeURIComponent(input.campaignPublicId)}/sessions/${input.sessionNumber}`,
+        `${origin}/tabletop/campaigns/${encodeURIComponent(input.campaignPublicId)}`,
         { waitUntil: 'domcontentloaded', timeout: 90_000 }
       )
       await waitForRouterIdle(page)

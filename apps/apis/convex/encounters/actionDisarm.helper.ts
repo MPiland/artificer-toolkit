@@ -32,7 +32,6 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { nextRollInt } from '../lib/rollRandom'
 import { createRulesRuntime } from '../rules/runtime'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt'
@@ -109,8 +108,6 @@ export async function executeNativeDisarm(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const fingerprint = checksumCanonicalJson(input)
   const rootReceipt = await ctx.db
@@ -521,8 +518,6 @@ export async function resumeNativeDisarm(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   const pending = occurrence.state === 'PENDING' ? readNativeDisarmPending(occurrence) : null
   let command = pending?.command
   if (!command) {
@@ -553,10 +548,7 @@ export async function resumeNativeDisarm(
       initiatorUserId,
       userId
     })
-    if (
-      replay.result.projection.sessionId !== run.sessionId ||
-      receipt.encounterVersion > run.version
-    )
+    if (receipt.encounterVersion > run.version)
       throw new Error('Stored Disarm evidence aggregate mismatch.')
     if (
       replay.payload.status === 'COMPLETE' &&

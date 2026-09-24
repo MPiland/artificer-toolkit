@@ -71,7 +71,7 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
   }
   const presentations = await ctx.db
     .query('campaignScenePresentations')
-    .withIndex('by_campaignId_sessionId', (q) => q.eq('campaignId', campaignId))
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
     .take(8)
   for (const row of [...presentations, ...scenes, ...definitions]) await ctx.db.delete(row._id)
   for (const assetId of mapIds) {

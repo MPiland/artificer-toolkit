@@ -51,7 +51,7 @@ export const sceneTables = {
     .index('by_sceneId_type_version', ['sceneId', 'input.type', 'result.version'])
     .index('by_sceneId_undoneCommandId', ['sceneId', 'undoneCommandId']),
   campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
-    .index('by_campaignId_sessionId', ['campaignId', 'sessionId'])
+    .index('by_campaignId', ['campaignId'])
     .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),
   sceneDefinitions: defineTable(zodToConvexFields(sceneStoredDefinitionSchema.shape))
     .index('by_publicId', ['id'])

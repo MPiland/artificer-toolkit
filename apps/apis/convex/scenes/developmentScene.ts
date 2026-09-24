@@ -44,8 +44,8 @@ export const removeFixtureState = internalMutation({
         .take(4),
       ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) => q.eq('campaignId', campaign.id))
-        .take(3),
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+        .take(2),
       ctx.db
         .query('campaignEvents')
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
@@ -58,7 +58,7 @@ export const removeFixtureState = internalMutation({
     if (
       definitions.length > 3 ||
       liveScenes.length > 3 ||
-      campaignPresentations.length > 2 ||
+      campaignPresentations.length > 1 ||
       events.length > 5 ||
       definitions.some(
         (definition) =>
@@ -144,7 +144,7 @@ export const removeFixtureState = internalMutation({
         const parsed = results[index]!
         if (!parsed.success) return true
         const presentation = campaignPresentations.find(
-          (candidate) => candidate.sessionId === parsed.data.result.sessionId
+          (candidate) => candidate.campaignId === parsed.data.result.campaignId
         )
         return (
           !presentation ||
@@ -159,7 +159,7 @@ export const removeFixtureState = internalMutation({
       campaignPresentations.some((presentation) => {
         const versions = results
           .flatMap((result) =>
-            result.success && result.data.result.sessionId === presentation.sessionId
+            result.success && result.data.result.campaignId === presentation.campaignId
               ? [result.data.result.version]
               : []
           )

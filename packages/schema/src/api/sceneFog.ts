@@ -19,12 +19,8 @@ export const sceneFogPatchInputSchema = z
     sceneId: postgresUuidSchema,
     commandId: postgresUuidSchema,
     expectedSceneVersion: version,
-    session: z.optional(
-      z.pick(sceneSessionVisionCaptureInputSchema, {
-        sessionId: true,
-        expectedSessionVersion: true,
-        expectedPresentationVersion: true
-      })
+    presentation: z.optional(
+      z.pick(sceneSessionVisionCaptureInputSchema, { expectedPresentationVersion: true })
     ),
     layer: z.strictObject({
       ownerUserId: z.nullable(postgresUuidSchema),

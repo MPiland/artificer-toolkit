@@ -127,7 +127,6 @@ async function setup(withRun = true) {
     })
     run = await base.owner.caller.mutation(api.encounters.runs.create, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

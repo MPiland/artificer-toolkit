@@ -110,8 +110,6 @@ export async function createSpatialPreparationFixture() {
       systemId: base.campaign.gameSystemId,
       sceneId: base.sceneId,
       expectedSceneVersion: 0,
-      sessionId: base.session.id,
-      expectedSessionVersion: base.session.version,
       expectedPresentationVersion: 0
     }
     const { freshness } = await readSessionVisionScope(ctx, capture)

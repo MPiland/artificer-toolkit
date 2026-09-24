@@ -78,7 +78,6 @@ export async function preparePrivateMovementResponse(input: {
   })
   const common = {
     campaignId: value.base.campaign.id,
-    sessionId: value.base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: userId,
     expectedRole: role

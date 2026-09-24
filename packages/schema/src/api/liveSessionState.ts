@@ -2,7 +2,7 @@ import { z } from '../zod.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { liveSessionSequenceDtoSchema } from './liveSessionCommands.js'
-import { sceneGeometrySessionInputSchema } from './sceneGeometry.js'
+import { scenePresentationFenceSchema } from './sceneGeometry.js'
 import {
   sceneCommandResultDtoSchema,
   sceneDoorStateCommandInputDtoSchema,
@@ -17,12 +17,11 @@ export const liveSessionScenePublicationDtoSchema = z.strictObject({
     sceneTokenMovementCommandInputDtoSchema,
     sceneUndoLastMoveCommandInputDtoSchema
   ]),
-  session: sceneGeometrySessionInputSchema
+  presentation: scenePresentationFenceSchema
 })
 
 export const liveSessionBootstrapInputSchema = z.strictObject({
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   authorityEpoch: postgresUuidSchema,
   expectedUserId: postgresUuidSchema,
   expectedRole: z.enum(['OWNER', 'PLAYER'])
@@ -36,7 +35,6 @@ export const liveSessionBootstrapResponseSchema = z.strictObject({
 
 export const liveSessionActivationInputSchema = z.strictObject({
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   epoch: postgresUuidSchema,
   activationFingerprint: projectionChecksumSchema,
   stateChecksum: projectionChecksumSchema
@@ -44,7 +42,6 @@ export const liveSessionActivationInputSchema = z.strictObject({
 
 export const liveSessionDrainReleaseInputSchema = z.strictObject({
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   epoch: postgresUuidSchema,
   finalSequence: liveSessionSequenceDtoSchema,
   finalStateChecksum: projectionChecksumSchema
@@ -52,7 +49,6 @@ export const liveSessionDrainReleaseInputSchema = z.strictObject({
 
 export const liveSessionAuthorityDtoSchema = z.strictObject({
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   epoch: postgresUuidSchema,
   phase: z.enum(['ACTIVATING', 'DO_ACTIVE', 'DRAINING']),
   activationFingerprint: projectionChecksumSchema,
@@ -67,7 +63,6 @@ export const liveSessionAuthorityDtoSchema = z.strictObject({
 
 const liveSessionPublishBase = {
   campaignId: postgresUuidSchema,
-  sessionId: postgresUuidSchema,
   epoch: postgresUuidSchema,
   sequence: liveSessionSequenceDtoSchema,
   expectedStateChecksum: projectionChecksumSchema,

@@ -20,14 +20,13 @@ export async function readLiveMovementAdmission(
   ctx: QueryCtx,
   input: Pick<
     LiveSessionEncounterRulesInput,
-    'campaignId' | 'sessionId' | 'authorityEpoch' | 'expectedUserId' | 'expectedRole'
+    'campaignId' | 'authorityEpoch' | 'expectedUserId' | 'expectedRole'
   > & { movement: LiveSessionMovementCaptureScope }
 ) {
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
-    sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
   const current = await readGeometrySave(ctx, input.movement.saveId)
@@ -46,14 +45,13 @@ export async function readLiveMovementAdmission(
     !save.sessionVision ||
     !presented ||
     save.sessionVision.campaignId !== campaign.id ||
-    save.sessionVision.sessionId !== input.sessionId ||
     save.sessionVision.systemId !== campaign.gameSystemId ||
     save.sessionVision.sceneId !== header.id ||
     save.input.expectedSceneVersion !== save.snapshotVersion
   )
     throw new Error('Live Session movement Scene snapshot is unavailable.')
   const tokenId = save.input.tokenId
-  const { session } = await readSessionVisionScope(ctx, save.sessionVision, {
+  await readSessionVisionScope(ctx, save.sessionVision, {
     header,
     campaign,
     userId,
@@ -69,7 +67,6 @@ export async function readLiveMovementAdmission(
     state.id !== input.movement.encounterId ||
     state.status !== 'ACTIVE' ||
     state.campaignId !== campaign.id ||
-    state.sessionId !== input.sessionId ||
     state.gameSystemId !== campaign.gameSystemId ||
     state.version !== save.input.expectedEncounterVersion
   )
@@ -181,5 +178,5 @@ export async function readLiveMovementAdmission(
     checksumCanonicalJson(resolution ? resolution.root.currentPosition : save.input.path[0])
   )
     throw new Error('Movement token position is stale.')
-  return { ...current, session, state }
+  return { ...current, state }
 }

@@ -7,15 +7,9 @@ import { setCampaignLiveScenePresentationResultDtoSchema } from '@artificer-tool
 import { queryKeys } from '#app/lib/queryKeys'
 import { loadCampaignLiveScene } from './liveScenes'
 
-export function useCampaignPresentedScene(
-  campaignId: string,
-  sessionId: string,
-  hydrateScene = true
-) {
+export function useCampaignPresentedScene(campaignId: string, hydrateScene = true) {
   const client = useConvex()
-  const presentation = useQuery(
-    convexQuery(api.scenes.presentations.get, { campaignId, sessionId })
-  )
+  const presentation = useQuery(convexQuery(api.scenes.presentations.get, { campaignId }))
   const sceneId = presentation.error ? null : presentation.data?.sceneId
   const header = useQuery(
     convexQuery(
@@ -31,12 +25,7 @@ export function useCampaignPresentedScene(
       : null
   const compactScene = captured?.snapshot ?? null
   const hydrated = useQuery({
-    queryKey: [
-      ...queryKeys.campaigns.liveScenes(campaignId),
-      sessionId,
-      sceneId,
-      captured?.recipientRevision
-    ],
+    queryKey: [...queryKeys.campaigns.liveScenes(campaignId), sceneId, captured?.recipientRevision],
     enabled: Boolean(hydrateScene && sceneId && captured && !headerIdentityError && !compactScene),
     queryFn: ({ signal }) => {
       if (!captured || captured.id !== sceneId || captured.campaignId !== campaignId)
@@ -53,8 +42,8 @@ export function useCampaignPresentedScene(
         await client.action(api.scenes.presentations.setLive, {
           commandId: crypto.randomUUID(),
           expectedPresentationVersion: presentation.data?.version ?? null,
+          campaignId,
           sceneId: nextSceneId,
-          sessionId,
           type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
         })
       )

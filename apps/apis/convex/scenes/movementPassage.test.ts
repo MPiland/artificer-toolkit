@@ -559,7 +559,6 @@ describe('native Scene movement passage', () => {
         await value.base.t.run((ctx) =>
           insertActiveLiveAuthority(ctx, {
             campaignId: value.base.campaign.id,
-            sessionId: value.base.run.sessionId,
             epoch,
             createdAt: value.base.campaign.createdAt
           })

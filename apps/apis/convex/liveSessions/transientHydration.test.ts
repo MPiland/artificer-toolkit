@@ -1,6 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   LiveSessionTransientCapture,
   LiveSessionTransientCaptureInput
@@ -23,9 +22,7 @@ import {
 } from '../../tests/fixtures/sceneDefinitions'
 
 const secret = 'test-live-session-executor-secret-that-is-long-enough'
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
-)
+
 const setPresentation = makeFunctionReference<
   'mutation',
   SetCampaignLiveScenePresentationInputDto,
@@ -56,12 +53,11 @@ afterEach(() => vi.unstubAllEnvs())
 async function setup() {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
   await base.owner.caller.mutation(setPresentation, {
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
     sceneId,
-    sessionId: session.id,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
   const fogChunk = { data: 'AQ==', height: 1, index: 0, width: 1, x: 0, y: 0 }
@@ -81,8 +77,7 @@ async function setup() {
   const authority: LiveSessionTransientHydrationInput['authority'] = {
     campaignId: base.campaign.id,
     expectedRole: 'OWNER',
-    expectedUserId: base.owner.userId,
-    sessionId: session.id
+    expectedUserId: base.owner.userId
   }
   const captured = await base.owner.caller.query(capture, {
     ...authority,
@@ -91,7 +86,7 @@ async function setup() {
   })
   if (!captured.sceneHeader || !captured.visionFreshness)
     throw new Error('Missing transient hydration capture fence.')
-  return { authority, base, captured, sceneId, session }
+  return { authority, base, captured, sceneId }
 }
 
 function request(input: unknown): RequestInit {
@@ -175,7 +170,7 @@ it('hydrates bounded entities for the owner and private fog layers for the playe
   })
 })
 
-it('hydrates a vision run page only against the captured Session presentation fence', async () => {
+it('hydrates a vision run page only against the captured Campaign presentation fence', async () => {
   const { authority, base, captured, sceneId } = await setup()
   const visionInput: LiveSessionTransientHydrationInput = {
     authority,
@@ -183,12 +178,10 @@ it('hydrates a vision run page only against the captured Session presentation fe
       campaignId: authority.campaignId,
       expectedPresentationVersion: captured.presentation!.version,
       expectedSceneVersion: captured.sceneHeader!.version,
-      expectedSessionVersion: captured.session.version,
       freshness: captured.visionFreshness!,
       kind: 'VISION_RUNS',
       paginationOpts: { cursor: null, numItems: 8 },
       sceneId,
-      sessionId: captured.session.id,
       systemId: base.campaign.gameSystemId
     }
   }
@@ -224,14 +217,14 @@ it('denies hydration without both credentials and rejects stale Scene fences', a
   const stale = await base.owner.caller.fetch('/live-sessions/hydrate', request(input))
   expect(stale.status).toBe(409)
 
-  const mismatchedSession = await base.owner.caller.fetch(
+  const mismatchedCampaign = await base.owner.caller.fetch(
     '/live-sessions/hydrate',
     request({
       ...input,
-      authority: { ...authority, sessionId: crypto.randomUUID() }
+      authority: { ...authority, campaignId: crypto.randomUUID() }
     })
   )
-  expect(mismatchedSession.status).toBe(409)
+  expect(mismatchedCampaign.status).toBe(409)
 
   const mismatchedScene = await base.owner.caller.fetch(
     '/live-sessions/hydrate',

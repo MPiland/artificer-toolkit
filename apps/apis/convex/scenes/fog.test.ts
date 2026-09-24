@@ -195,85 +195,56 @@ async function stored(base: Awaited<ReturnType<typeof createSceneDefinitionFixtu
   }))
 }
 
-async function presentedSession(
+async function presentedScene(
   base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>,
   sceneId: string
 ) {
-  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
   const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId
   })
-  return {
-    session,
-    context: {
-      expectedPresentationVersion: presentation.version,
-      expectedSessionVersion: session.version,
-      sessionId: session.id
-    }
-  }
+  return { expectedPresentationVersion: presentation.version }
 }
 
-it('rejects Session-scoped fog append and publish after the Session closes atomically', async () => {
-  const appendBase = await createSceneDefinitionFixture()
-  const { sceneId: appendSceneId } = await publishEmptyScene(appendBase)
-  const appendContext = await presentedSession(appendBase, appendSceneId)
-  const appendChunks = [fogChunk(0)]
-  const appendInput = { ...patch(appendSceneId, 0, appendChunks), session: appendContext.context }
-  const appendSave = await appendBase.owner.caller.mutation(begin, { input: appendInput })
-  const appendBefore = await stored(appendBase)
-  await appendBase.owner.caller.mutation(finishSession, {
-    campaignId: appendBase.campaign.id,
-    sessionId: appendContext.session.id,
-    expectedVersion: appendContext.session.version,
+it('keeps presentation-scoped fog append and publish working after a Campaign Session finishes', async () => {
+  const base = await createSceneDefinitionFixture()
+  const { sceneId } = await publishEmptyScene(base)
+  const presentation = await presentedScene(base, sceneId)
+  const chunks = [fogChunk(0)]
+  const input = { ...patch(sceneId, 0, chunks), presentation }
+  const save = await base.owner.caller.mutation(begin, { input })
+  const session = await base.owner.caller.mutation(createSession, { campaignId: base.campaign.id })
+  await base.owner.caller.mutation(finishSession, {
+    campaignId: base.campaign.id,
+    sessionId: session.id,
+    expectedVersion: session.version,
     commandId: crypto.randomUUID()
   })
   await expect(
-    appendBase.owner.caller.mutation(append, {
-      input: { saveId: appendSave.saveId, offset: 0, chunks: appendChunks }
-    })
-  ).rejects.toThrow('Session is not current and open')
-  expect(await stored(appendBase)).toEqual(appendBefore)
-
-  const publishBase = await createSceneDefinitionFixture()
-  const { sceneId: publishSceneId } = await publishEmptyScene(publishBase)
-  const publishContext = await presentedSession(publishBase, publishSceneId)
-  const publishChunks = [fogChunk(0)]
-  const publishInput = {
-    ...patch(publishSceneId, 0, publishChunks),
-    session: publishContext.context
-  }
-  const publishSave = await upload(publishBase, publishInput, publishChunks)
-  const publishBefore = await stored(publishBase)
-  await publishBase.owner.caller.mutation(finishSession, {
-    campaignId: publishBase.campaign.id,
-    sessionId: publishContext.session.id,
-    expectedVersion: publishContext.session.version,
-    commandId: crypto.randomUUID()
-  })
-  await expect(
-    publishBase.owner.caller.mutation(publish, { saveId: publishSave.saveId })
-  ).rejects.toThrow('Session is not current and open')
-  expect(await stored(publishBase)).toEqual(publishBefore)
+    base.owner.caller.mutation(append, { input: { saveId: save.saveId, offset: 0, chunks } })
+  ).resolves.toMatchObject({ saveId: save.saveId, receivedChunks: chunks.length })
+  await expect(base.owner.caller.mutation(publish, { saveId: save.saveId })).resolves.toMatchObject(
+    { replayed: false }
+  )
 })
 
-it('rejects Session-scoped fog append and publish after the presentation changes atomically', async () => {
+it('rejects presentation-scoped fog append and publish after the presentation changes atomically', async () => {
   const appendBase = await createSceneDefinitionFixture()
   const { sceneId: appendSceneId } = await publishEmptyScene(appendBase)
-  const appendContext = await presentedSession(appendBase, appendSceneId)
+  const appendPresentation = await presentedScene(appendBase, appendSceneId)
   const appendChunks = [fogChunk(0)]
-  const appendInput = { ...patch(appendSceneId, 0, appendChunks), session: appendContext.context }
+  const appendInput = { ...patch(appendSceneId, 0, appendChunks), presentation: appendPresentation }
   const appendSave = await appendBase.owner.caller.mutation(begin, { input: appendInput })
   const appendBefore = await stored(appendBase)
   await appendBase.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    expectedPresentationVersion: appendContext.context.expectedPresentationVersion,
-    sceneId: appendSceneId,
-    sessionId: appendContext.session.id
+    expectedPresentationVersion: appendPresentation.expectedPresentationVersion,
+    campaignId: appendBase.campaign.id,
+    sceneId: appendSceneId
   })
   await expect(
     appendBase.owner.caller.mutation(append, {
@@ -284,20 +255,20 @@ it('rejects Session-scoped fog append and publish after the presentation changes
 
   const publishBase = await createSceneDefinitionFixture()
   const { sceneId: publishSceneId } = await publishEmptyScene(publishBase)
-  const publishContext = await presentedSession(publishBase, publishSceneId)
+  const publishPresentation = await presentedScene(publishBase, publishSceneId)
   const publishChunks = [fogChunk(0)]
   const publishInput = {
     ...patch(publishSceneId, 0, publishChunks),
-    session: publishContext.context
+    presentation: publishPresentation
   }
   const publishSave = await upload(publishBase, publishInput, publishChunks)
   const publishBefore = await stored(publishBase)
   await publishBase.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    expectedPresentationVersion: publishContext.context.expectedPresentationVersion,
-    sceneId: publishSceneId,
-    sessionId: publishContext.session.id
+    expectedPresentationVersion: publishPresentation.expectedPresentationVersion,
+    campaignId: publishBase.campaign.id,
+    sceneId: publishSceneId
   })
   await expect(
     publishBase.owner.caller.mutation(publish, { saveId: publishSave.saveId })
@@ -305,29 +276,21 @@ it('rejects Session-scoped fog append and publish after the presentation changes
   expect(await stored(publishBase)).toEqual(publishBefore)
 })
 
-it('replays a published Session-scoped fog save after version advances in the same open presentation', async () => {
+it('replays a published presentation-scoped fog save after the presentation version advances', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const context = await presentedSession(base, sceneId)
+  const presentation = await presentedScene(base, sceneId)
   const chunks = [fogChunk(0)]
-  const input = { ...patch(sceneId, 0, chunks), session: context.context }
+  const input = { ...patch(sceneId, 0, chunks), presentation }
   const save = await upload(base, input, chunks)
   const first = await base.owner.caller.mutation(publish, { saveId: save.saveId })
 
-  await base.t.run(async (ctx) => {
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', context.session.id))
-      .unique()
-    if (!session) throw new Error('Missing Session.')
-    await ctx.db.patch(session._id, { version: session.version + 1 })
-  })
   await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    expectedPresentationVersion: context.context.expectedPresentationVersion,
-    sceneId,
-    sessionId: context.session.id
+    expectedPresentationVersion: presentation.expectedPresentationVersion,
+    campaignId: base.campaign.id,
+    sceneId
   })
 
   await expect(base.owner.caller.mutation(begin, { input })).resolves.toMatchObject({
@@ -348,50 +311,41 @@ it('replays a published Session-scoped fog save after version advances in the sa
   })
 })
 
-it('rejects receiving-save retries after only the current open Session version advances', async () => {
+it('rejects receiving-save retries after the presentation version advances', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const context = await presentedSession(base, sceneId)
+  const presentation = await presentedScene(base, sceneId)
   const chunks = [fogChunk(0)]
-  const input = { ...patch(sceneId, 0, chunks), session: context.context }
+  const input = { ...patch(sceneId, 0, chunks), presentation }
   const save = await base.owner.caller.mutation(begin, { input })
+  await base.owner.caller.mutation(setPresentation, {
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
+    commandId: crypto.randomUUID(),
+    expectedPresentationVersion: presentation.expectedPresentationVersion,
+    campaignId: base.campaign.id,
+    sceneId
+  })
   const before = await stored(base)
 
-  await base.t.run(async (ctx) => {
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', context.session.id))
-      .unique()
-    if (!session) throw new Error('Missing Session.')
-    await ctx.db.patch(session._id, { version: session.version + 1 })
-  })
-
   await expect(base.owner.caller.mutation(begin, { input })).rejects.toThrow(
-    'Session is not current and open'
+    'presentation is stale'
   )
   await expect(
     base.owner.caller.mutation(append, { input: { saveId: save.saveId, offset: 0, chunks } })
-  ).rejects.toThrow('Session is not current and open')
+  ).rejects.toThrow('presentation is stale')
   await expect(base.owner.caller.mutation(publish, { saveId: save.saveId })).rejects.toThrow(
-    'Session is not current and open'
+    'presentation is stale'
   )
   expect(await stored(base)).toEqual(before)
 })
 
-it('rejects a fog save started with a wrong Session without writing state', async () => {
+it('rejects a fog save started with a wrong presentation version without writing state', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
-  const presented = await presentedSession(base, sceneId)
-  const wrongSession = await base.owner.caller.mutation(createSession, {
-    campaignId: base.campaign.id
-  })
+  const presented = await presentedScene(base, sceneId)
   const input = {
     ...patch(sceneId, 0, [fogChunk(0)]),
-    session: {
-      sessionId: wrongSession.id,
-      expectedSessionVersion: wrongSession.version,
-      expectedPresentationVersion: presented.context.expectedPresentationVersion
-    }
+    presentation: { expectedPresentationVersion: presented.expectedPresentationVersion + 1 }
   }
   const before = await stored(base)
   await expect(base.owner.caller.mutation(begin, { input })).rejects.toThrow(

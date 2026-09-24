@@ -955,7 +955,6 @@ export async function verifyCampaignLifecycle(input: {
   })
   let run = await owner.mutation(api.encounters.runs.create, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -1025,7 +1024,7 @@ export async function verifyCampaignLifecycle(input: {
   const presentation = await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId: campaign.id,
     sceneId: scene.liveSceneId,
     expectedPresentationVersion: null
   })

@@ -73,23 +73,6 @@ const createCampaign = makeFunctionReference<
   },
   { id: string; gameSystemId: string; createdAt: string }
 >('campaigns/create:create')
-const createSession = makeFunctionReference<
-  'mutation',
-  { campaignId: string },
-  { id: string; version: number }
->('campaigns/sessions:create')
-const setAttendance = makeFunctionReference<
-  'mutation',
-  {
-    campaignId: string
-    sessionId: string
-    characterId: string
-    present: boolean
-    expectedVersion: number
-  },
-  { present: boolean }
->('campaigns/sessionAttendance:set')
-
 const reactionCreature = creatureAuthoredDtoSchema.parse({
   ...wolf,
   id: '00000000-0000-4000-8000-000000000096',
@@ -193,7 +176,6 @@ async function setup() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -380,14 +362,6 @@ async function setupMixedResourceSiblings() {
     campaignId: campaign.id,
     characterId: character.id
   })
-  const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
-  await owner.caller.mutation(setAttendance, {
-    campaignId: campaign.id,
-    sessionId: session.id,
-    characterId: character.id,
-    present: true,
-    expectedVersion: session.version
-  })
   const definitions = [
     ...SRD_RULE_STATE_DEFINITIONS,
     ...[
@@ -424,7 +398,6 @@ async function setupMixedResourceSiblings() {
   })
   const run = await owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

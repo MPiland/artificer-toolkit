@@ -1,7 +1,5 @@
 import { ActionIcon, Tooltip } from '@mantine/core'
-import { convexQuery } from '@convex-dev/react-query'
 import { useQuery } from '@tanstack/react-query'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Gamepad2 } from 'lucide-react'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
@@ -11,15 +9,10 @@ import {
 } from './CampaignTabletopWindow.model'
 
 export function CampaignTabletopButton({ campaignId }: { campaignId: string }) {
-  const campaign = useQuery(getCampaignDetail(campaignId))
-  const currentSession = useQuery(
-    convexQuery(convexApi.campaigns.sessions.latestOpen, { campaignId })
-  ).data
-  const campaignDetail = campaign.data
+  const campaignDetail = useQuery(getCampaignDetail(campaignId)).data
+  if (!campaignDetail) return null
 
-  if (!campaignDetail || !currentSession) return null
-
-  const href = buildTabletopHref(campaignDetail.publicId, currentSession.sessionNumber)
+  const href = buildTabletopHref(campaignDetail.publicId)
   return (
     <Tooltip label='Open live tabletop window'>
       <ActionIcon
@@ -30,12 +23,7 @@ export function CampaignTabletopButton({ campaignId }: { campaignId: string }) {
         size='lg'
         target='_blank'
         variant='default'
-        onClick={(event) =>
-          openAuxiliaryWindow(
-            event,
-            tabletopWindowName(campaignDetail.publicId, currentSession.sessionNumber)
-          )
-        }
+        onClick={(event) => openAuxiliaryWindow(event, tabletopWindowName(campaignDetail.publicId))}
       >
         <Gamepad2 aria-hidden size={18} />
       </ActionIcon>

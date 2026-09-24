@@ -4,7 +4,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import {
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_CONTROL_SECRET_HEADER,
@@ -26,9 +25,6 @@ const evictUser = makeFunctionReference<
 >('liveSessions/control:evictUser')
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
-)
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
 )
 
 beforeEach(() => {
@@ -65,7 +61,6 @@ describe('native live-room control client', () => {
     const request = fetchOk()
     const input: LiveSessionControlInput = {
       campaignId: crypto.randomUUID(),
-      sessionId: crypto.randomUUID(),
       operation: { type: 'CLOSE_ROOM' }
     }
 
@@ -88,7 +83,6 @@ describe('native live-room control client', () => {
     const base = await readyCharacterFixture()
     const input: LiveSessionControlInput = {
       campaignId: crypto.randomUUID(),
-      sessionId: crypto.randomUUID(),
       operation: { type: 'CLOSE_ROOM' }
     }
     vi.stubEnv('LIVE_SESSION_WORKER_URL', '')
@@ -106,13 +100,9 @@ describe('native live-room control client', () => {
     await expect(base.t.action(send, input)).rejects.toThrow('status 503')
   })
 
-  it('evicts one membership epoch from every open Session in the Campaign', async () => {
+  it('evicts one membership epoch from the Campaign room without any Session', async () => {
     const base = await readyCharacterFixture()
     const campaign = await base.owner.caller.mutation(createCampaign, campaignInput())
-    const sessions = await Promise.all([
-      base.owner.caller.mutation(createSession, { campaignId: campaign.id }),
-      base.owner.caller.mutation(createSession, { campaignId: campaign.id })
-    ])
     const request = fetchOk()
     const membershipEpoch = campaign.createdAt
 
@@ -122,25 +112,23 @@ describe('native live-room control client', () => {
       membershipEpoch
     })
 
-    expect(request).toHaveBeenCalledTimes(2)
     expect(
       request.mock.calls.map(([url, init]) => ({
         url: String(url),
         body: JSON.parse(String(init?.body))
       }))
-    ).toEqual(
-      sessions.map((session) => ({
+    ).toEqual([
+      {
         url: new URL(LIVE_SESSION_CONTROL_PATH, workerUrl).toString(),
         body: {
           campaignId: campaign.id,
-          sessionId: session.id,
           operation: {
             type: 'EVICT_USER',
             userId: base.other.userId,
             membershipEpoch
           }
         }
-      }))
-    )
+      }
+    ])
   })
 })

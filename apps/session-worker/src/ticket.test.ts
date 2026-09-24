@@ -17,7 +17,6 @@ describe('Cloudflare live-session ticket verification', () => {
     const ticket = await new SignJWT({
       campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
-      sessionId: '00000000-0000-4000-8000-000000000002',
       v: LIVE_SESSION_TICKET_VERSION
     })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
@@ -30,12 +29,32 @@ describe('Cloudflare live-session ticket verification', () => {
       .sign(new TextEncoder().encode(secret))
 
     await expect(verifyLiveSessionTicket(ticket, secret, now)).resolves.toMatchObject({
+      campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
-      sessionId: '00000000-0000-4000-8000-000000000002',
       sub: '00000000-0000-4000-8000-000000000004'
     })
     await expect(
       verifyLiveSessionTicket(ticket, 'different-secret-that-is-at-least-32-bytes', now)
     ).rejects.toBeDefined()
+  })
+
+  it('rejects a correctly signed ticket from the retired Session-scoped version', async () => {
+    const issuedAt = Math.floor(now.getTime() / 1000)
+    const ticket = await new SignJWT({
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      role: 'PLAYER',
+      sessionId: '00000000-0000-4000-8000-000000000002',
+      v: 1
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setAudience(LIVE_SESSION_TICKET_AUDIENCE)
+      .setExpirationTime(issuedAt + 60)
+      .setIssuedAt(issuedAt)
+      .setIssuer(LIVE_SESSION_TICKET_ISSUER)
+      .setJti('00000000-0000-4000-8000-000000000003')
+      .setSubject('00000000-0000-4000-8000-000000000004')
+      .sign(new TextEncoder().encode(secret))
+
+    await expect(verifyLiveSessionTicket(ticket, secret, now)).rejects.toBeDefined()
   })
 })

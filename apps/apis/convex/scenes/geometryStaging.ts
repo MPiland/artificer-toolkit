@@ -39,10 +39,10 @@ import {
 } from './geometryDocuments'
 import { geometryTarget, normalizeGeometryInput } from './geometryValues'
 import { parseLiveEntity, readLiveScene } from './liveDocuments'
-import { readPresentedVisionSession, readSessionVisionScope } from './sessionVisionDocuments'
+import { readPresentedVisionScene, readSessionVisionScope } from './sessionVisionDocuments'
 import { assertSceneVisionCharacters } from './visionFreshness'
 import {
-  assertConvexOwnsCampaignLiveState,
+  assertConvexOwnsSceneLiveState,
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 
@@ -78,7 +78,8 @@ export async function beginSceneGeometry(
   // Parse again so storage never trusts its caller.
   const input = normalizeGeometryInput(sceneNativeGeometryCommandInputSchema.parse(args.input))
   const bound = input.type === 'MOVE_SCENE_TOKEN' && input.expectedEncounterVersion !== null
-  if (bound && !args.session) throw new Error('Bound Scene movement requires a Session context.')
+  if (bound && !args.presentation)
+    throw new Error('Bound Scene movement requires a presentation context.')
   const { header, campaign, userId } = await readLiveScene(
     ctx,
     input.sceneId,
@@ -86,29 +87,22 @@ export async function beginSceneGeometry(
   )
   active(campaign)
   if (liveAuthority) {
-    if (
-      !bound ||
-      liveAuthority.campaignId !== campaign.id ||
-      liveAuthority.sessionId !== args.session?.sessionId
-    )
+    if (!bound || liveAuthority.campaignId !== campaign.id)
       throw new Error('Live movement authority scope is inconsistent.')
     await requireActiveCampaignLiveAuthority(ctx, liveAuthority)
   } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN')
-    await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
-  const { session } = sceneGeometryExecuteInputSchema.parse(args)
-  const presented = session
-    ? await readPresentedVisionSession(ctx, {
-        campaignId: campaign.id,
-        sceneId: header.id,
-        sessionId: session.sessionId
-      })
+    await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+  const { presentation: fence } = sceneGeometryExecuteInputSchema.parse(args)
+  const presented = fence
+    ? await readPresentedVisionScene(ctx, { campaignId: campaign.id, sceneId: header.id })
     : undefined
-  if (session && presented && !captureSessionVision) {
-    if (presented.session.version !== session.expectedSessionVersion)
-      throw new Error('Scene vision Session is not current and open.')
-    if (presented.presentation.version !== session.expectedPresentationVersion)
-      throw new Error('Scene vision presentation is stale.')
-  }
+  if (
+    fence &&
+    presented &&
+    !captureSessionVision &&
+    presented.presentation.version !== fence.expectedPresentationVersion
+  )
+    throw new Error('Scene vision presentation is stale.')
   const inputChecksum = checksumCanonicalJson(input)
   const priorSaveRow = await ctx.db
     .query('sceneGeometrySaves')
@@ -125,8 +119,11 @@ export async function beginSceneGeometry(
     throw new Error('Scene command ID was already used for different movement evidence.')
   if (bound && priorSave && priorSave.actorUserId !== userId)
     throw new Error('Scene geometry command belongs to another actor.')
-  if (priorSave && priorSave.sessionVision?.sessionId !== session?.sessionId)
-    throw new Error('Scene geometry command was already used for a different Session context.')
+  if (
+    priorSave &&
+    priorSave.sessionVision?.expectedPresentationVersion !== fence?.expectedPresentationVersion
+  )
+    throw new Error('Scene geometry command was already used for a different presentation.')
   const priorCommand = await ctx.db
     .query('sceneLiveCommands')
     .withIndex('by_sceneId_commandId', (q) =>
@@ -160,9 +157,9 @@ export async function beginSceneGeometry(
   if (input.expectedSceneVersion > header.version)
     throw new Error('Scene version is ahead of the authoritative state.')
   await assertStandaloneMovement(ctx, campaign.id, input)
-  const capture = session
+  const capture = fence
     ? {
-        ...session,
+        ...fence,
         campaignId: campaign.id,
         systemId: campaign.gameSystemId,
         sceneId: header.id,
@@ -267,7 +264,7 @@ export const observe = internalMutation({
     const { row, save, header, userId } = await readGeometrySave(ctx, input.saveId)
     assertGeometryReceiving(save, header.version, userId)
     if (!save.sessionVision)
-      throw new Error('Scene geometry observations require a Session context.')
+      throw new Error('Scene geometry observations require a presentation context.')
     await readSessionVisionScope(ctx, save.sessionVision)
     await assertSceneVisionCharacters(ctx, input.characterRevisions)
     const revisions = [...input.characterRevisions].sort((a, b) =>

@@ -13,12 +13,9 @@ export const authorize = internalMutation({
   args: { ...zodToConvexFields(liveSessionJoinOptionsDtoSchema.shape), expiresAt: v.number() },
   returns: zodToConvex(liveSessionTicketAdmissionDtoSchema),
   handler: async (ctx, args): Promise<LiveSessionTicketAdmissionDto> => {
-    const input = liveSessionJoinOptionsDtoSchema.parse({
-      campaignId: args.campaignId,
-      sessionId: args.sessionId
-    })
+    const input = liveSessionJoinOptionsDtoSchema.parse({ campaignId: args.campaignId })
     const { userId } = await requireIdentity(ctx)
-    const { authority, campaign, membership, session } = await claimCampaignLiveAuthority(ctx, {
+    const { authority, campaign, membership } = await claimCampaignLiveAuthority(ctx, {
       ...input,
       expiresAt: args.expiresAt,
       userId
@@ -27,7 +24,6 @@ export const authorize = internalMutation({
       authorityEpoch: authority.epoch,
       campaignId: campaign.id,
       role: membership.role,
-      sessionId: session.id,
       sub: userId
     })
   }

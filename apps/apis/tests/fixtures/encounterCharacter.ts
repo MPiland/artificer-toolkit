@@ -1,14 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import {
-  createCampaignSessionInputSchema,
-  setCampaignSessionAttendanceInputSchema,
-  type CampaignSessionDto
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -23,16 +17,7 @@ import { api, components } from '../../convex/_generated/api'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
-const attendanceSet = makeFunctionReference<
-  'mutation',
-  z.input<typeof setCampaignSessionAttendanceInputSchema>,
-  { present: boolean }
->('campaigns/sessionAttendance:set')
+
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -87,14 +72,7 @@ export async function setupCharacterRun(
     campaignId: campaign.id,
     characterId: base.character.id
   })
-  const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
-  await owner.caller.mutation(attendanceSet, {
-    campaignId: campaign.id,
-    sessionId: session.id,
-    characterId: base.character.id,
-    present: true,
-    expectedVersion: session.version
-  })
+
   const blueprint = await owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Native Character mechanics fixture',
@@ -103,7 +81,6 @@ export async function setupCharacterRun(
   })
   const run = await owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

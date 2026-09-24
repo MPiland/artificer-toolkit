@@ -57,8 +57,7 @@ export async function requireCampaignAuthority(
         deletion.stage !== 'DRAIN_ROOM' ||
         authority.phase !== 'DRAINING' ||
         deletion.liveAuthorityId !== authority._id ||
-        deletion.liveAuthority?.epoch !== authority.epoch ||
-        deletion.liveAuthority.sessionId !== authority.sessionId
+        deletion.liveAuthority?.epoch !== authority.epoch
       )
         throw new Error('Campaign deletion publication authority is stale.')
     } else if (

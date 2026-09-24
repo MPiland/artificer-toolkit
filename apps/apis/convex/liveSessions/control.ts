@@ -1,6 +1,5 @@
 'use node'
 
-import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
 import { z } from 'zod'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
@@ -25,9 +24,6 @@ const evictionInputSchema = z.strictObject({
   userId: uuidSchema,
   membershipEpoch: membershipEpochSchema
 })
-const openSessionIds = makeFunctionReference<'query', { campaignId: string }, string[]>(
-  'liveSessions/controlQueries:openSessionIds'
-)
 
 function configuration() {
   const configuredUrl = process.env.LIVE_SESSION_WORKER_URL
@@ -86,19 +82,16 @@ export const send = internalAction({
 export const evictUser = internalAction({
   args: zodToConvexFields(evictionInputSchema.shape),
   returns: v.null(),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const input = evictionInputSchema.parse(args)
-    const sessionIds = await ctx.runQuery(openSessionIds, { campaignId: input.campaignId })
-    for (const sessionId of sessionIds)
-      await post({
-        campaignId: input.campaignId,
-        sessionId,
-        operation: {
-          type: 'EVICT_USER',
-          userId: input.userId,
-          membershipEpoch: input.membershipEpoch
-        }
-      })
+    await post({
+      campaignId: input.campaignId,
+      operation: {
+        type: 'EVICT_USER',
+        userId: input.userId,
+        membershipEpoch: input.membershipEpoch
+      }
+    })
     return null
   }
 })

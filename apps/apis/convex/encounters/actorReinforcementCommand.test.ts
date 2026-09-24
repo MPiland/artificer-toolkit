@@ -41,7 +41,6 @@ async function manualFixture() {
   })
   let projection = (await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })) as EncounterGmProjectionDto

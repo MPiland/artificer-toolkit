@@ -14,7 +14,6 @@ import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/enc
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { QueryCtx, MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import {
   readNativeEncounterCommandReplay,
   readNativeEncounterCommandState
@@ -64,7 +63,6 @@ export async function readLiveEncounterTurnAdmission(
     throw new Error('Live Session Encounter command scope mismatch.')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: scope.campaignId,
-    sessionId: scope.sessionId,
     epoch: scope.authorityEpoch
   })
   const row = await ctx.db
@@ -74,18 +72,14 @@ export async function readLiveEncounterTurnAdmission(
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
   if (membership.role !== scope.expectedRole) throw new Error('Campaign not found.')
-  if (campaign.id !== scope.campaignId || row.sessionId !== scope.sessionId)
-    throw new Error('Live Session Encounter scope mismatch.')
+  if (campaign.id !== scope.campaignId) throw new Error('Live Session Encounter scope mismatch.')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const session = await requireSession(ctx, campaign.id, row.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   const { fingerprint, result } = await readNativeEncounterCommandReplay(ctx, {
     input,
     row,
-    campaign,
-    session
+    campaign
   })
   const { state, projection } = readNativeEncounterCommandState(row)
   if (result && input.type !== 'RESOLVE_RULE_OCCURRENCE')
@@ -403,7 +397,6 @@ export async function assertLiveTurnRevisions(
   await assertLiveSessionRulesRevisions(ctx, input.revisions, {
     systemId: state.gameSystemId,
     campaignId: state.campaignId,
-    sessionId: state.sessionId,
     characterIds
   })
   for (const scene of input.scenes) {

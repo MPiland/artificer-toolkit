@@ -121,7 +121,7 @@ async function effectSnapshot(base: Awaited<ReturnType<typeof fixture>>, campaig
   return base.t.run(async (ctx) => {
     const runs = await ctx.db
       .query('encounterRuns')
-      .withIndex('by_campaignId_sessionId_createdAt_id', (q) => q.eq('campaignId', campaignId))
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaignId))
       .take(8)
     const effects = await Promise.all(
       runs.map(async (run) => ({

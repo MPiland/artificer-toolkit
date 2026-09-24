@@ -22,7 +22,6 @@ export function projectPlayerEncounterProjection(
   return encounterPlayerProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
-    sessionId: encounter.sessionId,
     gameSystemId: encounter.gameSystemId,
     blueprintId: encounter.blueprintId,
     blueprintVersion: encounter.blueprintVersion,

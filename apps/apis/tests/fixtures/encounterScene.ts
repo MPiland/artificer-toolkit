@@ -4,7 +4,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type {
   CreateEncounterInputDto,
@@ -26,9 +25,7 @@ export const createCampaign = makeFunctionReference<
   CreateCampaignInput,
   CampaignDetailDto
 >('campaigns/create:create')
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
-)
+
 const createBlueprint = makeFunctionReference<
   'mutation',
   {
@@ -67,7 +64,6 @@ export async function createEncounterSceneFixture(
       leftAt: null
     })
   )
-  const session = await base.other.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.other.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Binding target',
@@ -79,7 +75,6 @@ export async function createEncounterSceneFixture(
   })
   const run = await base.other.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -140,7 +135,6 @@ export async function createEncounterSceneFixture(
       'campaignScenePresentations',
       sceneStoredPresentationSchema.parse({
         campaignId: campaign.id,
-        sessionId: session.id,
         sceneId,
         version: 0,
         activeMapAssetId: null,
@@ -149,5 +143,5 @@ export async function createEncounterSceneFixture(
       })
     )
   })
-  return { ...base, campaign, session, blueprint, run, sceneId, saveId, tokens }
+  return { ...base, campaign, blueprint, run, sceneId, saveId, tokens }
 }

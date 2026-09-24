@@ -8,7 +8,6 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireIdentity } from '../lib/identity'
 import {
   isExpiredActivatingAuthority,
@@ -18,7 +17,6 @@ import {
 
 const authorityValue = v.object({
   campaignId: v.string(),
-  sessionId: v.string(),
   epoch: v.string(),
   phase: v.union(v.literal('ACTIVATING'), v.literal('DO_ACTIVE'), v.literal('DRAINING')),
   activationFingerprint: v.string(),
@@ -33,7 +31,6 @@ const authorityValue = v.object({
 
 const authorityIdentityFields = {
   campaignId: zodToConvex(postgresUuidSchema),
-  sessionId: zodToConvex(postgresUuidSchema),
   epoch: zodToConvex(postgresUuidSchema)
 }
 
@@ -42,16 +39,10 @@ export function presentCampaignLiveAuthority(authority: Doc<'campaignLiveAuthori
   return value
 }
 
-async function activationFingerprint(
-  ctx: MutationCtx,
-  campaign: Doc<'campaigns'>,
-  session: Doc<'campaignSessions'>
-) {
+async function activationFingerprint(ctx: MutationCtx, campaign: Doc<'campaigns'>) {
   const presentation = await ctx.db
     .query('campaignScenePresentations')
-    .withIndex('by_campaignId_sessionId', (q) =>
-      q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-    )
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
     .unique()
   const scene = presentation?.sceneId
     ? await ctx.db
@@ -71,7 +62,6 @@ async function activationFingerprint(
     : null
   return checksumCanonicalJson({
     campaign: { id: campaign.id, version: campaign.version },
-    session: { id: session.id, version: session.version },
     presentation: presentation
       ? { sceneId: presentation.sceneId, version: presentation.version }
       : null,
@@ -90,14 +80,15 @@ export async function commitCampaignLiveAuthorityActivation(
   ctx: MutationCtx,
   args: {
     campaignId: string
-    sessionId: string
     epoch: string
     activationFingerprint: string
     stateChecksum: string
   }
 ) {
-  const deletion = await ctx.db.query('campaignDeletionJobs')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', args.campaignId.toLowerCase())).unique()
+  const deletion = await ctx.db
+    .query('campaignDeletionJobs')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', args.campaignId.toLowerCase()))
+    .unique()
   if (deletion) throw new Error('Campaign not found.')
   const authority = await requireCampaignLiveAuthority(ctx, args)
   if (authority.activationFingerprint !== args.activationFingerprint)
@@ -132,7 +123,6 @@ export async function advanceCampaignLiveAuthorityPersisted(
   ctx: MutationCtx,
   args: {
     campaignId: string
-    sessionId: string
     epoch: string
     expectedStateChecksum: string
     sequence: number
@@ -177,7 +167,7 @@ export async function advanceCampaignLiveAuthorityPersisted(
 }
 export async function claimCampaignLiveAuthority(
   ctx: MutationCtx,
-  input: { campaignId: string; sessionId: string; userId: string; expiresAt: number }
+  input: { campaignId: string; userId: string; expiresAt: number }
 ) {
   if (!Number.isSafeInteger(input.expiresAt) || input.expiresAt <= Date.now())
     throw new Error('Live Session activation expiry is invalid.')
@@ -187,13 +177,9 @@ export async function claimCampaignLiveAuthority(
     input.userId
   )
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  const session = await requireSession(ctx, campaign.id, input.sessionId.toLowerCase())
-  if (session.status !== 'OPEN') throw new Error('Live Session is not open.')
-  const fingerprint = await activationFingerprint(ctx, campaign, session)
+  const fingerprint = await activationFingerprint(ctx, campaign)
   const current = await readCampaignLiveAuthority(ctx, campaign.id)
   if (current && !isExpiredActivatingAuthority(current)) {
-    if (current.sessionId !== session.id)
-      throw new Error('Another Session already owns this Campaign live state.')
     if (current.phase === 'DRAINING') throw new Error('Live Session authority is draining.')
     if (current.phase === 'ACTIVATING' && current.activationFingerprint !== fingerprint)
       throw new Error('Live Session activation inputs changed.')
@@ -207,17 +193,15 @@ export async function claimCampaignLiveAuthority(
       return {
         authority: { ...current, activationExpiresAt: input.expiresAt },
         campaign,
-        membership,
-        session
+        membership
       }
     }
-    return { authority: current, campaign, membership, session }
+    return { authority: current, campaign, membership }
   }
   if (current) await ctx.db.delete(current._id)
   const now = new Date().toISOString()
   const id = await ctx.db.insert('campaignLiveAuthorities', {
     campaignId: campaign.id,
-    sessionId: session.id,
     epoch: crypto.randomUUID(),
     phase: 'ACTIVATING',
     activationFingerprint: fingerprint,
@@ -229,14 +213,11 @@ export async function claimCampaignLiveAuthority(
   })
   const authority = await ctx.db.get(id)
   if (!authority) throw new Error('Live Session authority claim failed.')
-  return { authority, campaign, membership, session }
+  return { authority, campaign, membership }
 }
 
 export const claim = internalMutation({
-  args: {
-    campaignId: zodToConvex(postgresUuidSchema),
-    sessionId: zodToConvex(postgresUuidSchema)
-  },
+  args: { campaignId: zodToConvex(postgresUuidSchema) },
   returns: authorityValue,
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)

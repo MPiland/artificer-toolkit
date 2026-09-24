@@ -50,7 +50,6 @@ export async function verifyEncounterLifecycle({
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: 'Encounter execution fixture',
@@ -62,7 +61,6 @@ export async function verifyEncounterLifecycle({
   })
   const create = {
     campaignId,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   }
@@ -73,7 +71,6 @@ export async function verifyEncounterLifecycle({
   )
   assert.equal(prepared.status, 'PREPARED')
   assert.equal(prepared.version, 0)
-  assert.equal(prepared.sessionId, session.id)
   assert.equal(prepared.blueprintChecksum, blueprint.setupChecksum)
   assert.equal(prepared.blueprintVersion, blueprint.version)
   assert.equal(prepared.automationMode, 'MANUAL')
@@ -85,7 +82,6 @@ export async function verifyEncounterLifecycle({
   ])
   const sameCreate = {
     campaignId: campaignId.toUpperCase(),
-    sessionId: session.id.toUpperCase(),
     blueprintId: blueprint.id.toUpperCase(),
     commandId: create.commandId.toUpperCase()
   }
@@ -234,7 +230,7 @@ export async function verifyEncounterLifecycle({
   await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: scenes[0].liveSceneId,
     expectedPresentationVersion: null
   })
@@ -246,14 +242,11 @@ export async function verifyEncounterLifecycle({
   await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: scenes[1].liveSceneId,
     expectedPresentationVersion: 0
   })
-  const presentation = await owner.query(api.scenes.presentations.get, {
-    campaignId,
-    sessionId: session.id
-  })
+  const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.equal(presentation?.sceneId, scenes[1].liveSceneId)
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
   await assert.rejects(
@@ -361,17 +354,7 @@ export async function verifyEncounterLifecycle({
     timeline
   )
   assert.deepEqual(await captureScenes(), originalScenes)
-  assert.deepEqual(
-    await owner.query(api.scenes.presentations.get, { campaignId, sessionId: session.id }),
-    presentation
-  )
-  assert.deepEqual(
-    await owner.query(api.campaigns.sessions.get, {
-      campaignId,
-      sessionNumber: session.sessionNumber
-    }),
-    session
-  )
+  assert.deepEqual(await owner.query(api.scenes.presentations.get, { campaignId }), presentation)
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection
@@ -385,5 +368,5 @@ export async function verifyEncounterLifecycle({
       status: 'PASS'
     })
   )
-  return { session, blueprint: revisedBlueprint, assetId, scenes, manualRun: projection }
+  return { blueprint: revisedBlueprint, assetId, scenes, manualRun: projection }
 }

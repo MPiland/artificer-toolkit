@@ -11,7 +11,7 @@ import {
 import { sceneLiveStateHeaderSchema } from './sceneLiveState.js'
 import {
   campaignSceneStateDtoSchema,
-  campaignSessionScenePresentationDtoSchema
+  campaignScenePresentationDtoSchema
 } from './vttScenes.js'
 
 const uuidSchema = z.string().check(z.uuid())
@@ -40,15 +40,11 @@ export const liveSessionTransientCaptureSchema = z.strictObject({
   systemId: postgresUuidSchema,
   observedCharacterRevisions: sceneSessionVisionCharacterRevisionsSchema,
   origin: liveSessionTransientMemberSchema,
-  presentation: z.nullable(campaignSessionScenePresentationDtoSchema),
+  presentation: z.nullable(campaignScenePresentationDtoSchema),
   recipients: z.array(liveSessionTransientMemberSchema).check(z.maxLength(10_000)),
   sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
   sceneEncounterBound: z.boolean(),
   sceneSnapshot: z.optional(z.nullable(campaignSceneStateDtoSchema)),
-  session: z.strictObject({
-    id: uuidSchema,
-    version: z.number().check(z.int()).check(z.nonnegative())
-  }),
   visionFreshness: z.nullable(sceneSessionVisionFreshnessSchema)
 })
 

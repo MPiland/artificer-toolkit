@@ -4,11 +4,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import {
-  createCampaignSessionInputSchema,
-  type CampaignSessionDto
-} from '@artificer-toolkit/schema/api/campaignSessions'
-import type { z } from 'zod'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -25,11 +20,6 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -51,7 +41,6 @@ async function mechanicsFixture() {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Native mechanics fixture',
@@ -60,7 +49,6 @@ async function mechanicsFixture() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

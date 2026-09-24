@@ -7,12 +7,12 @@ import { readSceneVisionRevision } from '../scenes/visionFreshness'
 
 export async function readLiveSessionRulesRevisions(
   ctx: QueryCtx,
-  input: { systemId: string; campaignId: string; sessionId: string; characterId?: string }
+  input: { systemId: string; campaignId: string; characterId?: string }
 ): Promise<LiveSessionRulesRevisions> {
   const scopes: Array<Pick<LiveSessionRulesRevisions[number], 'scope' | 'id'>> = [
     { scope: 'SYSTEM', id: input.systemId },
     { scope: 'CAMPAIGN', id: input.campaignId },
-    { scope: 'SESSION', id: input.sessionId }
+    { scope: 'PLAY', id: input.campaignId }
   ]
   if (input.characterId) scopes.push({ scope: 'CHARACTER', id: input.characterId })
   return Promise.all(
@@ -33,7 +33,6 @@ export async function assertLiveSessionRulesRevisions(
   scope: {
     systemId: string
     campaignId: string
-    sessionId: string
     characterIds: readonly string[]
   }
 ) {
@@ -41,7 +40,7 @@ export async function assertLiveSessionRulesRevisions(
   const required = new Set([
     `SYSTEM:${scope.systemId}`,
     `CAMPAIGN:${scope.campaignId}`,
-    `SESSION:${scope.sessionId}`,
+    `PLAY:${scope.campaignId}`,
     ...scope.characterIds.map((id) => `CHARACTER:${id}`)
   ])
   if (revisions.length !== required.size)

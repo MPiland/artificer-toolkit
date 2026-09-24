@@ -1,15 +1,10 @@
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -57,11 +52,6 @@ const environment = workerEnvironment(workerSecret)
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -122,7 +112,6 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
     initiativePolicyDefinitionId: mode === 'MANUAL' ? null : initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Private START actors',
@@ -134,7 +123,6 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -142,14 +130,12 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: session.id,
       epoch,
       createdAt: campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionEncounterRulesInput, 'request'> = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch: epoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER',

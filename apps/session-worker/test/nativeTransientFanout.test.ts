@@ -28,7 +28,6 @@ const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
 const authorityEpoch = '00000000-0000-4000-8000-000000000112'
 const activationFingerprint = 'a'.repeat(64)
-const sessionId = '00000000-0000-4000-8000-000000000102'
 const sceneId = '00000000-0000-4000-8000-000000000103'
 const ownerId = '00000000-0000-4000-8000-000000000104'
 const playerId = '00000000-0000-4000-8000-000000000105'
@@ -115,12 +114,11 @@ function captureFor(
     systemId: '00000000-0000-4000-8000-000000000111',
     observedCharacterRevisions: [],
     origin: member(originUserId, role, epoch),
-    presentation: { sceneId, sessionId, version: 1 },
+    presentation: { campaignId, sceneId, version: 1 },
     recipients: [...recipients],
     sceneEncounterBound: false,
     sceneHeader: header(),
-    session: { id: sessionId, version: 1 },
-    visionFreshness: { campaign: null, session: null, system: null }
+    visionFreshness: { campaign: null, play: null, system: null }
   }
 }
 
@@ -154,7 +152,6 @@ function installFetch(
         persistedSequence: 0,
         persistedStateChecksum: body.stateChecksum,
         phase: 'DO_ACTIVE',
-        sessionId,
         updatedAt: now
       })
     }
@@ -213,7 +210,6 @@ async function ticket(userId: string, role: 'OWNER' | 'PLAYER') {
     authorityEpoch,
     campaignId,
     role,
-    sessionId,
     v: LIVE_SESSION_TICKET_VERSION
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -228,7 +224,7 @@ async function ticket(userId: string, role: 'OWNER' | 'PLAYER') {
 
 async function connect(stub: DurableObjectStub, userId: string, role: 'OWNER' | 'PLAYER') {
   const response = await stub.fetch(
-    new Request(`https://session.test/live-session/${sessionId}`, {
+    new Request(`https://session.test/live-session/${campaignId}`, {
       headers: {
         upgrade: 'websocket',
         'x-artificer-live-session-ticket': await ticket(userId, role)
@@ -296,7 +292,6 @@ it('fans out synchronized token previews from room memory without per-sample bac
   owner.socket.send(
     JSON.stringify({
       expectedPresentationVersion: 1,
-      expectedSessionVersion: 1,
       sceneId,
       type: 'SYNCHRONIZE_SCENE',
       version: 1
@@ -398,7 +393,7 @@ it('fans out controlled token previews and per-player fog only to current author
     member(otherPlayerId, 'PLAYER')
   ]
   const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${sessionId}`)
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
   )
   const captureModes: LiveSessionTransientCaptureInput['mode'][] = []
   await runInDurableObject(stub, () =>
@@ -633,11 +628,9 @@ it('does not block ordered token previews behind a pointer capture', async () =>
     return {
       attachment,
       pointer: transients.read(attachment.socketId, 'POINTER_PREVIEW'),
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`, sceneId, 1)
+      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
     }
   })
-  expect(retained.attachment).not.toHaveProperty('transientSequences')
-  expect(retained.attachment).not.toHaveProperty('transientTokenPaths')
   expect(retained.pointer?.sequence).toBe(1)
   expect(retained.token).toMatchObject({
     sequence: 1,
@@ -657,71 +650,12 @@ it('does not block ordered token previews behind a pointer capture', async () =>
   await noTransient(owner.messages)
 })
 
-it('migrates legacy paths and retains per-token sequences through hibernation', async () => {
+it('retains per-token sequences and paths through hibernation', async () => {
   const stub = env.LIVE_SESSION_ROOMS.get(
     env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
   )
   await runInDurableObject(stub, () => installFetch([member(ownerId, 'OWNER')]))
   const owner = await connect(stub, ownerId, 'OWNER')
-  const siblingTokenId = crypto.randomUUID()
-  const siblingPath = [{ x: 4, y: 4 }]
-  await runInDurableObject(stub, (_instance, state) => {
-    const socket = state.getWebSockets()[0]!
-    const existing = socket.deserializeAttachment() as Record<string, unknown>
-    socket.serializeAttachment({
-      ...existing,
-      transientSequences: {
-        [`TOKEN_DRAG_PREVIEW:${tokenId}`]: 4,
-        [`TOKEN_DRAG_PREVIEW:${siblingTokenId}`]: 2,
-        POINTER_PREVIEW: 7
-      },
-      transientTokenPaths: {
-        ...Object.fromEntries(
-          Array.from({ length: 110 }, (_, index) => [
-            `${sceneId}:${index + 2}:${tokenId}`,
-            [
-              { x: 10, y: 10 },
-              { x: 15, y: 10 }
-            ]
-          ])
-        ),
-        [`${sceneId}:1:${siblingTokenId}`]: siblingPath
-      }
-    })
-  })
-
-  await evictDurableObject(stub)
-  owner.messages.length = 0
-  owner.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(true)
-  )
-  owner.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: owner.accessToken }))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  owner.messages.length = 0
-  const migrated = await runInDurableObject(stub, (_instance, state) => {
-    const attachment = state.getWebSockets()[0]!.deserializeAttachment() as { socketId: string }
-    const transients = new NativeSocketTransientState(state.storage)
-    return {
-      attachment,
-      pointer: transients.read(attachment.socketId, 'POINTER_PREVIEW'),
-      sibling: transients.read(
-        attachment.socketId,
-        `TOKEN_DRAG_PREVIEW:${siblingTokenId}`,
-        sceneId,
-        1
-      ),
-      historical: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`, sceneId, 2)
-    }
-  })
-  expect(migrated.attachment).not.toHaveProperty('transientSequences')
-  expect(migrated.attachment).not.toHaveProperty('transientTokenPaths')
-  expect(migrated.pointer?.sequence).toBe(7)
-  expect(migrated.sibling).toMatchObject({ sequence: 2, path: siblingPath })
-  expect(migrated.historical).toMatchObject({ sequence: 4, baselineVersion: 2 })
-
   owner.socket.send(
     JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(5, { x: 20, y: 20 }) })
   )
@@ -735,20 +669,9 @@ it('migrates legacy paths and retains per-token sequences through hibernation', 
     const transients = new NativeSocketTransientState(state.storage)
     return {
       attachment,
-      pointer: transients.read(attachment.socketId, 'POINTER_PREVIEW'),
-      sibling: transients.read(
-        attachment.socketId,
-        `TOKEN_DRAG_PREVIEW:${siblingTokenId}`,
-        sceneId,
-        1
-      ),
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`, sceneId, 1)
+      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
     }
   })
-  expect(retained.attachment).not.toHaveProperty('transientSequences')
-  expect(retained.attachment).not.toHaveProperty('transientTokenPaths')
-  expect(retained.pointer?.sequence).toBe(7)
-  expect(retained.sibling).toMatchObject({ sequence: 2, path: siblingPath })
   expect(retained.token).toMatchObject({
     sequence: 5,
     sceneId,
@@ -787,20 +710,9 @@ it('migrates legacy paths and retains per-token sequences through hibernation', 
     const transients = new NativeSocketTransientState(state.storage)
     return {
       attachment,
-      pointer: transients.read(attachment.socketId, 'POINTER_PREVIEW'),
-      sibling: transients.read(
-        attachment.socketId,
-        `TOKEN_DRAG_PREVIEW:${siblingTokenId}`,
-        sceneId,
-        1
-      ),
-      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`, sceneId, 1)
+      token: transients.read(attachment.socketId, `TOKEN_DRAG_PREVIEW:${tokenId}`)
     }
   })
-  expect(resumed.attachment).not.toHaveProperty('transientSequences')
-  expect(resumed.attachment).not.toHaveProperty('transientTokenPaths')
-  expect(resumed.pointer?.sequence).toBe(7)
-  expect(resumed.sibling).toMatchObject({ sequence: 2, path: siblingPath })
   expect(resumed.token).toMatchObject({
     sequence: 6,
     sceneId,
@@ -872,10 +784,8 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
     expectedEncounterVersion: 1,
     expectedPresentationVersion: 1,
     expectedSceneVersion: 1,
-    expectedSessionVersion: 1,
-    freshness: { campaign: null, session: null, system: null },
+    freshness: { campaign: null, play: null, system: null },
     sceneId,
-    sessionId,
     systemId: '00000000-0000-4000-8000-000000000111'
   }
   const binding = {
@@ -915,7 +825,6 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
           persistedSequence: 0,
           persistedStateChecksum: body.stateChecksum,
           phase: 'DO_ACTIVE',
-          sessionId,
           updatedAt: now
         })
       }

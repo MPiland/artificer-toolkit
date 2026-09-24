@@ -7,7 +7,8 @@ import {
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
   LIVE_SESSION_TICKET_AUDIENCE,
-  LIVE_SESSION_TICKET_ISSUER
+  LIVE_SESSION_TICKET_ISSUER,
+  LIVE_SESSION_TICKET_VERSION
 } from '../api/liveSessions.js'
 import {
   liveSessionPublishInputSchema,
@@ -67,25 +68,25 @@ const scene = {
 describe('live-session contracts', () => {
   it('defines the exact room and short-lived ticket identity', () => {
     expect(
-      liveSessionJoinOptionsDtoSchema.parse({
-        campaignId: ids.campaign,
-        sessionId: ids.session
-      })
-    ).toEqual({ campaignId: ids.campaign, sessionId: ids.session })
+      liveSessionJoinOptionsDtoSchema.parse({ campaignId: ids.campaign })
+    ).toEqual({ campaignId: ids.campaign })
+    // The retired Session-scoped join shape is refused.
+    expect(
+      liveSessionJoinOptionsDtoSchema.safeParse({ campaignId: ids.campaign, sessionId: ids.session })
+        .success
+    ).toBe(false)
 
     expect(
       liveSessionTicketAdmissionDtoSchema.parse({
         authorityEpoch: ids.authorityEpoch,
         campaignId: ids.campaign,
         role: 'PLAYER',
-        sessionId: ids.session,
         sub: ids.user
       })
     ).toEqual({
       authorityEpoch: ids.authorityEpoch,
       campaignId: ids.campaign,
       role: 'PLAYER',
-      sessionId: ids.session,
       sub: ids.user
     })
     expect(
@@ -98,9 +99,8 @@ describe('live-session contracts', () => {
         iss: LIVE_SESSION_TICKET_ISSUER,
         jti: ids.token,
         role: 'PLAYER',
-        sessionId: ids.session,
         sub: ids.user,
-        v: 1
+        v: LIVE_SESSION_TICKET_VERSION
       })
     ).toMatchObject({
       authorityEpoch: ids.authorityEpoch,
@@ -173,14 +173,12 @@ describe('live-session contracts', () => {
     expect(
       liveSessionWebSocketClientMessageDtoSchema.parse({
         expectedPresentationVersion: 5,
-        expectedSessionVersion: 4,
         sceneId: ids.scene,
         type: 'SYNCHRONIZE_SCENE',
         version: 2
       })
     ).toMatchObject({
       expectedPresentationVersion: 5,
-      expectedSessionVersion: 4,
       sceneId: ids.scene,
       type: 'SYNCHRONIZE_SCENE',
       version: 2
@@ -340,11 +338,7 @@ describe('live-session contracts', () => {
           state: 'OPEN' as const,
           type: 'SET_SCENE_DOOR_STATE' as const
         },
-        session: {
-          expectedPresentationVersion: 5,
-          expectedSessionVersion: 4,
-          sessionId: ids.session
-        }
+        presentation: { expectedPresentationVersion: 5 }
       },
       epoch: ids.authorityEpoch,
       expectedSceneResult: sceneResult,
@@ -352,7 +346,6 @@ describe('live-session contracts', () => {
       occurredAt: '2026-09-22T12:00:00.000Z',
       receiptId: ids.command,
       sequence: 8,
-      sessionId: ids.session,
       stateChecksum: 'b'.repeat(64)
     }
     expect(liveSessionPublishInputSchema.parse(publication)).toEqual(publication)
@@ -419,7 +412,6 @@ describe('live-session contracts', () => {
           persistedSequence: 8,
           persistedStateChecksum: 'b'.repeat(64),
           phase: 'DO_ACTIVE',
-          sessionId: ids.session,
           updatedAt: '2026-09-22T12:00:00.000Z'
         },
         sceneResult,
@@ -451,12 +443,10 @@ describe('live-session contracts', () => {
     expect(
       liveSessionWebSocketServerMessageDtoSchema.parse({
         campaignId: ids.campaign,
-        sessionId: ids.session,
         type: 'TRANSIENT_READY'
       })
     ).toEqual({
       campaignId: ids.campaign,
-      sessionId: ids.session,
       type: 'TRANSIENT_READY'
     })
     expect(

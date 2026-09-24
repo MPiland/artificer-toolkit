@@ -435,20 +435,24 @@ describe('encounter contracts', () => {
     ).toThrow()
   })
 
-  it('requires a Session and Blueprint for each Encounter run', () => {
+  it('requires a Blueprint and no Session for each Campaign Encounter run', () => {
     expect(
       createEncounterInputDtoSchema.parse({
         campaignId: encounterId,
-        sessionId: encounterId,
         blueprintId: encounterId,
         commandId
       }).blueprintId
     ).toBe(encounterId)
     expect(() =>
+      createEncounterInputDtoSchema.parse({ campaignId: encounterId, commandId })
+    ).toThrow()
+    // The retired Session-scoped shape is refused rather than silently accepted.
+    expect(() =>
       createEncounterInputDtoSchema.parse({
         campaignId: encounterId,
-        commandId,
-        sessionId: encounterId
+        sessionId: encounterId,
+        blueprintId: encounterId,
+        commandId
       })
     ).toThrow()
   })
@@ -457,7 +461,6 @@ describe('encounter contracts', () => {
     expect(() =>
       createEncounterInputDtoSchema.parse({
         campaignId: encounterId,
-        sessionId: encounterId,
         templateId: encounterId,
         commandId
       })
@@ -541,7 +544,6 @@ describe('encounter contracts', () => {
     const base = {
       id: encounterId,
       campaignId: commandId,
-      sessionId: encounterId,
       gameSystemId: encounterId,
       blueprintId: commandId,
       blueprintVersion: 1,
@@ -694,7 +696,6 @@ describe('encounter contracts', () => {
       encounterPlayerProjectionDtoSchema.parse({
         id: encounterId,
         campaignId: commandId,
-        sessionId: encounterId,
         gameSystemId: encounterId,
         blueprintId: commandId,
         blueprintVersion: 1,
@@ -918,7 +919,6 @@ describe('encounter contracts', () => {
     const projection = encounterPlayerProjectionDtoSchema.parse({
       id: encounterId,
       campaignId: commandId,
-      sessionId: encounterId,
       gameSystemId: encounterId,
       blueprintId: encounterId,
       blueprintVersion: 1,

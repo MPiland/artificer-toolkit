@@ -81,7 +81,7 @@ export async function publishSpatialTerminal(
   readRunProjection(run)
   if (
     state.campaignId !== header.campaignId ||
-    state.sessionId !== save.sessionVision?.sessionId ||
+    state.campaignId !== save.sessionVision?.campaignId ||
     state.gameSystemId !== save.sessionVision.systemId
   )
     throw new Error('Spatial terminal Encounter scope is inconsistent.')

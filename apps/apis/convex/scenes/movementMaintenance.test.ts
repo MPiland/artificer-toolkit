@@ -147,9 +147,7 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
     if (sceneBinding) await ctx.db.delete(sceneBinding._id)
     const presentations = await ctx.db
       .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('sessionId', base.run.sessionId)
-      )
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
       .collect()
     for (const presentation of presentations) await ctx.db.delete(presentation._id)
     const run = await ctx.db

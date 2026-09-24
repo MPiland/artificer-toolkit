@@ -132,7 +132,6 @@ export async function planNativeLiveEncounterAction(
     state.id !== initial.encounterId ||
     state.version !== initial.expectedVersion ||
     state.campaignId !== initial.campaignId ||
-    state.sessionId !== initial.sessionId ||
     state.gameSystemId !== system.id ||
     new Set(state.actorIds).size !== state.actorIds.length ||
     !state.actorIds.includes(command.actorId) ||

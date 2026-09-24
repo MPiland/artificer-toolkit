@@ -37,7 +37,6 @@ import '../betterAuth/adapter'
 import '../auth'
 import '../account'
 import '../campaigns/create'
-import '../campaigns/sessions'
 import '../encounters/blueprints'
 import '../encounters/runs'
 import '../encounters/actorTokenBindings'
@@ -211,7 +210,6 @@ async function setup(selected = false) {
       'campaignScenePresentations',
       sceneStoredPresentationSchema.parse({
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         sceneId,
         version: 0,
         activeMapAssetId: null,
@@ -258,18 +256,11 @@ async function setup(selected = false) {
     ]
   }
   const vision = await base.owner.caller.run(async (ctx) => {
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
-      .unique()
-    if (!session) throw new Error('Fixture Session missing.')
     const scope = {
       campaignId: base.campaign.id,
       systemId: base.campaign.gameSystemId,
       sceneId,
       expectedSceneVersion: 0,
-      sessionId: base.run.sessionId,
-      expectedSessionVersion: session.version,
       expectedPresentationVersion: 0
     }
     const { freshness } = await readSessionVisionScope(ctx, scope)
@@ -605,19 +596,13 @@ describe('native movement response publication', () => {
           if (!row) throw new Error('Root geometry save missing.')
           return row.input
         }),
-        session: await value.base.owner.caller.run(async (ctx) => {
+        presentation: await value.base.owner.caller.run(async (ctx) => {
           const row = await ctx.db
             .query('sceneGeometrySaves')
             .withIndex('by_publicId', (q) => q.eq('id', value.rootRequest.saveId))
             .unique()
-          if (!row?.sessionVision) throw new Error('Root Session evidence missing.')
-          const { sessionId, expectedSessionVersion, expectedPresentationVersion } =
-            row.sessionVision
-          return {
-            sessionId,
-            expectedSessionVersion,
-            expectedPresentationVersion
-          }
+          if (!row?.sessionVision) throw new Error('Root presentation evidence missing.')
+          return { expectedPresentationVersion: row.sessionVision.expectedPresentationVersion }
         })
       }
     )

@@ -160,13 +160,6 @@ it.each([
       ? { ...value.rootInput, path: [value.rootInput.path[0]!, { x: 450, y: 50 }] }
       : value.rootInput
     const epoch = crypto.randomUUID()
-    const session = await initiator.caller.run((ctx) =>
-      ctx.db
-        .query('campaignSessions')
-        .withIndex('by_publicId', (q) => q.eq('id', value.base.run.sessionId))
-        .unique()
-    )
-    if (!session) throw new Error('Movement Session is unavailable.')
     await value.base.t.run(async (ctx) => {
       const oldSave = await ctx.db
         .query('sceneGeometrySaves')
@@ -176,16 +169,11 @@ it.each([
       await ctx.db.delete(oldSave._id)
       await insertActiveLiveAuthority(ctx, {
         campaignId: value.base.campaign.id,
-        sessionId: session.id,
         epoch,
         createdAt: value.base.campaign.createdAt
       })
     })
-    const sessionScope = {
-      sessionId: session.id,
-      expectedSessionVersion: session.version,
-      expectedPresentationVersion: 0
-    }
+    const presentation = { expectedPresentationVersion: 0 }
     const requests: string[] = []
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
     stubLiveSessionFetch((pathname, init) => {
@@ -221,12 +209,11 @@ it.each([
       'encounterMovementBegin',
       {
         campaignId: value.base.campaign.id,
-        sessionId: session.id,
         authorityEpoch: epoch,
         expectedUserId: initiator.userId,
         expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
         command: movementCommand,
-        session: sessionScope
+        presentation
       }
     )
     if (staged.kind !== 'READY') throw new Error('Expected a private receiving geometry save.')
@@ -284,7 +271,6 @@ it.each([
       movement: NonNullable<LiveSessionEncounterRulesInput['movement']>
     } = {
       campaignId: value.base.campaign.id,
-      sessionId: session.id,
       authorityEpoch: epoch,
       expectedUserId: initiator.userId,
       expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
@@ -463,7 +449,6 @@ it.each([
     }
     const stageInput: LiveSessionMovementPrepareInput = {
       campaignId: scope.campaignId,
-      sessionId: scope.sessionId,
       authorityEpoch: scope.authorityEpoch,
       expectedUserId: scope.expectedUserId,
       expectedRole: scope.expectedRole,

@@ -15,7 +15,6 @@ import type {
   SceneMeasurement,
   ScenePoint,
   ScenePolygon,
-  SceneSnapshot,
   SceneToken,
   SceneTokenVision,
   SceneTransientEnvelope
@@ -512,12 +511,6 @@ export const sceneEventDtoSchema: z.ZodMiniType<SceneEvent> = z.strictObject({
   version: versionSchema
 })
 
-export const sceneSnapshotDtoSchema: z.ZodMiniType<SceneSnapshot> = z.strictObject({
-  campaignId: uuidSchema,
-  scene: campaignSceneStateDtoSchema,
-  sessionId: uuidSchema
-})
-
 export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelope> =
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -597,8 +590,8 @@ export const bindEncounterToPresentedSceneInputDtoSchema = z.strictObject({
 export const setCampaignLiveScenePresentationInputDtoSchema = z.strictObject({
   commandId: uuidSchema,
   expectedPresentationVersion: z.nullable(versionSchema),
+  campaignId: uuidSchema,
   sceneId: z.nullable(uuidSchema),
-  sessionId: uuidSchema,
   type: z.literal('SET_CAMPAIGN_LIVE_SCENE_PRESENTATION')
 })
 
@@ -847,20 +840,19 @@ export const bindEncounterToPresentedSceneResultDtoSchema = z.strictObject({
 export const setCampaignLiveScenePresentationResultDtoSchema = z.strictObject({
   commandId: uuidSchema,
   replayed: z.boolean(),
+  campaignId: uuidSchema,
   sceneId: z.nullable(uuidSchema),
-  sessionId: uuidSchema,
   version: versionSchema
 })
-export const campaignSessionScenePresentationDtoSchema = z.omit(
+export const campaignScenePresentationDtoSchema = z.omit(
   setCampaignLiveScenePresentationResultDtoSchema,
   { commandId: true, replayed: true }
 )
-export const getCampaignSessionScenePresentationInputSchema = z.strictObject({
-  campaignId: uuidSchema,
-  sessionId: uuidSchema
+export const getCampaignScenePresentationInputSchema = z.strictObject({
+  campaignId: uuidSchema
 })
 
-/** Server-only durable campaign-event payload for a Session presentation command. */
+/** Server-only durable campaign-event payload for a Campaign presentation command. */
 export const campaignLiveScenePresentationReceiptDtoSchema = z.strictObject({
   commandFingerprint: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
   result: setCampaignLiveScenePresentationResultDtoSchema
@@ -907,11 +899,10 @@ export type BindEncounterToPresentedSceneResultDto = z.infer<
 export type SetCampaignLiveScenePresentationResultDto = z.infer<
   typeof setCampaignLiveScenePresentationResultDtoSchema
 >
-export type CampaignSessionScenePresentationDto = z.infer<
-  typeof campaignSessionScenePresentationDtoSchema
+export type CampaignScenePresentationDto = z.infer<
+  typeof campaignScenePresentationDtoSchema
 >
 export type CampaignLiveScenePresentationReceiptDto = z.infer<
   typeof campaignLiveScenePresentationReceiptDtoSchema
 >
-export type SceneSnapshotDto = z.infer<typeof sceneSnapshotDtoSchema>
 export type SceneTransientEnvelopeDto = z.infer<typeof sceneTransientEnvelopeDtoSchema>

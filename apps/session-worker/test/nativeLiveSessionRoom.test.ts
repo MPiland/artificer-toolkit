@@ -152,7 +152,6 @@ function waitForClose(socket: WebSocket): Promise<CloseEvent> {
 
 async function fixture(scene: CampaignSceneStateDto | null = null) {
   const campaignId = scene?.campaignId ?? crypto.randomUUID()
-  const sessionId = crypto.randomUUID()
   const authorityEpoch = crypto.randomUUID()
   const activationFingerprint = 'a'.repeat(64)
   const userId = crypto.randomUUID()
@@ -162,7 +161,6 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     authorityEpoch,
     campaignId,
     role: 'OWNER',
-    sessionId,
     v: LIVE_SESSION_TICKET_VERSION
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -187,7 +185,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     systemId: crypto.randomUUID(),
     observedCharacterRevisions: [],
     origin: { membershipEpoch: new Date().toISOString(), role: 'OWNER', userId },
-    presentation: scene ? { sceneId: scene.id, sessionId, version: 1 } : null,
+    presentation: scene ? { campaignId, sceneId: scene.id, version: 1 } : null,
     recipients: scene
       ? [{ membershipEpoch: new Date().toISOString(), role: 'PLAYER', userId: playerId }]
       : [],
@@ -225,12 +223,9 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
         }
       : null,
     sceneSnapshot: scene,
-    session: { id: sessionId, version: scene ? 2 : 0 },
-    visionFreshness: scene ? { campaign: null, session: null, system: null } : null
+    visionFreshness: scene ? { campaign: null, play: null, system: null } : null
   }
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${sessionId}`)
-  )
+  const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
   const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
   await runInDurableObject(stub, () => {
@@ -248,7 +243,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
               : null
         expect(request.headers.get('authorization')).toBe(`Bearer ${expectedAccessToken}`)
         captureModes.push(body.mode)
-        expect(body).toMatchObject({ campaignId, sessionId })
+        expect(body).toMatchObject({ campaignId })
         return Response.json({
           ...capture,
           origin: {
@@ -285,7 +280,6 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
           persistedSequence: 0,
           persistedStateChecksum: body.stateChecksum,
           phase: 'DO_ACTIVE',
-          sessionId,
           updatedAt: now
         })
       }
@@ -303,7 +297,6 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
           persistedSequence: body.finalSequence,
           persistedStateChecksum: body.finalStateChecksum,
           phase: 'DRAINING',
-          sessionId,
           updatedAt: now
         })
       }
@@ -316,7 +309,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     })
   })
   const request = (ticketValue = ticket) =>
-    new Request(`https://session.test/live-session/${sessionId}`, {
+    new Request(`https://session.test/live-session/${campaignId}`, {
       headers: { upgrade: 'websocket', 'x-artificer-live-session-ticket': ticketValue }
     })
   const response = await stub.fetch(request())
@@ -352,7 +345,6 @@ async function connectPlayer(base: Awaited<ReturnType<typeof fixture>>) {
     authorityEpoch: base.authorityEpoch,
     campaignId: base.capture.campaignId,
     role: 'PLAYER',
-    sessionId: base.capture.session.id,
     v: LIVE_SESSION_TICKET_VERSION
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -391,7 +383,6 @@ async function synchronizeScene(
   base.socket.send(
     JSON.stringify({
       expectedPresentationVersion: base.capture.presentation.version,
-      expectedSessionVersion: base.capture.session.version,
       sceneId: scene.id,
       type: 'SYNCHRONIZE_SCENE',
       version: scene.version
@@ -494,7 +485,6 @@ it.each([0, 600])(
       )
     const base = await fixture(value.scene)
     await synchronizeScene(base, value.scene)
-    base.capture.session.version = 3
     if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
     base.capture.presentation.version = 2
     const player = await connectPlayer(base)
@@ -551,7 +541,6 @@ it.each([0, 600])(
             persistedSequence: body.sequence,
             persistedStateChecksum: body.stateChecksum,
             phase: 'DO_ACTIVE',
-            sessionId: body.sessionId,
             updatedAt: now
           },
           sceneResult: body.expectedSceneResult,
@@ -642,10 +631,8 @@ it.each([0, 600])(
       command: {
         command: command.command.command,
         scope: 'SCENE',
-        session: {
-          expectedPresentationVersion: 2,
-          expectedSessionVersion: 3,
-          sessionId: base.capture.session.id
+        presentation: {
+          expectedPresentationVersion: 2
         }
       },
       expectedSceneResult: {
@@ -707,7 +694,7 @@ it.each([false, true])(
           if (publicationFails) return new Response('Publication unavailable.', { status: 409 })
           expect(base.capture.presentation?.sceneId).toBe(body.command.command.sceneId)
           expect(base.capture.presentation?.version).toBe(
-            body.command.session.expectedPresentationVersion
+            body.command.presentation.expectedPresentationVersion
           )
           const result = body.expectedSceneResult
           if (result.delta?.kind !== 'DOOR_STATE_SET')
@@ -731,7 +718,6 @@ it.each([false, true])(
               persistedSequence: body.sequence,
               persistedStateChecksum: body.stateChecksum,
               phase: 'DO_ACTIVE',
-              sessionId: body.sessionId,
               updatedAt: now
             },
             sceneResult: result,
@@ -756,8 +742,7 @@ it.each([false, true])(
             campaignId: first.scene.campaignId,
             epoch: base.authorityEpoch,
             expectedSequence: journal.sequence,
-            expectedStateChecksum: journal.state_checksum,
-            sessionId: base.capture.session.id
+            expectedStateChecksum: journal.state_checksum
           })
           presentations.push(body)
           const target = body.input.sceneId ? storedScenes.get(body.input.sceneId) : null
@@ -765,7 +750,7 @@ it.each([false, true])(
           const version = (base.capture.presentation?.version ?? 0) + 1
           base.capture.presentation = {
             sceneId: target.id,
-            sessionId: base.capture.session.id,
+            campaignId: base.capture.campaignId,
             version
           }
           setCapturedScene(target)
@@ -773,7 +758,7 @@ it.each([false, true])(
             commandId: body.input.commandId,
             replayed: false,
             sceneId: target.id,
-            sessionId: base.capture.session.id,
+            campaignId: base.capture.campaignId,
             version
           })
         }
@@ -798,7 +783,6 @@ it.each([false, true])(
     const firstSwitchCommandId = crypto.randomUUID()
     const switchToSecond = control({
       campaignId: first.scene.campaignId,
-      sessionId: base.capture.session.id,
       operation: {
         actorUserId: base.userId,
         epoch: base.authorityEpoch,
@@ -806,7 +790,7 @@ it.each([false, true])(
           commandId: firstSwitchCommandId,
           expectedPresentationVersion: 1,
           sceneId: second.scene.id,
-          sessionId: base.capture.session.id,
+          campaignId: base.capture.campaignId,
           type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
         },
         type: 'SET_SCENE_PRESENTATION'
@@ -918,7 +902,6 @@ it.each([false, true])(
     const secondSwitchCommandId = crypto.randomUUID()
     const switchedBack = await control({
       campaignId: first.scene.campaignId,
-      sessionId: base.capture.session.id,
       operation: {
         actorUserId: base.userId,
         epoch: base.authorityEpoch,
@@ -926,7 +909,7 @@ it.each([false, true])(
           commandId: secondSwitchCommandId,
           expectedPresentationVersion: 2,
           sceneId: first.scene.id,
-          sessionId: base.capture.session.id,
+          campaignId: base.capture.campaignId,
           type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
         },
         type: 'SET_SCENE_PRESENTATION'
@@ -1033,14 +1016,14 @@ it('keeps the new presentation fence when an older authentication capture finish
         expect(body.input.expectedPresentationVersion).toBe(1)
         base.capture.presentation = {
           sceneId: scene.id,
-          sessionId: base.capture.session.id,
+          campaignId: base.capture.campaignId,
           version: 2
         }
         return Response.json({
           commandId: body.input.commandId,
           replayed: false,
           sceneId: scene.id,
-          sessionId: base.capture.session.id,
+          campaignId: base.capture.campaignId,
           version: 2
         })
       }
@@ -1049,7 +1032,7 @@ it('keeps the new presentation fence when an older authentication capture finish
         if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
         publications.push(body)
         expect(base.capture.presentation?.version).toBe(2)
-        expect(body.command.session.expectedPresentationVersion).toBe(2)
+        expect(body.command.presentation.expectedPresentationVersion).toBe(2)
         const now = new Date().toISOString()
         return Response.json({
           authority: {
@@ -1060,7 +1043,6 @@ it('keeps the new presentation fence when an older authentication capture finish
             persistedSequence: body.sequence,
             persistedStateChecksum: body.stateChecksum,
             phase: 'DO_ACTIVE',
-            sessionId: body.sessionId,
             updatedAt: now
           },
           sceneResult: body.expectedSceneResult,
@@ -1080,7 +1062,6 @@ it('keeps the new presentation fence when an older authentication capture finish
 
   const switched = await control({
     campaignId: scene.campaignId,
-    sessionId: base.capture.session.id,
     operation: {
       actorUserId: base.userId,
       epoch: base.authorityEpoch,
@@ -1088,7 +1069,7 @@ it('keeps the new presentation fence when an older authentication capture finish
         commandId: crypto.randomUUID(),
         expectedPresentationVersion: 1,
         sceneId: scene.id,
-        sessionId: base.capture.session.id,
+        campaignId: base.capture.campaignId,
         type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
       },
       type: 'SET_SCENE_PRESENTATION'
@@ -1100,7 +1081,6 @@ it('keeps the new presentation fence when an older authentication capture finish
     player.socket.send(
       JSON.stringify({
         expectedPresentationVersion: 2,
-        expectedSessionVersion: base.capture.session.version,
         sceneId: scene.id,
         type: 'SYNCHRONIZE_SCENE',
         version: scene.version
@@ -1147,7 +1127,6 @@ it.each([false, true])(
     const value = movementScene(crypto.randomUUID())
     const base = await fixture(value.scene)
     await synchronizeScene(base, value.scene)
-    base.capture.session.version = 3
     if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
     base.capture.presentation.version = 2
     const player = await connectPlayer(base)
@@ -1206,7 +1185,6 @@ it.each([false, true])(
             persistedSequence: body.sequence,
             persistedStateChecksum: body.stateChecksum,
             phase: 'DO_ACTIVE',
-            sessionId: body.sessionId,
             updatedAt: now
           },
           sceneResult: body.expectedSceneResult,
@@ -1394,10 +1372,8 @@ it.each([false, true])(
       command: {
         command: move.command.command,
         scope: 'SCENE',
-        session: {
-          expectedPresentationVersion: 2,
-          expectedSessionVersion: 3,
-          sessionId: base.capture.session.id
+        presentation: {
+          expectedPresentationVersion: 2
         }
       },
       epoch: base.authorityEpoch,
@@ -1406,7 +1382,6 @@ it.each([false, true])(
       occurredAt: expect.any(String),
       receiptId: moveCommandId,
       sequence: 1,
-      sessionId: base.capture.session.id,
       stateChecksum: expect.any(String)
     })
     expect(undoPublication).toEqual({
@@ -1416,10 +1391,8 @@ it.each([false, true])(
       command: {
         command: undo.command.command,
         scope: 'SCENE',
-        session: {
-          expectedPresentationVersion: 2,
-          expectedSessionVersion: 3,
-          sessionId: base.capture.session.id
+        presentation: {
+          expectedPresentationVersion: 2
         }
       },
       epoch: base.authorityEpoch,
@@ -1428,7 +1401,6 @@ it.each([false, true])(
       occurredAt: expect.any(String),
       receiptId: undoCommandId,
       sequence: 2,
-      sessionId: base.capture.session.id,
       stateChecksum: expect.any(String)
     })
 
@@ -1565,8 +1537,7 @@ it('requires native authentication, consumes the ticket once, and never persists
   await vi.waitFor(() =>
     expect(base.messages).toContainEqual({
       type: 'TRANSIENT_READY',
-      campaignId: base.capture.campaignId,
-      sessionId: base.capture.session.id
+      campaignId: base.capture.campaignId
     })
   )
   expect(base.captureModes).toEqual(['AUTHORITY'])
@@ -1592,7 +1563,6 @@ it('evicts only the exact departed membership epoch through private room control
   )
   const input = {
     campaignId: base.capture.campaignId,
-    sessionId: base.capture.session.id,
     operation: {
       membershipEpoch: base.capture.origin.membershipEpoch,
       type: 'EVICT_USER' as const,
@@ -1623,12 +1593,11 @@ it('closes every socket when the live Session ends', async () => {
     await (
       await control({
         campaignId: base.capture.campaignId,
-        sessionId: base.capture.session.id,
         operation: { type: 'CLOSE_ROOM' }
       })
     ).json()
   ).toEqual({ closed: 1 })
-  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Live Session ended.' })
+  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'The Campaign live table closed.' })
   expect(base.authorityLifecycleCalls).toEqual([
     '/live-sessions/begin-drain',
     '/live-sessions/release'
@@ -1706,7 +1675,7 @@ it('requires fresh authentication after hibernation restores only socket attachm
   )
 })
 
-it('migrates every legacy drag baseline and preserves path and rejected-sample sequence through hibernation', async () => {
+it('preserves drag path and rejected-sample sequence through hibernation', async () => {
   const value = movementScene(crypto.randomUUID())
   value.scene.barriers = [
     {
@@ -1728,21 +1697,41 @@ it('migrates every legacy drag baseline and preserves path and rejected-sample s
   ]
   const base = await fixture(value.scene)
   await synchronizeScene(base, value.scene)
-  await runInDurableObject(base.stub, (_instance, state) => {
+  const baseline = await runInDurableObject(base.stub, async (instance, state) => {
     const socket = state.getWebSockets()[0]!
-    const identity = socket.deserializeAttachment() as { socketId: string }
-    socket.serializeAttachment({
-      ...identity,
-      transientSequences: { [`TOKEN_DRAG_PREVIEW:${value.tokenId}`]: 7 },
-      transientTokenPaths: {
-        [`${value.scene.id}:0:${value.tokenId}`]: [
-          { x: 10, y: 10 },
-          { x: 15, y: 15 }
-        ],
-        [`${value.scene.id}:99:${value.tokenId}`]: [{ x: 80, y: 80 }]
-      }
-    })
+    const sent = vi.spyOn(socket, 'send')
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({
+        type: 'TRANSIENT',
+        envelope: {
+          baselineVersion: 0,
+          kind: 'TOKEN_DRAG_PREVIEW',
+          sceneId: value.scene.id,
+          tokenId: value.tokenId,
+          sequence: 7,
+          position: { x: 15, y: 15 }
+        }
+      })
+    )
+    return sent.mock.calls.map(([frame]) =>
+      liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
+    )
   })
+  expect(baseline).toEqual([
+    expect.objectContaining({
+      type: 'TRANSIENT',
+      message: expect.objectContaining({
+        tokenDragResolution: {
+          accepted: true,
+          path: [
+            { x: 10, y: 10 },
+            { x: 15, y: 15 }
+          ]
+        }
+      })
+    })
+  ])
   await evictDurableObject(base.stub)
   base.messages.length = 0
   await synchronizeScene(base, value.scene)
@@ -1768,8 +1757,6 @@ it('migrates every legacy drag baseline and preserves path and rejected-sample s
         })
       )
     const identity: unknown = socket.deserializeAttachment()
-    expect(identity).not.toHaveProperty('transientSequences')
-    expect(identity).not.toHaveProperty('transientTokenPaths')
     expect(new TextEncoder().encode(JSON.stringify(identity)).byteLength).toBeLessThan(2000)
     return sent.mock.calls.map(([frame]) =>
       liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
@@ -1829,7 +1816,6 @@ it('migrates every legacy drag baseline and preserves path and rejected-sample s
   ])
   await control({
     campaignId: base.capture.campaignId,
-    sessionId: base.capture.session.id,
     operation: {
       type: 'EVICT_USER',
       userId: base.userId,
@@ -1853,7 +1839,6 @@ it('admits concurrent authentication independently for each native socket', asyn
     authorityEpoch: base.authorityEpoch,
     campaignId: base.capture.campaignId,
     role: 'OWNER',
-    sessionId: base.capture.session.id,
     v: LIVE_SESSION_TICKET_VERSION
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -2071,7 +2056,6 @@ it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
     expect(frames).toEqual([
       {
         campaignId: base.capture.campaignId,
-        sessionId: base.capture.session.id,
         type: 'TRANSIENT_READY'
       },
       {
@@ -2138,7 +2122,6 @@ it.each([false, true])(
             persistedSequence: 0,
             persistedStateChecksum: body.stateChecksum,
             phase: 'DO_ACTIVE',
-            sessionId: base.capture.session.id,
             updatedAt: now
           })
         }

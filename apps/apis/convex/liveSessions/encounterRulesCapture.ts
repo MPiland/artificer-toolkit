@@ -1,16 +1,13 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
+import { v } from 'convex/values'
 import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterRulesResponseSchema,
-  type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { loadCharacterState } from '../characters/stateDocuments'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { requireSystem } from '../content/systemDocuments'
@@ -41,7 +38,7 @@ type SemanticResponse = {
 /** Raw stored inputs only; the Session DO owns Encounter rule evaluation. */
 export async function readEncounterRulesCapture(
   ctx: QueryCtx,
-  args: LiveSessionEncounterRulesInput
+  args: unknown
 ): Promise<LiveSessionEncounterRulesResponse> {
   const input = liveSessionEncounterRulesInputSchema.parse(args)
   if (
@@ -65,8 +62,7 @@ export async function readEncounterRulesCapture(
       ...response,
       revisions: await readLiveSessionRulesRevisions(ctx, {
         systemId: admission.state.gameSystemId,
-        campaignId: input.campaignId,
-        sessionId: input.sessionId
+        campaignId: input.campaignId
       }),
       readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
     })
@@ -131,8 +127,7 @@ export async function readEncounterRulesCapture(
       ...response,
       revisions: await readLiveSessionRulesRevisions(ctx, {
         systemId: concentrationAdmission.state.gameSystemId,
-        campaignId: input.campaignId,
-        sessionId: input.sessionId
+        campaignId: input.campaignId
       }),
       readChecksum: checksumCanonicalJson({ input, userId, response })
     })
@@ -150,7 +145,6 @@ export async function readEncounterRulesCapture(
       throw new Error('Live Session Encounter command scope mismatch.')
     await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: input.campaignId,
-      sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
     // Stored receipts precede current-version checks and every heavy preparation read.
@@ -175,10 +169,7 @@ export async function readEncounterRulesCapture(
         ? await readNativeEncounterActionAdmission(ctx, input.request.command, userId)
         : null)
     if (!admission) throw new Error('Action response admission is unavailable.')
-    if (
-      admission.state.campaignId !== input.campaignId ||
-      admission.state.sessionId !== input.sessionId
-    )
+    if (admission.state.campaignId !== input.campaignId)
       throw new Error('Live Session Encounter scope or version mismatch.')
     const response = {
       ...(responseAdmission
@@ -200,8 +191,7 @@ export async function readEncounterRulesCapture(
       ...response,
       revisions: await readLiveSessionRulesRevisions(ctx, {
         systemId: admission.state.gameSystemId,
-        campaignId: input.campaignId,
-        sessionId: input.sessionId
+        campaignId: input.campaignId
       }),
       readChecksum: checksumCanonicalJson({ input, userId, response })
     })
@@ -217,13 +207,10 @@ export async function readEncounterRulesCapture(
   if (!movementAdmission) {
     await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
   }
-  const session =
-    movementAdmission?.session ?? (await requireSession(ctx, campaign.id, input.sessionId))
-  if (session.status !== 'OPEN') throw new Error('Live Session is not open.')
+
   const run = movementAdmission
     ? null
     : await ctx.db
@@ -235,7 +222,6 @@ export async function readEncounterRulesCapture(
   if (
     state.id !== input.encounterId ||
     state.campaignId !== campaign.id ||
-    state.sessionId !== session.id ||
     state.gameSystemId !== campaign.gameSystemId ||
     state.version !== input.expectedVersion
   )
@@ -381,19 +367,14 @@ export async function readEncounterRulesCapture(
     revisions: await readLiveSessionRulesRevisions(ctx, {
       systemId: state.gameSystemId,
       campaignId: campaign.id,
-      sessionId: session.id,
       characterId
     }),
     readChecksum: checksumCanonicalJson({ input, userId, response })
   })
 }
 
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const capture = internalQuery({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterRulesInput>>(
-    liveSessionEncounterRulesInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<LiveSessionEncounterRulesResponse>>(
-    liveSessionEncounterRulesResponseSchema
-  ),
+  args: v.any(),
   handler: readEncounterRulesCapture
 })

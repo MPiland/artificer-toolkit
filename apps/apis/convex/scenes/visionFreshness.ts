@@ -20,14 +20,14 @@ export async function readSceneVisionRevision(
 
 export async function readSceneVisionFreshness(
   ctx: QueryCtx,
-  input: Pick<SceneSessionVisionCaptureInput, 'systemId' | 'campaignId' | 'sessionId'>
+  input: Pick<SceneSessionVisionCaptureInput, 'systemId' | 'campaignId'>
 ): Promise<SceneSessionVisionFreshness> {
-  const [system, campaign, session] = await Promise.all([
+  const [system, campaign, play] = await Promise.all([
     readSceneVisionRevision(ctx, 'SYSTEM', input.systemId),
     readSceneVisionRevision(ctx, 'CAMPAIGN', input.campaignId),
-    readSceneVisionRevision(ctx, 'SESSION', input.sessionId)
+    readSceneVisionRevision(ctx, 'PLAY', input.campaignId)
   ])
-  return { system, campaign, session }
+  return { system, campaign, play }
 }
 
 export async function assertSceneVisionCharacters(

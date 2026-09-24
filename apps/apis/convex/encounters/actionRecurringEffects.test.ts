@@ -200,9 +200,6 @@ async function recurringFixture(
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativeTieDefinitionId: null
   })
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: campaign.id
-  })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Recurring action fixture',
@@ -214,7 +211,6 @@ async function recurringFixture(
   })
   let run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

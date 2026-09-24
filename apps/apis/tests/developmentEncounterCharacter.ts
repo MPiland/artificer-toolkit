@@ -42,7 +42,6 @@ export async function verifyEncounterCharacterCommands({
       maxOverride: 15
     }
   })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: 'Encounter execution fixture',
@@ -52,7 +51,6 @@ export async function verifyEncounterCharacterCommands({
   const run = await measure('createRun', () =>
     owner.mutation(api.encounters.runs.create, {
       campaignId,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

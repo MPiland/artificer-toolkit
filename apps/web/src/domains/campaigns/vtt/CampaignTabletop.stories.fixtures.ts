@@ -1,5 +1,4 @@
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto
@@ -30,21 +29,6 @@ const assignedCharacter = {
   label: "Ember's Wake",
   systemId: '44444444-4444-4444-8444-444444444444'
 } satisfies NonNullable<CampaignDetailDto['assignedCharacter']>
-
-export const tabletopSession = {
-  campaignId: tabletopCampaignId,
-  createdAt: '2026-08-15T18:00:00.000Z',
-  finishedAt: null,
-  id: '55555555-5555-4555-8555-555555555555',
-  scheduledEndAt: '2026-08-16T02:00:00.000Z',
-  scheduledStartAt: '2026-08-15T22:00:00.000Z',
-  sessionNumber: 12,
-  status: 'OPEN',
-  timeZone: 'America/Chicago',
-  title: 'The Lantern Vault',
-  updatedAt: '2026-08-15T18:00:00.000Z',
-  version: 3
-} satisfies CampaignSessionDto
 
 export const tabletopSceneDefinition = {
   annotations: [
@@ -271,7 +255,6 @@ const encounterBase = {
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
   round: 3,
   rulePackRevisionId: null,
-  sessionId: tabletopSession.id,
   status: 'ACTIVE',
   blueprintId: '99999999-9999-4999-8999-999999999903',
   blueprintVersion: 1,

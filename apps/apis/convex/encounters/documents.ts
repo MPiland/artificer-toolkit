@@ -16,7 +16,6 @@ export function readRunProjection(row: Doc<'encounterRuns'>) {
   if (
     projection.id !== row.id ||
     projection.campaignId !== row.campaignId ||
-    projection.sessionId !== row.sessionId ||
     projection.gameSystemId !== row.gameSystemId ||
     projection.version !== row.version ||
     projection.status !== row.status ||
@@ -37,7 +36,6 @@ export function readRunState(row: Doc<'encounterRuns'>) {
   if (
     state.id !== row.id ||
     state.campaignId !== row.campaignId ||
-    state.sessionId !== row.sessionId ||
     state.gameSystemId !== row.gameSystemId ||
     state.version !== row.version ||
     state.status !== row.status ||

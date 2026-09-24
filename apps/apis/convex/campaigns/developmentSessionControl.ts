@@ -103,7 +103,7 @@ export const removeFixtureState = internalMutation({
         .take(limits.events + 1),
       ctx.db
         .query('encounterRuns')
-        .withIndex('by_campaignId_sessionId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
+        .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
         .take(1),
       ctx.db
         .query('campaignCharacterStates')

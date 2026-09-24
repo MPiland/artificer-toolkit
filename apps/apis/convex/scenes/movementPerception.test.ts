@@ -180,7 +180,6 @@ async function setup(withVision = false, returnsToOrigin = false) {
       'campaignScenePresentations',
       sceneStoredPresentationSchema.parse({
         campaignId: base.campaign.id,
-        sessionId: base.run.sessionId,
         sceneId,
         version: 0,
         activeMapAssetId: null,
@@ -228,18 +227,11 @@ async function setup(withVision = false, returnsToOrigin = false) {
     ]
   }
   await base.owner.caller.run(async (ctx) => {
-    const session = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
-      .unique()
-    if (!session) throw new Error('Fixture Session missing.')
     const scope = {
       campaignId: base.campaign.id,
       systemId: base.campaign.gameSystemId,
       sceneId,
       expectedSceneVersion: 0,
-      sessionId: base.run.sessionId,
-      expectedSessionVersion: session.version,
       expectedPresentationVersion: 0
     }
     const { freshness } = await readSessionVisionScope(ctx, scope)

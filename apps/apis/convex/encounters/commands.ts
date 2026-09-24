@@ -80,7 +80,6 @@ import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireInitiativeDeclarationController } from './initiativeDeclarationAuthority'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireSystem } from '../content/systemDocuments'
 
 import { nextRollInt } from '../lib/rollRandom'
@@ -350,14 +349,12 @@ export const execute = mutation({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (row.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
-    const session = await requireSession(ctx, campaign.id, row.sessionId)
-    if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
     if (input.type === 'RESOLVE_RULE_OCCURRENCE') {
       const result = await resumeNativeEncounterAction(ctx, input, row, userId)
       if (result) return result
     }
     const { fingerprint: commandFingerprint, result: replayResult } =
-      await readNativeEncounterCommandReplay(ctx, { input, row, campaign, session })
+      await readNativeEncounterCommandReplay(ctx, { input, row, campaign })
     if (replayResult) return replayResult
     const { state, projection, actorIds } = readNativeEncounterCommandState(row)
     const pendingRoot = await readNativeTurnCommandPending(ctx, {

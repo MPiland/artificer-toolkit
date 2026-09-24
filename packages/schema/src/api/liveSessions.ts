@@ -65,13 +65,11 @@ const scenePresentationOperationSchema = z.strictObject({
 
 export const liveSessionPresentationControlInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   operation: scenePresentationOperationSchema
 })
 
 export const liveSessionPresentationCommitInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   actorUserId: uuidSchema,
   epoch: uuidSchema,
   input: setCampaignLiveScenePresentationInputDtoSchema,
@@ -81,7 +79,6 @@ export const liveSessionPresentationCommitInputSchema = z.strictObject({
 
 export const liveSessionControlInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   operation: z.discriminatedUnion('type', [
     z.strictObject({
       type: z.literal('EVICT_USER'),
@@ -122,7 +119,6 @@ export const liveSessionWebSocketClientMessageDtoSchema = z.discriminatedUnion('
   }),
   z.strictObject({
     expectedPresentationVersion: versionSchema,
-    expectedSessionVersion: versionSchema,
     sceneId: uuidSchema,
     type: z.literal('SYNCHRONIZE_SCENE'),
     version: versionSchema
@@ -143,7 +139,6 @@ export const liveSessionWebSocketServerMessageDtoSchema = z.discriminatedUnion('
   z.strictObject({ type: z.literal('AUTHENTICATION_REQUIRED') }),
   z.strictObject({
     campaignId: uuidSchema,
-    sessionId: uuidSchema,
     type: z.literal('TRANSIENT_READY')
   }),
   z.strictObject({

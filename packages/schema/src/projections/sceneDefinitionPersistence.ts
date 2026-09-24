@@ -6,7 +6,7 @@ import {
 } from '../api/sceneDefinitionSave.js'
 import {
   sceneDefinitionSettingsDtoSchema,
-  campaignSessionScenePresentationDtoSchema
+  campaignScenePresentationDtoSchema
 } from '../api/vttScenes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
@@ -50,9 +50,9 @@ export const sceneStoredInitialStateSchema = z.extend(sceneDefinitionSettingsDto
   updatedAt: z.iso.datetime()
 })
 
-export const sceneStoredPresentationSchema = z.extend(campaignSessionScenePresentationDtoSchema, {
+export const sceneStoredPresentationSchema = z.extend(campaignScenePresentationDtoSchema, {
   campaignId: postgresUuidSchema,
-  // Server-derived: cleared atomically when its Session finishes. Scene map identity is immutable.
+  // Server-derived from the presented Scene's map. Scene map identity is immutable.
   activeMapAssetId: z.nullable(postgresUuidSchema),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime()

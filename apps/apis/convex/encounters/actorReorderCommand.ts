@@ -18,7 +18,6 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -53,8 +52,6 @@ export async function reorderEncounterActors(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const session = await requireSession(ctx, campaign.id, row.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const fingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db
@@ -79,7 +76,6 @@ export async function reorderEncounterActors(
       checksumCanonicalJson(result) !== prior.resultChecksum ||
       projection.id !== row.id ||
       projection.campaignId !== campaign.id ||
-      projection.sessionId !== session.id ||
       projection.gameSystemId !== campaign.gameSystemId ||
       projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||

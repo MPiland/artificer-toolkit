@@ -27,12 +27,7 @@ export interface LiveSessionConnection {
   sendCommand: (command: LiveSessionCommandDto) => boolean
   submitCommand: (command: LiveSessionCommandDto) => Promise<LiveSessionCommandCommit>
   sendTransient: (envelope: SceneTransientEnvelopeDto) => boolean
-  synchronizeScene: (
-    sceneId: string,
-    version: number,
-    expectedSessionVersion: number,
-    expectedPresentationVersion: number
-  ) => void
+  synchronizeScene: (sceneId: string, version: number, expectedPresentationVersion: number) => void
 }
 
 export type LiveSessionCommandCommit = Extract<
@@ -106,14 +101,14 @@ function applyCorrection(
   return { ...state, scene: correction.state }
 }
 
-export function resolveLiveSessionWebSocketUrl(baseUrl: string, sessionId: string): string {
+export function resolveLiveSessionWebSocketUrl(baseUrl: string, campaignId: string): string {
   const url = new URL(baseUrl)
   if (url.protocol === 'http:') url.protocol = 'ws:'
   if (url.protocol === 'https:') url.protocol = 'wss:'
   if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
     throw new Error('Live-session URL must use ws, wss, http, or https.')
   }
-  url.pathname = `${url.pathname.replace(/\/$/, '')}${LIVE_SESSION_PATH_PREFIX}/${sessionId}`
+  url.pathname = `${url.pathname.replace(/\/$/, '')}${LIVE_SESSION_PATH_PREFIX}/${campaignId}`
   url.search = ''
   url.hash = ''
   return url.toString()
@@ -164,7 +159,6 @@ export function createLiveSessionConnection(
       !requestedScene ||
       (requestedScene.sceneId === synchronizedScene?.sceneId &&
         requestedScene.version === synchronizedScene.version &&
-        requestedScene.expectedSessionVersion === synchronizedScene.expectedSessionVersion &&
         requestedScene.expectedPresentationVersion ===
           synchronizedScene.expectedPresentationVersion)
     ) {
@@ -422,10 +416,9 @@ export function createLiveSessionConnection(
     sendTransient(envelope) {
       return ready && send({ envelope, type: 'TRANSIENT' })
     },
-    synchronizeScene(sceneId, version, expectedSessionVersion, expectedPresentationVersion) {
+    synchronizeScene(sceneId, version, expectedPresentationVersion) {
       requestedScene = {
         expectedPresentationVersion,
-        expectedSessionVersion,
         sceneId,
         type: 'SYNCHRONIZE_SCENE',
         version

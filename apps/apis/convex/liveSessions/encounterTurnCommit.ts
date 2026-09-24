@@ -1,13 +1,6 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
-import {
-  liveSessionEncounterTurnCommitInputSchema,
-  type LiveSessionEncounterTurnCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import { v } from 'convex/values'
+import { liveSessionEncounterTurnCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
+import { type EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
@@ -26,12 +19,10 @@ import { persistLiveTurnResources } from './encounterTurnResourcesCommit'
 import { persistLiveEncounterConcentrationChildren } from './encounterConcentrationChildrenCommit'
 
 /** Commits a DO-computed turn in one transaction, using the native normalized writes and receipts. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commit = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterTurnCommitInput>>(
-    liveSessionEncounterTurnCommitInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema),
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterTurnCommitInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
     if (admission.kind !== 'READY') return admission.result

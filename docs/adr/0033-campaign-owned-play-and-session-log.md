@@ -1,6 +1,6 @@
 # ADR 0033: Campaign-owned play, implicit live table and Sessions as a log
 
-- **Status:** decision (approved 2026-09-24; implementation in progress under Phase 8.2)
+- **Status:** decision (approved 2026-09-24; implemented locally 2026-09-24 — Convex, Worker and web; final-source R08 proof pending)
 - **Date:** 2026-09-24
 - **Scope:** live-table admission and lifecycle, Scene presentation ownership, Encounter Run ownership and lifecycle, Campaign Session meaning
 - **Update when:** live-table admission/lifecycle, presentation, Encounter Run ownership/status, or Session behavior changes

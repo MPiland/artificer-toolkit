@@ -115,7 +115,6 @@ export function projectGm(
   return encounterGmProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
-    sessionId: encounter.sessionId,
     gameSystemId: encounter.gameSystemId,
     blueprintId: encounter.blueprintId,
     blueprintVersion: encounter.blueprintVersion,

@@ -280,7 +280,6 @@ async function setup(
   })
   let run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -1010,7 +1009,6 @@ async function setupMaintenanceCapture(
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       epoch: authorityEpoch,
       createdAt: base.campaign.createdAt
     })
@@ -1018,7 +1016,6 @@ async function setupMaintenanceCapture(
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
   const scope = {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     authorityEpoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER' as const,
@@ -1674,14 +1671,12 @@ it('reads a detached Character owner only through its live maintained dependent'
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       epoch: authorityEpoch,
       createdAt: base.campaign.createdAt
     })
   )
   const scope = {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     authorityEpoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER' as const,

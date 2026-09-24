@@ -137,14 +137,10 @@ it.each(['ROOT', 'RESPONSE'] as const)(
       )
     const rootSave = await readRootSave()
     const vision = rootSave?.sessionVision
-    if (!vision) throw new Error('Expected retained root Session vision.')
+    if (!vision) throw new Error('Expected retained root presentation vision.')
     const rootReplay = await value.owner.caller.mutation(begin, {
       input: value.rootInput,
-      session: {
-        sessionId: vision.sessionId,
-        expectedSessionVersion: vision.expectedSessionVersion,
-        expectedPresentationVersion: vision.expectedPresentationVersion
-      }
+      presentation: { expectedPresentationVersion: vision.expectedPresentationVersion }
     })
     expect(rootReplay).toEqual({ kind: 'REPLAY', result: currentRoot })
     expect(await readRootSave()).toEqual(rootSave)
@@ -162,14 +158,10 @@ it('replays player movement with the original private projection before and afte
       .unique()
   )
   const vision = rootSave?.sessionVision
-  if (!vision) throw new Error('Expected fixture Session vision.')
+  if (!vision) throw new Error('Expected fixture presentation vision.')
   const rootInput = { ...value.rootInput, commandId: crypto.randomUUID() }
-  const session = {
-    sessionId: vision.sessionId,
-    expectedSessionVersion: vision.expectedSessionVersion,
-    expectedPresentationVersion: vision.expectedPresentationVersion
-  }
-  const started = await value.player.caller.mutation(begin, { input: rootInput, session })
+  const presentation = { expectedPresentationVersion: vision.expectedPresentationVersion }
+  const started = await value.player.caller.mutation(begin, { input: rootInput, presentation })
   if (started.kind !== 'READY') throw new Error('Expected player movement staging.')
   const request = { ...value.request, saveId: started.saveId }
   await value.player.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
@@ -195,12 +187,12 @@ it('replays player movement with the original private projection before and afte
     ...initial,
     replayed: true
   })
-  await expect(value.player.caller.mutation(begin, { input: rootInput, session })).resolves.toEqual(
-    {
-      kind: 'REPLAY',
-      result: { ...initial, replayed: true }
-    }
-  )
+  await expect(
+    value.player.caller.mutation(begin, { input: rootInput, presentation })
+  ).resolves.toEqual({
+    kind: 'REPLAY',
+    result: { ...initial, replayed: true }
+  })
   const response = await value.owner.caller.mutation(beginResponse, {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
@@ -236,11 +228,11 @@ it('replays player movement with the original private projection before and afte
   const beforeReplay = await snapshot()
   const expected = { ...initial, occurrence: completed.occurrence, replayed: true }
   await expect(value.player.caller.mutation(finish, request)).resolves.toEqual(expected)
-  await expect(value.player.caller.mutation(begin, { input: rootInput, session })).resolves.toEqual(
-    {
-      kind: 'REPLAY',
-      result: expected
-    }
-  )
+  await expect(
+    value.player.caller.mutation(begin, { input: rootInput, presentation })
+  ).resolves.toEqual({
+    kind: 'REPLAY',
+    result: expected
+  })
   expect(await snapshot()).toEqual(beforeReplay)
 }, 30_000)

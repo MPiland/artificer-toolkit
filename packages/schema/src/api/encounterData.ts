@@ -103,7 +103,6 @@ export const encounterGmActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
 export const encounterPlayerProjectionDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   gameSystemId: postgresUuidSchema,
   blueprintId: postgresUuidSchema,
   blueprintVersion: z.number().check(z.int()).check(z.positive()),
@@ -128,7 +127,6 @@ export const encounterPlayerProjectionDtoSchema = z.strictObject({
 export const encounterGmProjectionDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   gameSystemId: postgresUuidSchema,
   blueprintId: postgresUuidSchema,
   blueprintVersion: z.number().check(z.int()).check(z.positive()),
@@ -280,15 +278,20 @@ export const getPendingEncounterRuleOccurrenceInputDtoSchema = z.strictObject({
 export const getCampaignEncounterInputDtoSchema = z.strictObject({
   campaignId: uuidSchema
 })
-export const getSessionEncounterInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  sessionId: uuidSchema
-})
 export const createEncounterInputDtoSchema = z.strictObject({
   campaignId: uuidSchema,
-  sessionId: uuidSchema,
   blueprintId: postgresUuidSchema,
   commandId: uuidSchema
+})
+export const deletePreparedEncounterInputDtoSchema = z.strictObject({
+  campaignId: uuidSchema,
+  encounterId: uuidSchema,
+  commandId: uuidSchema,
+  expectedVersion: z.number().check(z.int()).check(z.nonnegative())
+})
+export const deletePreparedEncounterResultDtoSchema = z.strictObject({
+  campaignId: uuidSchema,
+  encounterId: uuidSchema
 })
 export const getEncounterBlueprintsInputDtoSchema = z.strictObject({
   gameSystemId: postgresUuidSchema
@@ -316,6 +319,10 @@ export type EncounterCommandResultDto = z.infer<typeof encounterCommandResultDto
 export type { EncounterRuleOccurrenceSummaryDto, PendingEncounterRuleOccurrenceSummaryDto }
 export type EncounterTimelineDto = z.infer<typeof encounterTimelineDtoSchema>
 export type CreateEncounterInputDto = z.infer<typeof createEncounterInputDtoSchema>
+export type DeletePreparedEncounterInputDto = z.infer<typeof deletePreparedEncounterInputDtoSchema>
+export type DeletePreparedEncounterResultDto = z.infer<
+  typeof deletePreparedEncounterResultDtoSchema
+>
 export type EncounterBlueprintDto = z.infer<typeof encounterBlueprintDtoSchema>
 export type CreateEncounterBlueprintInputDto = z.infer<
   typeof createEncounterBlueprintInputDtoSchema

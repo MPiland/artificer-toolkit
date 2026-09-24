@@ -22,7 +22,6 @@ import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -66,8 +65,6 @@ export async function removeEncounterActor(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const session = await requireSession(ctx, campaign.id, row.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   return removeEncounterActorCore(ctx, input, userId, campaign, 'PUBLIC')
 }
 
@@ -129,8 +126,6 @@ export async function removeAccountCharacterActors(
   for (const row of rows
     .filter((candidate) => candidate.status !== 'COMPLETED')
     .sort((left, right) => left.id.localeCompare(right.id))) {
-    const session = await requireSession(ctx, campaign.id, row.sessionId)
-    if (session.status === 'FINISHED') continue
     const state = readRunState(row)
     const actors = await readRunActors(ctx, state)
     for (const actor of actors
@@ -199,8 +194,6 @@ async function removeEncounterActorCore(
   if (!row) throw new Error('Encounter is unavailable.')
   if (row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  const session = await requireSession(ctx, campaign.id, row.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const fingerprint = checksumCanonicalJson(input)
   const priorRow = await ctx.db
@@ -225,7 +218,6 @@ async function removeEncounterActorCore(
       checksumCanonicalJson(result) !== prior.resultChecksum ||
       projection.id !== row.id ||
       projection.campaignId !== campaign.id ||
-      projection.sessionId !== session.id ||
       projection.gameSystemId !== campaign.gameSystemId ||
       projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||

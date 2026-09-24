@@ -93,7 +93,6 @@ type VttCheckpoint = {
   formatVersion: 1
   lastCompletedSection: VttCheckpointSection
   campaign: { id: string; name: string }
-  session: { id: string; sessionNumber: number }
   scene: { definitionId: string; liveId: string }
   character: { id: string; userId: string }
   users: {
@@ -260,24 +259,15 @@ async function readVttCheckpoint(): Promise<VttCheckpoint> {
     'Invalid VTT checkpoint section.'
   )
   const campaign = record(value.campaign)
-  const session = record(value.session)
   const scene = record(value.scene)
   const character = record(value.character)
   const users = record(value.users)
-  assert.ok(
-    Number.isSafeInteger(session.sessionNumber) && Number(session.sessionNumber) > 0,
-    'Invalid VTT checkpoint Session number.'
-  )
   return {
     formatVersion: 1,
     lastCompletedSection: value.lastCompletedSection as VttCheckpointSection,
     campaign: {
       id: checkpointString(campaign.id, 'Campaign ID'),
       name: checkpointString(campaign.name, 'Campaign name')
-    },
-    session: {
-      id: checkpointString(session.id, 'Session ID'),
-      sessionNumber: Number(session.sessionNumber)
     },
     scene: {
       definitionId: checkpointString(scene.definitionId, 'Scene definition ID'),
@@ -1523,11 +1513,6 @@ try {
           const membership = campaign.memberships.find((entry) => entry.userId === expected.userId)
           assert.equal(membership?.role, expected.role, 'Retained VTT Campaign membership changed.')
         }
-        const session = await gm.client.query(api.campaigns.sessions.get, {
-          campaignId: checkpoint.campaign.id,
-          sessionNumber: checkpoint.session.sessionNumber
-        })
-        assert.equal(session.id, checkpoint.session.id, 'Retained VTT Session identity changed.')
         const definition = await gm.client.query(api.scenes.definitionReads.get, {
           campaignId: checkpoint.campaign.id,
           sceneId: checkpoint.scene.definitionId
@@ -1557,10 +1542,9 @@ try {
         )
         assert.ok(liveHeader.snapshot, 'Retained VTT Scene compact snapshot is unavailable.')
         const presentation = await gm.client.query(api.scenes.presentations.get, {
-          campaignId: checkpoint.campaign.id,
-          sessionId: checkpoint.session.id
+          campaignId: checkpoint.campaign.id
         })
-        assert.equal(presentation?.sessionId, checkpoint.session.id)
+        assert.equal(presentation?.campaignId, checkpoint.campaign.id)
         assert.equal(presentation?.sceneId, checkpoint.scene.liveId)
 
         characterFixtures.push({
@@ -1626,10 +1610,6 @@ try {
       await player.client.mutation(api.campaigns.assignments.assign, {
         campaignId: campaign.id,
         characterId
-      })
-      const session = await gm.client.mutation(api.campaigns.sessions.create, {
-        campaignId: campaign.id,
-        title: 'Managed VTT Session'
       })
       const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
       const scene = await createEncounterLifecycleScene({
@@ -1704,18 +1684,15 @@ try {
       const presentation = await gm.client.mutation(api.scenes.presentations.set, {
         type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
         commandId: crypto.randomUUID(),
-        sessionId: session.id,
+        campaignId: campaign.id,
         sceneId: scene.liveSceneId,
         expectedPresentationVersion: null
       })
       for (const participant of [gm, player, player2]) {
         assert.deepEqual(
-          await participant.client.query(api.scenes.presentations.get, {
-            campaignId: campaign.id,
-            sessionId: session.id
-          }),
+          await participant.client.query(api.scenes.presentations.get, { campaignId: campaign.id }),
           {
-            sessionId: session.id,
+            campaignId: campaign.id,
             sceneId: scene.liveSceneId,
             version: presentation.version
           }
@@ -1726,7 +1703,6 @@ try {
           formatVersion: 1,
           lastCompletedSection: 'fixture-ready',
           campaign: { id: campaign.id, name: campaignName },
-          session: { id: session.id, sessionNumber: session.sessionNumber },
           scene: { definitionId: scene.sceneId, liveId: scene.liveSceneId },
           character: { id: characterId, userId: player.identity.userId },
           users: {
@@ -2580,13 +2556,10 @@ try {
         ]
       }
     })
-    const session = await owner.client.mutation(api.campaigns.sessions.create, {
-      campaignId: campaign.id
-    })
     await owner.client.mutation(api.scenes.presentations.set, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
-      sessionId: session.id,
+      campaignId: campaign.id,
       sceneId: scene.liveSceneId,
       expectedPresentationVersion: null
     })
@@ -2604,7 +2577,6 @@ try {
       owner: { email: owner.email, password: owner.password, username: owner.username },
       players: players.map(({ email, password, username }) => ({ email, password, username })),
       campaignPublicId: campaign.publicId,
-      sessionNumber: session.sessionNumber,
       evidenceDirectory,
       map,
       tokenPosition
@@ -2894,13 +2866,11 @@ try {
       if (result) {
         const firstRun = await owner.client.mutation(api.encounters.runs.create, {
           campaignId: campaign.id,
-          sessionId: result.session.id,
           blueprintId: result.blueprint.id,
           commandId: crypto.randomUUID()
         })
         const secondRun = await owner.client.mutation(api.encounters.runs.create, {
           campaignId: campaign.id,
-          sessionId: result.session.id,
           blueprintId: result.blueprint.id,
           commandId: crypto.randomUUID()
         })
@@ -3009,7 +2979,6 @@ try {
           owner: owner.client,
           player: player.client,
           campaignId: campaign.id,
-          session: result.session,
           blueprint: result.blueprint,
           characterId,
           policies,
@@ -3241,10 +3210,6 @@ try {
           owner,
           player,
           campaign,
-          session: {
-            id: fixture.session.id,
-            number: fixture.session.sessionNumber
-          },
           scene: {
             id: fixture.scene.liveSceneId,
             name: passageBrowser

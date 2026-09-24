@@ -224,14 +224,12 @@ async function seedPresentation(
   malformed = false,
   history: Array<string | null> = [sceneId]
 ) {
-  const sessionId = crypto.randomUUID()
   const now = new Date().toISOString()
   await base.t.run(async (ctx) => {
     await ctx.db.insert(
       'campaignScenePresentations',
       sceneStoredPresentationSchema.parse({
         campaignId: base.campaign.id,
-        sessionId,
         sceneId: history[history.length - 1],
         version: history.length - 1,
         activeMapAssetId: null,
@@ -245,7 +243,13 @@ async function seedPresentation(
         ? {}
         : campaignLiveScenePresentationReceiptDtoSchema.parse({
             commandFingerprint: '0'.repeat(64),
-            result: { commandId, replayed: false, sessionId, sceneId: selectedSceneId, version }
+            result: {
+              commandId,
+              replayed: false,
+              campaignId: base.campaign.id,
+              sceneId: selectedSceneId,
+              version
+            }
           })
       await ctx.db.insert(
         'campaignEvents',

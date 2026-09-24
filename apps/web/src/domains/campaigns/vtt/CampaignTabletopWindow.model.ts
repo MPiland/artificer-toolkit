@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react'
 
-export function buildTabletopHref(campaignPublicId: string, sessionNumber: number): string {
-  return `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}/sessions/${sessionNumber}`
+export function buildTabletopHref(campaignPublicId: string): string {
+  return `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}`
 }
 
 export function openAuxiliaryWindow(
@@ -24,8 +24,8 @@ export function openAuxiliaryWindow(
   opened.focus()
 }
 
-export function tabletopWindowName(campaignPublicId: string, sessionNumber: number): string {
-  return `artificer-tabletop-${safeWindowName(campaignPublicId)}-${sessionNumber}`
+export function tabletopWindowName(campaignPublicId: string): string {
+  return `artificer-tabletop-${safeWindowName(campaignPublicId)}`
 }
 
 function safeWindowName(value: string): string {

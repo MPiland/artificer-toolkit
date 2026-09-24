@@ -10,7 +10,6 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
 import { presentSession, requireSession } from './sessionDocuments'
-import { scheduleLiveSessionRoomClosures } from '../liveSessions/controlScheduling'
 
 export const finish = mutation({
   args: zodToConvexFields(finishCampaignSessionInputSchema.shape),
@@ -52,14 +51,7 @@ export const finish = mutation({
       version: session.version + 1
     }
     await ctx.db.patch(session._id, patch)
-    const presentation = await ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id)
-      )
-      .unique()
-    if (presentation && presentation.activeMapAssetId !== null)
-      await ctx.db.patch(presentation._id, { activeMapAssetId: null, updatedAt: now })
+
     const result = presentSession({ ...session, ...patch }, campaign.contentMaturity)
     await ctx.db.insert(
       'campaignCommands',
@@ -72,7 +64,6 @@ export const finish = mutation({
         createdAt: now
       })
     )
-    await scheduleLiveSessionRoomClosures(ctx, campaign.id, [session.id])
     return result
   }
 })

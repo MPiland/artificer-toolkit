@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Select, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Modal, Select, Stack, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useConvex } from 'convex/react'
@@ -9,7 +9,6 @@ import {
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { getCampaignEncounters, getEncounterBlueprints } from '#app/data/encounters/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
@@ -17,15 +16,13 @@ import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
 
-export function CampaignSessionEncounters({
+export function CampaignEncounters({
   campaign,
   currentUserId,
-  session,
   mode
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
-  session: CampaignSessionDto
   mode: 'PREPARE' | 'RUN'
 }) {
   const navigate = useNavigate()
@@ -35,27 +32,23 @@ export function CampaignSessionEncounters({
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   const blueprints = useQuery({
     ...getEncounterBlueprints(campaign.gameSystemId, convex),
-    enabled: campaign.status === 'ACTIVE' && encounterAdderOpen
+    enabled: canManage && encounterAdderOpen
   })
-  const sessionEncounters = (encounters.data ?? []).flatMap((candidate) => {
-    const parsed = encounterGmProjectionDtoSchema.safeParse(candidate)
-    return parsed.success && parsed.data.sessionId === session.id ? [parsed.data] : []
-  })
-  const activeEncounter = sessionEncounters.find((candidate) => candidate.status === 'ACTIVE')
-  const ordered = activeEncounter
-    ? [
-        activeEncounter,
-        ...sessionEncounters.filter((candidate) => candidate.id !== activeEncounter.id)
-      ]
-    : sessionEncounters
+  const ordered = (encounters.data ?? [])
+    .flatMap((candidate) => {
+      const parsed = encounterGmProjectionDtoSchema.safeParse(candidate)
+      return parsed.success ? [parsed.data] : []
+    })
+    .sort((left, right) => encounterStatusOrder[left.status] - encounterStatusOrder[right.status])
   const selected = ordered.find((candidate) => candidate.id === selectedEncounterId) ?? ordered[0]
   const addEncounter = useMutation({
     mutationFn: (blueprintId: string) =>
       convex.mutation(convexApi.encounters.runs.create, {
         campaignId: campaign.id,
-        sessionId: session.id,
         blueprintId,
         commandId: crypto.randomUUID()
       }),
@@ -66,6 +59,25 @@ export function CampaignSessionEncounters({
       queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
         (current: typeof encounters.data) => [...(current ?? []), created]
+      )
+      void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
+    }
+  })
+  const deleteEncounter = useMutation({
+    mutationFn: (encounter: EncounterGmProjectionDto) =>
+      convex.mutation(convexApi.encounters.runs.deletePrepared, {
+        campaignId: campaign.id,
+        encounterId: encounter.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: encounter.version
+      }),
+    onSuccess: ({ encounterId }) => {
+      setDeleteConfirmOpen(false)
+      setSelectedEncounterId(null)
+      queryClient.setQueryData(
+        queryKeys.encounters.list(campaign.id),
+        (current: typeof encounters.data) =>
+          current?.filter((candidate) => candidate.id !== encounterId)
       )
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaign.id) })
     }
@@ -87,7 +99,7 @@ export function CampaignSessionEncounters({
         </Text>
       </div>
       {encounters.isPending ? <Text c='dimmed'>Loading encounters…</Text> : null}
-      {encounters.error ? <Alert color='red'>Session encounters couldn’t be loaded.</Alert> : null}
+      {encounters.error ? <Alert color='red'>Encounters couldn’t be loaded.</Alert> : null}
       {selected ? (
         <Stack gap='md'>
           <Group align='end' justify='space-between' wrap='wrap'>
@@ -103,22 +115,56 @@ export function CampaignSessionEncounters({
             ) : (
               <Title order={3}>{selected.name}</Title>
             )}
-            <Badge color={selected.status === 'ACTIVE' ? 'green' : 'gray'} variant='light'>
-              {encounterStatusLabel(selected.status)}
-            </Badge>
+            <Group gap='xs'>
+              <Badge color={selected.status === 'ACTIVE' ? 'green' : 'gray'} variant='light'>
+                {encounterStatusLabel(selected.status)}
+              </Badge>
+              {canManage && selected.status === 'PREPARED' ? (
+                <Button color='red' variant='subtle' onClick={() => setDeleteConfirmOpen(true)}>
+                  Delete encounter
+                </Button>
+              ) : null}
+            </Group>
           </Group>
           <CampaignEncounterWorkspace
             campaign={campaign}
             currentUserId={currentUserId}
             encounter={selected}
-            sessionOpen={session.status === 'OPEN'}
             onUpdated={(updated) => setSelectedEncounterId(updated.id)}
           />
+          <Modal
+            centered
+            opened={deleteConfirmOpen}
+            title='Delete encounter?'
+            onClose={() => setDeleteConfirmOpen(false)}
+          >
+            <Stack gap='md'>
+              <Text>
+                Delete {selected.name}? Its prepared combatants will be removed. The saved encounter
+                stays available to add again.
+              </Text>
+              {deleteEncounter.error ? (
+                <Alert color='red'>That encounter couldn’t be deleted.</Alert>
+              ) : null}
+              <Group justify='flex-end'>
+                <Button variant='default' onClick={() => setDeleteConfirmOpen(false)}>
+                  Keep encounter
+                </Button>
+                <Button
+                  color='red'
+                  loading={deleteEncounter.isPending}
+                  onClick={() => deleteEncounter.mutate(selected)}
+                >
+                  Delete encounter
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
         </Stack>
       ) : !encounters.isPending && !encounters.error ? (
-        <Text c='dimmed'>No encounters have been added to this Session.</Text>
+        <Text c='dimmed'>No encounters have been added to this Campaign.</Text>
       ) : null}
-      {campaign.status === 'ACTIVE' ? (
+      {canManage ? (
         <div
           className={sessionsStyles.sessionEncounterAdder}
           data-open={encounterAdderOpen || undefined}
@@ -185,7 +231,6 @@ export function CampaignSessionEncounters({
             <Button
               aria-controls={`session-${mode.toLowerCase()}-encounter-adder`}
               aria-expanded={false}
-              disabled={session.status !== 'OPEN'}
               variant='subtle'
               onClick={() => setEncounterAdderOpen(true)}
             >
@@ -196,6 +241,12 @@ export function CampaignSessionEncounters({
       ) : null}
     </section>
   )
+}
+
+const encounterStatusOrder: Record<EncounterGmProjectionDto['status'], number> = {
+  ACTIVE: 0,
+  PREPARED: 1,
+  COMPLETED: 2
 }
 
 function encounterStatusLabel(status: EncounterGmProjectionDto['status']) {

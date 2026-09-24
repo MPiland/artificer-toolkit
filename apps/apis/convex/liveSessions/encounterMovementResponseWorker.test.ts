@@ -144,7 +144,6 @@ it('publishes a sealed movement response through the private DO path without rep
   await value.base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
-      sessionId: value.base.run.sessionId,
       epoch,
       createdAt: value.base.campaign.createdAt
     })
@@ -170,7 +169,6 @@ it('publishes a sealed movement response through the private DO path without rep
   }
   const common = {
     campaignId: value.base.campaign.id,
-    sessionId: value.base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: value.owner.userId,
     expectedRole: 'OWNER' as const

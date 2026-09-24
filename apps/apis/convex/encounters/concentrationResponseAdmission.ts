@@ -12,7 +12,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { QueryCtx } from '../_generated/server'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { readNativeConcentrationPending } from './concentrationPending'
 import { readNativeConcentrationParentDamage } from './concentrationParent'
@@ -38,12 +37,7 @@ export async function readNativeConcentrationResponseAdmission(
   const state = readRunState(run)
   const projection = readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (
-    campaign.status !== 'ACTIVE' ||
-    campaign.gameSystemId !== state.gameSystemId ||
-    session.status !== 'OPEN'
-  )
+  if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('The concentration occurrence is unavailable.')
   const assigned =
     membership.role === 'PLAYER'

@@ -27,7 +27,7 @@ export async function persistSpatialPreparation(
     spatialPreparationJson: JSON.stringify(value),
     spatialPreparationChecksum: checksum
   })
-  const { session } = await readSessionVisionScope(ctx, save.sessionVision!)
+  const { campaign } = await readSessionVisionScope(ctx, save.sessionVision!)
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', value.encounterId))
@@ -38,7 +38,7 @@ export async function persistSpatialPreparation(
     state.status !== 'ACTIVE' ||
     state.version !== value.expectedEncounterVersion ||
     state.campaignId !== header.campaignId ||
-    state.sessionId !== session.id ||
+    state.campaignId !== campaign.id ||
     state.gameSystemId !== save.sessionVision!.systemId
   )
     throw new Error('Spatial preparation Encounter scope is stale.')

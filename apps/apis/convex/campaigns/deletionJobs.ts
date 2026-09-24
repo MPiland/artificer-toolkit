@@ -26,11 +26,9 @@ const watchdogReference = makeFunctionReference<
   { jobId: Id<'campaignDeletionJobs'> },
   null
 >('campaigns/deletionJobs:watchdog')
-const drainReference = makeFunctionReference<
-  'query',
-  Run,
-  { campaignId: string; sessionId: string } | null
->('campaigns/deletionJobs:drain')
+const drainReference = makeFunctionReference<'query', Run, { campaignId: string } | null>(
+  'campaigns/deletionJobs:drain'
+)
 const closeReference = makeFunctionReference<'action', LiveSessionControlInput, null>(
   'liveSessions/control:send'
 )
@@ -38,7 +36,7 @@ const WATCHDOG_DELAY_MS = 60_000
 
 export const drain = internalQuery({
   args,
-  returns: v.union(v.null(), v.object({ campaignId: v.string(), sessionId: v.string() })),
+  returns: v.union(v.null(), v.object({ campaignId: v.string() })),
   handler: async (ctx, input) => {
     const job = await ctx.db.get(input.jobId)
     if (
@@ -50,15 +48,9 @@ export const drain = internalQuery({
       return null
     const authority = await readCampaignLiveAuthority(ctx, job.campaignId)
     if (!authority) return null
-    if (
-      authority._id !== job.liveAuthorityId ||
-      authority.epoch !== job.liveAuthority?.epoch ||
-      authority.sessionId !== job.liveAuthority.sessionId
-    )
+    if (authority._id !== job.liveAuthorityId || authority.epoch !== job.liveAuthority?.epoch)
       throw new Error('Campaign deletion live authority changed.')
-    return authority.phase === 'ACTIVATING'
-      ? null
-      : { campaignId: job.campaignId, sessionId: authority.sessionId }
+    return authority.phase === 'ACTIVATING' ? null : { campaignId: job.campaignId }
   }
 })
 
@@ -112,11 +104,7 @@ export const step = internalMutation({
       const authority = await readCampaignLiveAuthority(ctx, job.campaignId)
       if (stage === 'DRAIN_ROOM') {
         if (authority) {
-          if (
-            authority._id !== job.liveAuthorityId ||
-            authority.epoch !== job.liveAuthority?.epoch ||
-            authority.sessionId !== job.liveAuthority.sessionId
-          )
+          if (authority._id !== job.liveAuthorityId || authority.epoch !== job.liveAuthority?.epoch)
             throw new Error('Campaign deletion live authority changed.')
           if (authority.phase !== 'ACTIVATING')
             throw new Error('Campaign deletion is waiting for live Session release.')

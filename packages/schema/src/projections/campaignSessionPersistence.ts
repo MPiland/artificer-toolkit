@@ -6,6 +6,7 @@ import {
   campaignClockDtoSchema
 } from '../api/campaignSessions.js'
 import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
+import { deletePreparedEncounterResultDtoSchema } from '../api/encounterData.js'
 
 const campaignStoredCommandBaseSchema = z.strictObject({
   campaignId: uuidSchema,
@@ -29,6 +30,10 @@ export const campaignStoredCommandSchema = z
       resultPayload: campaignSessionDtoSchema
     }),
     z.extend(campaignStoredCommandBaseSchema, {
+      commandType: z.literal('DELETE_ENCOUNTER'),
+      resultPayload: deletePreparedEncounterResultDtoSchema
+    }),
+    z.extend(campaignStoredCommandBaseSchema, {
       commandType: z.enum([
         'INITIALIZE_CLOCK',
         'CONFIGURE_CLOCK',
@@ -47,7 +52,8 @@ export const campaignStoredCommandSchema = z
   ])
   .check(
     z.superRefine((command, context) => {
-      if (command.commandType === 'FINISH_SESSION') return
+      if (command.commandType === 'FINISH_SESSION' || command.commandType === 'DELETE_ENCOUNTER')
+        return
       const isCorrection =
         command.commandType === 'REWIND_CLOCK' || command.commandType === 'RESET_CLOCK'
       if (isCorrection === (command.correctionReason !== null)) return

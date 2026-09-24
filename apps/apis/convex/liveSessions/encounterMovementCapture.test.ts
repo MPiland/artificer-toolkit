@@ -66,7 +66,6 @@ async function setup() {
   await base.t.run(async (ctx) => {
     await insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.session.id,
       epoch,
       createdAt: base.campaign.createdAt
     })
@@ -78,24 +77,19 @@ async function setup() {
         tokenId: base.tokens[index]!.id.toLowerCase()
       })
   })
-  const session = {
-    sessionId: base.session.id,
-    expectedSessionVersion: base.session.version,
-    expectedPresentationVersion: 0
-  }
+  const presentation = { expectedPresentationVersion: 0 }
+
   const command = { ...input, commandId: crypto.randomUUID() }
   const ownerBegin: LiveSessionMovementBeginInput = {
     campaignId: base.campaign.id,
-    sessionId: base.session.id,
     authorityEpoch: epoch,
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',
     command,
-    session
+    presentation
   }
   const ownerCapture: LiveSessionEncounterRulesInput = {
     campaignId: base.campaign.id,
-    sessionId: base.session.id,
     authorityEpoch: epoch,
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',
@@ -111,7 +105,7 @@ async function setup() {
     actorIds,
     tokenId,
     command,
-    session,
+    presentation,
     ownerBegin,
     ownerCapture
   }
@@ -120,7 +114,10 @@ async function setup() {
 it('stages owner movement privately and captures its bound raw inputs', async () => {
   const base = await setup()
   await expect(
-    base.other.caller.mutation(nativeBegin, { input: base.command, session: base.session })
+    base.other.caller.mutation(nativeBegin, {
+      input: base.command,
+      presentation: base.presentation
+    })
   ).rejects.toThrow()
   const staged = await base.other.caller.mutation(begin, base.ownerBegin)
   if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
@@ -354,7 +351,6 @@ it('does not let movement scope read a Character through a custom Encounter acto
   await expect(
     base.other.caller.query(characterCapture, {
       campaignId: base.campaign.id,
-      sessionId: base.session.sessionId,
       authorityEpoch: base.epoch,
       expectedUserId: base.other.userId,
       expectedRole: 'OWNER',
@@ -376,7 +372,7 @@ it('rejects identity, role, epoch, Encounter, and save ownership mismatches', as
     { expectedUserId: base.owner.userId },
     { expectedRole: 'PLAYER' as const },
     { authorityEpoch: crypto.randomUUID() },
-    { sessionId: crypto.randomUUID() }
+    { campaignId: crypto.randomUUID() }
   ])
     await expect(
       base.other.caller.mutation(begin, { ...base.ownerBegin, ...changed })
@@ -401,15 +397,14 @@ it('rejects identity, role, epoch, Encounter, and save ownership mismatches', as
   ).rejects.toThrow()
 })
 
-it('rejects stale Scene, Session, presentation, and Run snapshots', async () => {
+it('rejects stale Scene, presentation, and Run snapshots', async () => {
   const base = await setup()
-  for (const session of [
-    { ...base.session, expectedSessionVersion: base.session.expectedSessionVersion + 1 },
-    { ...base.session, expectedPresentationVersion: 1 }
-  ])
-    await expect(
-      base.other.caller.mutation(begin, { ...base.ownerBegin, session })
-    ).rejects.toThrow()
+  await expect(
+    base.other.caller.mutation(begin, {
+      ...base.ownerBegin,
+      presentation: { expectedPresentationVersion: 1 }
+    })
+  ).rejects.toThrow()
   await expect(
     base.other.caller.mutation(begin, {
       ...base.ownerBegin,

@@ -10,11 +10,10 @@ import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readRunState } from '../encounters/documents'
 import { readLiveScene } from './liveDocuments'
 import { geometryTarget, normalizeGeometryInput } from './geometryValues'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import {
   sceneSpatialPreparationSchema,
@@ -243,14 +242,14 @@ export async function readGeometrySave(ctx: QueryCtx, saveId: string) {
     save.input.type === 'MOVE_SCENE_TOKEN' ? 'MEMBER' : 'OWNER'
   )
   if (scene.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  let presented: Awaited<ReturnType<typeof readPresentedVisionSession>> | null = null
+  let presented: Awaited<ReturnType<typeof readPresentedVisionScene>> | null = null
   if (save.sessionVision) {
     if (
       save.sessionVision.campaignId !== scene.campaign.id ||
       save.sessionVision.systemId !== scene.campaign.gameSystemId
     )
-      throw new Error('Stored Scene geometry Session identity is inconsistent.')
-    presented = await readPresentedVisionSession(ctx, save.sessionVision)
+      throw new Error('Stored Scene geometry presentation identity is inconsistent.')
+    presented = await readPresentedVisionScene(ctx, save.sessionVision)
   }
   return { ...scene, presented, row, save }
 }
@@ -287,9 +286,7 @@ export async function assertStandaloneMovement(
     const run = readRunState(row)
     if (run.campaignId !== campaignId)
       throw new Error('Scene token binding Campaign is inconsistent.')
-    if (run.status !== 'ACTIVE') continue
-    const session = await requireSession(ctx, campaignId, run.sessionId)
-    if (session.status === 'OPEN')
+    if (run.status === 'ACTIVE')
       throw new Error('Bound Scene token movement requires an Encounter version.')
   }
 }

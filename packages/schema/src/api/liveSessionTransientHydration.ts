@@ -36,7 +36,7 @@ import {
 
 export const liveSessionTransientHydrationAuthoritySchema = z.pick(
   liveSessionTransientCaptureInputSchema,
-  { campaignId: true, expectedRole: true, expectedUserId: true, sessionId: true }
+  { campaignId: true, expectedRole: true, expectedUserId: true }
 )
 
 const entitiesRequestSchema = z.extend(sceneCurrentEntityPageInputSchema, {

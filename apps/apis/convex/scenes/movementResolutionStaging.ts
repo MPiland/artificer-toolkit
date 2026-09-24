@@ -18,7 +18,7 @@ import { beginSceneGeometry } from './geometryStaging'
 import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
 
 /** Null selects the existing non-spatial response mutation; only the server classifies the occurrence. */
 export const begin = internalMutation({
@@ -95,9 +95,7 @@ export async function beginMovementResolution(
       ctx,
       {
         input: save.input,
-        session: {
-          sessionId: save.sessionVision.sessionId,
-          expectedSessionVersion: save.sessionVision.expectedSessionVersion,
+        presentation: {
           expectedPresentationVersion: save.sessionVision.expectedPresentationVersion
         }
       },
@@ -109,9 +107,8 @@ export async function beginMovementResolution(
   if (receipt) throw new Error('Movement response receipt has no Scene publication.')
   const current = await readMovementResponseAuthority(ctx, command)
   await requireUnusedEvidenceCommandId(ctx, campaign.id, command.commandId)
-  const { presentation } = await readPresentedVisionSession(ctx, {
+  const { presentation } = await readPresentedVisionScene(ctx, {
     campaignId: campaign.id,
-    sessionId: current.session.id,
     sceneId
   })
   const root = current.root
@@ -129,11 +126,7 @@ export async function beginMovementResolution(
         movementKind: root.movementKind,
         path: root.originalPath
       },
-      session: {
-        sessionId: current.session.id,
-        expectedSessionVersion: current.session.version,
-        expectedPresentationVersion: presentation.version
-      }
+      presentation: { expectedPresentationVersion: presentation.version }
     }),
     {
       commandJson: JSON.stringify(command),

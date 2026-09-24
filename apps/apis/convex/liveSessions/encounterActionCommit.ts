@@ -1,9 +1,5 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
-import {
-  liveSessionEncounterActionCommitInputSchema,
-  type LiveSessionEncounterActionCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { v } from 'convex/values'
+import { liveSessionEncounterActionCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
@@ -44,17 +40,15 @@ import {
 import { persistLiveEncounterActionChildren } from './encounterActionChildrenCommit'
 
 /** The DO computes rules; this transaction validates current authority and applies bounded outcomes. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commit = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterActionCommitInput>>(
-    liveSessionEncounterActionCommitInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema),
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterActionCommitInputSchema.parse(args)
     const admission = await readLiveEncounterActionAdmission(ctx, input)
     const userId = input.expectedUserId
     const { state, run, fingerprint } = admission
-    if (state.campaignId !== input.campaignId || state.sessionId !== input.sessionId)
+    if (state.campaignId !== input.campaignId)
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response replays before checking revisions consumed by the successful transaction.
     if (admission.kind === 'REPLAY') return admission.result
@@ -131,7 +125,6 @@ export const commit = internalMutation({
     await assertLiveSessionRulesRevisions(ctx, input.revisions, {
       systemId: state.gameSystemId,
       campaignId: state.campaignId,
-      sessionId: state.sessionId,
       characterIds: [...characterIds]
     })
     const collision = await ctx.db

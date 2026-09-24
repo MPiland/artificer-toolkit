@@ -1,14 +1,9 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type {
   CreateEncounterBlueprintInputDto,
@@ -72,11 +67,6 @@ afterEach(() => {
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -134,7 +124,6 @@ async function setup(
     initiativePolicyDefinitionId: policyId,
     initiativeTieDefinitionId: null
   })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Declaration fixture',
@@ -146,7 +135,6 @@ async function setup(
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -528,7 +516,6 @@ describe('native initiative declarations', () => {
     })
     const run = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -712,7 +699,6 @@ describe('native initiative declarations', () => {
       const run = await base.owner.caller
         .mutation(createRun, {
           campaignId: base.campaign.id,
-          sessionId: base.run.sessionId,
           blueprintId: blueprint.id,
           commandId: createRunCommandId
         })
@@ -737,7 +723,6 @@ describe('native initiative declarations', () => {
       await base.t.run((ctx) =>
         insertActiveLiveAuthority(ctx, {
           campaignId: base.campaign.id,
-          sessionId: run.sessionId,
           epoch,
           createdAt: base.campaign.createdAt
         })
@@ -779,7 +764,6 @@ describe('native initiative declarations', () => {
       })
       const scope = (role: 'OWNER' | 'PLAYER') => ({
         campaignId: base.campaign.id,
-        sessionId: run.sessionId,
         authorityEpoch: epoch,
         expectedUserId: role === 'PLAYER' ? base.player.userId : base.owner.userId,
         expectedRole: role,
@@ -1080,6 +1064,8 @@ describe('native initiative declarations', () => {
     })
     const secondIdentity = await secondPlayer.query(api.account.identity, {})
     if (!secondIdentity) throw new Error('Expected second Character controller identity.')
+    // The Run party follows membership join order, so the earlier-joined second Character is
+    // snapshotted first and declares last.
     await base.t.run((ctx) =>
       ctx.db.insert('campaignMemberships', {
         campaignId: base.campaign.id,
@@ -1087,7 +1073,7 @@ describe('native initiative declarations', () => {
         role: 'PLAYER',
         status: 'ACTIVE',
         accessStartedAt: base.campaign.createdAt,
-        joinedAt: base.campaign.createdAt,
+        joinedAt: new Date(Date.parse(base.campaign.createdAt) - 1).toISOString(),
         leftAt: null
       })
     )
@@ -1164,18 +1150,6 @@ describe('native initiative declarations', () => {
       initiativePolicyDefinitionId: initiative.policyIds[0]!,
       initiativeTieDefinitionId: null
     })
-    const session = await base.owner.caller.mutation(createSession, {
-      campaignId: base.campaign.id
-    })
-    for (const characterId of [base.character.id, secondCharacter.id]) {
-      await base.owner.caller.mutation(api.campaigns.sessionAttendance.set, {
-        campaignId: base.campaign.id,
-        sessionId: session.id,
-        characterId,
-        present: true,
-        expectedVersion: session.version
-      })
-    }
     const blueprint = await base.owner.caller.mutation(createBlueprint, {
       gameSystemId: base.campaign.gameSystemId,
       name: 'Two controller declarations',
@@ -1192,7 +1166,6 @@ describe('native initiative declarations', () => {
     try {
       run = await base.owner.caller.mutation(createRun, {
         campaignId: base.campaign.id,
-        sessionId: session.id,
         blueprintId: blueprint.id,
         commandId: crypto.randomUUID()
       })
@@ -1332,7 +1305,6 @@ describe('native initiative declarations', () => {
     })
     const run = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })

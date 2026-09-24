@@ -62,11 +62,11 @@ function characterScope(id: string): SceneVisionScope {
   return { scope: 'CHARACTER', id }
 }
 
-function sessionScope(id: string): SceneVisionScope {
-  return { scope: 'SESSION', id }
+function playScope(campaignId: string): SceneVisionScope {
+  return { scope: 'PLAY', id: campaignId }
 }
 
-async function sessionScopeForEncounter(
+async function playScopeForEncounter(
   ctx: TriggerContext,
   encounterId: string
 ): Promise<SceneVisionScope | null> {
@@ -74,7 +74,7 @@ async function sessionScopeForEncounter(
     .query('encounterRuns')
     .withIndex('by_publicId', (query) => query.eq('id', encounterId))
     .unique()
-  return encounter ? sessionScope(encounter.sessionId) : null
+  return encounter ? playScope(encounter.campaignId) : null
 }
 
 // ponytail: source publications share a System marker; partition by source if measured contention requires it.
@@ -123,39 +123,37 @@ registerScope('authoredRouteIds', (_, document) =>
   document.subjectKind === 'CHARACTER' ? characterScope(document.subjectId) : null
 )
 
-registerScope('campaignSessions', (_, document) => sessionScope(document.id))
-registerScope('campaignSessionAttendance', (_, document) => sessionScope(document.sessionId))
-registerScope('campaignScenePresentations', (_, document) => sessionScope(document.sessionId))
-registerScope('encounterRuns', (_, document) => sessionScope(document.sessionId))
+registerScope('campaignScenePresentations', (_, document) => playScope(document.campaignId))
+registerScope('encounterRuns', (_, document) => playScope(document.campaignId))
 registerScope('encounterRunActors', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterInitiativeRounds', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterInitiativeSides', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterInitiativeParticipants', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterSceneBindings', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterActorTokenBindings', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterActiveRuleEffects', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterMaintainedEffectStates', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterSpatialRuleEffects', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 registerScope('encounterRuleOccurrences', (ctx, document) =>
-  sessionScopeForEncounter(ctx, document.encounterId)
+  playScopeForEncounter(ctx, document.encounterId)
 )
 
 export const withSceneVisionTracking = triggers.wrapDB

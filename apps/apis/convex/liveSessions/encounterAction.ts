@@ -1,13 +1,6 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
-import {
-  liveSessionEncounterActionPendingInputSchema,
-  type LiveSessionEncounterActionPendingInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import { v } from 'convex/values'
+import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { type EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation } from '../lib/mutations'
@@ -20,17 +13,15 @@ import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 
 /** Stores only the Worker-computed pending root; terminal mechanics remain a separate transaction. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commitPending = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionEncounterActionPendingInput>>(
-    liveSessionEncounterActionPendingInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema),
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterActionPendingInputSchema.parse(args)
     const admission = await readLiveEncounterActionAdmission(ctx, input)
     const userId = input.expectedUserId
     const { state, run, fingerprint, campaign } = admission
-    if (state.campaignId !== input.campaignId || state.sessionId !== input.sessionId)
+    if (state.campaignId !== input.campaignId)
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response must return the stored outcome before checking inputs consumed by that write.
     if (admission.kind === 'REPLAY') return admission.result
@@ -76,7 +67,6 @@ export const commitPending = internalMutation({
     await assertLiveSessionRulesRevisions(ctx, input.revisions, {
       systemId: state.gameSystemId,
       campaignId: state.campaignId,
-      sessionId: state.sessionId,
       characterIds: [...characterIds]
     })
     const collision = await ctx.db

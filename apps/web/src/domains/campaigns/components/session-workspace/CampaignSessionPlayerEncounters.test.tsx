@@ -8,8 +8,7 @@ import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolki
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   createTabletopCampaign,
-  tabletopPlayerEncounter,
-  tabletopSession
+  tabletopPlayerEncounter
 } from '../../vtt/CampaignTabletop.stories.fixtures'
 
 const pending = {
@@ -35,13 +34,6 @@ const pending = {
 const prepared = {
   ...tabletopPlayerEncounter,
   status: 'PREPARED' as const
-} satisfies EncounterPlayerProjectionDto
-
-const otherSessionPrepared = {
-  ...prepared,
-  id: '77777777-7777-4777-8777-777777777792',
-  name: 'Other session encounter',
-  sessionId: '77777777-7777-4777-8777-777777777793'
 } satisfies EncounterPlayerProjectionDto
 
 const mocks = vi.hoisted(() => ({
@@ -73,7 +65,7 @@ describe('CampaignSessionPlayerEncounters', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listed = []
-    pendingPrepared = [prepared, otherSessionPrepared]
+    pendingPrepared = [prepared]
     mocks.convexQuery.mockImplementation((reference) => ({
       queryKey: [getFunctionName(reference)]
     }))
@@ -88,41 +80,28 @@ describe('CampaignSessionPlayerEncounters', () => {
     mocks.useMutation.mockReturnValue({ isPending: false, mutateAsync: vi.fn() })
   })
 
-  it('shows the eligible prepared decision, excludes other sessions, and retains a newer active projection', async () => {
+  it('shows the eligible prepared decision and retains a newer active projection', async () => {
     const user = userEvent.setup()
     const view = renderWithAppProviders(
-      <CampaignSessionPlayerEncounters
-        campaign={createTabletopCampaign('PLAYER')}
-        sessionId={tabletopSession.id}
-        sessionOpen
-      />
+      <CampaignSessionPlayerEncounters campaign={createTabletopCampaign('PLAYER')} />
     )
 
     expect(screen.getByText('Vault confrontation')).toBeVisible()
-    expect(screen.queryByText('Other session encounter')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(await screen.findByRole('combobox', { name: 'Primary action' })).toBeVisible()
 
     listed = [tabletopPlayerEncounter]
-    view.rerender(
-      <CampaignSessionPlayerEncounters
-        campaign={createTabletopCampaign('PLAYER')}
-        sessionId={tabletopSession.id}
-        sessionOpen
-      />
-    )
+    view.rerender(<CampaignSessionPlayerEncounters campaign={createTabletopCampaign('PLAYER')} />)
 
     expect(screen.getByText('In progress')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Open pending decision' })).not.toBeInTheDocument()
   })
 
-  it('renders the prepared decision readonly when the session is closed', async () => {
+  it('renders the prepared decision readonly when the Campaign is archived', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
       <CampaignSessionPlayerEncounters
-        campaign={createTabletopCampaign('PLAYER')}
-        sessionId={tabletopSession.id}
-        sessionOpen={false}
+        campaign={{ ...createTabletopCampaign('PLAYER'), status: 'ARCHIVED' }}
       />
     )
 

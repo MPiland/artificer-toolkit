@@ -61,9 +61,7 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
         return new Response('Invalid live-session control request.', { status: 400 })
-      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(
-        `${parsed.data.campaignId}:${parsed.data.sessionId}`
-      )
+      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(parsed.data.campaignId)
       return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(
         new Request(`https://live-session.internal${LIVE_SESSION_CONTROL_PATH}`, {
           body: JSON.stringify(parsed.data),
@@ -85,16 +83,14 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
 
     try {
       const claims = await verifyLiveSessionTicket(ticket, environment.LIVE_SESSION_TICKET_SECRET)
-      if (claims.sessionId !== path[1]) {
+      if (claims.campaignId !== path[1]) {
         return new Response('Live-session ticket does not match the requested room.', {
           status: 403
         })
       }
       const headers = new Headers(request.headers)
       headers.set(INTERNAL_TICKET_HEADER, ticket)
-      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(
-        `${claims.campaignId}:${claims.sessionId}`
-      )
+      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(claims.campaignId)
       return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(new Request(request, { headers }))
     } catch {
       return new Response('Live-session ticket is invalid.', { status: 401 })

@@ -39,9 +39,8 @@ import {
   readLiveScene,
   readLiveSceneForUser
 } from './liveDocuments'
-import { readPresentedVisionSession } from './sessionVisionDocuments'
-import { assertConvexOwnsCampaignLiveState } from '../liveSessions/authorityGuard'
-import { requireSession } from '../campaigns/sessionDocuments'
+import { readPresentedVisionScene } from './sessionVisionDocuments'
+import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 
 const undoSearchPageSize = 8
 
@@ -85,29 +84,29 @@ function parseUndoCommand(
   return command
 }
 
-async function currentSession(
-  ctx: Parameters<typeof readPresentedVisionSession>[0],
+async function currentPresentation(
+  ctx: Parameters<typeof readPresentedVisionScene>[0],
   campaignId: string,
   sceneId: string,
-  session: SceneUndoExecuteInput['session']
+  fence: SceneUndoExecuteInput['presentation']
 ) {
-  if (!session) return null
-  return readPresentedVisionSession(ctx, { campaignId, sceneId, sessionId: session.sessionId })
+  if (!fence) return null
+  return readPresentedVisionScene(ctx, { campaignId, sceneId })
 }
 
 function assertNewWrite(
   header: { version: number },
   input: SceneUndoExecuteInput,
-  presented: Awaited<ReturnType<typeof currentSession>>
+  presented: Awaited<ReturnType<typeof currentPresentation>>
 ) {
   if (input.input.expectedSceneVersion !== header.version)
     throw new Error('Scene version is stale.')
-  if (input.session && presented) {
-    if (presented.session.version !== input.session.expectedSessionVersion)
-      throw new Error('Scene vision Session is not current and open.')
-    if (presented.presentation.version !== input.session.expectedPresentationVersion)
-      throw new Error('Scene vision presentation is stale.')
-  }
+  if (
+    input.presentation &&
+    presented &&
+    presented.presentation.version !== input.presentation.expectedPresentationVersion
+  )
+    throw new Error('Scene vision presentation is stale.')
 }
 
 function assertPreviousLayer(
@@ -159,8 +158,8 @@ export const prepare = internalQuery({
     const input = normalize(request)
     const { header, campaign } = await readLiveScene(ctx, input.input.sceneId, 'OWNER')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
-    const presented = await currentSession(ctx, campaign.id, header.id, input.session)
+    await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+    const presented = await currentPresentation(ctx, campaign.id, header.id, input.presentation)
     const inputChecksum = checksumCanonicalJson(input.input)
     const prior = await replay(ctx, header.id, input.input.commandId, header.version, inputChecksum)
     if (prior) return { kind: 'REPLAY', result: prior }
@@ -216,8 +215,8 @@ async function finishUndo(
     'OWNER'
   )
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
-  const presented = await currentSession(ctx, campaign.id, header.id, input.session)
+  await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+  const presented = await currentPresentation(ctx, campaign.id, header.id, input.presentation)
   const inputChecksum = checksumCanonicalJson(input.input)
   const prior = await replay(ctx, header.id, input.input.commandId, header.version, inputChecksum)
   if (prior) return prior
@@ -460,21 +459,14 @@ export async function publishResolvedUndoCommand(
     actorUserId: string
     actorRole: 'OWNER' | 'PLAYER'
     campaignId: string
-    sessionId: string
     authorityScope: import('../campaigns/authority').CampaignInternalScope
     command: ResolvedUndoCommand
-    session: {
-      sessionId: string
-      expectedSessionVersion: number
-      expectedPresentationVersion: number
-    }
+    presentation: { expectedPresentationVersion: number }
     expectedResult: SceneCommandResultDto
   }
 ): Promise<SceneCommandResultDto> {
-  const request = normalize({ input: args.command, session: args.session })
+  const request = normalize({ input: args.command, presentation: args.presentation })
   const input = request.input
-  if (args.session.sessionId !== args.sessionId)
-    throw new Error('Live Session Scene publication Session identity mismatch.')
   if (args.actorRole !== 'OWNER')
     throw new Error('Only the committed Campaign owner may undo a Scene move.')
   const { header, campaign, live, liveRow } = await readLiveSceneForUser(
@@ -486,7 +478,6 @@ export async function publishResolvedUndoCommand(
   )
   if (campaign.id !== args.campaignId)
     throw new Error('Live Session Scene publication Campaign identity mismatch.')
-  await requireSession(ctx, campaign.id, args.sessionId)
 
   const inputChecksum = checksumCanonicalJson(input)
   const priorRow = await ctx.db

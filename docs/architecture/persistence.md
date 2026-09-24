@@ -80,9 +80,10 @@ they cannot restore authority or expose a partial account.
 
 ## Active live-session authority — accepted 2026-09-22
 
-> Transitional: [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (approved; implementation
-> in progress) re-keys room identity, authority, presentation and Encounter Runs from the Campaign
-> Session to the Campaign. This section describes the current Session-keyed implementation.
+> [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) (implemented locally) re-keys room
+> identity, authority, presentation and Encounter Runs from the Campaign Session to the Campaign and
+> removes their Session fields. Where this section describes Session-keyed rows or gates, ADR 0033
+> supersedes it; `campaigns/playMigrations.ts` migrates existing development rows.
 
 ```mermaid
 flowchart LR

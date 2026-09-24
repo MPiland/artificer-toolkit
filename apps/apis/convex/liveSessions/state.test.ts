@@ -5,7 +5,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   AppendSceneDefinitionInput,
   BeginSceneDefinitionInput,
@@ -19,6 +18,10 @@ import type {
   SceneUndoCommandResult,
   SceneUndoExecuteInput
 } from '@artificer-toolkit/schema/api/sceneUndo'
+import type {
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type { campaignCharacterSheetExecuteInputSchema } from '@artificer-toolkit/schema/api/campaignCharacterSheet'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type {
@@ -41,14 +44,14 @@ const secret = 'test-live-session-worker-secret-that-is-long-enough'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
+const claim = makeFunctionReference<'mutation', { campaignId: string }, LiveSessionAuthorityDto>(
+  'liveSessions/authority:claim'
 )
-const claim = makeFunctionReference<
+const setPresentation = makeFunctionReference<
   'mutation',
-  { campaignId: string; sessionId: string },
-  LiveSessionAuthorityDto
->('liveSessions/authority:claim')
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+>('scenes/presentations:set')
 const activate = makeFunctionReference<
   'mutation',
   LiveSessionActivationInput,
@@ -128,14 +131,9 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
       assignedAt: campaign.createdAt
     })
   })
-  const session = await gm.caller.mutation(createSession, { campaignId: campaign.id })
-  const authority = await player.caller.mutation(claim, {
-    campaignId: campaign.id,
-    sessionId: session.id
-  })
+  const authority = await player.caller.mutation(claim, { campaignId: campaign.id })
   const bootstrapInput: LiveSessionBootstrapInput = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch: authority.epoch,
     expectedUserId: player.userId,
     expectedRole: 'PLAYER'
@@ -188,7 +186,6 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
   const sceneChecksum = 'a'.repeat(64)
   const active = await base.t.mutation(activate, {
     campaignId: campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     activationFingerprint: authority.activationFingerprint,
     stateChecksum: sceneChecksum
@@ -214,7 +211,6 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
 
   const drainInput: LiveSessionDrainReleaseInput = {
     campaignId: campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     finalSequence: 0,
     finalStateChecksum: sceneChecksum
@@ -299,25 +295,18 @@ it('publishes one resolved live door command with exact replay, fences and atomi
   })
   await base.owner.caller.mutation(publishSceneDefinition, { saveId: save.saveId })
   if (!save.liveSceneId) throw new Error('Missing live Scene fixture.')
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: base.campaign.id
-  })
-  const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId: save.liveSceneId,
-    sessionId: session.id
-  })
-  const authority = await base.owner.caller.mutation(claim, {
     campaignId: base.campaign.id,
-    sessionId: session.id
+    sceneId: save.liveSceneId
   })
+  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   const initialStateChecksum = '1'.repeat(64)
   const nextStateChecksum = '2'.repeat(64)
   await base.t.mutation(activate, {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     activationFingerprint: authority.activationFingerprint,
     stateChecksum: initialStateChecksum
@@ -331,11 +320,7 @@ it('publishes one resolved live door command with exact replay, fences and atomi
     barrierId: initialDoor.id,
     state: 'OPEN' as const
   }
-  const sessionFence = {
-    sessionId: session.id,
-    expectedSessionVersion: session.version,
-    expectedPresentationVersion: presentation.version
-  }
+  const presentationFence = { expectedPresentationVersion: presentation.version }
   const expectedSceneResult = {
     commandId: command.commandId,
     delta: { kind: 'DOOR_STATE_SET' as const, barrierId: initialDoor.id, state: 'OPEN' as const },
@@ -346,43 +331,30 @@ it('publishes one resolved live door command with exact replay, fences and atomi
   }
   const input: LiveSessionPublishInput = {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     sequence: 1,
     expectedStateChecksum: initialStateChecksum,
     stateChecksum: nextStateChecksum,
     actorUserId: base.owner.userId,
     actorRole: 'OWNER',
-    command: { scope: 'SCENE', command, session: sessionFence },
+    command: { scope: 'SCENE', command, presentation: presentationFence },
     occurredAt: '2026-09-22T18:00:00.000Z',
     receiptId: crypto.randomUUID(),
     expectedSceneResult
   }
 
   await expect(
-    base.owner.caller.mutation(executeFastGeometry, { input: command, session: sessionFence })
-  ).rejects.toThrow('owned by its live Session')
+    base.owner.caller.mutation(executeFastGeometry, {
+      input: command,
+      presentation: presentationFence
+    })
+  ).rejects.toThrow('owned by its Campaign live table')
   await expect(
-    base.owner.caller.action(executeGeometry, { input: command, session: sessionFence })
-  ).rejects.toThrow('owned by its live Session')
+    base.owner.caller.action(executeGeometry, { input: command, presentation: presentationFence })
+  ).rejects.toThrow('owned by its Campaign live table')
   await expect(base.t.mutation(publish, { ...input, actorRole: 'PLAYER' })).rejects.toThrow(
     'committed Campaign owner'
   )
-
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_campaignId_id', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('id', session.id)
-      )
-      .unique()
-    if (!row) throw new Error('Missing Session fixture.')
-    await ctx.db.patch(row._id, {
-      status: 'FINISHED',
-      finishedAt: new Date().toISOString(),
-      version: row.version + 1
-    })
-  })
 
   const published = await base.t.mutation(publish, input)
   expect(published).toMatchObject({
@@ -411,9 +383,7 @@ it('publishes one resolved live door command with exact replay, fences and atomi
       .unique()
     const currentPresentation = await ctx.db
       .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('sessionId', session.id)
-      )
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
       .unique()
     if (!campaign || !owner || !newOwner || !currentPresentation)
       throw new Error('Missing Campaign fixture.')
@@ -426,14 +396,17 @@ it('publishes one resolved live door command with exact replay, fences and atomi
     base.owner.caller.query(api.scenes.liveReads.header, { sceneId: save.liveSceneId })
   ).rejects.toThrow('only available to the Campaign owner')
   await expect(
-    base.other.caller.mutation(executeFastGeometry, { input: command, session: sessionFence })
+    base.other.caller.mutation(executeFastGeometry, {
+      input: command,
+      presentation: presentationFence
+    })
   ).rejects.toThrow('Archived Campaigns are read-only')
 
   const reusedCommand = { ...command, state: 'CLOSED' as const }
   await expect(
     base.t.mutation(publish, {
       ...input,
-      command: { scope: 'SCENE', command: reusedCommand, session: sessionFence },
+      command: { scope: 'SCENE', command: reusedCommand, presentation: presentationFence },
       expectedSceneResult: {
         ...expectedSceneResult,
         delta: { kind: 'DOOR_STATE_SET', barrierId: initialDoor.id, state: 'CLOSED' }
@@ -459,7 +432,7 @@ it('publishes one resolved live door command with exact replay, fences and atomi
     expectedStateChecksum: nextStateChecksum,
     stateChecksum: '3'.repeat(64),
     receiptId: crypto.randomUUID(),
-    command: { scope: 'SCENE', command: nextCommand, session: sessionFence },
+    command: { scope: 'SCENE', command: nextCommand, presentation: presentationFence },
     expectedSceneResult: nextResult
   }
   await expect(
@@ -468,15 +441,6 @@ it('publishes one resolved live door command with exact replay, fences and atomi
       epoch: crypto.randomUUID()
     })
   ).rejects.toThrow('authority is stale')
-  await expect(
-    base.t.mutation(publish, {
-      ...nextInput,
-      command: {
-        ...nextInput.command,
-        session: { ...sessionFence, sessionId: crypto.randomUUID() }
-      }
-    })
-  ).rejects.toThrow('Session identity mismatch')
   await expect(
     base.t.mutation(publish, {
       ...nextInput,
@@ -576,35 +540,24 @@ it('publishes exact standalone movement and undo while live authority rejects di
   })
   await base.owner.caller.mutation(publishSceneDefinition, { saveId: save.saveId })
   if (!save.liveSceneId) throw new Error('Missing live Scene fixture.')
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: base.campaign.id
-  })
-  const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId: save.liveSceneId,
-    sessionId: session.id
-  })
-  const authority = await base.owner.caller.mutation(claim, {
     campaignId: base.campaign.id,
-    sessionId: session.id
+    sceneId: save.liveSceneId
   })
+  const authority = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
   const initialStateChecksum = '4'.repeat(64)
   const movedStateChecksum = '5'.repeat(64)
   const undoneStateChecksum = '6'.repeat(64)
   await base.t.mutation(activate, {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     activationFingerprint: authority.activationFingerprint,
     stateChecksum: initialStateChecksum
   })
-  const sessionFence = {
-    sessionId: session.id,
-    expectedSessionVersion: session.version,
-    expectedPresentationVersion: presentation.version
-  }
+  const presentationFence = { expectedPresentationVersion: presentation.version }
   const move = {
     type: 'MOVE_SCENE_TOKEN' as const,
     sceneId: save.liveSceneId,
@@ -630,25 +583,27 @@ it('publishes exact standalone movement and undo while live authority rejects di
   }
   const movePublication: LiveSessionPublishInput = {
     campaignId: base.campaign.id,
-    sessionId: session.id,
     epoch: authority.epoch,
     sequence: 1,
     expectedStateChecksum: initialStateChecksum,
     stateChecksum: movedStateChecksum,
     actorUserId: base.other.userId,
     actorRole: 'PLAYER',
-    command: { scope: 'SCENE', command: move, session: sessionFence },
+    command: { scope: 'SCENE', command: move, presentation: presentationFence },
     occurredAt: '2026-09-22T19:00:00.000Z',
     receiptId: crypto.randomUUID(),
     expectedSceneResult: moveResult
   }
 
   await expect(
-    base.other.caller.mutation(executeFastGeometry, { input: move, session: sessionFence })
-  ).rejects.toThrow('owned by its live Session')
+    base.other.caller.mutation(executeFastGeometry, {
+      input: move,
+      presentation: presentationFence
+    })
+  ).rejects.toThrow('owned by its Campaign live table')
   await expect(
-    base.other.caller.action(executeGeometry, { input: move, session: sessionFence })
-  ).rejects.toThrow('owned by its live Session')
+    base.other.caller.action(executeGeometry, { input: move, presentation: presentationFence })
+  ).rejects.toThrow('owned by its Campaign live table')
   const unauthorized = {
     ...move,
     commandId: crypto.randomUUID(),
@@ -658,7 +613,7 @@ it('publishes exact standalone movement and undo while live authority rejects di
   await expect(
     base.t.mutation(publish, {
       ...movePublication,
-      command: { scope: 'SCENE', command: unauthorized, session: sessionFence },
+      command: { scope: 'SCENE', command: unauthorized, presentation: presentationFence },
       expectedSceneResult: {
         ...moveResult,
         commandId: unauthorized.commandId,
@@ -683,7 +638,7 @@ it('publishes exact standalone movement and undo while live authority rejects di
             { x: 200, y: 100 }
           ]
         },
-        session: sessionFence
+        presentation: presentationFence
       }
     })
   ).rejects.toThrow()
@@ -768,16 +723,16 @@ it('publishes exact standalone movement and undo while live authority rejects di
     stateChecksum: undoneStateChecksum,
     actorUserId: base.owner.userId,
     actorRole: 'OWNER',
-    command: { scope: 'SCENE', command: undo, session: sessionFence },
+    command: { scope: 'SCENE', command: undo, presentation: presentationFence },
     occurredAt: '2026-09-22T19:00:01.000Z',
     receiptId: crypto.randomUUID(),
     expectedSceneResult: undoResult
   }
   await expect(
-    base.owner.caller.mutation(executeFastUndo, { input: undo, session: sessionFence })
+    base.owner.caller.mutation(executeFastUndo, { input: undo, presentation: presentationFence })
   ).rejects.toThrow('only available to the Campaign owner')
   await expect(
-    base.owner.caller.action(executeUndo, { input: undo, session: sessionFence })
+    base.owner.caller.action(executeUndo, { input: undo, presentation: presentationFence })
   ).rejects.toThrow('only available to the Campaign owner')
   await expect(
     base.t.mutation(publish, { ...undoPublication, actorRole: 'PLAYER' })

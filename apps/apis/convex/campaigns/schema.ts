@@ -60,7 +60,6 @@ export const campaignTables = {
   ...vehicleCleanupTables,
   campaignLiveAuthorities: defineTable({
     campaignId: zodToConvex(postgresUuidSchema),
-    sessionId: zodToConvex(postgresUuidSchema),
     epoch: zodToConvex(postgresUuidSchema),
     phase: v.union(v.literal('ACTIVATING'), v.literal('DO_ACTIVE'), v.literal('DRAINING')),
     activationFingerprint: zodToConvex(projectionChecksumSchema),

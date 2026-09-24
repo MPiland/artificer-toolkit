@@ -1,15 +1,11 @@
 import { importedSubject } from '../../tests/fixtures/publication'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
+
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -66,11 +62,7 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
+
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -326,48 +318,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
       campaignId: campaign.id,
       characterId: second.character.id
     })
-  const session = await gm.caller.mutation(createSession, { campaignId: campaign.id })
-  await gm.caller.mutation(
-    makeFunctionReference<
-      'mutation',
-      {
-        campaignId: string
-        sessionId: string
-        characterId: string
-        present: boolean
-        expectedVersion: number
-      },
-      { present: boolean }
-    >('campaigns/sessionAttendance:set'),
-    {
-      campaignId: campaign.id,
-      sessionId: session.id,
-      characterId: first.character.id,
-      present: true,
-      expectedVersion: session.version
-    }
-  )
-  if (futurePlayer && second)
-    await gm.caller.mutation(
-      makeFunctionReference<
-        'mutation',
-        {
-          campaignId: string
-          sessionId: string
-          characterId: string
-          present: boolean
-          expectedVersion: number
-        },
-        { present: boolean }
-      >('campaigns/sessionAttendance:set'),
-      {
-        campaignId: campaign.id,
-        sessionId: session.id,
-        characterId: second.character.id,
-        present: true,
-        expectedVersion: session.version
-      }
-    )
   if (assisted)
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -383,7 +333,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
   })
   const run = await gm.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -529,7 +478,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
       'campaignScenePresentations',
       sceneStoredPresentationSchema.parse({
         campaignId: campaign.id,
-        sessionId: run.sessionId,
         sceneId,
         version: 0,
         activeMapAssetId: null,
@@ -566,18 +514,11 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     encounterVersion = result.projection.version
   }
   const vision = await gm.caller.run(async (ctx) => {
-    const storedSession = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', run.sessionId))
-      .unique()
-    if (!storedSession) throw new Error('Missing fixture Session.')
     const scope = {
       campaignId: campaign.id,
       systemId: campaign.gameSystemId,
       sceneId,
       expectedSceneVersion: 0,
-      sessionId: run.sessionId,
-      expectedSessionVersion: storedSession.version,
       expectedPresentationVersion: 0
     }
     const { freshness } = await readSessionVisionScope(ctx, scope)

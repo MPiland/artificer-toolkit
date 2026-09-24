@@ -21,7 +21,6 @@ import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { parseLiveEntity } from '../scenes/liveDocuments'
@@ -59,8 +58,6 @@ export const execute = mutation({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (run.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
-    const session = await requireSession(ctx, campaign.id, run.sessionId)
-    if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
     const state = readRunState(run)
     const projection = readRunProjection(run)
     const fingerprint = checksumCanonicalJson(input)
@@ -87,7 +84,6 @@ export const execute = mutation({
         checksumCanonicalJson(result) !== prior.resultChecksum ||
         historical.id !== run.id ||
         historical.campaignId !== campaign.id ||
-        historical.sessionId !== run.sessionId ||
         historical.gameSystemId !== campaign.gameSystemId ||
         historical.version !== prior.version ||
         historical.version !== input.expectedEncounterVersion + 1 ||

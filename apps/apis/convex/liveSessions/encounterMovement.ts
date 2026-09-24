@@ -1,12 +1,6 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { z } from 'zod'
+import { v } from 'convex/values'
+import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
-  liveSessionMovementBeginInputSchema,
-  type LiveSessionMovementBeginInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
-import {
-  sceneGeometryBeginResultSchema,
-  sceneGeometryCommandResultSchema,
   type SceneGeometryBeginResult,
   type SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
@@ -15,39 +9,24 @@ import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { beginSceneGeometry } from '../scenes/geometryStaging'
 import { beginMovementResolution } from '../scenes/movementResolutionStaging'
-import {
-  liveSessionMovementPrepareInputSchema,
-  liveSessionMovementCommitInputSchema,
-  type LiveSessionMovementPrepareInput,
-  type LiveSessionMovementCommitInput
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import {
-  sceneSpatialPreparationSchema,
-  type SceneSpatialPreparation
-} from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import { liveSessionMovementPrepareInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { type SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { persistSpatialPreparation } from '../scenes/spatialPreparationPersistence'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { commitLiveMovement } from './encounterMovementCommit'
 
 /** Stages the existing Scene command; the DO prepares rules before the atomic finish. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const begin = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionMovementBeginInput>>(
-    liveSessionMovementBeginInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<SceneGeometryBeginResult>>(sceneGeometryBeginResultSchema),
-  handler: async (ctx, args): Promise<SceneGeometryBeginResult> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<SceneGeometryBeginResult> => {
     const input = liveSessionMovementBeginInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
-    if (
-      userId !== input.expectedUserId ||
-      ('session' in input && input.session.sessionId !== input.sessionId)
-    )
-      throw new Error('Live movement identity or Session mismatch.')
+    if (userId !== input.expectedUserId) throw new Error('Live movement identity mismatch.')
     const { membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== input.expectedRole) throw new Error('Live Session role mismatch.')
     const authority = {
       campaignId: input.campaignId,
-      sessionId: input.sessionId,
       epoch: input.authorityEpoch
     }
     if (input.command.type === 'RESOLVE_RULE_OCCURRENCE') {
@@ -55,10 +34,10 @@ export const begin = internalMutation({
       if (!result) throw new Error('Live movement response requires a movement occurrence.')
       return result
     }
-    if (!('session' in input)) throw new Error('Live movement requires a Session context.')
+    if (!input.presentation) throw new Error('Live movement requires a presentation context.')
     return beginSceneGeometry(
       ctx,
-      { input: input.command, session: input.session },
+      { input: input.command, presentation: input.presentation },
       undefined,
       true,
       authority
@@ -67,24 +46,19 @@ export const begin = internalMutation({
 })
 
 /** Freezes DO evidence before existing fog staging; this does not settle gameplay outcomes. */
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const prepare = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionMovementPrepareInput>>(
-    liveSessionMovementPrepareInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<SceneSpatialPreparation>>(sceneSpatialPreparationSchema),
-  handler: async (ctx, args): Promise<SceneSpatialPreparation> => {
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<SceneSpatialPreparation> => {
     const input = liveSessionMovementPrepareInputSchema.parse(args)
     await readLiveMovementWriteAdmission(ctx, input)
     return persistSpatialPreparation(ctx, input.movement.saveId, input.preparation)
   }
 })
 
+// Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commit = internalMutation({
-  args: zodToConvex<z.core.$ZodType<LiveSessionMovementCommitInput>>(
-    liveSessionMovementCommitInputSchema
-  ),
-  returns: zodToConvex<z.core.$ZodType<SceneGeometryCommandResult>>(
-    sceneGeometryCommandResultSchema
-  ),
-  handler: async (ctx, args): Promise<SceneGeometryCommandResult> => commitLiveMovement(ctx, args)
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<SceneGeometryCommandResult> =>
+    commitLiveMovement(ctx, args)
 })

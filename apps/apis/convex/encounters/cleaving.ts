@@ -32,7 +32,6 @@ import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtim
 import type { MutationCtx } from '../_generated/server'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { projectNativeGm } from './nativeProjection'
 import type { MovementTarget } from './movementTargets'
@@ -221,8 +220,6 @@ export async function resumeNativeCleaving(
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Cleaving Campaign is stale.')
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   const assigned =
     membership.role === 'PLAYER'
       ? await readCampaignAssignedCharacter(ctx, campaign, membership)

@@ -172,7 +172,7 @@ async function refreshSceneVision(value: MovementFixture) {
       .unique()
   )
   if (!save?.sessionVision)
-    throw new Error('Movement Concentration Session snapshot is unavailable.')
+    throw new Error('Movement Concentration vision snapshot is unavailable.')
   const { freshness: ignoredFreshness, ...input } = save.sessionVision
   void ignoredFreshness
   const vision = await value.owner.caller.query(capture, input)
@@ -811,7 +811,6 @@ it.each(['native', 'private'] as const)(
       await value.base.t.run((ctx) =>
         insertActiveLiveAuthority(ctx, {
           campaignId: value.base.campaign.id,
-          sessionId: value.base.run.sessionId,
           epoch,
           createdAt: value.base.campaign.createdAt
         })
@@ -821,7 +820,6 @@ it.each(['native', 'private'] as const)(
         headers: { 'x-artificer-live-session-secret': privateMovementWorkerSecret },
         body: JSON.stringify({
           campaignId: value.base.campaign.id,
-          sessionId: value.base.run.sessionId,
           authorityEpoch: epoch,
           expectedUserId: value.player.userId,
           expectedRole: 'PLAYER',
@@ -845,7 +843,6 @@ it.each(['native', 'private'] as const)(
         headers: { 'x-artificer-live-session-secret': privateMovementWorkerSecret },
         body: JSON.stringify({
           campaignId: value.base.campaign.id,
-          sessionId: value.base.run.sessionId,
           authorityEpoch: epoch,
           expectedUserId: value.player.userId,
           expectedRole: 'PLAYER',

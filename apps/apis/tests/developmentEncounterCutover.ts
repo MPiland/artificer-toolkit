@@ -72,17 +72,16 @@ export async function prepareEncounterCutoverFixture({
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
+  const currentPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   const presentation = await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: lifecycle.scenes[0]!.liveSceneId,
-    expectedPresentationVersion: null
+    expectedPresentationVersion: currentPresentation?.version ?? null
   })
   const run = await owner.mutation(api.encounters.runs.create, {
     campaignId,
-    sessionId: session.id,
     blueprintId: lifecycle.blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -143,7 +142,6 @@ export async function prepareEncounterCutoverFixture({
     }
   })
   return {
-    session,
     presentation,
     run: binding.projection,
     sceneId: bound.sceneId,
@@ -203,19 +201,15 @@ export async function verifyEncounterCutoverContention({
     path: [token.position, { x: token.position.x + token.width, y: token.position.y }]
   })
   const inputs = [input(crypto.randomUUID()), input(crypto.randomUUID())] as const
-  const session = {
-    sessionId: fixture.session.id,
-    expectedSessionVersion: fixture.session.version,
-    expectedPresentationVersion: fixture.presentation.version
-  }
+  const presentation = { expectedPresentationVersion: fixture.presentation.version }
   await assert.rejects(
     owner.action(executeGeometry, { input: input(crypto.randomUUID()) }),
-    /Bound Scene movement requires a Session context\./
+    /Bound Scene movement requires a presentation context\./
   )
   await assert.rejects(
     owner.action(executeGeometry, {
       input: { ...input(crypto.randomUUID()), expectedEncounterVersion: fixture.run.version + 1 },
-      session
+      presentation
     }),
     /Spatial Encounter scope is stale\./
   )
@@ -228,8 +222,8 @@ export async function verifyEncounterCutoverContention({
     fixture.run
   )
   const contenders = await Promise.allSettled([
-    owner.action(executeGeometry, { input: inputs[0], session }),
-    peer.action(executeGeometry, { input: inputs[1], session })
+    owner.action(executeGeometry, { input: inputs[0], presentation }),
+    peer.action(executeGeometry, { input: inputs[1], presentation })
   ])
   assert.equal(
     contenders.filter((result) => result.status === 'fulfilled').length,
@@ -254,7 +248,7 @@ export async function verifyEncounterCutoverContention({
     encounterId: fixture.run.id
   })
   assert.deepEqual(runAfterWinner, fixture.run, 'Uninterrupted movement must preserve the Run.')
-  const replay = await owner.action(executeGeometry, { input: inputs[winnerIndex]!, session })
+  const replay = await owner.action(executeGeometry, { input: inputs[winnerIndex]!, presentation })
   assert.deepEqual(replay, { ...winner.value, replayed: true })
   const afterReplay = await owner.query(api.scenes.liveReads.header, { sceneId: fixture.sceneId })
   assert.deepEqual(afterReplay, afterWinner, 'A replay must not append another Scene write.')
@@ -554,7 +548,6 @@ type CutoverWorkloadAggregate = {
   run: ReturnType<typeof encounterGmProjectionDtoSchema.parse>
   sceneId: string
   sceneVersion: number
-  session: { id: string; sessionNumber: number; version: number }
   presentation: { version: number }
 }
 
@@ -638,17 +631,16 @@ async function prepareCutoverWorkloadAggregate({
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
+  const currentPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   const presentation = await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: scene.liveSceneId,
-    expectedPresentationVersion: null
+    expectedPresentationVersion: currentPresentation?.version ?? null
   })
   const created = await owner.mutation(api.encounters.runs.create, {
     campaignId,
-    sessionId: session.id,
     blueprintId,
     commandId: crypto.randomUUID()
   })
@@ -774,7 +766,6 @@ async function prepareCutoverWorkloadAggregate({
     run,
     sceneId: scene.liveSceneId,
     sceneVersion: header.version,
-    session,
     presentation
   }
 }
@@ -853,11 +844,7 @@ async function executeCutoverWorkloadReaction(
         tokenId,
         path: [origin, { x: reactorPosition.x + 100, y: reactorPosition.y }, origin]
       },
-      session: {
-        sessionId: aggregate.session.id,
-        expectedSessionVersion: aggregate.session.version,
-        expectedPresentationVersion: aggregate.presentation.version
-      }
+      presentation: { expectedPresentationVersion: aggregate.presentation.version }
     })
   )
   assert.equal(issued.replayed, false)
@@ -1244,7 +1231,6 @@ export async function verifyEncounterCutoverWorkload({
       const { openV15WorkloadBrowser } = await import('../../web/tests/convex/v15WorkloadBrowser')
       browser = await openV15WorkloadBrowser({
         ...browserAccounts,
-        sessionNumber: primary.session.sessionNumber,
         map: workloadMap,
         tokenPosition: primary.positions[0]!
       })

@@ -4,7 +4,6 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   EncounterBlueprintDto,
@@ -82,9 +81,6 @@ import {
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
-)
-const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
-  'campaigns/sessions:create'
 )
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -355,49 +351,6 @@ async function setup(
       campaignId: campaign.id,
       characterId: targetCharacterId
     })
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
-  if (characterId)
-    await base.owner.caller.mutation(
-      makeFunctionReference<
-        'mutation',
-        {
-          campaignId: string
-          sessionId: string
-          characterId: string
-          present: boolean
-          expectedVersion: number
-        },
-        { present: boolean }
-      >('campaigns/sessionAttendance:set'),
-      {
-        campaignId: campaign.id,
-        sessionId: session.id,
-        characterId,
-        present: true,
-        expectedVersion: session.version
-      }
-    )
-  if (targetCharacterId)
-    await base.owner.caller.mutation(
-      makeFunctionReference<
-        'mutation',
-        {
-          campaignId: string
-          sessionId: string
-          characterId: string
-          present: boolean
-          expectedVersion: number
-        },
-        { present: boolean }
-      >('campaigns/sessionAttendance:set'),
-      {
-        campaignId: campaign.id,
-        sessionId: session.id,
-        characterId: targetCharacterId,
-        present: true,
-        expectedVersion: session.version
-      }
-    )
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Cleaving targets',
@@ -409,7 +362,6 @@ async function setup(
   })
   const createdRun = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -630,7 +582,6 @@ async function setup(
   return {
     ...base,
     campaign,
-    session,
     run,
     actor,
     sceneId,
@@ -734,14 +685,12 @@ describe('native Cleaving action settlement', () => {
     await base.t.run((ctx) =>
       insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
-        sessionId: base.session.id,
         epoch: authorityEpoch,
         createdAt: base.campaign.createdAt
       })
     )
     const scope = {
       campaignId: base.campaign.id,
-      sessionId: base.session.id,
       authorityEpoch,
       expectedUserId: base.owner.userId,
       expectedRole: 'OWNER' as const,
@@ -1018,7 +967,6 @@ describe('native Cleaving action settlement', () => {
         await base.t.run((ctx) =>
           insertActiveLiveAuthority(ctx, {
             campaignId: base.campaign.id,
-            sessionId: base.session.id,
             epoch: authorityEpoch,
             createdAt: base.campaign.createdAt
           })
@@ -1026,7 +974,6 @@ describe('native Cleaving action settlement', () => {
         const environment = workerEnvironment(workerSecret)
         const scope = {
           campaignId: base.campaign.id,
-          sessionId: base.session.id,
           authorityEpoch,
           expectedUserId: base.other.userId,
           expectedRole: 'PLAYER' as const,

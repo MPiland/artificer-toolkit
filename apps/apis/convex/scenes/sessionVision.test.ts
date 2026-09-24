@@ -1,6 +1,7 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
+  CampaignSessionDto,
   SetCampaignSessionAttendanceInput,
   CampaignSessionAttendanceDto
 } from '@artificer-toolkit/schema/api/campaignSessions'
@@ -71,6 +72,9 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
+const createSession = makeFunctionReference<'mutation', { campaignId: string }, CampaignSessionDto>(
+  'campaigns/sessions:create'
+)
 const setAttendance = makeFunctionReference<
   'mutation',
   SetCampaignSessionAttendanceInput,
@@ -238,13 +242,6 @@ async function setup(includeSecondPlayer = false) {
       assignedAt: base.campaign.createdAt
     })
   )
-  await base.other.caller.mutation(setAttendance, {
-    campaignId: base.campaign.id,
-    sessionId: base.session.id,
-    characterId: character.id,
-    present: true,
-    expectedVersion: base.session.version
-  })
   let otherPlayerCharacter: typeof character | null = null
   if (includeSecondPlayer) {
     const otherPlayer = await createCampaignPlayer(base)
@@ -284,17 +281,9 @@ async function setup(includeSecondPlayer = false) {
         assignedAt: base.campaign.createdAt
       })
     )
-    await base.other.caller.mutation(setAttendance, {
-      campaignId: base.campaign.id,
-      sessionId: base.session.id,
-      characterId: nextOtherPlayerCharacter.id,
-      present: true,
-      expectedVersion: base.session.version
-    })
   }
   const run = await base.other.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.session.id,
     blueprintId: base.blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -347,8 +336,6 @@ async function setup(includeSecondPlayer = false) {
     systemId: SRD_SYSTEM_ID,
     sceneId: base.sceneId,
     expectedSceneVersion: 0,
-    sessionId: base.session.id,
-    expectedSessionVersion: base.session.version,
     expectedPresentationVersion: 0
   }
   const scope = await base.other.caller.query(capture, captureInput)
@@ -527,7 +514,7 @@ async function boundMovementState(
   }))
 }
 
-describe('native Session Character vision boundary', () => {
+describe('native play Character vision boundary', () => {
   it('refuses a prepared bound movement after its real Character vision observation changes', async () => {
     const base = await setup()
     const prepared = await prepareBoundMovement(base)
@@ -620,12 +607,6 @@ describe('native Session Character vision boundary', () => {
     const cases: Array<[string, SceneSessionCharacterVisionInput, 'gm' | 'anonymous']> = [
       ['Campaign', { ...base.input, campaignId: crypto.randomUUID() }, 'gm'],
       ['Scene version', { ...base.input, expectedSceneVersion: 1 }, 'gm'],
-      ['Session', { ...base.input, sessionId: crypto.randomUUID() }, 'gm'],
-      [
-        'Session version',
-        { ...base.input, expectedSessionVersion: base.input.expectedSessionVersion + 1 },
-        'gm'
-      ],
       ['presentation', { ...base.input, expectedPresentationVersion: 1 }, 'gm'],
       [
         'Run',
@@ -646,23 +627,26 @@ describe('native Session Character vision boundary', () => {
           : base.t.query(readVision, input)
       await expect(call, label).rejects.toThrow()
     }
-    await base.t.run(async (ctx) => {
-      const session = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_publicId', (q) => q.eq('id', base.session.id))
-        .unique()
-      if (!session) throw new Error('Missing Session.')
-      await ctx.db.patch(session._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
+    const session = await base.other.caller.mutation(createSession, {
+      campaignId: base.campaign.id
     })
-    await expect(base.other.caller.query(readVision, base.input)).rejects.toThrow(
-      'not current and open'
-    )
-    await expect(base.other.caller.query(readRuns, discovery)).rejects.toThrow(
-      'not current and open'
-    )
-    await expect(base.other.caller.query(readBindings, bindingDiscovery)).rejects.toThrow(
-      'not current and open'
-    )
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('campaignSessions')
+        .withIndex('by_publicId', (q) => q.eq('id', session.id))
+        .unique()
+      if (!row) throw new Error('Missing Session.')
+      await ctx.db.patch(row._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
+    })
+    await expect(base.other.caller.query(readVision, base.input)).resolves.toMatchObject({
+      binding: { characterId: base.character.id }
+    })
+    await expect(base.other.caller.query(readRuns, discovery)).resolves.toMatchObject({
+      page: expect.any(Array)
+    })
+    await expect(base.other.caller.query(readBindings, bindingDiscovery)).resolves.toMatchObject({
+      page: expect.any(Array)
+    })
   }, 60000)
 
   it('follows vision through binding, source updates, Character play, attendance and geometry publication', async () => {
@@ -781,7 +765,7 @@ describe('native Session Character vision boundary', () => {
     const afterPlay = await base.other.caller.query(readVision, currentInput)
     expect(afterPlay.characterVision.dimRange).toBeNull()
     expect(afterPlay.characterRevision).not.toBe(changed.characterRevision)
-    // A Character write leaves unrelated Session/source scopes independent.
+    // A Character write leaves unrelated play/source scopes independent.
     await expect(base.other.caller.query(capture, base.captureInput)).resolves.toEqual(base.scope)
     await expect(base.other.caller.query(readVision, base.input)).rejects.toThrow('stale')
     const stored = await base.t.run(async (ctx) => {
@@ -803,30 +787,17 @@ describe('native Session Character vision boundary', () => {
     })
     expect(stored.version).toBe(base.input.expectedEncounterVersion)
     expect(stored.actor.sourceRevision).toBe(base.committed.streamVersion)
-    const attendance = {
+    const session = await base.other.caller.mutation(createSession, {
+      campaignId: base.campaign.id
+    })
+    await base.other.caller.mutation(setAttendance, {
       campaignId: base.campaign.id,
-      sessionId: base.session.id,
+      sessionId: session.id,
       characterId: base.character.id,
-      expectedVersion: base.session.version
-    }
-    await base.other.caller.mutation(setAttendance, { ...attendance, present: false })
-    await expect(base.other.caller.query(readVision, currentInput)).rejects.toThrow(
-      'dependencies changed'
-    )
-    base.scope = await base.other.caller.query(capture, base.captureInput)
-    runScope = { ...runScope, ...base.scope }
-    await expect(
-      base.other.caller.query(readBindings, {
-        ...runScope,
-        paginationOpts: { cursor: null, numItems: 4 }
-      })
-    ).resolves.toMatchObject({ page: [] })
-    await expect(
-      base.other.caller.query(readVision, { ...currentInput, ...base.scope })
-    ).rejects.toThrow('not present')
-    await base.other.caller.mutation(setAttendance, { ...attendance, present: true })
-    base.scope = await base.other.caller.query(capture, base.captureInput)
-    runScope = { ...runScope, ...base.scope }
+      expectedVersion: session.version,
+      present: false
+    })
+    await expect(base.other.caller.query(capture, base.captureInput)).resolves.toEqual(base.scope)
     await expect(
       base.other.caller.query(readBindings, {
         ...runScope,
@@ -842,11 +813,7 @@ describe('native Session Character vision boundary', () => {
     })
 
     const request = {
-      session: {
-        sessionId: base.session.id,
-        expectedSessionVersion: base.session.version,
-        expectedPresentationVersion: 0
-      },
+      presentation: { expectedPresentationVersion: 0 },
       input: {
         type: 'UPSERT_SCENE_TOKEN',
         sceneId: base.sceneId,
@@ -957,7 +924,7 @@ describe('native Session Character vision boundary', () => {
 
     await expect(
       base.other.caller.action(api.scenes.geometryActions.execute, { input: request.input })
-    ).rejects.toThrow('different Session context')
+    ).rejects.toThrow('different presentation')
     const explicit = await base.other.caller.action(api.scenes.geometryActions.execute, {
       ...request,
       input: {

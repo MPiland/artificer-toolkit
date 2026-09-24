@@ -18,7 +18,6 @@ import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runti
 import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import { readRunActor, readRunActors, readRunProjection, readRunState } from './documents'
@@ -47,8 +46,6 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
   if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   if (
     state.status !== 'ACTIVE' ||
     state.automationMode === 'MANUAL' ||

@@ -9,7 +9,9 @@
 
 Work resumed on 2026-09-09. The exact workspace, completed architecture corrections, personal-development
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
-Acceptance is 65/75. The 10 open cases are V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+Acceptance is 59/75. The 16 open cases are P15, V05, V08, V09, V14, F12, V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+
+**ADR 0033 amendment (user-approved 2026-09-24).** The user approved making Encounter Runs Campaign-owned, keying the live table by Campaign and making Sessions an optional log before launch, and approved amending the affected acceptance criteria. P15 (Sessions and control), V05 (admission), V08 (Encounter lifecycle), V09 (actors and initiative), V14 (contention schedules) and F12 (account deletion history) now prove the [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) contract: no open Session gates tickets, room authority, presentation or Encounter commands; finishing a Session leaves Runs, presentation and the table untouched; Runs take their party from ACTIVE Character assignments and a PREPARED Run can be deleted. Their earlier evidence proves the superseded Session-scoped contract and is historical, so each is reopened until it passes on the final source. Proof tiers, the remaining scenarios and the 75-case denominator are unchanged.
 
 R06 ownership review is reopened after V15-20260924-05 exposed a missing live Encounter movement
 path. The 2026-09-24 review accepted the user-approved Character authority amendment: all Character

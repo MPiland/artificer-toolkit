@@ -8,7 +8,6 @@ it('requires the entire authorized scope and rejects revisions changed after cap
   const scope = {
     systemId: crypto.randomUUID(),
     campaignId: crypto.randomUUID(),
-    sessionId: crypto.randomUUID(),
     characterId: crypto.randomUUID()
   }
   const expected = { ...scope, characterIds: [scope.characterId] }

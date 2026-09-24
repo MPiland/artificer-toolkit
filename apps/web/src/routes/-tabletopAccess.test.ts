@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { isNotFound } from '@tanstack/react-router'
 import { expect, it, vi } from 'vitest'
-import { Route } from './_authed/tabletop/campaigns/$campaignPublicId/sessions/$sessionNumber'
+import { Route } from './_authed/tabletop/campaigns/$campaignPublicId/index'
 
 vi.mock('#domains/campaigns', () => ({ CampaignTabletopWindow: () => null }))
 
@@ -12,7 +12,7 @@ it('renders missing Campaign access as not found while preserving unrelated load
   const query = vi.spyOn(queryClient, 'ensureQueryData')
   const input = {
     context: { queryClient },
-    params: { campaignPublicId: 'fixture', sessionNumber: '1' }
+    params: { campaignPublicId: 'fixture' }
   } as Parameters<typeof loader>[0]
   query.mockRejectedValueOnce(
     new Error('[CONVEX Q(campaigns/queries:get)] Server Error\nUncaught Error: Campaign not found.')

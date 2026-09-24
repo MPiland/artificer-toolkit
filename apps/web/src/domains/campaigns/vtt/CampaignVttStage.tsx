@@ -51,7 +51,6 @@ import {
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { queryKeys } from '#app/lib/queryKeys'
 import type {
   EncounterCommandInputDto,
@@ -105,25 +104,19 @@ import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 export function CampaignVttStage({
   campaign,
-  currentUserId,
-  session
+  currentUserId
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
-  session: CampaignSessionDto
 }) {
   const convex = useConvex()
   const [actionsOpened, setActionsOpened] = useState(false)
   const encounterSessionState = useQuery({
-    ...convexQuery(convexApi.encounters.sessionReads.active, {
-      campaignId: campaign.id,
-      sessionId: session.id
-    }),
+    ...convexQuery(convexApi.encounters.activeReads.active, { campaignId: campaign.id }),
     select: encounterSessionStateDtoSchema.parse
   })
   const activeEncounter =
-    encounterSessionState.data?.encounter?.sessionId === session.id &&
-    encounterSessionState.data.encounter.status === 'ACTIVE'
+    encounterSessionState.data?.encounter?.status === 'ACTIVE'
       ? encounterSessionState.data.encounter
       : undefined
   const pendingOccurrence = encounterSessionState.data?.pending
@@ -176,7 +169,7 @@ export function CampaignVttStage({
     select: encounterProjectionListDtoSchema.parse
   })
   const preparedPendingEncounters = (pendingPrepared.data ?? []).filter(
-    (encounter) => encounter.sessionId === session.id && encounter.status === 'PREPARED'
+    (encounter) => encounter.status === 'PREPARED'
   )
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
@@ -196,38 +189,28 @@ export function CampaignVttStage({
 
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
-    enabled: session.status === 'OPEN',
-    onTransient: (message) => renderer.current?.applyTransient(message),
-    sessionId: session.id
+    enabled: true,
+    onTransient: (message) => renderer.current?.applyTransient(message)
   })
   const liveScenes = useQuery({
     ...getCampaignLiveScenes(campaign.id, convex),
     enabled: campaign.role === 'OWNER',
     staleTime: 30_000
   })
-  const presented = useCampaignPresentedScene(campaign.id, session.id, session.status !== 'OPEN')
-  const presentedScene = presented.scene
-  const scene =
-    session.status === 'OPEN' ? (live.recipientState?.scene ?? undefined) : presentedScene
+  const presented = useCampaignPresentedScene(campaign.id, false)
+  const scene = live.recipientState?.scene ?? undefined
   useEffect(() => {
-    if (
-      session.status === 'OPEN' &&
-      presented.recipientHeader &&
-      presented.presentationVersion !== null
-    )
+    if (presented.recipientHeader && presented.presentationVersion !== null)
       live.synchronizeScene(
         presented.recipientHeader.id,
         presented.recipientHeader.version,
-        session.version,
         presented.presentationVersion
       )
   }, [
     live.synchronizeScene,
     presented.presentationVersion,
     presented.recipientHeader?.id,
-    presented.recipientHeader?.version,
-    session.status,
-    session.version
+    presented.recipientHeader?.version
   ])
   const sceneBinding = useQuery({
     ...convexQuery(
@@ -268,8 +251,6 @@ export function CampaignVttStage({
     queryKey: [
       'campaigns',
       campaign.id,
-      'sessions',
-      session.id,
       'scenes',
       scene?.id ?? null,
       'encounters',
@@ -425,17 +406,13 @@ export function CampaignVttStage({
     ): Promise<{ sceneId: string; version: number }> => {
       if (presented.presentationVersion === null)
         throw new Error('Scene presentation changed before the command began.')
-      const sessionContext = {
-        sessionId: session.id,
-        expectedSessionVersion: session.version,
-        expectedPresentationVersion: presented.presentationVersion
-      }
+      const presentation = { expectedPresentationVersion: presented.presentationVersion }
       if (command.type === 'UNDO_LAST_SCENE_MOVE') {
         try {
           return sceneUndoCommandResultSchema.parse(
             await convex.mutation(convexApi.scenes.undo.executeFast, {
               input: command,
-              session: sessionContext
+              presentation
             })
           )
         } catch (error) {
@@ -445,7 +422,7 @@ export function CampaignVttStage({
         return sceneUndoCommandResultSchema.parse(
           await convex.action(convexApi.scenes.undo.execute, {
             input: command,
-            session: sessionContext
+            presentation
           })
         )
       }
@@ -455,7 +432,7 @@ export function CampaignVttStage({
           sceneId: command.sceneId,
           commandId: command.commandId,
           expectedSceneVersion: command.expectedSceneVersion,
-          session: sessionContext,
+          presentation,
           layer: {
             ownerUserId: command.layer.ownerUserId,
             width: command.layer.width,
@@ -497,7 +474,7 @@ export function CampaignVttStage({
         return sceneCommandResultDtoSchema.parse(
           await convex.mutation(convexApi.scenes.commands.execute, {
             input: inline.data,
-            session: sessionContext
+            presentation
           })
         )
       }
@@ -511,7 +488,7 @@ export function CampaignVttStage({
             return sceneGeometryCommandResultSchema.parse(
               await convex.mutation(convexApi.scenes.geometryFastCommands.execute, {
                 input: geometry.data,
-                session: sessionContext
+                presentation
               })
             )
           } catch (error) {
@@ -522,7 +499,7 @@ export function CampaignVttStage({
         return sceneGeometryCommandResultSchema.parse(
           await convex.action(convexApi.scenes.geometryActions.execute, {
             input: geometry.data,
-            session: sessionContext
+            presentation
           })
         )
       }
@@ -530,12 +507,7 @@ export function CampaignVttStage({
     },
     onSuccess: (result) => {
       if (presented.presentationVersion !== null)
-        live.synchronizeScene(
-          result.sceneId,
-          result.version,
-          session.version,
-          presented.presentationVersion
-        )
+        live.synchronizeScene(result.sceneId, result.version, presented.presentationVersion)
     }
   })
   const encounterCommand = useMutation({
@@ -800,11 +772,7 @@ export function CampaignVttStage({
       tokenId,
       type: 'MOVE_SCENE_TOKEN'
     }
-    if (session.status === 'OPEN') {
-      void live.sendCommand({ command, scope: 'SCENE' }).catch(() => undefined)
-      return
-    }
-    dispatchRef.current(command)
+    void live.sendCommand({ command, scope: 'SCENE' }).catch(() => undefined)
   }
 
   commitTokenMoveRef.current = commitTokenMove
@@ -867,31 +835,17 @@ export function CampaignVttStage({
       state,
       type: 'SET_SCENE_DOOR_STATE' as const
     }
-    if (session.status === 'OPEN') {
-      void live
-        .sendCommand({ command, scope: 'SCENE' })
-        .then(() => {
-          if (optimisticDoorCommands.current.get(barrierId) === commandId)
-            optimisticDoorCommands.current.delete(barrierId)
-        })
-        .catch(() => {
-          if (optimisticDoorCommands.current.get(barrierId) !== commandId) return
+    void live
+      .sendCommand({ command, scope: 'SCENE' })
+      .then(() => {
+        if (optimisticDoorCommands.current.get(barrierId) === commandId)
           optimisticDoorCommands.current.delete(barrierId)
-          renderer.current?.previewDoorState(barrierId, null)
-        })
-      return
-    }
-    sceneCommand.mutate(command, {
-      onError: () => {
+      })
+      .catch(() => {
         if (optimisticDoorCommands.current.get(barrierId) !== commandId) return
         optimisticDoorCommands.current.delete(barrierId)
         renderer.current?.previewDoorState(barrierId, null)
-      },
-      onSuccess: () => {
-        if (optimisticDoorCommands.current.get(barrierId) === commandId)
-          optimisticDoorCommands.current.delete(barrierId)
-      }
-    })
+      })
   }
 
   function undoLastTokenMove(): void {
@@ -903,11 +857,7 @@ export function CampaignVttStage({
       sceneId: current.id,
       type: 'UNDO_LAST_SCENE_MOVE'
     }
-    if (session.status === 'OPEN') {
-      void live.sendCommand({ command, scope: 'SCENE' }).catch(() => undefined)
-      return
-    }
-    dispatchRef.current(command)
+    void live.sendCommand({ command, scope: 'SCENE' }).catch(() => undefined)
   }
 
   if (presented.error) {
@@ -916,7 +866,7 @@ export function CampaignVttStage({
   if (
     encounterSessionState.isPending ||
     presented.isLoading ||
-    (session.status === 'OPEN' && Boolean(presented.recipientHeader) && !live.recipientState?.scene)
+    (Boolean(presented.recipientHeader) && !live.recipientState?.scene)
   ) {
     return <VttEmpty title='Loading live map…' />
   }
@@ -1109,11 +1059,7 @@ export function CampaignVttStage({
           {preparedPendingEncounters.map((encounter) => (
             <CampaignEncounterDecision
               campaignId={campaign.id}
-              connected={
-                campaign.status === 'ACTIVE' &&
-                session.status === 'OPEN' &&
-                live.status === 'CONNECTED'
-              }
+              connected={campaign.status === 'ACTIVE' && live.status === 'CONNECTED'}
               encounter={encounter}
               key={encounter.id}
             />

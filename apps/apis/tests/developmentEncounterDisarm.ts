@@ -46,7 +46,6 @@ const optionalChoices = makeFunctionReference<
 >('encounters/actionChoices:optional')
 
 export type EncounterDisarmBrowserFixture = {
-  session: { id: string; number: number }
   scene: { id: string; name: string }
   action: EncounterActionChoiceDto
   targetLabel: string
@@ -161,7 +160,6 @@ export async function verifyEncounterDisarm({
     }
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
-  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: 'Assisted Disarm functional fixture',
@@ -170,7 +168,6 @@ export async function verifyEncounterDisarm({
   })
   const created = await owner.mutation(api.encounters.runs.create, {
     campaignId,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -280,12 +277,13 @@ export async function verifyEncounterDisarm({
         ]
       }
     })
+    const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
     await owner.mutation(api.scenes.presentations.set, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
-      sessionId: session.id,
+      campaignId,
       sceneId: preparedScene.liveSceneId,
-      expectedPresentationVersion: null
+      expectedPresentationVersion: presentation?.version ?? null
     })
     await owner.mutation(bindScene, {
       type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
@@ -721,7 +719,6 @@ export async function verifyEncounterDisarm({
     assert.ok(scene)
     await browser(
       {
-        session: { id: session.id, number: session.sessionNumber },
         scene,
         action,
         targetLabel: target.label,

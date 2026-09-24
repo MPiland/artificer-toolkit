@@ -74,11 +74,7 @@ export async function verifyEncounterDisarmBrowser(
       signIn(playerPage, input.player, playerSession)
     ])
     const tabletopUrl =
-      origin +
-      '/tabletop/campaigns/' +
-      encodeURIComponent(input.campaign.publicId) +
-      '/sessions/' +
-      input.session.number
+      origin + '/tabletop/campaigns/' + encodeURIComponent(input.campaign.publicId)
     async function open(page: Page, session: { authenticated: boolean }, reload = false) {
       session.authenticated = false
       if (reload) await page.reload({ waitUntil: 'domcontentloaded', timeout: 90_000 })

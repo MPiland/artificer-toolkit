@@ -307,18 +307,12 @@ async function campaignRows(
         1,
         'Campaign vision marker'
       )),
-      ...(await children(
-        descendants.sessionIds,
-        (id) =>
-          rows(
-            ctx.db
-              .query('sceneVisionRevisions')
-              .withIndex('by_scope_id', (q) => q.eq('scope', 'SESSION').eq('id', id)),
-            1,
-            'Session vision marker'
-          ),
-        4,
-        'Session vision markers'
+      ...(await rows(
+        ctx.db
+          .query('sceneVisionRevisions')
+          .withIndex('by_scope_id', (q) => q.eq('scope', 'PLAY').eq('id', campaignId)),
+        1,
+        'Campaign play vision marker'
       ))
     ].sort((a, b) => a._id.localeCompare(b._id)),
     campaignMemberships: await rows(
@@ -499,7 +493,7 @@ async function campaignRows(
     campaignScenePresentations: await rows(
       ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) => q.eq('campaignId', campaignId)),
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId)),
       4,
       'campaignScenePresentations'
     ),

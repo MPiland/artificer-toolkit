@@ -190,7 +190,7 @@ export async function verifySceneAuthoring(input: {
     const presentation = await owner.client.mutation(api.scenes.presentations.set, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
-      sessionId: session.id,
+      campaignId,
       sceneId: liveScene.id,
       expectedPresentationVersion: null
     })
@@ -226,11 +226,7 @@ export async function verifySceneAuthoring(input: {
           commandId: crypto.randomUUID(),
           token
         },
-        session: {
-          sessionId: session.id,
-          expectedSessionVersion: session.version,
-          expectedPresentationVersion: presentation.version
-        }
+        presentation: { expectedPresentationVersion: presentation.version }
       }
       const result = await owner.client.action(api.scenes.geometryActions.execute, command)
       assert.equal(result.version, liveHead.version + 1)
@@ -272,7 +268,6 @@ export async function verifySceneAuthoring(input: {
       owner: input.owner,
       player: input.player,
       publicId: input.publicId,
-      sessionNumber: session.sessionNumber,
       sceneName: definition.name,
       publicTokenName: publicToken.label,
       onlinePublicTokenName,

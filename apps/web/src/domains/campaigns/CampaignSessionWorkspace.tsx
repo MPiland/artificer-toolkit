@@ -48,12 +48,10 @@ export function CampaignSessionWorkspace({
     if (!views.includes(activeView)) setActiveView(views[0])
   }, [activeView, views])
   useEffect(() => {
-    if (campaign.role !== 'OWNER') return
-    const active = encounters.data?.some(
-      (encounter) => encounter.sessionId === session.id && encounter.status === 'ACTIVE'
-    )
+    if (campaign.role !== 'OWNER' || session.status !== 'OPEN') return
+    const active = encounters.data?.some((encounter) => encounter.status === 'ACTIVE')
     if (active) setActiveView((current) => (current === 'PREPARE' ? 'RUN' : current))
-  }, [campaign.role, encounters.data, session.id])
+  }, [campaign.role, encounters.data, session.status])
 
   function updateSession(updated: CampaignSessionDto) {
     queryClient.setQueryData(getCampaignSession(campaign.id, sessionNumber).queryKey, updated)

@@ -13,7 +13,6 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { readRunActor, readRunState } from '../encounters/documents'
 import {
   assertGeometryReceiving,
@@ -72,11 +71,9 @@ export async function readMovementResponseAuthority(
   if (!run) throw new Error('Movement Encounter is unavailable.')
   const state = readRunState(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
   if (
     campaign.status !== 'ACTIVE' ||
     campaign.gameSystemId !== state.gameSystemId ||
-    session.status !== 'OPEN' ||
     state.status !== 'ACTIVE' ||
     state.version !== command.expectedVersion
   )
@@ -192,7 +189,6 @@ export async function readMovementResponseAuthority(
     campaign,
     membership,
     assigned,
-    session,
     run,
     state,
     occurrence,
@@ -216,7 +212,7 @@ export async function assertMovementResolutionCurrent(
       save.movementResolution!.pendingSnapshotChecksum ||
     current.occurrence.pendingSnapshotJson !== save.movementResolution!.pendingSnapshotJson ||
     current.root.currentSceneVersion !== save.snapshotVersion ||
-    current.session.id !== save.sessionVision?.sessionId
+    save.sessionVision?.campaignId !== current.campaign.id
   )
     throw new Error('Movement decision changed before Scene publication.')
   return { ...current, command: resolution.command }

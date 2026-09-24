@@ -233,7 +233,7 @@ describe('native Encounter recipient bindings', () => {
     ).resolves.toMatchObject({ page: [] })
   }, 60000)
 
-  it('returns null without a binding and rejects foreign access or a no-longer-presented open Session', async () => {
+  it('returns null without a binding and rejects foreign access or a no-longer-presented Scene', async () => {
     const unbound = await prepare()
     await unbound.t.run(async (ctx) => {
       const binding = await ctx.db
@@ -276,9 +276,7 @@ describe('native Encounter recipient bindings', () => {
     await base.t.run(async (ctx) => {
       const presentation = await ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
-        )
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
       if (!presentation) throw new Error('Missing presentation.')
       await ctx.db.patch(presentation._id, { sceneId: crypto.randomUUID() })
@@ -293,9 +291,7 @@ describe('native Encounter recipient bindings', () => {
     await base.t.run(async (ctx) => {
       const presentation = await ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
-        )
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique()
       if (!presentation) throw new Error('Missing presentation.')
       await ctx.db.patch(presentation._id, { sceneId: null })
@@ -305,7 +301,7 @@ describe('native Encounter recipient bindings', () => {
     ).rejects.toThrow('presentation is stale')
   }, 60000)
 
-  it('rejects closed Sessions and stale Encounter, Scene, or recipient revisions', async () => {
+  it('rejects stale Encounter, Scene, or recipient revisions', async () => {
     const base = await prepare()
     const input = await bindingInput(base, base.owner.caller)
     await expect(
@@ -326,20 +322,5 @@ describe('native Encounter recipient bindings', () => {
         expectedRecipientRevision: '0'.repeat(64)
       })
     ).rejects.toThrow()
-
-    await base.t.run(async (ctx) => {
-      const session = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('id', base.session.id)
-        )
-        .unique()
-      if (!session) throw new Error('Missing Session.')
-      await ctx.db.patch(session._id, { status: 'FINISHED' })
-    })
-    await expect(
-      base.owner.caller.query(getBinding, { encounterId: base.run.id, sceneId: base.sceneId })
-    ).rejects.toThrow('not current and open')
-    await expect(base.owner.caller.action(encounterBindings, input)).rejects.toThrow()
   }, 60000)
 })

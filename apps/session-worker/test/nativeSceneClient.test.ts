@@ -24,7 +24,6 @@ const environment = {
   CONVEX_SITE_URL: 'https://executor.test/command'
 }
 const campaignId = '00000000-0000-4000-8000-000000000101'
-const sessionId = '00000000-0000-4000-8000-000000000102'
 const userId = '00000000-0000-4000-8000-000000000103'
 const sceneId = '00000000-0000-4000-8000-000000000105'
 const definitionId = '00000000-0000-4000-8000-000000000106'
@@ -41,8 +40,7 @@ const input = {
   expectedUserId: userId,
   mode: 'FULL',
   observedCharacterRevisions: [],
-  recipientUserIds: [],
-  sessionId
+  recipientUserIds: []
 } satisfies LiveSessionTransientCaptureInput
 
 const capture: LiveSessionTransientCapture = {
@@ -53,7 +51,6 @@ const capture: LiveSessionTransientCapture = {
   recipients: [],
   sceneEncounterBound: false,
   sceneHeader: null,
-  session: { id: sessionId, version: 1 },
   systemId: '00000000-0000-4000-8000-000000000104',
   visionFreshness: null
 }
@@ -97,9 +94,9 @@ function header(overrides: Partial<{ fogLayerCount: number; tokens: number }> = 
 function sceneCapture(sceneHeader: ReturnType<typeof header>): LiveSessionTransientCapture {
   return {
     ...capture,
-    presentation: { sceneId, sessionId, version: 2 },
+    presentation: { campaignId, sceneId, version: 2 },
     sceneHeader,
-    visionFreshness: { campaign: null, session: null, system: null }
+    visionFreshness: { campaign: null, play: null, system: null }
   }
 }
 
@@ -369,10 +366,8 @@ it('composes vision for two bound Characters while retaining explicit token visi
     expectedEncounterVersion: 3,
     expectedPresentationVersion: 2,
     expectedSceneVersion: 1,
-    expectedSessionVersion: 1,
-    freshness: { campaign: null, session: null, system: null },
+    freshness: { campaign: null, play: null, system: null },
     sceneId,
-    sessionId,
     systemId: capture.systemId
   }
   const bindings = [

@@ -1,6 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
-import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  SceneCommandInputDto,
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   SCENE_GEOMETRY_STAGED_REQUIRED,
   type SceneGeometryCommandResult,
@@ -23,6 +27,11 @@ const move = makeFunctionReference<'action', SceneGeometryExecuteInput, SceneGeo
 const undo = makeFunctionReference<'action', SceneUndoExecuteInput, SceneUndoCommandResult>(
   'scenes/undo:execute'
 )
+const setPresentation = makeFunctionReference<
+  'mutation',
+  SetCampaignLiveScenePresentationInputDto,
+  SetCampaignLiveScenePresentationResultDto
+>('scenes/presentations:set')
 const fastUndo = makeFunctionReference<'mutation', SceneUndoExecuteInput, SceneUndoCommandResult>(
   'scenes/undo:executeFast'
 )
@@ -244,7 +253,7 @@ it('rolls back a fast undo when the moved token is no longer current', async () 
   })
 })
 
-it('falls back before writes for fog and Session-captured movement history', async () => {
+it('falls back before writes for fog and presentation-captured movement history', async () => {
   const fog = await fixture()
   const fogMove = await fog.owner.caller.action(move, { input: fog.movement })
   await expect(
@@ -259,24 +268,17 @@ it('falls back before writes for fog and Session-captured movement history', asy
   ).rejects.toMatchObject({ data: SCENE_GEOMETRY_STAGED_REQUIRED })
 
   const captured = await fixture(false, false)
-  const session = await captured.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: captured.campaign.id
-  })
-  const presentation = await captured.owner.caller.mutation(api.scenes.presentations.set, {
+  const presentation = await captured.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId: captured.sceneId,
-    sessionId: session.id
+    campaignId: captured.campaign.id,
+    sceneId: captured.sceneId
   })
-  const sessionInput = {
-    sessionId: session.id,
-    expectedSessionVersion: session.version,
-    expectedPresentationVersion: presentation.version
-  }
+  const presentationInput = { expectedPresentationVersion: presentation.version }
   const capturedMove = await captured.owner.caller.action(move, {
     input: captured.movement,
-    session: sessionInput
+    presentation: presentationInput
   })
   await expect(
     captured.owner.caller.mutation(fastUndo, {
@@ -286,7 +288,7 @@ it('falls back before writes for fog and Session-captured movement history', asy
         commandId: crypto.randomUUID(),
         expectedSceneVersion: capturedMove.version
       },
-      session: sessionInput
+      presentation: presentationInput
     })
   ).rejects.toMatchObject({ data: SCENE_GEOMETRY_STAGED_REQUIRED })
 
@@ -519,17 +521,17 @@ it('deduplicates concurrent undo submissions without restoring the movement twic
   expect(header.version).toBe(moved.version + 1)
 })
 
-it('fences a new undo by Session counters and refuses replay after Session closure', async () => {
+it('fences a new undo by presentation version and still replays after a Campaign Session finishes', async () => {
   const base = await fixture()
   const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
     campaignId: base.campaign.id
   })
-  const presentation = await base.owner.caller.mutation(api.scenes.presentations.set, {
+  const presentation = await base.owner.caller.mutation(setPresentation, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     expectedPresentationVersion: null,
-    sceneId: base.sceneId,
-    sessionId: session.id
+    campaignId: base.campaign.id,
+    sceneId: base.sceneId
   })
   const moved = await base.owner.caller.action(move, { input: base.movement })
   const request: SceneUndoExecuteInput = {
@@ -539,26 +541,25 @@ it('fences a new undo by Session counters and refuses replay after Session closu
       commandId: crypto.randomUUID(),
       expectedSceneVersion: moved.version
     },
-    session: {
-      sessionId: session.id,
-      expectedSessionVersion: session.version,
-      expectedPresentationVersion: presentation.version
-    }
+    presentation: { expectedPresentationVersion: presentation.version }
   }
   await expect(
     base.owner.caller.action(undo, {
       ...request,
-      session: { ...request.session!, expectedSessionVersion: session.version + 1 }
+      presentation: { expectedPresentationVersion: presentation.version + 1 }
     })
-  ).rejects.toThrow()
-  await base.owner.caller.action(undo, request)
+  ).rejects.toThrow('presentation is stale')
+  const undone = await base.owner.caller.action(undo, request)
   await base.owner.caller.mutation(api.campaigns.sessionFinish.finish, {
     campaignId: base.campaign.id,
     sessionId: session.id,
     expectedVersion: session.version,
     commandId: crypto.randomUUID()
   })
-  await expect(base.owner.caller.action(undo, request)).rejects.toThrow()
+  await expect(base.owner.caller.action(undo, request)).resolves.toEqual({
+    ...undone,
+    replayed: true
+  })
 })
 
 it.each(['token', 'fog'] as const)(

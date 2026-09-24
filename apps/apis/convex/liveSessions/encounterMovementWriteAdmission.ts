@@ -40,7 +40,6 @@ export async function readLiveMovementWriteAdmission(
   await assertLiveSessionRulesRevisions(ctx, input.revisions, {
     systemId: state.gameSystemId,
     campaignId: state.campaignId,
-    sessionId: input.sessionId,
     characterIds: [...characterIds]
   })
   return { ...admission, actors, characterIds }

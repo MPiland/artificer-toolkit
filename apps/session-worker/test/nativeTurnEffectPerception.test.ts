@@ -28,7 +28,7 @@ const checksum = '0'.repeat(64)
 const revisions = [
   { scope: 'SYSTEM' as const, id: systemId, revision: null },
   { scope: 'CAMPAIGN' as const, id: campaignId, revision: null },
-  { scope: 'SESSION' as const, id: sceneId, revision: null }
+  { scope: 'PLAY' as const, id: campaignId, revision: null }
 ]
 
 function token(ordinal: number) {

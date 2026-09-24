@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -68,11 +63,6 @@ import { loadMovementTargets } from './movementTargets'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -539,9 +529,6 @@ async function setup({
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.owner.caller.mutation(createSession, {
-    campaignId: campaign.id
-  })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Native action fixture',
@@ -554,7 +541,6 @@ async function setup({
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -707,7 +693,6 @@ async function setup({
         'campaignScenePresentations',
         sceneStoredPresentationSchema.parse({
           campaignId: campaign.id,
-          sessionId: run.sessionId,
           sceneId,
           version: 0,
           activeMapAssetId: null,
@@ -1072,7 +1057,6 @@ describe('native encounter actions', () => {
     expect(await records(base.t, base.run.id)).toEqual(settled)
     const secondRun = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       blueprintId: base.blueprint.id,
       commandId: crypto.randomUUID()
     })

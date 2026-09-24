@@ -7,12 +7,11 @@ export const LIVE_SESSION_TICKET_AUDIENCE = 'artificer-live-session'
 export const LIVE_SESSION_TICKET_ISSUER = 'artificer-convex'
 export const LIVE_SESSION_TICKET_PROTOCOL_PREFIX = 'artificer.ticket.'
 export const LIVE_SESSION_TICKET_TTL_SECONDS = 60
-export const LIVE_SESSION_TICKET_VERSION = 1
+export const LIVE_SESSION_TICKET_VERSION = 2
 export const LIVE_SESSION_WEBSOCKET_PROTOCOL = 'artificer.live-session.v1'
 
 export const liveSessionJoinOptionsDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  sessionId: uuidSchema
+  campaignId: uuidSchema
 })
 
 export const liveSessionActiveMembershipDtoSchema = z.strictObject({
@@ -29,7 +28,6 @@ export const liveSessionTicketClaimsDtoSchema = z.strictObject({
   iss: z.literal(LIVE_SESSION_TICKET_ISSUER),
   jti: uuidSchema,
   role: z.enum(['OWNER', 'PLAYER']),
-  sessionId: uuidSchema,
   sub: uuidSchema,
   v: z.literal(LIVE_SESSION_TICKET_VERSION)
 })
@@ -38,7 +36,6 @@ export const liveSessionTicketAdmissionDtoSchema = z.pick(liveSessionTicketClaim
   authorityEpoch: true,
   campaignId: true,
   role: true,
-  sessionId: true,
   sub: true
 })
 

@@ -72,7 +72,6 @@ export async function verifyEncounterTransactions({
   const prepared = encounterGmProjectionDtoSchema.parse(
     await owner.mutation(api.encounters.runs.create, {
       campaignId,
-      sessionId: fixture.session.id,
       blueprintId: fixture.blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -114,10 +113,7 @@ export async function verifyEncounterTransactions({
     }),
     { rolledBack: true }
   )
-  const previousPresentation = await owner.query(api.scenes.presentations.get, {
-    campaignId,
-    sessionId: fixture.session.id
-  })
+  const previousPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.ok(previousPresentation)
   const competingBinding = { ...bindingInput, commandId: crypto.randomUUID() }
   const bindings = await Promise.allSettled([
@@ -126,7 +122,7 @@ export async function verifyEncounterTransactions({
     concurrent('OWNER', api.scenes.presentations.set, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
-      sessionId: fixture.session.id,
+      campaignId,
       sceneId: fixture.scenes[1].liveSceneId,
       expectedPresentationVersion: previousPresentation.version
     })
@@ -279,10 +275,8 @@ export async function verifyEncounterTransactions({
       expectedVersion: projection.version
     }
   }
-  const session = await owner.query(api.campaigns.sessions.get, {
-    campaignId,
-    sessionNumber: fixture.session.sessionNumber
-  })
+  // Session finish is Session-log bookkeeping only; the Campaign-owned Run is unaffected by it.
+  const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
   const finishInput = {
     campaignId,
     sessionId: session.id,
@@ -293,26 +287,22 @@ export async function verifyEncounterTransactions({
     concurrent('OWNER', api.encounters.commands.execute, complete),
     concurrent('OWNER', api.campaigns.sessionFinish.finish, finishInput)
   ])
-  const finishResult = finishes[1]!
+  const [completeResult, finishResult] = finishes
+  assert.equal(completeResult.status, 'fulfilled')
   assert.equal(finishResult.status, 'fulfilled')
   const finished = campaignSessionDtoSchema.parse(finishResult.value)
   assert.equal(finished.status, 'FINISHED')
   assert.equal(finished.version, session.version + 1)
-  const current = encounterGmProjectionDtoSchema.parse(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id })
+  const completed = encounterGmProjectionDtoSchema.parse(
+    encounterCommandResultDtoSchema.parse(completeResult.value).projection
   )
-  if (finishes[0]!.status === 'fulfilled') {
-    assert.equal(current.status, 'COMPLETED')
-    assert.equal(current.version, projection.version + 1)
-  } else {
-    assert.match(String(finishes[0]!.reason), /Finished Sessions/)
-    assert.deepEqual(current, projection)
-  }
-  projection = current
+  assert.equal(completed.status, 'COMPLETED')
+  assert.equal(completed.version, projection.version + 1)
+  projection = completed
   assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
-  await assert.rejects(owner.mutation(api.encounters.commands.execute, start), /Finished Sessions/)
-  await assert.rejects(owner.mutation(bindScene, bindingInput), /Finished Sessions/)
-  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Finished Sessions/)
+  assert.deepEqual(await owner.mutation(api.encounters.commands.execute, start), started)
+  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection

@@ -7,7 +7,7 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api, internal } from '../_generated/api'
-import { readRunProjection, readRunState } from '../encounters/documents'
+import { readRunState } from '../encounters/documents'
 import { completeSceneGeometry } from './geometryActions'
 import { readGeometrySave } from './geometryDocuments'
 
@@ -152,19 +152,26 @@ it.each(['STAGING', 'PUBLICATION'] as const)(
   30000
 )
 
-it('allows standalone movement after the bound Run Session has finished', async () => {
+it('keeps Encounter-bound movement fenced after a Campaign Session has finished', async () => {
   const value = await setup('AUTOMATIC')
+  const session = await value.base.other.caller.mutation(api.campaigns.sessions.create, {
+    campaignId: value.base.campaign.id
+  })
   await value.base.t.run(async (ctx) => {
-    const session = await ctx.db.query('campaignSessions').first()
-    if (!session) throw new Error('Missing movement Session.')
-    await ctx.db.patch(session._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
+    const row = await ctx.db
+      .query('campaignSessions')
+      .withIndex('by_publicId', (q) => q.eq('id', session.id))
+      .unique()
+    if (!row) throw new Error('Missing movement Session.')
+    await ctx.db.patch(row._id, { status: 'FINISHED', finishedAt: new Date().toISOString() })
   })
   const before = await current(value)
-  const result = await value.base.owner.caller.action(api.scenes.geometryActions.execute, {
-    input: { ...value.input, commandId: crypto.randomUUID(), expectedEncounterVersion: null }
-  })
-  expect(result).toMatchObject({ version: 1, occurrence: null, replayed: false })
-  expect((await current(value)).run).toEqual(before.run)
+  await expect(
+    value.base.owner.caller.action(api.scenes.geometryActions.execute, {
+      input: { ...value.input, commandId: crypto.randomUUID(), expectedEncounterVersion: null }
+    })
+  ).rejects.toThrow('Bound Scene token movement requires an Encounter version.')
+  expect(await current(value)).toEqual(before)
 }, 30000)
 
 it.each([
@@ -176,39 +183,6 @@ it.each([
   'publishes $mode $movementKind movement and fog without a Run occurrence',
   async ({ mode, movementKind }) => {
     const value = await setup(mode, movementKind)
-    if (mode === 'AUTOMATIC' && movementKind === 'VOLUNTARY') {
-      await value.base.t.run(async (ctx) => {
-        const session = await ctx.db.query('campaignSessions').first()
-        const run = await ctx.db.query('encounterRuns').first()
-        if (!session || !run) throw new Error('Missing movement fixture.')
-        const { _id: _sessionId, _creationTime: _sessionCreatedAt, ...storedSession } = session
-        const historicalSessionId = crypto.randomUUID()
-        await ctx.db.insert('campaignSessions', {
-          ...storedSession,
-          id: historicalSessionId,
-          sessionNumber: session.sessionNumber + 1,
-          status: 'FINISHED',
-          finishedAt: new Date().toISOString()
-        })
-        const { _id: _runId, _creationTime: _runCreatedAt, ...storedRun } = run
-        const historicalRunId = crypto.randomUUID()
-        const state = { ...readRunState(run), id: historicalRunId, sessionId: historicalSessionId }
-        const projection = {
-          ...readRunProjection(run),
-          id: historicalRunId,
-          sessionId: historicalSessionId
-        }
-        await ctx.db.insert('encounterRuns', {
-          ...storedRun,
-          id: historicalRunId,
-          sessionId: historicalSessionId,
-          stateJson: JSON.stringify(state),
-          stateChecksum: checksumCanonicalJson(state),
-          projectionJson: JSON.stringify(projection),
-          projectionChecksum: checksumCanonicalJson(projection)
-        })
-      })
-    }
     if (mode === 'MANUAL') await seedSpatialEffect(value.base)
     const before = await current(value)
     const begin = await value.base.owner.caller.run(async (ctx) => {

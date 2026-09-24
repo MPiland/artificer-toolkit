@@ -38,7 +38,6 @@ type SceneLiveVerificationInput = {
   owner: SceneLiveAccount
   player: SceneLiveAccount
   publicId: string
-  sessionNumber: number
   sceneName: string
   publicTokenName: string
   privateTokenName: string
@@ -330,7 +329,7 @@ export async function verifySceneLiveBrowser(
   } finally {
     await browser.close()
     for (const diagnostic of abortedRequests.values()) diagnostics.push(diagnostic)
-    const tabletopPath = `/tabletop/campaigns/${encodeURIComponent(input.publicId)}/sessions/${input.sessionNumber}`
+    const tabletopPath = `/tabletop/campaigns/${encodeURIComponent(input.publicId)}`
     const expectedDiagnostics = diagnostics.filter((entry) =>
       isExpectedSceneLiveDiagnostic(entry, tabletopPath)
     )
@@ -386,10 +385,10 @@ async function openTabletop(
   session: { authenticated: boolean }
 ): Promise<void> {
   session.authenticated = false
-  await page.goto(
-    `${origin}/tabletop/campaigns/${encodeURIComponent(input.publicId)}/sessions/${input.sessionNumber}`,
-    { waitUntil: 'domcontentloaded', timeout: 90_000 }
-  )
+  await page.goto(`${origin}/tabletop/campaigns/${encodeURIComponent(input.publicId)}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 90_000
+  })
   await expect.poll(() => session.authenticated, { timeout: 30_000 }).toBe(true)
   await waitForRouterIdle(page)
 }

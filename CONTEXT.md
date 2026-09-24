@@ -33,8 +33,8 @@ The private aggregate for one table, whether its format is a one-shot or ongoing
 The Campaign's live play room: the Session Durable Object in `apps/session-worker` plus
 `apps/apis/convex/liveSessions`. The technical name "live session" is retained. Transitional: the
 current implementation opens one room per OPEN Campaign Session;
-[ADR 0033](docs/adr/0033-campaign-owned-play-and-session-log.md) (approved, implementation in
-progress) makes it one room per Campaign that any ACTIVE member may open.
+[ADR 0033](docs/adr/0033-campaign-owned-play-and-session-log.md) (implemented locally) makes it one room
+per Campaign that any ACTIVE member may open.
 
 ### Session
 

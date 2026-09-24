@@ -1,31 +1,27 @@
 import { Badge, Group, Text } from '@mantine/core'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import { Gamepad2 } from 'lucide-react'
 import { useEffect } from 'react'
-import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
+import { useCampaignDetail } from '#app/data/campaigns/queries'
 import { CampaignGmRoller } from '../components/CampaignGmRoller'
 import { CampaignVttStage } from './CampaignVttStage'
 import * as styles from './CampaignTabletopWindow.css'
 
 export function CampaignTabletopWindow({
   campaignId,
-  currentUserId,
-  sessionNumber
+  currentUserId
 }: {
   campaignId: string
   currentUserId: string
-  sessionNumber: number
 }) {
   const campaign = useCampaignDetail(campaignId)
-  const { data: session } = useSuspenseQuery(getCampaignSession(campaignId, sessionNumber))
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = `${session.title ?? `Session ${session.sessionNumber}`} tabletop · ${campaign.name}`
+    document.title = `Tabletop · ${campaign.name}`
     return () => {
       document.title = previousTitle
     }
-  }, [campaign.name, session.sessionNumber, session.title])
+  }, [campaign.name])
 
   return (
     <main className={styles.page}>
@@ -35,9 +31,6 @@ export function CampaignTabletopWindow({
           <div className={styles.identity}>
             <Text fw={650} lineClamp={1}>
               {campaign.name}
-            </Text>
-            <Text c='dimmed' lineClamp={1} size='xs'>
-              {session.title ?? `Session ${session.sessionNumber}`}
             </Text>
           </div>
           <Badge size='sm' variant='light'>
@@ -49,7 +42,7 @@ export function CampaignTabletopWindow({
         </Text>
       </header>
       <div className={styles.stage}>
-        <CampaignVttStage campaign={campaign} currentUserId={currentUserId} session={session} />
+        <CampaignVttStage campaign={campaign} currentUserId={currentUserId} />
       </div>
       {campaign.role === 'OWNER' ? <CampaignGmRoller campaignId={campaign.id} /> : null}
     </main>

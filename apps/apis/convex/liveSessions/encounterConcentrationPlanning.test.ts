@@ -87,7 +87,6 @@ it.each([
       await seedActiveInitiative(ctx, readRunState(run), [fixture.actor.id, fixture.target.id])
       await insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
-        sessionId: fixture.run.sessionId,
         epoch: fixture.run.id,
         createdAt: fixture.campaign.createdAt
       })
@@ -102,7 +101,6 @@ it.each([
       'fixture-access-token',
       {
         campaignId: fixture.campaign.id,
-        sessionId: fixture.run.sessionId,
         authorityEpoch: fixture.run.id,
         expectedUserId: fixture.owner.userId,
         expectedRole: 'OWNER',
@@ -369,7 +367,6 @@ it.each([
       await seedActiveInitiative(ctx, readRunState(row), [fixture.actor.id, fixture.target.id])
       await insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
-        sessionId: fixture.run.sessionId,
         epoch: fixture.run.id,
         createdAt: fixture.campaign.createdAt
       })
@@ -380,7 +377,6 @@ it.each([
     const environment = workerEnvironment(workerSecret)
     const scope = {
       campaignId: fixture.campaign.id,
-      sessionId: fixture.run.sessionId,
       authorityEpoch: fixture.run.id,
       expectedUserId: fixture.owner.userId,
       expectedRole: 'OWNER' as const,

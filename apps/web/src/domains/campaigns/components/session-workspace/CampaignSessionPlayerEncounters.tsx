@@ -13,15 +13,7 @@ import { getCampaignEncounters } from '#app/data/encounters/queries'
 import { CampaignEncounterDecision } from '../CampaignEncounterDecision'
 import * as styles from '../../campaignSessions.css'
 
-export function CampaignSessionPlayerEncounters({
-  campaign,
-  sessionId,
-  sessionOpen
-}: {
-  campaign: CampaignDetailDto
-  sessionId: string
-  sessionOpen: boolean
-}) {
+export function CampaignSessionPlayerEncounters({ campaign }: { campaign: CampaignDetailDto }) {
   const convex = useConvex()
   const encounters = useQuery(getCampaignEncounters(campaign.id, convex))
   const pendingPrepared = useQuery({
@@ -33,15 +25,13 @@ export function CampaignSessionPlayerEncounters({
   const visibleById = new Map<string, EncounterPlayerProjectionDto>()
   for (const candidate of encounters.data ?? []) {
     const parsed = encounterPlayerProjectionDtoSchema.safeParse(candidate)
-    if (parsed.success && parsed.data.sessionId === sessionId)
-      visibleById.set(parsed.data.id, parsed.data)
+    if (parsed.success) visibleById.set(parsed.data.id, parsed.data)
   }
   const pendingPreparedIds = new Set<string>()
   for (const candidate of pendingPrepared.data ?? []) {
     const parsed = encounterPlayerProjectionDtoSchema.safeParse(candidate)
     if (
       !parsed.success ||
-      parsed.data.sessionId !== sessionId ||
       parsed.data.status !== 'PREPARED' ||
       visibleById.get(parsed.data.id)?.status === 'ACTIVE'
     )
@@ -73,7 +63,7 @@ export function CampaignSessionPlayerEncounters({
             {pendingPreparedIds.has(encounter.id) ? (
               <CampaignEncounterDecision
                 campaignId={campaign.id}
-                connected={campaign.status === 'ACTIVE' && sessionOpen}
+                connected={campaign.status === 'ACTIVE'}
                 encounter={encounter}
               />
             ) : null}

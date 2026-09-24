@@ -131,7 +131,6 @@ export async function nativeDisarmFixture(
     ),
     {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     }

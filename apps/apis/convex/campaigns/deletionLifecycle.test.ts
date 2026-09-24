@@ -26,11 +26,9 @@ const run = makeFunctionReference<
 const watchdog = makeFunctionReference<'mutation', { jobId: Id<'campaignDeletionJobs'> }, null>(
   'campaigns/deletionJobs:watchdog'
 )
-const claim = makeFunctionReference<
-  'mutation',
-  { campaignId: string; sessionId: string },
-  LiveSessionAuthorityDto
->('liveSessions/authority:claim')
+const claim = makeFunctionReference<'mutation', { campaignId: string }, LiveSessionAuthorityDto>(
+  'liveSessions/authority:claim'
+)
 const activate = makeFunctionReference<
   'mutation',
   LiveSessionActivationInput,
@@ -63,13 +61,7 @@ async function liveFixture() {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const session = await base.owner.caller.mutation(api.campaigns.sessions.create, {
-    campaignId: campaign.id
-  })
-  const authority = await base.owner.caller.mutation(claim, {
-    campaignId: campaign.id,
-    sessionId: session.id
-  })
+  const authority = await base.owner.caller.mutation(claim, { campaignId: campaign.id })
   const command = {
     campaignId: campaign.id,
     expectedVersion: campaign.version,
@@ -85,7 +77,7 @@ async function liveFixture() {
     if (!job) throw new Error('Missing deletion job.')
     return job
   }
-  return { ...base, campaign, session, authority, command, readJob }
+  return { ...base, campaign, authority, command, readJob }
 }
 
 describe('one Campaign deletion lifecycle', () => {
@@ -96,7 +88,6 @@ describe('one Campaign deletion lifecycle', () => {
       const checksum = 'a'.repeat(64)
       await base.t.mutation(activate, {
         campaignId: base.campaign.id,
-        sessionId: base.session.id,
         epoch: base.authority.epoch,
         activationFingerprint: base.authority.activationFingerprint,
         stateChecksum: checksum
@@ -104,7 +95,6 @@ describe('one Campaign deletion lifecycle', () => {
       await base.owner.caller.mutation(api.campaigns.deletion.remove, base.command)
       const fence = {
         campaignId: base.campaign.id,
-        sessionId: base.session.id,
         epoch: base.authority.epoch,
         finalSequence: 0,
         finalStateChecksum: checksum
@@ -154,6 +144,9 @@ describe('one Campaign deletion lifecycle', () => {
 
   it('cancels only the captured ACTIVATING epoch and purges historical OPEN Sessions in bounded pages', async () => {
     const base = await liveFixture()
+    await base.owner.caller.mutation(api.campaigns.sessions.create, {
+      campaignId: base.campaign.id
+    })
     await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('campaignSessions')
@@ -172,7 +165,6 @@ describe('one Campaign deletion lifecycle', () => {
     await expect(
       base.t.mutation(activate, {
         campaignId: base.campaign.id,
-        sessionId: base.session.id,
         epoch: base.authority.epoch,
         activationFingerprint: base.authority.activationFingerprint,
         stateChecksum: 'a'.repeat(64)

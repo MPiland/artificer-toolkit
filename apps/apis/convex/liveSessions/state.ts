@@ -42,9 +42,8 @@ export const publish = internalMutation({
       actorUserId: input.actorUserId,
       actorRole: input.actorRole,
       campaignId: input.campaignId,
-      sessionId: input.sessionId,
       authorityScope,
-      session: input.command.session,
+      presentation: input.command.presentation,
       expectedResult: input.expectedSceneResult
     }
     const sceneResult =

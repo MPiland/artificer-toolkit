@@ -166,7 +166,7 @@ async function setup() {
       result: {
         commandId,
         replayed: false,
-        sessionId: base.session.id,
+        campaignId: base.campaign.id,
         sceneId: scene.id,
         version: 0
       }
@@ -204,7 +204,6 @@ async function createRuns(base: Awaited<ReturnType<typeof setup>>, count: number
   for (let index = 1; index < count; index++) {
     const input: CreateEncounterInputDto = {
       campaignId: base.campaign.id,
-      sessionId: base.session.id,
       blueprintId: base.blueprint.id,
       commandId: crypto.randomUUID()
     }
@@ -306,12 +305,7 @@ async function seedPreservedSceneRows(base: Awaited<ReturnType<typeof setup>>) {
       characterId: character.id,
       assignedAt: base.campaign.createdAt
     })
-    await ctx.db.insert('campaignSessionAttendance', {
-      campaignId: base.campaign.id,
-      sessionId: base.session.id,
-      characterId: character.id,
-      present: true
-    })
+
     await ctx.db.insert(
       'mediaAssets',
       vttMapStoredAssetSchema.parse({
@@ -339,15 +333,14 @@ async function seedPreservedSceneRows(base: Awaited<ReturnType<typeof setup>>) {
       })
     )
   })
+  await base.other.caller.mutation(api.campaigns.sessions.create, { campaignId: base.campaign.id })
 }
 
 async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: readonly string[]) {
   return base.t.run(async (ctx) => {
     const runs = await ctx.db
       .query('encounterRuns')
-      .withIndex('by_campaignId_sessionId_createdAt_id', (q) =>
-        q.eq('campaignId', base.campaign.id)
-      )
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', base.campaign.id))
       .collect()
     const ids = runIds ?? runs.map((run) => run.id)
     const children = await Promise.all(
@@ -415,14 +408,12 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
         : null,
       presentation: await ctx.db
         .query('campaignScenePresentations')
-        .withIndex('by_campaignId_sessionId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
-        )
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
         .unique(),
       attendance: await ctx.db
         .query('campaignSessionAttendance')
         .withIndex('by_campaignId_sessionId_characterId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('sessionId', base.session.id)
+          q.eq('campaignId', base.campaign.id)
         )
         .collect(),
       entities: await ctx.db
@@ -500,9 +491,7 @@ async function nativeMovementCleanupState(
   return value.base.t.run(async (ctx) => ({
     runs: await ctx.db
       .query('encounterRuns')
-      .withIndex('by_campaignId_sessionId_createdAt_id', (q) =>
-        q.eq('campaignId', value.base.campaign.id)
-      )
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', value.base.campaign.id))
       .collect(),
     commands: await ctx.db.query('encounterRunCommands').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
@@ -561,9 +550,9 @@ describe('development Encounter Run cleanup', () => {
     await expect(base.t.mutation(removeFixtureState, base.cleanup)).resolves.toBeNull()
   }, 30_000)
 
-  it('rejects a ninth Run in the first Session without writes', async () => {
+  it('rejects a tenth Campaign Run without writes', async () => {
     const base = await setup()
-    const runs = await createRuns(base, 9)
+    const runs = await createRuns(base, 10)
     await bindRuns(base, runs)
     const ids = runs.map((run) => run.id)
     const before = await fixtureState(base, ids)

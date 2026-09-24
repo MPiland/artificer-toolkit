@@ -8,7 +8,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
 import { readNativeConcentrationCleanupRevisions } from './concentrationReplay'
 import { readRunProjection, readRunState } from './documents'
@@ -48,8 +47,6 @@ export async function readNativeEncounterActionAdmission(
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
-  const session = await requireSession(ctx, campaign.id, state.sessionId)
-  if (session.status !== 'OPEN') throw new Error('Finished Sessions cannot change Encounters.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const fingerprint = checksumCanonicalJson(input)
   const replay = await ctx.db
@@ -75,7 +72,6 @@ export async function readNativeEncounterActionAdmission(
       checksumCanonicalJson(result) !== replay.resultChecksum ||
       result.projection.id !== run.id ||
       result.projection.campaignId !== campaign.id ||
-      result.projection.sessionId !== session.id ||
       result.projection.version !== replay.version
     )
       throw new Error('Stored Encounter action receipt mismatch.')
@@ -200,7 +196,7 @@ export async function readNativeEncounterActionAdmission(
       )
         throw new Error('Stored Encounter Character action receipt mismatch.')
     }
-    return { kind: 'REPLAY' as const, input, run, state, campaign, session, fingerprint, result }
+    return { kind: 'REPLAY' as const, input, run, state, campaign, fingerprint, result }
   }
   if (state.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
   if (state.status !== 'ACTIVE') throw new Error('Actions require an active Encounter.')
@@ -229,7 +225,6 @@ export async function readNativeEncounterActionAdmission(
         run,
         state,
         campaign,
-        session,
         fingerprint,
         result: nativeActionPendingResult(run, occurrence)
       }
@@ -254,7 +249,6 @@ export async function readNativeEncounterActionAdmission(
     run,
     state: { ...state, automationMode: state.automationMode },
     campaign,
-    session,
     fingerprint
   }
 }

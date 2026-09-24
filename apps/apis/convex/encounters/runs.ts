@@ -4,9 +4,13 @@ import type { Validator } from 'convex/values'
 import type { z } from 'zod'
 import {
   createEncounterInputDtoSchema,
+  deletePreparedEncounterInputDtoSchema,
+  deletePreparedEncounterResultDtoSchema,
   encounterGmProjectionDtoSchema,
+  type DeletePreparedEncounterResultDto,
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import { campaignStoredCommandSchema } from '@artificer-toolkit/schema/projections/campaignSessionPersistence'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   encounterRunActorStateSchema,
@@ -28,13 +32,14 @@ import {
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireSession } from '../campaigns/sessionDocuments'
+import { readActiveCampaignMembers, requireCampaignAuthority } from '../campaigns/authority'
+import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
-import { readRunProjection } from './documents'
-
+import { readRunProjection, readRunState } from './documents'
+import { removeEncounterRunChildren } from './campaignDeletion'
+import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 const projectionValidator: Validator<EncounterGmProjectionDto, 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterGmProjectionDto>
 >(encounterGmProjectionDtoSchema)
@@ -46,15 +51,13 @@ export const create = mutation({
     const input = createEncounterInputDtoSchema.parse({
       ...args,
       campaignId: args.campaignId.toLowerCase(),
-      sessionId: args.sessionId.toLowerCase(),
       commandId: args.commandId.toLowerCase()
     })
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    const session = await requireSession(ctx, campaign.id, input.sessionId)
-    if (session.status !== 'OPEN') throw new Error('Encounters can only be added to open Sessions.')
+
     const commandFingerprint = checksumCanonicalJson(input)
     const prior = await ctx.db
       .query('encounterRunCommands')
@@ -69,12 +72,7 @@ export const create = mutation({
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', prior.encounterId))
         .unique()
-      if (
-        !row ||
-        row.campaignId !== campaign.id ||
-        row.sessionId !== session.id ||
-        row.gameSystemId !== campaign.gameSystemId
-      )
+      if (!row || row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
         throw new Error('Encounter is unavailable.')
       return readRunProjection(row)
     }
@@ -87,13 +85,12 @@ export const create = mutation({
     const blueprint = readBlueprint(blueprintRow)
     if (blueprint.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter Blueprint does not match the Campaign Game System.')
-    const attendance = await ctx.db
-      .query('campaignSessionAttendance')
-      .withIndex('by_campaignId_sessionId_present_characterId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id).eq('present', true)
-      )
-      .take(MAX_ENCOUNTER_ACTORS + 1)
-    if (attendance.length + blueprint.enemies.length > MAX_ENCOUNTER_ACTORS)
+    const party: string[] = []
+    for (const member of await readActiveCampaignMembers(ctx, campaign)) {
+      const character = await readCampaignAssignedCharacter(ctx, campaign, member)
+      if (character) party.push(character.id)
+    }
+    if (party.length + blueprint.enemies.length > MAX_ENCOUNTER_ACTORS)
       throw new Error(`Encounters support at most ${MAX_ENCOUNTER_ACTORS} actors.`)
     const policies = await snapshotEncounterPolicies(ctx, campaign, userId)
     const now = new Date().toISOString()
@@ -101,12 +98,12 @@ export const create = mutation({
     const partySideId = crypto.randomUUID()
     const oppositionSideId = crypto.randomUUID()
     const actors: EncounterRunActorState[] = []
-    for (const attendee of attendance) {
-      const loaded = await loadCharacterSheet(ctx, userId, attendee.characterId, campaign.id)
-      if (!loaded) throw new Error('Attending Character is unavailable.')
+    for (const characterId of party) {
+      const loaded = await loadCharacterSheet(ctx, userId, characterId, campaign.id)
+      if (!loaded) throw new Error('Assigned Character is unavailable.')
       const { character, active, sheet } = loaded
       if (character.systemId !== campaign.gameSystemId)
-        throw new Error('Attending Character does not match the Campaign Game System.')
+        throw new Error('Assigned Character does not match the Campaign Game System.')
       actors.push(
         encounterRunActorStateSchema.parse({
           id: crypto.randomUUID(),
@@ -176,7 +173,6 @@ export const create = mutation({
     const state = encounterRunStateSchema.parse({
       id: encounterId,
       campaignId: campaign.id,
-      sessionId: session.id,
       gameSystemId: campaign.gameSystemId,
       blueprintId: blueprint.id,
       blueprintVersion: blueprint.version,
@@ -217,7 +213,6 @@ export const create = mutation({
       encounterStoredRunSchema.parse({
         id: encounterId,
         campaignId: campaign.id,
-        sessionId: session.id,
         gameSystemId: state.gameSystemId,
         status: state.status,
         version: state.version,
@@ -253,5 +248,94 @@ export const create = mutation({
       })
     )
     return projection
+  }
+})
+
+export const deletePrepared = mutation({
+  args: zodToConvexFields(deletePreparedEncounterInputDtoSchema.shape),
+  returns: zodToConvex(deletePreparedEncounterResultDtoSchema),
+  handler: async (ctx, args): Promise<DeletePreparedEncounterResultDto> => {
+    const input = deletePreparedEncounterInputDtoSchema.parse({
+      ...args,
+      campaignId: args.campaignId.toLowerCase(),
+      encounterId: args.encounterId.toLowerCase(),
+      commandId: args.commandId.toLowerCase()
+    })
+    const { userId } = await requireIdentity(ctx)
+    const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
+    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    const inputFingerprint = checksumCanonicalJson(input)
+    const [prior, encounterCommand] = await Promise.all([
+      ctx.db
+        .query('campaignCommands')
+        .withIndex('by_campaignId_commandId', (q) =>
+          q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
+        )
+        .unique(),
+      ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_campaignId_commandId', (q) =>
+          q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
+        )
+        .unique()
+    ])
+    if (prior) {
+      if (prior.commandType !== 'DELETE_ENCOUNTER' || prior.inputFingerprint !== inputFingerprint)
+        throw new Error('Command ID was already used with different input.')
+      return deletePreparedEncounterResultDtoSchema.parse(prior.resultPayload)
+    }
+    if (encounterCommand) throw new Error('Command ID was already used with different input.')
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+      .unique()
+    if (!run || run.campaignId !== campaign.id || run.gameSystemId !== campaign.gameSystemId)
+      throw new Error('Encounter is unavailable.')
+    if (run.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
+    if (run.status !== 'PREPARED') throw new Error('Only prepared Encounters can be deleted.')
+    readRunState(run)
+    readRunProjection(run)
+    const [binding, commands, receipts, occurrences] = await Promise.all([
+      ctx.db
+        .query('encounterSceneBindings')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
+        .unique(),
+      ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
+        .collect(),
+      ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', run.id))
+        .collect(),
+      ctx.db
+        .query('encounterRuleOccurrences')
+        .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id))
+        .collect()
+    ])
+    if (occurrences.some((occurrence) => occurrence.state === 'PENDING'))
+      throw new Error('Resolve the pending Encounter occurrence before deleting it.')
+    if (binding) await assertConvexOwnsSceneLiveState(ctx, campaign.id, binding.sceneId)
+    let removed = false
+    while (!removed) removed = await removeEncounterRunChildren(ctx, run.id)
+    for (const row of [...commands, ...receipts, ...occurrences]) await ctx.db.delete(row._id)
+    await ctx.db.delete(run._id)
+    const result = deletePreparedEncounterResultDtoSchema.parse({
+      campaignId: campaign.id,
+      encounterId: run.id
+    })
+    await ctx.db.insert(
+      'campaignCommands',
+      campaignStoredCommandSchema.parse({
+        campaignId: campaign.id,
+        commandId: input.commandId,
+        commandType: 'DELETE_ENCOUNTER',
+        inputFingerprint,
+        resultPayload: result,
+        createdAt: new Date().toISOString()
+      })
+    )
+    return result
   }
 })

@@ -29,9 +29,8 @@ const collection = z.enum(['tokens', 'barriers'])
 const phase = z.enum(['BASE', 'APPENDED'])
 const version = z.number().check(z.int()).check(z.nonnegative())
 
-export const sceneGeometrySessionInputSchema = z.pick(sceneSessionVisionCaptureInputSchema, {
-  sessionId: true,
-  expectedSessionVersion: true,
+/** Fences a command to the Campaign presentation that selected its Scene. */
+export const scenePresentationFenceSchema = z.pick(sceneSessionVisionCaptureInputSchema, {
   expectedPresentationVersion: true
 })
 export const sceneNativeGeometryCommandInputSchema = z.union([
@@ -40,7 +39,7 @@ export const sceneNativeGeometryCommandInputSchema = z.union([
 ])
 export const sceneGeometryExecuteInputSchema = z.strictObject({
   input: sceneNativeGeometryCommandInputSchema,
-  session: z.optional(sceneGeometrySessionInputSchema)
+  presentation: z.optional(scenePresentationFenceSchema)
 })
 export type SceneGeometryExecuteInput = z.infer<typeof sceneGeometryExecuteInputSchema>
 export type SceneNativeGeometryCommandInput = z.infer<typeof sceneNativeGeometryCommandInputSchema>

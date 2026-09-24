@@ -49,7 +49,6 @@ const publishFog = makeFunctionReference<'mutation', { saveId: string }, SceneFo
 )
 
 export type EncounterEffectsBrowserFixture = {
-  session: { id: string; number: number }
   scene: { id: string; name: string }
   actionLabel: string
   targetLabel: string
@@ -159,10 +158,8 @@ export async function verifyEncounterEffects({
   })
 
   async function prepareRun() {
-    const session = await owner.mutation(api.campaigns.sessions.create, { campaignId })
     const created = await owner.mutation(api.encounters.runs.create, {
       campaignId,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -237,7 +234,7 @@ export async function verifyEncounterEffects({
     const currentTarget = run.actors.find((actor) => actor.id === target.id)
     if (!currentSource || !currentTarget)
       throw new Error('Action-effect fixture actors changed during setup.')
-    return { session, run, source: currentSource, target: currentTarget }
+    return { run, source: currentSource, target: currentTarget }
   }
 
   for (const { face, expectedConditions } of [
@@ -246,7 +243,6 @@ export async function verifyEncounterEffects({
   ]) {
     const prepared = await prepareRun()
     let run = prepared.run
-    const { session } = prepared
     let source = prepared.source
     let target = prepared.target
     let scene: EncounterEffectsBrowserFixture['scene'] | undefined
@@ -307,12 +303,13 @@ export async function verifyEncounterEffects({
           ]
         }
       })
+      const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
       await owner.mutation(api.scenes.presentations.set, {
         type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
         commandId: crypto.randomUUID(),
-        sessionId: session.id,
+        campaignId,
         sceneId: preparedScene.liveSceneId,
-        expectedPresentationVersion: null
+        expectedPresentationVersion: presentation?.version ?? null
       })
       await owner.mutation(bindScene, {
         type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
@@ -559,7 +556,6 @@ export async function verifyEncounterEffects({
         throw new Error('Action-effect browser fixture has no rendered action or Scene.')
       await browser(
         {
-          session: { id: session.id, number: session.sessionNumber },
           scene,
           actionLabel: choice.sourceLabel
             ? `${choice.label} · ${choice.sourceLabel}`
@@ -571,6 +567,19 @@ export async function verifyEncounterEffects({
         verify
       )
     } else await verify()
+    // A Campaign keeps one ACTIVE Run across sittings, so each iteration completes its own Run.
+    const settled = encounterGmProjectionDtoSchema.parse(
+      await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
+    )
+    const completed = await owner.mutation(api.encounters.commands.execute, {
+      command: {
+        type: 'COMPLETE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: settled.version
+      }
+    })
+    assert.equal(encounterGmProjectionDtoSchema.parse(completed.projection).status, 'COMPLETED')
   }
   console.log('Native action-effect save, privacy, and replay checks passed.')
 }

@@ -64,7 +64,6 @@ function renderWorkspace(
       campaign={createTabletopCampaign(role)}
       currentUserId='22222222-2222-4222-8222-222222222222'
       encounter={encounter}
-      sessionOpen
       onUpdated={vi.fn()}
     />
   )

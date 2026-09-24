@@ -98,7 +98,6 @@ export async function setupConcentration(automationMode: 'AUTOMATIC' | 'ASSISTED
   })
   const run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

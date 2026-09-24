@@ -99,7 +99,6 @@ export async function planNativeLiveEncounterTurn(
     state.id !== initial.encounterId ||
     state.version !== initial.expectedVersion ||
     state.campaignId !== initial.campaignId ||
-    state.sessionId !== initial.sessionId ||
     state.gameSystemId !== system.id ||
     state.status !== (starting ? 'PREPARED' : 'ACTIVE') ||
     (starting ? state.currentActorId !== null : state.currentActorId === null)

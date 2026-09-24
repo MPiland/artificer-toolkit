@@ -7,7 +7,6 @@ import type { createLiveSessionConnection } from './liveSessionClient'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
-const sessionId = '00000000-0000-4000-8000-000000000002'
 const sceneId = '00000000-0000-4000-8000-000000000003'
 const userId = '00000000-0000-4000-8000-000000000004'
 const commandId = '00000000-0000-4000-8000-000000000006'
@@ -86,20 +85,17 @@ describe('useCampaignLiveSession', () => {
   it('wires the native ticket, authentication, transient, status, and error flow', async () => {
     const onTransient = vi.fn()
     const { result, unmount } = renderHook(() =>
-      useCampaignLiveSession({ campaignId, enabled: true, onTransient, sessionId })
+      useCampaignLiveSession({ campaignId, enabled: true, onTransient })
     )
 
     await waitFor(() => expect(mocks.options).not.toBeNull())
     const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
-    expect(options.url).toBe(`ws://127.0.0.1:8787/live-session/${sessionId}`)
+    expect(options.url).toBe(`ws://127.0.0.1:8787/live-session/${campaignId}`)
     await expect(options.getTicket()).resolves.toEqual({
       expiresAt: '2099-08-15T23:59:00.000Z',
       ticket: 'test-live-session-ticket'
     })
-    expect(mocks.issueTicket).toHaveBeenCalledWith(api.liveSessions.tickets.issue, {
-      campaignId,
-      sessionId
-    })
+    expect(mocks.issueTicket).toHaveBeenCalledWith(api.liveSessions.tickets.issue, { campaignId })
     await expect(options.getAccessToken()).resolves.toBe('test-access-token')
     expect(mocks.getAccessToken).toHaveBeenCalledWith({ fetchOptions: { throw: false } })
 
@@ -136,8 +132,8 @@ describe('useCampaignLiveSession', () => {
     expect(result.current.rejection).toBeNull()
     expect(result.current.sendTransient(envelope)).toBe(true)
     expect(mocks.sendTransient).toHaveBeenCalledWith(envelope)
-    result.current.synchronizeScene(sceneId, 7, 3, 11)
-    expect(mocks.synchronizeScene).toHaveBeenCalledWith(sceneId, 7, 3, 11)
+    result.current.synchronizeScene(sceneId, 7, 11)
+    expect(mocks.synchronizeScene).toHaveBeenCalledWith(sceneId, 7, 11)
     expect(Object.keys(result.current).sort()).toEqual([
       'commandReady',
       'error',
@@ -156,9 +152,7 @@ describe('useCampaignLiveSession', () => {
 
   it('rejects missing Better Auth Convex tokens', async () => {
     mocks.getAccessToken.mockResolvedValue({ data: null })
-    renderHook(() =>
-      useCampaignLiveSession({ campaignId, enabled: true, onTransient: vi.fn(), sessionId })
-    )
+    renderHook(() => useCampaignLiveSession({ campaignId, enabled: true, onTransient: vi.fn() }))
 
     await waitFor(() => expect(mocks.options).not.toBeNull())
     const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
@@ -167,7 +161,7 @@ describe('useCampaignLiveSession', () => {
 
   it('stays disconnected and does not send while disabled', async () => {
     const { result } = renderHook(() =>
-      useCampaignLiveSession({ campaignId, enabled: false, onTransient: vi.fn(), sessionId })
+      useCampaignLiveSession({ campaignId, enabled: false, onTransient: vi.fn() })
     )
 
     expect(mocks.options).toBeNull()

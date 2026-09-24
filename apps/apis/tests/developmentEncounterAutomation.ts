@@ -6,7 +6,6 @@ import {
   type EncounterExecuteInput,
   type EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
@@ -21,7 +20,6 @@ export async function verifyEncounterAutomation({
   owner,
   player,
   campaignId,
-  session,
   blueprint,
   characterId,
   policies,
@@ -30,7 +28,6 @@ export async function verifyEncounterAutomation({
   owner: DevelopmentClient
   player: DevelopmentClient
   campaignId: string
-  session: CampaignSessionDto
   blueprint: EncounterBlueprintDto
   characterId: string
   policies: ReturnType<typeof createEncounterLifecyclePolicyFixture>
@@ -46,13 +43,6 @@ export async function verifyEncounterAutomation({
     ]
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
-  await owner.mutation(api.campaigns.sessionAttendance.set, {
-    campaignId,
-    sessionId: session.id,
-    expectedVersion: session.version,
-    characterId,
-    present: true
-  })
   const revisedBlueprint = await owner.mutation(api.encounters.blueprints.update, {
     blueprintId: blueprint.id,
     expectedVersion: blueprint.version,
@@ -79,22 +69,16 @@ export async function verifyEncounterAutomation({
   }
   const originalTokens = await owner.query(api.scenes.definitionReads.entities, sceneEntitiesInput)
   assert.equal(originalTokens.isDone, true)
-  const previousPresentation = await owner.query(api.scenes.presentations.get, {
-    campaignId,
-    sessionId: session.id
-  })
+  const previousPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.ok(previousPresentation)
   await owner.mutation(api.scenes.presentations.set, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
-    sessionId: session.id,
+    campaignId,
     sceneId: scene.liveSceneId,
     expectedPresentationVersion: previousPresentation.version
   })
-  const presentation = await owner.query(api.scenes.presentations.get, {
-    campaignId,
-    sessionId: session.id
-  })
+  const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
   const completedRuns: EncounterGmProjectionDto[] = []
   for (const scenario of policies.scenarios) {
     const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
@@ -108,7 +92,6 @@ export async function verifyEncounterAutomation({
     })
     const creation = {
       campaignId,
-      sessionId: session.id,
       blueprintId: revisedBlueprint.id,
       commandId: crypto.randomUUID()
     }
@@ -476,10 +459,7 @@ export async function verifyEncounterAutomation({
       await owner.query(api.scenes.definitionReads.entities, sceneEntitiesInput),
       originalTokens
     )
-    assert.deepEqual(
-      await owner.query(api.scenes.presentations.get, { campaignId, sessionId: session.id }),
-      presentation
-    )
+    assert.deepEqual(await owner.query(api.scenes.presentations.get, { campaignId }), presentation)
     for (const prior of [sceneFixture.manualRun, ...completedRuns]) {
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: prior.id }),

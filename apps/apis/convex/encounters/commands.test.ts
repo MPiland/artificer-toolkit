@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -47,11 +42,6 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -221,9 +211,6 @@ async function setup(
       initiativeTieDefinitionId: null
     })
   }
-  const session = await base.owner.caller.mutation(createSession, {
-    campaignId: campaign.id
-  })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Command fixture',
@@ -249,11 +236,10 @@ async function setup(
   const createCommandId = crypto.randomUUID()
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: createCommandId
   })
-  return { ...base, campaign, session, blueprint, run, createCommandId }
+  return { ...base, campaign, blueprint, run, createCommandId }
 }
 
 function assistedResolution(
@@ -372,19 +358,6 @@ async function setupCharacterAutomatic() {
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })
-  const session = await base.other.caller.mutation(createSession, {
-    campaignId: campaign.id
-  })
-  await base.t.run(async (ctx) => {
-    const attendance = await ctx.db
-      .query('campaignSessionAttendance')
-      .withIndex('by_campaignId_sessionId_characterId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', session.id).eq('characterId', character.id)
-      )
-      .unique()
-    if (!attendance) throw new Error('Missing character attendance fixture.')
-    await ctx.db.patch(attendance._id, { present: true })
-  })
   const blueprint = await base.other.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Character initiative fixture',
@@ -393,7 +366,6 @@ async function setupCharacterAutomatic() {
   })
   const run = await base.other.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -401,7 +373,6 @@ async function setupCharacterAutomatic() {
     ...base,
     owner: base.other,
     campaign,
-    session,
     blueprint,
     run,
     character
@@ -486,12 +457,10 @@ async function replaceActorResources(
 }
 
 describe('native Encounter Run commands', () => {
-  it('allows only one active Run per Campaign across Sessions and preserves START replay', async () => {
+  it('allows only one active Run per Campaign and preserves START replay', async () => {
     const { owner, campaign, blueprint, run } = await setup({ automatic: true })
-    const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
     const sibling = await owner.caller.mutation(createRun, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -528,10 +497,9 @@ describe('native Encounter Run commands', () => {
   })
 
   it('rechecks Campaign activation when pending initiative settles and rolls back a rejected response', async () => {
-    const { t, owner, campaign, session, blueprint, run } = await setup({ assisted: true })
+    const { t, owner, campaign, blueprint, run } = await setup({ assisted: true })
     const sibling = await owner.caller.mutation(createRun, {
       campaignId: campaign.id,
-      sessionId: session.id,
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -2751,7 +2719,6 @@ describe('native Encounter Run commands', () => {
     ).rejects.toThrow()
     const secondRun = await first.owner.caller.mutation(createRun, {
       campaignId: first.campaign.id,
-      sessionId: first.session.id,
       blueprintId: first.blueprint.id,
       commandId: crypto.randomUUID()
     })
@@ -2816,8 +2783,8 @@ describe('native Encounter Run commands', () => {
     expect(await runs(t)).toEqual(runsBefore)
   }, 30000)
 
-  it('rejects anonymous, player, revoked, archived, finished-session, and completed-run commands', async () => {
-    const { t, owner, other, campaign, session, run } = await setup()
+  it('rejects anonymous, player, revoked, archived, and completed-run commands', async () => {
+    const { t, owner, other, campaign, run } = await setup()
     const command = upsert(run.id, 0, {
       label: 'Denied',
       timing: 'ROUND_START',
@@ -2864,24 +2831,8 @@ describe('native Encounter Run commands', () => {
         .unique()
       if (!row) throw new Error('Missing Campaign.')
       await ctx.db.patch(row._id, { status: 'ACTIVE' })
-      const sessionRow = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id).eq('id', session.id))
-        .unique()
-      if (!sessionRow) throw new Error('Missing Session.')
-      await ctx.db.patch(sessionRow._id, {
-        status: 'FINISHED',
-        finishedAt: new Date().toISOString()
-      })
     })
-    await expect(owner.caller.mutation(execute, command)).rejects.toThrow()
     await t.run(async (ctx) => {
-      const sessionRow = await ctx.db
-        .query('campaignSessions')
-        .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id).eq('id', session.id))
-        .unique()
-      if (!sessionRow) throw new Error('Missing Session.')
-      await ctx.db.patch(sessionRow._id, { status: 'OPEN', finishedAt: null })
       const row = await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', run.id))

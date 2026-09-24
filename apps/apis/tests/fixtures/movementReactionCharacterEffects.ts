@@ -138,7 +138,6 @@ export async function setupMovementReactionCharacterEffects(withSecondReactor = 
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

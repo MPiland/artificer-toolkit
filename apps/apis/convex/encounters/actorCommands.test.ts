@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
@@ -38,11 +33,6 @@ import * as sheetCommands from '../characters/sheetCommands'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -89,20 +79,6 @@ async function setup() {
       assignedAt: campaign.createdAt
     })
   })
-  const session = await base.other.caller.mutation(createSession, { campaignId: campaign.id })
-  await base.t.run(async (ctx) => {
-    const attendance = await ctx.db
-      .query('campaignSessionAttendance')
-      .withIndex('by_campaignId_sessionId_characterId', (q) =>
-        q
-          .eq('campaignId', campaign.id)
-          .eq('sessionId', session.id)
-          .eq('characterId', base.character.id)
-      )
-      .unique()
-    if (!attendance) throw new Error('Missing fixture attendance.')
-    await ctx.db.patch(attendance._id, { present: true })
-  })
   const blueprint = await base.other.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Actor command fixture',
@@ -111,7 +87,6 @@ async function setup() {
   })
   const run = await base.other.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

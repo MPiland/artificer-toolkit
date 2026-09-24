@@ -64,16 +64,11 @@ export async function verifySceneEntities({
     owner.query(api.scenes.definitionReads.get, preservedInput),
     owner.query(api.scenes.liveReads.header, otherSceneInput)
   ])
-  const [session, presentation, initial] = await Promise.all([
-    owner.query(api.campaigns.sessions.get, {
-      campaignId,
-      sessionNumber: fixture.session.sessionNumber
-    }),
-    owner.query(api.scenes.presentations.get, { campaignId, sessionId: fixture.session.id }),
+  const [presentation, initial] = await Promise.all([
+    owner.query(api.scenes.presentations.get, { campaignId }),
     owner.query(api.scenes.liveReads.header, { sceneId })
   ])
   assert.ok(presentation && presentation.sceneId === sceneId)
-  assert.equal(session.status, 'OPEN')
   let version = initial.version
   const read = async (
     client: typeof owner,
@@ -109,11 +104,7 @@ export async function verifySceneEntities({
       commandId: crypto.randomUUID(),
       token: controlled
     },
-    session: {
-      sessionId: session.id,
-      expectedSessionVersion: session.version,
-      expectedPresentationVersion: presentation.version
-    }
+    presentation: { expectedPresentationVersion: presentation.version }
   }
   const moved = await owner.action(geometry, move)
   assert.equal(moved.version, ++version)
@@ -142,7 +133,7 @@ export async function verifySceneEntities({
         }
       }
     },
-    session: move.session
+    presentation: move.presentation
   })
   assert.equal(explored.version, ++version)
   assert.ok(explored.fogPatches.some((patch) => patch.ownerUserId === playerUserId))

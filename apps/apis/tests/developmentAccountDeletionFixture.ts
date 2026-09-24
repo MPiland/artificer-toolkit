@@ -263,7 +263,6 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
   })
   const run = await auditor.client.mutation(api.encounters.runs.create, {
     campaignId: sharedCampaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })

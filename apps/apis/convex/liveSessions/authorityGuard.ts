@@ -17,21 +17,34 @@ export async function readCampaignLiveAuthority(ctx: QueryCtx, campaignId: strin
     .unique()
 }
 
-export async function assertConvexOwnsCampaignLiveState(ctx: QueryCtx, campaignId: string) {
+export async function readLiveCampaignAuthority(ctx: QueryCtx, campaignId: string) {
   const authority = await readCampaignLiveAuthority(ctx, campaignId)
-  if (authority && !isExpiredActivatingAuthority(authority))
-    throw new Error('This Campaign is currently owned by its live Session.')
+  return authority && !isExpiredActivatingAuthority(authority) ? authority : null
+}
+
+/** Direct Convex writes are fenced only for the presented Scene while the room owns it. */
+export async function assertConvexOwnsSceneLiveState(
+  ctx: QueryCtx,
+  campaignId: string,
+  sceneId: string
+) {
+  if (!(await readLiveCampaignAuthority(ctx, campaignId))) return
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId.toLowerCase()))
+    .unique()
+  if (presentation?.sceneId === sceneId.toLowerCase())
+    throw new Error('This Scene is currently owned by its Campaign live table.')
 }
 
 export async function requireCampaignLiveAuthority(
   ctx: QueryCtx,
-  input: { campaignId: string; sessionId: string; epoch: string }
+  input: { campaignId: string; epoch: string }
 ) {
   const authority = await readCampaignLiveAuthority(ctx, input.campaignId)
   if (
     !authority ||
     isExpiredActivatingAuthority(authority) ||
-    authority.sessionId !== input.sessionId.toLowerCase() ||
     authority.epoch !== input.epoch.toLowerCase()
   )
     throw new Error('Live Session authority is stale.')
@@ -40,7 +53,7 @@ export async function requireCampaignLiveAuthority(
 
 export async function requireActiveCampaignLiveAuthority(
   ctx: QueryCtx,
-  input: { campaignId: string; sessionId: string; epoch: string }
+  input: { campaignId: string; epoch: string }
 ) {
   const authority = await requireCampaignLiveAuthority(ctx, input)
   if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')

@@ -91,20 +91,11 @@ async function fixtureRun(ctx: QueryCtx | MutationCtx, args: z.infer<typeof fixt
     .withIndex('by_publicId', (q) => q.eq('id', args.encounterId))
     .unique()
   if (!run || run.campaignId !== campaign.id) throw new Error('Fixture Encounter Run mismatch.')
-  const [session, presentation] = await Promise.all([
-    ctx.db
-      .query('campaignSessions')
-      .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id).eq('id', run.sessionId))
-      .unique(),
-    ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId_sessionId', (q) =>
-        q.eq('campaignId', campaign.id).eq('sessionId', run.sessionId)
-      )
-      .unique()
-  ])
-  if (!session) throw new Error('Fixture Encounter Session mismatch.')
-  return { campaign, run, session, presentation }
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+    .unique()
+  return { campaign, run, presentation }
 }
 
 /** Exact owner-only proof of a completed reaction in a reserved development fixture. */
@@ -217,7 +208,7 @@ export const inspect = internalQuery({
   args: zodToConvex(fixtureRunSchema),
   returns: v.string(),
   handler: async (ctx, args) => {
-    const { campaign, run, session, presentation } = await fixtureRun(ctx, args)
+    const { campaign, run, presentation } = await fixtureRun(ctx, args)
     const [
       actors,
       commands,
@@ -279,7 +270,6 @@ export const inspect = internalQuery({
       throw new Error('Fixture lifecycle inspection exceeds its bounds.')
     return JSON.stringify({
       campaign,
-      session,
       presentation,
       run,
       actors: actors.sort((left, right) => left.id.localeCompare(right.id)),

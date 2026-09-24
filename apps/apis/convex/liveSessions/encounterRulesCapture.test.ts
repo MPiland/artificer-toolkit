@@ -38,14 +38,12 @@ async function setup() {
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       epoch,
       createdAt: base.campaign.createdAt
     })
   )
   const input: LiveSessionEncounterRulesInput = {
     campaignId: base.campaign.id,
-    sessionId: base.run.sessionId,
     authorityEpoch: epoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER',
@@ -97,7 +95,7 @@ function effectDefinition(encounterId: string, actorId: string): ActiveRuleEffec
   }
 }
 
-it('requires current GM authority, open Session, and exact Run identity and version', async () => {
+it('requires current GM authority and exact Run identity and version without any Session', async () => {
   const base = await setup()
   const response = await base.owner.caller.query(capture, base.input)
   expect(response).toMatchObject({ kind: 'INPUTS', state: { id: base.run.id } })
@@ -130,15 +128,10 @@ it('requires current GM authority, open Session, and exact Run identity and vers
   await base.t.run((ctx) =>
     ctx.db.patch(campaignRow._id, { gameSystemId: base.campaign.gameSystemId })
   )
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.sessionId))
-      .unique()
-    if (!row) throw new Error('Missing Session fixture.')
-    await ctx.db.patch(row._id, { status: 'FINISHED' })
+  await expect(base.owner.caller.query(capture, base.input)).resolves.toMatchObject({
+    kind: 'INPUTS',
+    state: { id: base.run.id }
   })
-  await expect(base.owner.caller.query(capture, base.input)).rejects.toThrow('not open')
 })
 
 it('captures only current Run members and current assigned Character actors', async () => {
@@ -212,7 +205,6 @@ it('captures only current Run members and current assigned Character actors', as
   await expect(
     base.owner.caller.query(characterCapture, {
       campaignId: base.campaign.id,
-      sessionId: base.run.sessionId,
       authorityEpoch: base.input.authorityEpoch,
       expectedUserId: base.owner.userId,
       expectedRole: 'OWNER',

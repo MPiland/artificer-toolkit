@@ -1,14 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CampaignSessionDto,
-  createCampaignSessionInputSchema
-} from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
@@ -65,11 +60,6 @@ afterEach(() => {
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
-const createSession = makeFunctionReference<
-  'mutation',
-  z.input<typeof createCampaignSessionInputSchema>,
-  CampaignSessionDto
->('campaigns/sessions:create')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -139,7 +129,6 @@ async function setup() {
       leftAt: null
     })
   )
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Turn admission target',
@@ -151,7 +140,6 @@ async function setup() {
   })
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
-    sessionId: session.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
@@ -185,21 +173,19 @@ async function setup() {
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
-      sessionId: session.id,
       epoch,
       createdAt: campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionEncounterRulesInput, 'request'> = {
     campaignId: campaign.id,
-    sessionId: session.id,
     authorityEpoch: epoch,
     expectedUserId: base.owner.userId,
     expectedRole: 'OWNER',
     encounterId: run.id,
     expectedVersion: started.projection.version
   }
-  return { ...base, campaign, session, run, started, scope }
+  return { ...base, campaign, run, started, scope }
 }
 
 async function turnRuntime() {
@@ -273,7 +259,7 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-it('admits only the current owner, epoch, Session, and Run', async () => {
+it('admits only the current owner, epoch, and Run', async () => {
   const base = await setup()
   const command = {
     type: 'ADVANCE_TURN' as const,
@@ -316,15 +302,6 @@ it('admits only the current owner, epoch, Session, and Run', async () => {
       encounterId: crypto.randomUUID()
     })
   ).rejects.toThrow('scope mismatch')
-  const sessionRow = await base.t.run((ctx) =>
-    ctx.db
-      .query('campaignSessions')
-      .withIndex('by_publicId', (q) => q.eq('id', base.session.id))
-      .unique()
-  )
-  if (!sessionRow) throw new Error('Missing fixture Session.')
-  await base.t.run((ctx) => ctx.db.patch(sessionRow._id, { status: 'FINISHED' }))
-  await expect(base.owner.caller.query(capture, input)).rejects.toThrow('Finished Sessions')
 }, 60_000)
 
 it('returns exact native pending and terminal turn replays while blocking unrelated roots', async () => {
