@@ -4,7 +4,7 @@
 
 This repository is `artificer-toolkit`, a monorepo for tabletop RPG content authoring, character building, character sheet play surfaces, and supporting campaign/reference workflows.
 
-Agents working here should treat the repo as a long-running salvage-and-modernization effort, not a greenfield project.
+The product is pre-launch: there are no live users or production data to stay compatible with. Remove retired code, fields and compatibility shims instead of preserving them; migrate development data within the same change when a model changes.
 
 ## First Reads
 
@@ -112,13 +112,13 @@ Keep quoting, paths, redirection, and exit-code handling native to PowerShell. P
 
 ## Windows Process Execution
 
-This repo runs on Windows, and several frontend tools spawn native child processes. Storybook, Vite, esbuild, Playwright browser runs, Vitest browser mode, and similar dev-server/build commands may fail from the normal Codex sandbox with errors such as `spawn EPERM`.
+This repo runs on Windows, and several frontend tools spawn native child processes. Storybook, Vite, esbuild, Playwright browser runs, Vitest browser mode, and similar dev-server/build commands may fail from a sandboxed agent shell with errors such as `spawn EPERM`.
 
 - Prefer MCP/browser inspection when a dev server is already running.
-- Codex may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
+- Agents may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
 - Follow the active session's permission policy. In an unrestricted session, run commands normally. Request escalation only when supported and needed for a sandbox restriction; never supply escalation flags when the session forbids them.
 - Use documented repo commands through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
-- Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
+- Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process the agent started.
 - If the local Convex backend appears offline, especially `ECONNREFUSED 127.0.0.1:3210`/`3211`, verify Docker Desktop and the local Convex container before diagnosing app auth or Sheet routes. Docker Desktop startup is user-owned.
 
 ## GitHub CLI Auth On Windows
@@ -152,7 +152,8 @@ Store disposable validation logs, screenshots, and generated evidence under igno
 For low-risk documentation or configuration edits, inspect the diff and skip application tests when they cannot exercise the change. State what was checked.
 Use the cheapest useful check for risky changes.
 Run typecheck validation through Turbo-backed repo commands by default, such as `yarn turbo:typecheck:web` or `yarn turbo:affected:typecheck`, so local caching is used. Do not run direct workspace typecheck commands like `yarn workspace @artificer-toolkit/web typecheck:app` unless diagnosing Turbo itself or a Turbo-backed command is unavailable.
-Do not run full test suites or full builds unless risk justifies it or the user asks. The global Local before staging requirements take precedence for promotion work.
+Do not run full test suites or full builds unless risk justifies it or the user asks. Promotion work additionally requires the complete local lifecycle, `yarn validate:pre-staging:local`, on the final source.
+Run the TypeScript compiler alone on this Windows machine: set `$env:GOMAXPROCS='2'` and pass Turbo `--concurrency=1 --env-mode=loose`; never run it alongside Vitest. Some auth fixtures expire after 60 seconds, so resource-starved parallel test runs can fail without an application defect. Build `packages/rules-runtime` before tests that import newly added modules; tests resolve its `dist` output.
 
 ## Subagents
 
@@ -287,17 +288,13 @@ Deleted legacy pockets such as old global `src/hooks`, `src/store`, `components/
 Common repo commands:
 
 - `yarn dev`
-- `yarn db:reset:remote` (destructive; requires `PROD_DATABASE_CONNECTION_STRING` and `CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema`)
-- `yarn audit:srd`
-- `yarn audit:srd:production`
-- `yarn seed:srd:local`
-- `yarn seed:srd:production:dry-run`
-- `yarn seed:srd:production`
+- `yarn dev:session-worker`
 - `yarn build:web`
 - `yarn build:apis`
 - `yarn build:shared`
 - `yarn build:schema`
-- `yarn build:db`
+- `yarn build:session-worker`
+- `yarn validate:pre-staging:local`
 - `yarn test:web`
 - `yarn test:web:e2e`
 - `yarn turbo:test:authoring`
@@ -321,14 +318,23 @@ Web workspace commands:
 - `yarn workspace @artificer-toolkit/web test:e2e:authoring-storybook`
 - `yarn workspace @artificer-toolkit/web test:e2e:storybook`
 
+Convex and Worker commands:
+
+- `yarn workspace @artificer-toolkit/apis test:convex`
+- `yarn workspace @artificer-toolkit/apis codegen:convex`
+- `yarn workspace @artificer-toolkit/apis seed:srd:convex:local`
+- `yarn workspace @artificer-toolkit/apis audit:srd:convex:local`
+- `yarn workspace @artificer-toolkit/session-worker test`
+- `yarn workspace @artificer-toolkit/rules-runtime build`
+
 ## TypeScript Quality Rules
 
 - Do not introduce `any` in new or modified active code.
 - Prefer `unknown`, generics, discriminated unions, or schema-derived types instead of `any`.
 - If an existing legacy file already contains `any`, do not expand it. Quarantine it as legacy or replace it when touching that surface.
 - Active frontend and API code should use focused package imports instead of package root barrels: prefer `@artificer-toolkit/schema/api/...`, `@artificer-toolkit/schema/subjects/...`, `@artificer-toolkit/schema/grants/...`, `@artificer-toolkit/shared/core`, `@artificer-toolkit/shared/maps`, `@artificer-toolkit/shared/authored`, or other narrow subpaths over `@artificer-toolkit/schema` and `@artificer-toolkit/shared`.
-- Root `@artificer-toolkit/schema` and `@artificer-toolkit/shared` imports remain compatibility surfaces only. Treat new root-barrel imports in active web/API/functions code as type-graph regressions unless there is a documented reason.
-- Keep very large inferred DTOs localized at package boundaries. Prefer explicit exported DTO/input types for app-facing payloads when repeated `z.infer` expansion would spread through web, API, and function layers.
+- Root `@artificer-toolkit/schema` and `@artificer-toolkit/shared` imports remain compatibility surfaces only. Treat new root-barrel imports in active web, Convex or Worker code as type-graph regressions unless there is a documented reason.
+- Keep very large inferred DTOs localized at package boundaries. Prefer explicit exported DTO/input types for app-facing payloads when repeated `z.infer` expansion would spread through web, Convex and Worker layers.
 - Do not leave unused variables, unused imports, dead code, commented-out code, or temporary debug logging.
 - Treat TypeScript, lint, and test warnings in touched active code as blockers unless they are already documented legacy non-blockers.
 
