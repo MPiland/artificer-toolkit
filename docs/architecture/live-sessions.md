@@ -466,6 +466,7 @@ returns both values as null. Scene bindings and prepared Encounter decisions ret
 | Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                         |
 | Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching capture/hydrate caller secret                                                      |
 | Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                            |
+| Convex + Worker     | `RULES_CONTINUATION_SECRET`       | At least 32-byte rules continuation sealing secret; identical on both sides, never sent over HTTP |
 
 Browser variables must never contain either secret. Staging and production bind each Worker to the
 matching Convex deployment and web origin.

@@ -18,9 +18,6 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
   sceneCommandResultDtoSchema,
-  sceneDoorStateCommandInputDtoSchema,
-  sceneTokenMovementCommandInputDtoSchema,
-  sceneUndoLastMoveCommandInputDtoSchema,
   type CampaignSceneStateDto,
   type SceneCommandResultDto,
   type SceneTransientEnvelopeDto
@@ -33,9 +30,7 @@ import {
   projectSceneDeltaForViewer,
   projectSceneForViewer,
   projectSceneTokenPreviewForViewer,
-  sceneTokenMovementFailure,
   SceneBarrierIndex,
-  VTT_SCENE_LIMITS,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import { decodeJwt } from 'jose'
@@ -58,6 +53,10 @@ import {
   projectNativeLiveSessionState
 } from './nativeLiveSessionState.js'
 import {
+  liveSessionSceneCommandInputSchema,
+  planLiveSceneCommand
+} from './nativeRoomSceneCommand.js'
+import {
   captureNativeTransient,
   hydrateNativeTransientScene,
   NativeSceneRequestError
@@ -66,25 +65,6 @@ import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
 const MAX_MESSAGE_BYTES = 256 * 1024
-const liveSessionSceneCommandInputSchema = z.union([
-  sceneDoorStateCommandInputDtoSchema,
-  sceneTokenMovementCommandInputDtoSchema,
-  sceneUndoLastMoveCommandInputDtoSchema
-])
-// Older receipts contain the entire Scene; the same fields recover their token positions.
-const sceneMovementUndoSchema = z.object({
-  id: z.uuid(),
-  version: z.number().int().nonnegative(),
-  tokens: z
-    .array(
-      z.object({
-        id: z.uuid(),
-        position: z.strictObject({ x: z.number().finite(), y: z.number().finite() })
-      })
-    )
-    .min(1)
-    .max(VTT_SCENE_LIMITS.tokens)
-})
 
 const socketAttachmentSchema = z.strictObject({
   authorityEpoch: z.string().uuid(),
@@ -566,7 +546,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           type: 'TRANSIENT_READY'
         })
         this.#sendStateSync(socket, current)
-        this.ctx.waitUntil(this.#flushOutbox())
+        this.#publishInBackground()
       }
     } catch (error) {
       if (
@@ -792,139 +772,25 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
 
-    let delta: NonNullable<SceneCommandResultDto['delta']>
-    if (command.type === 'SET_SCENE_DOOR_STATE') {
-      if (admission.role !== 'OWNER') {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'FORBIDDEN',
-          'Only the Campaign owner may change Scene doors.',
-          current.sequence
-        )
-        return
-      }
-      delta = {
-        barrierId: command.barrierId,
-        kind: 'DOOR_STATE_SET',
-        state: command.state
-      }
-    } else if (command.type === 'MOVE_SCENE_TOKEN') {
-      if (
-        command.expectedEncounterVersion !== null ||
-        synchronized.sceneEncounterBound ||
-        scene.fogLayers.length > 0 ||
-        scene.tokens.some((token) => token.vision?.enabled === true)
-      ) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'UNAVAILABLE',
-          'Encounter-bound or fog-derived token movement is not available through live play yet.',
-          current.sequence,
-          correction()
-        )
-        return
-      }
-      const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
-      if (
-        admission.role !== 'OWNER' &&
-        (!token || !token.controlledByUserIds.includes(admission.userId))
-      ) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'FORBIDDEN',
-          'The current user does not control this Scene token.',
-          current.sequence
-        )
-        return
-      }
-      const position = command.path.at(-1)!
-      const movementFailure = sceneTokenMovementFailure(
-        scene,
-        command.tokenId,
-        position,
-        command.path
+    const plan = planLiveSceneCommand({
+      actor: admission,
+      command,
+      latestUnmatchedMove: () => this.#journal.latestUnmatchedSceneTokenMove(scene.id),
+      scene,
+      sceneEncounterBound: synchronized.sceneEncounterBound
+    })
+    if (plan.kind === 'REJECTED') {
+      this.#rejectCommand(
+        socket,
+        commandId,
+        plan.code,
+        plan.message,
+        current.sequence,
+        plan.correct ? correction() : undefined
       )
-      if (movementFailure) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'INVALID_COMMAND',
-          movementFailure,
-          current.sequence,
-          correction()
-        )
-        return
-      }
-      delta = { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId }
-    } else {
-      if (admission.role !== 'OWNER') {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'FORBIDDEN',
-          'Only the Campaign owner may undo Scene movement.',
-          current.sequence
-        )
-        return
-      }
-      const targetReceipt = this.#journal.latestUnmatchedSceneTokenMove(scene.id)
-      if (!targetReceipt?.undoJson) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'INVALID_COMMAND',
-          'There is no committed token move to undo.',
-          current.sequence,
-          correction()
-        )
-        return
-      }
-      const target = liveSessionWebSocketServerMessageDtoSchema.parse(
-        JSON.parse(targetReceipt.receiptJson)
-      )
-      const targetResult =
-        target.type === 'COMMAND_COMMITTED' && target.delta?.scope === 'SCENE'
-          ? target.delta.result
-          : null
-      const beforeMove = sceneMovementUndoSchema.parse(JSON.parse(targetReceipt.undoJson))
-      if (
-        !targetResult ||
-        targetResult.delta?.kind !== 'TOKEN_MOVED' ||
-        targetResult.commandId !== targetReceipt.commandId ||
-        targetResult.sceneId !== scene.id ||
-        beforeMove.id !== scene.id ||
-        beforeMove.version + 1 !== targetResult.version
-      )
-        throw new Error('Stored live Session token movement receipt is inconsistent.')
-      const moveDelta = targetResult.delta
-      const priorToken = beforeMove.tokens.find((candidate) => candidate.id === moveDelta.tokenId)
-      const currentToken = scene.tokens.find((candidate) => candidate.id === moveDelta.tokenId)
-      if (
-        !priorToken ||
-        !currentToken ||
-        currentToken.position.x !== moveDelta.position.x ||
-        currentToken.position.y !== moveDelta.position.y
-      ) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'INVALID_COMMAND',
-          'The latest token move can no longer be safely undone.',
-          current.sequence,
-          correction()
-        )
-        return
-      }
-      delta = {
-        kind: 'TOKEN_MOVE_UNDONE',
-        position: priorToken.position,
-        tokenId: currentToken.id,
-        undoneCommandId: targetReceipt.commandId
-      }
+      return
     }
+    const { delta } = plan
 
     const occurredAt = new Date().toISOString()
     let nextScene: CampaignSceneStateDto
@@ -1010,7 +876,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     this.#cache = { ...synchronized, scene: nextScene, synchronized: true }
     this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult)
-    this.ctx.waitUntil(this.#flushOutbox())
+    this.#publishInBackground()
     return
   }
 
@@ -1049,6 +915,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       message,
       type: 'COMMAND_REJECTED'
     })
+  }
+
+  /** Committed entries stay in the outbox; the next command, admission or drain retries them. */
+  #publishInBackground(): void {
+    this.ctx.waitUntil(this.#flushOutbox().catch(() => undefined))
   }
 
   #flushOutbox(): Promise<void> {

@@ -11,10 +11,6 @@ import {
   type MovementTarget as RuntimeMovementTarget
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
-export {
-  buildMovementTarget,
-  nativeCharacterMaximumHitPoints
-} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 export type MovementTarget = RuntimeMovementTarget<
   NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
 >

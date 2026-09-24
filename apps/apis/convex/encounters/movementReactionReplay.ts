@@ -1,4 +1,3 @@
-import { advanceNativeActionGraphs } from './actionExecution'
 import {
   prepareNativeMovementReactionAction,
   discoverNativeMovementResistance,
@@ -9,6 +8,7 @@ import type { MutationCtx } from '../_generated/server'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { movementReactionActionExecutionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMovementReactionReceipts'
 import type { z } from 'zod'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 
 type MovementReactionActionExecutionDto = z.infer<typeof movementReactionActionExecutionDtoSchema>
 

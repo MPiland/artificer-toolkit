@@ -4,7 +4,7 @@ import type { QueryCtx } from '../_generated/server'
 import { readNativeConcentrationResponseAdmission } from '../encounters/concentrationResponseAdmission'
 import { verifyNativeCleavingParentChain } from '../encounters/cleavingParent'
 import { requireIdentity } from '../lib/identity'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 
 type ConcentrationResponseScope = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   concentrationResponse: ResolveRuleOccurrenceInputDto
@@ -23,12 +23,11 @@ export async function readLiveConcentrationResponseAdmission(
     response.expectedVersion !== input.expectedVersion
   )
     throw new Error('Live Session concentration response scope mismatch.')
-  const authority = await requireCampaignLiveAuthority(ctx, {
+  await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
     sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
-  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   const admission = await readNativeConcentrationResponseAdmission(ctx, response, userId)
   if (
     !admission ||

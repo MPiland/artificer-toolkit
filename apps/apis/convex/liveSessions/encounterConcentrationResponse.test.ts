@@ -9,7 +9,10 @@ import type {
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
@@ -50,13 +53,8 @@ afterEach(() => {
 
 async function runtime() {
   return createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(
-      await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(
-          `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-        )
-      )
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
     ),
     definitions: {
       async requireCurrent() {

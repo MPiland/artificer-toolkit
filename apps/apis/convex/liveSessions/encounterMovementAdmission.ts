@@ -13,7 +13,7 @@ import { normalizeSceneGeometryEntity } from '../scenes/geometryValues'
 import { parseLiveEntity } from '../scenes/liveDocuments'
 import { assertMovementResolutionCurrent } from '../scenes/movementResolutionDocuments'
 import { readSessionVisionScope } from '../scenes/sessionVisionDocuments'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 
 /** Authorize raw movement reads against the staged Scene command and current Encounter. */
 export async function readLiveMovementAdmission(
@@ -25,12 +25,11 @@ export async function readLiveMovementAdmission(
 ) {
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
-  const authority = await requireCampaignLiveAuthority(ctx, {
+  await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
     sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
-  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   const current = await readGeometrySave(ctx, input.movement.saveId)
   const { save, header, campaign, membership, presented } = current
   if (

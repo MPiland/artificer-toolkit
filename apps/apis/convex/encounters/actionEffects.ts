@@ -6,10 +6,8 @@ import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-r
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { MutationCtx } from '../_generated/server'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
-import { advanceNativeActionGraphs } from './actionExecution'
-import { prepareNativeEncounterActionMechanics } from './actionMechanics'
-
-export { prepareNativeActionEffectsPlan }
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 
 type PreparedMechanics = Awaited<ReturnType<typeof prepareNativeEncounterActionMechanics>>
 type CompleteExecution = Extract<

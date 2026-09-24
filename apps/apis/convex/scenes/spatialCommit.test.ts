@@ -24,9 +24,9 @@ import {
 } from '../encounters/spatialMovement'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { readGeometrySave } from './geometryDocuments'
-import { persistSpatialPreparation } from './spatialPreparation'
 import { commitPreparedSpatialTerminal } from './spatialCommit.helper'
 import { publishPreparedSpatialTerminal } from './spatialPublication.helper'
+import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
 const timeline = makeFunctionReference<
   'query',

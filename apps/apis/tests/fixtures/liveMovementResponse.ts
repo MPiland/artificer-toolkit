@@ -13,7 +13,10 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   beginNativeLiveMovement,
   stageNativeLiveMovement
@@ -153,13 +156,8 @@ export async function preparePrivateMovementResponse(input: {
     movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
   }
   const runtime = createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(
-      await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(
-          `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-        )
-      )
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
     ),
     definitions: {
       async requireCurrent(definitionId: string) {

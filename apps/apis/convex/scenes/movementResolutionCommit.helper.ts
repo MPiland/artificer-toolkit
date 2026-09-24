@@ -5,8 +5,8 @@ import { readSpatialPreparation } from './geometryDocuments'
 import type { readResponse } from './movementResolutionDocuments'
 import { evaluateSceneMovementResponse } from './movementResponse.helper'
 import { assertNextMovementReactionCurrent } from './movementResolutionPreparation.helper'
-import { persistSpatialPreparation } from './spatialPreparation'
 import { settleSceneMovementSettlements } from './movementSettlements'
+import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
 /** Consume a response checked in this mutation, reconstruct frozen results, and apply mechanics. */
 export async function commitPreparedMovementResponse(

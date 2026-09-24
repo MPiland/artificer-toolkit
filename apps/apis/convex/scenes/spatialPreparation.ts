@@ -20,8 +20,6 @@ import {
 import { discoverSceneMovementReactions } from './movementPerceptionValidation'
 import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
-export { persistSpatialPreparation } from './spatialPreparationPersistence'
-
 /** The geometry action validates the complete path before requesting sealed rule evidence. */
 export const prepare = internalMutation({
   args: zodToConvexFields(sceneSpatialPrepareInputSchema.shape),

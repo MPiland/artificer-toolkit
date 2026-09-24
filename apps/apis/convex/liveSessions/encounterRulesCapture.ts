@@ -23,7 +23,7 @@ import { readNativeEncounterActionResponseAdmission } from '../encounters/action
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { requireIdentity } from '../lib/identity'
 import { readCharacterEffect, readEncounterEffect } from '../rules/effectStore'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { readEncounterTurnCapture } from './encounterTurnCapture'
@@ -148,12 +148,11 @@ export async function readEncounterRulesCapture(
       command.expectedVersion !== input.expectedVersion
     )
       throw new Error('Live Session Encounter command scope mismatch.')
-    const authority = await requireCampaignLiveAuthority(ctx, {
+    await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: input.campaignId,
       sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
-    if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
     // Stored receipts precede current-version checks and every heavy preparation read.
     let responseAdmission = null
     if (input.request.kind === 'ACTION_RESPONSE') {
@@ -216,12 +215,11 @@ export async function readEncounterRulesCapture(
     throw new Error('Live Session role mismatch.')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (!movementAdmission) {
-    const authority = await requireCampaignLiveAuthority(ctx, {
+    await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
       sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
-    if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   }
   const session =
     movementAdmission?.session ?? (await requireSession(ctx, campaign.id, input.sessionId))

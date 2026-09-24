@@ -11,11 +11,11 @@ import { createSpatialPreparationFixture as setup } from '../../tests/fixtures/s
 import { internal } from '../_generated/api'
 import { readRunState } from '../encounters/documents'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
-import { persistSpatialPreparation } from './spatialPreparation'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { advanceLiveState, readLiveScene } from './liveDocuments'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
 beforeEach(() =>
   vi.stubEnv('BETTER_AUTH_SECRET', 'spatial-preparation-test-secret-at-least-32-bytes')

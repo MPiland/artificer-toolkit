@@ -32,7 +32,7 @@ import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { requireSystem } from '../content/systemDocuments'
 import { isImportRowVisible } from '../imports/visibility'
 import { requireIdentity } from '../lib/identity'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
@@ -118,12 +118,11 @@ export async function readCharacterRulesCapture(
     throw new Error('Live Session role mismatch.')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (!movementAdmission) {
-    const authority = await requireCampaignLiveAuthority(ctx, {
+    await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
       sessionId: input.sessionId,
       epoch: input.authorityEpoch
     })
-    if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   }
   const session =
     movementAdmission?.session ?? (await requireSession(ctx, campaign.id, input.sessionId))

@@ -3,11 +3,6 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementRuleService'
 import { prepareEncounterMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
-export {
-  movementRemainderAtBoundary,
-  retainedMovementSpatialExecutions,
-  retainedMovementReactionExecutions
-} from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
 import { revalidateEncounterMovementReactionOption } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { MutationCtx } from '../_generated/server'

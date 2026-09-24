@@ -7,7 +7,7 @@ import { readSpatialPreparation } from './geometryDocuments'
 import { readResponse } from './movementResolutionDocuments'
 import { revalidateSceneMovementReactionChoice } from './movementPerceptionValidation'
 import { readSpatialSceneGeometry } from './spatialGeometry'
-import { persistSpatialPreparation } from './spatialPreparation'
+import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
 type ResponseOutcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 

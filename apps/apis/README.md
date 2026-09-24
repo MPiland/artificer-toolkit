@@ -357,6 +357,8 @@ yarn convex dev --configure existing --team artificertoolkit --project artificer
 yarn convex env set SITE_URL http://localhost:3000 --deployment local
 # Pipe a newly generated secret to avoid shell history; never reuse staging credentials.
 yarn convex env set BETTER_AUTH_SECRET --deployment local
+# Must equal the Session Worker's RULES_CONTINUATION_SECRET; distinct from every other secret.
+yarn convex env set RULES_CONTINUATION_SECRET --deployment local
 yarn dev:convex
 ```
 

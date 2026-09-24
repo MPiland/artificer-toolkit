@@ -1,4 +1,5 @@
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
+import { assertStagedCharacterFactsCurrent } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { characterEncounterInitiativeResultSchema } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
@@ -30,14 +31,13 @@ export async function loadEncounterInitiativeSources(
       const staged = stagedMovementTargets?.get(actor.id)
       if (staged) {
         const facts = staged.characterFacts
-        if (
-          staged.actor.id !== actor.id ||
-          !facts ||
-          facts.active.id !== actor.sourceId ||
-          facts.active.streamVersion !== actor.sourceRevision ||
-          facts.character.systemId !== state.gameSystemId
+        if (staged.actor.id !== actor.id) throw new Error('Character initiative source is stale.')
+        assertStagedCharacterFactsCurrent(
+          facts,
+          actor,
+          state.gameSystemId,
+          'Character initiative source is stale.'
         )
-          throw new Error('Character initiative source is stale.')
         const { snapshot, registry, output } = facts.ruleEvaluation
         if (snapshot.characterId !== actor.sourceId || snapshot.systemId !== state.gameSystemId)
           throw new Error('Character initiative source identity does not match the actor.')

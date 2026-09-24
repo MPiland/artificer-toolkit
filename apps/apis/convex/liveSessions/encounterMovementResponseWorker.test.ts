@@ -16,7 +16,10 @@ import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projecti
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { readCurrentEntities } from '../scenes/currentEntities'
@@ -260,13 +263,8 @@ it('publishes a sealed movement response through the private DO path without rep
   }
   let captureScope = scope
   const runtime = createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(
-      await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(
-          `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-        )
-      )
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
     ),
     definitions: {
       async requireCurrent(definitionId: string) {

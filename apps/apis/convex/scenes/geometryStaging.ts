@@ -43,7 +43,7 @@ import { readPresentedVisionSession, readSessionVisionScope } from './sessionVis
 import { assertSceneVisionCharacters } from './visionFreshness'
 import {
   assertConvexOwnsCampaignLiveState,
-  requireCampaignLiveAuthority
+  requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
@@ -73,7 +73,7 @@ export async function beginSceneGeometry(
   args: SceneGeometryExecuteInput,
   movementResolution?: SceneStoredGeometrySave['movementResolution'],
   captureSessionVision = true,
-  liveAuthority?: Parameters<typeof requireCampaignLiveAuthority>[1]
+  liveAuthority?: Parameters<typeof requireActiveCampaignLiveAuthority>[1]
 ): Promise<SceneGeometryBeginResult> {
   // Parse again so storage never trusts its caller.
   const input = normalizeGeometryInput(sceneNativeGeometryCommandInputSchema.parse(args.input))
@@ -92,8 +92,7 @@ export async function beginSceneGeometry(
       liveAuthority.sessionId !== args.session?.sessionId
     )
       throw new Error('Live movement authority scope is inconsistent.')
-    const authority = await requireCampaignLiveAuthority(ctx, liveAuthority)
-    if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
+    await requireActiveCampaignLiveAuthority(ctx, liveAuthority)
   } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN')
     await assertConvexOwnsCampaignLiveState(ctx, campaign.id)
   const { session } = sceneGeometryExecuteInputSchema.parse(args)

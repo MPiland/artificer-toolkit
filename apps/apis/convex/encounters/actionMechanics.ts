@@ -8,8 +8,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import type { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 
-export { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
-
 /** Settles the prepared source resource and target mechanics in the caller's transaction. */
 export async function settleNativeEncounterActionMechanics(
   ctx: MutationCtx,

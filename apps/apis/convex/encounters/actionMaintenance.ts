@@ -14,9 +14,9 @@ import type { Doc } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
-import type { prepareNativeEncounterActionMechanics } from './actionMechanics'
 import type { MovementTarget } from './movementTargets'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence'
+import type { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 
 type Prepared = Awaited<ReturnType<typeof prepareNativeEncounterActionMechanics>>
 

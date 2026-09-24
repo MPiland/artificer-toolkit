@@ -3,8 +3,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 
-export { planEncounterMovementReactionEffects as planNativeMovementReactionEffects } from '@artificer-toolkit/rules-runtime/encounterMovementReactionEffects'
-
 /** Keeps all store authority and capacity checks; a forecast mismatch rolls back the mutation. */
 export async function persistNativeMovementReactionEffects(
   ctx: MutationCtx,

@@ -7,7 +7,10 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { api } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
@@ -554,13 +557,8 @@ describe('turn damage concentration ordering', () => {
         LIVE_SESSION_WORKER_SECRET: workerSecret
       }
       const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: new Uint8Array(
-          await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(
-              `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-            )
-          )
+        continuationIntegrityKey: await deriveRulesContinuationKey(
+          process.env.RULES_CONTINUATION_SECRET
         ),
         definitions: {
           async requireCurrent() {
@@ -745,13 +743,8 @@ it('commits ordered Automatic turn concentration through the private DO terminal
       })
     )
     const runtime = createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(
-        await crypto.subtle.digest(
-          'SHA-256',
-          new TextEncoder().encode(
-            `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-          )
-        )
+      continuationIntegrityKey: await deriveRulesContinuationKey(
+        process.env.RULES_CONTINUATION_SECRET
       ),
       definitions: {
         async requireCurrent() {

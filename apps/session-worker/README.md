@@ -15,7 +15,8 @@ Configure these server-only values for each Worker environment:
 - `LIVE_SESSION_ALLOWED_ORIGINS`: comma-separated exact web origins;
 - `CONVEX_SITE_URL`: the matching Convex HTTP Actions origin;
 - `LIVE_SESSION_TICKET_SECRET`: the ticket-signing secret shared with Convex;
-- `LIVE_SESSION_WORKER_SECRET`: the independent Worker-to-Convex secret shared with the protected live-session HTTP Actions.
+- `LIVE_SESSION_WORKER_SECRET`: the independent Worker-to-Convex secret shared with the protected live-session HTTP Actions;
+- `RULES_CONTINUATION_SECRET`: the rules continuation sealing secret, identical in Convex and this Worker and never sent over HTTP. It is independent of Better Auth's secret.
 
 Keep both secrets out of browser variables. The protected HTTP boundary compares `LIVE_SESSION_WORKER_SECRET` through the stable `x-artificer-live-session-secret` header. Bootstrap and Scene capture/hydration also require the signed-in user's bearer token. Internal publication and presentation control use the independent Worker secret and their authority fences.
 

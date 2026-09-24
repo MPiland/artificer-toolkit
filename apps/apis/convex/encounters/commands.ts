@@ -34,7 +34,6 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   serverRuleExecutionPendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import type { TurnResolutionCommandDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnCommands'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -88,11 +87,7 @@ import { nextRollInt } from '../lib/rollRandom'
 import { readRunActor, readRunActors, readRunProjection } from './documents'
 import { loadEncounterInitiativeSources } from './initiativeSources'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import {
-  createInitiativeDeclarationRequest,
-  compileInitiativeDeclaration,
-  loadInitiativeDeclarationSources
-} from './initiativeDeclarationSources'
+import { loadInitiativeDeclarationSources } from './initiativeDeclarationSources'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { correctInitiativeCursor } from './initiativeCorrection'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -119,6 +114,10 @@ import { readNativeTurnCommandPending } from './turnCommandPending'
 import { readNativeTurnResponseReplay } from './turnResponseReplay'
 import { resumeNativeCleaving } from './cleaving'
 import { resumeNativeConcentration } from './concentrationResponses'
+import {
+  createEncounterInitiativeDeclarationRequest,
+  compileEncounterInitiativeDeclaration
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationCompiler'
 
 const executeEncounterCharacterCommand = makeFunctionReference<
   'mutation',
@@ -520,7 +519,7 @@ export const execute = mutation({
           : null
         if (!participant || !source)
           throw new Error('Initiative declaration source is unavailable.')
-        const request = createInitiativeDeclarationRequest({
+        const request = createEncounterInitiativeDeclarationRequest({
           requestId: crypto.randomUUID(),
           encounterId: row.id,
           round: 1,
@@ -1127,7 +1126,7 @@ export const execute = mutation({
           participant.version !== request.participantExpectedVersion
         )
           throw new Error('Initiative declaration is stale.')
-        const current = createInitiativeDeclarationRequest({
+        const current = createEncounterInitiativeDeclarationRequest({
           ...request,
           participantExpectedVersion: participant.version,
           controllerUserId: source.controllerUserId,
@@ -1146,7 +1145,7 @@ export const execute = mutation({
             ))
         )
           throw new Error('Initiative declaration selection is unavailable.')
-        const compiled = compileInitiativeDeclaration({
+        const compiled = compileEncounterInitiativeDeclaration({
           source,
           primary: input.resolution.primary,
           bonus: input.resolution.bonus
@@ -1192,7 +1191,7 @@ export const execute = mutation({
                 }
               ]
             },
-            request: createInitiativeDeclarationRequest({
+            request: createEncounterInitiativeDeclarationRequest({
               requestId: crypto.randomUUID(),
               encounterId: row.id,
               round: root.round,

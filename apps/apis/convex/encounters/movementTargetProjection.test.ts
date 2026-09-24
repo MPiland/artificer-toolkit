@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { buildMovementTarget, loadMovementTargets } from './movementTargets'
+import { loadMovementTargets } from './movementTargets'
+import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
 describe('movement target projection', () => {
   it('rebuilds loaded Character targets from projected hit points without persistence', async () => {

@@ -12,7 +12,6 @@ import {
   planNativeMovementReactionAction,
   settleNativeMovementReactionAction,
   resumeNativeMovementLegendaryResistance,
-  bindNativeMovementReactionInterruption,
   type NativeMovementReactionSettlementInput
 } from './actionMovementReactions'
 import { discoverNativeMovementReactions } from './movementReactionDiscovery'
@@ -23,15 +22,19 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { createRulesRuntime } from '../rules/runtime'
-import { prepareNativeActionTest, continueNativeActionAfterTest } from './actionExecution'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { replayNativeMovementReactionAction } from './movementReactionReplay'
+import { retainEncounterMovementReactionActionEvidence } from '@artificer-toolkit/rules-runtime/encounterMovementReactionContinuation'
+import { bindEncounterMovementReactionInterruption } from '@artificer-toolkit/rules-runtime/encounterMovementReactionExecution'
+import {
+  prepareNativeActionTest,
+  continueNativeActionAfterTest
+} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
   retainNativeMovementLegendaryResistance,
   resolveNativeMovementLegendaryResistance,
   replayNativeMovementLegendaryResistance
-} from './movementLegendaryResistance'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { replayNativeMovementReactionAction } from './movementReactionReplay'
-import { retainEncounterMovementReactionActionEvidence } from '@artificer-toolkit/rules-runtime/encounterMovementReactionContinuation'
+} from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
 
 const prepareScene = makeFunctionReference<
   'mutation',
@@ -305,7 +308,7 @@ it.each([false, true])(
         occurredAt: new Date().toISOString(),
         execution: {
           ...completed,
-          execution: bindNativeMovementReactionInterruption(
+          execution: bindEncounterMovementReactionInterruption(
             completed.execution,
             completed.phaseReceipts,
             prepared.action.movementInterruption,

@@ -36,7 +36,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { featureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -771,13 +774,8 @@ describe('native Cleaving action settlement', () => {
     )
     try {
       const before = await records(base)
-      const continuationIntegrityKey = new Uint8Array(
-        await crypto.subtle.digest(
-          'SHA-256',
-          new TextEncoder().encode(
-            `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-          )
-        )
+      const continuationIntegrityKey = await deriveRulesContinuationKey(
+        process.env.RULES_CONTINUATION_SECRET
       )
       const rulesRuntime = createPlatformRulesRuntime({
         continuationIntegrityKey,
@@ -1064,13 +1062,8 @@ describe('native Cleaving action settlement', () => {
         )
         const runtime = async () =>
           createPlatformRulesRuntime({
-            continuationIntegrityKey: new Uint8Array(
-              await crypto.subtle.digest(
-                'SHA-256',
-                new TextEncoder().encode(
-                  `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-                )
-              )
+            continuationIntegrityKey: await deriveRulesContinuationKey(
+              process.env.RULES_CONTINUATION_SECRET
             ),
             definitions: {
               async requireCurrent() {

@@ -33,7 +33,7 @@ import { publishSpatialPending } from '../scenes/spatialPendingPublication'
 import { publishMovementResponse } from '../scenes/movementResolutionPublication'
 import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { persistLiveMovementSpatial } from './encounterMovementSpatialCommit'
 import { persistLiveMovementReaction } from './encounterMovementReactionCommit'
@@ -101,12 +101,11 @@ export async function commitLiveMovement(ctx: MutationCtx, args: LiveSessionMove
     input.finish.baseOrdinal !== input.movement.baseTokenOrdinal
   )
     throw new Error('Live movement commit identity or save mismatch.')
-  const authority = await requireCampaignLiveAuthority(ctx, {
+  await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
     sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
-  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   const current = await readGeometrySave(ctx, input.movement.saveId)
   const { save, campaign, membership } = current
   const preparation = readSpatialPreparation(save)

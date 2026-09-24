@@ -2,3 +2,4 @@ LIVE_SESSION_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 CONVEX_SITE_URL=http://127.0.0.1:3211
 LIVE_SESSION_TICKET_SECRET=<local-ticket-secret-with-at-least-32-bytes>
 LIVE_SESSION_WORKER_SECRET=<different-local-worker-secret-with-at-least-32-bytes>
+RULES_CONTINUATION_SECRET=<third-local-rules-secret-with-at-least-32-bytes-matching-convex>

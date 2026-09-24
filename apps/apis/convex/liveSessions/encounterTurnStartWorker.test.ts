@@ -29,7 +29,10 @@ import {
   liveSessionEncounterTurnPendingInputSchema,
   type LiveSessionEncounterTurnCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -187,13 +190,8 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
     })
   )
   const runtime = createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(
-      await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(
-          `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-        )
-      )
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
     ),
     definitions: {
       async requireCurrent() {

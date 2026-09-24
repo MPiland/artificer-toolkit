@@ -37,3 +37,12 @@ export async function requireCampaignLiveAuthority(
     throw new Error('Live Session authority is stale.')
   return authority
 }
+
+export async function requireActiveCampaignLiveAuthority(
+  ctx: QueryCtx,
+  input: { campaignId: string; sessionId: string; epoch: string }
+) {
+  const authority = await requireCampaignLiveAuthority(ctx, input)
+  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
+  return authority
+}

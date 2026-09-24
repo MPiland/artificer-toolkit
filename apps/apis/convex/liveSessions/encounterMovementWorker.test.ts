@@ -17,7 +17,10 @@ import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/c
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -296,13 +299,8 @@ it.each([
       movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
     }
     const runtime = createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(
-        await crypto.subtle.digest(
-          'SHA-256',
-          new TextEncoder().encode(
-            `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-          )
-        )
+      continuationIntegrityKey: await deriveRulesContinuationKey(
+        process.env.RULES_CONTINUATION_SECRET
       ),
       definitions: {
         async requireCurrent(definitionId: string) {

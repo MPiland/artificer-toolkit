@@ -17,7 +17,10 @@ import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import type { prepareNativeDisarm } from './actionDisarmPreparation'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { buildMovementTarget, nativeCharacterMaximumHitPoints } from './movementTargets'
+import {
+  buildMovementTarget,
+  nativeCharacterMaximumHitPoints
+} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
 /** Persists terminal item and ACTION changes inside the coordinator's transaction. */
 export async function settleNativeDisarm(

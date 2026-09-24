@@ -11,7 +11,10 @@ import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtim
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import {
+  assertStagedCharacterFactsCurrent,
+  type MovementTarget
+} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
@@ -145,13 +148,12 @@ export function createNativeLiveTurnStages(
       async function loadCharacter(actor: (typeof stage.actors)[number]) {
         const target = stage.movementTargets?.get(actor.id) ?? (await loadTarget(actor.id))
         const facts = target?.characterFacts
-        if (
-          !facts ||
-          facts.active.id !== actor.sourceId ||
-          facts.active.streamVersion !== actor.sourceRevision ||
-          facts.character.systemId !== state.gameSystemId
+        assertStagedCharacterFactsCurrent(
+          facts,
+          actor,
+          state.gameSystemId,
+          'Character initiative source is stale.'
         )
-          throw new Error('Character initiative source is stale.')
         return facts
       }
       return prepareEncounterTurnInitiative({

@@ -7,7 +7,7 @@ import { readRunActor, readRunState } from './documents'
 import { seedSpatialEffect as seedEffect } from '../../tests/fixtures/spatialEffect'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import * as movementTargets from './movementTargets'
-import { buildMovementTarget, type MovementTarget } from './movementTargets'
+import type { MovementTarget } from './movementTargets'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
@@ -18,6 +18,7 @@ import {
 import { planNativeSpatialMovementPrefix } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
 import { applyEncounterMechanicsBatch } from './mechanicsBatch'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
 beforeEach(() => vi.stubEnv('BETTER_AUTH_SECRET', 'native-spatial-test-secret-at-least-32-bytes'))
 afterEach(() => {

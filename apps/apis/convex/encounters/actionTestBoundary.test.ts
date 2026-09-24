@@ -2,9 +2,12 @@ import { expect, it } from 'vitest'
 import { reactionInput, setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 
 import { createRulesRuntime } from '../rules/runtime'
-import { continueNativeActionAfterTest, prepareNativeActionTest } from './actionExecution'
 import { prepareNativeMovementReactionAction } from './actionMovementReactions'
 import { discoverNativeMovementReactions } from './movementReactionDiscovery'
+import {
+  continueNativeActionAfterTest,
+  prepareNativeActionTest
+} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 
 type PreparedSaveAction = {
   prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>

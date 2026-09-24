@@ -1,8 +1,5 @@
-import {
-  createEncounterInitiativeDeclarationRequest as createInitiativeDeclarationRequest,
-  compileEncounterInitiativeDeclaration as compileInitiativeDeclaration
-} from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationCompiler'
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
+import { assertStagedCharacterFactsCurrent } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -14,8 +11,6 @@ import { readAuthoredVersion } from '../content/documents'
 import { requireSystem } from '../content/systemDocuments'
 import { readRunActors } from './documents'
 import type { MovementTarget } from './movementTargets'
-
-export { createInitiativeDeclarationRequest, compileInitiativeDeclaration }
 
 /** Locks current native declaration sources through authorized Sheet and publication reads. */
 export async function loadInitiativeDeclarationSources(
@@ -39,14 +34,13 @@ export async function loadInitiativeDeclarationSources(
       const staged = stagedMovementTargets?.get(actor.id)
       if (staged) {
         const facts = staged.characterFacts
-        if (
-          staged.actor.id !== actor.id ||
-          !facts ||
-          facts.active.id !== actor.sourceId ||
-          facts.active.streamVersion !== actor.sourceRevision ||
-          facts.character.systemId !== state.gameSystemId
+        if (staged.actor.id !== actor.id) throw new Error('Encounter Character source is stale.')
+        assertStagedCharacterFactsCurrent(
+          facts,
+          actor,
+          state.gameSystemId,
+          'Encounter Character source is stale.'
         )
-          throw new Error('Encounter Character source is stale.')
         return Promise.resolve(facts)
       }
       return loadCharacterSheetFacts(ctx, campaign.ownerUserId, actor.sourceId, campaign.id)

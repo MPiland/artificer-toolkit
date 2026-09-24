@@ -52,7 +52,10 @@ import {
   type LiveSessionEncounterTurnCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import {
   commitNativeLiveEncounterTurn,
@@ -796,13 +799,8 @@ describe('native initiative declarations', () => {
         })
       )
       const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: new Uint8Array(
-          await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(
-              `artificer-toolkit:session-host:rules-continuation:v1\0${authSecret}`
-            )
-          )
+        continuationIntegrityKey: await deriveRulesContinuationKey(
+          process.env.RULES_CONTINUATION_SECRET
         ),
         definitions: {
           async requireCurrent() {
@@ -968,9 +966,7 @@ describe('native initiative declarations', () => {
         if (planned.kind !== 'PLANNED') throw new Error('Expected planned declaration response.')
         expect(await storedInitiative(base)).toEqual(before)
         const preparedContext =
-          planned.prepared.kind === 'PENDING'
-            ? planned.prepared.snapshot.applicationContext
-            : null
+          planned.prepared.kind === 'PENDING' ? planned.prepared.snapshot.applicationContext : null
         if (preparedContext && preparedContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION')
           throw new Error('Expected the next declaration context.')
         const history =

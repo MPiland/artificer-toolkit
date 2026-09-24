@@ -95,6 +95,25 @@ export function nativeCharacterMaximumHitPoints(
   )
 }
 
+/** Staged Character facts must match the actor's exact source revision and the Run's System. */
+export function assertStagedCharacterFactsCurrent<
+  TFacts extends { active: { id: string; streamVersion: number }; character: { systemId: string } }
+>(
+  facts: TFacts | null | undefined,
+  actor: Pick<EncounterRunActorState, 'sourceId' | 'sourceRevision'>,
+  gameSystemId: string,
+  message: string
+): asserts facts is TFacts {
+  if (
+    !facts ||
+    !actor.sourceId ||
+    facts.active.id !== actor.sourceId ||
+    facts.active.streamVersion !== actor.sourceRevision ||
+    facts.character.systemId !== gameSystemId
+  )
+    throw new Error(message)
+}
+
 /** Builds a target from already-loaded current encounter and Character state. */
 export function buildMovementTarget<
   TCharacterFacts extends CharacterMovementFacts = CharacterMovementFacts
@@ -109,12 +128,13 @@ export function buildMovementTarget<
   const { actor, activeEffects, gameSystemId, campaignId, characterFacts } = input
   if (actor.kind === 'CHARACTER') {
     if (!characterFacts) throw new Error('Encounter Character source is unavailable.')
+    assertStagedCharacterFactsCurrent(
+      characterFacts,
+      actor,
+      gameSystemId,
+      'Encounter Character state mirror is stale.'
+    )
     if (
-      !actor.sourceId ||
-      actor.sourceRevision === null ||
-      characterFacts.active.id !== actor.sourceId ||
-      characterFacts.active.streamVersion !== actor.sourceRevision ||
-      characterFacts.character.systemId !== gameSystemId ||
       actor.currentHitPoints !== characterFacts.character.state.hitpoints.current ||
       actor.tempHitPoints !== (characterFacts.character.state.hitpoints.temp ?? 0)
     )

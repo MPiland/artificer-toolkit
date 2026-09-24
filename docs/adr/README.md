@@ -46,6 +46,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0030](0030-owner-deletion-and-retained-dependencies.md)               | Owner deletion with dependency repair and retained shared history      | decision     |
 | [0031](0031-oversized-inventory-cleanup.md)                            | Oversized inventory cleanup with localized pending state               | decision     |
 | [0032](0032-campaign-deletion-lifecycle.md)                             | One fenced, resumable Campaign deletion lifecycle for every size       | decision     |
+| [0033](0033-campaign-owned-play-and-session-log.md)                     | Campaign-owned play, implicit live table and Sessions as a log         | decision     |
 
 ## Updating an ADR
 

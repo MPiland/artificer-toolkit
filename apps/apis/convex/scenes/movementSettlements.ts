@@ -9,7 +9,6 @@ import {
 import type { MutationCtx } from '../_generated/server'
 import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
 import { movementCommandCharacterAggregateVersions } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
-export { stopSceneMovementResult } from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
 import {
   settleNativeMovementConcentration,
   type NativeMovementConcentrationSettlement

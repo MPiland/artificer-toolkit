@@ -43,7 +43,10 @@ import {
   createDnd5eRechargeDefinition,
   createDnd5eRechargeLifecycleDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/encounterLifecyclePolicy'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   automaticChargedBiteFeatureId,
@@ -723,13 +726,8 @@ describe('private DO turn Recharge terminal', () => {
       const runtimeSecret = process.env.BETTER_AUTH_SECRET
       if (!runtimeSecret) throw new Error('Missing fixture rule continuation secret.')
       const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: new Uint8Array(
-          await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(
-              `artificer-toolkit:session-host:rules-continuation:v1\0${runtimeSecret}`
-            )
-          )
+        continuationIntegrityKey: await deriveRulesContinuationKey(
+          process.env.RULES_CONTINUATION_SECRET
         ),
         definitions: {
           async requireCurrent() {
@@ -926,13 +924,8 @@ describe('private DO turn Recharge terminal', () => {
       const runtimeSecret = process.env.BETTER_AUTH_SECRET
       if (!runtimeSecret) throw new Error('Missing fixture rule continuation secret.')
       const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: new Uint8Array(
-          await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(
-              `artificer-toolkit:session-host:rules-continuation:v1\0${runtimeSecret}`
-            )
-          )
+        continuationIntegrityKey: await deriveRulesContinuationKey(
+          process.env.RULES_CONTINUATION_SECRET
         ),
         definitions: {
           async requireCurrent() {

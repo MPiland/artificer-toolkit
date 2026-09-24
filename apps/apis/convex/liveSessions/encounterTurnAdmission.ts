@@ -21,7 +21,7 @@ import {
 } from '../encounters/commandReplay'
 import { readNativeTurnCommandPending } from '../encounters/turnCommandPending'
 import { requireIdentity } from '../lib/identity'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
@@ -62,12 +62,11 @@ export async function readLiveEncounterTurnAdmission(
     input.expectedVersion !== scope.expectedVersion
   )
     throw new Error('Live Session Encounter command scope mismatch.')
-  const authority = await requireCampaignLiveAuthority(ctx, {
+  await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: scope.campaignId,
     sessionId: scope.sessionId,
     epoch: scope.authorityEpoch
   })
-  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   const row = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))

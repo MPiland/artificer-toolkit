@@ -3,10 +3,10 @@ import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { MutationCtx } from '../_generated/server'
 import { evaluateNativeSpatialMovement } from '../encounters/spatialMovement'
-import { persistSpatialPreparation } from './spatialPreparation'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { settleSceneMovementSettlements } from './movementSettlements'
 import { evaluateInitialSceneMovement } from './spatialPreparation'
+import { persistSpatialPreparation } from './spatialPreparationPersistence'
 
 type Geometry = {
   sceneTokens: readonly SceneToken[]

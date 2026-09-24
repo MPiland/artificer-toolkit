@@ -1,7 +1,4 @@
-import {
-  prepareNativeEncounterActionMechanics,
-  settleNativeEncounterActionMechanics
-} from './actionMechanics'
+import { settleNativeEncounterActionMechanics } from './actionMechanics'
 import type { MovementTarget } from './movementTargets'
 import {
   prepareNativeActionMaintenance,
@@ -9,10 +6,7 @@ import {
   finishNativeActionMaintenance,
   type NativeMaintenanceProjection
 } from './actionMaintenance'
-import {
-  planNativeMovementReactionEffects,
-  persistNativeMovementReactionEffects
-} from './movementReactionEffects'
+import { persistNativeMovementReactionEffects } from './movementReactionEffects'
 import {
   requireCompletedMovementReaction,
   reactionMechanicsInput,
@@ -20,8 +14,6 @@ import {
   movementReactionSettlement,
   planEncounterMovementReactionAction
 } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPlan'
-import { advanceNativeActionGraphs, executeNativeActionGraphs } from './actionExecution'
-import type { resolveNativeMovementLegendaryResistance } from './movementLegendaryResistance'
 import {
   executeEncounterMovementReactionAction,
   resumeEncounterMovementLegendaryResistance
@@ -39,13 +31,18 @@ import { requireIdentity } from '../lib/identity'
 import { nextRollInt } from '../lib/rollRandom'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
+import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
+import { planEncounterMovementReactionEffects } from '@artificer-toolkit/rules-runtime/encounterMovementReactionEffects'
+import {
+  advanceNativeActionGraphs,
+  executeNativeActionGraphs
+} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import type { resolveNativeMovementLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
 
 type CompletedNativeReaction = Awaited<ReturnType<typeof executeNativeActionGraphs>> & {
   kind: 'COMPLETE'
   resistance?: Awaited<ReturnType<typeof resolveNativeMovementLegendaryResistance>> | null
 }
-
-export { bindEncounterMovementReactionInterruption as bindNativeMovementReactionInterruption } from '@artificer-toolkit/rules-runtime/encounterMovementReactionExecution'
 
 /** Revalidates one issued movement reaction and binds it to current native mechanics facts. */
 export async function prepareNativeMovementReactionAction(
@@ -149,7 +146,7 @@ export async function settleNativeMovementReactionAction(
   input: NativeMovementReactionSettlementInput
 ) {
   const execution = requireCompletedMovementReaction(input)
-  const effects = planNativeMovementReactionEffects({ ...input, execution })
+  const effects = planEncounterMovementReactionEffects({ ...input, execution })
   const { userId } = await requireIdentity(ctx)
   const forecast = planNativeMovementReactionAction(input, userId)
   const settled = await settleNativeEncounterActionMechanics(

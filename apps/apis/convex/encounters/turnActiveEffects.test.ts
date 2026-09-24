@@ -30,7 +30,10 @@ import {
   type LiveSessionEncounterTurnCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  createPlatformRulesRuntime,
+  deriveRulesContinuationKey
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
@@ -636,13 +639,8 @@ async function liveTurnRuntime() {
   const runtimeSecret = process.env.BETTER_AUTH_SECRET
   if (!runtimeSecret) throw new Error('Missing fixture rule continuation secret.')
   return createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(
-      await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(
-          `artificer-toolkit:session-host:rules-continuation:v1\0${runtimeSecret}`
-        )
-      )
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
     ),
     definitions: {
       async requireCurrent() {

@@ -13,7 +13,6 @@ import {
   planNativeMovementReactionAction,
   prepareNativeMovementReactionAction
 } from '../encounters/actionMovementReactions'
-import { retainNativeMovementLegendaryResistance } from '../encounters/movementLegendaryResistance'
 import { replayNativeMovementReactionAction } from '../encounters/movementReactionReplay'
 import { evaluateNativeSpatialMovement } from '../encounters/spatialMovement'
 import { createRulesRuntime } from '../rules/runtime'
@@ -21,6 +20,7 @@ import { readSceneMovementReactionPerception } from './movementPerceptionValidat
 import type { SceneMovementSettlement } from './movementSettlements'
 import { discoverSceneMovementPassage } from './movementPassageBoundary'
 import { evaluateSceneMovementContinuation } from './movementContinuation.helper'
+import { retainNativeMovementLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type Boundary = Extract<

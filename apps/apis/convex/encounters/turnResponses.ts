@@ -12,8 +12,6 @@ import { requireUnusedEvidenceCommandId } from './timelineEntries'
 import { resumeNativeTurn } from './turnCompletion'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 
-export { matchesNativeTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
-
 export async function resolveNativeTurnResponse(input: {
   ctx: MutationCtx
   campaign: Doc<'campaigns'>

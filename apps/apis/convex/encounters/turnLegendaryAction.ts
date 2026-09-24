@@ -11,7 +11,7 @@ import { nextRollInt } from '../lib/rollRandom'
 import { createRulesRuntime } from '../rules/runtime'
 import { readRunActors } from './documents'
 import { discoverNativeTurnLegendaryWindows } from './turnLegendaryDiscovery'
-import { prepareNativeEncounterActionMechanics } from './actionMechanics'
+import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 
 type Input = {
   ctx: MutationCtx

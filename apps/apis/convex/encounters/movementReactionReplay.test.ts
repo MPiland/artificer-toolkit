@@ -13,8 +13,8 @@ import {
   prepareNativeMovementReactionAction
 } from './actionMovementReactions'
 import { replayNativeMovementReactionAction } from './movementReactionReplay'
-import { advanceNativeActionGraphs } from './actionExecution'
 import { discoverNativeMovementReactions } from './movementReactionDiscovery'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 
 async function issuedReaction(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
   const input = reactionInput({

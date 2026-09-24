@@ -11,12 +11,13 @@ import { discoverCharacterActionCapabilities } from './characterActionCapability
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { InitiativeDeclarationSource } from './encounterInitiativeDeclarationCompiler.js'
+import { assertStagedCharacterFactsCurrent } from './encounterMovementTargets.js'
 
 type DeclarationSheetFacts = Pick<
   Awaited<ReturnType<typeof prepareCharacterSheetFromContext>>,
   'prepared' | 'evaluationInput' | 'ruleEvaluation'
 > & {
-  active: { streamVersion: number; userId: string }
+  active: { id: string; streamVersion: number; userId: string }
   character: { systemId: string; userId: string }
 }
 
@@ -66,12 +67,12 @@ export async function prepareEncounterInitiativeDeclarationSources<
     if (!actor.sourceId || actor.sourceRevision === null)
       throw new Error('Character initiative source is incomplete.')
     const facts = await input.loadCharacter(actor)
-    if (
-      !facts ||
-      facts.active.streamVersion !== actor.sourceRevision ||
-      facts.character.systemId !== state.gameSystemId
+    assertStagedCharacterFactsCurrent(
+      facts,
+      actor,
+      state.gameSystemId,
+      'Encounter Character source is stale.'
     )
-      throw new Error('Encounter Character source is stale.')
     const entries = compileCharacterActionEntryPoints({
       gameSystemId: state.gameSystemId,
       candidates: facts.ruleEvaluation.facts.actionCandidates,

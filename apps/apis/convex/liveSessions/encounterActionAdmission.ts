@@ -4,7 +4,7 @@ import type { QueryCtx } from '../_generated/server'
 import { readNativeEncounterActionAdmission } from '../encounters/actionAdmission'
 import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
 import { requireIdentity } from '../lib/identity'
-import { requireCampaignLiveAuthority } from './authorityGuard'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 
 /** Shared authorization and replay fences for the pending and terminal action transactions. */
 export async function readLiveEncounterActionAdmission(
@@ -24,12 +24,11 @@ export async function readLiveEncounterActionAdmission(
         input.response.expectedVersion !== input.expectedVersion))
   )
     throw new Error('Live Session Encounter command scope mismatch.')
-  const authority = await requireCampaignLiveAuthority(ctx, {
+  await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: input.campaignId,
     sessionId: input.sessionId,
     epoch: input.authorityEpoch
   })
-  if (authority.phase !== 'DO_ACTIVE') throw new Error('Live Session authority is not active.')
   let responseAdmission = null
   if (input.response) {
     const run = await ctx.db
