@@ -70,6 +70,29 @@ function publishedChecksum(entry: CompiledActionEntryPoint): string {
     : entry.compilation.published.checksum
 }
 
+/**
+ * Equipment facts a Character action declaration binds, or null when they
+ * cannot be bound. A carried weapon is treated as drawn: only actions whose own
+ * facts require equipping need the item in the projection's equipped set.
+ * Candidates are derived from the Character's current inventory, so a removed
+ * item has no candidate and is refused by the caller's candidate lookup.
+ */
+function declaredEquipment(
+  source: Extract<InitiativeDeclarationSource, { kind: 'CHARACTER' }>,
+  equipment: NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]['equipment']
+): { itemInstanceId: string | null; properties: string[] } | null {
+  if (!equipment) return { itemInstanceId: null, properties: [] }
+  const equipped = source.mechanics.initiativeActorFacts.equippedItems.find(
+    (value) => value.itemInstanceId === equipment.itemInstanceId
+  )
+  if (equipped) return { itemInstanceId: equipped.itemInstanceId, properties: equipped.properties }
+  if (equipment.requiresEquipped) return null
+  return {
+    itemInstanceId: equipment.itemInstanceId,
+    properties: [...new Set(equipment.properties ?? [])].sort()
+  }
+}
+
 function spellVersion(
   source: Extract<InitiativeDeclarationSource, { kind: 'CHARACTER' }>,
   spellId: string
@@ -170,7 +193,12 @@ function options(source: InitiativeDeclarationSource) {
     const entry = source.mechanics.compiledActionEntryPoints.find(
       (value) => value.actionId === candidate.actionId
     )
-    if (!entry || entry.compilation.kind !== 'COMPILED') continue
+    if (
+      !entry ||
+      entry.compilation.kind !== 'COMPILED' ||
+      declaredEquipment(source, candidate.equipment) === null
+    )
+      continue
     const activationCode = candidate.mechanicFacts.invocation.activation?.code ?? null
     choices.push({
       kind: 'CHARACTER_ACTION',
@@ -306,13 +334,11 @@ export function compileEncounterInitiativeDeclaration(input: {
         throw new EncounterValidationError(
           'The declared Character action is not an exact executable option.'
         )
-      const item = candidate.equipment
-        ? input.source.mechanics.initiativeActorFacts.equippedItems.find(
-            (value) => value.itemInstanceId === candidate.equipment?.itemInstanceId
-          )
-        : null
-      if (candidate.equipment && !item)
-        throw new EncounterConflictError('The declared Character action equipment facts are stale.')
+      const equipment = declaredEquipment(input.source, candidate.equipment)
+      if (!equipment)
+        throw new EncounterConflictError(
+          'The declared Character action requires equipped equipment.'
+        )
       return {
         kind: 'CHARACTER_ACTION',
         optionId: candidate.actionId,
@@ -320,8 +346,8 @@ export function compileEncounterInitiativeDeclaration(input: {
         sourceId: candidate.sourceId,
         sourceChecksum: publishedChecksum(entry),
         activationCode: candidate.mechanicFacts.invocation.activation?.code ?? null,
-        equipmentInstanceId: item?.itemInstanceId ?? null,
-        equipmentProperties: item?.properties ?? []
+        equipmentInstanceId: equipment.itemInstanceId,
+        equipmentProperties: equipment.properties
       }
     }
     if (selection.kind !== 'CHARACTER_SPELL_CAST')

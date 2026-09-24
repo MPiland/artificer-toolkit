@@ -7,6 +7,24 @@ import type {
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 
+type ArmorClassEquipment = NonNullable<CharacterRulePolicyInput['armorClassFacts']>['equipment']
+
+/** The one active shield D&D armor class counts, with the base AC it contributes. */
+export function resolveDnd5eActiveShield(
+  equipment: ArmorClassEquipment,
+  activeEquipmentInstanceIds: readonly string[]
+): { itemInstanceId: string; armorClass: number } | null {
+  const shield = equipment
+    .filter(
+      (item) =>
+        item.category === 'SHIELD' && activeEquipmentInstanceIds.includes(item.itemInstanceId)
+    )
+    .at(-1)
+  return shield === undefined
+    ? null
+    : { itemInstanceId: shield.itemInstanceId, armorClass: shield.armorClass ?? 2 }
+}
+
 export function evaluateDnd5eCharacterVitals(
   input: CharacterRulePolicyInput,
   grantFold: CharacterGrantFoldOutput,
@@ -16,15 +34,19 @@ export function evaluateDnd5eCharacterVitals(
   Pick<CharacterRulePolicyOutput, 'hitPointProgression'> {
   const modifierAt = (index: number | null | undefined) =>
     index == null ? 0 : (abilities[index]?.modifier.effective ?? 0)
-  const equipment = (input.armorClassFacts?.equipment ?? []).filter((item) =>
-    grantFold.activeEquipmentInstanceIds.includes(item.itemInstanceId)
-  )
-  const armor = equipment.filter((item) => item.category === 'ARMOR').at(-1)
-  const shield = equipment.filter((item) => item.category === 'SHIELD').at(-1)
+  const equipment = input.armorClassFacts?.equipment ?? []
+  const armor = equipment
+    .filter(
+      (item) =>
+        item.category === 'ARMOR' &&
+        grantFold.activeEquipmentInstanceIds.includes(item.itemInstanceId)
+    )
+    .at(-1)
+  const shield = resolveDnd5eActiveShield(equipment, grantFold.activeEquipmentInstanceIds)
   const armorBase =
     (armor === undefined
       ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
-      : (armor.armorClass ?? 10)) + (shield === undefined ? 0 : (shield.armorClass ?? 2))
+      : (armor.armorClass ?? 10)) + (shield?.armorClass ?? 0)
   const armorGroups = modifierGroups.filter((group) => group.valueDomainCode === 'ARMOR_CLASS')
   const armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass'] = {
     base: armorBase,

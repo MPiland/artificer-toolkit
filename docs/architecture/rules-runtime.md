@@ -485,6 +485,17 @@ snapshot, registry and output. Native consumers must supply those authoritative 
 displayed Sheet totals do not replace them. Historical compact snapshots still yield unavailable
 declaration facts until freshly compiled.
 
+**Drawn weapons (user ruling, 2026-09-24).** Players do not manage equip state for weapons: a declared
+or used Character action on a carried weapon treats it as drawn and binds the candidate's own item
+facts, unless that action's equipment facts say `requiresEquipped`. Equipped armor and shields still
+govern armor class, and attunement stays a deliberate player choice. The initiative declaration
+option generator and compiler share one rule, so options are always compilable; removing an item from
+the inventory removes its candidate. `rules-runtime/encounterWieldConflict` is the pure evaluator for
+the other half of the ruling: when a two-handed (or versatile two-handed) attack would require
+stowing the active shield it returns `STOW_SHIELD` with the armor-class delta from
+`resolveDnd5eActiveShield`, which the armor-class computation also uses. The player must accept or
+decline that stow explicitly; wiring the prompt into the live action flow is S4/S6 work.
+
 `rules-runtime/encounterInitiativeStaging` owns initial round assembly, timestamp-free occurrence
 serialization/hydration and the in-memory versioned update port. The transitional coordinator
 uses these same helpers to keep pending choices separate from committed initiative rows. Backend

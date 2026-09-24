@@ -489,8 +489,8 @@ describe('native initiative declarations', () => {
   }, 30000)
 
   it('shows a Character declaration only to its current controller and the GM', async () => {
+    // Deliberately unequipped: a carried weapon is declared as drawn.
     const base = await setupCharacterRun()
-    await equipAllCharacterItems(base)
     const initiative = createEncounterInitiativeDefinitions([
       { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
     ])
@@ -645,6 +645,17 @@ describe('native initiative declarations', () => {
         campaignId: base.campaign.id
       })
     ).toEqual([])
+    const declared = (await storedInitiative(base)).participants.find(
+      (participant) => participant.actorId === characterActor.id
+    )?.declaration?.primary
+    if (declared?.kind !== 'CHARACTER_ACTION' || declared.equipmentInstanceId === null)
+      throw new Error('Expected a declared Character equipment action.')
+    const sheet = await base.player.caller.query(api.characters.sheet.get, {
+      id: base.character.id
+    })
+    expect(
+      sheet?.inventory.items.find((item) => item.id === declared.equipmentInstanceId)?.equipped
+    ).toBe(false)
   }, 30000)
 
   it.each(['PLAYER', 'OWNER'] as const)(

@@ -145,8 +145,9 @@ export async function readNativeDisarmSelection(
         }))
       }
       return {
+        // A carried weapon used to attack is drawn for the attack unless its action requires equipping.
         equipment:
-          equipment?.equipmentId && equipment.equipped
+          equipment?.equipmentId && (equipment.equipped || !equipment.requiresEquipped)
             ? {
                 id: equipment.itemInstanceId,
                 category: equipment.category ?? null,
