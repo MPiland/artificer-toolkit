@@ -1369,7 +1369,7 @@
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/r01-r05-post-removal-validation-20260920/evidence-manifest.json"
           ],
-          "notes": "Accepted F15 preservation remains retained. The DB workspace, SQL/Kysely runtime, migrations and consumers are removed locally; all protected source-data corpus files match their pre-removal hashes. Final native seed/import/audit and same-source R08 lifecycle remain required."
+          "notes": "Accepted F15 preservation remains retained. The DB workspace, SQL/Kysely runtime, migrations and consumers are removed locally; all protected source-data corpus files match their pre-removal hashes. 2026-09-24 (user-approved): the orphaned generated SRD rule-path coverage manifest (no generator, verifier or reader since packages/functions removal) and its schema were deleted, and a stale unreferenced duplicate corpus left under packages/db was removed; the protected corpus is otherwise unchanged. Final native seed/import/audit and same-source R08 lifecycle remain required."
         },
         {
           "id": "R04",

@@ -1,1 +1,0 @@
-export { rockGnome as rockGnomeRace } from './gnome.js'

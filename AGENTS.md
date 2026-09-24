@@ -30,11 +30,14 @@ Documentation upkeep:
 ## Workspace Shape
 
 - `apps/web`: TanStack Start frontend
-- `apps/apis`: transport layer, REST baseline, incremental tRPC scaffold
-- `packages/functions`: server/application services
+- `apps/apis`: Convex backend (queries, mutations, actions, HTTP routes, persistence, auth)
+- `apps/session-worker`: Cloudflare Worker and Session Durable Object (live table, live rules execution)
 - `packages/shared`: domain models, node maps, engine logic, authored metadata
 - `packages/schema`: transport and validation contracts
-- `packages/db`: persistence and repositories
+- `packages/rules-runtime`: schema-aware rules execution and System modules shared by Convex and the Worker
+- `packages/authoring`: Authoring Schema resolver and publication
+- `packages/source-data`: protected canonical SRD corpus
+- `packages/emails`, `packages/design-system`: React Email templates and platform-neutral design system
 
 ## Core Rules
 
@@ -43,7 +46,7 @@ Documentation upkeep:
 - Do not do full-file rewrites; instead, do surgical updates.
 - Use only shared contracts from `packages/schema` and no ad-hoc local shapes.
 - If a contract shape is missing, create it in a reusable manner.
-- Keep `apps/apis` thin. Reuse `packages/functions`, `packages/shared`, and `packages/schema`.
+- Keep Convex functions in `apps/apis` focused on authorization, persistence and transactions. Reuse `packages/rules-runtime`, `packages/authoring`, `packages/shared`, and `packages/schema` for domain logic.
 - Builder owns structural character changes.
 - Sheet owns play-state interaction.
 - Master or seeded records are locked from direct edit in the UI, but copyable into owned drafts.
@@ -116,7 +119,7 @@ This repo runs on Windows, and several frontend tools spawn native child process
 - Follow the active session's permission policy. In an unrestricted session, run commands normally. Request escalation only when supported and needed for a sandbox restriction; never supply escalation flags when the session forbids them.
 - Use documented repo commands through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
 - Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
-- If local Supabase appears offline, especially `ECONNREFUSED 127.0.0.1:54321`, verify Docker Desktop and the local Supabase containers before diagnosing app auth or sheet routes. Check Docker/Supabase status with PowerShell; if Docker Desktop is not running, start it so the local Supabase stack can come online.
+- If the local Convex backend appears offline, especially `ECONNREFUSED 127.0.0.1:3210`/`3211`, verify Docker Desktop and the local Convex container before diagnosing app auth or Sheet routes. Docker Desktop startup is user-owned.
 
 ## GitHub CLI Auth On Windows
 
