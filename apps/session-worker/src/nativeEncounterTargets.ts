@@ -11,7 +11,7 @@ import type {
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
-import type { NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 export async function readNativeLiveActorsAndEffects(input: {
   state: EncounterRunState

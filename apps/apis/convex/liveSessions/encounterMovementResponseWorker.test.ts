@@ -24,12 +24,8 @@ import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticScene
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
-import {
-  beginNativeLiveMovement,
-  stageNativeLiveMovement,
-  commitNativeLiveMovement
-} from '../../../session-worker/src/nativeEncounterMovementCommit'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -204,10 +200,15 @@ it('publishes a sealed movement response through the private DO path without rep
       return value.owner.caller.fetch(pathname, init)
     })
   )
-  const staged = await beginNativeLiveMovement(environment, 'fixture-access-token', {
-    ...common,
-    command
-  })
+  const staged = await callLiveSessionRoute(
+    environment,
+    'fixture-access-token',
+    'encounterMovementBegin',
+    {
+      ...common,
+      command
+    }
+  )
   if (staged.kind !== 'READY') throw new Error('Expected private response geometry staging.')
   expect(await records()).toEqual(baseline)
   const loadScene = () =>
@@ -304,7 +305,7 @@ it('publishes a sealed movement response through the private DO path without rep
   expect(planned.settlementInputs.some((entry) => entry.kind === 'SPATIAL')).toBe(false)
   expect(await records()).toEqual(baseline)
   await expect(
-    beginNativeLiveMovement(environment, 'fixture-access-token', {
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
       ...common,
       command: { ...command, resolution: { kind: 'DECLINE' } }
     })
@@ -327,7 +328,12 @@ it('publishes a sealed movement response through the private DO path without rep
     )
   }
   await expect(
-    stageNativeLiveMovement(environment, 'fixture-access-token', stageInput)
+    callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementPrepare',
+      stageInput
+    )
   ).resolves.toEqual(preparation)
   expect(await records()).toEqual(baseline)
   await value.owner.caller.mutation(observe, { saveId: staged.saveId, characterRevisions: [] })
@@ -338,13 +344,18 @@ it('publishes a sealed movement response through the private DO path without rep
     settlements: planned.settlementInputs
   }
   await expect(
-    commitNativeLiveMovement(environment, 'fixture-access-token', {
+    callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementCommit', {
       ...commitInput,
       settlements: [...commitInput.settlements, ...commitInput.settlements]
     })
   ).rejects.toMatchObject({ status: 409 })
   expect(await records()).toEqual(baseline)
-  const committed = await commitNativeLiveMovement(environment, 'fixture-access-token', commitInput)
+  const committed = await callLiveSessionRoute(
+    environment,
+    'fixture-access-token',
+    'encounterMovementCommit',
+    commitInput
+  )
   const after = await records()
   expect(committed.replayed).toBe(false)
   expect(committed.delta).toBeNull()
@@ -356,12 +367,22 @@ it('publishes a sealed movement response through the private DO path without rep
   expect(after.receipts.length).toBeGreaterThan(baseline.receipts.length)
   expect(after.commands.length).toBeGreaterThan(baseline.commands.length)
   expect(after.sceneCommands).toHaveLength(baseline.sceneCommands.length + 1)
-  expect(await commitNativeLiveMovement(environment, 'fixture-access-token', commitInput)).toEqual({
+  expect(
+    await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementCommit',
+      commitInput
+    )
+  ).toEqual({
     ...committed,
     replayed: true
   })
   expect(
-    await beginNativeLiveMovement(environment, 'fixture-access-token', { ...common, command })
+    await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
+      ...common,
+      command
+    })
   ).toMatchObject({ kind: 'REPLAY' })
   expect(await records()).toEqual(after)
   const secondChoice = committed.occurrence?.pending
@@ -375,10 +396,15 @@ it('publishes a sealed movement response through the private DO path without rep
     expectedOccurrenceVersion: secondChoice.occurrenceVersion,
     resolution: { kind: 'DECLINE' }
   }
-  const secondStaged = await beginNativeLiveMovement(environment, 'fixture-access-token', {
-    ...common,
-    command: secondCommand
-  })
+  const secondStaged = await callLiveSessionRoute(
+    environment,
+    'fixture-access-token',
+    'encounterMovementBegin',
+    {
+      ...common,
+      command: secondCommand
+    }
+  )
   if (secondStaged.kind !== 'READY') throw new Error('Expected second response staging.')
   const secondScope = {
     ...scope,
@@ -419,7 +445,12 @@ it('publishes a sealed movement response through the private DO path without rep
     )
   }
   await expect(
-    stageNativeLiveMovement(environment, 'fixture-access-token', secondStageInput)
+    callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementPrepare',
+      secondStageInput
+    )
   ).resolves.toEqual(secondPreparation)
   await value.owner.caller.mutation(observe, {
     saveId: secondStaged.saveId,
@@ -431,9 +462,10 @@ it('publishes a sealed movement response through the private DO path without rep
     rules: secondPlanned.rules,
     settlements: secondPlanned.settlementInputs
   }
-  const terminal = await commitNativeLiveMovement(
+  const terminal = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterMovementCommit',
     secondCommitInput
   )
   const terminalRecords = await records()
@@ -449,7 +481,12 @@ it('publishes a sealed movement response through the private DO path without rep
   expect(terminalRecords.scene).toEqual(after.scene)
   expect(terminalRecords.liveState?.version).toBe((after.liveState?.version ?? 0) + 1)
   expect(
-    await commitNativeLiveMovement(environment, 'fixture-access-token', secondCommitInput)
+    await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementCommit',
+      secondCommitInput
+    )
   ).toEqual({ ...terminal, replayed: true })
   expect(await records()).toEqual(terminalRecords)
 }, 120_000)

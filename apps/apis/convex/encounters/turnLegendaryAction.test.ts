@@ -73,10 +73,7 @@ import { api, components, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import * as movementTargets from './movementTargets'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const rechargeFeatureId = '00000000-0000-4000-8000-000000000a21'
 const rechargeChargeId = '00000000-0000-4000-8000-000000000a22'
@@ -1179,9 +1176,10 @@ describe('private DO turn Legendary Action response', () => {
     )
     if (root.kind !== 'PLANNED' || root.prepared.kind !== 'PENDING')
       throw new Error('Expected pending Legendary choice plan.')
-    const initial = await commitNativeLiveEncounterTurnPending(
+    const initial = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterTurnPending',
       {
         ...scope,
         command: root.command,
@@ -1210,9 +1208,10 @@ describe('private DO turn Legendary Action response', () => {
     )
     if (chosen.kind !== 'PLANNED' || chosen.prepared.kind !== 'PENDING')
       throw new Error('Expected pending Legendary d20 plan.')
-    const evidenceResult = await commitNativeLiveEncounterTurnPending(
+    const evidenceResult = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterTurnPending',
       {
         ...scope,
         command: chosen.command,
@@ -1253,9 +1252,10 @@ describe('private DO turn Legendary Action response', () => {
     if (finished.kind !== 'PLANNED' || finished.prepared.kind !== 'COMPLETE' || !finished.terminal)
       throw new Error('Expected complete DO Legendary turn plan.')
     unchangedMechanics(before, await stored(base.t, base.run.id))
-    const terminal = await commitNativeLiveEncounterTurn(
+    const terminal = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterTurnCommit',
       finished.terminal
     )
     expect(
@@ -1307,7 +1307,12 @@ describe('private DO turn Legendary Action response', () => {
       featureCharges: { [automaticChargedBiteFeatureId]: 0 }
     })
     expect(
-      await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', finished.terminal)
+      await callLiveSessionRoute(
+        environment,
+        'fixture-access-token',
+        'encounterTurnCommit',
+        finished.terminal
+      )
     ).toEqual(terminal)
     expect(
       await planNativeLiveEncounterTurn(

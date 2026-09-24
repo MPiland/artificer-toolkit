@@ -57,10 +57,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const secondRechargeFeatureId = '00000000-0000-4000-8000-0000000008a4'
 const secondRechargeChargeId = '00000000-0000-4000-8000-0000000008a5'
@@ -784,9 +781,10 @@ describe('private DO turn Recharge terminal', () => {
       const native = previews[0]
       if (!native) throw new Error('Missing native Recharge preview.')
       expect(await stored(base.t, base.run.id)).toEqual(before)
-      const result = await commitNativeLiveEncounterTurn(
+      const result = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnCommit',
         planned.terminal
       )
       expect(result.projection).toMatchObject({
@@ -816,7 +814,12 @@ describe('private DO turn Recharge terminal', () => {
         })
       ])
       expect(
-        await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', planned.terminal)
+        await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnCommit',
+          planned.terminal
+        )
       ).toEqual(result)
       expect(await stored(base.t, base.run.id)).toEqual(after)
     } finally {
@@ -973,9 +976,10 @@ describe('private DO turn Recharge terminal', () => {
         })
       }
       const firstPending = firstInput
-        ? await commitNativeLiveEncounterTurnPending(
+        ? await callLiveSessionRoute(
             environment,
             'fixture-access-token',
+            'encounterTurnPending',
             firstInput
           )
         : started
@@ -999,9 +1003,10 @@ describe('private DO turn Recharge terminal', () => {
       )
       if (firstInput)
         expect(
-          await commitNativeLiveEncounterTurnPending(
+          await callLiveSessionRoute(
             environment,
             'fixture-access-token',
+            'encounterTurnPending',
             firstInput
           )
         ).toEqual(firstPending)
@@ -1046,9 +1051,10 @@ describe('private DO turn Recharge terminal', () => {
         scenes: secondPlan.scenes,
         snapshot: secondPlan.prepared.snapshot
       })
-      const secondPending = await commitNativeLiveEncounterTurnPending(
+      const secondPending = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnPending',
         secondInput
       )
       if (
@@ -1080,7 +1086,12 @@ describe('private DO turn Recharge terminal', () => {
         version: secondPending.occurrence.occurrenceVersion
       })
       expect(
-        await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', secondInput)
+        await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnPending',
+          secondInput
+        )
       ).toEqual(secondPending)
       expect(await stored(base.t, base.run.id)).toEqual(afterSecondPending)
       const wrongUser = await base.other.caller.fetch('/live-sessions/encounter-turn-pending', {
@@ -1153,9 +1164,10 @@ describe('private DO turn Recharge terminal', () => {
         { rawDie: 4, recharged: false, afterUsed: 1 },
         { rawDie: 5, recharged: true, afterUsed: 0 }
       ])
-      const result = await commitNativeLiveEncounterTurn(
+      const result = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnCommit',
         finalPlan.terminal
       )
       expect(result).toMatchObject({
@@ -1184,7 +1196,12 @@ describe('private DO turn Recharge terminal', () => {
         expect.objectContaining({ rawDie: 5, recharged: true, afterUsed: 0 })
       ])
       expect(
-        await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', finalPlan.terminal)
+        await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnCommit',
+          finalPlan.terminal
+        )
       ).toEqual(result)
       expect(await stored(base.t, base.run.id)).toEqual(terminal)
     },

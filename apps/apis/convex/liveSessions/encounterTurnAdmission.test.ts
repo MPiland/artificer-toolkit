@@ -45,7 +45,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import { commitNativeLiveEncounterTurnPending } from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const secret = 'private-turn-planning-test-secret-at-least-32-bytes'
 const environment = {
@@ -630,9 +630,10 @@ it('commits a DO round-wrap pause once and resolves it through native initiative
   ).toBe(409)
   expect(await storedTurnState(base)).toEqual(before)
 
-  const pending = await commitNativeLiveEncounterTurnPending(
+  const pending = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnPending',
     input
   )
   expect(requests.at(-1)).toBe('ADVANCE_TURN')
@@ -667,7 +668,7 @@ it('commits a DO round-wrap pause once and resolves it through native initiative
   })
   expect(advancedRevision).not.toBe(consumed.revision)
   expect(
-    await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', input)
+    await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterTurnPending', input)
   ).toEqual(pending)
   expect(await storedTurnState(base)).toEqual(after)
 

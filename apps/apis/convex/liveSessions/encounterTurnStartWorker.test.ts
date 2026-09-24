@@ -44,10 +44,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const workerSecret = 'private-start-worker-test-secret-at-least-32-bytes'
 const authSecret = 'private-start-continuation-test-secret-at-least-32-bytes'
@@ -298,9 +295,10 @@ it('prepares an initial Manual turn without publishing its Run', async () => {
     })
   ).rejects.toThrow('Roll back complete initial START.')
   expect(await value.state()).toEqual(before)
-  const committed = await commitNativeLiveEncounterTurn(
+  const committed = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnCommit',
     terminal
   )
   expect(committed.projection).toMatchObject({
@@ -315,7 +313,7 @@ it('prepares an initial Manual turn without publishing its Run', async () => {
   expect(after.commands).toHaveLength(1)
   expect(after.receipts).toHaveLength(1)
   expect(
-    await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', terminal)
+    await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterTurnCommit', terminal)
   ).toEqual(committed)
   expect(await value.state()).toEqual(after)
 }, 60_000)
@@ -378,9 +376,10 @@ it('prepares initial Assisted initiative evidence without advancing the Run', as
   })
   expect(rejected.status).toBe(409)
   expect(await value.state()).toEqual(before)
-  const committed = await commitNativeLiveEncounterTurnPending(
+  const committed = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnPending',
     pendingInput
   )
   expect(committed.projection).toMatchObject({
@@ -394,7 +393,12 @@ it('prepares initial Assisted initiative evidence without advancing the Run', as
   expect(after.rounds).toEqual(before.rounds)
   expect(after.participants).toEqual(before.participants)
   expect(
-    await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', pendingInput)
+    await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterTurnPending',
+      pendingInput
+    )
   ).toEqual(committed)
   expect(await value.state()).toEqual(after)
   let current = committed
@@ -445,13 +449,19 @@ it('prepares initial Assisted initiative evidence without advancing the Run', as
         scenes: continued.scenes,
         snapshot: continued.prepared.snapshot
       })
-      current = await commitNativeLiveEncounterTurnPending(
+      current = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnPending',
         input
       )
       expect(
-        await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', input)
+        await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnPending',
+          input
+        )
       ).toEqual(current)
       expect(current.projection).toMatchObject({
         status: 'PREPARED',
@@ -460,13 +470,19 @@ it('prepares initial Assisted initiative evidence without advancing the Run', as
       continue
     }
     if (!continued.terminal) throw new Error('Expected complete initiative terminal.')
-    current = await commitNativeLiveEncounterTurn(
+    current = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterTurnCommit',
       continued.terminal
     )
     expect(
-      await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', continued.terminal)
+      await callLiveSessionRoute(
+        environment,
+        'fixture-access-token',
+        'encounterTurnCommit',
+        continued.terminal
+      )
     ).toEqual(current)
     completed = true
     break

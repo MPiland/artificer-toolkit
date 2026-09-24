@@ -47,10 +47,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const secret = 'private-turn-commit-test-secret-at-least-32-bytes'
 const environment = {
@@ -315,9 +312,10 @@ it('commits a complete DO turn through private HTTP and replays its original rec
   expect(await storedTurnState(base)).toEqual(before)
   const native = await nativePreview(base)
   expect(await storedTurnState(base)).toEqual(before)
-  const result = await commitNativeLiveEncounterTurn(
+  const result = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnCommit',
     planned.terminal
   )
   expect(requests.at(-1)).toBe(commitPath)
@@ -345,7 +343,12 @@ it('commits a complete DO turn through private HTTP and replays its original rec
     else await ctx.db.insert('sceneVisionRevisions', { ...consumed, revision: crypto.randomUUID() })
   })
   expect(
-    await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', planned.terminal)
+    await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterTurnCommit',
+      planned.terminal
+    )
   ).toEqual(result)
   expect(await storedTurnState(base)).toEqual(after)
 }, 60_000)
@@ -398,9 +401,10 @@ it('settles a private round-wrap initiative tie through retained responses and o
   const base = await setup()
   const requests = bridge(base)
   const firstPlan = await plan(base)
-  const first = await commitNativeLiveEncounterTurn(
+  const first = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnCommit',
     firstPlan.terminal
   )
   expect(first.projection.round).toBe(1)
@@ -447,9 +451,10 @@ it('settles a private round-wrap initiative tie through retained responses and o
     scenes: rootPlan.scenes,
     snapshot: rootPlan.prepared.snapshot
   })
-  const firstPending = await commitNativeLiveEncounterTurnPending(
+  const firstPending = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
+    'encounterTurnPending',
     rootInput
   )
   if (
@@ -486,7 +491,12 @@ it('settles a private round-wrap initiative tie through retained responses and o
     )
   ).toEqual({ kind: 'REPLAY', result: firstPending })
   expect(
-    await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', rootInput)
+    await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterTurnPending',
+      rootInput
+    )
   ).toEqual(firstPending)
   expect(await storedTurnState(base)).toEqual(afterRoot)
 
@@ -589,9 +599,10 @@ it('settles a private round-wrap initiative tie through retained responses and o
         scenes: planned.scenes,
         snapshot: planned.prepared.snapshot
       })
-      current = await commitNativeLiveEncounterTurnPending(
+      current = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnPending',
         input
       )
       expect(current.occurrence).toMatchObject({
@@ -633,9 +644,10 @@ it('settles a private round-wrap initiative tie through retained responses and o
       ).toEqual({ kind: 'REPLAY', result: current })
     } else {
       if (!planned.terminal) throw new Error('Missing terminal initiative turn.')
-      terminal = await commitNativeLiveEncounterTurn(
+      terminal = await callLiveSessionRoute(
         environment,
         'fixture-access-token',
+        'encounterTurnCommit',
         planned.terminal
       )
       expect(terminal.occurrence).toMatchObject({
@@ -644,7 +656,12 @@ it('settles a private round-wrap initiative tie through retained responses and o
         status: 'COMPLETE'
       })
       expect(
-        await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', planned.terminal)
+        await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnCommit',
+          planned.terminal
+        )
       ).toEqual(terminal)
       break
     }

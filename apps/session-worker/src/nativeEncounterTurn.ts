@@ -1,6 +1,5 @@
 import {
   liveSessionEncounterRulesInputSchema,
-  liveSessionEncounterRulesResponseSchema,
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest,
   type LiveSessionEncounterRulesResponse
@@ -15,7 +14,7 @@ import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { requestNativeLiveSession, type NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -54,12 +53,11 @@ export async function planNativeLiveEncounterTurn(
     if (!read) {
       read = (async () => {
         const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-        const response = await requestNativeLiveSession(
+        const response = await callLiveSessionRoute(
           environment,
           accessToken,
-          '/live-sessions/encounter-rules',
-          input,
-          (body) => liveSessionEncounterRulesResponseSchema.parse(body)
+          'encounterRules',
+          input
         )
         if (response.kind !== request.kind) throw new Error('Turn capture kind mismatch.')
         revisions = mergeNativeRulesRevisions(revisions, response.revisions)

@@ -1,6 +1,5 @@
 import {
   liveSessionEncounterRulesInputSchema,
-  liveSessionEncounterRulesResponseSchema,
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -9,7 +8,6 @@ import {
   type LiveSessionEncounterConcentrationCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -23,7 +21,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { rebuildNativeLiveDeferredCleaving } from './nativeEncounterCleaving.js'
-import { requestNativeLiveSession, type NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 /** Plans one admitted concentration response without publishing the child or touching the Run. */
 export async function planNativeLiveConcentrationResponse(
@@ -48,13 +46,7 @@ export async function planNativeLiveConcentrationResponse(
   let revisions: LiveSessionEncounterConcentrationCommitInput['revisions'] = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const result = await requestNativeLiveSession(
-      environment,
-      accessToken,
-      '/live-sessions/encounter-rules',
-      input,
-      (body) => liveSessionEncounterRulesResponseSchema.parse(body)
-    )
+    const result = await callLiveSessionRoute(environment, accessToken, 'encounterRules', input)
     if (result.kind !== request.kind) throw new Error('Concentration capture kind mismatch.')
     revisions = mergeNativeRulesRevisions(revisions, result.revisions)
     dependencies.push({ request: input.request, readChecksum: result.readChecksum })
@@ -214,11 +206,5 @@ export async function commitNativeLiveConcentrationResponse(
     { kind: 'PLANNED' }
   >
 ) {
-  return requestNativeLiveSession(
-    environment,
-    accessToken,
-    '/live-sessions/encounter-concentration',
-    plan.input,
-    (body) => encounterCommandResultDtoSchema.parse(body)
-  )
+  return callLiveSessionRoute(environment, accessToken, 'encounterConcentrationCommit', plan.input)
 }

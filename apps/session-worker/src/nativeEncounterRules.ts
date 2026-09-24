@@ -1,6 +1,5 @@
 import {
   liveSessionEncounterRulesInputSchema,
-  liveSessionEncounterRulesResponseSchema,
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -24,7 +23,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { requestNativeLiveSession, type NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import {
   advanceNativeActionGraphs,
@@ -85,13 +84,7 @@ export async function planNativeLiveEncounterAction(
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const response = await requestNativeLiveSession(
-      environment,
-      accessToken,
-      '/live-sessions/encounter-rules',
-      input,
-      (body) => liveSessionEncounterRulesResponseSchema.parse(body)
-    )
+    const response = await callLiveSessionRoute(environment, accessToken, 'encounterRules', input)
     if (response.kind !== request.kind) throw new Error('Encounter rules capture kind mismatch.')
     revisions = mergeNativeRulesRevisions(revisions, response.revisions)
     dependencies.push({ request: input.request, readChecksum: response.readChecksum })
@@ -528,13 +521,7 @@ export async function commitNativeLiveEncounterActionPending(
       ...(plan.execution.phaseReceipts ? { phaseReceipts: plan.execution.phaseReceipts } : {})
     }
   })
-  return requestNativeLiveSession(
-    environment,
-    accessToken,
-    '/live-sessions/encounter-action-pending',
-    input,
-    (body) => encounterCommandResultDtoSchema.parse(body)
-  )
+  return callLiveSessionRoute(environment, accessToken, 'encounterActionPending', input)
 }
 
 /** Publishes the completed root and its dependent records in one authenticated transaction. */
@@ -569,11 +556,5 @@ export async function commitNativeLiveEncounterAction(
     pendingConcentration: plan.concentration.pending,
     cleaving: plan.cleaving
   })
-  return requestNativeLiveSession(
-    environment,
-    accessToken,
-    '/live-sessions/encounter-action',
-    input,
-    (body) => encounterCommandResultDtoSchema.parse(body)
-  )
+  return callLiveSessionRoute(environment, accessToken, 'encounterActionCommit', input)
 }

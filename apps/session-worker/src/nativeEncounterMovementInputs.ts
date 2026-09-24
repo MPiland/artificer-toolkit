@@ -1,6 +1,5 @@
 import {
   liveSessionEncounterRulesInputSchema,
-  liveSessionEncounterRulesResponseSchema,
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest,
   type LiveSessionEncounterRulesResponse
@@ -20,7 +19,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneTokenMovementFailure, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { requestNativeLiveSession, type NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -50,12 +49,11 @@ export async function readNativeLiveMovementInputs(input: {
     const key = checksumCanonicalJson(request)
     let read = reads.get(key)
     if (!read) {
-      read = requestNativeLiveSession(
+      read = callLiveSessionRoute(
         environment,
         accessToken,
-        '/live-sessions/encounter-rules',
-        liveSessionEncounterRulesInputSchema.parse({ ...scope, request }),
-        (body) => liveSessionEncounterRulesResponseSchema.parse(body)
+        'encounterRules',
+        liveSessionEncounterRulesInputSchema.parse({ ...scope, request })
       ).then((response) => {
         if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
         revisions = mergeNativeRulesRevisions(revisions, response.revisions)

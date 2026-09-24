@@ -16,11 +16,8 @@ import {
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import {
-  captureNativeTransient,
-  hydrateNativeTransientScene,
-  NativeSceneRequestError
-} from '../src/nativeSceneClient.js'
+import { callLiveSessionRoute, LiveSessionRouteError } from '../src/liveSessionRoutes.js'
+import { hydrateNativeTransientScene } from '../src/nativeSceneClient.js'
 
 const environment = {
   LIVE_SESSION_WORKER_SECRET: 'test-secret-that-contains-at-least-thirty-two-bytes',
@@ -139,7 +136,9 @@ function mockHydration(
 it('posts capture with both credentials and redirect following disabled', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(capture))
 
-  await expect(captureNativeTransient(environment, 'access-token', input)).resolves.toEqual(capture)
+  await expect(
+    callLiveSessionRoute(environment, 'access-token', 'capture', input)
+  ).resolves.toEqual(capture)
 
   const [url, options] = fetchMock.mock.calls[0]!
   expect(String(url)).toBe('https://executor.test/live-sessions/capture')
@@ -161,7 +160,9 @@ it('rejects redirects without forwarding credentials to another destination', as
     .mockResolvedValue(
       new Response(null, { status: 302, headers: { location: 'https://other.test/capture' } })
     )
-  await expect(captureNativeTransient(environment, 'access-token', input)).rejects.toMatchObject({
+  await expect(
+    callLiveSessionRoute(environment, 'access-token', 'capture', input)
+  ).rejects.toMatchObject({
     status: 302
   })
   expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -170,11 +171,11 @@ it('rejects redirects without forwarding credentials to another destination', as
 it('exposes only the response status when the server returns secret-bearing text', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('secret body', { status: 409 }))
 
-  const error = await captureNativeTransient(environment, 'access-token', input).catch(
+  const error = await callLiveSessionRoute(environment, 'access-token', 'capture', input).catch(
     (reason: unknown) => reason
   )
 
-  expect(error).toBeInstanceOf(NativeSceneRequestError)
+  expect(error).toBeInstanceOf(LiveSessionRouteError)
   expect(error).toMatchObject({ status: 409 })
   expect(String(error)).not.toContain('secret body')
   expect(String(error)).not.toContain(environment.LIVE_SESSION_WORKER_SECRET)
@@ -183,7 +184,7 @@ it('exposes only the response status when the server returns secret-bearing text
 it('rejects malformed successful responses without exposing their contents', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ secret: 'body' }))
 
-  const error = await captureNativeTransient(environment, 'access-token', input).catch(
+  const error = await callLiveSessionRoute(environment, 'access-token', 'capture', input).catch(
     (reason: unknown) => reason
   )
 

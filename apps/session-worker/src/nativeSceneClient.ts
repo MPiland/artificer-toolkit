@@ -1,15 +1,8 @@
-import {
-  liveSessionTransientCaptureInputSchema,
-  liveSessionTransientCaptureSchema,
-  type LiveSessionTransientCapture,
-  type LiveSessionTransientCaptureInput
-} from '@artificer-toolkit/schema/api/liveSessionTransient'
-import {
-  liveSessionTransientHydrationInputSchema,
-  liveSessionTransientHydrationResponseSchema,
-  type LiveSessionTransientHydrationAuthority,
-  type LiveSessionTransientHydrationRequest,
-  type LiveSessionTransientHydrationResultByKind
+import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import type {
+  LiveSessionTransientHydrationAuthority,
+  LiveSessionTransientHydrationRequest,
+  LiveSessionTransientHydrationResultByKind
 } from '@artificer-toolkit/schema/api/liveSessionTransientHydration'
 import type { SceneCurrentEntityPage } from '@artificer-toolkit/schema/api/sceneRecipient'
 import type { SceneFogChunksPage, SceneFogLayersPage } from '@artificer-toolkit/schema/api/sceneFog'
@@ -30,12 +23,12 @@ import {
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import { resolveSceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 
-export type NativeLiveSessionEnvironment = {
-  LIVE_SESSION_WORKER_SECRET: string
-  CONVEX_SITE_URL: string
-}
+import {
+  callLiveSessionRoute,
+  LiveSessionRouteError,
+  type NativeLiveSessionEnvironment
+} from './liveSessionRoutes.js'
 
-const timeoutMs = 10_000
 const entityCollections = [
   'annotations',
   'barriers',
@@ -44,76 +37,6 @@ const entityCollections = [
   'tokens',
   'measurements'
 ] as const
-
-export class NativeSceneRequestError extends Error {
-  constructor(readonly status: number) {
-    super('Live Session transient request failed.')
-    this.name = 'NativeSceneRequestError'
-  }
-}
-
-function safeOrigin(value: string): URL {
-  let url: URL
-  try {
-    url = new URL(value)
-  } catch {
-    throw new NativeSceneRequestError(0)
-  }
-  if (
-    url.protocol !== 'https:' &&
-    !(url.protocol === 'http:' && ['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname))
-  )
-    throw new NativeSceneRequestError(0)
-  return url
-}
-
-export async function requestNativeLiveSession<T>(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string | null,
-  path: string,
-  input: unknown,
-  parse: (value: unknown) => T
-): Promise<T> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  let response: Response | undefined
-  try {
-    response = await fetch(new URL(path, safeOrigin(environment.CONVEX_SITE_URL)), {
-      body: JSON.stringify(input),
-      headers: {
-        ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
-        'content-type': 'application/json',
-        'x-artificer-live-session-secret': environment.LIVE_SESSION_WORKER_SECRET
-      },
-      method: 'POST',
-      redirect: 'manual',
-      signal: controller.signal
-    })
-    if (!response.ok) throw new NativeSceneRequestError(response.status)
-    const body: unknown = await response.json()
-    return parse(body)
-  } catch (error) {
-    if (error instanceof NativeSceneRequestError) throw error
-    throw new NativeSceneRequestError(response?.status ?? 0)
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-export async function captureNativeTransient(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
-  input: LiveSessionTransientCaptureInput
-): Promise<LiveSessionTransientCapture> {
-  const parsedInput = liveSessionTransientCaptureInputSchema.parse(input)
-  return requestNativeLiveSession(
-    environment,
-    accessToken,
-    '/live-sessions/capture',
-    parsedInput,
-    (body) => liveSessionTransientCaptureSchema.parse(body)
-  )
-}
 
 function authority(capture: LiveSessionTransientCapture): LiveSessionTransientHydrationAuthority {
   return {
@@ -168,18 +91,11 @@ async function hydrate(
 ): Promise<
   LiveSessionTransientHydrationResultByKind[keyof LiveSessionTransientHydrationResultByKind]
 > {
-  const input = liveSessionTransientHydrationInputSchema.parse({
+  const response = await callLiveSessionRoute(environment, accessToken, 'hydrate', {
     authority: authority(capture),
     request: requestInput
   })
-  const response = await requestNativeLiveSession(
-    environment,
-    accessToken,
-    '/live-sessions/hydrate',
-    input,
-    (body) => liveSessionTransientHydrationResponseSchema.parse(body)
-  )
-  if (response.kind !== requestInput.kind) throw new NativeSceneRequestError(200)
+  if (response.kind !== requestInput.kind) throw new LiveSessionRouteError(200)
   return response.result
 }
 
@@ -205,7 +121,7 @@ async function loadEntities(
   collection: (typeof entityCollections)[number]
 ): Promise<SceneCurrentEntityPage['page']> {
   const header = capture.sceneHeader
-  if (!header) throw new NativeSceneRequestError(0)
+  if (!header) throw new LiveSessionRouteError(0)
   const result: SceneCurrentEntityPage['page'] = []
   const ids = new Set<string>()
   const cursors = new Set<string>()
@@ -215,7 +131,7 @@ async function loadEntities(
   }
   while (next) {
     const key = `${next.phase}:${next.afterOrdinal ?? ''}`
-    if (cursors.has(key)) throw new NativeSceneRequestError(200)
+    if (cursors.has(key)) throw new LiveSessionRouteError(200)
     cursors.add(key)
     const page: SceneCurrentEntityPage = await hydrate(environment, accessToken, capture, {
       kind: 'ENTITIES',
@@ -228,16 +144,16 @@ async function loadEntities(
       numItems: 8
     })
     if (page.version !== header.version || page.collection !== collection)
-      throw new NativeSceneRequestError(200)
+      throw new LiveSessionRouteError(200)
     for (const row of page.page) {
       if (row.value.collection !== collection || ids.has(row.value.entity.id))
-        throw new NativeSceneRequestError(200)
+        throw new LiveSessionRouteError(200)
       ids.add(row.value.entity.id)
       result.push(row)
     }
     next = page.next
   }
-  if (result.length !== header.currentCounts[collection]) throw new NativeSceneRequestError(200)
+  if (result.length !== header.currentCounts[collection]) throw new LiveSessionRouteError(200)
   return result
 }
 
@@ -247,14 +163,14 @@ async function loadFogLayers(
   capture: LiveSessionTransientCapture
 ): Promise<CampaignSceneStateDto['fogLayers']> {
   const header = capture.sceneHeader
-  if (!header) throw new NativeSceneRequestError(0)
+  if (!header) throw new LiveSessionRouteError(0)
   const layers: CampaignSceneStateDto['fogLayers'] = []
   const owners = new Set<string | null>()
   const ordinals = new Set<number>()
   const cursors = new Set<string | null>()
   let cursor: string | null = null
   for (;;) {
-    if (cursors.has(cursor)) throw new NativeSceneRequestError(200)
+    if (cursors.has(cursor)) throw new LiveSessionRouteError(200)
     cursors.add(cursor)
     const page: SceneFogLayersPage = await hydrate(environment, accessToken, capture, {
       kind: 'FOG_LAYERS',
@@ -263,10 +179,10 @@ async function loadFogLayers(
       paginationOpts: { cursor, numItems: 8 }
     })
     if (page.version !== header.version || page.pageStatus === 'SplitRequired')
-      throw new NativeSceneRequestError(200)
+      throw new LiveSessionRouteError(200)
     for (const layer of page.page) {
       if (owners.has(layer.ownerUserId) || ordinals.has(layer.ordinal))
-        throw new NativeSceneRequestError(200)
+        throw new LiveSessionRouteError(200)
       owners.add(layer.ownerUserId)
       ordinals.add(layer.ordinal)
       const chunks = [] as CampaignSceneStateDto['fogLayers'][number]['chunks']
@@ -289,15 +205,15 @@ async function loadFogLayers(
           chunkPage.nextOffset !== offset + chunkPage.page.length ||
           (!chunkPage.isDone && chunkPage.nextOffset <= offset)
         )
-          throw new NativeSceneRequestError(200)
+          throw new LiveSessionRouteError(200)
         for (const chunk of chunkPage.page) {
-          if (chunkIndexes.has(chunk.index)) throw new NativeSceneRequestError(200)
+          if (chunkIndexes.has(chunk.index)) throw new LiveSessionRouteError(200)
           chunkIndexes.add(chunk.index)
           chunks.push(chunk)
         }
-        if (chunks.length > layer.chunkCount) throw new NativeSceneRequestError(200)
+        if (chunks.length > layer.chunkCount) throw new LiveSessionRouteError(200)
         if (chunkPage.isDone) {
-          if (chunks.length !== layer.chunkCount) throw new NativeSceneRequestError(200)
+          if (chunks.length !== layer.chunkCount) throw new LiveSessionRouteError(200)
           layers.push(
             sceneFogLayerDtoSchema.parse({
               chunks,
@@ -312,10 +228,10 @@ async function loadFogLayers(
       }
     }
     if (page.isDone) break
-    if (page.continueCursor === cursor) throw new NativeSceneRequestError(200)
+    if (page.continueCursor === cursor) throw new LiveSessionRouteError(200)
     cursor = page.continueCursor
   }
-  if (layers.length !== header.fogLayerCount) throw new NativeSceneRequestError(200)
+  if (layers.length !== header.fogLayerCount) throw new LiveSessionRouteError(200)
   return layers
 }
 
@@ -329,7 +245,7 @@ async function loadVision(
   const presentation = capture.presentation
   const freshness = capture.visionFreshness
   if (!header || !presentation || !freshness || presentation.sceneId !== header.id)
-    throw new NativeSceneRequestError(200)
+    throw new LiveSessionRouteError(200)
   const scope: SceneSessionVisionScope = {
     campaignId: capture.campaignId,
     expectedPresentationVersion: presentation.version,
@@ -352,20 +268,20 @@ async function loadVision(
   const runCursors = new Set<string | null>()
   let runCursor: string | null = null
   while (runCursor !== null || runCursors.size === 0) {
-    if (runCursors.has(runCursor)) throw new NativeSceneRequestError(200)
+    if (runCursors.has(runCursor)) throw new LiveSessionRouteError(200)
     runCursors.add(runCursor)
     const runPage: SceneSessionVisionRunsPage = await hydrate(environment, accessToken, capture, {
       kind: 'VISION_RUNS',
       ...scope,
       paginationOpts: { cursor: runCursor, numItems: 4 }
     })
-    if (runPage.pageStatus === 'SplitRequired') throw new NativeSceneRequestError(200)
+    if (runPage.pageStatus === 'SplitRequired') throw new LiveSessionRouteError(200)
     for (const run of runPage.page) {
-      if (!sameScope(scope, run)) throw new NativeSceneRequestError(200)
+      if (!sameScope(scope, run)) throw new LiveSessionRouteError(200)
       await loadVisionBindings(environment, accessToken, capture, run, selectedTokens, bindings)
     }
     if (runPage.isDone) break
-    if (runPage.continueCursor === runCursor) throw new NativeSceneRequestError(200)
+    if (runPage.continueCursor === runCursor) throw new LiveSessionRouteError(200)
     runCursor = runPage.continueCursor
   }
   const selectedBindings = scene.tokens
@@ -411,14 +327,14 @@ async function loadVisionBindings(
   const cursors = new Set<string | null>()
   let cursor: string | null = null
   while (cursor !== null || cursors.size === 0) {
-    if (cursors.has(cursor)) throw new NativeSceneRequestError(200)
+    if (cursors.has(cursor)) throw new LiveSessionRouteError(200)
     cursors.add(cursor)
     const page: SceneSessionVisionBindingsPage = await hydrate(environment, accessToken, capture, {
       kind: 'VISION_BINDINGS',
       ...run,
       paginationOpts: { cursor, numItems: 4 }
     })
-    if (page.pageStatus === 'SplitRequired') throw new NativeSceneRequestError(200)
+    if (page.pageStatus === 'SplitRequired') throw new LiveSessionRouteError(200)
     for (const binding of page.page) {
       if (!selectedTokens.has(binding.tokenId)) continue
       const existing = bindings.get(binding.tokenId)
@@ -426,7 +342,7 @@ async function loadVisionBindings(
         bindings.set(binding.tokenId, binding)
     }
     if (page.isDone) break
-    if (page.continueCursor === cursor) throw new NativeSceneRequestError(200)
+    if (page.continueCursor === cursor) throw new LiveSessionRouteError(200)
     cursor = page.continueCursor
   }
 }
@@ -447,7 +363,7 @@ async function hydrateVisionCharacter(
     result.binding.characterId !== binding.characterId ||
     result.binding.tokenId !== binding.tokenId
   )
-    throw new NativeSceneRequestError(200)
+    throw new LiveSessionRouteError(200)
   return result
 }
 
@@ -476,7 +392,7 @@ export async function hydrateNativeTransientScene(
     const doorStates: CampaignSceneStateDto['doorStates'] = {}
     for (const row of barriers) {
       if (row.value.collection === 'barriers' && row.value.entity.kind === 'DOOR') {
-        if (row.doorState === null) throw new NativeSceneRequestError(200)
+        if (row.doorState === null) throw new LiveSessionRouteError(200)
         doorStates[row.value.entity.id] = row.doorState
       }
     }

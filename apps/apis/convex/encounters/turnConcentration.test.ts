@@ -21,7 +21,7 @@ import {
   planNativeLiveConcentrationResponse
 } from '../../../session-worker/src/nativeConcentrationResponse'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import { commitNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 type Fixture = Awaited<ReturnType<typeof turnConcentrationFixture>>
 
@@ -817,9 +817,10 @@ it('commits ordered Automatic turn concentration through the private DO terminal
     expect(rejected.status).toBe(409)
     expect(await records(base)).toEqual(before)
 
-    const result = await commitNativeLiveEncounterTurn(
+    const result = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterTurnCommit',
       planned.terminal
     )
     expect(result.projection).toMatchObject({

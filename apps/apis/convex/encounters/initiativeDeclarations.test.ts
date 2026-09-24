@@ -57,10 +57,7 @@ import {
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -988,13 +985,19 @@ describe('native initiative declarations', () => {
             scenes: planned.scenes,
             snapshot: planned.prepared.snapshot
           })
-          current = await commitNativeLiveEncounterTurnPending(
+          current = await callLiveSessionRoute(
             environment,
             'fixture-access-token',
+            'encounterTurnPending',
             input
           )
           expect(
-            await commitNativeLiveEncounterTurnPending(environment, 'fixture-access-token', input)
+            await callLiveSessionRoute(
+              environment,
+              'fixture-access-token',
+              'encounterTurnPending',
+              input
+            )
           ).toEqual(current)
           const retained = (await storedInitiative(base)).occurrences.find(
             (entry) => entry.encounterId === run.id
@@ -1028,10 +1031,20 @@ describe('native initiative declarations', () => {
           })
         ).rejects.toThrow('Roll back private declaration terminal.')
         expect(await storedInitiative(base)).toEqual(before)
-        current = await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', terminal)
+        current = await callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterTurnCommit',
+          terminal
+        )
         finalResponderUserId = role === 'PLAYER' ? base.player.userId : base.owner.userId
         expect(
-          await commitNativeLiveEncounterTurn(environment, 'fixture-access-token', terminal)
+          await callLiveSessionRoute(
+            environment,
+            'fixture-access-token',
+            'encounterTurnCommit',
+            terminal
+          )
         ).toEqual(current)
         break
       }

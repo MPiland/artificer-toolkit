@@ -45,10 +45,7 @@ import {
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
-import {
-  commitNativeLiveEncounterTurn,
-  commitNativeLiveEncounterTurnPending
-} from '../../../session-worker/src/nativeEncounterTurnCommit'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -302,9 +299,10 @@ describe('private DO turn active-effect terminal', () => {
       })
       expect(response.status).toBe(409)
       expect(await stored(base)).toEqual(before)
-      const result = await commitNativeLiveEncounterTurn(
+      const result = await callLiveSessionRoute(
         liveTurnEnvironment,
         'fixture-access-token',
+        'encounterTurnCommit',
         planned.terminal
       )
       expect(result.projection).toMatchObject({
@@ -348,9 +346,10 @@ describe('private DO turn active-effect terminal', () => {
         hp - 2
       )
       expect(
-        await commitNativeLiveEncounterTurn(
+        await callLiveSessionRoute(
           liveTurnEnvironment,
           'fixture-access-token',
+          'encounterTurnCommit',
           planned.terminal
         )
       ).toEqual(result)
@@ -376,9 +375,10 @@ describe('private DO turn active-effect terminal', () => {
       result: { status: 'MANUAL', occurrenceVersion: 1 }
     })
     expect(await stored(base)).toEqual(before)
-    const result = await commitNativeLiveEncounterTurn(
+    const result = await callLiveSessionRoute(
       liveTurnEnvironment,
       'fixture-access-token',
+      'encounterTurnCommit',
       planned.terminal
     )
     const after = await stored(base)
@@ -390,9 +390,10 @@ describe('private DO turn active-effect terminal', () => {
       throw new Error('Expected completed manual turn receipt.')
     expect(receipt.outgoingTurn.kind).toBe('MANUAL')
     expect(
-      await commitNativeLiveEncounterTurn(
+      await callLiveSessionRoute(
         liveTurnEnvironment,
         'fixture-access-token',
+        'encounterTurnCommit',
         planned.terminal
       )
     ).toEqual(result)
@@ -423,9 +424,10 @@ describe('private DO turn active-effect terminal', () => {
       currentCandidate: { activeEffectId: effect.id, stage: 'END_OF_TURN' }
     })
     expect(await stored(base)).toEqual(before)
-    const issued = await commitNativeLiveEncounterTurnPending(
+    const issued = await callLiveSessionRoute(
       liveTurnEnvironment,
       'fixture-access-token',
+      'encounterTurnPending',
       liveSessionEncounterTurnPendingInputSchema.parse({
         ...turn.scope,
         command,
@@ -485,9 +487,10 @@ describe('private DO turn active-effect terminal', () => {
     })
     expect(rejected.status).toBe(409)
     expect(await stored(base)).toEqual(stale)
-    const result = await commitNativeLiveEncounterTurn(
+    const result = await callLiveSessionRoute(
       liveTurnEnvironment,
       'fixture-access-token',
+      'encounterTurnCommit',
       resumed.terminal
     )
     const hp = encounterGmProjectionDtoSchema.parse(started.projection).actors[0]!.currentHitPoints
@@ -514,9 +517,10 @@ describe('private DO turn active-effect terminal', () => {
       }
     ])
     expect(
-      await commitNativeLiveEncounterTurn(
+      await callLiveSessionRoute(
         liveTurnEnvironment,
         'fixture-access-token',
+        'encounterTurnCommit',
         resumed.terminal
       )
     ).toEqual(result)

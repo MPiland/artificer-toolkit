@@ -36,8 +36,8 @@ import {
   preparePrivateMovementResponse,
   privateMovementEnvironment
 } from '../../tests/fixtures/liveMovementResponse'
-import { commitNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovementCommit'
 import { prepareSceneMovement } from './movementPerceptionAction'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 
@@ -636,9 +636,10 @@ describe('native Scene movement passage', () => {
       expect(await rows()).toEqual(before)
       if (privateCommit)
         await expect(
-          commitNativeLiveMovement(
+          callLiveSessionRoute(
             privateMovementEnvironment,
             'fixture-access-token',
+            'encounterMovementCommit',
             privateCommit
           )
         ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
@@ -671,9 +672,10 @@ describe('native Scene movement passage', () => {
       expect(usedAfter).toBe(usedBefore + 1)
       if (privateCommit)
         await expect(
-          commitNativeLiveMovement(
+          callLiveSessionRoute(
             privateMovementEnvironment,
             'fixture-access-token',
+            'encounterMovementCommit',
             privateCommit
           )
         ).resolves.toMatchObject({ replayed: true })

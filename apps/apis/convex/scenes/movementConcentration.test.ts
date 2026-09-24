@@ -39,7 +39,6 @@ import {
   privateMovementEnvironment,
   privateMovementWorkerSecret
 } from '../../tests/fixtures/liveMovementResponse'
-import { commitNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovementCommit'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
@@ -47,6 +46,7 @@ import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { commitPreparedSpatialTerminal } from './spatialCommit.helper'
 import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
 import { readResponse } from './movementResolutionDocuments'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
 afterEach(() => {
@@ -876,9 +876,10 @@ it.each(['native', 'private'] as const)(
       privateCommit = prepared.commitInput
       beforeFinish = await records(value)
       expect(beforeFinish).toEqual(staged)
-      const committed = await commitNativeLiveMovement(
+      const committed = await callLiveSessionRoute(
         privateMovementEnvironment,
         'fixture-access-token',
+        'encounterMovementCommit',
         privateCommit
       )
       completed = committed
@@ -927,7 +928,12 @@ it.each(['native', 'private'] as const)(
     })
     if (privateCommit)
       await expect(
-        commitNativeLiveMovement(privateMovementEnvironment, 'fixture-access-token', privateCommit)
+        callLiveSessionRoute(
+          privateMovementEnvironment,
+          'fixture-access-token',
+          'encounterMovementCommit',
+          privateCommit
+        )
       ).resolves.toEqual({ ...completed, replayed: true })
     else
       await expect(value.player.caller.mutation(finish, request)).resolves.toEqual({

@@ -40,14 +40,6 @@ import { DurableCommandJournal } from './durableCommandJournal.js'
 import { NativeSocketTransientState } from './nativeSocketTransientState.js'
 import type { SessionWorkerEnvironment } from './environment.js'
 import {
-  activateNativeLiveSession,
-  beginDrainNativeLiveSession,
-  bootstrapNativeLiveSession,
-  presentNativeLiveSessionScene,
-  publishNativeLiveSession,
-  releaseNativeLiveSession
-} from './nativeLiveStateClient.js'
-import {
   createNativeLiveSessionState,
   hydrateNativeLiveSessionState,
   projectNativeLiveSessionState
@@ -56,11 +48,8 @@ import {
   liveSessionSceneCommandInputSchema,
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
-import {
-  captureNativeTransient,
-  hydrateNativeTransientScene,
-  NativeSceneRequestError
-} from './nativeSceneClient.js'
+import { callLiveSessionRoute, LiveSessionRouteError } from './liveSessionRoutes.js'
+import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
@@ -456,7 +445,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const deadline = expiration * 1_000
     this.#authenticating.set(socket, { accessToken, deadline, generation })
     try {
-      const capture = await captureNativeTransient(this.env, accessToken, {
+      const capture = await callLiveSessionRoute(this.env, accessToken, 'capture', {
         campaignId: value.campaignId,
         expectedRole: value.role,
         expectedUserId: value.userId,
@@ -550,7 +539,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
     } catch (error) {
       if (
-        error instanceof NativeSceneRequestError &&
+        error instanceof LiveSessionRouteError &&
         (error.status === 401 || error.status === 409)
       ) {
         this.#closeIfCurrent(socket, generation, 'Live-session membership changed.')
@@ -571,7 +560,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): Promise<void> {
     if (!this.#activation) {
       const work = (async () => {
-        const bootstrap = await bootstrapNativeLiveSession(this.env, accessToken, {
+        const bootstrap = await callLiveSessionRoute(this.env, accessToken, 'bootstrap', {
           authorityEpoch: value.authorityEpoch,
           campaignId: value.campaignId,
           expectedRole: role,
@@ -619,7 +608,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           })
         }
         if (current.sequence === 0) {
-          const activated = await activateNativeLiveSession(this.env, {
+          const activated = await callLiveSessionRoute(this.env, null, 'activate', {
             activationFingerprint: bootstrap.activationFingerprint,
             campaignId: value.campaignId,
             epoch: value.authorityEpoch,
@@ -942,7 +931,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const entry = this.#journal.listPending(1)[0]
       if (!entry) return
       const input = liveSessionPublishInputSchema.parse(JSON.parse(entry.payloadJson))
-      const published = await publishNativeLiveSession(this.env, input)
+      const published = await callLiveSessionRoute(this.env, null, 'publish', input)
       if (
         published.authority.epoch !== input.epoch ||
         published.authority.persistedSequence !== entry.sequence ||
@@ -985,7 +974,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           []
         )
       } catch (error) {
-        if (!(error instanceof NativeSceneRequestError) || error.status !== 409) throw error
+        if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
         capture = await this.#capture(
           originAttachment,
           originAdmission,
@@ -1155,7 +1144,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#cache?.characterRevisions ?? []
       )
     } catch (error) {
-      if (!(error instanceof NativeSceneRequestError) || error.status !== 409) throw error
+      if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
       if (generation !== this.#cacheGeneration || this.#presentationChanging) return null
       staleRetryUsed = true
       this.#cache = null
@@ -1172,7 +1161,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     try {
       finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
     } catch (error) {
-      if (!(error instanceof NativeSceneRequestError) || error.status !== 409) throw error
+      if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
       if (generation !== this.#cacheGeneration || this.#presentationChanging) return null
       if (staleRetryUsed) throw error
       staleRetryUsed = true
@@ -1217,7 +1206,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     mode: 'AUTHORITY' | 'FULL',
     observedCharacterRevisions: LiveSessionTransientCapture['observedCharacterRevisions']
   ): Promise<LiveSessionTransientCapture> {
-    return captureNativeTransient(this.env, admission.accessToken, {
+    return callLiveSessionRoute(this.env, admission.accessToken, 'capture', {
       campaignId: value.campaignId,
       expectedRole: admission.role,
       expectedUserId: admission.userId,
@@ -1545,7 +1534,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         throw new Error('Live Session authority changed.')
       if (current && current.sequence !== current.publishedSequence)
         throw new Error('Live Session publication is incomplete.')
-      return await presentNativeLiveSessionScene(this.env, {
+      return await callLiveSessionRoute(this.env, null, 'present', {
         campaignId: input.campaignId,
         sessionId: input.sessionId,
         actorUserId: input.operation.actorUserId,
@@ -1582,7 +1571,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     let drainError: unknown
     try {
-      const authority = await beginDrainNativeLiveSession(this.env, input)
+      const authority = await callLiveSessionRoute(this.env, null, 'beginDrain', input)
       if (
         authority.epoch !== input.epoch ||
         authority.phase !== 'DRAINING' ||
@@ -1595,7 +1584,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     await this.#flushOutbox()
     try {
-      await releaseNativeLiveSession(this.env, input)
+      await callLiveSessionRoute(this.env, null, 'release', input)
     } catch (error) {
       throw drainError ?? error
     }

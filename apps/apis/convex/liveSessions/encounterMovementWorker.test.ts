@@ -29,11 +29,6 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
-import {
-  beginNativeLiveMovement,
-  stageNativeLiveMovement,
-  commitNativeLiveMovement
-} from '../../../session-worker/src/nativeEncounterMovementCommit'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
@@ -45,6 +40,7 @@ import { persistLiveMovementConcentration } from './encounterMovementConcentrati
 import { commitLiveMovement } from './encounterMovementCommit'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 const workerSecret = 'private-movement-worker-test-secret-at-least-32-bytes'
 const authSecret = 'private-movement-continuation-test-secret-at-least-32-bytes'
@@ -226,15 +222,20 @@ it.each([
         return initiator.caller.fetch(pathname, init)
       })
     )
-    const staged = await beginNativeLiveMovement(environment, 'fixture-access-token', {
-      campaignId: value.base.campaign.id,
-      sessionId: session.id,
-      authorityEpoch: epoch,
-      expectedUserId: initiator.userId,
-      expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
-      command: movementCommand,
-      session: sessionScope
-    })
+    const staged = await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementBegin',
+      {
+        campaignId: value.base.campaign.id,
+        sessionId: session.id,
+        authorityEpoch: epoch,
+        expectedUserId: initiator.userId,
+        expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
+        command: movementCommand,
+        session: sessionScope
+      }
+    )
     if (staged.kind !== 'READY') throw new Error('Expected a private receiving geometry save.')
     const scene = await initiator.caller.run(async (ctx): Promise<CampaignSceneState> => {
       const { header } = await readLiveScene(ctx, value.sceneId, 'MEMBER')
@@ -531,13 +532,23 @@ it.each([
         expect(await geometrySave()).toEqual(receivingSave)
       }
     }
-    expect(await stageNativeLiveMovement(environment, 'fixture-access-token', stageInput)).toEqual(
-      preparation
-    )
+    expect(
+      await callLiveSessionRoute(
+        environment,
+        'fixture-access-token',
+        'encounterMovementPrepare',
+        stageInput
+      )
+    ).toEqual(preparation)
     expect(await records()).toEqual(before)
-    expect(await stageNativeLiveMovement(environment, 'fixture-access-token', stageInput)).toEqual(
-      preparation
-    )
+    expect(
+      await callLiveSessionRoute(
+        environment,
+        'fixture-access-token',
+        'encounterMovementPrepare',
+        stageInput
+      )
+    ).toEqual(preparation)
     const frozen = await value.base.t.run((ctx) =>
       ctx.db
         .query('sceneGeometrySaves')
@@ -718,7 +729,12 @@ it.each([
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
       await expect(
-        commitNativeLiveMovement(environment, 'fixture-access-token', commitInput)
+        callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterMovementCommit',
+          commitInput
+        )
       ).rejects.toMatchObject({ status: 409 })
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
@@ -728,9 +744,10 @@ it.each([
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
     }
-    const published = await commitNativeLiveMovement(
+    const published = await callLiveSessionRoute(
       environment,
       'fixture-access-token',
+      'encounterMovementCommit',
       commitInput
     )
     const committed = await records()
@@ -805,7 +822,12 @@ it.each([
     expect(rootResult).toMatchObject({
       reactionExecutions: [{ concentrationChecks: [concentration] }]
     })
-    const replay = await commitNativeLiveMovement(environment, 'fixture-access-token', commitInput)
+    const replay = await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterMovementCommit',
+      commitInput
+    )
     expect(replay).toEqual({ ...published, replayed: true })
     expect(await records()).toEqual(committed)
     expect(await geometrySave()).toEqual(publishedSave)

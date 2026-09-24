@@ -4,7 +4,6 @@ import type {
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   liveSessionCharacterRulesInputSchema,
-  liveSessionCharacterRulesResponseSchema,
   type LiveSessionCharacterRulesInput,
   type LiveSessionCharacterRulesRequest,
   type LiveSessionCharacterRulesResponse
@@ -21,7 +20,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { requestNativeLiveSession, type NativeLiveSessionEnvironment } from './nativeSceneClient.js'
+import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 /** Prepare authorized live Character facts; the caller must validate dependencies before commit. */
 export async function prepareNativeLiveCharacterSheet(
@@ -38,13 +37,7 @@ export async function prepareNativeLiveCharacterSheet(
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionCharacterRulesRequest) {
     const input = liveSessionCharacterRulesInputSchema.parse({ ...initialInput, request })
-    const response = await requestNativeLiveSession(
-      environment,
-      accessToken,
-      '/live-sessions/character-rules',
-      input,
-      (body) => liveSessionCharacterRulesResponseSchema.parse(body)
-    )
+    const response = await callLiveSessionRoute(environment, accessToken, 'characterRules', input)
     const expectedKind =
       request.kind === 'INPUTS' || request.kind === 'PUBLICATIONS' ? request.kind : 'SOURCE_INDEX'
     if (response.kind !== expectedKind) throw new Error('Character rules capture kind mismatch.')

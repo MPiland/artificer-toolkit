@@ -17,14 +17,11 @@ import {
   createPlatformRulesRuntime,
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import {
-  beginNativeLiveMovement,
-  stageNativeLiveMovement
-} from '../../../session-worker/src/nativeEncounterMovementCommit'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { readCurrentEntities } from '../../convex/scenes/currentEntities'
 import { readLiveScene } from '../../convex/scenes/liveDocuments'
 import type { setupAutomaticCharacterMovement } from './automaticCharacterMovement'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 
 export const privateMovementWorkerSecret = 'private-movement-child-worker-secret-at-least-32-bytes'
 export const privateMovementEnvironment = {
@@ -92,10 +89,15 @@ export async function preparePrivateMovementResponse(input: {
     expectedUserId: userId,
     expectedRole: role
   }
-  const staged = await beginNativeLiveMovement(privateMovementEnvironment, 'fixture-access-token', {
-    ...common,
-    command
-  })
+  const staged = await callLiveSessionRoute(
+    privateMovementEnvironment,
+    'fixture-access-token',
+    'encounterMovementBegin',
+    {
+      ...common,
+      command
+    }
+  )
   if (staged.kind !== 'READY') throw new Error('Expected private movement response staging.')
   const scene = await caller.run(async (ctx): Promise<CampaignSceneState> => {
     const { header } = await readLiveScene(ctx, value.sceneId, 'MEMBER')
@@ -207,7 +209,12 @@ export async function preparePrivateMovementResponse(input: {
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     )
   }
-  await stageNativeLiveMovement(privateMovementEnvironment, 'fixture-access-token', stageInput)
+  await callLiveSessionRoute(
+    privateMovementEnvironment,
+    'fixture-access-token',
+    'encounterMovementPrepare',
+    stageInput
+  )
   await caller.mutation(observe, { saveId: staged.saveId, characterRevisions: [] })
   const commitInput: LiveSessionMovementCommitInput = {
     ...stageInput,
