@@ -1,9 +1,11 @@
-# Campaign and interactive-play extension backlog
+# Future enhancements backlog
 
-> **Status:** proposed enhancements
-> **Scope:** product ideas and interactive effect behavior that are explicitly out of phase and can be deferred until after Phase 06 live loops are in place
+> **Status:** proposed enhancements. The Post-launch section holds improvements that are deliberately deferred until after launch; everything needed for a competitive product before closed beta lives in the phase plans, not here.
+> **Scope:** product ideas, model redesigns and interactive behavior that are explicitly out of phase
 
 ## Interactive `APPLY_GRANT` lifecycle
+
+> **Moved into scope (2026-09-25):** `APPLY_GRANT` effects (Shield, Aid, Shocking Grasp and others) ship in Phase 8.3 with spell casting, before closed beta. The lifecycle notes below are the starting point for that work.
 
 This was previously labeled in source as a "Phase 8+ interactive runtime" follow-up. The current
 roadmap's Phase 09 is billing and subscriptions, so this backlog is the canonical replacement for
@@ -57,6 +59,25 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 - Are grants only mechanical, only informational, or both?
 - Should characters see grant sources in their sheet projection?
 - Do we need grant expiration / session-bound grant windows in phase 1?
+
+## Post-launch
+
+### Rules-engine-native modifier model
+Much of the modifier vocabulary predates the rules engine and expresses capability rules as numeric workarounds. For example, Shocking Grasp's "can't take reactions" is authored as `REACTION_COUNT` `SET_VALUE` 0. Review the whole modifier model with the engine in mind:
+- capability modifiers (`DISABLE` / `ENABLE` over reactions, bonus actions, movement modes, concentration, and so on) instead of zeroing counts, so effects compose cleanly and the UI can say "Reactions disabled (Shocking Grasp)";
+- which kinds should become engine rules instead of authored numbers;
+- migrating SRD and homebrew content, with authoring UX that reads like the rules text.
+
+Raised by the user on 2026-09-25 during Phase 8.2.
+
+### Node-map DSL child-scope references
+Condition paths resolve one field from the current scope or an enclosing one (`ShallowPath`), never from a child group. So the Equipment effect `grip` field is always visible, although its correct condition is the effect's own `invocation.triggerCode`. Candidate: a bounded, typed child-scope reference. See `docs/architecture/authoring-schema.md`.
+
+### Publish-time recompute of stored Character maximum HP
+A Character's stored maximum HP (display only; rules are live) updates on the Character's next write after a content republish. A background recompute of the affected Characters after publish would remove that lag.
+
+### Fog-off Scenes skip unused fog layers
+A fog-off Scene that keeps its fog layers still uses full hydration, and players download layers they don't use. Skip or defer them while fog is off.
 
 ## Other future enhancements (parked)
 
