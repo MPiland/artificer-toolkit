@@ -14,7 +14,12 @@ export const glaive: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.REACH,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.meleeReachWeaponEffects(S.equipId(17), 'SLASHING', '1d10'),
+  effects: S.meleeReachWeaponEffects(
+    S.equipId(17),
+    'SLASHING',
+    '1d10',
+    S.EQUIPMENT_GRIP.TWO_HANDED
+  ),
   cost: S.gp(20),
   weight: S.lbs(6),
   rarityId: S.RARITY_COMMON,

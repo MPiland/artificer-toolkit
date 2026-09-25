@@ -14,6 +14,7 @@ const entry: CampaignChatEntryDto = {
   mode: 'ROLEPLAY',
   body: 'The history remains.',
   roll: null,
+  revealedByGm: false,
   authorUserId: '48c98265-8507-4c77-bf99-1585a4a46274',
   authorUsername: 'Deleted user',
   characterId: '5c6f2647-8a8e-4e8e-8a9e-19f9554bf79c',

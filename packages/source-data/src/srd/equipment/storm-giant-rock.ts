@@ -15,6 +15,7 @@ export const stormGiantRock: EquipmentAuthored = {
     {
       id: S.equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: S.EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION',
         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,

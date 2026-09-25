@@ -13,7 +13,7 @@ export const whip: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.FINESSE,
     S.EQUIPMENT_PROPERTY_CODE.REACH
   ],
-  effects: S.meleeReachWeaponEffects(S.equipId(32), 'SLASHING', '1d4'),
+  effects: S.meleeReachWeaponEffects(S.equipId(32), 'SLASHING', '1d4', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(2),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

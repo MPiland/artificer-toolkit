@@ -1,7 +1,13 @@
-import type { BaseEquipmentAuthored, EquipmentAuthored, VariantEquipmentAuthored } from '#authored'
+import type {
+  BaseEquipmentAuthored,
+  EquipmentAuthored,
+  EquipmentEffectAuthored,
+  VariantEquipmentAuthored
+} from '#authored'
 import type {
   EquipmentAttribute,
   EquipmentCategoryCode,
+  EquipmentGrip,
   EquipmentPropertyCode,
   MeasurementUnitCode
 } from '#core'
@@ -74,6 +80,8 @@ export type ResolvedEquipment = Omit<BaseEquipmentAuthored, 'category' | 'proper
   variant?: ResolvedEquipmentVariantMeta
 }
 
+export type CompiledEquipmentEffectGroup = CompiledEffectGroup & { grip: EquipmentGrip | null }
+
 export type CompiledEquipmentBase = {
   id: string
   /** Retained for bounded play-surface projections; historical snapshots may omit it. */
@@ -83,7 +91,7 @@ export type CompiledEquipmentBase = {
   cost?: CompiledCost
   weight?: CompiledWeight
   attributes?: EquipmentAttribute[]
-  effects?: CompiledEffectGroup[]
+  effects?: CompiledEquipmentEffectGroup[]
   charges?: CompiledCharge
   capacity?: CompiledCapacity
   modifiers?: CompiledModifierGrant[]
@@ -124,7 +132,14 @@ function mergeUniqueValues<T extends string>(
 function compileEquipmentBase(
   authored: EquipmentAuthored | VariantEquipmentAuthored | ResolvedEquipment
 ): CompiledEquipmentBase {
-  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
+  const effects = authored.effects?.length
+    ? authored.effects.map(
+        (effect: EquipmentEffectAuthored): CompiledEquipmentEffectGroup => ({
+          ...compileEffect(effect),
+          grip: effect.grip
+        })
+      )
+    : undefined
 
   const features =
     authored.features && authored.features.length

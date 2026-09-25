@@ -126,7 +126,8 @@ async function seedMeasurements(
         nextFogOrdinal: 0,
         settings: {
           ambientIllumination: { value: base.input.settings.ambientIllumination, version: 0 },
-          visionRevealMode: { value: base.input.settings.visionRevealMode, version: 0 }
+          visionRevealMode: { value: base.input.settings.visionRevealMode, version: 0 },
+          fogMode: { value: base.input.settings.fogMode, version: 0 }
         },
         counts: { ...base.input.counts, measurements: rows.filter(Boolean).length },
         nextOrdinals: { ...base.input.counts, measurements: rows.length }

@@ -29,6 +29,7 @@ describe('resolveEquipmentAuthored', () => {
         {
           id: 'parent-effect',
           order: 1,
+          grip: 'ONE_HANDED',
           invocation: {
             kind: 'ACTION',
             triggerCode: 'MELEE_WEAPON_ATTACK',

@@ -1,8 +1,17 @@
-import type { EffectAuthored, EffectInvocationAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  EffectAuthored,
+  EffectInvocationAuthored,
+  EquipmentEffectAuthored
+} from '@artificer-toolkit/shared/authored'
 import { z } from '../zod.js'
 
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
-import { activationCodeSchema, invocationKindSchema, triggerCodeSchema } from '../shared/enums.js'
+import {
+  activationCodeSchema,
+  equipmentGripSchema,
+  invocationKindSchema,
+  triggerCodeSchema
+} from '../shared/enums.js'
 import { activationDtoSchema } from './activation.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
@@ -110,6 +119,31 @@ const createEffectDtoSchema = <TPathSchema extends z.ZodMiniType>(pathSchema: TP
   })
 
 export const effectDtoSchema = createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>
+
+const weaponAttackTriggerCodes: readonly string[] = [
+  triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
+  triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK
+]
+
+/** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
+export const equipmentEffectDtoSchema = z
+  .extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) })
+  .check(
+    z.superRefine((effect, context) => {
+      const weaponAttack =
+        effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
+        weaponAttackTriggerCodes.includes(effect.invocation.triggerCode)
+      if ((effect.grip !== null) !== weaponAttack)
+        context.addIssue({
+          code: 'custom',
+          path: ['grip'],
+          message:
+            effect.grip === null
+              ? 'A weapon attack effect requires a grip.'
+              : 'Only weapon attack effects have a grip.'
+        })
+    })
+  ) as z.ZodMiniType<EquipmentEffectAuthored>
 export const manifestNestedBehaviorDtoSchema = createEffectDtoSchema(manifestBehaviorPathDtoSchema)
 
 export type EffectDto = z.infer<typeof effectDtoSchema>

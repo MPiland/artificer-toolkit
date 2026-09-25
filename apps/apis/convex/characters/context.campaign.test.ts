@@ -532,7 +532,9 @@ describe('assigned native Character Campaign source access', () => {
     const before = await readState()
     const rolled = await owner.caller.mutation(api.rolls.execute, request)
     expect(rolled.source).toEqual(request.source)
-    expect(await owner.caller.query(api.rolls.history, {})).toEqual([rolled])
+    expect(await owner.caller.query(api.rolls.history, {})).toEqual([
+      { ...rolled, gmCampaignRoll: null }
+    ])
     const storedRolls = await t.run((ctx) => ctx.db.query('userRollHistory').collect())
     expect(storedRolls[0].source.label).toContain('Shitstorm')
     await expect(

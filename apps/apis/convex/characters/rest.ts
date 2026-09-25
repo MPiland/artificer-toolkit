@@ -21,6 +21,47 @@ import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 
+/**
+ * Reads a hit-die roll's one stored record by id. Campaign rests settle only from rolls the GM can
+ * see: the caller's TABLE or To GM chat entry, or the GM's own non-blind retained roll. A personal
+ * Character outside a Campaign settles from the caller's retained history.
+ */
+async function readRestRoll(
+  ctx: QueryCtx,
+  userId: string,
+  campaignId: string | null,
+  lookupId: string
+) {
+  const rollId = lookupId.toLowerCase()
+  const retained = await ctx.db
+    .query('userRollHistory')
+    .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', rollId))
+    .unique()
+  if (retained) {
+    const gmRoll = retained.gmCampaignRoll
+    if (
+      campaignId !== null &&
+      (gmRoll?.campaignId !== campaignId || (gmRoll.blind && gmRoll.revealedAt === null))
+    )
+      throw new CharacterSheetCommandError(
+        'Campaign rest rolls must be visible to the GM; roll to the Table or to the GM.'
+      )
+    return { stored: retained, record: rollRecordDtoSchema.parse(retained) }
+  }
+  if (campaignId === null) return null
+  const payload = await ctx.db
+    .query('campaignConversationEntryPayloads')
+    .withIndex('by_rollId', (q) => q.eq('roll.id', rollId))
+    .unique()
+  if (!payload?.roll) return null
+  const header = await ctx.db
+    .query('campaignConversationEntries')
+    .withIndex('by_publicId', (q) => q.eq('id', payload.entryId))
+    .unique()
+  if (!header || header.campaignId !== campaignId || header.authorUserId !== userId) return null
+  return { stored: payload, record: payload.roll }
+}
+
 /** Shared preparation for the read-only preview and the completing mutation's current read set. */
 export async function prepareCharacterRest(
   ctx: QueryCtx,
@@ -38,18 +79,13 @@ export async function prepareCharacterRest(
       'Character Sheet changed; refresh before previewing this rest.'
     )
   const roll = input.rollId
-    ? await ctx.db
-        .query('userRollHistory')
-        .withIndex('by_userId_id', (q) =>
-          q.eq('userId', userId).eq('id', input.rollId!.toLowerCase())
-        )
-        .unique()
+    ? await readRestRoll(ctx, userId, current.campaignContext.campaignId, input.rollId)
     : null
   validateCharacterRestRollEvidence({
     characterId: current.active.id,
     rollId: input.rollId,
     evidence: input.rollEvidence,
-    roll: roll && roll.consumedAt === undefined ? rollRecordDtoSchema.parse(roll) : null
+    roll: roll && roll.stored.consumedAt === null ? roll.record : null
   })
   const maximumModifier = input.resetMaximumHitPointModifier
     ? current.sheetState.adjustments.find(
@@ -85,7 +121,7 @@ export async function prepareCharacterRest(
     resetMaximumModifierId: preview.hitPoints.canResetMaximumHitPointModifier
       ? maximumModifier?.id
       : undefined,
-    roll
+    roll: roll?.stored ?? null
   }
 }
 

@@ -11,9 +11,10 @@ import {
 } from '../vtt/CampaignTabletop.stories.fixtures'
 
 const mocks = vi.hoisted(() => ({
+  commandReady: true,
   convexQuery: vi.fn(),
-  execute: vi.fn(),
   pendingDecision: null as object | null,
+  sendEncounterCommand: vi.fn(),
   useMutation: vi.fn(),
   useQuery: vi.fn(),
   useQueryClient: vi.fn()
@@ -25,7 +26,14 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 }))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  useConvex: () => ({ mutation: mocks.execute })
+  useConvex: () => ({})
+}))
+vi.mock('../vtt/useCampaignLiveSession', () => ({
+  useCampaignLiveSession: () => ({
+    commandReady: mocks.commandReady,
+    error: null,
+    sendEncounterCommand: mocks.sendEncounterCommand
+  })
 }))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
@@ -72,6 +80,7 @@ function renderWorkspace(
 describe('CampaignEncounterWorkspace controls', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.commandReady = true
     mocks.pendingDecision = null
     mocks.convexQuery.mockImplementation((reference: unknown) => ({
       queryKey: [getFunctionName(reference as Parameters<typeof getFunctionName>[0])]
@@ -111,7 +120,7 @@ describe('CampaignEncounterWorkspace controls', () => {
       invalidateQueries: vi.fn(),
       setQueryData: vi.fn()
     })
-    mocks.execute.mockResolvedValue({ projection: tabletopGmEncounter, roll: null })
+    mocks.sendEncounterCommand.mockResolvedValue({ projection: tabletopGmEncounter, roll: null })
     mocks.useMutation.mockImplementation(
       (options: {
         mutationFn: (input: unknown) => Promise<unknown>
@@ -132,21 +141,28 @@ describe('CampaignEncounterWorkspace controls', () => {
 
     await user.click(screen.getByRole('button', { name: 'Move Third enemy earlier' }))
 
-    expect(mocks.execute).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mocks.sendEncounterCommand).toHaveBeenCalledWith(
       expect.objectContaining({
-        command: expect.objectContaining({
-          encounterId: tabletopGmEncounter.id,
-          expectedVersion: tabletopGmEncounter.version,
-          type: 'REORDER',
-          actorIds: [
-            tabletopGmEncounter.actors[0]!.id,
-            thirdActor.id,
-            tabletopGmEncounter.actors[1]!.id
-          ]
-        })
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'REORDER',
+        actorIds: [
+          tabletopGmEncounter.actors[0]!.id,
+          thirdActor.id,
+          tabletopGmEncounter.actors[1]!.id
+        ]
       })
     )
+  })
+
+  it('disables command controls until the live table is command-ready', () => {
+    mocks.commandReady = false
+    renderWorkspace()
+
+    expect(screen.getByText('Connecting to the table…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add enemy' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Move Third enemy earlier' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove Third enemy' })).toBeDisabled()
   })
 
   it('keeps SIDE_ROLL reorder inside the settled side group', () => {
@@ -186,16 +202,13 @@ describe('CampaignEncounterWorkspace controls', () => {
     await user.type(screen.getByLabelText('Initiative'), '16')
     await user.click(screen.getAllByRole('button', { name: 'Add enemy' }).at(-1)!)
 
-    expect(mocks.execute).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mocks.sendEncounterCommand).toHaveBeenCalledWith(
       expect.objectContaining({
-        command: expect.objectContaining({
-          encounterId: tabletopGmEncounter.id,
-          expectedVersion: tabletopGmEncounter.version,
-          type: 'REINFORCE',
-          enemy: { kind: 'CUSTOM', label: 'Brass Defender', maxHitPoints: 80 },
-          initiative: 16
-        })
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'REINFORCE',
+        enemy: { kind: 'CUSTOM', label: 'Brass Defender', maxHitPoints: 80 },
+        initiative: 16
       })
     )
 

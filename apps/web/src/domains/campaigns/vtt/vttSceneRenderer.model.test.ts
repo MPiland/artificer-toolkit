@@ -185,27 +185,30 @@ describe('VTT scene renderer model', () => {
     ).toBe(false)
   })
 
-  it('combines explored fog bits from private layers', () => {
-    const mask = buildVttFogMask({
-      fogLayers: [
-        {
-          chunks: [{ data: 'BQ==', height: 2, index: 0, width: 2, x: 0, y: 0 }],
-          height: 2,
-          ownerUserId: null,
-          width: 2
-        },
-        {
-          chunks: [{ data: 'Ag==', height: 2, index: 0, width: 2, x: 0, y: 0 }],
-          height: 2,
-          ownerUserId: '11111111-1111-4111-8111-111111111111',
-          width: 2
-        }
-      ]
-    })
+  it('combines explored fog bits from private layers and draws no fog while fog is OFF', () => {
+    const fogLayers = [
+      {
+        chunks: [{ data: 'BQ==', height: 2, index: 0, width: 2, x: 0, y: 0 }],
+        height: 2,
+        ownerUserId: null,
+        width: 2
+      },
+      {
+        chunks: [{ data: 'Ag==', height: 2, index: 0, width: 2, x: 0, y: 0 }],
+        height: 2,
+        ownerUserId: '11111111-1111-4111-8111-111111111111',
+        width: 2
+      }
+    ]
+    const mask = buildVttFogMask({ fogLayers, fogMode: 'PER_PLAYER' })
 
     expect(mask && [...mask.opacity]).toEqual([0, 0, 0, 224])
-    expect(buildVttFogMask({ fogLayers: [] })).toBeNull()
-    expect(buildVttFogMask({ fogLayers: [] }, true)?.opacity).toEqual(new Uint8ClampedArray([224]))
+    expect(buildVttFogMask({ fogLayers: [], fogMode: 'SHARED_PARTY' })).toBeNull()
+    expect(buildVttFogMask({ fogLayers: [], fogMode: 'SHARED_PARTY' }, true)?.opacity).toEqual(
+      new Uint8ClampedArray([224])
+    )
+    expect(buildVttFogMask({ fogLayers, fogMode: 'OFF' }, true)).toBeNull()
+    expect(buildVttFogMask({ fogLayers: [], fogMode: 'OFF' }, true)).toBeNull()
   })
 
   it('formats square and gridless measurement paths', () => {

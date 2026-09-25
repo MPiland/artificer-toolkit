@@ -109,6 +109,11 @@ export const get = query({
                 policyOutput
               })
             : null
+          const damageLabel = action.mechanic?.outcomes
+            .flatMap((outcome) =>
+              outcome.kind === 'DAMAGE' ? [`${outcome.expression} ${outcome.damageTypeLabel}`] : []
+            )
+            .join(' + ')
           return {
             id: action.id,
             label: action.label,
@@ -117,6 +122,13 @@ export const get = query({
             ...(action.mechanic?.attackBonus === undefined
               ? {}
               : { attackBonus: action.mechanic.attackBonus }),
+            ...(damageLabel ? { damageLabel } : {}),
+            grip: candidate?.equipment?.grip
+              ? {
+                  value: candidate.equipment.grip,
+                  attackKey: `${candidate.equipment.itemInstanceId}:${candidate.mechanicFacts.invocation.triggerCode}`
+                }
+              : null,
             wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
           }
         })
@@ -131,6 +143,7 @@ export const get = query({
         id: action.actionId,
         label: action.label,
         ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+        grip: null,
         wieldConflict: null
       }))
     }

@@ -59,13 +59,41 @@ Also committed: S5 room limits (`3eba2a32`), private-by-default GM previews (`75
 Next (8.2 core, in order):
 
 1. **Grip and carried weapons (in progress):** authored grip markers on weapon effects (versatile one-hand and two-hand actions, shield conflict per grip); carried weapons attack with correct modifiers.
-2. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
-3. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
-4. **Player control:** one actor-control predicate with GM-set controllers; player actions, turn end, initiative and rolls; roll prompts ("Roll dice" or typed, rerolls logged, roll-mode override); redaction; action-economy and movement display; one in-flight player Encounter command per user. Spec: `local-validation/s6/spec-player-actions.md` (local).
-5. **Table fixes:** players commit moves outside Encounters (web gate), toggle unlocked doors, and roll to the table by default with a "To GM" option.
-6. **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature.
-7. **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and Manual mode, then delete their Convex rules code.
-8. **S7:** R01–R05 audit, R08 `yarn validate:pre-staging:local`, V15 workload with player-issued commands, docs.
+2. **Combat math correctness** (from the 2026-09-24 authored-data audit; one slice):
+   - Damage modifiers (ability, SOURCE +N, Dueling) are folded but never added to damage.
+   - Character actions have no attack kind: ranged attacks use melee roll modes, Characters never flank. Consolidate the five attack-kind classifiers and the two modifier group-key builders.
+   - Heavy never applies: size is missing from the fold input, so the SIZE restriction fails. Behind it, roll-mode contributors ignore SOURCE scope (`effectActionCompiler.ts` ~5762); after the fix, remove the roll-mode exclusion in `drawnSourceState`.
+   - ARMOR_CLASS SET_VALUE is added instead of replacing (Draconic Resilience).
+   - Scope semantics: SOURCE applies only to things from that source (per the registry); re-author Character-wide features (Archery, Dueling, Defense, Unarmored Defense, Draconic Resilience, Font of Inspiration) as GLOBAL with facet filters.
+   - "Nonmagical" resistance qualifiers are dropped by the seed normalizer, becoming full resistances or immunities.
+   - Proficiency is matched by exact equipment id (magic variants fail; `*` is unhandled); magic ammunition bonuses never reach the firing weapon.
+   - Condition-specific save grants are never selected.
+   - Fail-closed latent issues: PENALTY sign; non-Character restriction contexts are dropped, so the restriction passes; unsupported modifier kinds are rejected at publish until implemented.
+   - SRD data errors: Barbarian and Fighter Defense lack armor gates; Monk Unarmored Defense has no mechanics; light and medium armor DEX gated on armor proficiency; missing Rogue weapon and tool proficiencies; Heavy armor STR and speed.
+   - Sheet item panel shows manual adjustments only for magic weapons.
+   - The shield-stow AC delta counts only the shield's base value, not a magic shield's +N.
+   - Add direct unit tests in `packages/rules-runtime` (it has none today).
+   - Phase 8.3 (with spell casting): APPLY_GRANT effects (19; e.g. Shield, Aid), condition mechanics, long range, and the remaining modifier kinds.
+3. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
+4. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
+5. **Player control:** one actor-control predicate with GM-set controllers; player actions, turn end, initiative and rolls; roll prompts ("Roll dice" or typed, rerolls logged, roll-mode override); redaction; action-economy and movement display; one in-flight player Encounter command per user. Spec: `local-validation/s6/spec-player-actions.md` (local).
+5b. **Visibility privacy (with player control):** players see no other actor's health by default (PCs or enemies); another player's Sheet is GM-only by default. Opt-in: "Party can view" per Character. Health display levels (Hidden by default, Descriptive, Bar, Exact) are set per Character by its player, and per Encounter for enemies by the GM, with a per-actor override. In Phase 8.3, the GM's per-enemy "Share health state" action posts a descriptive state (Unhurt, Hurt, Bloodied, Near death) once to the table log.
+6. **Table fixes:** players commit moves outside Encounters (web gate), toggle unlocked visible doors, and roll to the table by default with a "To GM" option. Fog of war becomes opt-in per Scene: with fog off, players see every non-hidden entity (today a Scene without fog layers shows players only their own tokens).
+7. **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature.
+8. **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and Manual mode, then delete their Convex rules code.
+9. **S7:** R01–R05 audit, R08 `yarn validate:pre-staging:local`, V15 workload with player-issued commands, docs.
+   - R08 prerequisite: `scripts/validatePreStagingLocal.mjs` still depends on the Codex-era `.codex/validation/local-convex-linux-20260915/` packet (proof runners, a credentials file with a stored admin key, evidence paths), which exists only in the backup worktree. Port it into the repo on the model of `scripts/resetLocalConvex.ps1`: generate the admin key with `docker exec` at run time and write evidence under `local-validation/`.
+
+Integration items for the pending local-reset batch (grip, fog opt-in, roll visibility, doors):
+
+- Chat roll payloads gained `consumedAt` as an optional field for rest-roll settlement. Before committing, make it a required, nullable field on the ROLL payload variant only (pre-launch: no optional fields). Text payloads must not carry it. Verify with the post-reset codegen push.
+- Re-run the web and Convex typechecks after the codegen push. The roll-visibility slice's remaining errors come only from the stale generated API.
+
+Fog follow-ups (from the fog opt-in slice):
+
+- Convex fog commands refuse painting while fog is OFF, but they don't enforce the shared-party versus per-player layer-owner rule against the Scene's mode. Existing tests deliberately mix both layer kinds in one Scene, so decide the rule and enforce it once.
+- Only Convex emits `FOG_MODE_SET` today, and players pick it up through the room's version re-sync. If the room ever applies it directly, turning fog off must trigger a full recipient refresh, because newly visible entities aren't carried by the delta.
+- A fog-off Scene that keeps its fog layers uses full hydration, and players still download layers they won't use. Revisit if Scene load time matters.
 
 Open follow-up: Scene fog save retention (derived fog saves keep `geometrySaveId` after their geometry save is pruned; superseded fog saves and chunks are not garbage-collected).
 

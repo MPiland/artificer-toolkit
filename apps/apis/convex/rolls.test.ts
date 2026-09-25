@@ -86,7 +86,8 @@ describe('native private authoritative rolls', () => {
     })
     expect(rolled.ruleset.systemId).toBe(character.systemId)
     expect(rolled.evidence.total).toBe(rolled.evidence.terms[0]!.subtotal + strength.modifier)
-    expect(await owner.caller.query(history, {})).toEqual([rolled])
+    const retained = { ...rolled, gmCampaignRoll: null }
+    expect(await owner.caller.query(history, {})).toEqual([retained])
     expect(await other.caller.query(history, {})).toEqual([])
     for (const forged of [
       { ...request, expression: '1d20 + 999' },
@@ -98,7 +99,7 @@ describe('native private authoritative rolls', () => {
     await expect(other.caller.mutation(execute, request)).rejects.toThrow('Character not found')
     await expect(t.mutation(execute, request)).rejects.toThrow()
     await expect(t.query(history, {})).rejects.toThrow()
-    expect(await owner.caller.query(history, {})).toEqual([rolled])
+    expect(await owner.caller.query(history, {})).toEqual([retained])
     expect(await readState()).toEqual(before)
   })
 
@@ -165,11 +166,25 @@ describe('native private authoritative rolls', () => {
       id: crypto.randomUUID(),
       createdAt: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString()
     }))
-    const otherRoll = { ...template, id: crypto.randomUUID(), characterId: null }
+    const otherRoll = {
+      ...template,
+      id: crypto.randomUUID(),
+      characterId: null,
+      gmCampaignRoll: null
+    }
     await t.run(async (ctx) => {
       for (const record of seeded)
-        await ctx.db.insert('userRollHistory', { ...record, userId: owner.userId })
-      await ctx.db.insert('userRollHistory', { ...otherRoll, userId: other.userId })
+        await ctx.db.insert('userRollHistory', {
+          ...record,
+          userId: owner.userId,
+          consumedAt: null,
+          gmCampaignRoll: null
+        })
+      await ctx.db.insert('userRollHistory', {
+        ...otherRoll,
+        userId: other.userId,
+        consumedAt: null
+      })
     })
     const newest = await owner.caller.mutation(execute, request)
     const retained = await owner.caller.query(history, {})
@@ -221,7 +236,9 @@ describe('native private authoritative rolls', () => {
           ...template,
           id: crypto.randomUUID(),
           userId: owner.userId,
-          createdAt: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString()
+          createdAt: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString(),
+          consumedAt: null,
+          gmCampaignRoll: null
         })
     })
     const before = await t.run((ctx) => ctx.db.query('userRollHistory').collect())

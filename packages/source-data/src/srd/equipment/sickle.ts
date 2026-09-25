@@ -13,7 +13,7 @@ export const sickle: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.LIGHT
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(9)),
-  effects: S.meleeWeaponEffects(S.equipId(9), 'SLASHING', '1d4'),
+  effects: S.meleeWeaponEffects(S.equipId(9), 'SLASHING', '1d4', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(1),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

@@ -131,11 +131,13 @@ export const send = mutation({
       mode: input.mode,
       body: input.body,
       roll: null,
+      revealedByGm: false,
       authorUsername: actor.username,
       characterId: character?.id ?? null,
       characterLabel: character?.label ?? null,
       editedAt: null,
-      unsentAt: null
+      unsentAt: null,
+      consumedAt: null
     })
     await insertConversationEntry(ctx, header, payload)
     return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)

@@ -13,7 +13,7 @@ export const shortsword: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.FINESSE,
     S.EQUIPMENT_PROPERTY_CODE.LIGHT
   ],
-  effects: S.meleeWeaponEffects(S.equipId(28), 'PIERCING', '1d6'),
+  effects: S.meleeWeaponEffects(S.equipId(28), 'PIERCING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(10),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

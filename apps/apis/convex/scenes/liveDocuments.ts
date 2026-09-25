@@ -34,7 +34,8 @@ export function advanceLiveState(
     nextOrdinals: live?.nextOrdinals ?? { ...header.counts, measurements: 0 },
     settings: live?.settings ?? {
       ambientIllumination: { value: header.ambientIllumination, version: 0 },
-      visionRevealMode: { value: header.visionRevealMode, version: 0 }
+      visionRevealMode: { value: header.visionRevealMode, version: 0 },
+      fogMode: { value: header.fogMode, version: 0 }
     }
   })
 }
@@ -74,7 +75,12 @@ export async function readLiveSceneForUser(
     .withIndex('by_publicId', (q) => q.eq('id', sceneId.toLowerCase()))
     .unique()
   if (!row) throw new Error('Live Scene is unavailable.')
-  const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId, authorityScope)
+  const { campaign, membership } = await requireCampaignAuthority(
+    ctx,
+    row.campaignId,
+    userId,
+    authorityScope
+  )
   if (scope === 'OWNER' && membership.role !== 'OWNER')
     throw new Error('Live Scene preparation is only available to the Campaign owner.')
   const scene = sceneStoredInitialStateSchema.parse(stored(row))
@@ -104,7 +110,8 @@ export async function readLiveSceneForUser(
   if (
     live &&
     (live.settings.ambientIllumination.version > live.version ||
-      live.settings.visionRevealMode.version > live.version)
+      live.settings.visionRevealMode.version > live.version ||
+      live.settings.fogMode.version > live.version)
   )
     throw new Error('Stored live Scene settings are inconsistent.')
   const header = sceneLiveStateHeaderSchema.parse({
@@ -112,6 +119,7 @@ export async function readLiveSceneForUser(
     ambientIllumination:
       live?.settings.ambientIllumination.value ?? save.settings.ambientIllumination,
     visionRevealMode: live?.settings.visionRevealMode.value ?? save.settings.visionRevealMode,
+    fogMode: live?.settings.fogMode.value ?? save.settings.fogMode,
     id: scene.id,
     definitionId: scene.definitionId,
     definitionVersion: scene.definitionVersion,

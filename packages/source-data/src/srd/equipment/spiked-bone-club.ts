@@ -13,6 +13,7 @@ export const spikedBoneClub: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(380), 0x210, 1),
       order: 1,
+      grip: S.EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION',
         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,

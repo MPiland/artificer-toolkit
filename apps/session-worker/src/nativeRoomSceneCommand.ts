@@ -9,7 +9,12 @@ import {
   type CampaignSceneStateDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneTokenMovementFailure, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
+import {
+  isSceneEntityVisibleToViewer,
+  sceneDoorChangeFailure,
+  sceneTokenMovementFailure,
+  VTT_SCENE_LIMITS
+} from '@artificer-toolkit/shared/vtt'
 import { z } from 'zod'
 
 import type { DurableCommandJournal } from './durableCommandJournal.js'
@@ -66,8 +71,24 @@ export function planLiveSceneCommand(input: {
 }): SceneCommandPlan {
   const { command, scene, actor } = input
   if (command.type === 'SET_SCENE_DOOR_STATE') {
-    if (actor.role !== 'OWNER')
-      return reject('FORBIDDEN', 'Only the Campaign owner may change Scene doors.', false)
+    const door = scene.barriers.find(
+      (barrier) => barrier.id === command.barrierId && barrier.kind === 'DOOR'
+    )
+    const viewer = {
+      role: actor.role === 'OWNER' ? ('GM' as const) : ('PLAYER' as const),
+      userId: actor.userId
+    }
+    if (
+      !door ||
+      !isSceneEntityVisibleToViewer(scene, viewer, { collection: 'barriers', entity: door })
+    )
+      return reject('INVALID_COMMAND', 'The door is not available.', true)
+    const failure = sceneDoorChangeFailure(
+      actor.role === 'OWNER',
+      scene.doorStates[door.id],
+      command.state
+    )
+    if (failure) return reject('FORBIDDEN', failure, false)
     return {
       kind: 'ACCEPTED',
       delta: { barrierId: command.barrierId, kind: 'DOOR_STATE_SET', state: command.state }
@@ -77,8 +98,10 @@ export function planLiveSceneCommand(input: {
     if (
       command.expectedEncounterVersion !== null ||
       input.sceneEncounterBound ||
-      scene.fogLayers.length > 0 ||
-      scene.tokens.some((token) => token.vision?.enabled === true)
+      // Fog OFF derives no exploration, so kept fog layers and token vision do not apply.
+      (scene.fogMode !== 'OFF' &&
+        (scene.fogLayers.length > 0 ||
+          scene.tokens.some((token) => token.vision?.enabled === true)))
     )
       return reject(
         'UNAVAILABLE',

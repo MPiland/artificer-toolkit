@@ -141,6 +141,8 @@ function sceneAtomicDeltaConflictKey(delta: SceneAtomicDelta): string {
       return `FOG:${delta.ownerUserId ?? 'SHARED_PARTY'}`
     case 'VISION_REVEAL_MODE_SET':
       return 'VISION_REVEAL_MODE'
+    case 'FOG_MODE_SET':
+      return 'FOG_MODE'
     case 'MEASUREMENT_UPSERTED':
       return `MEASUREMENT:${delta.measurement.id}`
     case 'MEASUREMENT_REMOVED':
@@ -261,6 +263,8 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
     }
     case 'VISION_REVEAL_MODE_SET':
       return { ...state, visionRevealMode: delta.mode }
+    case 'FOG_MODE_SET':
+      return { ...state, fogMode: delta.mode }
     case 'MEASUREMENT_UPSERTED':
       return { ...state, measurements: upsertById(state.measurements, delta.measurement) }
     case 'MEASUREMENT_REMOVED':
@@ -406,7 +410,7 @@ export function replaySceneEvents(
 
 /** The same privacy predicate serves complete snapshots and independently paged collections. */
 export function isSceneEntityVisibleToViewer(
-  state: Pick<CampaignSceneState, 'map' | 'fogLayers'>,
+  state: Pick<CampaignSceneState, 'map' | 'fogLayers' | 'fogMode'>,
   viewer: SceneViewer,
   value: SceneEntity
 ): boolean {

@@ -5,8 +5,9 @@ import clsx from 'clsx'
 import type { EncounterTimelineDto } from '@artificer-toolkit/schema/api/encounters'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import { formatRollEvidence } from '#app/domains/characters/sheet/dice/dice.utils'
+import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
+import { CharacterSheetRollReveal } from '#app/domains/characters/sheet/dice/CharacterSheetRollReveal'
+import { blindRollLabel, formatRollEvidence } from '#app/domains/characters/sheet/dice/dice.utils'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
 
@@ -45,7 +46,7 @@ export function CampaignChatHistory({
   isLoadingOlderMessages: boolean
   isPrivateRollsError: boolean
   isPrivateRollsPending: boolean
-  privateRolls: RollRecordDto[] | undefined
+  privateRolls: RollHistoryEntryDto[] | undefined
   rollView: CampaignRollView
   room: CampaignChatRoom
   onEntryAction: (action: { kind: 'EDIT' | 'UNSEND'; entry: CampaignChatEntryDto }) => void
@@ -101,12 +102,19 @@ export function CampaignChatHistory({
                     {formatChatTime(privateRoll.createdAt)}
                   </Text>
                 </div>
-                <Text>
-                  Rolled <strong>{privateRoll.evidence.total}</strong>
-                </Text>
-                <Text c='dimmed' size='xs'>
-                  {formatRollEvidence(privateRoll.evidence)}
-                </Text>
+                {privateRoll.evidence === null ? (
+                  <Text>{blindRollLabel}</Text>
+                ) : (
+                  <>
+                    <Text>
+                      Rolled <strong>{privateRoll.evidence.total}</strong>
+                    </Text>
+                    <Text c='dimmed' size='xs'>
+                      {formatRollEvidence(privateRoll.evidence)}
+                    </Text>
+                  </>
+                )}
+                <CharacterSheetRollReveal roll={privateRoll} />
               </article>
             </div>
           ))
@@ -192,6 +200,7 @@ export function CampaignChatHistory({
                     <Text c='dimmed' size='xs'>
                       {formatChatTime(entry.createdAt)}
                       {entry.editedAt ? ' · edited' : ''}
+                      {entry.revealedByGm ? ' · Revealed by GM' : ''}
                     </Text>
                     {entry.authorUserId === currentUserId &&
                     !entry.unsentAt &&

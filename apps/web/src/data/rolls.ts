@@ -1,5 +1,6 @@
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import type { RevealCampaignRollInput } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
   ExecuteDiceConfigurationInputDto,
   ExecuteRollInputDto
@@ -36,6 +37,11 @@ export function useDiscardRollMutation() {
     }
   )
   return useMutation({ mutationFn: (rollId: string) => discard({ id: rollId }) })
+}
+
+export function useRevealCampaignRollMutation() {
+  const reveal = useConvexMutation(api.campaigns.rolls.reveal)
+  return useMutation({ mutationFn: (input: RevealCampaignRollInput) => reveal(input) })
 }
 
 export function useClearRollHistoryMutation() {

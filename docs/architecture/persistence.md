@@ -1340,18 +1340,20 @@ sequenceDiagram
     participant CharacterRoll as campaigns/characterSheet:executeRoll
     participant History as Caller userRollHistory (latest 20)
     participant Rest as Scoped rest preview + COMPLETE_REST
-    Actor->>Public: TABLE + nonce + structured roll request
+    Actor->>Public: TABLE or GM destination + nonce + structured roll request
     Public->>Sheet: Validate assignment and current non-manual source
-    Public->>Table: Generate evidence and insert/trim atomically
+    Public->>Table: Generate evidence and insert/trim atomically (GM: player-owner DIRECT room)
     Public-->>Actor: Original stored roll, shared-text presentation
-    Actor->>Private: GM-only manual request without Character
-    Private->>History: Generate evidence and insert/trim atomically
-    Private-->>Actor: Private roll; no conversation write
+    Actor->>Private: GM-only manual or Character request + blind flag
+    Private->>History: Generate evidence and insert/trim atomically, bound to the Campaign
+    Private-->>Actor: Private roll (blind: evidence withheld); no conversation write
+    Actor->>Public: reveal(roll id), GM only
+    Public->>Table: Post once with revealedByGm (roll id is the nonce); mark revealedAt
     Actor->>CharacterRoll: Campaign + assigned Character + structured private roll
     CharacterRoll->>Sheet: Validate current assignment and roll source
     CharacterRoll->>History: Generate Character-bound private evidence
     Actor->>Rest: Roll UUID/evidence + current preview fingerprint
-    Rest->>History: Consume caller's exact hit-die evidence with state + receipt
+    Rest->>Table: Consume caller's exact GM-visible hit-die evidence with state + receipt
 ```
 
 Public generation accepts only TABLE. Players may roll for their own current assigned Character;
@@ -1378,10 +1380,13 @@ current Character Campaign's maturity even when the caller is the GM rather than
 That metadata lookup grants no Character action or source read authority; old caller-owned snapshots
 do not become inaccessible merely because the caller no longer has GM action authority.
 
-The existing scoped rest preview and completion consume only that caller's exact unconsumed HIT_DIE
-record for the assigned Character. Player history, public TABLE evidence and no-Character manual
-records cannot substitute for it. Completion atomically updates Character HP/hit dice/recoveries,
-marks the evidence consumed and stores the actor-bound receipt. Exact replay returns stored rest
+Rolls that change Character state stay visible to the GM. Scoped rest preview and completion read
+the caller's exact unconsumed HIT_DIE record for the assigned Character from its one stored place:
+the caller's TABLE or To GM chat payload in this Campaign (looked up by the `roll.id` payload index),
+or the GM's own non-blind retained Campaign roll. A player's retained "Just me" roll is refused for a
+Campaign rest; a personal Character outside a Campaign still settles from retained history.
+No-Character manual records cannot substitute. Completion atomically updates Character HP/hit
+dice/recoveries, sets `consumedAt` on that stored roll record and stores the actor-bound receipt. Exact replay returns stored rest
 evidence after history clearing but still rechecks current scope. No new table, receipt or rest
 algorithm is introduced; resetting the player's private maximum-HP modifier remains forbidden to GMs.
 
@@ -2309,10 +2314,12 @@ immutable patch, independent of later edits. Archived Campaign members retain re
 is checked on every page. This transport replaces inline fog command/result payloads only for the
 native prototype; shared reducer contracts remain unchanged.
 
-The current product selects shared-party fog by default in local and remote play. A DM preview may
-calculate one recipient's view without publishing that preview as Campaign fog. Recipient-owned layer
-storage remains available only for a future explicit remote Campaign setting; no current product flow
-selects per-player fog by default.
+Fog of war is opt-in per Scene (ADR 0034). The Scene definition's `fogMode` (`OFF`, `SHARED_PARTY`
+or `PER_PLAYER`) seeds the live Scene, and new Scenes default to `OFF`. The live value is a versioned
+entry in `sceneLiveStates.settings.fogMode`, changed only by the owner-only `SET_SCENE_FOG_MODE`
+command. `fogCommands` refuses new manual fog saves and publication while fog is `OFF`; replays stay
+idempotent. Stored fog layers are kept while fog is `OFF` and apply again when fog is turned back on.
+A DM preview may calculate one recipient's view without publishing that preview as Campaign fog.
 
 The shared `SceneExplorationState` input contains only map/grid, tokens, barriers, door states, fog
 mode and fog layers. Exploration and pinned Character vision can therefore run without loading
@@ -2321,10 +2328,9 @@ command exploration logic now lives in `deriveSceneCommandExplorationDeltas` und
 three service paths use it. This changes composition only: affected barriers/tokens, recipient
 selection, explicit vision precedence, pinned vision and cumulative movement behavior are preserved.
 `planSceneCommandExploration` selects affected tokens and recipients from geometry before any fog is
-loaded. The default flow hydrates and publishes the shared-party layer. Recipient-scoped hydration
-through `deriveSceneExplorationPatch` remains available for the non-publishing DM preview and a future
-explicit per-player mode, keeping unrelated fog out of that calculation. The existing whole-state
-service uses the same plan.
+loaded. It selects no recipients while fog is `OFF`, selects the shared layer for `SHARED_PARTY`, and
+selects each controlling player's layer for `PER_PLAYER`, keeping unrelated fog out of that
+calculation. The existing whole-state service uses the same plan.
 `applySceneGeometryDelta` applies the existing token/barrier/door reducer to those collections alone;
 the full Scene reducer delegates to it and retains aggregate-limit validation. A native caller must
 validate current counts and publish the primary change together with all derived fog. Door state and

@@ -27,6 +27,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
+import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEffects'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 
@@ -69,7 +70,9 @@ if (!bite) throw new Error('Missing Wolf Bite fixture.')
 const creature = {
   ...wolf,
   features: wolf.features?.map((feature) =>
-    feature.id === bite.id ? { ...feature, effects: club.effects } : feature
+    feature.id === bite.id
+      ? { ...feature, effects: toCreatureFeatureEffects(club.effects) }
+      : feature
   ),
   equipmentLoadout: [
     {

@@ -16,7 +16,12 @@ import {
   type CharacterRestPreviewResponseDto,
   type CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  CampaignChatEntryDto,
+  ExecuteCampaignPrivateRollInput,
+  ExecuteCampaignRollInput
+} from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { RollHistoryEntryDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -25,6 +30,7 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
 
@@ -46,9 +52,22 @@ const execute = makeFunctionReference<
   z.input<typeof campaignCharacterSheetExecuteInputSchema>,
   CharacterSheetCommandResponseDto
 >('campaigns/characterSheet:execute')
+const executeCampaignRoll = makeFunctionReference<
+  'mutation',
+  ExecuteCampaignRollInput,
+  CampaignChatEntryDto
+>('campaigns/rolls:execute')
+const executePrivate = makeFunctionReference<
+  'mutation',
+  ExecuteCampaignPrivateRollInput,
+  RollHistoryEntryDto
+>('campaigns/rolls:executePrivate')
 
 async function setup() {
   const { owner: player, other: gm, ...base } = await readySheetFixture()
+  // Chat-posted and GM-retained Campaign rolls carry the roller's username.
+  await gm.caller.mutation(api.account.updateProfile, { username: 'RollingGM', bio: null })
+  await player.caller.mutation(api.account.updateProfile, { username: 'RollingPlayer', bio: null })
   const campaign = await gm.caller.mutation(create, {
     name: 'Private Character rolls',
     format: 'ONGOING',
@@ -141,6 +160,25 @@ function completion(
     commandId: crypto.randomUUID(),
     previewFingerprint: result.previewFingerprint
   })
+}
+
+/** The GM's Private roll for a player's Character: retained, GM-visible and revealable. */
+async function rollGmPrivate(
+  gm: Awaited<ReturnType<typeof setup>>['gm'],
+  {
+    campaignId,
+    characterId,
+    expression,
+    source
+  }: z.input<typeof campaignCharacterSheetRollInputSchema>
+): Promise<RollRecordDto> {
+  const retained = await gm.caller.mutation(executePrivate, {
+    campaignId,
+    blind: false,
+    roll: { characterId, expression, source }
+  })
+  if (retained.evidence === null) throw new Error('A private GM roll keeps its evidence.')
+  return retained
 }
 
 afterEach(() => vi.restoreAllMocks())
@@ -238,7 +276,7 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
       ]),
       source: { kind: 'HIT_DIE' as const, label: 'Short rest hit dice' }
     }
-    const rolled = await gm.caller.mutation(roll, request)
+    const rolled = await rollGmPrivate(gm, request)
     expect(rolled.characterId).toBe(character.id)
     expect(await readState()).toEqual(before)
     const input = rest(rolled, modifier, 4)
@@ -328,7 +366,7 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     expect((await readPrivate()).rolls).toEqual([])
   })
 
-  it('accepts only the caller’s exact private Character hit-die evidence, not another caller, TABLE or manual rolls', async () => {
+  it('accepts only the caller’s exact GM-visible hit-die evidence, not another caller or manual rolls', async () => {
     const { t, player, gm, character, scope, readState, readPrivate } = await setup()
     await gm.caller.mutation(api.account.updateProfile, {
       username: 'PrivateRollGM',
@@ -355,27 +393,19 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
       ]),
       source: { kind: 'HIT_DIE' as const, label: 'Short rest hit dice' }
     }
-    const gmRoll = await gm.caller.mutation(roll, request)
+    const gmRoll = await rollGmPrivate(gm, request)
     const playerRoll = await player.caller.mutation(roll, request)
     const input = rest(gmRoll, modifier, 2)
-    const table = await gm.caller.mutation(api.campaigns.rolls.execute, {
+    const manual = await gm.caller.mutation(executePrivate, {
       campaignId: scope.campaignId,
-      room: 'TABLE',
-      clientNonce: crypto.randomUUID(),
-      roll: {
-        characterId: character.id,
-        expression: request.expression,
-        source: request.source
-      }
-    })
-    const manual = await gm.caller.mutation(api.campaigns.rolls.executePrivate, {
-      campaignId: scope.campaignId,
+      blind: false,
       roll: {
         characterId: null,
         expression: request.expression,
         source: { kind: 'MANUAL', label: 'Manual' }
       }
     })
+    if (manual.evidence === null) throw new Error('A private GM roll keeps its evidence.')
     const before = { state: await readState(), private: await readPrivate() }
     await expect(player.caller.query(preview, { ...scope, input })).rejects.toThrow(
       'authoritative roll'
@@ -389,7 +419,6 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     ).rejects.toThrow('authoritative roll')
     for (const evidence of [
       rest(playerRoll, modifier, 2),
-      rest(table.roll!, modifier, 2),
       rest(manual, modifier, 2),
       { ...input, rollId: crypto.randomUUID() }
     ]) {
@@ -650,7 +679,9 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
       )
     )
     expect(retained.every((record) => record.source.label === request.source.label)).toBe(true)
-    expect(await player.caller.query(api.rolls.history, {})).toEqual([playerRoll])
+    expect(await player.caller.query(api.rolls.history, {})).toEqual([
+      { ...playerRoll, gmCampaignRoll: null }
+    ])
     const state = await readPrivate()
     expect(state.rolls.filter((record) => record.userId === gm.userId)).toHaveLength(20)
     expect(state.rolls.every((record) => record.source.label.includes('shit club'))).toBe(true)
@@ -684,5 +715,110 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     await expect(gm.caller.mutation(roll, request)).rejects.toThrow()
     expect(await gm.caller.query(api.rolls.history, {})).toEqual(mature)
     expect(await readPrivate()).toEqual(state)
+  })
+})
+
+describe('GM-visible Campaign rest rolls', () => {
+  type Actor = Awaited<ReturnType<typeof setup>>['player']
+
+  async function setupRest() {
+    const fixture = await setup()
+    const damaged = await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: fixture.character.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 6,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1
+      }
+    })
+    const pool = damaged.sheet.overview.hitDice[0]!
+    const modifier = damaged.sheet.overview.abilities.find(
+      (ability) => ability.ability === 'CONSTITUTION'
+    )!.modifier
+    const hitDie: ExecuteCampaignRollInput['roll'] = {
+      characterId: fixture.character.id,
+      expression: formatCharacterHitDiceRollExpression([
+        { die: pool.die, count: 1, modifierPerDie: modifier }
+      ]),
+      source: { kind: 'HIT_DIE', label: 'Short rest hit dice' }
+    }
+    return { ...fixture, hitDie, modifier }
+  }
+
+  async function completeRest(
+    actor: Actor,
+    scope: { campaignId: string; characterId: string },
+    rolled: RollRecordDto,
+    modifier: number
+  ) {
+    const input = rest(rolled, modifier, 2)
+    const projected = await actor.caller.query(preview, { ...scope, input })
+    return actor.caller.mutation(execute, { ...scope, command: completion(input, projected) })
+  }
+
+  it('completes a short rest from a player TABLE hit-die roll exactly once', async () => {
+    const { t, player, scope, hitDie, modifier } = await setupRest()
+    const entry = await player.caller.mutation(executeCampaignRoll, {
+      campaignId: scope.campaignId,
+      destination: 'TABLE',
+      clientNonce: crypto.randomUUID(),
+      roll: hitDie
+    })
+    const rolled = entry.roll!
+    const completed = await completeRest(player, scope, rolled, modifier)
+    expect(completed.result).toMatchObject({
+      type: 'COMPLETE_REST',
+      rest: { rollEvidence: { total: rolled.evidence.total } }
+    })
+    const payload = await t.run((ctx) =>
+      ctx.db
+        .query('campaignConversationEntryPayloads')
+        .withIndex('by_entryId', (q) => q.eq('entryId', entry.id))
+        .unique()
+    )
+    expect(payload?.consumedAt).toBe(completed.historyEntry!.occurredAt)
+    await expect(
+      player.caller.query(preview, { ...scope, input: rest(rolled, modifier, 3) })
+    ).rejects.toThrow('authoritative roll')
+  })
+
+  it('completes a short rest from a To GM hit-die roll that only the player and GM can read', async () => {
+    const { t, player, gm, campaign, scope, hitDie, modifier } = await setupRest()
+    const party = await createPartyPlayer(t, campaign)
+    await party.join()
+    const entry = await player.caller.mutation(executeCampaignRoll, {
+      campaignId: scope.campaignId,
+      destination: 'GM',
+      clientNonce: crypto.randomUUID(),
+      roll: hitDie
+    })
+    expect(entry.room).toBe('DIRECT')
+    const completed = await completeRest(player, scope, entry.roll!, modifier)
+    expect(completed.result?.type).toBe('COMPLETE_REST')
+    const direct = { campaignId: campaign.id, room: 'DIRECT' as const }
+    expect(
+      (
+        await gm.caller.query(api.campaigns.chat.list, { ...direct, directUserId: player.userId })
+      ).entries.map((visible) => visible.id)
+    ).toEqual([entry.id])
+    await expect(
+      party.caller.query(api.campaigns.chat.list, { ...direct, directUserId: player.userId })
+    ).rejects.toThrow('Conversation not found')
+  })
+
+  it('refuses a player "Just me" hit-die roll for a Campaign rest', async () => {
+    const { player, scope, hitDie, modifier, readState } = await setupRest()
+    const own = await player.caller.mutation(roll, {
+      ...scope,
+      expression: hitDie.expression,
+      source: hitDie.source
+    })
+    const before = await readState()
+    await expect(
+      player.caller.query(preview, { ...scope, input: rest(own, modifier, 2) })
+    ).rejects.toThrow('visible to the GM')
+    expect(await readState()).toEqual(before)
   })
 })

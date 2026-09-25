@@ -10,6 +10,7 @@ import {
   DURATION_KIND,
   EQUIPMENT_ATTRIBUTE,
   EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_GRIP,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
   GRANT_KIND,
@@ -28,7 +29,8 @@ import {
 import type {
   AbilityCode,
   ClosedRuleKind,
-  EffectAuthored,
+  EquipmentEffectAuthored,
+  EquipmentGrip,
   FacetConditionAuthored,
   ModifierGrantAuthored,
   SizeCode
@@ -54,6 +56,7 @@ export {
   DURATION_KIND,
   EQUIPMENT_ATTRIBUTE,
   EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_GRIP,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
   GRANT_KIND,
@@ -173,10 +176,11 @@ export function passiveEquipmentClosedRuleEffect(
   ruleKind: ClosedRuleKind,
   order = 1,
   bucket = 0x2e0
-): EffectAuthored {
+): EquipmentEffectAuthored {
   return {
     id: equipmentChildId(equipmentId, bucket, 1),
     order,
+    grip: null,
     invocation: {
       kind: 'PASSIVE',
       triggerCode: TRIGGER.ACTIVATED,
@@ -209,11 +213,12 @@ export function passiveEquipmentClosedRuleEffect(
   }
 }
 
-export function magicAmmunitionExpirationEffect(equipmentId: string): EffectAuthored {
+export function magicAmmunitionExpirationEffect(equipmentId: string): EquipmentEffectAuthored {
   const bucket = 0x2e0
   return {
     id: equipmentChildId(equipmentId, bucket, 1),
     order: 1,
+    grip: null,
     invocation: {
       kind: 'PASSIVE',
       triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
@@ -252,10 +257,11 @@ export function lightSourceEffect(
   dimAdditionalFeet: number,
   hours: number,
   cone = false
-): EffectAuthored {
+): EquipmentEffectAuthored {
   return {
     id: equipmentChildId(equipmentId, 0x210, 1),
     order: 1,
+    grip: null,
     invocation: {
       kind: 'PASSIVE',
       triggerCode: TRIGGER.ACTIVATED,
@@ -314,12 +320,14 @@ export function fixedMeleeWeaponEffect(
   equipmentId: string,
   damageTypeCode: string,
   amount: number,
+  grip: EquipmentGrip,
   order = 1,
   bucket = 0x220
-): EffectAuthored {
+): EquipmentEffectAuthored {
   return {
     id: equipmentChildId(equipmentId, bucket, 1),
     order,
+    grip,
     invocation: {
       kind: 'ACTION',
       triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -930,12 +938,14 @@ function fixedDamagePath(
 export function meleeWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
-  diceConfig: string
-) {
+  diceConfig: string,
+  grip: EquipmentGrip
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -956,11 +966,12 @@ export function meleeVersatileWeaponEffects(
   damageTypeCode: string,
   dice1h: string,
   dice2h: string
-) {
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -976,6 +987,7 @@ export function meleeVersatileWeaponEffects(
     {
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
+      grip: EQUIPMENT_GRIP.TWO_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -995,12 +1007,14 @@ export function thrownWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   diceConfig: string,
-  normalRangeFt: number
-) {
+  normalRangeFt: number,
+  grip: EquipmentGrip
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -1016,6 +1030,7 @@ export function thrownWeaponEffects(
     {
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
@@ -1037,11 +1052,12 @@ export function thrownVersatileWeaponEffects(
   dice1h: string,
   dice2h: string,
   normalRangeFt: number
-) {
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -1057,6 +1073,7 @@ export function thrownVersatileWeaponEffects(
     {
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
+      grip: EQUIPMENT_GRIP.TWO_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -1072,6 +1089,7 @@ export function thrownVersatileWeaponEffects(
     {
       id: equipmentChildId(equipmentId, 0x230, 1),
       order: 3,
+      grip: EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
@@ -1090,12 +1108,14 @@ export function thrownVersatileWeaponEffects(
 export function meleeReachWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
-  diceConfig: string
-) {
+  diceConfig: string,
+  grip: EquipmentGrip
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -1115,12 +1135,14 @@ export function rangedWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   diceConfig: string,
-  normalRangeFt: number
-) {
+  normalRangeFt: number,
+  grip: EquipmentGrip
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
@@ -1140,12 +1162,14 @@ export function rangedFixedDamageWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   amount: number,
-  normalRangeFt: number
-) {
+  normalRangeFt: number,
+  grip: EquipmentGrip
+): EquipmentEffectAuthored[] {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
+      grip: grip,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,

@@ -16,7 +16,7 @@ export const lance: EquipmentAuthored = {
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(21)),
   effects: [
-    ...S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12'),
+    ...S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12', S.EQUIPMENT_GRIP.ONE_HANDED),
     S.passiveEquipmentClosedRuleEffect(S.equipId(21), 'EQUIPMENT_LANCE', 2, 0x2e0)
   ],
   cost: S.gp(10),

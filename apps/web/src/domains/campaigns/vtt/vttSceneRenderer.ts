@@ -231,6 +231,7 @@ export async function createVttSceneRenderer(
   let tileLayer: Container | null = null
   let fogTexture: Texture | null = null
   let renderedFogLayers: CampaignSceneStateDto['fogLayers'] | null = null
+  let renderedFogMode: CampaignSceneStateDto['fogMode'] | null = null
   let renderedFogRole: VttSceneRendererUpdate['role'] | null = null
   let renderedBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedDoorStates: CampaignSceneStateDto['doorStates'] | null = null
@@ -556,6 +557,7 @@ export async function createVttSceneRenderer(
 
   function drawFogWithRemotePreviews(): void {
     if (!current) return
+    if (current.scene.fogMode === 'OFF') return drawFog(current.scene)
     let scene = current.scene
     for (const preview of remoteFogPreviews.values()) {
       if (preview.baselineVersion !== current.scene.version) continue
@@ -1159,9 +1161,14 @@ export async function createVttSceneRenderer(
       drawGrid(next.scene)
       renderedGrid = next.scene.grid
     }
-    if (renderedFogLayers !== next.scene.fogLayers || renderedFogRole !== next.role) {
+    if (
+      renderedFogLayers !== next.scene.fogLayers ||
+      renderedFogMode !== next.scene.fogMode ||
+      renderedFogRole !== next.role
+    ) {
       drawFogWithRemotePreviews()
       renderedFogLayers = next.scene.fogLayers
+      renderedFogMode = next.scene.fogMode
       renderedFogRole = next.role
     }
     drawLighting(next.scene)
@@ -1192,6 +1199,7 @@ export async function createVttSceneRenderer(
       previous.scene.map === next.scene.map &&
       previous.scene.grid === next.scene.grid &&
       previous.scene.fogLayers === next.scene.fogLayers &&
+      previous.scene.fogMode === next.scene.fogMode &&
       previous.scene.barriers === next.scene.barriers &&
       previous.scene.doorStates === next.scene.doorStates &&
       previous.scene.lights === next.scene.lights &&

@@ -2,6 +2,7 @@ import {
   EQUIPMENT_ATTRIBUTE_OPTIONS,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_CATEGORY_OPTIONS,
+  EQUIPMENT_GRIP_OPTIONS,
   EQUIPMENT_PROPERTY_REGISTRY,
   MEASUREMENT_UNIT_OPTIONS,
   PROPERTIES_BY_CATEGORY
@@ -18,6 +19,7 @@ import type {
   ContainsAuthored,
   CostAuthored,
   EquipmentAuthored,
+  EquipmentEffectAuthored,
   FacetAuthored,
   FeatureAuthored,
   EquipmentVariantAuthored,
@@ -95,6 +97,27 @@ export const CONTAINS_NODE_MAP = containsNode.define('contains', ({ map, nodes, 
 })
 
 type EquipmentMapAuthored = EquipmentAuthored | EquipmentVariantAuthored
+
+const equipmentEffect = buildNodeMap<EquipmentEffectAuthored>()
+
+/**
+ * The shared effect editor plus the grip a weapon attack is made with. Node conditions cannot read
+ * the child invocation scope (`invocation.triggerCode`), so the grip stays visible and the Equipment
+ * schema enforces it on save: required exactly for non-passive weapon attack effects, null otherwise.
+ */
+const EQUIPMENT_EFFECT_NODE_MAP = equipmentEffect.define(
+  'equipmentEffect',
+  ({ map, nodes }) => {
+    map.merge(EFFECT_NODE_MAP.nodes as NodeMap<EquipmentEffectAuthored>['nodes']).set(
+      'grip',
+      nodes.selectSingle(['grip'], 'Weapon attack grip', {
+        kind: 'INLINE_OPTIONS',
+        options: EQUIPMENT_GRIP_OPTIONS
+      })
+    )
+  },
+  EFFECT_NODE_MAP.authoring
+)
 
 export const EQUIPMENT_FEATURE_NODE_MAP = FEATURE_NODE_MAP as NodeMap<FeatureAuthored<'EQUIPMENT'>>
 export const EQUIPMENT_RESTRICTIONS_NODE_MAP = CHARACTER_FACET_NODE_MAP as NodeMap<
@@ -227,7 +250,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
       )
       .set(
         'effects',
-        groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
+        groupArray(['effects'], 'Effects', () => EQUIPMENT_EFFECT_NODE_MAP, {
           presentation: 'branch',
           section: EQUIPMENT_SECTIONS.effects,
           order: 10

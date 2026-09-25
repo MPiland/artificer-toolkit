@@ -1,6 +1,7 @@
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
+import { toCreatureFeatureEffects } from './creatureWeaponEffects'
 
 export const disarmHeldEntryId = '10000000-0000-4000-8000-000000000201'
 export const disarmOtherEntryId = '10000000-0000-4000-8000-000000000202'
@@ -31,7 +32,7 @@ export function createDisarmCreature(weapon: typeof club, id = wolf.id) {
       feature.id === bite.id
         ? {
             ...feature,
-            effects: weapon.effects,
+            effects: toCreatureFeatureEffects(weapon.effects),
             rollDefinitions: [
               {
                 id: crypto.randomUUID(),

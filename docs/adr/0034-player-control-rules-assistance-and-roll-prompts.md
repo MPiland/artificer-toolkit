@@ -64,7 +64,25 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
    - Players may open and close unlocked doors; locking stays GM-only.
    - Player rolls default to the table, with a "To GM" option. The GM keeps private and blind rolls and
      can reveal a private roll.
+   - Rolls that change Character state (short-rest hit dice; death saves in Phase 8.3) are always
+     visible to the GM: Table or To GM, never "Just me".
+   - Visibility follows Foundry's default privacy:
+     - Another player's Character sheet is GM-only by default. Each Character has a "Party can view"
+       option on its Sheet. Personality and background are never shown to other players, and the
+       Campaign roster shows only public basics (name, portrait, level, class).
+     - Health display has four levels: Hidden (default), Descriptive (Unhurt, Hurt, Bloodied, Near
+       death), Bar (proportional, no numbers) and Exact (current and max HP).
+     - Each player sets the level for their own Character ("Show my health to the party"). The GM sets
+       it per Encounter for enemies and NPCs, with a per-actor override (e.g. show the boss bar, hide
+       the minions).
+     - Separately, the GM can share one enemy's current descriptive state once ("The ogre looks
+       bloodied"). It is posted to the table log, and the display level does not change. Bloodied
+       stays a rules fact for everyone; only its display is gated.
+     - The GM always sees exact values.
    - During an Encounter a player's remaining movement is shown but not enforced.
+   - Fog of war is opt-in per Scene. With fog off, players see every non-hidden token, wall, door and
+     light, as in Foundry without token vision. With fog on, the existing shared-party or per-player
+     exploration model applies.
 
 ## Consequences
 

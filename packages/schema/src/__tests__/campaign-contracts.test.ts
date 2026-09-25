@@ -221,7 +221,7 @@ describe('campaign contracts', () => {
 
     const roll = {
       campaignId: id,
-      room: 'TABLE' as const,
+      destination: 'TABLE' as const,
       clientNonce: '679e53e2-b57c-417a-bfa8-b0ea343d4277',
       roll: {
         characterId: id,
@@ -233,13 +233,17 @@ describe('campaign contracts', () => {
     expect(executeCampaignRollInputSchema.safeParse({ ...roll, rollEvidence: {} }).success).toBe(
       false
     )
-    expect(executeCampaignRollInputSchema.safeParse({ ...roll, room: 'PARTY' }).success).toBe(false)
+    for (const destination of ['PARTY', 'DIRECT'])
+      expect(executeCampaignRollInputSchema.safeParse({ ...roll, destination }).success).toBe(false)
+    expect(executeCampaignRollInputSchema.safeParse({ ...roll, room: 'TABLE' }).success).toBe(false)
+    expect(executeCampaignRollInputSchema.safeParse({ ...roll, destination: 'GM' }).success).toBe(
+      true
+    )
+    const gmManual = { ...roll, roll: { ...roll.roll, characterId: null } }
+    expect(executeCampaignRollInputSchema.safeParse(gmManual).success).toBe(true)
     expect(
-      executeCampaignRollInputSchema.safeParse({
-        ...roll,
-        roll: { ...roll.roll, characterId: null }
-      }).success
-    ).toBe(true)
+      executeCampaignRollInputSchema.safeParse({ ...gmManual, destination: 'GM' }).success
+    ).toBe(false)
     expect(
       sendCampaignChatEntryInputSchema.safeParse({
         ...input,

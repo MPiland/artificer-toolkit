@@ -4,6 +4,7 @@ import {
   Button,
   Drawer,
   Group,
+  SegmentedControl,
   Select,
   Stack,
   Text,
@@ -24,6 +25,7 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
 
 export function CampaignTabletopActionDrawer({
   actions,
@@ -79,6 +81,25 @@ export function CampaignTabletopActionDrawer({
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
   const currentActorId = currentActor?.id ?? null
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
+  // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
+  const actionGroups = useMemo(() => {
+    const groups = new Map<
+      string,
+      { lead: EncounterActionChoiceDto; grips: EncounterActionChoiceDto[] }
+    >()
+    for (const action of actions) {
+      const key = action.grip?.attackKey ?? action.id
+      const group = groups.get(key)
+      if (group) group.grips.push(action)
+      else groups.set(key, { lead: action, grips: action.grip ? [action] : [] })
+    }
+    return groups
+  }, [actions])
+  const selectedAttackKey = selectedAction
+    ? (selectedAction.grip?.attackKey ?? selectedAction.id)
+    : null
+  const gripActions =
+    (selectedAttackKey === null ? undefined : actionGroups.get(selectedAttackKey))?.grips ?? []
   const selectedOptionalRule =
     optionalRules.find((rule) => rule.definitionId === optionalRuleId) ?? null
   const selectedActionId = selectedAction?.id ?? null
@@ -310,18 +331,31 @@ export function CampaignTabletopActionDrawer({
             <>
               <Select
                 comboboxProps={{ withinPortal: false }}
-                data={actions.map((action) => ({
-                  label: action.sourceLabel
-                    ? `${action.label} · ${action.sourceLabel}`
-                    : action.label,
-                  value: action.id
+                data={[...actionGroups].map(([key, { lead }]) => ({
+                  label: lead.sourceLabel ? `${lead.label} · ${lead.sourceLabel}` : lead.label,
+                  value: key
                 }))}
                 disabled={selectionControlsDisabled}
                 label='Action'
                 searchable
-                value={actionId}
-                onChange={setActionId}
+                value={selectedAttackKey}
+                onChange={(key) =>
+                  setActionId(key === null ? null : (actionGroups.get(key)?.lead.id ?? null))
+                }
               />
+              {gripActions.length > 1 ? (
+                <SegmentedControl
+                  aria-label='Grip'
+                  data={gripActions.map((action) => ({
+                    label: `${action.grip ? EQUIPMENT_GRIP_REGISTRY[action.grip.value].label : action.label}${action.damageLabel ? ` · ${action.damageLabel}` : ''}`,
+                    value: action.id
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  fullWidth
+                  value={actionId ?? undefined}
+                  onChange={setActionId}
+                />
+              ) : null}
               <Select
                 comboboxProps={{ withinPortal: false }}
                 data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}

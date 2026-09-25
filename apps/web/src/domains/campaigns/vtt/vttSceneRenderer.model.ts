@@ -101,9 +101,11 @@ export type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
 }
 
 export function buildVttFogMask(
-  scene: Pick<CampaignSceneStateDto, 'fogLayers'>,
+  scene: Pick<CampaignSceneStateDto, 'fogLayers' | 'fogMode'>,
   hideUnexploredWithoutLayer = false
 ): VttFogMask | null {
+  // Layers kept while fog is OFF stay stored for a later fog mode but are never drawn.
+  if (scene.fogMode === 'OFF') return null
   if (scene.fogLayers.length === 0) {
     return hideUnexploredWithoutLayer
       ? { height: 1, opacity: new Uint8ClampedArray([unexploredOpacity]), width: 1 }

@@ -432,10 +432,15 @@ The native WebSocket protocol separates command and transient traffic:
 - browser messages: `AUTHENTICATE`, `COMMAND`, `TRANSIENT`;
 - server messages: `AUTHENTICATION_REQUIRED`, `TRANSIENT_READY`, `COMMAND_COMMITTED`, `COMMAND_REJECTED`, `TRANSIENT`.
 
-Pointer, measurement, fog-area, and token-drag previews remain ephemeral. Shared-party fog is the
-default for local and remote play, so one player's accepted exploration is visible to the party. The
-recipient-specific projection remains available for the GM preview tool and a future explicit remote
-Campaign setting. The Worker captures current authority, hydrates the exact current Scene and
+Pointer, measurement, fog-area, and token-drag previews remain ephemeral. Fog of war is opt-in per
+Scene (ADR 0034, current). New Scenes start with fog `OFF`: every point, segment and polygon counts
+as explored, so players see every non-hidden token, wall, door and light plus `TABLE` notes, and no
+exploration is derived, previewed or painted. `SHARED_PARTY` shares one player's accepted exploration
+with the party; `PER_PLAYER` keeps recipient-owned layers. The GM changes the mode with the live
+Scene setting command `SET_SCENE_FOG_MODE` (versioned like vision reveal timing); stored fog layers
+are kept while fog is `OFF`, so turning fog back on restores earlier exploration. Manual fog writes
+and `FOG_AREA_PREVIEW` are refused while fog is `OFF`. The Worker captures current authority,
+hydrates the exact current Scene and
 Character-vision inputs when needed, validates bounded movement geometry, and projects private state
 for each current recipient. Hidden tokens, unrevealed barriers, GM annotations, DM-preview fog, and
 other recipient-private state never enter a broader broadcast.
@@ -513,12 +518,12 @@ Current rate limits live in `apps/apis/convex/lib/rateLimits.ts` (`@convex-dev/r
 Each is keyed only by the authenticated user ID and consumed inside the authorized mutation before any
 write, so a rejection rolls back the whole transaction. Account deletion resets every user-keyed counter.
 
-| Limit                  | Kind and allowance                    | Consumed by                                                                                                                                      |
-| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `liveSessionTicket`    | Token bucket, 30/min, burst 10        | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                                                       |
-| `sceneWrite`           | Token bucket, 240/min, burst 80       | `scenes/commands:execute`, `geometryFastCommands:execute`, `fogCommands` begin/append/publish, `undo:executeFast`, `undo:finish`, `geometryStaging:begin` |
-| `campaignConversation` | Token bucket, 30/min, burst 30        | Campaign chat, public rolls and table rolls                                                                                                      |
-| Social                 | Fixed UTC-aligned hour/day windows    | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                         |
+| Limit                  | Kind and allowance                 | Consumed by                                                                                                                                               |
+| ---------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `liveSessionTicket`    | Token bucket, 30/min, burst 10     | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                                                                |
+| `sceneWrite`           | Token bucket, 240/min, burst 80    | `scenes/commands:execute`, `geometryFastCommands:execute`, `fogCommands` begin/append/publish, `undo:executeFast`, `undo:finish`, `geometryStaging:begin` |
+| `campaignConversation` | Token bucket, 30/min, burst 30     | Campaign chat, public rolls and table rolls                                                                                                               |
+| Social                 | Fixed UTC-aligned hour/day windows | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                                  |
 
 The `sceneWrite` burst admits two maximum fog saves (begin, 32 appends, publish) back to back.
 The activation reservation cap, publication role check and control retry are described under

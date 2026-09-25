@@ -23,8 +23,10 @@ import {
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
 
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
+import { planLiveSceneCommand } from '../src/nativeRoomSceneCommand.js'
 import {
   createNativeLiveSessionState,
   hydrateNativeLiveSessionState,
@@ -501,11 +503,13 @@ it.each([0, 600])(
     player.messages.length = 0
 
     const playerCommandId = crypto.randomUUID()
-    player.socket.send(JSON.stringify(doorCommand(value.scene, value.doorId, playerCommandId)))
+    player.socket.send(
+      JSON.stringify(doorCommand(value.scene, value.doorId, playerCommandId, { state: 'OPEN' }))
+    )
     await vi.waitFor(() =>
       expect(player.messages).toContainEqual(
         expect.objectContaining({
-          code: 'FORBIDDEN',
+          code: 'INVALID_COMMAND',
           commandId: playerCommandId,
           type: 'COMMAND_REJECTED'
         })
@@ -2520,5 +2524,160 @@ it('rejects commands beyond the pending-command bound without closing the socket
         9
       ),
     { timeout: 3_000 }
+  )
+})
+
+function exploredDoorScene(explored: boolean) {
+  const { doorId, scene } = doorScene(crypto.randomUUID())
+  return {
+    doorId,
+    scene: {
+      ...scene,
+      fogLayers: [createUniformSceneFogLayer(scene, { explored, ownerUserId: null })]
+    }
+  }
+}
+
+function planDoorChange(input: {
+  scene: CampaignSceneStateDto
+  doorId: string
+  role: 'OWNER' | 'PLAYER'
+  state: 'OPEN' | 'CLOSED' | 'LOCKED'
+}) {
+  return planLiveSceneCommand({
+    command: {
+      barrierId: input.doorId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: input.scene.version,
+      sceneId: input.scene.id,
+      state: input.state,
+      type: 'SET_SCENE_DOOR_STATE'
+    },
+    scene: input.scene,
+    sceneEncounterBound: false,
+    actor: { role: input.role, userId: crypto.randomUUID() },
+    latestUnmatchedMove: () => null
+  })
+}
+
+it.each([
+  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'OPEN' as const, outcome: 'ACCEPTED' },
+  { role: 'PLAYER' as const, from: 'OPEN' as const, to: 'CLOSED' as const, outcome: 'ACCEPTED' },
+  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'FORBIDDEN' },
+  { role: 'PLAYER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'FORBIDDEN' },
+  { role: 'OWNER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'ACCEPTED' },
+  { role: 'OWNER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'ACCEPTED' }
+])('lets $role change a visible $from door to $to: $outcome', ({ role, from, to, outcome }) => {
+  const { doorId, scene } = exploredDoorScene(true)
+  const plan = planDoorChange({
+    scene: { ...scene, doorStates: { [doorId]: from } },
+    doorId,
+    role,
+    state: to
+  })
+  expect(plan.kind === 'REJECTED' ? plan.code : plan.kind).toBe(outcome)
+})
+
+it.each([
+  { case: 'an unexplored door', explored: false, missing: false },
+  { case: 'a missing door', explored: true, missing: true }
+])('refuses a player door change for $case', ({ explored, missing }) => {
+  const { doorId, scene } = exploredDoorScene(explored)
+  const plan = planDoorChange({
+    scene,
+    doorId: missing ? crypto.randomUUID() : doorId,
+    role: 'PLAYER',
+    state: 'OPEN'
+  })
+  expect(plan).toMatchObject({ code: 'INVALID_COMMAND' })
+})
+
+it('lets a player open a door in a fog-OFF Scene even with a kept unexplored layer', () => {
+  const { doorId, scene } = exploredDoorScene(false)
+  expect(
+    planDoorChange({ scene: { ...scene, fogMode: 'OFF' }, doorId, role: 'PLAYER', state: 'OPEN' })
+  ).toMatchObject({ kind: 'ACCEPTED' })
+  expect(planDoorChange({ scene, doorId, role: 'PLAYER', state: 'OPEN' })).toMatchObject({
+    code: 'INVALID_COMMAND'
+  })
+})
+
+it('plans live token movement with vision and kept fog only while fog is OFF', () => {
+  const { scene: base, tokenId } = movementScene(crypto.randomUUID())
+  const scene: CampaignSceneStateDto = {
+    ...base,
+    fogLayers: [createUniformSceneFogLayer(base, { explored: false, ownerUserId: null })],
+    tokens: base.tokens.map((token) => ({
+      ...token,
+      vision: { ...token.vision!, dimRange: 30, enabled: true }
+    }))
+  }
+  const plan = (fogMode: CampaignSceneStateDto['fogMode']) =>
+    planLiveSceneCommand({
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: scene.version,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene: { ...scene, fogMode },
+      sceneEncounterBound: false,
+      actor: { role: 'OWNER', userId: crypto.randomUUID() },
+      latestUnmatchedMove: () => null
+    })
+  expect(plan('OFF')).toMatchObject({ kind: 'ACCEPTED' })
+  expect(plan('SHARED_PARTY')).toMatchObject({ code: 'UNAVAILABLE' })
+})
+
+it('fans out every non-hidden token and door to a player in a fog-OFF Scene', async () => {
+  const { doorId, scene: doors } = doorScene(crypto.randomUUID())
+  const token = movementScene(doors.campaignId).scene.tokens[0]!
+  const allyTokenId = crypto.randomUUID()
+  const hiddenTokenId = crypto.randomUUID()
+  const scene: CampaignSceneStateDto = {
+    ...doors,
+    fogMode: 'OFF',
+    annotations: [
+      { id: crypto.randomUUID(), position: { x: 5, y: 5 }, text: 'GM', visibility: 'GM_ONLY' }
+    ],
+    tokens: [
+      { ...token, controlledByUserIds: [crypto.randomUUID()], id: allyTokenId, label: 'Ally' },
+      { ...token, hidden: true, id: hiddenTokenId, label: 'Ambush' }
+    ]
+  }
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const player = await connectPlayer(base)
+  player.socket.send(
+    JSON.stringify({
+      expectedPresentationVersion: base.capture.presentation!.version,
+      sceneId: scene.id,
+      type: 'SYNCHRONIZE_SCENE',
+      version: scene.version
+    })
+  )
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({
+          recipientRole: 'PLAYER',
+          scene: expect.objectContaining({
+            annotations: [],
+            barriers: [expect.objectContaining({ id: doorId })],
+            doorStates: { [doorId]: 'CLOSED' },
+            tokens: [expect.objectContaining({ id: allyTokenId })]
+          })
+        }),
+        type: 'STATE_SYNC'
+      })
+    )
   )
 })

@@ -21,7 +21,11 @@ import {
   sceneStoredLiveEntitySchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { applySceneGeometryDelta, sceneTokenMovementFailure } from '@artificer-toolkit/shared/vtt'
+import {
+  applySceneGeometryDelta,
+  sceneDoorChangeFailure,
+  sceneTokenMovementFailure
+} from '@artificer-toolkit/shared/vtt'
 
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
@@ -250,21 +254,26 @@ async function executeGeometryFast(
         .first()
     )
       stagedRequired()
-    if (header.fogLayerCount !== 0) stagedRequired()
-    const tokenSnapshot = await readBoundedCollection(ctx, { header, live }, 'tokens')
-    if (
-      !tokenSnapshot ||
-      tokenSnapshot.entities.some(
-        ({ value }) => value.collection !== 'tokens' || value.entity.vision?.enabled === true
+    // Fog OFF derives no exploration, so kept fog layers and token vision need no staging.
+    if (header.fogMode !== 'OFF') {
+      if (header.fogLayerCount !== 0) stagedRequired()
+      const tokenSnapshot = await readBoundedCollection(ctx, { header, live }, 'tokens')
+      if (
+        !tokenSnapshot ||
+        tokenSnapshot.entities.some(
+          ({ value }) => value.collection !== 'tokens' || value.entity.vision?.enabled === true
+        )
       )
-    )
-      stagedRequired()
+        stagedRequired()
+    }
 
     current = target.current
     ordinal = target.ordinal
     doorState = target.doorState
   } else {
-    if (input.expectedEncounterVersion !== null || header.fogLayerCount !== 0) stagedRequired()
+    const fogDerived = header.fogMode !== 'OFF'
+    if (input.expectedEncounterVersion !== null || (fogDerived && header.fogLayerCount !== 0))
+      stagedRequired()
     const [tokenSnapshot, barrierSnapshot] = await Promise.all([
       readBoundedCollection(ctx, { header, live }, 'tokens'),
       readBoundedCollection(ctx, { header, live }, 'barriers')
@@ -274,7 +283,7 @@ async function executeGeometryFast(
       if (value.collection !== 'tokens') stagedRequired()
       return value.entity
     })
-    if (tokens.some((token) => token.vision?.enabled === true)) stagedRequired()
+    if (fogDerived && tokens.some((token) => token.vision?.enabled === true)) stagedRequired()
     const barriers = barrierSnapshot.entities.map(({ value }) => {
       if (value.collection !== 'barriers') stagedRequired()
       return value.entity
@@ -434,9 +443,6 @@ export async function publishResolvedGeometryCommand(
   if (input.type !== 'SET_SCENE_DOOR_STATE' && input.type !== 'MOVE_SCENE_TOKEN')
     throw new Error('Live Session Scene publication command is unsupported.')
 
-  if (input.type === 'SET_SCENE_DOOR_STATE' && args.actorRole !== 'OWNER')
-    throw new Error('Only the committed Campaign owner may set a Scene door state.')
-
   const { header, campaign, liveRow, live } = await readLiveSceneForUser(
     ctx,
     input.sceneId,
@@ -518,10 +524,17 @@ export async function publishResolvedGeometryCommand(
     current = target.current
     ordinal = target.ordinal
     doorState = target.doorState
+    const failure = sceneDoorChangeFailure(
+      args.actorRole === 'OWNER',
+      doorState ?? undefined,
+      input.state
+    )
+    if (failure) throw new Error(failure)
   } else {
     if (input.expectedEncounterVersion !== null)
       throw new Error('Live Session publication only supports standalone token movement.')
-    if (header.fogLayerCount !== 0)
+    const fogDerived = header.fogMode !== 'OFF'
+    if (fogDerived && header.fogLayerCount !== 0)
       throw new Error('Live Session publication cannot bypass Scene fog mechanics.')
     const tokenLimit = Math.max(
       header.counts.tokens,
@@ -556,7 +569,7 @@ export async function publishResolvedGeometryCommand(
         throw new Error('Live Session publication Scene geometry is inconsistent.')
       return value.entity
     })
-    if (tokens.some((token) => token.vision?.enabled === true))
+    if (fogDerived && tokens.some((token) => token.vision?.enabled === true))
       throw new Error('Live Session publication cannot bypass Scene vision mechanics.')
     const barriers = barrierSnapshot.entities.map(({ value }) => {
       if (value.collection !== 'barriers')

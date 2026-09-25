@@ -81,6 +81,7 @@ export const campaignChatEntryDtoSchema = z.strictObject({
   mode: z.nullable(campaignChatModeDtoSchema),
   body: z.nullable(z.string().check(z.maxLength(2000))),
   roll: z.nullable(rollRecordDtoSchema),
+  revealedByGm: z.boolean(),
   authorUserId: uuidSchema,
   authorUsername: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(30)),
   characterId: z.nullable(uuidSchema),
@@ -214,49 +215,35 @@ const executeCampaignRollDetailsSchema = z
       }
     })
   )
+/** TABLE posts to everyone; GM posts to the caller's DIRECT conversation with the Campaign owner. */
+export const campaignRollDestinationDtoSchema = z.enum(['TABLE', 'GM'])
 export const executeCampaignRollInputSchema = z
   .strictObject({
     campaignId: uuidSchema,
-    room: campaignChatRoomDtoSchema,
-    directUserId: z.optional(uuidSchema),
+    destination: campaignRollDestinationDtoSchema,
     clientNonce: uuidSchema,
     roll: executeCampaignRollDetailsSchema
   })
   .check(
     z.superRefine((input, context) => {
-      if (input.room !== 'TABLE')
-        context.addIssue({
-          code: 'custom',
-          path: ['room'],
-          message: 'Campaign rolls can only be sent to the TABLE conversation.'
-        })
-      if (input.room !== 'DIRECT' && input.directUserId)
-        context.addIssue({
-          code: 'custom',
-          path: ['directUserId'],
-          message: 'Only direct conversations have a participant.'
-        })
-      if (input.room === 'TABLE' && input.roll.characterId === null) return
-      if (input.roll.characterId === null)
+      if (input.destination === 'GM' && input.roll.characterId === null)
         context.addIssue({
           code: 'custom',
           path: ['roll', 'characterId'],
-          message: 'A player Campaign roll requires an assigned Character.'
+          message: 'A roll to the GM requires an assigned Character.'
         })
     })
   )
-export const executeCampaignPrivateRollInputSchema = z
-  .strictObject({ campaignId: uuidSchema, roll: executeCampaignRollDetailsSchema })
-  .check(
-    z.superRefine((input, context) => {
-      if (input.roll.characterId !== null)
-        context.addIssue({
-          code: 'custom',
-          path: ['roll', 'characterId'],
-          message: 'GM private rolls do not use a Character.'
-        })
-    })
-  )
+/** GM-only retained roll; a blind roll hides its result from the GM too until it is revealed. */
+export const executeCampaignPrivateRollInputSchema = z.strictObject({
+  campaignId: uuidSchema,
+  blind: z.boolean(),
+  roll: executeCampaignRollDetailsSchema
+})
+export const revealCampaignRollInputSchema = z.strictObject({
+  campaignId: uuidSchema,
+  rollId: uuidSchema
+})
 export const editCampaignChatEntryInputSchema = z.strictObject({
   campaignId: uuidSchema,
   entryId: uuidSchema,
@@ -303,4 +290,6 @@ export type CampaignChatEntryDto = z.infer<typeof campaignChatEntryDtoSchema>
 export type SendCampaignChatEntryInput = z.input<typeof sendCampaignChatEntryInputSchema>
 export type ExecuteCampaignRollInput = z.input<typeof executeCampaignRollInputSchema>
 export type ExecuteCampaignPrivateRollInput = z.input<typeof executeCampaignPrivateRollInputSchema>
+export type CampaignRollDestinationDto = z.infer<typeof campaignRollDestinationDtoSchema>
+export type RevealCampaignRollInput = z.input<typeof revealCampaignRollInputSchema>
 export type CampaignChatPageDto = z.infer<typeof campaignChatPageDtoSchema>

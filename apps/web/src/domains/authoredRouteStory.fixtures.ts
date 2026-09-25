@@ -441,6 +441,7 @@ export const seedShortswordPlusOneEquipment = {
     {
       id: '00000000-0000-4000-8000-000000000301',
       order: 1,
+      grip: 'ONE_HANDED',
       invocation: {
         kind: 'ACTION',
         triggerCode: 'MELEE_WEAPON_ATTACK',
@@ -562,6 +563,7 @@ export const seedAstralTearAwakenedEquipment = {
     {
       id: '00000000-0000-4000-8000-000000000302',
       order: 1,
+      grip: 'ONE_HANDED',
       invocation: {
         kind: 'ACTION',
         triggerCode: 'MELEE_WEAPON_ATTACK',

@@ -18,6 +18,7 @@ export const net: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(37), 0x210, 1),
       order: 1,
+      grip: S.EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
@@ -111,6 +112,7 @@ export const net: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(37), 0x230, 1),
       order: 2,
+      grip: null,
       invocation: {
         kind: 'PASSIVE' as const,
         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,

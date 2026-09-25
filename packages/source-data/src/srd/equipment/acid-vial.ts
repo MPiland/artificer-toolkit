@@ -12,6 +12,7 @@ export const acidVial: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(119), 0x210, 1),
       order: 1,
+      grip: S.EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,

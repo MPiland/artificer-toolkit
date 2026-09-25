@@ -55,19 +55,23 @@ export const campaignStoredEntryPayloadSchema = z
       mode: true,
       body: true,
       roll: true,
+      revealedByGm: true,
       authorUsername: true,
       characterId: true,
       characterLabel: true,
       editedAt: true,
       unsentAt: true
     }),
-    { entryId: uuidSchema }
+    // Set once when rest settlement spends this roll; never part of the chat presentation.
+    { entryId: uuidSchema, consumedAt: z.nullable(timestampSchema) }
   )
   .check(
     z.superRefine((entry, context) => {
       const valid =
         entry.kind === 'CHAT'
           ? entry.roll === null &&
+            !entry.revealedByGm &&
+            entry.consumedAt === null &&
             entry.mode !== null &&
             (entry.unsentAt === null) === (entry.body !== null)
           : entry.roll !== null &&

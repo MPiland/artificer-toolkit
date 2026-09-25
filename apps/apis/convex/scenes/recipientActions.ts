@@ -123,7 +123,14 @@ export const entities = action({
         }
       )
       for (const { value, doorState } of current.page) {
-        if (!isSceneEntityVisibleToViewer({ map: header.map, fogLayers }, viewer, value)) continue
+        if (
+          !isSceneEntityVisibleToViewer(
+            { map: header.map, fogMode: header.fogMode, fogLayers },
+            viewer,
+            value
+          )
+        )
+          continue
         if (!foundCursor) {
           foundCursor = value.entity.id === input.afterEntityId
           continue

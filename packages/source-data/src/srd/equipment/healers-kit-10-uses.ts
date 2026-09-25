@@ -20,6 +20,7 @@ export const healersKit10Uses: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(140), 0x210, 1),
       order: 1,
+      grip: null,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.ACTIVATED,

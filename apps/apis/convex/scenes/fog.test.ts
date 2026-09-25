@@ -1111,7 +1111,8 @@ it('rejects 257 chunks at the schema boundary and a 102nd layer without publishi
         nextFogOrdinal: 101,
         settings: {
           ambientIllumination: { value: base.input.settings.ambientIllumination, version: 0 },
-          visionRevealMode: { value: base.input.settings.visionRevealMode, version: 0 }
+          visionRevealMode: { value: base.input.settings.visionRevealMode, version: 0 },
+          fogMode: { value: base.input.settings.fogMode, version: 0 }
         },
         counts: { ...base.input.counts, measurements: 0 },
         nextOrdinals: { ...base.input.counts, measurements: 0 }
@@ -1265,3 +1266,153 @@ it('streams a 256-chunk layer above one MiB through bounded documents and recons
   )
   expect(await stored(base)).toEqual(beforeOverflow)
 }, 60_000)
+
+it('shows players every non-hidden object with fog OFF, refuses fog writes and keeps layers across modes', async () => {
+  const base = await createSceneDefinitionFixture()
+  base.input.settings.fogMode = 'OFF'
+  const { sceneId } = await publishEmptyScene(base)
+  const doorId = crypto.randomUUID()
+  const visibleToken = { ...fogToken(), label: 'Visible token', position: { x: 500, y: 500 } }
+  const hiddenToken = { ...fogToken(), hidden: true, label: 'Hidden token' }
+  const commands: (SceneLiveCommandInputDto | SceneGeometryCommandInputDto)[] = [
+    {
+      type: 'UPSERT_SCENE_ANNOTATION',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 0,
+      annotation: {
+        id: crypto.randomUUID(),
+        position: { x: 10, y: 10 },
+        text: 'GM only',
+        visibility: 'GM_ONLY'
+      }
+    },
+    {
+      type: 'UPSERT_SCENE_ANNOTATION',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 1,
+      annotation: {
+        id: crypto.randomUUID(),
+        position: { x: 900, y: 900 },
+        text: 'Table note',
+        visibility: 'TABLE'
+      }
+    },
+    {
+      type: 'UPSERT_SCENE_TOKEN',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 2,
+      token: visibleToken
+    },
+    {
+      type: 'UPSERT_SCENE_TOKEN',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 3,
+      token: hiddenToken
+    },
+    {
+      type: 'UPSERT_SCENE_BARRIER',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 4,
+      barrier: {
+        id: doorId,
+        kind: 'DOOR',
+        a: { x: 700, y: 0 },
+        b: { x: 700, y: 100 },
+        blocksLightWhenClosed: true,
+        blocksMovementWhenClosed: true,
+        initialState: 'CLOSED',
+        openAngleDegrees: 90
+      }
+    },
+    {
+      type: 'UPSERT_SCENE_LIGHT',
+      sceneId,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 5,
+      light: {
+        id: crypto.randomUUID(),
+        kind: 'POINT',
+        position: { x: 800, y: 800 },
+        brightRadius: 100,
+        dimRadius: 200,
+        color: '#ffffff',
+        intensity: 1
+      }
+    }
+  ]
+  for (const input of commands) {
+    if (input.type === 'UPSERT_SCENE_TOKEN' || input.type === 'UPSERT_SCENE_BARRIER')
+      await base.owner.caller.action(executeGeometry, { input })
+    else if (input.type === 'UPSERT_SCENE_ANNOTATION' || input.type === 'UPSERT_SCENE_LIGHT')
+      await base.owner.caller.mutation(execute, { input })
+    else throw new Error('Unexpected fixture command.')
+  }
+  const offHeader = await base.other.caller.query(recipientHeader, { sceneId })
+  expect(offHeader.fogMode).toBe('OFF')
+  expect(offHeader.snapshot?.tokens.map(({ label }) => label)).toEqual(['Visible token'])
+  expect(offHeader.snapshot?.annotations.map(({ text }) => text)).toEqual(['Table note'])
+  expect(offHeader.snapshot?.barriers.map(({ id }) => id)).toEqual([doorId])
+  expect(offHeader.snapshot?.doorStates).toEqual({ [doorId]: 'CLOSED' })
+  expect(offHeader.snapshot?.lights).toHaveLength(1)
+
+  const offChunk = fogChunk(0)
+  await expect(
+    base.owner.caller.mutation(begin, { input: patch(sceneId, 6, [offChunk]) })
+  ).rejects.toThrow('Fog of war is off')
+
+  const setFogMode = (expectedSceneVersion: number, mode: 'OFF' | 'SHARED_PARTY') =>
+    base.owner.caller.mutation(execute, {
+      input: {
+        type: 'SET_SCENE_FOG_MODE',
+        sceneId,
+        commandId: crypto.randomUUID(),
+        expectedSceneVersion,
+        mode
+      }
+    })
+  await expect(setFogMode(6, 'SHARED_PARTY')).resolves.toMatchObject({
+    delta: { kind: 'FOG_MODE_SET', mode: 'SHARED_PARTY' },
+    version: 7
+  })
+  const foggedHeader = await base.other.caller.query(recipientHeader, { sceneId })
+  expect(foggedHeader.fogMode).toBe('SHARED_PARTY')
+  expect(foggedHeader.snapshot?.tokens).toEqual([])
+  expect(foggedHeader.snapshot?.annotations).toEqual([])
+  expect(foggedHeader.snapshot?.barriers).toEqual([])
+  expect(foggedHeader.snapshot?.lights).toEqual([])
+
+  const shared = fogChunk(0, 'AQAAAA==', 0, 0, 32, 1)
+  const sharedInput = patch(sceneId, 7, [shared], null, crypto.randomUUID(), 32, 1)
+  const published = await base.owner.caller.mutation(publish, {
+    saveId: (await upload(base, sharedInput, [shared])).saveId
+  })
+  expect(published.version).toBe(8)
+  const pendingInput = patch(sceneId, 8, [shared], null, crypto.randomUUID(), 32, 1)
+  const pending = await upload(base, pendingInput, [shared])
+
+  await setFogMode(8, 'OFF')
+  const keptLayers = await base.owner.caller.query(layers, {
+    sceneId,
+    expectedVersion: 9,
+    paginationOpts: { cursor: null, numItems: 8 }
+  })
+  expect(keptLayers.page.map((layer) => layer.ownerUserId)).toEqual([null])
+  const keptHeader = await base.other.caller.query(recipientHeader, { sceneId })
+  expect(keptHeader.snapshot).toBeNull()
+  await expect(
+    base.other.caller.action(
+      recipient,
+      recipientInput(sceneId, 9, 'tokens', keptHeader.recipientRevision)
+    )
+  ).resolves.toMatchObject({ page: [{ value: { entity: { label: 'Visible token' } } }] })
+  const beforeRefusal = await stored(base)
+  await expect(base.owner.caller.mutation(publish, { saveId: pending.saveId })).rejects.toThrow(
+    'Fog of war is off'
+  )
+  expect(await stored(base)).toEqual(beforeRefusal)
+})

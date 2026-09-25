@@ -84,7 +84,13 @@ async function fixture(
       { x: 500, y: 500 }
     ]
   }
-  return { ...base, token, input, map: base.input.settings.map }
+  return {
+    ...base,
+    token,
+    input,
+    map: base.input.settings.map,
+    fogMode: base.input.settings.fogMode
+  }
 }
 
 it.each(['owner', 'other'] as const)(
@@ -122,7 +128,11 @@ it.each(['owner', 'other'] as const)(
         offset = page.nextOffset
         done = page.isDone
       }
-      const fog = { map: base.map, fogLayers: [{ ...layer, chunks }] }
+      const fog = {
+        map: base.map,
+        fogMode: base.fogMode,
+        fogLayers: [{ ...layer, chunks }]
+      }
       expect(isScenePointExplored(fog, ownerUserId, { x: 300, y: 100 })).toBe(true)
       expect(isScenePointExplored(fog, ownerUserId, { x: 500, y: 300 })).toBe(true)
       expect(isScenePointExplored(fog, ownerUserId, { x: 300, y: 500 })).toBe(false)

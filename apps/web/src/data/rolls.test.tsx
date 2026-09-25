@@ -1,6 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
 import { ConvexQueryClient, convexQuery } from '@convex-dev/react-query'
-import type { RollHistoryResponseDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  RollHistoryEntryDto,
+  RollHistoryResponseDto,
+  RollRecordDto
+} from '@artificer-toolkit/schema/api/rolls'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import type { OptimisticLocalStore } from 'convex/browser'
 import type { ReactNode } from 'react'
@@ -32,6 +36,7 @@ const roll = {
   },
   createdAt: '2026-07-31T12:00:00.000Z'
 } satisfies RollRecordDto
+const retainedRoll = { ...roll, gmCampaignRoll: null } satisfies RollHistoryEntryDto
 
 describe('native roll adapters', () => {
   it('uses native roll references and leaves unloaded history untouched', async () => {
@@ -55,8 +60,8 @@ describe('native roll adapters', () => {
     expect(mutation).toHaveBeenCalledWith(api.rolls.discard, { id: roll.id }, expect.anything())
     const update = mutation.mock.calls[0]?.[2]?.optimisticUpdate
     expect(update).toBeTypeOf('function')
-    const other = { ...roll, id: 'roll-2' }
-    let value: RollHistoryResponseDto | undefined = [roll, other]
+    const other = { ...retainedRoll, id: 'roll-2' }
+    let value: RollHistoryResponseDto | undefined = [retainedRoll, other]
     const store: OptimisticLocalStore = {
       getQuery: () => value,
       getAllQueries: () => [],
@@ -123,7 +128,7 @@ describe('native roll adapters', () => {
 
   it('receives pushed history through the native query bridge without refetching', async () => {
     const client = new ConvexReactClient('https://example.convex.cloud')
-    let records: RollHistoryResponseDto = [roll]
+    let records: RollHistoryResponseDto = [retainedRoll]
     const callbacks = new Set<() => void>()
     vi.spyOn(client, 'watchQuery').mockReturnValue({
       localQueryResult: () => records,
@@ -137,7 +142,7 @@ describe('native roll adapters', () => {
     const convex = new ConvexQueryClient(client)
     const queryClient = createAppQueryClient(convex)
     try {
-      expect(await queryClient.ensureQueryData(getRollHistory())).toEqual([roll])
+      expect(await queryClient.ensureQueryData(getRollHistory())).toEqual([retainedRoll])
       records = []
       for (const callback of callbacks) callback()
       expect(queryClient.getQueryData(getRollHistory().queryKey)).toEqual([])

@@ -98,7 +98,12 @@ export async function readCompactScene(
         return [
           collection,
           page.filter(({ value }) =>
-            isSceneEntityVisibleToViewer({ map: header.map, fogLayers: [] }, viewer, value)
+            // The compact path runs only without stored fog layers, so an empty list is exact.
+            isSceneEntityVisibleToViewer(
+              { map: header.map, fogMode: header.fogMode, fogLayers: [] },
+              viewer,
+              value
+            )
           )
         ] as const
       })

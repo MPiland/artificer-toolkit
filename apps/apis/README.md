@@ -179,14 +179,22 @@ Text and public rolls share per-room 500-entry retention and the rolling send po
 remain text-only. Admission/deletion lifecycle and native web wiring remain pending;
 see [native conversations](../../docs/architecture/persistence.md#native-conversations-and-text-chat--partial-local-implementation).
 
-`campaigns/rolls:execute` generates authoritative TABLE evidence for a player's own assigned Character
+`campaigns/rolls:execute` generates authoritative evidence for a player's own assigned Character
 or a GM-scoped assigned Character, using current Sheet sources and current membership before replay.
-Same-room/same-kind nonce retries return the original entry. Public rolls never enter private history.
-`executePrivate` accepts GM-only manual rolls without a Character and retains only that GM's latest
-twenty records. Fresh no-Character GM rolls require an existing valid assigned player Character.
+Destination `TABLE` posts to the TABLE conversation; `GM` posts to the caller's DIRECT conversation
+with the Campaign owner, which only those two participants can read (the owner is refused and rolls
+privately instead). Same-room/same-kind nonce retries return the original entry. Chat rolls never
+enter private history. `executePrivate` accepts GM-only manual or assigned-Character rolls, retains
+only that GM's latest twenty records, and binds each to its Campaign with a `blind` flag. An
+unrevealed blind roll withholds its evidence from every reader, the GM included.
+`campaigns/rolls:reveal` (owner only, `campaignConversation` rate limit) posts a retained roll to the
+TABLE once with `revealedByGm`, keyed by the roll id, and records `revealedAt`. Fresh no-Character GM
+rolls require an existing valid assigned player Character.
 `campaigns/characterSheet:executeRoll` handles assigned-Character private rolls for the current player
-or explicitly scoped GM. It shares the evaluator and caller-only history, providing HIT_DIE evidence
-for scoped short-rest preview/completion; it never opens a room. Archived generation rejects.
+or explicitly scoped GM. It shares the evaluator and caller-only history and never opens a room.
+Archived generation rejects. Campaign rest completion refuses these "Just me" rolls: HIT_DIE
+evidence must be GM-visible, so it settles from the caller's TABLE or To GM chat payload (by the
+`roll.id` payload index) or the GM's retained Private roll, and marks that record `consumedAt`.
 The shared native evaluator/history/retention helpers replace no privacy boundary; personal `rolls`
 remains owner-only. Campaign browser rollers use these native endpoints; Encounter integration and
 remaining acceptance stay with their owning cases. See

@@ -14,7 +14,13 @@ export const longbow: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.HEAVY,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.rangedWeaponEffects(S.equipId(36), 'PIERCING', '1d8', 150),
+  effects: S.rangedWeaponEffects(
+    S.equipId(36),
+    'PIERCING',
+    '1d8',
+    150,
+    S.EQUIPMENT_GRIP.TWO_HANDED
+  ),
   cost: S.gp(50),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

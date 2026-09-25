@@ -7,34 +7,61 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation, useExecuteRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
-import type { CharacterSheetRollController, CharacterSheetRollRequest } from './dice.types'
+import type {
+  CharacterSheetRollController,
+  CharacterSheetRollDestination,
+  CharacterSheetRollRequest
+} from './dice.types'
+import {
+  blindRollLabel,
+  gmRollDestinationOptions,
+  gmStateRollDestinationOptions,
+  noRollDestinationOptions,
+  playerRollDestinationOptions,
+  playerStateRollDestinationOptions
+} from './dice.utils'
 
 export function useCharacterSheetRollController(
   characterId: string,
-  campaignId?: string
+  campaign?: { id: string; isGm: boolean }
 ): CharacterSheetRollController {
-  const executeTableRoll = useConvexMutation(convexApi.campaigns.rolls.execute)
+  const campaignId = campaign?.id
+  const isGm = campaign?.isGm ?? false
+  const executeCampaignRoll = useConvexMutation(convexApi.campaigns.rolls.execute)
+  const executeGmPrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
   const executeCampaignPrivateRoll = useConvexMutation(
     convexApi.campaigns.characterSheet.executeRoll
   )
   const mutation = useExecuteRollMutation()
-  const campaignPrivateMutation = useMutation({
-    mutationFn: (request: CharacterSheetRollRequest) => {
+  const campaignMutation = useMutation({
+    mutationFn: async ({
+      request,
+      destination: target
+    }: {
+      request: CharacterSheetRollRequest
+      destination: CharacterSheetRollDestination
+    }): Promise<RollRecordDto | undefined> => {
       if (!campaignId) throw new Error('This Character is not assigned to a Campaign.')
-      return executeCampaignPrivateRoll({ campaignId, characterId, ...request })
-    }
-  })
-  const tableMutation = useMutation({
-    mutationFn: async (request: CharacterSheetRollRequest) => {
-      if (!campaignId) throw new Error('This Character is not assigned to a Campaign.')
-      const entry = await executeTableRoll({
+      const roll = { characterId, ...request }
+      if (target === 'TABLE' || target === 'GM') {
+        const entry = await executeCampaignRoll({
+          campaignId,
+          destination: target,
+          clientNonce: crypto.randomUUID(),
+          roll
+        })
+        if (!entry.roll) throw new Error('The Campaign roll did not return roll evidence.')
+        return entry.roll
+      }
+      if (!isGm) return executeCampaignPrivateRoll({ campaignId, ...roll })
+      const retained = await executeGmPrivateRoll({
         campaignId,
-        room: 'TABLE',
-        clientNonce: crypto.randomUUID(),
-        roll: { characterId, ...request }
+        blind: target === 'BLIND',
+        roll
       })
-      if (!entry.roll) throw new Error('The Campaign roll did not return roll evidence.')
-      return entry.roll
+      if (retained.evidence !== null) return retained
+      notifications.show({ message: blindRollLabel })
+      return undefined
     }
   })
   const discardMutation = useDiscardRollMutation()
@@ -42,8 +69,21 @@ export function useCharacterSheetRollController(
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
   const [manualRoll, setManualRoll] = useState<RollRecordDto>()
   const [transientRoll, setTransientRoll] = useState<RollRecordDto>()
-  const [destination, setDestination] = useState<'PRIVATE' | 'TABLE'>('PRIVATE')
+  const [destination, setDestination] = useState<CharacterSheetRollDestination>(
+    isGm ? 'PRIVATE' : 'TABLE'
+  )
   const [presentedRollPrivate, setPresentedRollPrivate] = useState(true)
+  const stateRollDestinationOptions = !campaignId
+    ? noRollDestinationOptions
+    : isGm
+      ? gmStateRollDestinationOptions
+      : playerStateRollDestinationOptions
+  // A destination the state-changing subset lacks (Just me, Blind) falls back to Table.
+  const stateRollDestination = !campaignId
+    ? 'PRIVATE'
+    : stateRollDestinationOptions.some((option) => option.value === destination)
+      ? destination
+      : 'TABLE'
   const [presentationPending, setPresentationPending] = useState(false)
   const discardPrivateRollRef = useRef<(roll: RollRecordDto) => void>(() => undefined)
   const pendingPresentation = useRef<
@@ -89,9 +129,13 @@ export function useCharacterSheetRollController(
 
   return useMemo(
     () => ({
-      canPublishToTable: Boolean(campaignId),
       clearManualRoll: () => setManualRoll(undefined),
       destination: campaignId ? destination : 'PRIVATE',
+      destinationOptions: !campaignId
+        ? noRollDestinationOptions
+        : isGm
+          ? gmRollDestinationOptions
+          : playerRollDestinationOptions,
       dismissRoll: (discard = false) => {
         const discardedPendingRoll = settlePendingPresentation()
         const roll = transientRoll ?? manualRoll
@@ -101,10 +145,11 @@ export function useCharacterSheetRollController(
           discardPrivateRoll(roll)
       },
       executeRoll: (request: CharacterSheetRollRequest) => {
+        const target = request.source.kind === 'HIT_DIE' ? stateRollDestination : destination
         settlePendingPresentation()
         setManualRoll(undefined)
         setTransientRoll(undefined)
-        const isPrivate = !campaignId || destination === 'PRIVATE'
+        const isPrivate = !campaignId || target === 'PRIVATE'
         let resolvePresentation!: (roll: RollRecordDto | undefined) => void
         const result = new Promise<RollRecordDto | undefined>((resolve) => {
           resolvePresentation = resolve
@@ -122,13 +167,15 @@ export function useCharacterSheetRollController(
                 .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
                 .catch(() => undefined)
             }
-            const roll = isPrivate
-              ? campaignId
-                ? await campaignPrivateMutation.mutateAsync(request)
-                : await mutation.mutateAsync({ characterId, ...request })
-              : await tableMutation.mutateAsync(request)
+            const roll = campaignId
+              ? await campaignMutation.mutateAsync({ request, destination: target })
+              : await mutation.mutateAsync({ characterId, ...request })
             if (pendingPresentation.current !== pending) {
-              if (isPrivate) discardPrivateRoll(roll)
+              if (isPrivate && roll) discardPrivateRoll(roll)
+              return
+            }
+            if (!roll) {
+              settlePendingPresentation()
               return
             }
             pending.roll = roll
@@ -152,14 +199,12 @@ export function useCharacterSheetRollController(
         return result
       },
       hasManualRoll: Boolean(manualRoll),
-      pending: mutation.isPending || campaignPrivateMutation.isPending || tableMutation.isPending,
+      pending: mutation.isPending || campaignMutation.isPending,
       pendingRequest: mutation.isPending
         ? mutation.variables
-        : campaignPrivateMutation.isPending
-          ? campaignPrivateMutation.variables
-          : tableMutation.isPending
-            ? tableMutation.variables
-            : undefined,
+        : campaignMutation.isPending
+          ? campaignMutation.variables?.request
+          : undefined,
       presentationPending,
       presentedRoll: transientRoll ?? manualRoll,
       presentedRollPrivate,
@@ -167,21 +212,25 @@ export function useCharacterSheetRollController(
         const pending = pendingPresentation.current
         if (pending?.roll?.id === rollId) settlePendingPresentation(pending.roll)
       },
-      setDestination: (nextDestination) => setDestination(campaignId ? nextDestination : 'PRIVATE')
+      setDestination: (nextDestination) => setDestination(campaignId ? nextDestination : 'PRIVATE'),
+      stateRollDestination,
+      stateRollDestinationOptions
     }),
     [
       campaignId,
-      campaignPrivateMutation,
+      campaignMutation,
       characterId,
       destination,
       discardMutation,
+      isGm,
       manualRoll,
       mutation,
       preferences.animate3d,
       presentationPending,
       presentedRollPrivate,
       reducedMotion,
-      tableMutation,
+      stateRollDestination,
+      stateRollDestinationOptions,
       transientRoll
     ]
   )

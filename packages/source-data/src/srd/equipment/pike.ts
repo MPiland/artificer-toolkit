@@ -14,7 +14,12 @@ export const pike: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.REACH,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.meleeReachWeaponEffects(S.equipId(25), 'PIERCING', '1d10'),
+  effects: S.meleeReachWeaponEffects(
+    S.equipId(25),
+    'PIERCING',
+    '1d10',
+    S.EQUIPMENT_GRIP.TWO_HANDED
+  ),
   cost: S.gp(5),
   weight: S.lbs(18),
   rarityId: S.RARITY_COMMON,

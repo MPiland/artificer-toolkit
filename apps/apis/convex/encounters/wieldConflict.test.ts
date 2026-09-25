@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateEncounterWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
+import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 
 const shieldId = 'shield-instance'
 const armorClassFacts = {
@@ -32,80 +33,64 @@ const armorClassFacts = {
 }
 const active = ['armor-instance', shieldId]
 
-describe('encounter wield conflict', () => {
-  it('requires stowing an active shield for a two-handed weapon, with its compiled AC', () => {
-    expect(
-      evaluateEncounterWieldConflict({
-        armorClassFacts,
-        activeEquipmentInstanceIds: active,
-        weaponProperties: ['HEAVY', 'MARTIAL', 'MELEE', 'TWO_HANDED'],
-        grip: 'ONE_HANDED'
-      })
-    ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -3 })
-  })
-
-  it('uses the D&D armor class fallback when the shield has no authored AC', () => {
-    expect(
-      evaluateEncounterWieldConflict({
-        armorClassFacts: {
-          ...armorClassFacts,
-          equipment: armorClassFacts.equipment.map((item) =>
-            item.category === 'SHIELD' ? { ...item, armorClass: null } : item
-          )
-        },
-        activeEquipmentInstanceIds: active,
-        weaponProperties: ['RANGED', 'TWO_HANDED'],
-        grip: 'ONE_HANDED'
-      })
-    ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -2 })
-  })
-
-  it('conflicts for a versatile weapon only when gripped with two hands', () => {
-    const input = {
-      armorClassFacts,
-      activeEquipmentInstanceIds: active,
-      weaponProperties: ['MARTIAL', 'MELEE', 'VERSATILE']
+function evaluate(input: {
+  grip: 'ONE_HANDED' | 'TWO_HANDED' | null
+  armorClassFacts?: CharacterRulePolicyInput['armorClassFacts']
+  activeEquipmentInstanceIds?: string[]
+}) {
+  return evaluateEncounterCharacterActionWieldConflict({
+    candidate: {
+      equipment: {
+        itemInstanceId: 'weapon-instance',
+        equipped: false,
+        attuned: false,
+        requiresAttunement: false,
+        requiresEquipped: false,
+        requiresAttuned: false,
+        grip: input.grip
+      }
+    },
+    ruleFacts: {
+      armorClassFacts: 'armorClassFacts' in input ? input.armorClassFacts : armorClassFacts
+    },
+    policyOutput: {
+      grantFold: { activeEquipmentInstanceIds: input.activeEquipmentInstanceIds ?? active }
     }
-    expect(evaluateEncounterWieldConflict({ ...input, grip: 'ONE_HANDED' })).toEqual({
-      kind: 'NONE'
-    })
-    expect(evaluateEncounterWieldConflict({ ...input, grip: 'TWO_HANDED' })).toEqual({
+  })
+}
+
+describe('encounter wield conflict', () => {
+  it('requires stowing an active shield for a two-handed grip, with its compiled AC', () => {
+    expect(evaluate({ grip: 'TWO_HANDED' })).toEqual({
       kind: 'STOW_SHIELD',
       shieldItemInstanceId: shieldId,
       armorClassDelta: -3
     })
   })
 
-  it('does not conflict for one-handed weapons, even with a two-handed grip', () => {
-    for (const weaponProperties of [
-      ['LIGHT', 'MELEE'],
-      ['FINESSE', 'LIGHT', 'MELEE', 'THROWN']
-    ])
-      expect(
-        evaluateEncounterWieldConflict({
-          armorClassFacts,
-          activeEquipmentInstanceIds: active,
-          weaponProperties,
-          grip: 'TWO_HANDED'
-        })
-      ).toEqual({ kind: 'NONE' })
+  it('uses the D&D armor class fallback when the shield has no authored AC', () => {
+    expect(
+      evaluate({
+        grip: 'TWO_HANDED',
+        armorClassFacts: {
+          ...armorClassFacts,
+          equipment: armorClassFacts.equipment.map((item) =>
+            item.category === 'SHIELD' ? { ...item, armorClass: null } : item
+          )
+        }
+      })
+    ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -2 })
+  })
+
+  it('does not conflict for one-handed or grip-less actions', () => {
+    expect(evaluate({ grip: 'ONE_HANDED' })).toEqual({ kind: 'NONE' })
+    expect(evaluate({ grip: null })).toEqual({ kind: 'NONE' })
   })
 
   it('ignores shields that are not active or not equipped', () => {
-    const twoHanded = { weaponProperties: ['MELEE', 'TWO_HANDED'], grip: 'ONE_HANDED' as const }
     expect(
-      evaluateEncounterWieldConflict({
-        armorClassFacts,
-        activeEquipmentInstanceIds: ['armor-instance'],
-        ...twoHanded
-      })
+      evaluate({ grip: 'TWO_HANDED', activeEquipmentInstanceIds: ['armor-instance'] })
     ).toEqual({ kind: 'NONE' })
-    expect(
-      evaluateEncounterWieldConflict({
-        armorClassFacts: undefined,
-        activeEquipmentInstanceIds: active,
-        ...twoHanded
-      })
-    ).toEqual({ kind: 'NONE' })
+    expect(evaluate({ grip: 'TWO_HANDED', armorClassFacts: undefined })).toEqual({ kind: 'NONE' })
   })
 })

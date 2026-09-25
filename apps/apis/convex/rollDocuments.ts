@@ -1,6 +1,8 @@
 import {
   rollRecordDtoSchema,
   type ExecuteRollInputDto,
+  type GmCampaignRollDto,
+  type RollHistoryEntryDto,
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -92,8 +94,28 @@ export async function evaluateCharacterRoll(
   return { record, maturity }
 }
 
-export async function retainUserRoll(ctx: MutationCtx, userId: string, record: RollRecordDto) {
-  await ctx.db.insert('userRollHistory', { ...record, userId })
+export function presentRetainedRoll(
+  { gmCampaignRoll, ...record }: RollRecordDto & { gmCampaignRoll: GmCampaignRollDto | null },
+  maturity: CampaignContentMaturity | null
+): RollHistoryEntryDto {
+  const presented = presentRoll(record, maturity)
+  if (!gmCampaignRoll) return { ...presented, gmCampaignRoll: null }
+  return gmCampaignRoll.blind && gmCampaignRoll.revealedAt === null
+    ? {
+        ...presented,
+        evidence: null,
+        gmCampaignRoll: { ...gmCampaignRoll, blind: true, revealedAt: null }
+      }
+    : { ...presented, gmCampaignRoll }
+}
+
+export async function retainUserRoll(
+  ctx: MutationCtx,
+  userId: string,
+  record: RollRecordDto,
+  gmCampaignRoll: GmCampaignRollDto | null
+) {
+  await ctx.db.insert('userRollHistory', { ...record, userId, consumedAt: null, gmCampaignRoll })
   const retained = await ctx.db
     .query('userRollHistory')
     .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', userId))

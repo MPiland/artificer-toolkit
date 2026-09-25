@@ -13,7 +13,7 @@ export const greatsword: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.HEAVY,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.meleeWeaponEffects(S.equipId(19), 'SLASHING', '2d6'),
+  effects: S.meleeWeaponEffects(S.equipId(19), 'SLASHING', '2d6', S.EQUIPMENT_GRIP.TWO_HANDED),
   cost: S.gp(50),
   weight: S.lbs(6),
   rarityId: S.RARITY_COMMON,

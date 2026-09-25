@@ -15,7 +15,7 @@ export const lightCrossbow: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
   modifiers: S.rangedWeaponAbilityModifiers(S.equipId(11)),
-  effects: S.rangedWeaponEffects(S.equipId(11), 'PIERCING', '1d8', 80),
+  effects: S.rangedWeaponEffects(S.equipId(11), 'PIERCING', '1d8', 80, S.EQUIPMENT_GRIP.TWO_HANDED),
   cost: S.gp(25),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

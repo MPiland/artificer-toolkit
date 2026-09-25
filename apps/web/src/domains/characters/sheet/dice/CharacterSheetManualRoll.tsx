@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { DiceSettingsControls } from '#app/settings/DiceSettingsControls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
+import { CharacterSheetRollDestination } from './CharacterSheetRollDestination'
 import type { ManualDieRow } from './dice.types'
 import { toManualRollRequest } from './dice.utils'
 import { useCharacterSheetRoll } from './rollContext'
@@ -47,9 +48,9 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
 
   if (!controller) return null
   const {
-    canPublishToTable,
     clearManualRoll,
     destination,
+    destinationOptions,
     executeRoll,
     hasManualRoll,
     pending,
@@ -104,23 +105,11 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
           </div>
         </Collapse>
 
-        {canPublishToTable ? (
-          <div className={diceStyles.manualDestination}>
-            <Text fw={600} size='sm'>
-              Roll to
-            </Text>
-            <SegmentedControl
-              aria-label='Roll destination'
-              data={[
-                { label: 'Private', value: 'PRIVATE' },
-                { label: 'Table', value: 'TABLE' }
-              ]}
-              size='xs'
-              value={destination}
-              onChange={(value) => setDestination(value as 'PRIVATE' | 'TABLE')}
-            />
-          </div>
-        ) : null}
+        <CharacterSheetRollDestination
+          options={destinationOptions}
+          value={destination}
+          onChange={setDestination}
+        />
 
         <div className={diceStyles.manualRows}>
           {rows.map((row, index) => (

@@ -298,8 +298,9 @@ sources again.
 See [native GM state and audit](persistence.md#native-gm-character-state-and-audit--partial-local-implementation).
 Private Character roll generation uses the same explicit assignment authority and current Sheet
 source resolver, rejecting archived Campaigns. It writes only the authenticated caller's roll history,
-so the GM can supply caller-owned hit-die evidence to scoped short-rest preview/completion without
-borrowing the player's history or widening personal endpoints. The existing rest transaction owns
+without borrowing the player's history or widening personal endpoints. Campaign rest hit-die evidence
+must stay GM-visible: the caller's TABLE or To GM roll, or the GM's own Private roll; see the
+[Campaign roll boundary](persistence.md#native-campaign-rolls--partial-local-implementation). The existing rest transaction owns
 evidence consumption, Character state/version and receipt; exact replay retains its authorization checks.
 Full cleanup/reconciliation, clock recovery and browser Campaign wiring remain unfinished; these endpoints and
 focused local checks do not constitute acceptance.
@@ -762,9 +763,10 @@ optimistic discard rolls back through Convex, without manual React Query snapsho
 history writes. The public history omits consumption metadata, so a protected consumed record may
 briefly disappear optimistically before the authoritative no-op restores it. Native Campaign public
 rolls now use the same evaluator with explicit Campaign/assignment authority and persist only in
-TABLE. Scoped `campaigns/characterSheet:executeRoll` persists Character-bound private rolls only in
-the caller's history and supports GM short-rest evidence; separate no-Character GM manual rolls remain
-in `campaigns/rolls:executePrivate`. Character-bound history applies the current Character Campaign's
+TABLE or, for a player's "To GM" roll, the player-owner DIRECT conversation. Scoped
+`campaigns/characterSheet:executeRoll` persists a player's "Just me" Character-bound rolls only in
+the caller's history and never settles a Campaign rest; GM private and blind rolls, with or without a
+Character, use `campaigns/rolls:executePrivate` and can be revealed to the TABLE with `reveal`. Character-bound history applies the current Character Campaign's
 text presentation for both GM and player snapshots, without granting current Character access.
 The personal endpoint remains owner-only. The [Campaign roll boundary](persistence.md#native-campaign-rolls--partial-local-implementation)
 records visibility, replay and the remaining browser/Encounter integration. Native history never

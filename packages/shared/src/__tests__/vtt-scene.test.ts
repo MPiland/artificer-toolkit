@@ -714,7 +714,7 @@ describe('VTT scene geometry', () => {
     expect(player.barriers.map((barrier) => barrier.id)).toEqual([ids.wall])
     expect(deriveSceneExplorationPatch(explored, { ownerUserId: ids.player })).toBeNull()
     expect(() => deriveSceneExplorationPatch(state, { ownerUserId: null })).toThrow(
-      'Per-player exploration requires a player-owned fog layer.'
+      'Per-player fog requires a player-owned fog layer.'
     )
   })
 
@@ -950,6 +950,125 @@ describe('VTT scene geometry', () => {
     expect(() => createUniformSceneFogLayer(state, { explored: true, ownerUserId: null })).toThrow(
       'Per-player fog requires a player-owned fog layer.'
     )
+  })
+
+  it('shows players every non-hidden object with fog OFF and hides them again with fog on', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    state.map = { ...state.map, height: 100, width: 100 }
+    state.lights = [
+      {
+        brightRadius: 10,
+        color: '#ffffff',
+        dimRadius: 20,
+        id: ids.command1,
+        intensity: 1,
+        kind: 'POINT',
+        position: { x: 80, y: 80 }
+      }
+    ]
+    state.annotations.push({
+      id: ids.command2,
+      position: { x: 70, y: 70 },
+      text: 'Table note',
+      visibility: 'TABLE'
+    })
+    state.tokens.push(
+      { ...state.tokens[0]!, controlledByUserIds: [ids.user], id: ids.encounter, label: 'Ally' },
+      { ...state.tokens[0]!, controlledByUserIds: [], hidden: true, id: ids.map, label: 'Ambush' }
+    )
+    const viewer = { role: 'PLAYER' as const, userId: ids.player }
+    // Kept layers from an earlier fog mode must not narrow an OFF Scene.
+    const off = {
+      ...state,
+      fogMode: 'OFF' as const,
+      fogLayers: [
+        createUniformSceneFogLayer(
+          { ...state, fogMode: 'PER_PLAYER' },
+          { explored: false, ownerUserId: ids.player }
+        )
+      ]
+    }
+
+    const player = projectSceneForViewer(off, viewer)
+    expect(player.tokens.map((token) => token.id)).toEqual([ids.token, ids.encounter])
+    expect(player.barriers.map((barrier) => barrier.id)).toEqual([ids.door, ids.wall])
+    expect(player.doorStates).toEqual({ [ids.door]: 'CLOSED' })
+    expect(player.lights.map((light) => light.id)).toEqual([ids.command1])
+    expect(player.annotations.map((annotation) => annotation.id)).toEqual([ids.command2])
+    expect(isSceneTokenVisibleToViewer(off, viewer, ids.map)).toBe(false)
+
+    const moved = applySceneDelta(
+      off,
+      { kind: 'TOKEN_MOVED', position: { x: 90, y: 90 }, tokenId: ids.encounter },
+      1
+    )
+    expect(
+      projectSceneDeltaForViewer(off, moved, viewer, {
+        kind: 'TOKEN_MOVED',
+        position: { x: 90, y: 90 },
+        tokenId: ids.encounter
+      })
+    ).toEqual({ kind: 'TOKEN_MOVED', position: { x: 90, y: 90 }, tokenId: ids.encounter })
+
+    const fogged = applySceneDelta(off, { kind: 'FOG_MODE_SET', mode: 'PER_PLAYER' }, 1)
+    expect(fogged.fogLayers).toEqual(off.fogLayers)
+    const foggedPlayer = projectSceneForViewer(fogged, viewer)
+    expect(foggedPlayer.tokens.map((token) => token.id)).toEqual([ids.token])
+    expect(foggedPlayer.barriers).toEqual([])
+    expect(foggedPlayer.lights).toEqual([])
+    expect(foggedPlayer.annotations).toEqual([])
+    expect(sceneDeltaConflictKeys({ kind: 'FOG_MODE_SET', mode: 'OFF' })).toEqual(['FOG_MODE'])
+  })
+
+  it('refuses fog writes and derives no exploration while fog is OFF', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    state.map = { ...state.map, height: 100, width: 100 }
+    state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+    state.fogMode = 'OFF'
+    state.tokens[0] = {
+      ...state.tokens[0]!,
+      position: { x: 20, y: 50 },
+      vision: {
+        angleDegrees: 360,
+        brightRange: 0,
+        dimRange: 40,
+        directionDegrees: 0,
+        enabled: true
+      }
+    }
+    for (const ownerUserId of [null, ids.player]) {
+      expect(() => createUniformSceneFogLayer(state, { explored: true, ownerUserId })).toThrow(
+        'Fog of war is off for this Scene.'
+      )
+      expect(() =>
+        createSceneFogAreaPatch(state, {
+          explored: true,
+          ownerUserId,
+          rectangle: { a: { x: 0, y: 0 }, b: { x: 20, y: 20 } }
+        })
+      ).toThrow('Fog of war is off for this Scene.')
+      expect(() => deriveSceneExplorationPatch(state, { ownerUserId })).toThrow(
+        'Fog of war is off for this Scene.'
+      )
+    }
+    const path = [
+      { x: 20, y: 50 },
+      { x: 40, y: 50 }
+    ]
+    const moved = {
+      ...state,
+      tokens: state.tokens.map((token) => ({ ...token, position: path[1]! }))
+    }
+    const delta = { kind: 'TOKEN_MOVED' as const, position: path[1]!, tokenId: ids.token }
+    expect(planSceneCommandExploration(state, moved, delta).owners).toEqual([])
+    expect(deriveSceneCommandExplorationDeltas(state, moved, delta, undefined, path)).toEqual([])
+    expect(
+      projectSceneTokenPreviewForViewer(state, {
+        path,
+        tokenId: ids.token,
+        viewer: { role: 'PLAYER', userId: ids.player }
+      })
+    ).toEqual({ reveal: { barriers: [], doorStates: {}, tokens: [] }, visionLayers: [] })
   })
 
   it('patches only the changed bounded fog chunks for reveal and hide', () => {

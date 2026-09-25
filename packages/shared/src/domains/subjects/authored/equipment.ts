@@ -5,6 +5,7 @@ import {
   type EquipmentPropertyCode,
   type EquipmentCategoryCode,
   type EquipmentAttribute,
+  type EquipmentGrip,
   type NodeSubjectCode,
   type AuthoredRecordStatus
 } from '#core'
@@ -34,6 +35,9 @@ export interface CostAuthored {
   currencyId: string
 }
 
+/** An item effect; weapon attack effects name the grip they are made with. */
+export type EquipmentEffectAuthored = EffectAuthored & { grip: EquipmentGrip | null }
+
 /** Nested item container or bundle definition */
 export interface ContainsAuthored {
   equipmentId: string
@@ -50,7 +54,7 @@ export type BaseEquipmentAuthored = {
   quote?: string
   cost?: CostAuthored
   weight?: WeightAuthored
-  effects?: EffectAuthored[]
+  effects?: EquipmentEffectAuthored[]
   charges?: ChargeAuthored
   capacity?: CapacityAuthored
   modifiers?: ModifierGrantAuthored[]
@@ -75,7 +79,7 @@ export type VariantEquipmentAuthored = {
   description: string | null
   status?: AuthoredRecordStatus
   quote?: string
-  effects?: EffectAuthored[]
+  effects?: EquipmentEffectAuthored[]
   charges?: ChargeAuthored
   modifiers?: ModifierGrantAuthored[]
   rarityId: string

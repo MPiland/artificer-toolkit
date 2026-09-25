@@ -13,6 +13,7 @@ export const caltropsBagOf20: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(128), 0x210, 1),
       order: 1,
+      grip: null,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.ACTIVATED,

@@ -440,6 +440,8 @@ export const equipmentPropertyCodeSchema = z.enum([
 
 export const equipmentAttributeCodeSchema = z.enum(['LIMITED_USE', 'STACKABLE'])
 
+export const equipmentGripSchema = z.enum(['ONE_HANDED', 'TWO_HANDED'])
+
 export const spellAttributeSchema = z.enum(['CONCENTRATION', 'RITUAL', 'ADDS_TO_WEAPON_ATTACK'])
 
 export const spellComponentSchema = z.enum(['VERBAL', 'SOMATIC', 'MATERIAL'])

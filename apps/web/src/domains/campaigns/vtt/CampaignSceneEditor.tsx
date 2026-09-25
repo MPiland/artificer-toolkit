@@ -16,6 +16,7 @@ import {
   createSceneLight,
   createSceneToken,
   editTools,
+  isFogTool,
   type CampaignVttToolDefinition
 } from './CampaignVttStage.model'
 import { CampaignSceneObjectInspector } from './CampaignSceneObjectInspector'
@@ -319,9 +320,7 @@ export function CampaignSceneEditor({
       <div className={preparationStyles.editorLayout}>
         <div className={stageStyles.toolbar} aria-label='Scene editor tools' role='toolbar'>
           {editTools
-            .filter(
-              (definition) => definition.value !== 'FOG_REVEAL' && definition.value !== 'FOG_HIDE'
-            )
+            .filter((definition) => !isFogTool(definition.value))
             .map((definition) => (
               <EditorToolButton
                 definition={definition}

@@ -105,6 +105,12 @@ export const execute = mutation({
         throw new Error('Scene target changed before this command completed.')
       state.settings.visionRevealMode = { value: input.mode, version }
       delta = { kind: 'VISION_REVEAL_MODE_SET', mode: input.mode }
+    } else if (input.type === 'SET_SCENE_FOG_MODE') {
+      if (state.settings.fogMode.version > input.expectedSceneVersion)
+        throw new Error('Scene target changed before this command completed.')
+      // Fog layers stay stored while fog is OFF, so turning fog back on restores exploration.
+      state.settings.fogMode = { value: input.mode, version }
+      delta = { kind: 'FOG_MODE_SET', mode: input.mode }
     } else {
       let target: {
         collection: SceneLiveEntity['collection']

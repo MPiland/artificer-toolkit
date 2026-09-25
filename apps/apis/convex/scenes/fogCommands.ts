@@ -11,6 +11,7 @@ import {
   type SceneFogPatchInput,
   type SceneFogSaveProgress
 } from '@artificer-toolkit/schema/api/sceneFog'
+import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { sceneFogLayerDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   sceneStoredFogChunkSchema,
@@ -60,6 +61,11 @@ function normalizeAppend(input: SceneFogAppendInput): SceneFogAppendInput {
 
 function assertActive(campaign: { status: string }) {
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+}
+
+// Replays stay idempotent; only new fog writes are refused while the Scene has fog OFF.
+function assertFogEnabled(header: Pick<SceneLiveStateHeader, 'fogMode'>) {
+  if (header.fogMode === 'OFF') throw new Error('Fog of war is off for this Scene.')
 }
 
 async function assertFogPresentation(
@@ -175,6 +181,7 @@ export const begin = mutation({
         throw new Error('Scene fog save expired.')
       return progress(save)
     }
+    assertFogEnabled(header)
     const expiresAt = Date.now() + SAVE_WINDOW
     const save = sceneStoredFogSaveSchema.parse({
       id: crypto.randomUUID(),
@@ -270,6 +277,7 @@ export const publish = mutation({
       throw new Error('Scene fog save expired.')
     if (save.receivedChunks !== save.input.chunkManifest.length)
       throw new Error('Scene fog save is incomplete.')
+    assertFogEnabled(header)
     if (save.input.expectedSceneVersion > header.version)
       throw new Error('Scene version is ahead of the authoritative state.')
     const state = advanceLiveState(header, live)

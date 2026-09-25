@@ -62,6 +62,29 @@ describe('VTT scene contracts', () => {
     ).toBe(false)
   })
 
+  it('requires an explicit fog mode, including OFF, and accepts fog mode commands', () => {
+    expect(sceneDefinitionDtoSchema.parse({ ...sceneDefinition(), fogMode: 'OFF' })).toMatchObject({
+      fogMode: 'OFF'
+    })
+    const { fogMode: _fogMode, ...missingFogMode } = sceneDefinition()
+    expect(sceneDefinitionDtoSchema.safeParse(missingFogMode).success).toBe(false)
+    expect(
+      sceneDefinitionDtoSchema.safeParse({ ...sceneDefinition(), fogMode: 'NONE' }).success
+    ).toBe(false)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        commandId: ids.campaign,
+        expectedSceneVersion: 3,
+        mode: 'OFF',
+        sceneId: ids.scene,
+        type: 'SET_SCENE_FOG_MODE'
+      }).success
+    ).toBe(true)
+    expect(
+      sceneDeltaDtoSchema.safeParse({ kind: 'FOG_MODE_SET', mode: 'PER_PLAYER' }).success
+    ).toBe(true)
+  })
+
   it('requires closed ambient and zone mechanics without compatibility defaults', () => {
     const zone = {
       id: ids.token,

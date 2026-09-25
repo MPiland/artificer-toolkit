@@ -495,6 +495,7 @@ export async function executeCharacterSheetCommand(
     streamVersion,
     updatedAt: occurredAt
   })
+  // One rest spends its roll once, wherever the roll is stored.
   if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
 
   if (command.type === 'COMPLETE_REST' && completedRest) {

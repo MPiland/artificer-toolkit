@@ -172,6 +172,8 @@ describe('CampaignScenePreparation unsaved navigation', () => {
         client,
         expect.objectContaining({
           name: 'courtyard',
+          // New Scenes start with fog of war off.
+          fogMode: 'OFF',
           map: expect.objectContaining({ assetId: tabletopMapDelivery.assetId })
         }),
         expect.any(String)

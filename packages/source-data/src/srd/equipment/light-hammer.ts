@@ -14,7 +14,13 @@ export const lightHammer: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(6)),
-  effects: S.thrownWeaponEffects(S.equipId(6), 'BLUDGEONING', '1d4', 20),
+  effects: S.thrownWeaponEffects(
+    S.equipId(6),
+    'BLUDGEONING',
+    '1d4',
+    20,
+    S.EQUIPMENT_GRIP.ONE_HANDED
+  ),
   cost: S.gp(2),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

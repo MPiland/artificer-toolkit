@@ -13,7 +13,7 @@ export const greataxe: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.HEAVY,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.meleeWeaponEffects(S.equipId(18), 'SLASHING', '1d12'),
+  effects: S.meleeWeaponEffects(S.equipId(18), 'SLASHING', '1d12', S.EQUIPMENT_GRIP.TWO_HANDED),
   cost: S.gp(30),
   weight: S.lbs(7),
   rarityId: S.RARITY_COMMON,

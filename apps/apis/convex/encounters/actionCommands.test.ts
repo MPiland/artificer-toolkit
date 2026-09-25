@@ -781,7 +781,8 @@ async function advanceSceneVersion(t: Awaited<ReturnType<typeof fixture>>['t'], 
         },
         settings: {
           ambientIllumination: { value: 'BRIGHT', version: 0 },
-          visionRevealMode: { value: 'ON_DRAG', version: 0 }
+          visionRevealMode: { value: 'ON_DRAG', version: 0 },
+          fogMode: { value: 'SHARED_PARTY', version: 0 }
         }
       })
     )

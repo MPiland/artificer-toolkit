@@ -76,11 +76,13 @@ export async function insertPreEvaluatedCampaignTableRoll(
     mode: null,
     body: null,
     roll,
+    revealedByGm: false,
     authorUsername: actor.username,
     characterId: null,
     characterLabel: roll.characterLabel,
     editedAt: null,
-    unsentAt: null
+    unsentAt: null,
+    consumedAt: null
   })
   await insertConversationEntry(ctx, header, payload)
   return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)

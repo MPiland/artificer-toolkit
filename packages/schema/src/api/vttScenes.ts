@@ -42,6 +42,7 @@ const positiveDistanceSchema = z
   .check(z.positive())
   .check(z.lte(VTT_SCENE_LIMITS.coordinateMagnitude))
 const degreesSchema = z.number().check(z.gte(0)).check(z.lt(360))
+const sceneFogModeSchema = z.enum(['OFF', 'SHARED_PARTY', 'PER_PLAYER'])
 
 function uniqueIds<T extends { id: string }>(
   values: readonly T[],
@@ -244,7 +245,7 @@ const sceneDefinitionObject = z.strictObject({
   darknessZones: z
     .array(sceneDarknessZoneDtoSchema)
     .check(z.maxLength(VTT_SCENE_LIMITS.darknessZones)),
-  fogMode: z.enum(['SHARED_PARTY', 'PER_PLAYER']),
+  fogMode: sceneFogModeSchema,
   grid: sceneGridDtoSchema,
   id: uuidSchema,
   lights: z.array(sceneLightDtoSchema).check(z.maxLength(VTT_SCENE_LIMITS.lights)),
@@ -466,6 +467,7 @@ const sceneAtomicDeltaDtoSchema: z.ZodMiniType<SceneAtomicDelta> = z.discriminat
     kind: z.literal('VISION_REVEAL_MODE_SET'),
     mode: z.enum(['ON_DRAG', 'ON_DROP'])
   }),
+  z.strictObject({ kind: z.literal('FOG_MODE_SET'), mode: sceneFogModeSchema }),
   z.strictObject({
     kind: z.literal('MEASUREMENT_UPSERTED'),
     measurement: sceneMeasurementDtoSchema
@@ -677,6 +679,10 @@ const sceneLiveCommandSchemas = [
   z.extend(sceneCommandBaseDtoSchema, {
     type: z.literal('SET_SCENE_VISION_REVEAL_MODE'),
     mode: z.enum(['ON_DRAG', 'ON_DROP'])
+  }),
+  z.extend(sceneCommandBaseDtoSchema, {
+    type: z.literal('SET_SCENE_FOG_MODE'),
+    mode: sceneFogModeSchema
   }),
   sceneAnnotationUpsertInputDtoSchema,
   sceneAnnotationRemoveInputDtoSchema,

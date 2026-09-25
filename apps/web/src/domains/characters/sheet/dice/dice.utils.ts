@@ -1,6 +1,7 @@
 import type { RollEvidenceDto, RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import type {
+  CharacterSheetRollDestinationOption,
   CharacterSheetRollRequest,
   CharacterSheetRollTarget,
   ManualDieRow
@@ -9,6 +10,30 @@ import type {
 type SheetMechanic = NonNullable<CharacterSheet['actions']['items'][number]['mechanic']>
 
 export const MAX_3D_DICE = 20
+
+export const playerRollDestinationOptions: readonly CharacterSheetRollDestinationOption[] = [
+  { label: 'Table', value: 'TABLE' },
+  { label: 'To GM', value: 'GM' },
+  { label: 'Just me', value: 'PRIVATE' }
+]
+
+export const gmRollDestinationOptions: readonly CharacterSheetRollDestinationOption[] = [
+  { label: 'Table', value: 'TABLE' },
+  { label: 'Private', value: 'PRIVATE' },
+  { label: 'Blind', value: 'BLIND' }
+]
+
+export const noRollDestinationOptions: readonly CharacterSheetRollDestinationOption[] = []
+
+export const playerStateRollDestinationOptions = playerRollDestinationOptions.filter(
+  (option) => option.value !== 'PRIVATE'
+)
+
+export const gmStateRollDestinationOptions = gmRollDestinationOptions.filter(
+  (option) => option.value !== 'BLIND'
+)
+
+export const blindRollLabel = 'Blind roll: hidden until revealed'
 
 export function getVisualDiceCount(roll: RollResultDto) {
   return roll.evidence.terms.reduce(

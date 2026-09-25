@@ -10043,6 +10043,7 @@ export declare const api: {
           id: string;
           kind: "CHAT" | "ROLL";
           mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -10113,6 +10114,7 @@ export declare const api: {
             id: string;
             kind: "CHAT" | "ROLL";
             mode: "OOC" | "ROLEPLAY" | null;
+            revealedByGm: boolean;
             roll: {
               characterId: string | null;
               characterLabel: string;
@@ -10188,6 +10190,7 @@ export declare const api: {
           id: string;
           kind: "CHAT" | "ROLL";
           mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -10251,6 +10254,7 @@ export declare const api: {
           id: string;
           kind: "CHAT" | "ROLL";
           mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -12275,7 +12279,7 @@ export declare const api: {
         {
           campaignId: string;
           clientNonce: string;
-          directUserId?: string;
+          destination: "TABLE" | "GM";
           roll: {
             characterId: string | null;
             expression: string;
@@ -12294,7 +12298,6 @@ export declare const api: {
               label: string;
             };
           };
-          room: "TABLE" | "PARTY" | "DIRECT";
         },
         {
           authorUserId: string;
@@ -12309,6 +12312,7 @@ export declare const api: {
           id: string;
           kind: "CHAT" | "ROLL";
           mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -12359,6 +12363,7 @@ export declare const api: {
         "mutation",
         "public",
         {
+          blind: boolean;
           campaignId: string;
           roll: {
             characterId: string | null;
@@ -12379,47 +12384,143 @@ export declare const api: {
             };
           };
         },
-        {
-          characterId: string | null;
-          characterLabel: string;
-          createdAt: string;
-          evidence: {
-            mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-            modifier: number;
-            subtotal: number;
-            terms: Array<{
-              count: number;
-              die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-              keptRollIndex?: number;
-              keptRollIndexes?: Array<number>;
-              modifier?: number;
-              rollSequences?: Array<Array<number>>;
-              rolls: Array<number>;
+        | {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
               subtotal: number;
-            }>;
-            total: number;
-            transform:
-              | { kind: "NONE" }
-              | { kind: "HALF" }
-              | { kind: "DOUBLE" }
-              | { kind: "MULTIPLY"; value: number };
-          };
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            gmCampaignRoll: {
+              blind: boolean;
+              campaignId: string;
+              revealedAt: string | null;
+            } | null;
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          }
+        | {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: null;
+            gmCampaignRoll: {
+              blind: true;
+              campaignId: string;
+              revealedAt: null;
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          }
+      >;
+      reveal: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; rollId: string },
+        {
+          authorUserId: string;
+          authorUsername: string;
+          body: string | null;
+          campaignId: string;
+          characterId: string | null;
+          characterLabel: string | null;
+          conversationId: string;
+          createdAt: string;
+          editedAt: string | null;
           id: string;
-          normalizedExpression: string;
-          ruleset: { code: string; systemId: string; version: string };
-          source: {
-            kind:
-              | "MANUAL"
-              | "ABILITY_CHECK"
-              | "SAVING_THROW"
-              | "SKILL_CHECK"
-              | "INITIATIVE"
-              | "ATTACK"
-              | "DAMAGE"
-              | "HEALING"
-              | "HIT_DIE";
-            label: string;
-          };
+          kind: "CHAT" | "ROLL";
+          mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
+          roll: {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
+              subtotal: number;
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          } | null;
+          room: "TABLE" | "PARTY" | "DIRECT";
+          unsentAt: string | null;
         }
       >;
     };
@@ -45182,6 +45283,11 @@ export declare const api: {
         {
           actions: Array<{
             attackBonus?: number;
+            damageLabel?: string;
+            grip: {
+              attackKey: string;
+              value: "ONE_HANDED" | "TWO_HANDED";
+            } | null;
             id: string;
             label: string;
             rangeLabel?: string;
@@ -50396,48 +50502,82 @@ export declare const api: {
       "query",
       "public",
       {},
-      Array<{
-        characterId: string | null;
-        characterLabel: string;
-        createdAt: string;
-        evidence: {
-          mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-          modifier: number;
-          subtotal: number;
-          terms: Array<{
-            count: number;
-            die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-            keptRollIndex?: number;
-            keptRollIndexes?: Array<number>;
-            modifier?: number;
-            rollSequences?: Array<Array<number>>;
-            rolls: Array<number>;
-            subtotal: number;
-          }>;
-          total: number;
-          transform:
-            | { kind: "NONE" }
-            | { kind: "HALF" }
-            | { kind: "DOUBLE" }
-            | { kind: "MULTIPLY"; value: number };
-        };
-        id: string;
-        normalizedExpression: string;
-        ruleset: { code: string; systemId: string; version: string };
-        source: {
-          kind:
-            | "MANUAL"
-            | "ABILITY_CHECK"
-            | "SAVING_THROW"
-            | "SKILL_CHECK"
-            | "INITIATIVE"
-            | "ATTACK"
-            | "DAMAGE"
-            | "HEALING"
-            | "HIT_DIE";
-          label: string;
-        };
-      }>
+      Array<
+        | {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
+              subtotal: number;
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            gmCampaignRoll: {
+              blind: boolean;
+              campaignId: string;
+              revealedAt: string | null;
+            } | null;
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          }
+        | {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: null;
+            gmCampaignRoll: {
+              blind: true;
+              campaignId: string;
+              revealedAt: null;
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          }
+      >
     >;
   };
   scenes: {
@@ -50480,6 +50620,13 @@ export declare const api: {
                 mode: "ON_DRAG" | "ON_DROP";
                 sceneId: string;
                 type: "SET_SCENE_VISION_REVEAL_MODE";
+              }
+            | {
+                commandId: string;
+                expectedSceneVersion: number;
+                mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+                sceneId: string;
+                type: "SET_SCENE_FOG_MODE";
               }
             | {
                 annotation: {
@@ -50734,6 +50881,10 @@ export declare const api: {
               }
             | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
             | {
+                kind: "FOG_MODE_SET";
+                mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+              }
+            | {
                 kind: "MEASUREMENT_UPSERTED";
                 measurement: {
                   createdByUserId: string;
@@ -50925,6 +51076,10 @@ export declare const api: {
                   | {
                       kind: "VISION_REVEAL_MODE_SET";
                       mode: "ON_DRAG" | "ON_DROP";
+                    }
+                  | {
+                      kind: "FOG_MODE_SET";
+                      mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                     }
                   | {
                       kind: "MEASUREMENT_UPSERTED";
@@ -51273,7 +51428,7 @@ export declare const api: {
             tokens: number;
           };
           createdAt: string;
-          fogMode: "SHARED_PARTY" | "PER_PLAYER";
+          fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
           grid:
             | {
                 cellSize: number;
@@ -51329,7 +51484,7 @@ export declare const api: {
               tokens: number;
             };
             createdAt: string;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -51558,7 +51713,7 @@ export declare const api: {
             ambientIllumination:
               "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
             campaignId: string;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -52104,6 +52259,10 @@ export declare const api: {
               }
             | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
             | {
+                kind: "FOG_MODE_SET";
+                mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+              }
+            | {
                 kind: "MEASUREMENT_UPSERTED";
                 measurement: {
                   createdByUserId: string;
@@ -52295,6 +52454,10 @@ export declare const api: {
                   | {
                       kind: "VISION_REVEAL_MODE_SET";
                       mode: "ON_DRAG" | "ON_DROP";
+                    }
+                  | {
+                      kind: "FOG_MODE_SET";
+                      mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                     }
                   | {
                       kind: "MEASUREMENT_UPSERTED";
@@ -52786,6 +52949,10 @@ export declare const api: {
               }
             | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
             | {
+                kind: "FOG_MODE_SET";
+                mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+              }
+            | {
                 kind: "MEASUREMENT_UPSERTED";
                 measurement: {
                   createdByUserId: string;
@@ -52977,6 +53144,10 @@ export declare const api: {
                   | {
                       kind: "VISION_REVEAL_MODE_SET";
                       mode: "ON_DRAG" | "ON_DROP";
+                    }
+                  | {
+                      kind: "FOG_MODE_SET";
+                      mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                     }
                   | {
                       kind: "MEASUREMENT_UPSERTED";
@@ -53383,6 +53554,10 @@ export declare const api: {
                 }
               | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
               | {
+                  kind: "FOG_MODE_SET";
+                  mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+                }
+              | {
                   kind: "MEASUREMENT_UPSERTED";
                   measurement: {
                     createdByUserId: string;
@@ -53575,6 +53750,10 @@ export declare const api: {
                     | {
                         kind: "VISION_REVEAL_MODE_SET";
                         mode: "ON_DRAG" | "ON_DROP";
+                      }
+                    | {
+                        kind: "FOG_MODE_SET";
+                        mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                       }
                     | {
                         kind: "MEASUREMENT_UPSERTED";
@@ -54107,7 +54286,7 @@ export declare const api: {
           definitionSaveId: string;
           definitionVersion: number;
           fogLayerCount: number;
-          fogMode: "SHARED_PARTY" | "PER_PLAYER";
+          fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
           grid:
             | {
                 cellSize: number;
@@ -54407,7 +54586,7 @@ export declare const api: {
           campaignId: string;
           definitionId: string;
           definitionVersion: number;
-          fogMode: "SHARED_PARTY" | "PER_PLAYER";
+          fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
           grid:
             | {
                 cellSize: number;
@@ -54509,7 +54688,7 @@ export declare const api: {
               ownerUserId: string | null;
               width: number;
             }>;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -71093,6 +71272,10 @@ export declare const internal: {
                 }
               | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
               | {
+                  kind: "FOG_MODE_SET";
+                  mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+                }
+              | {
                   kind: "MEASUREMENT_UPSERTED";
                   measurement: {
                     createdByUserId: string;
@@ -71285,6 +71468,10 @@ export declare const internal: {
                     | {
                         kind: "VISION_REVEAL_MODE_SET";
                         mode: "ON_DRAG" | "ON_DROP";
+                      }
+                    | {
+                        kind: "FOG_MODE_SET";
+                        mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                       }
                     | {
                         kind: "MEASUREMENT_UPSERTED";
@@ -71539,7 +71726,7 @@ export declare const internal: {
             definitionSaveId: string;
             definitionVersion: number;
             fogLayerCount: number;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -71643,7 +71830,7 @@ export declare const internal: {
               ownerUserId: string | null;
               width: number;
             }>;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -73425,6 +73612,10 @@ export declare const internal: {
               }
             | { kind: "VISION_REVEAL_MODE_SET"; mode: "ON_DRAG" | "ON_DROP" }
             | {
+                kind: "FOG_MODE_SET";
+                mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+              }
+            | {
                 kind: "MEASUREMENT_UPSERTED";
                 measurement: {
                   createdByUserId: string;
@@ -73616,6 +73807,10 @@ export declare const internal: {
                   | {
                       kind: "VISION_REVEAL_MODE_SET";
                       mode: "ON_DRAG" | "ON_DROP";
+                    }
+                  | {
+                      kind: "FOG_MODE_SET";
+                      mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                     }
                   | {
                       kind: "MEASUREMENT_UPSERTED";
@@ -74211,6 +74406,10 @@ export declare const internal: {
                     mode: "ON_DRAG" | "ON_DROP";
                   }
                 | {
+                    kind: "FOG_MODE_SET";
+                    mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+                  }
+                | {
                     kind: "MEASUREMENT_UPSERTED";
                     measurement: {
                       createdByUserId: string;
@@ -74405,6 +74604,10 @@ export declare const internal: {
                       | {
                           kind: "VISION_REVEAL_MODE_SET";
                           mode: "ON_DRAG" | "ON_DROP";
+                        }
+                      | {
+                          kind: "FOG_MODE_SET";
+                          mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                         }
                       | {
                           kind: "MEASUREMENT_UPSERTED";
@@ -74631,7 +74834,7 @@ export declare const internal: {
               definitionSaveId: string;
               definitionVersion: number;
               fogLayerCount: number;
-              fogMode: "SHARED_PARTY" | "PER_PLAYER";
+              fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
               grid:
                 | {
                     cellSize: number;
@@ -74872,7 +75075,7 @@ export declare const internal: {
             definitionSaveId: string;
             definitionVersion: number;
             fogLayerCount: number;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;
@@ -128955,6 +129158,10 @@ export declare const internal: {
                     mode: "ON_DRAG" | "ON_DROP";
                   }
                 | {
+                    kind: "FOG_MODE_SET";
+                    mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+                  }
+                | {
                     kind: "MEASUREMENT_UPSERTED";
                     measurement: {
                       createdByUserId: string;
@@ -129149,6 +129356,10 @@ export declare const internal: {
                       | {
                           kind: "VISION_REVEAL_MODE_SET";
                           mode: "ON_DRAG" | "ON_DROP";
+                        }
+                      | {
+                          kind: "FOG_MODE_SET";
+                          mode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
                         }
                       | {
                           kind: "MEASUREMENT_UPSERTED";
@@ -129375,7 +129586,7 @@ export declare const internal: {
               definitionSaveId: string;
               definitionVersion: number;
               fogLayerCount: number;
-              fogMode: "SHARED_PARTY" | "PER_PLAYER";
+              fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
               grid:
                 | {
                     cellSize: number;
@@ -129597,7 +129808,7 @@ export declare const internal: {
             definitionSaveId: string;
             definitionVersion: number;
             fogLayerCount: number;
-            fogMode: "SHARED_PARTY" | "PER_PLAYER";
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
                   cellSize: number;

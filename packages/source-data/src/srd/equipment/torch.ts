@@ -14,7 +14,7 @@ export const torch: EquipmentAuthored = {
   weight: S.lbs(1),
   effects: [
     S.lightSourceEffect(S.equipId(179), 20, 20, 1),
-    S.fixedMeleeWeaponEffect(S.equipId(179), 'FIRE', 1, 2, 0x220)
+    S.fixedMeleeWeaponEffect(S.equipId(179), 'FIRE', 1, S.EQUIPMENT_GRIP.ONE_HANDED, 2, 0x220)
   ],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,

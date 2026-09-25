@@ -13,7 +13,7 @@ export const javelin: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(5)),
-  effects: S.thrownWeaponEffects(S.equipId(5), 'PIERCING', '1d6', 30),
+  effects: S.thrownWeaponEffects(S.equipId(5), 'PIERCING', '1d6', 30, S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.sp(5),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

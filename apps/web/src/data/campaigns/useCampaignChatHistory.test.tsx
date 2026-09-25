@@ -37,6 +37,7 @@ function page(indexes: number[], nextCursor: string | null = null): CampaignChat
       mode: 'OOC',
       body: `Message ${index}`,
       roll: null,
+      revealedByGm: false,
       authorUserId: entryId(99),
       authorUsername: 'reader',
       characterId: null,

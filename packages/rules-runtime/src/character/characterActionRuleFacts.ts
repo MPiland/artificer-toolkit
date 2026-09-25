@@ -3,6 +3,7 @@ import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/ap
 export type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { CompiledEquipmentEffectGroup } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
@@ -291,12 +292,12 @@ export function normalizeCharacterActionMechanicFacts(
 function appendActions(params: {
   candidates: ActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
-  effects: readonly CompiledEffectGroup[] | undefined
+  effects: readonly (CompiledEffectGroup | CompiledEquipmentEffectGroup)[] | undefined
   source: { sourceId: string; mechanicSource: CharacterActionSource }
   label: string
   mechanicsOwner: CharacterActionMechanicsOwner
   activationSourceKind: ActionCandidate['activationSourceKind']
-  equipment: ActionCandidate['equipment']
+  equipment: Omit<NonNullable<ActionCandidate['equipment']>, 'grip'> | null
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
 }): void {
   for (const effect of params.effects ?? []) {
@@ -336,7 +337,11 @@ function appendActions(params: {
       source: params.source.mechanicSource,
       mechanicsOwner: params.mechanicsOwner,
       activationSourceKind: params.activationSourceKind,
-      equipment: params.equipment,
+      // Only an item's own effects carry a grip; features granted by an item have none.
+      equipment: params.equipment && {
+        ...params.equipment,
+        grip: 'grip' in effect ? effect.grip : null
+      },
       resourceUse: resourceUse
         ? {
             chargeId: resourceUse.chargeId,

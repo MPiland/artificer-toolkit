@@ -31,6 +31,7 @@ import {
   projectSceneForViewer,
   projectSceneTokenPreviewForViewer,
   SceneBarrierIndex,
+  sceneFogOwnerFailure,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import type {
@@ -1439,8 +1440,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (
         !scene ||
         originAdmission.role !== 'OWNER' ||
-        (scene.fogMode === 'SHARED_PARTY' && envelope.ownerUserId !== null) ||
-        (scene.fogMode === 'PER_PLAYER' && envelope.ownerUserId === null)
+        sceneFogOwnerFailure(scene.fogMode, envelope.ownerUserId) !== null
       )
         return
     }

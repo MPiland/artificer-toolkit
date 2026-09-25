@@ -163,7 +163,8 @@ export interface SceneAnnotation {
   visibility: 'GM_ONLY' | 'TABLE'
 }
 
-export type SceneFogMode = 'SHARED_PARTY' | 'PER_PLAYER'
+/** OFF shows players every non-hidden Scene object; the other modes use explored fog layers. */
+export type SceneFogMode = 'OFF' | 'SHARED_PARTY' | 'PER_PLAYER'
 export type SceneVisionRevealMode = 'ON_DRAG' | 'ON_DROP'
 
 export type SceneEntity =
@@ -270,6 +271,7 @@ export type SceneAtomicDelta =
       ownerUserId: string | null
     }
   | { kind: 'VISION_REVEAL_MODE_SET'; mode: SceneVisionRevealMode }
+  | { kind: 'FOG_MODE_SET'; mode: SceneFogMode }
   | { kind: 'MEASUREMENT_UPSERTED'; measurement: SceneMeasurement }
   | { kind: 'MEASUREMENT_REMOVED'; measurementId: string }
 

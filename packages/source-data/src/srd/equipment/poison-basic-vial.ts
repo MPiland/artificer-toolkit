@@ -57,6 +57,7 @@ export const poisonBasicVial: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(364), 0x210, 1),
       order: 1,
+      grip: null,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.ACTIVATED,

@@ -275,7 +275,10 @@ export const stepperValue = style({
 })
 
 export const diceAction = style({
+  alignItems: 'center',
   display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px',
   justifyContent: 'center'
 })
 

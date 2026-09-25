@@ -103,7 +103,9 @@ async function prepare() {
       ...roll,
       id: foreignRollId,
       userId: base.owner.userId,
-      characterId: null
+      characterId: null,
+      consumedAt: null,
+      gmCampaignRoll: null
     })
   })
 

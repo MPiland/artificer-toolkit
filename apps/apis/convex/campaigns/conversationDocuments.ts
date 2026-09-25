@@ -258,6 +258,7 @@ export async function presentChatEntry(
               label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
             }
           },
+    revealedByGm: payload.revealedByGm,
     authorUserId: entry.authorUserId,
     authorUsername: author ? payload.authorUsername : deletedCampaignAuthorLabel,
     characterId: payload.characterId,

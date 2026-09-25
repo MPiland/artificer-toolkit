@@ -9,7 +9,7 @@ export const morningstar: EquipmentAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(24)),
-  effects: S.meleeWeaponEffects(S.equipId(24), 'PIERCING', '1d8'),
+  effects: S.meleeWeaponEffects(S.equipId(24), 'PIERCING', '1d8', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(15),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

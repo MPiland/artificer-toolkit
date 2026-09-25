@@ -10,7 +10,7 @@ export const spikedShield: EquipmentAuthored = {
   properties: [S.EQUIPMENT_PROPERTY_CODE.MELEE],
   armorClass: 2,
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(382)),
-  effects: S.meleeWeaponEffects(S.equipId(382), 'PIERCING', '1d6'),
+  effects: S.meleeWeaponEffects(S.equipId(382), 'PIERCING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED),
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

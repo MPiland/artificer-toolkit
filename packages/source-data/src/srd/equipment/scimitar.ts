@@ -13,7 +13,7 @@ export const scimitar: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.FINESSE,
     S.EQUIPMENT_PROPERTY_CODE.LIGHT
   ],
-  effects: S.meleeWeaponEffects(S.equipId(27), 'SLASHING', '1d6'),
+  effects: S.meleeWeaponEffects(S.equipId(27), 'SLASHING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(25),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

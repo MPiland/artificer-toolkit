@@ -13,7 +13,13 @@ export const sling: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.AMMUNITION
   ],
   modifiers: S.rangedWeaponAbilityModifiers(S.equipId(14)),
-  effects: S.rangedWeaponEffects(S.equipId(14), 'BLUDGEONING', '1d4', 30),
+  effects: S.rangedWeaponEffects(
+    S.equipId(14),
+    'BLUDGEONING',
+    '1d4',
+    30,
+    S.EQUIPMENT_GRIP.ONE_HANDED
+  ),
   cost: S.sp(1),
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,

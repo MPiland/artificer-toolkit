@@ -18,6 +18,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { greatsword } from '@artificer-toolkit/source-data/srd/equipment/greatsword.js'
+import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -55,16 +56,18 @@ const planningOptions = {
   random: (maximum: number) => maximum - 1
 }
 
-/** Unlimited range keeps the fixture free of Scene positions; the weapon stays TWO_HANDED. */
-const twoHandedWeapon = {
-  ...greatsword,
-  effects: greatsword.effects?.map((effect) => ({
-    ...effect,
-    invocation: {
-      ...effect.invocation,
-      range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const }
-    }
-  }))
+/** Unlimited range keeps the fixture free of Scene positions; grips and properties are unchanged. */
+function withUnlimitedRange(weapon: typeof greatsword) {
+  return {
+    ...weapon,
+    effects: weapon.effects?.map((effect) => ({
+      ...effect,
+      invocation: {
+        ...effect.invocation,
+        range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const }
+      }
+    }))
+  }
 }
 
 afterEach(() => {
@@ -72,9 +75,9 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-/** A Character carrying a two-handed greatsword and a shield, first in initiative. */
-async function setup({ shieldEquipped = true, weaponEquipped = false } = {}) {
-  const base = await setupCharacterRun({}, twoHandedWeapon)
+/** A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in initiative. */
+async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquipped = false } = {}) {
+  const base = await setupCharacterRun({}, withUnlimitedRange(weapon))
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
@@ -102,7 +105,7 @@ async function setup({ shieldEquipped = true, weaponEquipped = false } = {}) {
     (item) => item.equipmentId === shieldWood.id
   )?.id
   const weaponItemId = added.sheet.inventory.items.find(
-    (item) => item.equipmentId === greatsword.id
+    (item) => item.equipmentId === weapon.id
   )?.id
   if (!shieldItemId || !weaponItemId) throw new Error('Missing shield stow fixture items.')
   const equippedItemIds = [
@@ -175,21 +178,25 @@ async function setup({ shieldEquipped = true, weaponEquipped = false } = {}) {
         includeReactionSources: true
       })
     ).get(actor.id)?.characterReactionSource?.mechanics
-    const actionId = mechanics?.rulePolicyInput.actionCandidates.find(
-      (candidate) =>
-        candidate.equipment?.equipmentId === greatsword.id &&
-        mechanics.compiledActionEntryPoints.some(
-          (entry) =>
-            entry.actionId === candidate.actionId &&
-            entry.kind === 'CHARACTER_ACTION' &&
-            entry.compilation.kind === 'COMPILED'
-        )
-    )?.actionId
-    if (!actionId) throw new Error('Missing greatsword action.')
-    return { state, actionId }
+    const actionIds = (mechanics?.rulePolicyInput.actionCandidates ?? [])
+      .filter(
+        (candidate) =>
+          candidate.equipment?.equipmentId === weapon.id &&
+          mechanics?.compiledActionEntryPoints.some(
+            (entry) =>
+              entry.actionId === candidate.actionId &&
+              entry.kind === 'CHARACTER_ACTION' &&
+              entry.compilation.kind === 'COMPILED'
+          )
+      )
+      .map((candidate) => candidate.actionId)
+    const actionId = actionIds[0]
+    if (!actionId) throw new Error('Missing weapon action.')
+    return { state, actionId, actionIds }
   })
   const command = (
-    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
+    actionId = prepared.actionId
   ): ResolveEncounterActionInputDto => ({
     type: 'RESOLVE_ACTION',
     encounterId: run.id,
@@ -197,7 +204,7 @@ async function setup({ shieldEquipped = true, weaponEquipped = false } = {}) {
     expectedVersion: prepared.state.version,
     actorId: actor.id,
     targetActorId: target.id,
-    actionId: prepared.actionId,
+    actionId,
     optionalCombatIntent: null,
     sceneContext: null,
     acceptedWieldConflict
@@ -477,6 +484,43 @@ describe('shield stow on two-handed attacks', () => {
       beforeStreamVersion: before!.streamVersion,
       afterStreamVersion: after!.streamVersion
     })
+  }, 60000)
+})
+
+describe('versatile grips', () => {
+  it('offers one- and two-hand longsword attacks; only the two-hand grip stows the shield', async () => {
+    const base = await setup({ weapon: longsword })
+    const choices = (
+      await base.owner.caller.query(getNativeActionChoices, {
+        encounterId: base.run.id,
+        expectedVersion: base.state.version,
+        actorId: base.actor.id
+      })
+    )?.actions.filter((action) => base.actionIds.includes(action.id))
+    const oneHand = choices?.find((action) => action.grip?.value === 'ONE_HANDED')
+    const twoHand = choices?.find((action) => action.grip?.value === 'TWO_HANDED')
+    expect(choices).toHaveLength(2)
+    if (!oneHand || !twoHand) throw new Error('Expected one- and two-hand longsword choices.')
+    expect(oneHand).toMatchObject({
+      damageLabel: expect.stringMatching(/^1d8 /),
+      wieldConflict: null
+    })
+    expect(twoHand).toMatchObject({
+      damageLabel: expect.stringMatching(/^1d10 /),
+      grip: { attackKey: oneHand.grip?.attackKey },
+      wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId: base.shieldItemId }
+    })
+    const execute = (command: ResolveEncounterActionInputDto) =>
+      base.owner.caller.mutation(internal.encounters.commands.execute, { command })
+    await expect(execute(base.command(null, twoHand.id))).rejects.toThrow('confirm it first')
+    await expect(execute(base.command(accept(base.shieldItemId), oneHand.id))).rejects.toThrow(
+      'This attack does not stow a shield.'
+    )
+    const result = await execute(base.command(accept(base.shieldItemId), twoHand.id))
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect(
+      JSON.parse((await base.characterRow())!.documentJson).state.equipment.equipped
+    ).not.toContain(base.shieldItemId)
   }, 60000)
 })
 

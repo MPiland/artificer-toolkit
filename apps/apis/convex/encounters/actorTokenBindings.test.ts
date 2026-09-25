@@ -229,7 +229,8 @@ async function seedLiveToken(
     nextFogOrdinal: 0,
     settings: {
       ambientIllumination: { value: 'BRIGHT', version: 0 },
-      visionRevealMode: { value: 'ON_DRAG', version: 0 }
+      visionRevealMode: { value: 'ON_DRAG', version: 0 },
+      fogMode: { value: 'PER_PLAYER', version: 0 }
     },
     counts: {
       annotations: 0,

@@ -212,6 +212,9 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'effect':
       return createDefaultEffect(order)
+    case 'equipmentEffect':
+      // The default effect is ACTIVATED, not a weapon attack, so it has no grip.
+      return { ...createDefaultEffect(order), grip: null }
     case 'effectPath':
       return createDefaultPath(order)
     case 'duration':

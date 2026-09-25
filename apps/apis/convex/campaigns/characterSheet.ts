@@ -43,7 +43,7 @@ export const executeRoll = mutation({
     )
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const { record, maturity } = await evaluateCharacterRoll(ctx, userId, input, campaignId)
-    await retainUserRoll(ctx, userId, record)
+    await retainUserRoll(ctx, userId, record, null)
     return presentRoll(record, maturity)
   }
 })

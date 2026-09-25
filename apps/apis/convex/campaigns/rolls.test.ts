@@ -1,4 +1,4 @@
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
 import type {
@@ -6,6 +6,7 @@ import type {
   CampaignChatPageDto,
   ExecuteCampaignPrivateRollInput,
   ExecuteCampaignRollInput,
+  RevealCampaignRollInput,
   SendCampaignChatEntryInput,
   listCampaignChatEntriesInputSchema
 } from '@artificer-toolkit/schema/api/campaignCommunication'
@@ -17,6 +18,7 @@ import type {
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type {
   ExecuteRollInputDto,
+  RollHistoryEntryDto,
   RollHistoryResponseDto,
   RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
@@ -26,8 +28,9 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api, components, internal } from '../_generated/api'
+import { api, components } from '../_generated/api'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -38,8 +41,11 @@ const execute = makeFunctionReference<'mutation', ExecuteCampaignRollInput, Camp
 const executePrivate = makeFunctionReference<
   'mutation',
   ExecuteCampaignPrivateRollInput,
-  RollRecordDto
+  RollHistoryEntryDto
 >('campaigns/rolls:executePrivate')
+const reveal = makeFunctionReference<'mutation', RevealCampaignRollInput, CampaignChatEntryDto>(
+  'campaigns/rolls:reveal'
+)
 const personalExecute = makeFunctionReference<'mutation', ExecuteRollInputDto, RollRecordDto>(
   'rolls:execute'
 )
@@ -110,7 +116,7 @@ async function setup() {
   )
   const request: ExecuteCampaignRollInput = {
     campaignId: campaign.id,
-    room: 'TABLE',
+    destination: 'TABLE',
     clientNonce: crypto.randomUUID(),
     roll: {
       characterId: base.character.id,
@@ -120,6 +126,7 @@ async function setup() {
   }
   const privateRequest: ExecuteCampaignPrivateRollInput = {
     campaignId: campaign.id,
+    blind: false,
     roll: {
       characterId: null,
       expression: '1d20',
@@ -264,11 +271,11 @@ describe('native Campaign authoritative rolls', () => {
           roll
         })
       ).rejects.toThrow()
-    for (const room of ['PARTY', 'DIRECT'] as const)
+    for (const destination of ['PARTY', 'DIRECT'])
       await expect(
         player.caller.mutation(execute, {
           ...command,
-          room,
+          destination: destination as ExecuteCampaignRollInput['destination'],
           clientNonce: crypto.randomUUID()
         })
       ).rejects.toThrow()
@@ -657,13 +664,15 @@ describe('native Campaign authoritative rolls', () => {
       source: { kind: 'MANUAL', label: 'shit secret' },
       ruleset: { systemId: srdSystemRecord.id }
     })
+    if (first.evidence === null) throw new Error('A private GM roll keeps its evidence.')
     await t.run(async (ctx) => {
       for (let index = 0; index < 19; index++)
         await ctx.db.insert('userRollHistory', {
           ...first,
           id: crypto.randomUUID(),
           userId: gm.userId,
-          createdAt: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString()
+          createdAt: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString(),
+          consumedAt: null
         })
     })
     const beforeFailure = await readEntries()
@@ -699,52 +708,10 @@ describe('native Campaign authoritative rolls', () => {
 
   it('denies outsiders and other active players access to an assigned Character', async () => {
     const { t, campaign, request, privateRequest, readEntries } = await setup()
-    const user = await t.run(async (ctx) =>
-      ctx.runMutation(components.betterAuth.adapter.create, {
-        input: {
-          model: 'user',
-          data: {
-            name: 'Party member',
-            email: 'party-roll@example.invalid',
-            emailVerified: true,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        },
-        onCreateHandle: await createFunctionHandle(internal.auth.onCreate)
-      })
-    )
-    const session = await t.run((ctx) =>
-      ctx.runMutation(components.betterAuth.adapter.create, {
-        input: {
-          model: 'session',
-          data: {
-            userId: user._id,
-            token: crypto.randomUUID(),
-            expiresAt: Date.now() + 60000,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        }
-      })
-    )
-    const caller = t.withIdentity({ subject: user._id, sessionId: session._id })
-    const identity = await caller.query(api.account.identity, {})
-    if (!identity) throw new Error('Missing party member identity')
-    await caller.mutation(api.account.updateProfile, { username: 'PartyPlayer', bio: null })
+    const { caller, join } = await createPartyPlayer(t, campaign)
     await expect(caller.mutation(execute, request)).rejects.toThrow()
     await expect(caller.mutation(executePrivate, privateRequest)).rejects.toThrow()
-    await t.run((ctx) =>
-      ctx.db.insert('campaignMemberships', {
-        campaignId: campaign.id,
-        userId: identity.userId,
-        role: 'PLAYER',
-        status: 'ACTIVE',
-        accessStartedAt: campaign.createdAt,
-        joinedAt: campaign.createdAt,
-        leftAt: null
-      })
-    )
+    await join()
     await expect(caller.mutation(execute, request)).rejects.toThrow('Assigned Character not found')
     await expect(caller.mutation(executePrivate, privateRequest)).rejects.toThrow()
     expect(await readEntries()).toEqual({ headers: [], payloads: [], history: [] })
@@ -828,5 +795,129 @@ describe('native Campaign authoritative rolls', () => {
       payloads: [],
       history: []
     })
+  })
+})
+
+describe('Campaign roll visibility', () => {
+  it('posts a player TABLE roll to everyone and a To GM roll only to that player and the GM', async () => {
+    const { t, player, gm, campaign, request } = await setup()
+    const party = await createPartyPlayer(t, campaign)
+    await party.join()
+    const table = await player.caller.mutation(execute, request)
+    expect(table).toMatchObject({ room: 'TABLE', kind: 'ROLL', revealedByGm: false })
+    const toGm = await player.caller.mutation(execute, {
+      ...request,
+      destination: 'GM',
+      clientNonce: crypto.randomUUID()
+    })
+    expect(toGm).toMatchObject({ room: 'DIRECT', kind: 'ROLL', revealedByGm: false })
+    const direct = { campaignId: campaign.id, room: 'DIRECT' as const }
+    expect(
+      (await gm.caller.query(list, { ...direct, directUserId: player.userId })).entries
+    ).toEqual([toGm])
+    expect(
+      (await player.caller.query(list, { ...direct, directUserId: gm.userId })).entries
+    ).toEqual([toGm])
+    await party.caller.mutation(api.campaigns.conversations.open, {
+      campaignId: campaign.id,
+      kind: 'TABLE'
+    })
+    expect(
+      (await party.caller.query(list, { campaignId: campaign.id, room: 'TABLE' })).entries
+    ).toEqual([table])
+    for (const directUserId of [player.userId, gm.userId])
+      await expect(party.caller.query(list, { ...direct, directUserId })).rejects.toThrow(
+        'Conversation not found'
+      )
+    expect(
+      JSON.stringify(
+        await party.caller.query(api.campaigns.conversations.list, { campaignId: campaign.id })
+      )
+    ).not.toContain(toGm.conversationId)
+    await expect(
+      gm.caller.mutation(execute, {
+        ...request,
+        destination: 'GM',
+        clientNonce: crypto.randomUUID()
+      })
+    ).rejects.toThrow('privately')
+  })
+
+  it('keeps a player "Just me" roll in that player history only', async () => {
+    const { player, gm, campaign, character, readEntries } = await setup()
+    const rolled = await player.caller.mutation(api.campaigns.characterSheet.executeRoll, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      expression: '1d20',
+      source: { kind: 'MANUAL', label: 'Just me' }
+    })
+    expect(await player.caller.query(history, {})).toEqual([{ ...rolled, gmCampaignRoll: null }])
+    expect(await gm.caller.query(history, {})).toEqual([])
+    expect((await readEntries()).headers).toEqual([])
+  })
+
+  it('hides a GM blind roll value from everyone until the GM reveals it to the TABLE once', async () => {
+    const { t, gm, player, campaign, privateRequest, readEntries } = await setup()
+    const blind = await gm.caller.mutation(executePrivate, { ...privateRequest, blind: true })
+    expect(blind).toMatchObject({
+      evidence: null,
+      gmCampaignRoll: { campaignId: campaign.id, blind: true, revealedAt: null }
+    })
+    expect(await gm.caller.query(history, {})).toEqual([blind])
+    expect(await player.caller.query(history, {})).toEqual([])
+    const stored = (await readEntries()).history[0]!
+    expect(stored.evidence.total).toEqual(expect.any(Number))
+    expect((await readEntries()).headers).toEqual([])
+    const input = { campaignId: campaign.id, rollId: blind.id }
+    await expect(player.caller.mutation(reveal, input)).rejects.toThrow('Only the Campaign owner')
+    await expect(t.mutation(reveal, input)).rejects.toThrow()
+    const revealed = await gm.caller.mutation(reveal, input)
+    expect(revealed).toMatchObject({
+      room: 'TABLE',
+      kind: 'ROLL',
+      revealedByGm: true,
+      roll: { id: blind.id, evidence: stored.evidence }
+    })
+    expect(await gm.caller.mutation(reveal, input)).toEqual(revealed)
+    expect((await readEntries()).headers).toHaveLength(1)
+    await player.caller.mutation(api.campaigns.conversations.open, {
+      campaignId: campaign.id,
+      kind: 'TABLE'
+    })
+    expect(
+      (await player.caller.query(list, { campaignId: campaign.id, room: 'TABLE' })).entries
+    ).toEqual([revealed])
+    expect(await gm.caller.query(history, {})).toEqual([
+      {
+        ...blind,
+        evidence: stored.evidence,
+        gmCampaignRoll: { campaignId: campaign.id, blind: true, revealedAt: revealed.createdAt }
+      }
+    ])
+  })
+
+  it('reveals only a GM roll retained for the same Campaign', async () => {
+    const { gm, player, campaign, character, privateRequest } = await setup()
+    const own = await player.caller.mutation(api.campaigns.characterSheet.executeRoll, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      expression: '1d20',
+      source: { kind: 'MANUAL', label: 'Just me' }
+    })
+    const personal = await gm.caller.mutation(api.campaigns.characterSheet.executeRoll, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      expression: '1d20',
+      source: { kind: 'MANUAL', label: 'Unbound' }
+    })
+    for (const rollId of [own.id, personal.id])
+      await expect(gm.caller.mutation(reveal, { campaignId: campaign.id, rollId })).rejects.toThrow(
+        'Roll not found'
+      )
+    const retained = await gm.caller.mutation(executePrivate, privateRequest)
+    expect(retained.evidence).not.toBeNull()
+    await expect(
+      gm.caller.mutation(reveal, { campaignId: crypto.randomUUID(), rollId: retained.id })
+    ).rejects.toThrow()
   })
 })

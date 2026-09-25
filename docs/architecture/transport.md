@@ -244,7 +244,9 @@ clears displayed messages. The public chat contract retains UUID cursors and a 5
 Notebook editors, the notes drawer and Session/file note pickers use Convex native pagination with
 explicit Load more controls. Shared/private visibility is enforced by the backend query. Native
 mutations preserve the existing optimistic version and local dirty-text behavior. GM and Character
-Sheet TABLE rolls call `campaigns/rolls:execute`; private GM rolls use `executePrivate`.
+Sheet TABLE rolls, and a player's "To GM" rolls, call `campaigns/rolls:execute` with a `TABLE | GM`
+destination; private and blind GM rolls use `executePrivate`, and `reveal` posts one to the TABLE.
+A player's "Just me" roll stays on `campaigns/characterSheet:executeRoll`.
 Chat, room unread counts and notebook updates no longer depend on Broadcast invalidation or DIRECT
 Broadcast channels. File pickers/lists and upload, finalize, attachment and signed-delivery operations
 use native functions too. Session workspace loaders, notes, references, RSVP, attendance and Session

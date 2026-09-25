@@ -13,7 +13,7 @@ export const dart: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.FINESSE,
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
-  effects: S.thrownWeaponEffects(S.equipId(12), 'PIERCING', '1d4', 20),
+  effects: S.thrownWeaponEffects(S.equipId(12), 'PIERCING', '1d4', 20, S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.cp(5),
   weight: S.lbs(0.25),
   rarityId: S.RARITY_COMMON,

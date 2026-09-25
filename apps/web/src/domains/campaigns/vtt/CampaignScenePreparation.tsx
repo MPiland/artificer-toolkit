@@ -154,7 +154,7 @@ export function CampaignScenePreparation({
         barriers: [],
         campaignId,
         darknessZones: [],
-        fogMode: 'SHARED_PARTY',
+        fogMode: 'OFF',
         visionRevealMode: 'ON_DRAG',
         grid:
           gridKind === 'SQUARE'

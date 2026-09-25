@@ -5,6 +5,7 @@ import {
   type SceneBarrier,
   type SceneFogChunk,
   type SceneFogLayer,
+  type SceneFogMode,
   type ScenePoint,
   type ScenePolygon,
   type SceneToken,
@@ -218,17 +219,30 @@ export function sceneTokenIdsAffectedByBarriers(
   })
 }
 
+/** Names why a fog layer cannot be written for this mode; OFF has no writable fog layer. */
+export function sceneFogOwnerFailure(
+  fogMode: SceneFogMode,
+  ownerUserId: string | null
+): string | null {
+  if (fogMode === 'OFF') return 'Fog of war is off for this Scene.'
+  if (fogMode === 'SHARED_PARTY' && ownerUserId !== null)
+    return 'Shared-party fog requires the shared fog layer.'
+  if (fogMode === 'PER_PLAYER' && ownerUserId === null)
+    return 'Per-player fog requires a player-owned fog layer.'
+  return null
+}
+
+function assertSceneFogOwner(fogMode: SceneFogMode, ownerUserId: string | null): void {
+  const failure = sceneFogOwnerFailure(fogMode, ownerUserId)
+  if (failure) throw new Error(failure)
+}
+
 function eligibleTokens(
   state: SceneExplorationState,
   ownerUserId: string | null,
   tokenIds: ReadonlySet<string> | null
 ): SceneToken[] {
-  if (state.fogMode === 'SHARED_PARTY' && ownerUserId !== null) {
-    throw new Error('Shared-party exploration requires the shared fog layer.')
-  }
-  if (state.fogMode === 'PER_PLAYER' && ownerUserId === null) {
-    throw new Error('Per-player exploration requires a player-owned fog layer.')
-  }
+  assertSceneFogOwner(state.fogMode, ownerUserId)
   return state.tokens.filter(
     (token) =>
       !token.hidden &&
@@ -383,13 +397,15 @@ export function deriveSceneTokenPreviewFogLayers(
   const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
   if (!token || token.hidden || token.vision?.enabled !== true) return []
   const owners =
-    state.fogMode === 'SHARED_PARTY'
-      ? [null]
-      : options.viewer.role === 'GM'
-        ? [...new Set(token.controlledByUserIds)]
-        : token.controlledByUserIds.includes(options.viewer.userId)
-          ? [options.viewer.userId]
-          : []
+    state.fogMode === 'OFF'
+      ? []
+      : state.fogMode === 'SHARED_PARTY'
+        ? [null]
+        : options.viewer.role === 'GM'
+          ? [...new Set(token.controlledByUserIds)]
+          : token.controlledByUserIds.includes(options.viewer.userId)
+            ? [options.viewer.userId]
+            : []
   return owners.flatMap((ownerUserId) => {
     const layer = deriveSceneTokenPathExplorationPatch(state, {
       ownerUserId,
@@ -405,12 +421,7 @@ export function createUniformSceneFogLayer(
   state: SceneExplorationState,
   options: { explored: boolean; ownerUserId: string | null }
 ): SceneFogLayer {
-  if (state.fogMode === 'SHARED_PARTY' && options.ownerUserId !== null) {
-    throw new Error('Shared-party fog requires the shared fog layer.')
-  }
-  if (state.fogMode === 'PER_PLAYER' && options.ownerUserId === null) {
-    throw new Error('Per-player fog requires a player-owned fog layer.')
-  }
+  assertSceneFogOwner(state.fogMode, options.ownerUserId)
   const existing = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
   const dimensions = existing ?? fogDimensions(state)
   const mask = new Uint8Array(Math.ceil((dimensions.width * dimensions.height) / 8))
@@ -446,12 +457,7 @@ export function createSceneFogAreaPatch(
     rectangle: { a: ScenePoint; b: ScenePoint }
   }
 ): SceneFogLayer | null {
-  if (state.fogMode === 'SHARED_PARTY' && options.ownerUserId !== null) {
-    throw new Error('Shared-party fog requires the shared fog layer.')
-  }
-  if (state.fogMode === 'PER_PLAYER' && options.ownerUserId === null) {
-    throw new Error('Per-player fog requires a player-owned fog layer.')
-  }
+  assertSceneFogOwner(state.fogMode, options.ownerUserId)
   const existing = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
   const dimensions = existing ?? fogDimensions(state)
   const before = existing
@@ -531,11 +537,13 @@ export function isSceneFogCellExplored(layer: SceneFogLayer, x: number, y: numbe
   )
 }
 
+/** With fog OFF every point, segment and polygon counts as explored for every player. */
 export function isScenePointExplored(
-  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'fogMode' | 'map'>,
   ownerUserId: string,
   point: ScenePoint
 ): boolean {
+  if (state.fogMode === 'OFF') return true
   if (point.x < 0 || point.y < 0 || point.x > state.map.width || point.y > state.map.height) {
     return false
   }
@@ -549,11 +557,12 @@ export function isScenePointExplored(
 }
 
 export function isSceneSegmentExplored(
-  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'fogMode' | 'map'>,
   ownerUserId: string,
   a: ScenePoint,
   b: ScenePoint
 ): boolean {
+  if (state.fogMode === 'OFF') return true
   const layers = state.fogLayers.filter(
     (layer) => layer.ownerUserId === null || layer.ownerUserId === ownerUserId
   )
@@ -608,7 +617,7 @@ export function isSceneSegmentExplored(
 }
 
 export function isScenePolygonExplored(
-  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'fogMode' | 'map'>,
   ownerUserId: string,
   polygon: ScenePolygon
 ): boolean {

@@ -58,6 +58,10 @@ export const editTools: CampaignVttToolDefinition[] = [
   { icon: EyeOff, label: 'Hide fog area', value: 'FOG_HIDE' }
 ]
 
+export function isFogTool(tool: CampaignVttTool): boolean {
+  return tool === 'FOG_REVEAL' || tool === 'FOG_HIDE'
+}
+
 export function findPresentedScene(
   scenes: CampaignSceneStateDto[]
 ): CampaignSceneStateDto | undefined {

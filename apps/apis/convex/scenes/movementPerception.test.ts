@@ -371,7 +371,11 @@ describe('native Scene movement perception staging', () => {
         height: page.height,
         chunks
       }
-      const explored = { map: begin.header.map, fogLayers: [layer] }
+      const explored = {
+        map: begin.header.map,
+        fogMode: begin.header.fogMode,
+        fogLayers: [layer]
+      }
       expect(isScenePointExplored(explored, base.owner.userId, { x: 250, y: 75 })).toBe(true)
       expect(isScenePointExplored(explored, base.owner.userId, { x: 650, y: 75 })).toBe(false)
       const after = await reactionRecords(base.t, base.run.id)

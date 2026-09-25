@@ -478,3 +478,30 @@ export const EQUIPMENT_ATTRIBUTE_REGISTRY: Record<EquipmentAttribute, EquipmentA
 export const EQUIPMENT_ATTRIBUTE_OPTIONS = valuesOf(
   EQUIPMENT_ATTRIBUTE_REGISTRY
 ) as EquipmentAttributeOption[]
+
+/** Hands a weapon attack effect is wielded with; null on every non-attack equipment effect. */
+export const EQUIPMENT_GRIP = {
+  ONE_HANDED: 'ONE_HANDED',
+  TWO_HANDED: 'TWO_HANDED'
+} as const
+
+export type EquipmentGrip = keyof typeof EQUIPMENT_GRIP
+
+export type EquipmentGripOption = CoreMeta<EquipmentGrip>
+
+export const EQUIPMENT_GRIP_REGISTRY: Record<EquipmentGrip, EquipmentGripOption> = {
+  ONE_HANDED: {
+    code: EQUIPMENT_GRIP.ONE_HANDED,
+    label: 'One hand',
+    tooltip: 'This attack is made holding the weapon in one hand.',
+    description: 'This attack is made holding the weapon in one hand.'
+  },
+  TWO_HANDED: {
+    code: EQUIPMENT_GRIP.TWO_HANDED,
+    label: 'Two hands',
+    tooltip: 'This attack is made holding the weapon in both hands.',
+    description: 'This attack is made holding the weapon in both hands.'
+  }
+} as const
+
+export const EQUIPMENT_GRIP_OPTIONS = valuesOf(EQUIPMENT_GRIP_REGISTRY) as EquipmentGripOption[]

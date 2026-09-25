@@ -4,7 +4,7 @@ import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { characterMechanicSourceSchema } from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
-import { abilityCodeSchema } from '../shared/enums.js'
+import { abilityCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
@@ -72,7 +72,9 @@ const actionEquipmentStateSchema = z.strictObject({
   attuned: booleanSchema,
   requiresAttunement: booleanSchema,
   requiresEquipped: booleanSchema,
-  requiresAttuned: booleanSchema
+  requiresAttuned: booleanSchema,
+  /** The grip this action's effect is wielded with; null for non-attack and item-feature actions. */
+  grip: z.nullable(equipmentGripSchema)
 })
 
 const actionResourceUseSchema = z.strictObject({

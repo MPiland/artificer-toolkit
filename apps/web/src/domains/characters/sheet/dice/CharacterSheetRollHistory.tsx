@@ -2,7 +2,8 @@ import { Button, Drawer, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { getRollHistory, useClearRollHistoryMutation } from '#app/data/rolls'
-import { formatRollEvidence } from './dice.utils'
+import { CharacterSheetRollReveal } from './CharacterSheetRollReveal'
+import { blindRollLabel, formatRollEvidence } from './dice.utils'
 import * as diceStyles from './dice.css'
 
 export function CharacterSheetRollHistory({
@@ -94,10 +95,16 @@ export function CharacterSheetRollHistory({
           <article className={diceStyles.historyMessage} key={roll.id}>
             <Text className={diceStyles.historyAuthor}>{rollerName}</Text>
             <div className={diceStyles.historyBubble}>
-              <Text className={diceStyles.historyTotal}>Rolled {roll.evidence.total}</Text>
-              <Text className={diceStyles.historyEvidence}>
-                {formatRollEvidence(roll.evidence)}
-              </Text>
+              {roll.evidence === null ? (
+                <Text className={diceStyles.historyTotal}>{blindRollLabel}</Text>
+              ) : (
+                <>
+                  <Text className={diceStyles.historyTotal}>Rolled {roll.evidence.total}</Text>
+                  <Text className={diceStyles.historyEvidence}>
+                    {formatRollEvidence(roll.evidence)}
+                  </Text>
+                </>
+              )}
               <Text className={diceStyles.historyMeta}>
                 {roll.source.label} · {roll.characterLabel} ·{' '}
                 {new Intl.DateTimeFormat(undefined, {
@@ -105,6 +112,7 @@ export function CharacterSheetRollHistory({
                   minute: '2-digit'
                 }).format(new Date(roll.createdAt))}
               </Text>
+              <CharacterSheetRollReveal roll={roll} />
             </div>
           </article>
         ))}

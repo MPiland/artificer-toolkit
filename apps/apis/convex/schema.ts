@@ -8,7 +8,7 @@ import {
   accountUsageResourceSchema,
   accountUsageSchema
 } from '@artificer-toolkit/schema/projections/accountUsage'
-import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import { gmCampaignRollDtoSchema, rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import {
   notificationFeedItemDtoSchema,
   notificationPreferencesDtoSchema
@@ -76,7 +76,8 @@ export default defineSchema({
   userRollHistory: defineTable({
     ...zodToConvexFields(rollRecordDtoSchema.shape),
     userId: v.string(),
-    consumedAt: v.optional(v.string())
+    consumedAt: v.union(v.string(), v.null()),
+    gmCampaignRoll: v.union(zodToConvex(gmCampaignRollDtoSchema), v.null())
   })
     .index('by_userId_createdAt_id', ['userId', 'createdAt', 'id'])
     .index('by_userId_id', ['userId', 'id']),

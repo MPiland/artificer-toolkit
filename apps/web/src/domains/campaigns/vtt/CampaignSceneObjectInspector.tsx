@@ -89,35 +89,49 @@ export function CampaignSceneObjectInspector({
       {creationSlot}
       {isSectionVisible('FOG') ? (
         <Fieldset className={styles.objectFields} disabled={disabled} legend='Fog'>
-          <SegmentedControl
-            aria-label='Fog visibility'
-            data={[
-              { label: 'Shared party', value: 'SHARED_PARTY' },
-              { label: 'Per player', value: 'PER_PLAYER' }
-            ]}
-            fullWidth
-            size='xs'
-            value={scene.fogMode}
-            onChange={(fogMode) => {
-              if (fogMode === 'SHARED_PARTY' || fogMode === 'PER_PLAYER')
-                onChange({ ...scene, fogMode })
-            }}
+          <Switch
+            checked={scene.fogMode !== 'OFF'}
+            label='Fog of war'
+            onChange={(event) =>
+              onChange({
+                ...scene,
+                fogMode: event.currentTarget.checked ? 'SHARED_PARTY' : 'OFF'
+              })
+            }
           />
-          <SegmentedControl
-            aria-label='Default vision reveal timing'
-            data={[
-              { label: 'While dragging', value: 'ON_DRAG' },
-              { label: 'On drop', value: 'ON_DROP' }
-            ]}
-            fullWidth
-            size='xs'
-            value={scene.visionRevealMode}
-            onChange={(visionRevealMode) => {
-              if (visionRevealMode === 'ON_DRAG' || visionRevealMode === 'ON_DROP') {
-                onChange({ ...scene, visionRevealMode })
-              }
-            }}
-          />
+          {scene.fogMode !== 'OFF' ? (
+            <>
+              <SegmentedControl
+                aria-label='Fog visibility'
+                data={[
+                  { label: 'Shared party', value: 'SHARED_PARTY' },
+                  { label: 'Per player', value: 'PER_PLAYER' }
+                ]}
+                fullWidth
+                size='xs'
+                value={scene.fogMode}
+                onChange={(fogMode) => {
+                  if (fogMode === 'SHARED_PARTY' || fogMode === 'PER_PLAYER')
+                    onChange({ ...scene, fogMode })
+                }}
+              />
+              <SegmentedControl
+                aria-label='Default vision reveal timing'
+                data={[
+                  { label: 'While dragging', value: 'ON_DRAG' },
+                  { label: 'On drop', value: 'ON_DROP' }
+                ]}
+                fullWidth
+                size='xs'
+                value={scene.visionRevealMode}
+                onChange={(visionRevealMode) => {
+                  if (visionRevealMode === 'ON_DRAG' || visionRevealMode === 'ON_DROP') {
+                    onChange({ ...scene, visionRevealMode })
+                  }
+                }}
+              />
+            </>
+          ) : null}
         </Fieldset>
       ) : null}
       {isSectionVisible('BARRIER') ? (

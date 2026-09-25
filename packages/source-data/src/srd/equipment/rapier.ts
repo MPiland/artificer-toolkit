@@ -12,7 +12,7 @@ export const rapier: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.FINESSE
   ],
-  effects: S.meleeWeaponEffects(S.equipId(26), 'PIERCING', '1d8'),
+  effects: S.meleeWeaponEffects(S.equipId(26), 'PIERCING', '1d8', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(25),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

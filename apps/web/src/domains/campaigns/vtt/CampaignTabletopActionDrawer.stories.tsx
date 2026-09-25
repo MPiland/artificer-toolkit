@@ -28,6 +28,7 @@ const actions = [
     sourceLabel: 'Equipment',
     rangeLabel: '5 ft',
     attackBonus: 4,
+    grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -39,6 +40,30 @@ const greatswordActions = [
     sourceLabel: 'Equipment',
     rangeLabel: '5 ft',
     attackBonus: 5,
+    grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
+    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 }
+  }
+] satisfies EncounterActionChoiceDto[]
+const longswordAttackKey = 'longsword-instance:MELEE_WEAPON_ATTACK'
+const longswordActions = [
+  {
+    id: 'equipment-longsword:one-hand',
+    label: 'Longsword',
+    sourceLabel: 'Equipment',
+    rangeLabel: '5 ft',
+    attackBonus: 5,
+    damageLabel: '1d8 Slashing',
+    grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
+    wieldConflict: null
+  },
+  {
+    id: 'equipment-longsword:two-hand',
+    label: 'Longsword',
+    sourceLabel: 'Equipment',
+    rangeLabel: '5 ft',
+    attackBonus: 5,
+    damageLabel: '1d10 Slashing',
+    grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 }
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -229,6 +254,7 @@ export const CreatureSource: Story = {
         label: 'Claw',
         rangeLabel: '5 ft',
         attackBonus: 5,
+        grip: null,
         wieldConflict: null
       }
     ],
@@ -353,6 +379,55 @@ export const ConfirmShieldStow: Story = {
       expect.objectContaining({
         actionId: 'equipment-greatsword:attack',
         acceptedWieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId }
+      })
+    )
+  }
+}
+
+export const ChooseVersatileGrip: Story = {
+  args: {
+    actions: longswordActions,
+    actionsLoading: false,
+    actionChoicesError: null,
+    actorIdByTokenId,
+    connected: true,
+    encounter: tabletopGmEncounter,
+    pending: false,
+    scene: tabletopLiveScene,
+    onResolve: resolveActionCommand,
+    optionalRules: [],
+    onLoadOptionalChoices: loadOptionalChoices
+  },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await expect(
+      await page.findAllByRole('option', { name: 'Longsword · Equipment' })
+    ).toHaveLength(1)
+    await userEvent.click(await page.findByRole('option', { name: 'Longsword · Equipment' }))
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Target' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
+    await expect(drawer.getByRole('radio', { name: 'One hand · 1d8 Slashing' })).toBeChecked()
+
+    await userEvent.click(drawer.getByText('Two hands · 1d10 Slashing'))
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Stow shield and attack' }))
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
+    await expect(resolveAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'equipment-longsword:two-hand',
+        acceptedWieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId }
+      })
+    )
+
+    await userEvent.click(drawer.getByText('One hand · 1d8 Slashing'))
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(2))
+    await expect(resolveAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        actionId: 'equipment-longsword:one-hand',
+        acceptedWieldConflict: null
       })
     )
   }

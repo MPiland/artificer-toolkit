@@ -3,6 +3,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
+import { equipmentGripSchema } from '../shared/enums.js'
 
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
 const labelSchema = z.string().check(z.trim()).check(z.minLength(1))
@@ -20,6 +21,12 @@ export const encounterActionChoiceDtoSchema = z.strictObject({
   sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
   rangeLabel: z.optional(labelSchema),
   attackBonus: z.optional(z.number().check(z.int())),
+  damageLabel: z.optional(labelSchema),
+  /**
+   * The grip of an item's weapon attack; actions sharing `attackKey` are the same attack offered
+   * one- and two-handed. Null for every other action.
+   */
+  grip: z.nullable(z.strictObject({ value: equipmentGripSchema, attackKey: labelSchema })),
   /** Present when attacking with this action stows the active shield; the client must confirm. */
   wieldConflict: z.nullable(
     z.extend(encounterAcceptedWieldConflictDtoSchema, {

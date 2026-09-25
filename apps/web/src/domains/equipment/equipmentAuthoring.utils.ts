@@ -232,7 +232,8 @@ export function normalizeEquipmentForSubmit(
     quote: equipment.quote ?? '',
     rarityId: equipment.rarityId,
     systemId: equipment.systemId,
-    effects: equipment.effects ?? [],
+    // Hiding the grip for a non-attack effect clears the form value to undefined; storage is null.
+    effects: (equipment.effects ?? []).map((effect) => ({ ...effect, grip: effect.grip ?? null })),
     charges: equipment.charges,
     modifiers: equipment.modifiers ?? [],
     maxBonus: equipment.maxBonus,

@@ -31,6 +31,10 @@ export const sceneStoredLiveStateSchema = z.strictObject({
     visionRevealMode: z.strictObject({
       value: sceneDefinitionSettingsDtoSchema.shape.visionRevealMode,
       version: z.number().check(z.int()).check(z.nonnegative())
+    }),
+    fogMode: z.strictObject({
+      value: sceneDefinitionSettingsDtoSchema.shape.fogMode,
+      version: z.number().check(z.int()).check(z.nonnegative())
     })
   }),
   counts: sceneLiveCountsSchema,

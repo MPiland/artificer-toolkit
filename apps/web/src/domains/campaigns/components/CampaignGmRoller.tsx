@@ -11,8 +11,14 @@ import { CharacterSheetManualRoll } from '#domains/characters/sheet/dice/Charact
 import { CharacterSheetRollPresentation } from '#domains/characters/sheet/dice/CharacterSheetRollPresentation'
 import type {
   CharacterSheetRollController,
+  CharacterSheetRollDestination,
   CharacterSheetRollRequest
 } from '#domains/characters/sheet/dice/dice.types'
+import {
+  blindRollLabel,
+  gmRollDestinationOptions,
+  noRollDestinationOptions
+} from '#domains/characters/sheet/dice/dice.utils'
 import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollContext'
 import * as liveStyles from './campaignLive.css'
 
@@ -22,7 +28,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
   const discard = useDiscardRollMutation()
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
-  const [destination, setDestination] = useState<'PRIVATE' | 'TABLE'>('PRIVATE')
+  const [destination, setDestination] = useState<CharacterSheetRollDestination>('PRIVATE')
   const [roll, setRoll] = useState<RollRecordDto>()
   const [rollPrivate, setRollPrivate] = useState(true)
   const mutation = useMutation({
@@ -31,17 +37,20 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       destination: target
     }: {
       request: CharacterSheetRollRequest
-      destination: 'PRIVATE' | 'TABLE'
-    }) => {
-      const input = {
-        campaignId,
-        roll: { characterId: null, ...request }
+      destination: CharacterSheetRollDestination
+    }): Promise<RollRecordDto | undefined> => {
+      const roll = { characterId: null, ...request }
+      if (target === 'PRIVATE' || target === 'BLIND') {
+        const retained = await executePrivateRoll({ campaignId, blind: target === 'BLIND', roll })
+        if (retained.evidence !== null) return retained
+        notifications.show({ message: blindRollLabel })
+        return undefined
       }
-      if (target === 'PRIVATE') return executePrivateRoll(input)
       const entry = await executeTableRoll({
-        ...input,
-        room: 'TABLE',
-        clientNonce: crypto.randomUUID()
+        campaignId,
+        destination: 'TABLE',
+        clientNonce: crypto.randomUUID(),
+        roll
       })
       if (!entry.roll) throw new Error('The table roll did not return roll evidence.')
       return entry.roll
@@ -54,9 +63,9 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
 
   const controller = useMemo<CharacterSheetRollController>(
     () => ({
-      canPublishToTable: true,
       clearManualRoll: () => setRoll(undefined),
       destination,
+      destinationOptions: gmRollDestinationOptions,
       dismissRoll: (removeFromHistory = false) => {
         const current = roll
         setRoll(undefined)
@@ -93,7 +102,10 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       presentedRoll: roll,
       presentedRollPrivate: rollPrivate,
       revealRoll: () => undefined,
-      setDestination
+      setDestination,
+      // Manual GM rolls never change Character state.
+      stateRollDestination: destination,
+      stateRollDestinationOptions: noRollDestinationOptions
     }),
     [destination, discard, mutation, preferences.animate3d, reducedMotion, roll, rollPrivate]
   )

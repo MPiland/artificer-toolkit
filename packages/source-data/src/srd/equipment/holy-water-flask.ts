@@ -12,6 +12,7 @@ export const holyWaterFlask: EquipmentAuthored = {
     {
       id: S.equipmentChildId(S.equipId(141), 0x210, 1),
       order: 1,
+      grip: S.EQUIPMENT_GRIP.ONE_HANDED,
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,

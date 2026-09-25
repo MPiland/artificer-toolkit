@@ -13,7 +13,7 @@ export const maul: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.HEAVY,
     S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  effects: S.meleeWeaponEffects(S.equipId(23), 'BLUDGEONING', '2d6'),
+  effects: S.meleeWeaponEffects(S.equipId(23), 'BLUDGEONING', '2d6', S.EQUIPMENT_GRIP.TWO_HANDED),
   cost: S.gp(10),
   weight: S.lbs(10),
   rarityId: S.RARITY_COMMON,

@@ -307,7 +307,7 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
   })
   const roll: ExecuteCampaignRollInput = {
     campaignId: sharedCampaign.id,
-    room: 'TABLE',
+    destination: 'TABLE',
     clientNonce: crypto.randomUUID(),
     roll: {
       characterId,

@@ -38,6 +38,7 @@ export type AuthoringDefaultKind =
   | 'diceExpression'
   | 'effect'
   | 'effectPath'
+  | 'equipmentEffect'
   | 'facet'
   | 'facetBody'
   | 'facetBodyGroup'
@@ -158,6 +159,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   diceExpression: ['featureRollExpression'],
   effect: ['effect'],
   effectPath: ['effectPath', 'manifestBehaviorPath'],
+  equipmentEffect: ['equipmentEffect'],
   facet: ['facet', 'characterFacet'],
   facetBody: ['facetBody'],
   facetBodyGroup: ['facetBodyGroup'],

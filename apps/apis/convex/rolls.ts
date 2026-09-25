@@ -18,7 +18,13 @@ import { mutation } from './lib/mutations'
 import { requireIdentity } from './lib/identity'
 import { readCharacterRecord } from './characters/documents'
 import { readCharacterCampaign } from './characters/context'
-import { evaluateCharacterRoll, nextRollInt, presentRoll, retainUserRoll } from './rollDocuments'
+import {
+  evaluateCharacterRoll,
+  nextRollInt,
+  presentRetainedRoll,
+  presentRoll,
+  retainUserRoll
+} from './rollDocuments'
 
 const ok = v.object({ ok: v.literal(true) })
 
@@ -44,7 +50,7 @@ export const execute = mutation({
     const { userId } = await requireIdentity(ctx)
     const input = executeRollInputDtoSchema.parse(args)
     const { record, maturity } = await evaluateCharacterRoll(ctx, userId, input)
-    await retainUserRoll(ctx, userId, record)
+    await retainUserRoll(ctx, userId, record, null)
     return presentRoll(record, maturity)
   }
 })
@@ -78,7 +84,7 @@ export const history = query({
     )
     return rollHistoryResponseDtoSchema.parse(
       records.map((record) =>
-        presentRoll(
+        presentRetainedRoll(
           record,
           record.characterId ? (maturityByCharacterId.get(record.characterId) ?? null) : null
         )
@@ -97,7 +103,7 @@ export const discard = mutation({
       .query('userRollHistory')
       .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', id))
       .unique()
-    if (record && !record.consumedAt) await ctx.db.delete(record._id)
+    if (record && record.consumedAt === null) await ctx.db.delete(record._id)
     return { ok: true } as const
   }
 })

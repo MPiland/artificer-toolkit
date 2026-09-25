@@ -321,6 +321,16 @@ export function sceneTokenMovementFailure(
   return null
 }
 
+/** Anyone may open or close an unlocked door; locking and unlocking stay with the GM (ADR 0034). */
+export function sceneDoorChangeFailure(
+  actorIsGm: boolean,
+  current: SceneDoorState | undefined,
+  next: SceneDoorState
+): string | null {
+  if (actorIsGm || (current !== 'LOCKED' && next !== 'LOCKED')) return null
+  return 'Only the GM can lock or unlock doors.'
+}
+
 export function lightCrossesBlockingBarrier(
   from: ScenePoint,
   to: ScenePoint,

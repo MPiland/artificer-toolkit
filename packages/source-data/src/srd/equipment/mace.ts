@@ -9,7 +9,7 @@ export const mace: EquipmentAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(7)),
-  effects: S.meleeWeaponEffects(S.equipId(7), 'BLUDGEONING', '1d6'),
+  effects: S.meleeWeaponEffects(S.equipId(7), 'BLUDGEONING', '1d6', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(5),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

@@ -249,11 +249,13 @@ describe('native Campaign text chat', () => {
             mode: 'ROLEPLAY' as const,
             body: 'Retained roleplay',
             roll: null,
+            revealedByGm: false,
             authorUsername: 'CampaignPlayer',
             characterId,
             characterLabel: 'Retained Ranger',
             editedAt: null,
-            unsentAt: null
+            unsentAt: null,
+            consumedAt: null
           }
         ],
         [
@@ -263,11 +265,13 @@ describe('native Campaign text chat', () => {
             kind: 'ROLL' as const,
             mode: null,
             body: null,
+            revealedByGm: false,
             authorUsername: 'CampaignPlayer',
             characterId,
             characterLabel: 'Retained Ranger',
             editedAt: null,
             unsentAt: null,
+            consumedAt: null,
             roll: {
               id: rollId,
               normalizedExpression: '1d20',
@@ -487,6 +491,8 @@ describe('native Campaign text chat', () => {
         body: null,
         editedAt: null,
         unsentAt: null,
+        consumedAt: null,
+        revealedByGm: false,
         authorUsername: 'CampaignOwner',
         characterId: null,
         characterLabel: null,
@@ -597,11 +603,13 @@ describe('native Campaign text chat', () => {
           mode: 'OOC',
           body: `seed ${index}`,
           roll: null,
+          revealedByGm: false,
           authorUsername: 'CampaignOwner',
           characterId: null,
           characterLabel: null,
           editedAt: null,
-          unsentAt: null
+          unsentAt: null,
+          consumedAt: null
         })
       }
     })

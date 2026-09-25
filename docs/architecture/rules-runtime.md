@@ -497,13 +497,23 @@ scope and every other domain (armor class included) still use the real equipped 
 advantage/disadvantage grants (for example Heavy) also keep the real state, because Character-wide
 attack roll-mode evidence is not yet filtered by source; scoping that evidence is an open follow-up.
 `DAMAGE` modifier grants are folded but not yet added to action damage expressions for any weapon,
-equipped or carried (open follow-up). `rules-runtime/encounterWieldConflict` is the pure evaluator for
-the other half of the ruling: when a two-handed (or versatile two-handed) attack would require
-stowing the active shield it returns `STOW_SHIELD` with the armor-class delta from
-`resolveDnd5eActiveShield`, which the armor-class computation also uses.
-`evaluateEncounterCharacterActionWieldConflict` is the one input extraction (candidate
-`equipment.properties`, Character `armorClassFacts`, effective `grantFold` active equipment, one-handed
-grip) shared by the action choices query, which exposes `wieldConflict` per Character action, and
+equipped or carried (open follow-up).
+
+**Weapon grips.** Every authored Equipment effect has a required, nullable `grip`
+(`ONE_HANDED`/`TWO_HANDED`): it is set exactly on non-passive melee and ranged weapon attack effects
+and null otherwise, and a base weapon's grips must match its handedness (a `TWO_HANDED` weapon attacks
+only two-handed; only `VERSATILE` or `TWO_HANDED` weapons attack two-handed). A versatile weapon
+authors one effect per grip, each with its own damage, so each grip is its own Character action;
+thrown effects follow the weapon's handedness. The compiler carries `grip` into
+`CompiledEquipmentEffectGroup`, and action candidates carry it as `equipment.grip` (null for item
+feature actions). Action choices expose `grip` with an `attackKey` shared by the grips of one attack,
+and the tabletop drawer groups them into one action with a grip control.
+
+`rules-runtime/encounterWieldConflict` is the pure evaluator for the other half of the drawn-weapon
+ruling: when the chosen action's grip is `TWO_HANDED` and an active shield is equipped it returns
+`STOW_SHIELD` with the armor-class delta from `resolveDnd5eActiveShield`, which the armor-class
+computation also uses. `evaluateEncounterCharacterActionWieldConflict` is shared by the action choices
+query, which exposes `wieldConflict` per Character action, and
 `prepareEncounterActionMechanics`, which enforces it for both the Session DO planner and the Convex
 fallback. A directly resolved `RESOLVE_ACTION` is `PROMPTED`: its submitter (today the GM) must send
 `acceptedWieldConflict` naming exactly the evaluated shield, and preparation rejects a missing, stale
@@ -515,7 +525,7 @@ sends nothing.
 
 Open follow-ups: initiative-declared attacks, movement reactions, Legendary Actions, Cleaving
 follow-ups and Disarm are `UNPROMPTED` and neither prompt nor stow (Disarm rejects an acceptance).
-Versatile two-handed grip is not modeled, so versatile weapons never conflict. Player-driven action
+Player-driven action
 submission, which would move the prompt to the player, is not built.
 
 `rules-runtime/encounterInitiativeStaging` owns initial round assembly, timestamp-free occurrence

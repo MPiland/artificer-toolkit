@@ -17,7 +17,7 @@ import {
   equipmentAttributeCodeSchema,
   equipmentPropertyCodeSchema
 } from '../shared/enums.js'
-import { effectDtoSchema } from '../effects/effect.js'
+import { equipmentEffectDtoSchema } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 
@@ -37,7 +37,7 @@ const baseEquipmentAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
   attributes: z.optional(authoredReferenceCollectionSchema(equipmentAttributeCodeSchema)),
   cost: z.optional(costDtoSchema),
   weight: z.optional(weightDtoSchema),
-  effects: z.optional(authoredNestedCollectionSchema(effectDtoSchema)),
+  effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
   charges: z.optional(chargeDtoSchema),
   capacity: z.optional(capacityDtoSchema),
   modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
@@ -62,7 +62,7 @@ const equipmentVariantAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
   category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
   parentEquipmentId: authoredIdentifierSchema,
   properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
-  effects: z.optional(authoredNestedCollectionSchema(effectDtoSchema)),
+  effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
   charges: z.optional(chargeDtoSchema),
   modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
   maxBonus: z.optional(authoredNonnegativeNumberSchema.check(z.int())),
@@ -102,12 +102,39 @@ export const baseEquipmentAuthoringInputDtoSchema: z.ZodMiniType<BaseEquipmentAu
   baseEquipmentAuthoringInputDtoSchemaBase
 export const equipmentVariantAuthoringInputDtoSchema: z.ZodMiniType<EquipmentVariantAuthoringInputDto> =
   equipmentVariantAuthoringInputDtoSchemaBase
-export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = z.discriminatedUnion(
-  'category',
-  [baseEquipmentAuthoredDtoSchemaBase, equipmentVariantAuthoredDtoSchemaBase]
+/**
+ * A weapon's handedness bounds its attack grips: a TWO_HANDED weapon attacks only with two hands,
+ * and only a VERSATILE or TWO_HANDED weapon may. A variant inherits its parent's properties, so
+ * its grips are checked when it is resolved against that parent.
+ */
+const weaponGripsMatchHandedness = z.superRefine(
+  (equipment: EquipmentAuthoredDto | EquipmentAuthoringInputDto, context) => {
+    if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) return
+    const twoHanded = equipment.properties.includes('TWO_HANDED')
+    const versatile = equipment.properties.includes('VERSATILE')
+    for (const [index, effect] of (equipment.effects ?? []).entries()) {
+      if (twoHanded ? effect.grip !== 'ONE_HANDED' : effect.grip !== 'TWO_HANDED' || versatile)
+        continue
+      context.addIssue({
+        code: 'custom',
+        path: ['effects', index, 'grip'],
+        message: twoHanded
+          ? 'A two-handed weapon attacks with two hands.'
+          : 'Only a versatile or two-handed weapon attacks with two hands.'
+      })
+    }
+  }
 )
-export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> =
-  z.discriminatedUnion('category', [
+
+export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = z
+  .discriminatedUnion('category', [
+    baseEquipmentAuthoredDtoSchemaBase,
+    equipmentVariantAuthoredDtoSchemaBase
+  ])
+  .check(weaponGripsMatchHandedness)
+export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> = z
+  .discriminatedUnion('category', [
     baseEquipmentAuthoringInputDtoSchemaBase,
     equipmentVariantAuthoringInputDtoSchemaBase
   ])
+  .check(weaponGripsMatchHandedness)

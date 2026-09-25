@@ -6,6 +6,7 @@ import { afterEach, beforeEach, vi } from 'vitest'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { playerRollDestinationOptions, playerStateRollDestinationOptions } from '../dice/dice.utils'
 import { CharacterSheetRollContext } from '../dice/rollContext'
 import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
@@ -77,7 +78,7 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          canPublishToTable: false,
+          destinationOptions: playerRollDestinationOptions,
           clearManualRoll: vi.fn(),
           destination: 'PRIVATE',
           dismissRoll: vi.fn(),
@@ -87,7 +88,9 @@ describe('Character Sheet rests', () => {
           presentationPending: false,
           presentedRollPrivate: true,
           revealRoll: vi.fn(),
-          setDestination: vi.fn()
+          setDestination: vi.fn(),
+          stateRollDestination: 'TABLE',
+          stateRollDestinationOptions: playerStateRollDestinationOptions
         }}
       >
         <CharacterSheetOverviewVitals
@@ -103,6 +106,9 @@ describe('Character Sheet rests', () => {
     expect(within(dialog).getByText(/fighter d8/i)).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
     expect(within(dialog).getByRole('button', { name: /1d8 \+ 1/i })).toBeInTheDocument()
+    expect(within(dialog).getByRole('radio', { name: 'Table' })).toBeChecked()
+    expect(within(dialog).getByRole('radio', { name: 'To GM' })).toBeInTheDocument()
+    expect(within(dialog).queryByRole('radio', { name: 'Just me' })).not.toBeInTheDocument()
 
     await user.click(within(dialog).getByRole('button', { name: /1d8 \+ 1/i }))
     expect(within(dialog).queryByText(/6 rolled/i)).not.toBeInTheDocument()
@@ -147,7 +153,7 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          canPublishToTable: false,
+          destinationOptions: [],
           clearManualRoll: vi.fn(),
           destination: 'PRIVATE',
           dismissRoll: vi.fn(),
@@ -157,7 +163,9 @@ describe('Character Sheet rests', () => {
           presentationPending: false,
           presentedRollPrivate: true,
           revealRoll: vi.fn(),
-          setDestination: vi.fn()
+          setDestination: vi.fn(),
+          stateRollDestination: 'PRIVATE',
+          stateRollDestinationOptions: []
         }}
       >
         <CharacterSheetOverviewVitals
@@ -212,7 +220,7 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          canPublishToTable: false,
+          destinationOptions: [],
           clearManualRoll: vi.fn(),
           destination: 'PRIVATE',
           dismissRoll: vi.fn(),
@@ -222,7 +230,9 @@ describe('Character Sheet rests', () => {
           presentationPending: false,
           presentedRollPrivate: true,
           revealRoll: vi.fn(),
-          setDestination: vi.fn()
+          setDestination: vi.fn(),
+          stateRollDestination: 'PRIVATE',
+          stateRollDestinationOptions: []
         }}
       >
         <CharacterSheetOverviewVitals

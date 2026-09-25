@@ -57,7 +57,8 @@ export function planSceneCommandExploration(
             delta.kind === 'BARRIER_REMOVED'
           ? sceneTokenIdsAffectedByBarriers(resolvedState, affectedBarriers)
           : null
-  if (tokenIds === null || tokenIds.length === 0)
+  // Fog OFF records no exploration; layers kept from an earlier fog mode stay unchanged.
+  if (resolvedState.fogMode === 'OFF' || tokenIds === null || tokenIds.length === 0)
     return { state: resolvedState, tokenIds: [], owners: [] }
   const owners =
     resolvedState.fogMode === 'SHARED_PARTY'

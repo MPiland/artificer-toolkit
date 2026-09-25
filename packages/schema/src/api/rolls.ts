@@ -118,7 +118,28 @@ export const rollRecordDtoSchema = z.extend(rollResultDtoSchema, {
   createdAt: z.string()
 })
 
-export const rollHistoryResponseDtoSchema = z.array(rollRecordDtoSchema).check(z.maxLength(20))
+/** Binds a GM-retained roll to its Campaign so it can be revealed to that TABLE once. */
+export const gmCampaignRollDtoSchema = z.strictObject({
+  campaignId: z.string(),
+  blind: z.boolean(),
+  revealedAt: z.nullable(z.string())
+})
+
+/** An unrevealed blind roll withholds its evidence from every reader, including the GM. */
+export const rollHistoryEntryDtoSchema = z.union([
+  z.extend(rollRecordDtoSchema, { gmCampaignRoll: z.nullable(gmCampaignRollDtoSchema) }),
+  z.extend(rollRecordDtoSchema, {
+    evidence: z.null(),
+    gmCampaignRoll: z.extend(gmCampaignRollDtoSchema, {
+      blind: z.literal(true),
+      revealedAt: z.null()
+    })
+  })
+])
+
+export const rollHistoryResponseDtoSchema = z
+  .array(rollHistoryEntryDtoSchema)
+  .check(z.maxLength(20))
 
 export const rollIdInputDtoSchema = z.strictObject({
   id: z.pipe(
@@ -135,5 +156,7 @@ export type ExecuteDiceConfigurationInputDto = z.infer<
 export type RollEvidenceDto = z.infer<typeof rollEvidenceDtoSchema>
 export type RollResultDto = z.infer<typeof rollResultDtoSchema>
 export type RollRecordDto = z.infer<typeof rollRecordDtoSchema>
+export type GmCampaignRollDto = z.infer<typeof gmCampaignRollDtoSchema>
+export type RollHistoryEntryDto = z.infer<typeof rollHistoryEntryDtoSchema>
 export type RollHistoryResponseDto = z.infer<typeof rollHistoryResponseDtoSchema>
 export type RollIdInputDto = z.infer<typeof rollIdInputDtoSchema>

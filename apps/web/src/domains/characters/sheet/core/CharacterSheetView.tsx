@@ -74,7 +74,9 @@ export function CharacterSheetView({
   )
   const rollController = useCharacterSheetRollController(
     sheet.meta.characterId,
-    sheet.meta.campaignId ?? undefined
+    sheet.meta.campaignId
+      ? { id: sheet.meta.campaignId, isGm: sheet.meta.viewer === 'CAMPAIGN_OWNER' }
+      : undefined
   )
   const pending = commandPending ?? commandMutation.isPending
   const campaignInventory =

@@ -14,7 +14,13 @@ export const blowgun: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.LOADING
   ],
   modifiers: S.rangedWeaponAbilityModifiers(S.equipId(33)),
-  effects: S.rangedFixedDamageWeaponEffects(S.equipId(33), 'PIERCING', 1, 25),
+  effects: S.rangedFixedDamageWeaponEffects(
+    S.equipId(33),
+    'PIERCING',
+    1,
+    25,
+    S.EQUIPMENT_GRIP.ONE_HANDED
+  ),
   cost: S.gp(10),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

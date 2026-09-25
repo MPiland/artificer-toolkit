@@ -14,7 +14,7 @@ export const handaxe: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(4)),
-  effects: S.thrownWeaponEffects(S.equipId(4), 'SLASHING', '1d6', 20),
+  effects: S.thrownWeaponEffects(S.equipId(4), 'SLASHING', '1d6', 20, S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(5),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

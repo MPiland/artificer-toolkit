@@ -123,7 +123,7 @@ it('excludes pre-transfer PARTY traffic at the same millisecond and retains subs
   })
   const result = await player.caller.mutation(roll, {
     campaignId: campaign.id,
-    room: 'TABLE',
+    destination: 'TABLE',
     clientNonce: crypto.randomUUID(),
     roll: {
       characterId: null,
