@@ -2852,7 +2852,7 @@
             },
             {
               "id": "V09.7",
-              "text": "Removing a member drops them from every controller list, and development rows are migrated.",
+              "text": "Removing a member drops them from every controller list, and development data is migrated or reset under the standing local-reset approval.",
               "status": "IN_PROGRESS",
               "proof": null
             }
@@ -3015,7 +3015,7 @@
             },
             {
               "id": "V11.4",
-              "text": "A roll is answered by the controllers of the actor making it and by the GM; a player's spell against a creature pauses on the creature's save for the GM.",
+              "text": "A roll is answered by the controllers of the actor making it and by the GM; in Assisted mode a player's save-forcing action against a creature pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues; Manual mode raises no rules prompts. (Spell-specific proof is a Phase 8.3 spell-casting criterion.)",
               "status": "IN_PROGRESS",
               "proof": null
             },

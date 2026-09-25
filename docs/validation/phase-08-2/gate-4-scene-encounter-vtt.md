@@ -217,7 +217,7 @@ What was proven or remains to prove:
 - `V09.4` READY_FOR_ACCEPTANCE: Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.
 - `V09.5` READY_FOR_ACCEPTANCE: One predicate (encounters/actorController.ts) decides control: the GM always, and a controller for that actor.
 - `V09.6` READY_FOR_ACCEPTANCE: Each Run actor has a GM-editable disposition, FRIENDLY for Characters and HOSTILE for creatures by default.
-- `V09.7` IN_PROGRESS: Removing a member drops them from every controller list, and development rows are migrated.
+- `V09.7` IN_PROGRESS: Removing a member drops them from every controller list, and development data is migrated or reset under the standing local-reset approval.
 
 Evidence:
 
@@ -273,7 +273,7 @@ What was proven or remains to prove:
 - `V11.1` ACCEPTED: Pending decisions reach only current audiences through private pending projections that follow authority changes.
 - `V11.2` ACCEPTED: Paused state is preserved, validated sequential evidence resumes the flow, and DECLINE cancels.
 - `V11.3` ACCEPTED: Disarm03 proves participant evidence, nonparticipant and stale refusal, terminal contention, one ACTION, one item transition and unchanged replay.
-- `V11.4` IN_PROGRESS: A roll is answered by the controllers of the actor making it and by the GM; a player's spell against a creature pauses on the creature's save for the GM.
+- `V11.4` IN_PROGRESS: A roll is answered by the controllers of the actor making it and by the GM; in Assisted mode a player's save-forcing action against a creature pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues; Manual mode raises no rules prompts. (Spell-specific proof is a Phase 8.3 spell-casting criterion.)
 - `V11.5` READY_FOR_ACCEPTANCE: "Roll dice" records every attempt in the roll log without settling.
 - `V11.6` READY_FOR_ACCEPTANCE: A response settles with the latest app roll ID or entered faces, never with a client-supplied app value.
 - `V11.7` READY_FOR_ACCEPTANCE: The chosen d20 mode is stored beside the derived mode and labeled when changed.

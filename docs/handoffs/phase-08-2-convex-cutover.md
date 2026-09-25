@@ -73,7 +73,7 @@ Next (8.2 core, in order):
    - Sheet item panel shows manual adjustments only for magic weapons.
    - The shield-stow AC delta counts only the shield's base value, not a magic shield's +N.
    - Add direct unit tests in `packages/rules-runtime` (it has none today).
-   - Phase 8.3 (with spell casting): APPLY_GRANT effects (19; e.g. Shield, Aid), condition mechanics, long range, and the remaining modifier kinds.
+   - Phase 8.3 (with spell casting): APPLY_GRANT effects (19; e.g. Shield, Aid), condition mechanics, long range, and the remaining modifier kinds. Add an acceptance criterion: in Assisted mode, a player's spell that forces a creature's save pauses for that creature's controller, unless their auto-roll is on (moved out of V11.4 by Q6).
    - Follow-ups from S6g: `REACTION_COUNT SET_VALUE` with APPLY_GRANT (Shocking Grasp); Barbarian Fast Movement mechanics.
 3. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
 4. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
