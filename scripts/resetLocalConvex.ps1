@@ -95,6 +95,7 @@ try {
       $manifest.imports += $entry.source
     }
     Invoke-LocalConvex -Arguments @('export', '--path', "$stem.after.zip") -LogPath "$stem.after.log" -Label 'Post-reset snapshot' -ExportPath "$stem.after.zip"
+    $manifest.postResetSha256 = (Get-FileHash -LiteralPath "$stem.after.zip" -Algorithm SHA256).Hash
     $cleared = @($tables | ForEach-Object { "$($_.component)/$($_.table)" })
     $remaining = @(Get-ResetTables -Snapshot "$stem.after.zip" | Where-Object { "$($_.component)/$($_.table)" -in $cleared })
     if ($remaining.Count -gt 0) { throw "Post-reset snapshot retains $($remaining.Count) cleared tables." }
@@ -110,6 +111,7 @@ try {
   throw
 } finally {
   $manifest.completedAtUtc = [DateTime]::UtcNow.ToString('o')
-  $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -Encoding utf8
+  # BOM-free UTF-8 in both shells; Windows PowerShell 5.1's -Encoding utf8 adds a BOM that JSON.parse rejects.
+  [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 8))
   Remove-Variable adminKey -ErrorAction SilentlyContinue
 }

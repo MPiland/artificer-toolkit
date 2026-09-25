@@ -46,7 +46,29 @@ flowchart LR
    transaction/replay/rollback/privacy proofs, complete browser journeys, and the frozen local workload.
    To checkpoint before the guarded reset, pass `--stop-after=convex-local-deploy`; resume with
    `--start-at=convex-reset --provenance-manifest=<checkpoint manifest>`. The final manifest must still
-   pass every stage from the same source identity.
+   pass every stage from the same source identity. `--list` prints the stages and commands without
+   running anything.
+
+   Prerequisites and evidence:
+   - The `phase82-convex-local-linux` container serves instance `phase82-local-linux` at
+     `http://127.0.0.1:3210`. The runner refuses any other target. It generates the admin key with
+     `docker exec phase82-convex-local-linux ./generate_admin_key.sh` for each run and never writes or
+     prints it. `scripts/resetLocalConvex.ps1` and `scripts/runLocalConvexProof.ps1` do the same.
+   - The ignored `local-validation/local-convex/local.application.env` supplies the local URLs,
+     `CONVEX_DEPLOYMENT=local:phase82-local-linux` and the local application secrets. Override it with
+     `--local-env-file=<path under local-validation/>`. Yarn injects this file into every child and
+     its values override the environment, so the runner rejects a file that stores
+     `CONVEX_SELF_HOSTED_ADMIN_KEY` or a remote-only name with a non-loopback value.
+   - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
+     `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
+   - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`
+     (`PRE_STAGING_VALIDATION_DIR` may name another folder under `local-validation/`). Reset evidence
+     goes to `local-validation/convex-reset/r08-reset-<attempt>.*` and native proof evidence to
+     `local-validation/local-convex-proofs/<proof>.*`. Provenance manifests must sit under
+     `local-validation/`.
+   - The development drivers still write their own browser output under `.codex/validation/`, for
+     example `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder.
+
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only
    after both the command and collector finish.

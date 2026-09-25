@@ -44,7 +44,7 @@ Rule from here on: run a local codegen push for every slice that touches Convex 
   - `encounters/commands:execute` and `commandActions:execute` are internal; browsers can no longer run Encounter commands.
   - Web sends Encounter commands through `useCampaignLiveSession().sendEncounterCommand`. Encounter acks resolve only the initiator and never advance the room sequence.
   - Room closure closes sockets and waits for in-flight commands before setting the drain fence.
-  - The real-backend HTTP dev drivers (`apps/apis/tests/development*.ts`) can no longer execute Encounter commands; they still run under the in-process adapter. R08 does not use them.
+  - The real-backend HTTP dev drivers (`apps/apis/tests/development*.ts`) can no longer execute Encounter commands; they still run under the in-process adapter. Correction: the R08 Encounter proofs do use them, so the drivers must send Encounter commands through the Session room (see the Decision log).
 - **S5 Convex hardening:** `@convex-dev/rate-limiter` limits (tickets, Scene writes, conversation, Social), the 5-minute ACTIVATING cap, the publication role check, eviction retry with backoff, and 30-day Scene command retention. See the Security and limits section of [live-session coordination](../architecture/live-sessions.md).
 
 Validation at the S4A/S5 commit:
@@ -82,7 +82,8 @@ Next (8.2 core, in order):
 7. **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature.
 8. **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and Manual mode, then delete their Convex rules code.
 9. **S7:** R01–R05 audit, R08 `yarn validate:pre-staging:local`, V15 workload with player-issued commands, docs.
-   - R08 prerequisite: `scripts/validatePreStagingLocal.mjs` still depends on the Codex-era `.codex/validation/local-convex-linux-20260915/` packet (proof runners, a credentials file with a stored admin key, evidence paths), which exists only in the backup worktree. Port it into the repo on the model of `scripts/resetLocalConvex.ps1`: generate the admin key with `docker exec` at run time and write evidence under `local-validation/`.
+   - R08 prerequisite (done 2026-09-24, not yet run end to end): `scripts/validatePreStagingLocal.mjs` no longer uses the historical Codex packet `.codex/validation/local-convex-linux-20260915/`. Its proof runners are ported to `scripts/runLocalConvexProof.ps1`; the reset stage uses `scripts/resetLocalConvex.ps1`. Admin keys are generated with `docker exec` at run time. The stored credentials file is no longer used. Evidence goes under `local-validation/`. See the [release runbook](../runbooks/phase-8-2-release.md#final-local-source).
+   - Still open for R08: every lifecycle proof runs `apps/apis/tests/developmentDrafts.ts`, so the S4A note above that R08 does not use the HTTP development drivers is wrong. Since S4A those drivers cannot run Encounter commands, so the Encounter proofs (lifecycle, contention, movement, passage, disarm, effects, VTT, V15) will probably fail until they go through the room. Those drivers also still write browser output under `.codex/validation/`.
 
 Integration items for the pending local-reset batch (grip, fog opt-in, roll visibility, doors):
 
@@ -96,6 +97,12 @@ Fog follow-ups (from the fog opt-in slice):
 - A fog-off Scene that keeps its fog layers uses full hydration, and players still download layers they won't use. Revisit if Scene load time matters.
 
 Open follow-up: Scene fog save retention (derived fog saves keep `geometrySaveId` after their geometry save is pruned; superseded fog saves and chunks are not garbage-collected).
+
+## Decision log (delegated, for user review)
+
+The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline, extend it for versatility and quality of life, "same but better" at minimum. Each entry gives the decision, the Foundry baseline (with Roll20 as a second reference where useful) and the reasoning.
+
+- **Development proof drivers go through the Session room (2026-09-24).** Since S4A, browsers can't call Encounter command functions, so the real-backend drivers (`apps/apis/tests/development*.ts`, used by the R08 proofs) can no longer run Encounter commands. The drivers will send Encounter commands over a real Session-room WebSocket with a ticket, as the browser does, and their `.codex/validation` output paths move to `local-validation/`. Rejected alternative: admin-key calls that impersonate a user, which would prove a path production never uses. Foundry and Roll20 have no equivalent; this is a testing-integrity choice.
 
 ## Authority and present state
 

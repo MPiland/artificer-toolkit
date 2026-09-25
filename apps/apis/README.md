@@ -998,9 +998,13 @@ dependencies, before any Sharp handler ran. Local verification can use the
 [official self-hosted Linux Docker backend](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md)
 with a pinned image digest, separate persistent volume, loopback-only ports and explicit CLI URL/admin
 key arguments. This requires no OS permission or SDK change. The current isolated backend is
-`phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211`; its guarded setup, image identity and
-ignored credentials are retained in `.codex/validation/local-convex-linux-20260915/` at the repository
-root. On a fresh backend, set `JWKS` to an empty value to select the existing database-backed signing
+`phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211` (instance `phase82-local-linux`,
+volume `phase82-convex-local-linux-data`, image
+`ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
+No admin key is stored: scripts generate one per run with
+`docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
+ignored `local-validation/local-convex/local.application.env` holds the local application environment
+without an admin key. On a fresh backend, set `JWKS` to an empty value to select the existing database-backed signing
 keys until a deployment-specific static key set is configured. Official codegen and its TypeScript
 check pass there. Keep test-only helpers under `tests/fixtures`; non-test-named files under `convex/`
 are deployment entrypoints. The Scene preparation validator reuses only its accepted movement

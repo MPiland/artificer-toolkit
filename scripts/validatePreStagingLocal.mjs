@@ -1,11 +1,20 @@
 import { createHash } from 'node:crypto'
 import { createWriteStream, existsSync } from 'node:fs'
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { finished } from 'node:stream/promises'
 
 const root = resolve(import.meta.dirname, '..')
+// The local Docker deployment shared with scripts/resetLocalConvex.ps1 and scripts/runLocalConvexProof.ps1.
+const localConvex = {
+  container: 'phase82-convex-local-linux',
+  instance: 'phase82-local-linux',
+  url: 'http://127.0.0.1:3210'
+}
+const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
+const localProofDirectory = 'local-validation/local-convex-proofs'
+const localResetDirectory = 'local-validation/convex-reset'
 const localHosts = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 const remoteOnlyEnvironmentNames = new Set([
   'CONFIRM_MANAGED_VTT_SMOKE',
@@ -47,6 +56,7 @@ const promotionContract = {
 const excludedArtifactPrefixes = [
   '.codex/validation/',
   '.impeccable/review/',
+  'local-validation/',
   'apps/session-worker/.wrangler/',
   'apps/session-worker/dist-staging/',
   'codex/'
@@ -139,7 +149,7 @@ function parseEnvironment(source) {
   return values
 }
 
-async function loadLocalEnvironment(localEnvironmentFile) {
+async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefault) {
   const path = resolve(root, '.env.local')
   if (!existsSync(path)) throw new Error('Root .env.local is required.')
   const removedRemoteEnvironmentNames = new Set()
@@ -151,29 +161,41 @@ async function loadLocalEnvironment(localEnvironmentFile) {
     if (process.env[name] === undefined) process.env[name] = value
   }
 
-  let localEnvironment = null
-  if (localEnvironmentFile) {
-    const resolvedPath = resolve(root, localEnvironmentFile)
-    const relativePath = relative(root, resolvedPath).replaceAll('\\', '/')
-    if (
-      relativePath.startsWith('..') ||
-      isAbsolute(relativePath) ||
-      !relativePath.startsWith('.codex/validation/')
-    ) {
-      throw new Error('The local environment file must be retained under .codex/validation/.')
+  const resolvedPath = resolve(root, localEnvironmentFile)
+  const relativePath = relative(root, resolvedPath).replaceAll('\\', '/')
+  if (
+    relativePath.startsWith('..') ||
+    isAbsolute(relativePath) ||
+    !relativePath.startsWith('local-validation/')
+  ) {
+    throw new Error('The local environment file must be retained under local-validation/.')
+  }
+  if (!existsSync(resolvedPath)) {
+    throw new Error(`The local environment file does not exist: ${relativePath}.`)
+  }
+  // Yarn injects this whole file into every child and its values override the process environment,
+  // so it must not store an admin key and any remote-only name in it must hold a loopback URL.
+  const source = await readFile(resolvedPath, 'utf8')
+  const loopbackRemoteNames = []
+  for (const [name, value] of Object.entries(parseEnvironment(source))) {
+    if (name === 'CONVEX_SELF_HOSTED_ADMIN_KEY') {
+      throw new Error(
+        'The local environment file must not store CONVEX_SELF_HOSTED_ADMIN_KEY; it is generated at run time.'
+      )
     }
-    if (!existsSync(resolvedPath)) throw new Error('The local environment file does not exist.')
-    const source = await readFile(resolvedPath, 'utf8')
-    for (const [name, value] of Object.entries(parseEnvironment(source))) {
-      if (isRemoteOnlyEnvironmentName(name)) {
-        removedRemoteEnvironmentNames.add(name)
-        continue
-      }
-      process.env[name] = value
+    if (isRemoteOnlyEnvironmentName(name)) {
+      assertLoopbackUrl(name, value)
+      loopbackRemoteNames.push(name)
+      continue
     }
-    delete process.env.CONVEX_DEPLOYMENT
-    process.env.YARN_INJECT_ENVIRONMENT_FILES = resolvedPath
-    localEnvironment = { path: relativePath, sha256: checksum(source) }
+    process.env[name] = value
+  }
+  delete process.env.CONVEX_DEPLOYMENT
+  process.env.YARN_INJECT_ENVIRONMENT_FILES = resolvedPath
+  const localEnvironment = {
+    loopbackRemoteNames: loopbackRemoteNames.sort(),
+    path: relativePath,
+    sha256: checksum(source)
   }
 
   for (const name of Object.keys(process.env)) {
@@ -234,6 +256,36 @@ function assertLocalLifecycleTarget(environment = process.env) {
   if (new URL(environment.CONVEX_URL).href !== new URL(environment.CONVEX_SELF_HOSTED_URL).href) {
     throw new Error('CONVEX_URL and CONVEX_SELF_HOSTED_URL must identify the same local backend.')
   }
+}
+
+async function useGeneratedLocalAdminKey() {
+  const url = process.env.CONVEX_SELF_HOSTED_URL
+  if (!url || new URL(url).href !== new URL(localConvex.url).href) {
+    throw new Error(
+      `CONVEX_SELF_HOSTED_URL must be the local Docker deployment ${localConvex.url}.`
+    )
+  }
+  const response = await fetch(new URL('/instance_name', url), {
+    signal: AbortSignal.timeout(10_000)
+  })
+  if (!response.ok || (await response.text()) !== localConvex.instance) {
+    throw new Error('The local lifecycle target is not the local Convex deployment.')
+  }
+  // Generated inside the container for this run; never written to disk or printed.
+  const generated = spawnSync(
+    'docker',
+    ['exec', localConvex.container, './generate_admin_key.sh'],
+    {
+      encoding: 'utf8',
+      shell: false,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true
+    }
+  )
+  const adminKey = generated.stdout?.trim().split(/\r?\n/u).at(-1)?.trim()
+  if (generated.status !== 0 || !adminKey)
+    throw new Error('Could not generate the local admin key.')
+  process.env.CONVEX_SELF_HOSTED_ADMIN_KEY = adminKey
 }
 
 function localChildEnvironment(overrides = {}) {
@@ -508,7 +560,7 @@ function localProofStage(proof, kind) {
       '-NoProfile',
       '-NonInteractive',
       '-File',
-      '.codex/validation/local-convex-linux-20260915/run-local-proof-with-native-log.ps1',
+      'scripts/runLocalConvexProof.ps1',
       '-Name',
       proofName,
       '-Proof',
@@ -677,7 +729,7 @@ const stages = [
     '-NoProfile',
     '-NonInteractive',
     '-File',
-    '.codex/validation/local-convex-linux-20260915/reset-local-convex.ps1',
+    'scripts/resetLocalConvex.ps1',
     '-Name',
     `r08-reset-${releaseProofAttempt}`
   ]),
@@ -746,8 +798,7 @@ function auditLocalStageCommands() {
 }
 
 async function readLocalProofEvidence(proofName) {
-  const packet = '.codex/validation/local-convex-linux-20260915'
-  const stem = `${packet}/${proofName}`
+  const stem = `${localProofDirectory}/${proofName}`
   const paths = {
     command: `${stem}.command.txt`,
     guard: `${stem}.guard.json`,
@@ -771,7 +822,7 @@ async function readLocalProofEvidence(proofName) {
   ])
   if (
     metadata.exitCode !== 0 ||
-    metadata.target !== 'phase82-local-linux' ||
+    metadata.target !== localConvex.instance ||
     status.proofExit !== 0 ||
     status.collectorReady !== true ||
     status.collectorCompleted !== true ||
@@ -838,14 +889,17 @@ async function main() {
   const { localEnvironment, removedRemoteEnvironmentNames } = await loadLocalEnvironment(
     localEnvironmentArgument?.slice('--local-env-file='.length)
   )
+  await useGeneratedLocalAdminKey()
   assertLocalLifecycleTarget()
   const commandAudit = auditLocalStageCommands()
 
   const artifactDirectory = resolve(
     root,
-    process.env.PRE_STAGING_VALIDATION_DIR ??
-      `.codex/validation/pre-staging-lifecycle/${timestamp()}`
+    process.env.PRE_STAGING_VALIDATION_DIR ?? `local-validation/pre-staging/${timestamp()}`
   )
+  if (!relative(root, artifactDirectory).replaceAll('\\', '/').startsWith('local-validation/')) {
+    throw new Error('Pre-staging evidence must be retained under local-validation/.')
+  }
   await mkdir(artifactDirectory, { recursive: true })
   const manifestPath = resolve(artifactDirectory, 'manifest.json')
   const generatedBaseline = await fileChecksums(generatedFiles)
@@ -854,15 +908,6 @@ async function main() {
     await mkdir(dirname(beforePath), { recursive: true })
     await copyFile(resolve(root, path), beforePath)
   }
-  const proofToolDirectory = '.codex/validation/local-convex-linux-20260915'
-  const proofToolPaths = [
-    ...(await readdir(resolve(root, proofToolDirectory)))
-      .filter((name) => /^(?:run-local-.*|reset-local-convex)\.(?:mts|ps1)$/u.test(name))
-      .map((name) => `${proofToolDirectory}/${name}`),
-    `${proofToolDirectory}/local.credentials.json`,
-    `${proofToolDirectory}/local.application.env`
-  ].sort()
-  const proofToolBaseline = await fileChecksums(proofToolPaths)
   const packageMetadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
   const sourceStart = await sourceIdentity()
   let selectedStages = stages
@@ -876,9 +921,9 @@ async function main() {
       if (
         relativePath.startsWith('..') ||
         isAbsolute(relativePath) ||
-        !relativePath.startsWith('.codex/validation/')
+        !relativePath.startsWith('local-validation/')
       ) {
-        throw new Error('The provenance manifest must be retained under .codex/validation/.')
+        throw new Error('The provenance manifest must be retained under local-validation/.')
       }
       if (visitedProvenance.has(relativePath)) {
         throw new Error('The provenance manifest chain contains a cycle.')
@@ -964,7 +1009,7 @@ async function main() {
     promotionContract,
     provenance,
     startedAt: new Date().toISOString(),
-    source: { start: sourceStart, proofTools: { start: proofToolBaseline } },
+    source: { start: sourceStart },
     stages: []
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
@@ -972,17 +1017,10 @@ async function main() {
   const verifySourceEnd = async () => {
     const end = await sourceIdentity()
     manifest.source.end = end
-    const proofToolPathsAtEnd = [
-      ...(await readdir(resolve(root, proofToolDirectory)))
-        .filter((name) => /^(?:run-local-.*|reset-local-convex)\.(?:mts|ps1)$/u.test(name))
-        .map((name) => `${proofToolDirectory}/${name}`),
-      `${proofToolDirectory}/local.credentials.json`,
-      `${proofToolDirectory}/local.application.env`
-    ].sort()
-    const proofToolEnd = await fileChecksums(proofToolPathsAtEnd)
-    manifest.source.proofTools.end = proofToolEnd
-    if (JSON.stringify(proofToolBaseline) !== JSON.stringify(proofToolEnd))
-      throw new Error('Ignored local proof tools or credentials changed during validation.')
+    // The proof and reset scripts are source; the ignored local environment is checked here.
+    const localEnvironmentEnd = await readFile(resolve(root, localEnvironment.path), 'utf8')
+    if (checksum(localEnvironmentEnd) !== localEnvironment.sha256)
+      throw new Error('The ignored local environment file changed during validation.')
     if (JSON.stringify(manifest.source.start) !== JSON.stringify(end)) {
       manifest.source.error = 'Source identity changed during validation.'
       throw new Error(
@@ -1044,11 +1082,11 @@ async function main() {
       }
       if (current.proofName) entry.proofEvidence = await readLocalProofEvidence(current.proofName)
       if (current.name === 'convex-reset') {
-        const resetStem = `.codex/validation/local-convex-linux-20260915/r08-reset-${releaseProofAttempt}`
+        const resetStem = `${localResetDirectory}/r08-reset-${releaseProofAttempt}`
         const reset = JSON.parse(await readFile(resolve(root, `${resetStem}.reset.json`), 'utf8'))
         if (
           reset.status !== 'passed' ||
-          reset.target !== 'phase82-local-linux' ||
+          reset.target !== localConvex.instance ||
           reset.clearedTableCount !== reset.plannedTables?.length
         ) {
           throw new Error('The local reset did not complete its table audit.')
@@ -1063,6 +1101,7 @@ async function main() {
         }
       }
       if (current.name === 'r08-browser-vtt-browser') {
+        // Written by apps/apis/tests/developmentVttBrowser.ts, which still owns this output folder.
         const source = resolve(root, '.codex/validation/phase82-vtt-browser/playwright.log')
         const timingPath = resolve(artifactDirectory, 'r08-browser-vtt-browser.playwright.log')
         if ((await stat(source)).mtimeMs < stageStart - 2000) {
