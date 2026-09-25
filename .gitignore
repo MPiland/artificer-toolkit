@@ -38,8 +38,6 @@ tmp/
 apps/*/.impeccable/live/*.json
 apps/web/.tanstack/tmp/
 /codex/validation/
-# Retired local Supabase CLI state; contains generated secrets.
-/supabase/.temp/
 
 # Editor directories and files
 .vscode/*
