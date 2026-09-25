@@ -27,6 +27,7 @@ import { sceneStoredUndoCommandSchema } from '@artificer-toolkit/schema/projecti
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { action, internalQuery, type MutationCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
+import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { parseFogLayer, parseFogSave } from './fogDocuments'
 import {
   parseGeometryCommand,
@@ -637,15 +638,19 @@ export async function publishResolvedUndoCommand(
 export const finish = internalMutation({
   args: zodToConvexFields(sceneUndoFinishInputSchema.shape),
   returns: zodToConvex(sceneUndoCommandResultSchema),
-  handler: (ctx, args): Promise<SceneUndoCommandResult> =>
-    finishUndo(ctx, sceneUndoFinishInputSchema.parse(args), false)
+  handler: async (ctx, args): Promise<SceneUndoCommandResult> => {
+    await consumeSceneWriteRateLimit(ctx)
+    return finishUndo(ctx, sceneUndoFinishInputSchema.parse(args), false)
+  }
 })
 
 export const executeFast = mutation({
   args: zodToConvexFields(sceneUndoExecuteInputSchema.shape),
   returns: zodToConvex(sceneUndoCommandResultSchema),
-  handler: (ctx, args): Promise<SceneUndoCommandResult> =>
-    finishUndo(ctx, sceneUndoExecuteInputSchema.parse(args), true)
+  handler: async (ctx, args): Promise<SceneUndoCommandResult> => {
+    await consumeSceneWriteRateLimit(ctx)
+    return finishUndo(ctx, sceneUndoExecuteInputSchema.parse(args), true)
+  }
 })
 
 const prepareReference = makeFunctionReference<

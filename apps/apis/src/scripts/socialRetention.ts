@@ -12,7 +12,7 @@ import {
 } from '@artificer-toolkit/schema/api/socialRetention'
 
 const execute = promisify(execFile)
-const phases = ['INVITATIONS', 'REPORTS', 'APPLICATIONS', 'RATE_WINDOWS'] as const
+const phases = ['INVITATIONS', 'REPORTS', 'APPLICATIONS'] as const
 const workspace = fileURLToPath(new URL('../..', import.meta.url))
 
 type Environment = NodeJS.ProcessEnv

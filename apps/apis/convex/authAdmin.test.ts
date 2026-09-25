@@ -1,6 +1,7 @@
 import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, describe, expect, it } from 'vitest'
 import { api, components, internal } from './_generated/api'
 import { createAuth, createAuthOptions } from './authFactory.helper'
@@ -24,6 +25,7 @@ const setRoleReference = makeFunctionReference<
 async function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const user = await t.run(async (ctx) =>
     ctx.runMutation(components.betterAuth.adapter.create, {
       input: {

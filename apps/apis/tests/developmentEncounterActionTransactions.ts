@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import {
   automaticChargedBiteEffectId,
   automaticChargedBiteFeatureId
@@ -68,7 +68,7 @@ export async function verifyEncounterActionTransactions({
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
-    let started = await owner.mutation(api.encounters.commands.execute, {
+    let started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -83,7 +83,7 @@ export async function verifyEncounterActionTransactions({
         throw new Error('V14 action fixture requested an unexpected initiative continuation.')
       const entityId = pending.optionIds[0]
       if (!entityId) throw new Error('V14 action fixture has no initiative choice.')
-      started = await owner.mutation(api.encounters.commands.execute, {
+      started = await owner.mutation(executeEncounterCommand, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: run.id,
@@ -107,7 +107,7 @@ export async function verifyEncounterActionTransactions({
         ? active
         : encounterGmProjectionDtoSchema.parse(
             (
-              await owner.mutation(api.encounters.commands.execute, {
+              await owner.mutation(executeEncounterCommand, {
                 command: {
                   type: 'SET_CURRENT_ACTOR',
                   encounterId: active.id,
@@ -162,12 +162,12 @@ export async function verifyEncounterActionTransactions({
   ] as const
   const [duplicate, results] = await Promise.all([
     Promise.all([
-      owner.mutation(api.encounters.commands.execute, duplicateInput),
-      peer.mutation(api.encounters.commands.execute, duplicateInput)
+      owner.mutation(executeEncounterCommand, duplicateInput),
+      peer.mutation(executeEncounterCommand, duplicateInput)
     ]),
     Promise.allSettled([
-      owner.mutation(api.encounters.commands.execute, contenders[0]),
-      peer.mutation(api.encounters.commands.execute, contenders[1])
+      owner.mutation(executeEncounterCommand, contenders[0]),
+      peer.mutation(executeEncounterCommand, contenders[1])
     ])
   ])
   assert.deepEqual(duplicate[0], duplicate[1])
@@ -198,10 +198,7 @@ export async function verifyEncounterActionTransactions({
     1,
     'Concurrent duplicates may create only one action receipt.'
   )
-  assert.deepEqual(
-    await owner.mutation(api.encounters.commands.execute, duplicateInput),
-    duplicate[0]
-  )
+  assert.deepEqual(await owner.mutation(executeEncounterCommand, duplicateInput), duplicate[0])
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id }),
     duplicateRun
@@ -244,7 +241,7 @@ export async function verifyEncounterActionTransactions({
     'Only the winning action may create a receipt.'
   )
   assert.deepEqual(
-    await owner.mutation(api.encounters.commands.execute, contenders[winnerIndex]),
+    await owner.mutation(executeEncounterCommand, contenders[winnerIndex]),
     winner.value
   )
   assert.deepEqual(
@@ -275,10 +272,7 @@ export async function verifyEncounterActionTransactions({
       sceneContext: winnerCommand.sceneContext
     }
   }
-  await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, changedPayload),
-    /different input/
-  )
+  await assert.rejects(owner.mutation(executeEncounterCommand, changedPayload), /different input/)
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, {
       encounterId: contentionFixture.run.id

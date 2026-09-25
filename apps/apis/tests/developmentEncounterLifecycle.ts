@@ -14,7 +14,7 @@ import type {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { createEncounterLifecycleScenes } from './developmentEncounterScenes'
 
 export const bindScene = makeFunctionReference<
@@ -110,7 +110,7 @@ export async function verifyEncounterLifecycle({
   })
   async function execute(command: EncounterExecuteInput['command']) {
     const result = encounterCommandResultDtoSchema.parse(
-      await owner.mutation(api.encounters.commands.execute, { command })
+      await owner.mutation(executeEncounterCommand, { command })
     )
     projection = encounterGmProjectionDtoSchema.parse(result.projection)
     assert.equal(projection.version, command.expectedVersion + 1)
@@ -153,11 +153,11 @@ export async function verifyEncounterLifecycle({
   )
   const start = { ...commandBase(), type: 'START' as const }
   await assert.rejects(
-    player.mutation(api.encounters.commands.execute, { command: start }),
+    player.mutation(executeEncounterCommand, { command: start }),
     /Campaign not found/
   )
   await assert.rejects(
-    anonymous.mutation(api.encounters.commands.execute, { command: start }),
+    anonymous.mutation(executeEncounterCommand, { command: start }),
     /Unauthenticated/
   )
   await execute(start)
@@ -184,7 +184,7 @@ export async function verifyEncounterLifecycle({
   await execute({ ...commandBase(), type: 'SET_CURRENT_ACTOR', actorId: null })
   const noCursor = projection
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: { ...commandBase(), type: 'ADVANCE_TURN' }
     }),
     /current actor can advance/
@@ -329,19 +329,19 @@ export async function verifyEncounterLifecycle({
   })
   for (const receipt of receipts) {
     assert.deepEqual(
-      await owner.mutation(api.encounters.commands.execute, { command: receipt.command }),
+      await owner.mutation(executeEncounterCommand, { command: receipt.command }),
       receipt.result
     )
   }
   assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: { ...start, expectedVersion: projection.version }
     }),
     /different input/
   )
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: { ...commandBase(), type: 'ADVANCE_TURN' }
     }),
     /Completed/

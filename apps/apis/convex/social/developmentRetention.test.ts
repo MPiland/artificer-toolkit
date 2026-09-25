@@ -6,7 +6,6 @@ import type {
   SocialRetentionPreviewInput,
   SocialRetentionPreviewResult
 } from '@artificer-toolkit/schema/api/socialRetention'
-import { socialStoredRateLimitSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { socialStoredModerationActionSchema } from '@artificer-toolkit/schema/projections/socialModerationPersistence'
 import { api, components } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/socialAdmission'
@@ -76,7 +75,7 @@ describe('development Social retention fixture pages', () => {
         userIds: [nonfixture.owner.userId, nonfixture.other.userId],
         campaignId: nonfixture.campaign.id,
         input: {
-          phase: 'RATE_WINDOWS',
+          phase: 'INVITATIONS',
           asOf,
           paginationOpts: { cursor: null, numItems: 8 }
         }
@@ -88,7 +87,7 @@ describe('development Social retention fixture pages', () => {
         ...base.args,
         userIds: [base.owner.userId, base.owner.userId],
         input: {
-          phase: 'RATE_WINDOWS',
+          phase: 'INVITATIONS',
           asOf,
           paginationOpts: { cursor: null, numItems: 8 }
         }
@@ -99,7 +98,7 @@ describe('development Social retention fixture pages', () => {
         ...base.args,
         userIds: [base.owner.userId, base.other.userId, crypto.randomUUID()],
         input: {
-          phase: 'RATE_WINDOWS',
+          phase: 'INVITATIONS',
           asOf,
           paginationOpts: { cursor: null, numItems: 8 }
         }
@@ -110,7 +109,7 @@ describe('development Social retention fixture pages', () => {
         ...base.args,
         userIds: Array.from({ length: 5 }, () => crypto.randomUUID()),
         input: {
-          phase: 'RATE_WINDOWS',
+          phase: 'INVITATIONS',
           asOf,
           paginationOpts: { cursor: null, numItems: 8 }
         }
@@ -121,27 +120,33 @@ describe('development Social retention fixture pages', () => {
   it('rejects a foreign eligible page atomically', async () => {
     const base = await setup()
     await base.t.run(async (ctx) => {
-      for (const userId of [base.owner.userId, crypto.randomUUID()])
-        await ctx.db.insert(
-          'socialActionRateLimits',
-          socialStoredRateLimitSchema.parse({
-            userId,
-            action: 'REPORT',
-            window: 'DAY',
-            windowStartedAt: '2026-01-01T00:00:00.000Z',
-            count: 1
-          })
-        )
+      const invite = await ctx.db
+        .query('campaignInvites')
+        .withIndex('by_publicId', (q) => q.eq('id', base.acceptedInviteId))
+        .unique()
+      if (!invite) throw new Error('Missing accepted invitation.')
+      const { _id, _creationTime, ...stored } = invite
+      const expired = {
+        respondedAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }
+      await ctx.db.patch(invite._id, expired)
+      await ctx.db.insert('campaignInvites', {
+        ...stored,
+        ...expired,
+        id: crypto.randomUUID(),
+        recipientUserId: crypto.randomUUID()
+      })
     })
     const before = await base.t.run(async (ctx) => ({
-      rates: await ctx.db.query('socialActionRateLimits').collect(),
+      invites: await ctx.db.query('campaignInvites').collect(),
       jobs: await ctx.db.system.query('_scheduled_functions').collect()
     }))
     expect(
       await base.t.query(previewFixturePage, {
         ...base.args,
         input: {
-          phase: 'RATE_WINDOWS',
+          phase: 'INVITATIONS',
           asOf,
           paginationOpts: { cursor: null, numItems: 8 }
         }
@@ -150,12 +155,12 @@ describe('development Social retention fixture pages', () => {
     await expect(
       base.t.mutation(applyFixturePage, {
         ...base.args,
-        input: input('RATE_WINDOWS')
+        input: input('INVITATIONS')
       })
     ).rejects.toThrow('Fixture retention page contains foreign records.')
     expect(
       await base.t.run(async (ctx) => ({
-        rates: await ctx.db.query('socialActionRateLimits').collect(),
+        invites: await ctx.db.query('campaignInvites').collect(),
         jobs: await ctx.db.system.query('_scheduled_functions').collect()
       }))
     ).toEqual(before)
@@ -308,7 +313,7 @@ describe('development Social retention fixture pages', () => {
   it('preserves empty-page continuation metadata', async () => {
     const base = await setup()
     const empty: SocialRetentionPreviewInput = {
-      phase: 'RATE_WINDOWS',
+      phase: 'REPORTS',
       asOf,
       paginationOpts: { cursor: null, numItems: 8 }
     }

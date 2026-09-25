@@ -46398,4040 +46398,6 @@ export declare const api: {
         }
       >;
     };
-    commandActions: {
-      execute: FunctionReference<
-        "action",
-        "public",
-        {
-          command:
-            | {
-                actorId: string;
-                characterCommand?:
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      revisionId: string;
-                      type: "UPGRADE_RULE_PACK";
-                    }
-                  | {
-                      adjustment: any | any | any;
-                      commandId: string;
-                      expectedVersion: number;
-                      type: "UPSERT_SHEET_ADJUSTMENT";
-                    }
-                  | {
-                      adjustmentId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      family:
-                        | "ABILITY"
-                        | "SAVING_THROW"
-                        | "SKILL"
-                        | "PASSIVE"
-                        | "SENSE"
-                        | "MOVEMENT"
-                        | "HIT_POINTS"
-                        | "COMPANION"
-                        | "SPELL"
-                        | "ITEM"
-                        | "DEFENSE"
-                        | "PROFICIENCY";
-                      target:
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "ABILITY";
-                          }
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "SAVING_THROW";
-                          }
-                        | { kind: "SKILL"; skillId: string }
-                        | { kind: "SKILLS" }
-                        | {
-                            entry?:
-                              | { kind: "PASSIVE"; skillId: string }
-                              | { kind: "SENSE"; senseId: string };
-                            kind: "SENSES";
-                          }
-                        | { kind: "MOVEMENT" }
-                        | { kind: "HIT_POINTS" }
-                        | { kind: "DEFENSES" }
-                        | { kind: "PROFICIENCIES" }
-                        | {
-                            castLevel?: number;
-                            kind: "SPELL";
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | { kind: "SPELLS" }
-                        | {
-                            featureId: string;
-                            kind: "FEATURE";
-                            sourceInstanceId: string;
-                          }
-                        | { itemInstanceId: string; kind: "ITEM" }
-                        | { kind: "BACKGROUND" }
-                        | {
-                            kind: "RESOURCE";
-                            owner:
-                              | {
-                                  kind: "AUTHORED_GRANT";
-                                  resourceGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  kind: "AUTHORED_SOURCE";
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  kind: "SPELL_SOURCE";
-                                  resourceGrantId: string;
-                                  source: {
-                                    sourceInstanceId: string;
-                                    sourceKind:
-                                      | "BACKGROUND"
-                                      | "CLASS"
-                                      | "FEAT"
-                                      | "FEATURE"
-                                      | "ITEM"
-                                      | "OPTION"
-                                      | "RACE"
-                                      | "SUBCLASS";
-                                    spellId: string;
-                                  };
-                                }
-                              | {
-                                  chargeId: string;
-                                  itemInstanceId: string;
-                                  kind: "ITEM_INSTANCE";
-                                }
-                              | {
-                                  kind: "SENSE_GRANT";
-                                  senseGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  companionInstanceId: string;
-                                  featureId: string;
-                                  kind: "COMPANION_FEATURE";
-                                };
-                          }
-                        | { kind: "EXTRAS" }
-                        | { companionInstanceId: string; kind: "COMPANION" }
-                        | { kind: "VEHICLE"; vehicleInstanceId: string };
-                      type: "REMOVE_SHEET_ADJUSTMENT";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      target:
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "ABILITY";
-                          }
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "SAVING_THROW";
-                          }
-                        | { kind: "SKILL"; skillId: string }
-                        | { kind: "SKILLS" }
-                        | {
-                            entry?:
-                              | { kind: "PASSIVE"; skillId: string }
-                              | { kind: "SENSE"; senseId: string };
-                            kind: "SENSES";
-                          }
-                        | { kind: "MOVEMENT" }
-                        | { kind: "HIT_POINTS" }
-                        | { kind: "DEFENSES" }
-                        | { kind: "PROFICIENCIES" }
-                        | {
-                            castLevel?: number;
-                            kind: "SPELL";
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | { kind: "SPELLS" }
-                        | {
-                            featureId: string;
-                            kind: "FEATURE";
-                            sourceInstanceId: string;
-                          }
-                        | { itemInstanceId: string; kind: "ITEM" }
-                        | { kind: "BACKGROUND" }
-                        | {
-                            kind: "RESOURCE";
-                            owner:
-                              | {
-                                  kind: "AUTHORED_GRANT";
-                                  resourceGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  kind: "AUTHORED_SOURCE";
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  kind: "SPELL_SOURCE";
-                                  resourceGrantId: string;
-                                  source: {
-                                    sourceInstanceId: string;
-                                    sourceKind:
-                                      | "BACKGROUND"
-                                      | "CLASS"
-                                      | "FEAT"
-                                      | "FEATURE"
-                                      | "ITEM"
-                                      | "OPTION"
-                                      | "RACE"
-                                      | "SUBCLASS";
-                                    spellId: string;
-                                  };
-                                }
-                              | {
-                                  chargeId: string;
-                                  itemInstanceId: string;
-                                  kind: "ITEM_INSTANCE";
-                                }
-                              | {
-                                  kind: "SENSE_GRANT";
-                                  senseGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  companionInstanceId: string;
-                                  featureId: string;
-                                  kind: "COMPANION_FEATURE";
-                                };
-                          }
-                        | { kind: "EXTRAS" }
-                        | { companionInstanceId: string; kind: "COMPANION" }
-                        | { kind: "VEHICLE"; vehicleInstanceId: string };
-                      type: "RESET_SHEET_PANEL_ADJUSTMENTS";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      preference:
-                        | { mode: "AUTO" }
-                        | { mode: "EXPLICIT"; speedId: string };
-                      type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
-                    }
-                  | {
-                      commandId: string;
-                      customName?: string | null;
-                      displayAsAttack?: boolean;
-                      expectedVersion: number;
-                      notes?: string | null;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      type: "UPDATE_SPELL_SOURCE_CUSTOMIZATION";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra:
-                        | {
-                            creatureId: string;
-                            kind: "COMPANION" | "MOUNT" | "OWNED";
-                            originKind: "WORLD" | "SUMMONED";
-                          }
-                        | { kind: "VEHICLE"; vehicleId: string };
-                      type: "ADD_SHEET_EXTRA";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra:
-                        | {
-                            currentHitPoints?: number;
-                            customName?: string | null;
-                            equipmentItemIds?: Array<string>;
-                            extraId: string;
-                            hitDice?: Array<{
-                              die: number;
-                              total: number;
-                              used: number;
-                            }>;
-                            isActive?: boolean;
-                            kind: "COMPANION" | "MOUNT" | "OWNED";
-                            notes?: string | null;
-                            tempHitPoints?: number;
-                          }
-                        | {
-                            currentHitPoints?: number;
-                            customName?: string | null;
-                            equipmentItemIds?: Array<string>;
-                            extraId: string;
-                            isActive?: boolean;
-                            kind: "VEHICLE";
-                            notes?: string | null;
-                          };
-                      type: "UPDATE_SHEET_EXTRA";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra: {
-                        extraId: string;
-                        kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
-                      };
-                      type: "REMOVE_SHEET_EXTRA";
-                    }
-                  | {
-                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                      commandId: string;
-                      expectedVersion: number;
-                      mode: "BONUS" | "OVERRIDE";
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      sourceNote?: string;
-                      type: "SET_SPELL_MECHANIC_CUSTOMIZATION";
-                      value: number;
-                    }
-                  | {
-                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                      commandId: string;
-                      expectedVersion: number;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      type: "REMOVE_SPELL_MECHANIC_CUSTOMIZATION";
-                    }
-                  | {
-                      actionId?: string;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      owner:
-                        | {
-                            kind: "AUTHORED_GRANT";
-                            resourceGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            kind: "AUTHORED_SOURCE";
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            kind: "SPELL_SOURCE";
-                            resourceGrantId: string;
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | {
-                            chargeId: string;
-                            itemInstanceId: string;
-                            kind: "ITEM_INSTANCE";
-                          }
-                        | {
-                            kind: "SENSE_GRANT";
-                            senseGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            companionInstanceId: string;
-                            featureId: string;
-                            kind: "COMPANION_FEATURE";
-                          };
-                      type: "USE_SHEET_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      owner:
-                        | {
-                            kind: "AUTHORED_GRANT";
-                            resourceGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            kind: "AUTHORED_SOURCE";
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            kind: "SPELL_SOURCE";
-                            resourceGrantId: string;
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | {
-                            chargeId: string;
-                            itemInstanceId: string;
-                            kind: "ITEM_INSTANCE";
-                          }
-                        | {
-                            kind: "SENSE_GRANT";
-                            senseGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            companionInstanceId: string;
-                            featureId: string;
-                            kind: "COMPANION_FEATURE";
-                          };
-                      trigger:
-                        | "SHORT_REST"
-                        | "LONG_REST"
-                        | "DAWN"
-                        | "DUSK"
-                        | "DAILY"
-                        | "MANUAL";
-                      type: "RECOVER_SHEET_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      inspired: boolean;
-                      type: "SET_INSPIRATION";
-                    }
-                  | {
-                      commandId: string;
-                      current?: number;
-                      expectedVersion: number;
-                      maxOverride?: number | null;
-                      temp?: number;
-                      type: "SET_HIT_POINTS";
-                    }
-                  | {
-                      amount: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      mode: "DAMAGE" | "HEAL";
-                      type: "ADJUST_HIT_POINTS";
-                    }
-                  | {
-                      commandId: string;
-                      die: number;
-                      expectedVersion: number;
-                      type: "USE_HIT_DIE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      healingMode: "AUTOMATIC" | "MANUAL";
-                      manualHealingAccepted: boolean;
-                      previewFingerprint: string;
-                      resetMaximumHitPointModifier: boolean;
-                      restKind: "SHORT" | "LONG";
-                      rollEvidence?: {
-                        expression: string;
-                        terms: Array<{
-                          count: number;
-                          die: number;
-                          modifierPerDie: number;
-                          rolls: Array<number>;
-                        }>;
-                        total: number;
-                      };
-                      rollId?: string;
-                      selectedCompanionInstanceIds: Array<string>;
-                      selectedHitDice: Array<{ count: number; die: number }>;
-                      type: "COMPLETE_REST";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      level: number;
-                      notes?: string;
-                      type: "SET_EXHAUSTION";
-                    }
-                  | {
-                      commandId: string;
-                      conditionTypeId: string;
-                      expectedVersion: number;
-                      notes?: string;
-                      type: "ADD_CONDITION";
-                    }
-                  | {
-                      commandId: string;
-                      conditionTypeId: string;
-                      expectedVersion: number;
-                      type: "REMOVE_CONDITION";
-                    }
-                  | {
-                      actionId?: string;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      resourceGrantId: string;
-                      type: "USE_RESOURCE";
-                    }
-                  | {
-                      all?: boolean;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      resourceGrantId: string;
-                      type: "RESTORE_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey: string;
-                      type: "USE_SPELL_SLOT";
-                    }
-                  | {
-                      all?: boolean;
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey: string;
-                      type: "RESTORE_SPELL_SLOT";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey?: string;
-                      sourceId?: string;
-                      spellId: string;
-                      type: "CAST_SPELL";
-                    }
-                  | {
-                      classId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      spellIds: Array<string>;
-                      type: "SET_PREPARED_SPELLS";
-                    }
-                  | {
-                      classId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      spellIds: Array<string>;
-                      type: "SET_KNOWN_SPELLS";
-                    }
-                  | {
-                      commandId: string;
-                      containerId?: string;
-                      customName?: string;
-                      equipmentId: string;
-                      expectedVersion: number;
-                      notes?: string;
-                      quantity: number;
-                      type: "ADD_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      quantity?: number;
-                      type: "REMOVE_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      containerId?: string | null;
-                      customName?: string | null;
-                      expectedVersion: number;
-                      itemId: string;
-                      notes?: string | null;
-                      quantity?: number;
-                      type: "UPDATE_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "EQUIP_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "UNEQUIP_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "ATTUNE_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "UNATTUNE_ITEM";
-                    }
-                  | {
-                      amount: number;
-                      campaignCurrencySystemId?: string;
-                      commandId: string;
-                      containerId?: string;
-                      currencyId: string;
-                      expectedVersion: number;
-                      kind?: "RULESET" | "CAMPAIGN";
-                      type: "ADJUST_CURRENCY";
-                    }
-                  | {
-                      amount: number;
-                      campaignCurrencySystemId?: string;
-                      commandId: string;
-                      currencyId: string;
-                      expectedVersion: number;
-                      fromContainerId?: string;
-                      kind?: "RULESET" | "CAMPAIGN";
-                      toContainerId?: string;
-                      type: "MOVE_CURRENCY";
-                    }
-                  | {
-                      body?: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      pinned?: boolean;
-                      title: string;
-                      type: "CREATE_NOTE";
-                    }
-                  | {
-                      body?: string | null;
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId?: string;
-                      noteId: string;
-                      pinned?: boolean;
-                      title?: string;
-                      type: "UPDATE_NOTE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      noteId: string;
-                      type: "DELETE_NOTE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      label: string;
-                      type: "CREATE_NOTE_GROUP";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      label?: string;
-                      sortOrder?: number;
-                      type: "UPDATE_NOTE_GROUP";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      type: "DELETE_NOTE_GROUP";
-                    };
-                commandId: string;
-                conditions?:
-                  | string
-                  | number
-                  | boolean
-                  | null
-                  | Array<any>
-                  | Record<string, any>;
-                currentHitPoints?: number;
-                encounterId: string;
-                expectedVersion: number;
-                gmNotes?: string | null;
-                public?: boolean;
-                sideId?: string;
-                tempHitPoints?: number;
-                type: "UPDATE_ACTOR";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REMOVE_ACTOR";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                enemy:
-                  | { kind: "CREATURE"; sourceId: string }
-                  | { kind: "CUSTOM"; label: string; maxHitPoints: number };
-                expectedVersion: number;
-                initiative?: number | null;
-                public?: boolean;
-                sideId?: string;
-                type: "REINFORCE";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                equipmentId: string;
-                expectedVersion: number;
-                loadoutEntryId: string;
-                type: "REPLACE_CREATURE_EQUIPMENT";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                initiative: number;
-                manualOrder?: number | null;
-                type: "SET_INITIATIVE";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "ROLL_ACTOR_INITIATIVE";
-              }
-            | {
-                actorIds: Array<string>;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REORDER";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                systemId?: string;
-                type: "START";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "ADVANCE_TURN";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "PREVIOUS_TURN";
-              }
-            | {
-                actorId: string | null;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "SET_CURRENT_ACTOR";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                round: number;
-                type: "SET_ROUND";
-              }
-            | {
-                commandId: string;
-                definitionIds: Array<string>;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REPLACE_OPTIONAL_COMBAT_RULES";
-              }
-            | {
-                actorId: string;
-                amount?: number;
-                commandId: string;
-                direction: "USE" | "RESTORE";
-                encounterId: string;
-                expectedVersion: number;
-                featureId: string;
-                type: "ADJUST_FEATURE_RESOURCE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                reminder: {
-                  actorId?: string | null;
-                  id?: string;
-                  label: string;
-                  notes?: string | null;
-                  order?: number;
-                  public?: boolean;
-                  round?: number | null;
-                  timing:
-                    | "ROUND_START"
-                    | "ROUND_END"
-                    | "ROUND_NUMBER"
-                    | "TURN_START"
-                    | "TURN_END";
-                };
-                type: "UPSERT_REMINDER";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                reminderId: string;
-                type: "REMOVE_REMINDER";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                featureId: string;
-                rollDefinitionId: string;
-                type: "ROLL_ENEMY_ACTION";
-                visibility: "PRIVATE" | "TABLE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "COMPLETE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
-            | {
-                actionId: string;
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                optionalCombatIntent?: {
-                  definitionId: string;
-                  optionId: string;
-                  selectionContract: string;
-                  selections: Array<{
-                    fieldId: string;
-                    value:
-                      | { entityId: string; kind: "ENTITY" }
-                      | {
-                          kind: "POSITION";
-                          position: { x: number; y: number };
-                        };
-                  }>;
-                } | null;
-                sceneContext?: {
-                  expectedSceneVersion: number;
-                  sceneId: string;
-                  sourceTokenId: string;
-                  targetTokenId: string;
-                } | null;
-                targetActorId: string;
-                type: "RESOLVE_ACTION";
-              }
-            | {
-                commandId: string;
-                correlationId?: string | null;
-                encounterId: string;
-                expectedOccurrenceVersion: number;
-                expectedVersion: number;
-                occurrenceId: string;
-                resolution:
-                  | {
-                      kind: "ENTER_DICE";
-                      rawFaces: Array<number>;
-                      requestId: string;
-                    }
-                  | { kind: "SYSTEM_ROLL"; requestId: string }
-                  | { kind: "ENTER_INTEGER"; requestId: string; value: number }
-                  | {
-                      entityId: string;
-                      kind: "INITIATIVE_ENTITY";
-                      requestId: string;
-                    }
-                  | {
-                      bonus:
-                        | {
-                            kind:
-                              | "CHARACTER_ACTION"
-                              | "CHARACTER_SPELL_CAST"
-                              | "CREATURE_FEATURE_ACTION";
-                            optionId: string;
-                          }
-                        | {
-                            actionFactors: Array<
-                              | "MELEE_HEAVY"
-                              | "MELEE_LIGHT_OR_FINESSE"
-                              | "MELEE_TWO_HANDED"
-                              | "RANGED_LOADING"
-                            >;
-                            actorSize:
-                              | "COLOSSAL"
-                              | "DIMUNITIVE"
-                              | "FINE"
-                              | "GARGANTUAN"
-                              | "GIANT"
-                              | "HUGE"
-                              | "LARGE"
-                              | "MEDIUM"
-                              | "SMALL"
-                              | "TINY";
-                            kind: "GM_ADJUDICATED";
-                            optionId: "GM_ADJUDICATED";
-                            spellLevel: number | null;
-                          }
-                        | null;
-                      kind: "INITIATIVE_DECLARATION";
-                      primary:
-                        | {
-                            kind:
-                              | "CHARACTER_ACTION"
-                              | "CHARACTER_SPELL_CAST"
-                              | "CREATURE_FEATURE_ACTION";
-                            optionId: string;
-                          }
-                        | {
-                            actionFactors: Array<
-                              | "MELEE_HEAVY"
-                              | "MELEE_LIGHT_OR_FINESSE"
-                              | "MELEE_TWO_HANDED"
-                              | "RANGED_LOADING"
-                            >;
-                            actorSize:
-                              | "COLOSSAL"
-                              | "DIMUNITIVE"
-                              | "FINE"
-                              | "GARGANTUAN"
-                              | "GIANT"
-                              | "HUGE"
-                              | "LARGE"
-                              | "MEDIUM"
-                              | "SMALL"
-                              | "TINY";
-                            kind: "GM_ADJUDICATED";
-                            optionId: "GM_ADJUDICATED";
-                            spellLevel: number | null;
-                          };
-                      requestId: string;
-                    }
-                  | { kind: "DECLINE" }
-                  | { kind: "OPTION"; optionId: string }
-                  | { kind: "PASSAGE_DECLINE" }
-                  | { kind: "PASSAGE_OPTION"; optionId: string };
-                type: "RESOLVE_RULE_OCCURRENCE";
-              };
-        },
-        {
-          occurrence?: {
-            occurrenceId: string;
-            occurrenceVersion: number;
-            outcome: "SAVE_SUCCESS" | "SAVE_FAILURE" | null;
-            pending:
-              | {
-                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "D20_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: {
-                    max: 20;
-                    min: 1;
-                    requestId: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  };
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "ACTION_OUTCOME_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: number; min: number; requestId: string };
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  choice: {
-                    options: Array<{
-                      actionId: string;
-                      actionSourceKind:
-                        "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                      optionId: string;
-                    }>;
-                    pathDistance: number;
-                    reactorActorId: string;
-                    reactorTokenId: string;
-                  };
-                  encounterVersion: number;
-                  kind: "MOVEMENT_REACTION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "LEGENDARY_RESISTANCE_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{ optionId: string }>;
-                  targetActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "LEGENDARY_ACTION_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{
-                    actionId: string;
-                    optionId: string;
-                    ownerFeatureId: string;
-                    targetActorId: string;
-                  }>;
-                  ownerActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "OPTIONAL_COMBAT_CLEAVING";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{ optionId: string; targetActorId: string }>;
-                  sourceActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "MOVEMENT_PASSAGE_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{
-                    economy: "ACTION" | "BONUS_ACTION";
-                    optionId: string;
-                    ruleKind: "OVERRUN" | "TUMBLE";
-                  }>;
-                  sourceActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "INITIATIVE_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: number; min: number; requestId: string };
-                }
-              | {
-                  actorId: string;
-                  adjudicationFields: Array<
-                    | {
-                        key: "actorSize";
-                        kind: "SELECT";
-                        label: string;
-                        options: Array<{ label: string; value: string }>;
-                        required: true;
-                      }
-                    | {
-                        key: "actionFactors";
-                        kind: "MULTI_SELECT";
-                        label: string;
-                        maximumSelections: number;
-                        minimumSelections: number;
-                        options: Array<{ label: string; value: string }>;
-                      }
-                    | {
-                        key: "spellLevel";
-                        kind: "NULLABLE_INTEGER";
-                        label: string;
-                        maximum: number;
-                        minimum: number;
-                      }
-                  >;
-                  allowedResponses: Array<"INITIATIVE_DECLARATION">;
-                  bonusOptions: Array<{
-                    kind:
-                      | "CHARACTER_ACTION"
-                      | "CHARACTER_SPELL_CAST"
-                      | "CREATURE_FEATURE_ACTION"
-                      | "GM_ADJUDICATED";
-                    label: string;
-                    optionId: string;
-                    selectionContract: string;
-                  }>;
-                  encounterVersion: number;
-                  kind: "INITIATIVE_DECLARATION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  primaryOptions: Array<{
-                    kind:
-                      | "CHARACTER_ACTION"
-                      | "CHARACTER_SPELL_CAST"
-                      | "CREATURE_FEATURE_ACTION"
-                      | "GM_ADJUDICATED";
-                    label: string;
-                    optionId: string;
-                    selectionContract: string;
-                  }>;
-                  requestId: string;
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "RECHARGE_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: 6; min: 1; requestId: string };
-                }
-              | {
-                  allowedResponses: Array<"INITIATIVE_ENTITY">;
-                  encounterVersion: number;
-                  entityKind: "ACTOR" | "SIDE";
-                  kind: "INITIATIVE_ORDER";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  optionIds: Array<string>;
-                  requestId: string;
-                }
-              | null;
-            status: "PENDING" | "COMPLETE";
-          } | null;
-          projection:
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  currentHitPoints: number;
-                  encounterId: string;
-                  features?: Array<{
-                    description: string;
-                    id: string;
-                    label: string;
-                    resource?: {
-                      maximum: number;
-                      remaining: number;
-                      resetKind:
-                        | "DAILY"
-                        | "DAWN"
-                        | "DUSK"
-                        | "LONG_REST"
-                        | "SHORT_REST"
-                        | "MANUAL";
-                      used: number;
-                    } | null;
-                    rollDefinitions?: Array<{
-                      chargeCost?: number | null;
-                      expression: {
-                        count: number;
-                        die: number;
-                        modifier: number;
-                      };
-                      id: string;
-                      kind:
-                        | "ATTACK"
-                        | "DAMAGE"
-                        | "HEALING"
-                        | "ABILITY_CHECK"
-                        | "SAVING_THROW";
-                      label: string;
-                      order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                    }>;
-                    section?:
-                      | "TRAIT"
-                      | "ACTION"
-                      | "BONUS_ACTION"
-                      | "REACTION"
-                      | "LEGENDARY_ACTION"
-                      | "LAIR_ACTION"
-                      | "REGIONAL_EFFECT"
-                      | "OTHER";
-                  }>;
-                  gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  maxHitPoints: number;
-                  public: boolean;
-                  resources:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                  stableTieKey: string;
-                  statBlock: {
-                    abilityScores: Record<string, number> | null;
-                    armorClass: number | null;
-                    conditionImmunities: Array<string>;
-                    damageImmunities: Array<string>;
-                    damageResistances: Array<string>;
-                    damageVulnerabilities: Array<string>;
-                    senses: Array<string>;
-                    speeds: Array<any>;
-                  } | null;
-                  systemId: string | null;
-                  tempHitPoints: number;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                reminders?: Array<{
-                  actorId: string | null;
-                  id: string;
-                  label: string;
-                  notes: string | null;
-                  order: number;
-                  public: boolean;
-                  round: number | null;
-                  timing:
-                    | "ROUND_START"
-                    | "ROUND_END"
-                    | "ROUND_NUMBER"
-                    | "TURN_START"
-                    | "TURN_END";
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              }
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  public: boolean;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
-          roll: {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              modifier: number;
-              subtotal: number;
-              terms: Array<{
-                count: number;
-                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                keptRollIndex?: number;
-                keptRollIndexes?: Array<number>;
-                modifier?: number;
-                rollSequences?: Array<Array<number>>;
-                rolls: Array<number>;
-                subtotal: number;
-              }>;
-              total: number;
-              transform:
-                | { kind: "NONE" }
-                | { kind: "HALF" }
-                | { kind: "DOUBLE" }
-                | { kind: "MULTIPLY"; value: number };
-            };
-            id: string;
-            normalizedExpression: string;
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          } | null;
-        }
-      >;
-    };
-    commands: {
-      execute: FunctionReference<
-        "mutation",
-        "public",
-        {
-          command:
-            | {
-                actorId: string;
-                characterCommand?:
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      revisionId: string;
-                      type: "UPGRADE_RULE_PACK";
-                    }
-                  | {
-                      adjustment: any | any | any;
-                      commandId: string;
-                      expectedVersion: number;
-                      type: "UPSERT_SHEET_ADJUSTMENT";
-                    }
-                  | {
-                      adjustmentId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      family:
-                        | "ABILITY"
-                        | "SAVING_THROW"
-                        | "SKILL"
-                        | "PASSIVE"
-                        | "SENSE"
-                        | "MOVEMENT"
-                        | "HIT_POINTS"
-                        | "COMPANION"
-                        | "SPELL"
-                        | "ITEM"
-                        | "DEFENSE"
-                        | "PROFICIENCY";
-                      target:
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "ABILITY";
-                          }
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "SAVING_THROW";
-                          }
-                        | { kind: "SKILL"; skillId: string }
-                        | { kind: "SKILLS" }
-                        | {
-                            entry?:
-                              | { kind: "PASSIVE"; skillId: string }
-                              | { kind: "SENSE"; senseId: string };
-                            kind: "SENSES";
-                          }
-                        | { kind: "MOVEMENT" }
-                        | { kind: "HIT_POINTS" }
-                        | { kind: "DEFENSES" }
-                        | { kind: "PROFICIENCIES" }
-                        | {
-                            castLevel?: number;
-                            kind: "SPELL";
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | { kind: "SPELLS" }
-                        | {
-                            featureId: string;
-                            kind: "FEATURE";
-                            sourceInstanceId: string;
-                          }
-                        | { itemInstanceId: string; kind: "ITEM" }
-                        | { kind: "BACKGROUND" }
-                        | {
-                            kind: "RESOURCE";
-                            owner:
-                              | {
-                                  kind: "AUTHORED_GRANT";
-                                  resourceGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  kind: "AUTHORED_SOURCE";
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  kind: "SPELL_SOURCE";
-                                  resourceGrantId: string;
-                                  source: {
-                                    sourceInstanceId: string;
-                                    sourceKind:
-                                      | "BACKGROUND"
-                                      | "CLASS"
-                                      | "FEAT"
-                                      | "FEATURE"
-                                      | "ITEM"
-                                      | "OPTION"
-                                      | "RACE"
-                                      | "SUBCLASS";
-                                    spellId: string;
-                                  };
-                                }
-                              | {
-                                  chargeId: string;
-                                  itemInstanceId: string;
-                                  kind: "ITEM_INSTANCE";
-                                }
-                              | {
-                                  kind: "SENSE_GRANT";
-                                  senseGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  companionInstanceId: string;
-                                  featureId: string;
-                                  kind: "COMPANION_FEATURE";
-                                };
-                          }
-                        | { kind: "EXTRAS" }
-                        | { companionInstanceId: string; kind: "COMPANION" }
-                        | { kind: "VEHICLE"; vehicleInstanceId: string };
-                      type: "REMOVE_SHEET_ADJUSTMENT";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      target:
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "ABILITY";
-                          }
-                        | {
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
-                            kind: "SAVING_THROW";
-                          }
-                        | { kind: "SKILL"; skillId: string }
-                        | { kind: "SKILLS" }
-                        | {
-                            entry?:
-                              | { kind: "PASSIVE"; skillId: string }
-                              | { kind: "SENSE"; senseId: string };
-                            kind: "SENSES";
-                          }
-                        | { kind: "MOVEMENT" }
-                        | { kind: "HIT_POINTS" }
-                        | { kind: "DEFENSES" }
-                        | { kind: "PROFICIENCIES" }
-                        | {
-                            castLevel?: number;
-                            kind: "SPELL";
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | { kind: "SPELLS" }
-                        | {
-                            featureId: string;
-                            kind: "FEATURE";
-                            sourceInstanceId: string;
-                          }
-                        | { itemInstanceId: string; kind: "ITEM" }
-                        | { kind: "BACKGROUND" }
-                        | {
-                            kind: "RESOURCE";
-                            owner:
-                              | {
-                                  kind: "AUTHORED_GRANT";
-                                  resourceGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  kind: "AUTHORED_SOURCE";
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  kind: "SPELL_SOURCE";
-                                  resourceGrantId: string;
-                                  source: {
-                                    sourceInstanceId: string;
-                                    sourceKind:
-                                      | "BACKGROUND"
-                                      | "CLASS"
-                                      | "FEAT"
-                                      | "FEATURE"
-                                      | "ITEM"
-                                      | "OPTION"
-                                      | "RACE"
-                                      | "SUBCLASS";
-                                    spellId: string;
-                                  };
-                                }
-                              | {
-                                  chargeId: string;
-                                  itemInstanceId: string;
-                                  kind: "ITEM_INSTANCE";
-                                }
-                              | {
-                                  kind: "SENSE_GRANT";
-                                  senseGrantId: string;
-                                  source:
-                                    | {
-                                        definitionId: string;
-                                        kind: "AUTHORED";
-                                        sourceInstanceId: string;
-                                        sourceKind:
-                                          | "ANCESTRY"
-                                          | "BACKGROUND"
-                                          | "CLASS"
-                                          | "FEAT"
-                                          | "FEATURE"
-                                          | "OPTION"
-                                          | "RACE"
-                                          | "SPELL"
-                                          | "SUBRACE"
-                                          | "SUBCLASS";
-                                      }
-                                    | {
-                                        equipmentId: string;
-                                        itemInstanceId: string;
-                                        kind: "EQUIPMENT_INSTANCE";
-                                      }
-                                    | {
-                                        companionInstanceId: string;
-                                        creatureId: string;
-                                        kind: "COMPANION_INSTANCE";
-                                      }
-                                    | { kind: "SYSTEM"; systemId: string }
-                                    | {
-                                        adjustmentId: string;
-                                        kind: "MANUAL_ADJUSTMENT";
-                                      };
-                                }
-                              | {
-                                  chargeId: string;
-                                  companionInstanceId: string;
-                                  featureId: string;
-                                  kind: "COMPANION_FEATURE";
-                                };
-                          }
-                        | { kind: "EXTRAS" }
-                        | { companionInstanceId: string; kind: "COMPANION" }
-                        | { kind: "VEHICLE"; vehicleInstanceId: string };
-                      type: "RESET_SHEET_PANEL_ADJUSTMENTS";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      preference:
-                        | { mode: "AUTO" }
-                        | { mode: "EXPLICIT"; speedId: string };
-                      type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
-                    }
-                  | {
-                      commandId: string;
-                      customName?: string | null;
-                      displayAsAttack?: boolean;
-                      expectedVersion: number;
-                      notes?: string | null;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      type: "UPDATE_SPELL_SOURCE_CUSTOMIZATION";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra:
-                        | {
-                            creatureId: string;
-                            kind: "COMPANION" | "MOUNT" | "OWNED";
-                            originKind: "WORLD" | "SUMMONED";
-                          }
-                        | { kind: "VEHICLE"; vehicleId: string };
-                      type: "ADD_SHEET_EXTRA";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra:
-                        | {
-                            currentHitPoints?: number;
-                            customName?: string | null;
-                            equipmentItemIds?: Array<string>;
-                            extraId: string;
-                            hitDice?: Array<{
-                              die: number;
-                              total: number;
-                              used: number;
-                            }>;
-                            isActive?: boolean;
-                            kind: "COMPANION" | "MOUNT" | "OWNED";
-                            notes?: string | null;
-                            tempHitPoints?: number;
-                          }
-                        | {
-                            currentHitPoints?: number;
-                            customName?: string | null;
-                            equipmentItemIds?: Array<string>;
-                            extraId: string;
-                            isActive?: boolean;
-                            kind: "VEHICLE";
-                            notes?: string | null;
-                          };
-                      type: "UPDATE_SHEET_EXTRA";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      extra: {
-                        extraId: string;
-                        kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
-                      };
-                      type: "REMOVE_SHEET_EXTRA";
-                    }
-                  | {
-                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                      commandId: string;
-                      expectedVersion: number;
-                      mode: "BONUS" | "OVERRIDE";
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      sourceNote?: string;
-                      type: "SET_SPELL_MECHANIC_CUSTOMIZATION";
-                      value: number;
-                    }
-                  | {
-                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
-                      commandId: string;
-                      expectedVersion: number;
-                      source: {
-                        sourceInstanceId: string;
-                        sourceKind:
-                          | "BACKGROUND"
-                          | "CLASS"
-                          | "FEAT"
-                          | "FEATURE"
-                          | "ITEM"
-                          | "OPTION"
-                          | "RACE"
-                          | "SUBCLASS";
-                        spellId: string;
-                      };
-                      type: "REMOVE_SPELL_MECHANIC_CUSTOMIZATION";
-                    }
-                  | {
-                      actionId?: string;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      owner:
-                        | {
-                            kind: "AUTHORED_GRANT";
-                            resourceGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            kind: "AUTHORED_SOURCE";
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            kind: "SPELL_SOURCE";
-                            resourceGrantId: string;
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | {
-                            chargeId: string;
-                            itemInstanceId: string;
-                            kind: "ITEM_INSTANCE";
-                          }
-                        | {
-                            kind: "SENSE_GRANT";
-                            senseGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            companionInstanceId: string;
-                            featureId: string;
-                            kind: "COMPANION_FEATURE";
-                          };
-                      type: "USE_SHEET_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      owner:
-                        | {
-                            kind: "AUTHORED_GRANT";
-                            resourceGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            kind: "AUTHORED_SOURCE";
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            kind: "SPELL_SOURCE";
-                            resourceGrantId: string;
-                            source: {
-                              sourceInstanceId: string;
-                              sourceKind:
-                                | "BACKGROUND"
-                                | "CLASS"
-                                | "FEAT"
-                                | "FEATURE"
-                                | "ITEM"
-                                | "OPTION"
-                                | "RACE"
-                                | "SUBCLASS";
-                              spellId: string;
-                            };
-                          }
-                        | {
-                            chargeId: string;
-                            itemInstanceId: string;
-                            kind: "ITEM_INSTANCE";
-                          }
-                        | {
-                            kind: "SENSE_GRANT";
-                            senseGrantId: string;
-                            source:
-                              | {
-                                  definitionId: string;
-                                  kind: "AUTHORED";
-                                  sourceInstanceId: string;
-                                  sourceKind:
-                                    | "ANCESTRY"
-                                    | "BACKGROUND"
-                                    | "CLASS"
-                                    | "FEAT"
-                                    | "FEATURE"
-                                    | "OPTION"
-                                    | "RACE"
-                                    | "SPELL"
-                                    | "SUBRACE"
-                                    | "SUBCLASS";
-                                }
-                              | {
-                                  equipmentId: string;
-                                  itemInstanceId: string;
-                                  kind: "EQUIPMENT_INSTANCE";
-                                }
-                              | {
-                                  companionInstanceId: string;
-                                  creatureId: string;
-                                  kind: "COMPANION_INSTANCE";
-                                }
-                              | { kind: "SYSTEM"; systemId: string }
-                              | {
-                                  adjustmentId: string;
-                                  kind: "MANUAL_ADJUSTMENT";
-                                };
-                          }
-                        | {
-                            chargeId: string;
-                            companionInstanceId: string;
-                            featureId: string;
-                            kind: "COMPANION_FEATURE";
-                          };
-                      trigger:
-                        | "SHORT_REST"
-                        | "LONG_REST"
-                        | "DAWN"
-                        | "DUSK"
-                        | "DAILY"
-                        | "MANUAL";
-                      type: "RECOVER_SHEET_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      inspired: boolean;
-                      type: "SET_INSPIRATION";
-                    }
-                  | {
-                      commandId: string;
-                      current?: number;
-                      expectedVersion: number;
-                      maxOverride?: number | null;
-                      temp?: number;
-                      type: "SET_HIT_POINTS";
-                    }
-                  | {
-                      amount: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      mode: "DAMAGE" | "HEAL";
-                      type: "ADJUST_HIT_POINTS";
-                    }
-                  | {
-                      commandId: string;
-                      die: number;
-                      expectedVersion: number;
-                      type: "USE_HIT_DIE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      healingMode: "AUTOMATIC" | "MANUAL";
-                      manualHealingAccepted: boolean;
-                      previewFingerprint: string;
-                      resetMaximumHitPointModifier: boolean;
-                      restKind: "SHORT" | "LONG";
-                      rollEvidence?: {
-                        expression: string;
-                        terms: Array<{
-                          count: number;
-                          die: number;
-                          modifierPerDie: number;
-                          rolls: Array<number>;
-                        }>;
-                        total: number;
-                      };
-                      rollId?: string;
-                      selectedCompanionInstanceIds: Array<string>;
-                      selectedHitDice: Array<{ count: number; die: number }>;
-                      type: "COMPLETE_REST";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      level: number;
-                      notes?: string;
-                      type: "SET_EXHAUSTION";
-                    }
-                  | {
-                      commandId: string;
-                      conditionTypeId: string;
-                      expectedVersion: number;
-                      notes?: string;
-                      type: "ADD_CONDITION";
-                    }
-                  | {
-                      commandId: string;
-                      conditionTypeId: string;
-                      expectedVersion: number;
-                      type: "REMOVE_CONDITION";
-                    }
-                  | {
-                      actionId?: string;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      resourceGrantId: string;
-                      type: "USE_RESOURCE";
-                    }
-                  | {
-                      all?: boolean;
-                      amount?: number;
-                      commandId: string;
-                      expectedVersion: number;
-                      resourceGrantId: string;
-                      type: "RESTORE_RESOURCE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey: string;
-                      type: "USE_SPELL_SLOT";
-                    }
-                  | {
-                      all?: boolean;
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey: string;
-                      type: "RESTORE_SPELL_SLOT";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      slotKey?: string;
-                      sourceId?: string;
-                      spellId: string;
-                      type: "CAST_SPELL";
-                    }
-                  | {
-                      classId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      spellIds: Array<string>;
-                      type: "SET_PREPARED_SPELLS";
-                    }
-                  | {
-                      classId: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      spellIds: Array<string>;
-                      type: "SET_KNOWN_SPELLS";
-                    }
-                  | {
-                      commandId: string;
-                      containerId?: string;
-                      customName?: string;
-                      equipmentId: string;
-                      expectedVersion: number;
-                      notes?: string;
-                      quantity: number;
-                      type: "ADD_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      quantity?: number;
-                      type: "REMOVE_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      containerId?: string | null;
-                      customName?: string | null;
-                      expectedVersion: number;
-                      itemId: string;
-                      notes?: string | null;
-                      quantity?: number;
-                      type: "UPDATE_INVENTORY_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "EQUIP_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "UNEQUIP_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "ATTUNE_ITEM";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      itemId: string;
-                      type: "UNATTUNE_ITEM";
-                    }
-                  | {
-                      amount: number;
-                      campaignCurrencySystemId?: string;
-                      commandId: string;
-                      containerId?: string;
-                      currencyId: string;
-                      expectedVersion: number;
-                      kind?: "RULESET" | "CAMPAIGN";
-                      type: "ADJUST_CURRENCY";
-                    }
-                  | {
-                      amount: number;
-                      campaignCurrencySystemId?: string;
-                      commandId: string;
-                      currencyId: string;
-                      expectedVersion: number;
-                      fromContainerId?: string;
-                      kind?: "RULESET" | "CAMPAIGN";
-                      toContainerId?: string;
-                      type: "MOVE_CURRENCY";
-                    }
-                  | {
-                      body?: string;
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      pinned?: boolean;
-                      title: string;
-                      type: "CREATE_NOTE";
-                    }
-                  | {
-                      body?: string | null;
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId?: string;
-                      noteId: string;
-                      pinned?: boolean;
-                      title?: string;
-                      type: "UPDATE_NOTE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      noteId: string;
-                      type: "DELETE_NOTE";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      label: string;
-                      type: "CREATE_NOTE_GROUP";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      label?: string;
-                      sortOrder?: number;
-                      type: "UPDATE_NOTE_GROUP";
-                    }
-                  | {
-                      commandId: string;
-                      expectedVersion: number;
-                      groupId: string;
-                      type: "DELETE_NOTE_GROUP";
-                    };
-                commandId: string;
-                conditions?:
-                  | string
-                  | number
-                  | boolean
-                  | null
-                  | Array<any>
-                  | Record<string, any>;
-                currentHitPoints?: number;
-                encounterId: string;
-                expectedVersion: number;
-                gmNotes?: string | null;
-                public?: boolean;
-                sideId?: string;
-                tempHitPoints?: number;
-                type: "UPDATE_ACTOR";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REMOVE_ACTOR";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                enemy:
-                  | { kind: "CREATURE"; sourceId: string }
-                  | { kind: "CUSTOM"; label: string; maxHitPoints: number };
-                expectedVersion: number;
-                initiative?: number | null;
-                public?: boolean;
-                sideId?: string;
-                type: "REINFORCE";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                equipmentId: string;
-                expectedVersion: number;
-                loadoutEntryId: string;
-                type: "REPLACE_CREATURE_EQUIPMENT";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                initiative: number;
-                manualOrder?: number | null;
-                type: "SET_INITIATIVE";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "ROLL_ACTOR_INITIATIVE";
-              }
-            | {
-                actorIds: Array<string>;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REORDER";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                systemId?: string;
-                type: "START";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "ADVANCE_TURN";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "PREVIOUS_TURN";
-              }
-            | {
-                actorId: string | null;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "SET_CURRENT_ACTOR";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                round: number;
-                type: "SET_ROUND";
-              }
-            | {
-                commandId: string;
-                definitionIds: Array<string>;
-                encounterId: string;
-                expectedVersion: number;
-                type: "REPLACE_OPTIONAL_COMBAT_RULES";
-              }
-            | {
-                actorId: string;
-                amount?: number;
-                commandId: string;
-                direction: "USE" | "RESTORE";
-                encounterId: string;
-                expectedVersion: number;
-                featureId: string;
-                type: "ADJUST_FEATURE_RESOURCE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                reminder: {
-                  actorId?: string | null;
-                  id?: string;
-                  label: string;
-                  notes?: string | null;
-                  order?: number;
-                  public?: boolean;
-                  round?: number | null;
-                  timing:
-                    | "ROUND_START"
-                    | "ROUND_END"
-                    | "ROUND_NUMBER"
-                    | "TURN_START"
-                    | "TURN_END";
-                };
-                type: "UPSERT_REMINDER";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                reminderId: string;
-                type: "REMOVE_REMINDER";
-              }
-            | {
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                featureId: string;
-                rollDefinitionId: string;
-                type: "ROLL_ENEMY_ACTION";
-                visibility: "PRIVATE" | "TABLE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                type: "COMPLETE";
-              }
-            | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
-            | {
-                actionId: string;
-                actorId: string;
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                optionalCombatIntent?: {
-                  definitionId: string;
-                  optionId: string;
-                  selectionContract: string;
-                  selections: Array<{
-                    fieldId: string;
-                    value:
-                      | { entityId: string; kind: "ENTITY" }
-                      | {
-                          kind: "POSITION";
-                          position: { x: number; y: number };
-                        };
-                  }>;
-                } | null;
-                sceneContext?: {
-                  expectedSceneVersion: number;
-                  sceneId: string;
-                  sourceTokenId: string;
-                  targetTokenId: string;
-                } | null;
-                targetActorId: string;
-                type: "RESOLVE_ACTION";
-              }
-            | {
-                commandId: string;
-                correlationId?: string | null;
-                encounterId: string;
-                expectedOccurrenceVersion: number;
-                expectedVersion: number;
-                occurrenceId: string;
-                resolution:
-                  | {
-                      kind: "ENTER_DICE";
-                      rawFaces: Array<number>;
-                      requestId: string;
-                    }
-                  | { kind: "SYSTEM_ROLL"; requestId: string }
-                  | { kind: "ENTER_INTEGER"; requestId: string; value: number }
-                  | {
-                      entityId: string;
-                      kind: "INITIATIVE_ENTITY";
-                      requestId: string;
-                    }
-                  | {
-                      bonus:
-                        | {
-                            kind:
-                              | "CHARACTER_ACTION"
-                              | "CHARACTER_SPELL_CAST"
-                              | "CREATURE_FEATURE_ACTION";
-                            optionId: string;
-                          }
-                        | {
-                            actionFactors: Array<
-                              | "MELEE_HEAVY"
-                              | "MELEE_LIGHT_OR_FINESSE"
-                              | "MELEE_TWO_HANDED"
-                              | "RANGED_LOADING"
-                            >;
-                            actorSize:
-                              | "COLOSSAL"
-                              | "DIMUNITIVE"
-                              | "FINE"
-                              | "GARGANTUAN"
-                              | "GIANT"
-                              | "HUGE"
-                              | "LARGE"
-                              | "MEDIUM"
-                              | "SMALL"
-                              | "TINY";
-                            kind: "GM_ADJUDICATED";
-                            optionId: "GM_ADJUDICATED";
-                            spellLevel: number | null;
-                          }
-                        | null;
-                      kind: "INITIATIVE_DECLARATION";
-                      primary:
-                        | {
-                            kind:
-                              | "CHARACTER_ACTION"
-                              | "CHARACTER_SPELL_CAST"
-                              | "CREATURE_FEATURE_ACTION";
-                            optionId: string;
-                          }
-                        | {
-                            actionFactors: Array<
-                              | "MELEE_HEAVY"
-                              | "MELEE_LIGHT_OR_FINESSE"
-                              | "MELEE_TWO_HANDED"
-                              | "RANGED_LOADING"
-                            >;
-                            actorSize:
-                              | "COLOSSAL"
-                              | "DIMUNITIVE"
-                              | "FINE"
-                              | "GARGANTUAN"
-                              | "GIANT"
-                              | "HUGE"
-                              | "LARGE"
-                              | "MEDIUM"
-                              | "SMALL"
-                              | "TINY";
-                            kind: "GM_ADJUDICATED";
-                            optionId: "GM_ADJUDICATED";
-                            spellLevel: number | null;
-                          };
-                      requestId: string;
-                    }
-                  | { kind: "DECLINE" }
-                  | { kind: "OPTION"; optionId: string }
-                  | { kind: "PASSAGE_DECLINE" }
-                  | { kind: "PASSAGE_OPTION"; optionId: string };
-                type: "RESOLVE_RULE_OCCURRENCE";
-              };
-        },
-        {
-          occurrence?: {
-            occurrenceId: string;
-            occurrenceVersion: number;
-            outcome: "SAVE_SUCCESS" | "SAVE_FAILURE" | null;
-            pending:
-              | {
-                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "D20_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: {
-                    max: 20;
-                    min: 1;
-                    requestId: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  };
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "ACTION_OUTCOME_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: number; min: number; requestId: string };
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  choice: {
-                    options: Array<{
-                      actionId: string;
-                      actionSourceKind:
-                        "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                      optionId: string;
-                    }>;
-                    pathDistance: number;
-                    reactorActorId: string;
-                    reactorTokenId: string;
-                  };
-                  encounterVersion: number;
-                  kind: "MOVEMENT_REACTION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "LEGENDARY_RESISTANCE_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{ optionId: string }>;
-                  targetActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "LEGENDARY_ACTION_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{
-                    actionId: string;
-                    optionId: string;
-                    ownerFeatureId: string;
-                    targetActorId: string;
-                  }>;
-                  ownerActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "OPTIONAL_COMBAT_CLEAVING";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{ optionId: string; targetActorId: string }>;
-                  sourceActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"DECLINE" | "OPTION">;
-                  encounterVersion: number;
-                  kind: "MOVEMENT_PASSAGE_CHOICE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  options: Array<{
-                    economy: "ACTION" | "BONUS_ACTION";
-                    optionId: string;
-                    ruleKind: "OVERRUN" | "TUMBLE";
-                  }>;
-                  sourceActorId: string;
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "INITIATIVE_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: number; min: number; requestId: string };
-                }
-              | {
-                  actorId: string;
-                  adjudicationFields: Array<
-                    | {
-                        key: "actorSize";
-                        kind: "SELECT";
-                        label: string;
-                        options: Array<{ label: string; value: string }>;
-                        required: true;
-                      }
-                    | {
-                        key: "actionFactors";
-                        kind: "MULTI_SELECT";
-                        label: string;
-                        maximumSelections: number;
-                        minimumSelections: number;
-                        options: Array<{ label: string; value: string }>;
-                      }
-                    | {
-                        key: "spellLevel";
-                        kind: "NULLABLE_INTEGER";
-                        label: string;
-                        maximum: number;
-                        minimum: number;
-                      }
-                  >;
-                  allowedResponses: Array<"INITIATIVE_DECLARATION">;
-                  bonusOptions: Array<{
-                    kind:
-                      | "CHARACTER_ACTION"
-                      | "CHARACTER_SPELL_CAST"
-                      | "CREATURE_FEATURE_ACTION"
-                      | "GM_ADJUDICATED";
-                    label: string;
-                    optionId: string;
-                    selectionContract: string;
-                  }>;
-                  encounterVersion: number;
-                  kind: "INITIATIVE_DECLARATION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  primaryOptions: Array<{
-                    kind:
-                      | "CHARACTER_ACTION"
-                      | "CHARACTER_SPELL_CAST"
-                      | "CREATURE_FEATURE_ACTION"
-                      | "GM_ADJUDICATED";
-                    label: string;
-                    optionId: string;
-                    selectionContract: string;
-                  }>;
-                  requestId: string;
-                }
-              | {
-                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
-                  encounterVersion: number;
-                  kind: "RECHARGE_EVIDENCE";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  request: { max: 6; min: 1; requestId: string };
-                }
-              | {
-                  allowedResponses: Array<"INITIATIVE_ENTITY">;
-                  encounterVersion: number;
-                  entityKind: "ACTOR" | "SIDE";
-                  kind: "INITIATIVE_ORDER";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                  optionIds: Array<string>;
-                  requestId: string;
-                }
-              | null;
-            status: "PENDING" | "COMPLETE";
-          } | null;
-          projection:
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  currentHitPoints: number;
-                  encounterId: string;
-                  features?: Array<{
-                    description: string;
-                    id: string;
-                    label: string;
-                    resource?: {
-                      maximum: number;
-                      remaining: number;
-                      resetKind:
-                        | "DAILY"
-                        | "DAWN"
-                        | "DUSK"
-                        | "LONG_REST"
-                        | "SHORT_REST"
-                        | "MANUAL";
-                      used: number;
-                    } | null;
-                    rollDefinitions?: Array<{
-                      chargeCost?: number | null;
-                      expression: {
-                        count: number;
-                        die: number;
-                        modifier: number;
-                      };
-                      id: string;
-                      kind:
-                        | "ATTACK"
-                        | "DAMAGE"
-                        | "HEALING"
-                        | "ABILITY_CHECK"
-                        | "SAVING_THROW";
-                      label: string;
-                      order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                    }>;
-                    section?:
-                      | "TRAIT"
-                      | "ACTION"
-                      | "BONUS_ACTION"
-                      | "REACTION"
-                      | "LEGENDARY_ACTION"
-                      | "LAIR_ACTION"
-                      | "REGIONAL_EFFECT"
-                      | "OTHER";
-                  }>;
-                  gmNotes: string | null;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  maxHitPoints: number;
-                  public: boolean;
-                  resources:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                  stableTieKey: string;
-                  statBlock: {
-                    abilityScores: Record<string, number> | null;
-                    armorClass: number | null;
-                    conditionImmunities: Array<string>;
-                    damageImmunities: Array<string>;
-                    damageResistances: Array<string>;
-                    damageVulnerabilities: Array<string>;
-                    senses: Array<string>;
-                    speeds: Array<any>;
-                  } | null;
-                  systemId: string | null;
-                  tempHitPoints: number;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                reminders?: Array<{
-                  actorId: string | null;
-                  id: string;
-                  label: string;
-                  notes: string | null;
-                  order: number;
-                  public: boolean;
-                  round: number | null;
-                  timing:
-                    | "ROUND_START"
-                    | "ROUND_END"
-                    | "ROUND_NUMBER"
-                    | "TURN_START"
-                    | "TURN_END";
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              }
-            | {
-                actors: Array<{
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
-                  encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
-                  id: string;
-                  initiative: number | null;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  label: string;
-                  manualOrder: number | null;
-                  public: boolean;
-                  sourceId: string | null;
-                  sourceRevision: number | null;
-                }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
-                blueprintChecksum: string;
-                blueprintId: string;
-                blueprintVersion: number;
-                campaignId: string;
-                createdAt: string;
-                currentActorId: string | null;
-                gameSystemId: string;
-                id: string;
-                initiativePolicy?: {
-                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
-                  definitionId: string;
-                  label: string;
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
-                  tieResolverDefinitionId: string;
-                  tieResolverLabel: string;
-                } | null;
-                name: string;
-                optionalCombatRules?: Array<{
-                  definitionId: string;
-                  kind:
-                    | "FLANKING"
-                    | "ALTERNATING_DIAGONALS"
-                    | "FACING"
-                    | "CLIMB_ONTO_LARGER_CREATURE"
-                    | "DISARM"
-                    | "MARK"
-                    | "OVERRUN"
-                    | "SHOVE_ASIDE"
-                    | "TUMBLE"
-                    | "HITTING_COVER"
-                    | "CLEAVING"
-                    | "INJURIES"
-                    | "MASSIVE_DAMAGE"
-                    | "MORALE";
-                  label: string;
-                }>;
-                round: number;
-                rulePackRevisionId?: string | null;
-                status: "PREPARED" | "ACTIVE" | "COMPLETED";
-                updatedAt: string;
-                version: number;
-              };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
-          roll: {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              modifier: number;
-              subtotal: number;
-              terms: Array<{
-                count: number;
-                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                keptRollIndex?: number;
-                keptRollIndexes?: Array<number>;
-                modifier?: number;
-                rollSequences?: Array<Array<number>>;
-                rolls: Array<number>;
-                subtotal: number;
-              }>;
-              total: number;
-              transform:
-                | { kind: "NONE" }
-                | { kind: "HALF" }
-                | { kind: "DOUBLE" }
-                | { kind: "MULTIPLY"; value: number };
-            };
-            id: string;
-            normalizedExpression: string;
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          } | null;
-        }
-      >;
-    };
     developmentLifecycle: {
       movementReactionDamage: FunctionReference<
         "query",
@@ -68332,6 +64298,4040 @@ export declare const internal: {
     >;
   };
   encounters: {
+    commandActions: {
+      execute: FunctionReference<
+        "action",
+        "internal",
+        {
+          command:
+            | {
+                actorId: string;
+                characterCommand?:
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      revisionId: string;
+                      type: "UPGRADE_RULE_PACK";
+                    }
+                  | {
+                      adjustment: any | any | any;
+                      commandId: string;
+                      expectedVersion: number;
+                      type: "UPSERT_SHEET_ADJUSTMENT";
+                    }
+                  | {
+                      adjustmentId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      family:
+                        | "ABILITY"
+                        | "SAVING_THROW"
+                        | "SKILL"
+                        | "PASSIVE"
+                        | "SENSE"
+                        | "MOVEMENT"
+                        | "HIT_POINTS"
+                        | "COMPANION"
+                        | "SPELL"
+                        | "ITEM"
+                        | "DEFENSE"
+                        | "PROFICIENCY";
+                      target:
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "ABILITY";
+                          }
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "SAVING_THROW";
+                          }
+                        | { kind: "SKILL"; skillId: string }
+                        | { kind: "SKILLS" }
+                        | {
+                            entry?:
+                              | { kind: "PASSIVE"; skillId: string }
+                              | { kind: "SENSE"; senseId: string };
+                            kind: "SENSES";
+                          }
+                        | { kind: "MOVEMENT" }
+                        | { kind: "HIT_POINTS" }
+                        | { kind: "DEFENSES" }
+                        | { kind: "PROFICIENCIES" }
+                        | {
+                            castLevel?: number;
+                            kind: "SPELL";
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | { kind: "SPELLS" }
+                        | {
+                            featureId: string;
+                            kind: "FEATURE";
+                            sourceInstanceId: string;
+                          }
+                        | { itemInstanceId: string; kind: "ITEM" }
+                        | { kind: "BACKGROUND" }
+                        | {
+                            kind: "RESOURCE";
+                            owner:
+                              | {
+                                  kind: "AUTHORED_GRANT";
+                                  resourceGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  kind: "AUTHORED_SOURCE";
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  kind: "SPELL_SOURCE";
+                                  resourceGrantId: string;
+                                  source: {
+                                    sourceInstanceId: string;
+                                    sourceKind:
+                                      | "BACKGROUND"
+                                      | "CLASS"
+                                      | "FEAT"
+                                      | "FEATURE"
+                                      | "ITEM"
+                                      | "OPTION"
+                                      | "RACE"
+                                      | "SUBCLASS";
+                                    spellId: string;
+                                  };
+                                }
+                              | {
+                                  chargeId: string;
+                                  itemInstanceId: string;
+                                  kind: "ITEM_INSTANCE";
+                                }
+                              | {
+                                  kind: "SENSE_GRANT";
+                                  senseGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  companionInstanceId: string;
+                                  featureId: string;
+                                  kind: "COMPANION_FEATURE";
+                                };
+                          }
+                        | { kind: "EXTRAS" }
+                        | { companionInstanceId: string; kind: "COMPANION" }
+                        | { kind: "VEHICLE"; vehicleInstanceId: string };
+                      type: "REMOVE_SHEET_ADJUSTMENT";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      target:
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "ABILITY";
+                          }
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "SAVING_THROW";
+                          }
+                        | { kind: "SKILL"; skillId: string }
+                        | { kind: "SKILLS" }
+                        | {
+                            entry?:
+                              | { kind: "PASSIVE"; skillId: string }
+                              | { kind: "SENSE"; senseId: string };
+                            kind: "SENSES";
+                          }
+                        | { kind: "MOVEMENT" }
+                        | { kind: "HIT_POINTS" }
+                        | { kind: "DEFENSES" }
+                        | { kind: "PROFICIENCIES" }
+                        | {
+                            castLevel?: number;
+                            kind: "SPELL";
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | { kind: "SPELLS" }
+                        | {
+                            featureId: string;
+                            kind: "FEATURE";
+                            sourceInstanceId: string;
+                          }
+                        | { itemInstanceId: string; kind: "ITEM" }
+                        | { kind: "BACKGROUND" }
+                        | {
+                            kind: "RESOURCE";
+                            owner:
+                              | {
+                                  kind: "AUTHORED_GRANT";
+                                  resourceGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  kind: "AUTHORED_SOURCE";
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  kind: "SPELL_SOURCE";
+                                  resourceGrantId: string;
+                                  source: {
+                                    sourceInstanceId: string;
+                                    sourceKind:
+                                      | "BACKGROUND"
+                                      | "CLASS"
+                                      | "FEAT"
+                                      | "FEATURE"
+                                      | "ITEM"
+                                      | "OPTION"
+                                      | "RACE"
+                                      | "SUBCLASS";
+                                    spellId: string;
+                                  };
+                                }
+                              | {
+                                  chargeId: string;
+                                  itemInstanceId: string;
+                                  kind: "ITEM_INSTANCE";
+                                }
+                              | {
+                                  kind: "SENSE_GRANT";
+                                  senseGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  companionInstanceId: string;
+                                  featureId: string;
+                                  kind: "COMPANION_FEATURE";
+                                };
+                          }
+                        | { kind: "EXTRAS" }
+                        | { companionInstanceId: string; kind: "COMPANION" }
+                        | { kind: "VEHICLE"; vehicleInstanceId: string };
+                      type: "RESET_SHEET_PANEL_ADJUSTMENTS";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      preference:
+                        | { mode: "AUTO" }
+                        | { mode: "EXPLICIT"; speedId: string };
+                      type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
+                    }
+                  | {
+                      commandId: string;
+                      customName?: string | null;
+                      displayAsAttack?: boolean;
+                      expectedVersion: number;
+                      notes?: string | null;
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      type: "UPDATE_SPELL_SOURCE_CUSTOMIZATION";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra:
+                        | {
+                            creatureId: string;
+                            kind: "COMPANION" | "MOUNT" | "OWNED";
+                            originKind: "WORLD" | "SUMMONED";
+                          }
+                        | { kind: "VEHICLE"; vehicleId: string };
+                      type: "ADD_SHEET_EXTRA";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra:
+                        | {
+                            currentHitPoints?: number;
+                            customName?: string | null;
+                            equipmentItemIds?: Array<string>;
+                            extraId: string;
+                            hitDice?: Array<{
+                              die: number;
+                              total: number;
+                              used: number;
+                            }>;
+                            isActive?: boolean;
+                            kind: "COMPANION" | "MOUNT" | "OWNED";
+                            notes?: string | null;
+                            tempHitPoints?: number;
+                          }
+                        | {
+                            currentHitPoints?: number;
+                            customName?: string | null;
+                            equipmentItemIds?: Array<string>;
+                            extraId: string;
+                            isActive?: boolean;
+                            kind: "VEHICLE";
+                            notes?: string | null;
+                          };
+                      type: "UPDATE_SHEET_EXTRA";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra: {
+                        extraId: string;
+                        kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
+                      };
+                      type: "REMOVE_SHEET_EXTRA";
+                    }
+                  | {
+                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
+                      commandId: string;
+                      expectedVersion: number;
+                      mode: "BONUS" | "OVERRIDE";
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      sourceNote?: string;
+                      type: "SET_SPELL_MECHANIC_CUSTOMIZATION";
+                      value: number;
+                    }
+                  | {
+                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
+                      commandId: string;
+                      expectedVersion: number;
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      type: "REMOVE_SPELL_MECHANIC_CUSTOMIZATION";
+                    }
+                  | {
+                      actionId?: string;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      owner:
+                        | {
+                            kind: "AUTHORED_GRANT";
+                            resourceGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            kind: "AUTHORED_SOURCE";
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            kind: "SPELL_SOURCE";
+                            resourceGrantId: string;
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | {
+                            chargeId: string;
+                            itemInstanceId: string;
+                            kind: "ITEM_INSTANCE";
+                          }
+                        | {
+                            kind: "SENSE_GRANT";
+                            senseGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            companionInstanceId: string;
+                            featureId: string;
+                            kind: "COMPANION_FEATURE";
+                          };
+                      type: "USE_SHEET_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      owner:
+                        | {
+                            kind: "AUTHORED_GRANT";
+                            resourceGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            kind: "AUTHORED_SOURCE";
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            kind: "SPELL_SOURCE";
+                            resourceGrantId: string;
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | {
+                            chargeId: string;
+                            itemInstanceId: string;
+                            kind: "ITEM_INSTANCE";
+                          }
+                        | {
+                            kind: "SENSE_GRANT";
+                            senseGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            companionInstanceId: string;
+                            featureId: string;
+                            kind: "COMPANION_FEATURE";
+                          };
+                      trigger:
+                        | "SHORT_REST"
+                        | "LONG_REST"
+                        | "DAWN"
+                        | "DUSK"
+                        | "DAILY"
+                        | "MANUAL";
+                      type: "RECOVER_SHEET_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      inspired: boolean;
+                      type: "SET_INSPIRATION";
+                    }
+                  | {
+                      commandId: string;
+                      current?: number;
+                      expectedVersion: number;
+                      maxOverride?: number | null;
+                      temp?: number;
+                      type: "SET_HIT_POINTS";
+                    }
+                  | {
+                      amount: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      mode: "DAMAGE" | "HEAL";
+                      type: "ADJUST_HIT_POINTS";
+                    }
+                  | {
+                      commandId: string;
+                      die: number;
+                      expectedVersion: number;
+                      type: "USE_HIT_DIE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      healingMode: "AUTOMATIC" | "MANUAL";
+                      manualHealingAccepted: boolean;
+                      previewFingerprint: string;
+                      resetMaximumHitPointModifier: boolean;
+                      restKind: "SHORT" | "LONG";
+                      rollEvidence?: {
+                        expression: string;
+                        terms: Array<{
+                          count: number;
+                          die: number;
+                          modifierPerDie: number;
+                          rolls: Array<number>;
+                        }>;
+                        total: number;
+                      };
+                      rollId?: string;
+                      selectedCompanionInstanceIds: Array<string>;
+                      selectedHitDice: Array<{ count: number; die: number }>;
+                      type: "COMPLETE_REST";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      level: number;
+                      notes?: string;
+                      type: "SET_EXHAUSTION";
+                    }
+                  | {
+                      commandId: string;
+                      conditionTypeId: string;
+                      expectedVersion: number;
+                      notes?: string;
+                      type: "ADD_CONDITION";
+                    }
+                  | {
+                      commandId: string;
+                      conditionTypeId: string;
+                      expectedVersion: number;
+                      type: "REMOVE_CONDITION";
+                    }
+                  | {
+                      actionId?: string;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      resourceGrantId: string;
+                      type: "USE_RESOURCE";
+                    }
+                  | {
+                      all?: boolean;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      resourceGrantId: string;
+                      type: "RESTORE_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey: string;
+                      type: "USE_SPELL_SLOT";
+                    }
+                  | {
+                      all?: boolean;
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey: string;
+                      type: "RESTORE_SPELL_SLOT";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey?: string;
+                      sourceId?: string;
+                      spellId: string;
+                      type: "CAST_SPELL";
+                    }
+                  | {
+                      classId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      spellIds: Array<string>;
+                      type: "SET_PREPARED_SPELLS";
+                    }
+                  | {
+                      classId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      spellIds: Array<string>;
+                      type: "SET_KNOWN_SPELLS";
+                    }
+                  | {
+                      commandId: string;
+                      containerId?: string;
+                      customName?: string;
+                      equipmentId: string;
+                      expectedVersion: number;
+                      notes?: string;
+                      quantity: number;
+                      type: "ADD_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      quantity?: number;
+                      type: "REMOVE_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      containerId?: string | null;
+                      customName?: string | null;
+                      expectedVersion: number;
+                      itemId: string;
+                      notes?: string | null;
+                      quantity?: number;
+                      type: "UPDATE_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "EQUIP_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "UNEQUIP_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "ATTUNE_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "UNATTUNE_ITEM";
+                    }
+                  | {
+                      amount: number;
+                      campaignCurrencySystemId?: string;
+                      commandId: string;
+                      containerId?: string;
+                      currencyId: string;
+                      expectedVersion: number;
+                      kind?: "RULESET" | "CAMPAIGN";
+                      type: "ADJUST_CURRENCY";
+                    }
+                  | {
+                      amount: number;
+                      campaignCurrencySystemId?: string;
+                      commandId: string;
+                      currencyId: string;
+                      expectedVersion: number;
+                      fromContainerId?: string;
+                      kind?: "RULESET" | "CAMPAIGN";
+                      toContainerId?: string;
+                      type: "MOVE_CURRENCY";
+                    }
+                  | {
+                      body?: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      pinned?: boolean;
+                      title: string;
+                      type: "CREATE_NOTE";
+                    }
+                  | {
+                      body?: string | null;
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId?: string;
+                      noteId: string;
+                      pinned?: boolean;
+                      title?: string;
+                      type: "UPDATE_NOTE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      noteId: string;
+                      type: "DELETE_NOTE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      label: string;
+                      type: "CREATE_NOTE_GROUP";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      label?: string;
+                      sortOrder?: number;
+                      type: "UPDATE_NOTE_GROUP";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      type: "DELETE_NOTE_GROUP";
+                    };
+                commandId: string;
+                conditions?:
+                  | string
+                  | number
+                  | boolean
+                  | null
+                  | Array<any>
+                  | Record<string, any>;
+                currentHitPoints?: number;
+                encounterId: string;
+                expectedVersion: number;
+                gmNotes?: string | null;
+                public?: boolean;
+                sideId?: string;
+                tempHitPoints?: number;
+                type: "UPDATE_ACTOR";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REMOVE_ACTOR";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                enemy:
+                  | { kind: "CREATURE"; sourceId: string }
+                  | { kind: "CUSTOM"; label: string; maxHitPoints: number };
+                expectedVersion: number;
+                initiative?: number | null;
+                public?: boolean;
+                sideId?: string;
+                type: "REINFORCE";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                equipmentId: string;
+                expectedVersion: number;
+                loadoutEntryId: string;
+                type: "REPLACE_CREATURE_EQUIPMENT";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                initiative: number;
+                manualOrder?: number | null;
+                type: "SET_INITIATIVE";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "ROLL_ACTOR_INITIATIVE";
+              }
+            | {
+                actorIds: Array<string>;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REORDER";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                systemId?: string;
+                type: "START";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "ADVANCE_TURN";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "PREVIOUS_TURN";
+              }
+            | {
+                actorId: string | null;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "SET_CURRENT_ACTOR";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                round: number;
+                type: "SET_ROUND";
+              }
+            | {
+                commandId: string;
+                definitionIds: Array<string>;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REPLACE_OPTIONAL_COMBAT_RULES";
+              }
+            | {
+                actorId: string;
+                amount?: number;
+                commandId: string;
+                direction: "USE" | "RESTORE";
+                encounterId: string;
+                expectedVersion: number;
+                featureId: string;
+                type: "ADJUST_FEATURE_RESOURCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                reminder: {
+                  actorId?: string | null;
+                  id?: string;
+                  label: string;
+                  notes?: string | null;
+                  order?: number;
+                  public?: boolean;
+                  round?: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
+                };
+                type: "UPSERT_REMINDER";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                reminderId: string;
+                type: "REMOVE_REMINDER";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                featureId: string;
+                rollDefinitionId: string;
+                type: "ROLL_ENEMY_ACTION";
+                visibility: "PRIVATE" | "TABLE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "COMPLETE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                revisionId: string;
+                type: "UPGRADE_RULE_PACK";
+              }
+            | {
+                actionId: string;
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                optionalCombatIntent?: {
+                  definitionId: string;
+                  optionId: string;
+                  selectionContract: string;
+                  selections: Array<{
+                    fieldId: string;
+                    value:
+                      | { entityId: string; kind: "ENTITY" }
+                      | {
+                          kind: "POSITION";
+                          position: { x: number; y: number };
+                        };
+                  }>;
+                } | null;
+                sceneContext?: {
+                  expectedSceneVersion: number;
+                  sceneId: string;
+                  sourceTokenId: string;
+                  targetTokenId: string;
+                } | null;
+                targetActorId: string;
+                type: "RESOLVE_ACTION";
+              }
+            | {
+                commandId: string;
+                correlationId?: string | null;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                resolution:
+                  | {
+                      kind: "ENTER_DICE";
+                      rawFaces: Array<number>;
+                      requestId: string;
+                    }
+                  | { kind: "SYSTEM_ROLL"; requestId: string }
+                  | { kind: "ENTER_INTEGER"; requestId: string; value: number }
+                  | {
+                      entityId: string;
+                      kind: "INITIATIVE_ENTITY";
+                      requestId: string;
+                    }
+                  | {
+                      bonus:
+                        | {
+                            kind:
+                              | "CHARACTER_ACTION"
+                              | "CHARACTER_SPELL_CAST"
+                              | "CREATURE_FEATURE_ACTION";
+                            optionId: string;
+                          }
+                        | {
+                            actionFactors: Array<
+                              | "MELEE_HEAVY"
+                              | "MELEE_LIGHT_OR_FINESSE"
+                              | "MELEE_TWO_HANDED"
+                              | "RANGED_LOADING"
+                            >;
+                            actorSize:
+                              | "COLOSSAL"
+                              | "DIMUNITIVE"
+                              | "FINE"
+                              | "GARGANTUAN"
+                              | "GIANT"
+                              | "HUGE"
+                              | "LARGE"
+                              | "MEDIUM"
+                              | "SMALL"
+                              | "TINY";
+                            kind: "GM_ADJUDICATED";
+                            optionId: "GM_ADJUDICATED";
+                            spellLevel: number | null;
+                          }
+                        | null;
+                      kind: "INITIATIVE_DECLARATION";
+                      primary:
+                        | {
+                            kind:
+                              | "CHARACTER_ACTION"
+                              | "CHARACTER_SPELL_CAST"
+                              | "CREATURE_FEATURE_ACTION";
+                            optionId: string;
+                          }
+                        | {
+                            actionFactors: Array<
+                              | "MELEE_HEAVY"
+                              | "MELEE_LIGHT_OR_FINESSE"
+                              | "MELEE_TWO_HANDED"
+                              | "RANGED_LOADING"
+                            >;
+                            actorSize:
+                              | "COLOSSAL"
+                              | "DIMUNITIVE"
+                              | "FINE"
+                              | "GARGANTUAN"
+                              | "GIANT"
+                              | "HUGE"
+                              | "LARGE"
+                              | "MEDIUM"
+                              | "SMALL"
+                              | "TINY";
+                            kind: "GM_ADJUDICATED";
+                            optionId: "GM_ADJUDICATED";
+                            spellLevel: number | null;
+                          };
+                      requestId: string;
+                    }
+                  | { kind: "DECLINE" }
+                  | { kind: "OPTION"; optionId: string }
+                  | { kind: "PASSAGE_DECLINE" }
+                  | { kind: "PASSAGE_OPTION"; optionId: string };
+                type: "RESOLVE_RULE_OCCURRENCE";
+              };
+        },
+        {
+          occurrence?: {
+            occurrenceId: string;
+            occurrenceVersion: number;
+            outcome: "SAVE_SUCCESS" | "SAVE_FAILURE" | null;
+            pending:
+              | {
+                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "D20_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: {
+                    max: 20;
+                    min: 1;
+                    requestId: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  };
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "ACTION_OUTCOME_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: number; min: number; requestId: string };
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  choice: {
+                    options: Array<{
+                      actionId: string;
+                      actionSourceKind:
+                        "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                      optionId: string;
+                    }>;
+                    pathDistance: number;
+                    reactorActorId: string;
+                    reactorTokenId: string;
+                  };
+                  encounterVersion: number;
+                  kind: "MOVEMENT_REACTION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "LEGENDARY_RESISTANCE_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string }>;
+                  targetActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "LEGENDARY_ACTION_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    actionId: string;
+                    optionId: string;
+                    ownerFeatureId: string;
+                    targetActorId: string;
+                  }>;
+                  ownerActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "OPTIONAL_COMBAT_CLEAVING";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string; targetActorId: string }>;
+                  sourceActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "MOVEMENT_PASSAGE_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    economy: "ACTION" | "BONUS_ACTION";
+                    optionId: string;
+                    ruleKind: "OVERRUN" | "TUMBLE";
+                  }>;
+                  sourceActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "INITIATIVE_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: number; min: number; requestId: string };
+                }
+              | {
+                  actorId: string;
+                  adjudicationFields: Array<
+                    | {
+                        key: "actorSize";
+                        kind: "SELECT";
+                        label: string;
+                        options: Array<{ label: string; value: string }>;
+                        required: true;
+                      }
+                    | {
+                        key: "actionFactors";
+                        kind: "MULTI_SELECT";
+                        label: string;
+                        maximumSelections: number;
+                        minimumSelections: number;
+                        options: Array<{ label: string; value: string }>;
+                      }
+                    | {
+                        key: "spellLevel";
+                        kind: "NULLABLE_INTEGER";
+                        label: string;
+                        maximum: number;
+                        minimum: number;
+                      }
+                  >;
+                  allowedResponses: Array<"INITIATIVE_DECLARATION">;
+                  bonusOptions: Array<{
+                    kind:
+                      | "CHARACTER_ACTION"
+                      | "CHARACTER_SPELL_CAST"
+                      | "CREATURE_FEATURE_ACTION"
+                      | "GM_ADJUDICATED";
+                    label: string;
+                    optionId: string;
+                    selectionContract: string;
+                  }>;
+                  encounterVersion: number;
+                  kind: "INITIATIVE_DECLARATION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  primaryOptions: Array<{
+                    kind:
+                      | "CHARACTER_ACTION"
+                      | "CHARACTER_SPELL_CAST"
+                      | "CREATURE_FEATURE_ACTION"
+                      | "GM_ADJUDICATED";
+                    label: string;
+                    optionId: string;
+                    selectionContract: string;
+                  }>;
+                  requestId: string;
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "RECHARGE_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: 6; min: 1; requestId: string };
+                }
+              | {
+                  allowedResponses: Array<"INITIATIVE_ENTITY">;
+                  encounterVersion: number;
+                  entityKind: "ACTOR" | "SIDE";
+                  kind: "INITIATIVE_ORDER";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  optionIds: Array<string>;
+                  requestId: string;
+                }
+              | null;
+            status: "PENDING" | "COMPLETE";
+          } | null;
+          projection:
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  currentHitPoints: number;
+                  encounterId: string;
+                  features?: Array<{
+                    description: string;
+                    id: string;
+                    label: string;
+                    resource?: {
+                      maximum: number;
+                      remaining: number;
+                      resetKind:
+                        | "DAILY"
+                        | "DAWN"
+                        | "DUSK"
+                        | "LONG_REST"
+                        | "SHORT_REST"
+                        | "MANUAL";
+                      used: number;
+                    } | null;
+                    rollDefinitions?: Array<{
+                      chargeCost?: number | null;
+                      expression: {
+                        count: number;
+                        die: number;
+                        modifier: number;
+                      };
+                      id: string;
+                      kind:
+                        | "ATTACK"
+                        | "DAMAGE"
+                        | "HEALING"
+                        | "ABILITY_CHECK"
+                        | "SAVING_THROW";
+                      label: string;
+                      order: number;
+                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    }>;
+                    section?:
+                      | "TRAIT"
+                      | "ACTION"
+                      | "BONUS_ACTION"
+                      | "REACTION"
+                      | "LEGENDARY_ACTION"
+                      | "LAIR_ACTION"
+                      | "REGIONAL_EFFECT"
+                      | "OTHER";
+                  }>;
+                  gmNotes: string | null;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  maxHitPoints: number;
+                  public: boolean;
+                  resources:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                  stableTieKey: string;
+                  statBlock: {
+                    abilityScores: Record<string, number> | null;
+                    armorClass: number | null;
+                    conditionImmunities: Array<string>;
+                    damageImmunities: Array<string>;
+                    damageResistances: Array<string>;
+                    damageVulnerabilities: Array<string>;
+                    senses: Array<string>;
+                    speeds: Array<any>;
+                  } | null;
+                  systemId: string | null;
+                  tempHitPoints: number;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                manualReminderMode: "OFF" | "SUBTLE";
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                reminders?: Array<{
+                  actorId: string | null;
+                  id: string;
+                  label: string;
+                  notes: string | null;
+                  order: number;
+                  public: boolean;
+                  round: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              }
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  encounterId: string;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  public: boolean;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              };
+          resolution?: {
+            appliedOutcomes: Array<{
+              after:
+                | string
+                | number
+                | boolean
+                | null
+                | Array<any>
+                | Record<string, any>
+                | null;
+              before:
+                | string
+                | number
+                | boolean
+                | null
+                | Array<any>
+                | Record<string, any>
+                | null;
+              correlatedCommandId: string | null;
+              proposed:
+                | {
+                    amount: number;
+                    damageTypeId: string | null;
+                    kind: "DAMAGE";
+                    targetActorId: string;
+                  }
+                | {
+                    amount: number;
+                    kind: "HEAL";
+                    targetActorId: string;
+                    temporary: boolean;
+                  }
+                | {
+                    conditionId: string;
+                    kind: "CONDITION";
+                    operation: "APPLY" | "REMOVE";
+                    targetActorId: string;
+                  }
+                | {
+                    kind: "RESOURCE";
+                    remainingDelta: number;
+                    resourceId: string;
+                    targetActorId: string;
+                  }
+                | {
+                    code: string;
+                    instructions: string;
+                    kind: "MANUAL";
+                    label: string;
+                  };
+              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
+            }>;
+            checksum: string;
+            evaluatorKind: "ZEN";
+            evaluatorVersion: string;
+            modelContractVersion: number;
+            modelKey: string;
+            normalizedFacts:
+              | string
+              | number
+              | boolean
+              | null
+              | Array<any>
+              | Record<string, any>;
+            override: {
+              outcomes: Array<
+                | {
+                    amount: number;
+                    damageTypeId: string | null;
+                    kind: "DAMAGE";
+                    targetActorId: string;
+                  }
+                | {
+                    amount: number;
+                    kind: "HEAL";
+                    targetActorId: string;
+                    temporary: boolean;
+                  }
+                | {
+                    conditionId: string;
+                    kind: "CONDITION";
+                    operation: "APPLY" | "REMOVE";
+                    targetActorId: string;
+                  }
+                | {
+                    kind: "RESOURCE";
+                    remainingDelta: number;
+                    resourceId: string;
+                    targetActorId: string;
+                  }
+                | {
+                    code: string;
+                    instructions: string;
+                    kind: "MANUAL";
+                    label: string;
+                  }
+              >;
+              reason: string;
+            } | null;
+            proposedOutcomes: Array<
+              | {
+                  amount: number;
+                  damageTypeId: string | null;
+                  kind: "DAMAGE";
+                  targetActorId: string;
+                }
+              | {
+                  amount: number;
+                  kind: "HEAL";
+                  targetActorId: string;
+                  temporary: boolean;
+                }
+              | {
+                  conditionId: string;
+                  kind: "CONDITION";
+                  operation: "APPLY" | "REMOVE";
+                  targetActorId: string;
+                }
+              | {
+                  kind: "RESOURCE";
+                  remainingDelta: number;
+                  resourceId: string;
+                  targetActorId: string;
+                }
+              | {
+                  code: string;
+                  instructions: string;
+                  kind: "MANUAL";
+                  label: string;
+                }
+            >;
+            rolls: Array<{
+              characterId: string | null;
+              characterLabel: string;
+              createdAt: string;
+              evidence: {
+                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                modifier: number;
+                subtotal: number;
+                terms: Array<{
+                  count: number;
+                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                  keptRollIndex?: number;
+                  keptRollIndexes?: Array<number>;
+                  modifier?: number;
+                  rollSequences?: Array<Array<number>>;
+                  rolls: Array<number>;
+                  subtotal: number;
+                }>;
+                total: number;
+                transform:
+                  | { kind: "NONE" }
+                  | { kind: "HALF" }
+                  | { kind: "DOUBLE" }
+                  | { kind: "MULTIPLY"; value: number };
+              };
+              id: string;
+              normalizedExpression: string;
+              ruleset: { code: string; systemId: string; version: string };
+              source: {
+                kind:
+                  | "MANUAL"
+                  | "ABILITY_CHECK"
+                  | "SAVING_THROW"
+                  | "SKILL_CHECK"
+                  | "INITIATIVE"
+                  | "ATTACK"
+                  | "DAMAGE"
+                  | "HEALING"
+                  | "HIT_DIE";
+                label: string;
+              };
+            }>;
+            rulePackRevisionId: string;
+            trace:
+              | string
+              | number
+              | boolean
+              | null
+              | Array<any>
+              | Record<string, any>
+              | null;
+          } | null;
+          roll: {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
+              subtotal: number;
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          } | null;
+        }
+      >;
+    };
+    commands: {
+      execute: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          command:
+            | {
+                actorId: string;
+                characterCommand?:
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      revisionId: string;
+                      type: "UPGRADE_RULE_PACK";
+                    }
+                  | {
+                      adjustment: any | any | any;
+                      commandId: string;
+                      expectedVersion: number;
+                      type: "UPSERT_SHEET_ADJUSTMENT";
+                    }
+                  | {
+                      adjustmentId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      family:
+                        | "ABILITY"
+                        | "SAVING_THROW"
+                        | "SKILL"
+                        | "PASSIVE"
+                        | "SENSE"
+                        | "MOVEMENT"
+                        | "HIT_POINTS"
+                        | "COMPANION"
+                        | "SPELL"
+                        | "ITEM"
+                        | "DEFENSE"
+                        | "PROFICIENCY";
+                      target:
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "ABILITY";
+                          }
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "SAVING_THROW";
+                          }
+                        | { kind: "SKILL"; skillId: string }
+                        | { kind: "SKILLS" }
+                        | {
+                            entry?:
+                              | { kind: "PASSIVE"; skillId: string }
+                              | { kind: "SENSE"; senseId: string };
+                            kind: "SENSES";
+                          }
+                        | { kind: "MOVEMENT" }
+                        | { kind: "HIT_POINTS" }
+                        | { kind: "DEFENSES" }
+                        | { kind: "PROFICIENCIES" }
+                        | {
+                            castLevel?: number;
+                            kind: "SPELL";
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | { kind: "SPELLS" }
+                        | {
+                            featureId: string;
+                            kind: "FEATURE";
+                            sourceInstanceId: string;
+                          }
+                        | { itemInstanceId: string; kind: "ITEM" }
+                        | { kind: "BACKGROUND" }
+                        | {
+                            kind: "RESOURCE";
+                            owner:
+                              | {
+                                  kind: "AUTHORED_GRANT";
+                                  resourceGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  kind: "AUTHORED_SOURCE";
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  kind: "SPELL_SOURCE";
+                                  resourceGrantId: string;
+                                  source: {
+                                    sourceInstanceId: string;
+                                    sourceKind:
+                                      | "BACKGROUND"
+                                      | "CLASS"
+                                      | "FEAT"
+                                      | "FEATURE"
+                                      | "ITEM"
+                                      | "OPTION"
+                                      | "RACE"
+                                      | "SUBCLASS";
+                                    spellId: string;
+                                  };
+                                }
+                              | {
+                                  chargeId: string;
+                                  itemInstanceId: string;
+                                  kind: "ITEM_INSTANCE";
+                                }
+                              | {
+                                  kind: "SENSE_GRANT";
+                                  senseGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  companionInstanceId: string;
+                                  featureId: string;
+                                  kind: "COMPANION_FEATURE";
+                                };
+                          }
+                        | { kind: "EXTRAS" }
+                        | { companionInstanceId: string; kind: "COMPANION" }
+                        | { kind: "VEHICLE"; vehicleInstanceId: string };
+                      type: "REMOVE_SHEET_ADJUSTMENT";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      target:
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "ABILITY";
+                          }
+                        | {
+                            ability:
+                              | "CHARISMA"
+                              | "CONSTITUTION"
+                              | "DEXTERITY"
+                              | "INTELLIGENCE"
+                              | "STRENGTH"
+                              | "WISDOM";
+                            kind: "SAVING_THROW";
+                          }
+                        | { kind: "SKILL"; skillId: string }
+                        | { kind: "SKILLS" }
+                        | {
+                            entry?:
+                              | { kind: "PASSIVE"; skillId: string }
+                              | { kind: "SENSE"; senseId: string };
+                            kind: "SENSES";
+                          }
+                        | { kind: "MOVEMENT" }
+                        | { kind: "HIT_POINTS" }
+                        | { kind: "DEFENSES" }
+                        | { kind: "PROFICIENCIES" }
+                        | {
+                            castLevel?: number;
+                            kind: "SPELL";
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | { kind: "SPELLS" }
+                        | {
+                            featureId: string;
+                            kind: "FEATURE";
+                            sourceInstanceId: string;
+                          }
+                        | { itemInstanceId: string; kind: "ITEM" }
+                        | { kind: "BACKGROUND" }
+                        | {
+                            kind: "RESOURCE";
+                            owner:
+                              | {
+                                  kind: "AUTHORED_GRANT";
+                                  resourceGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  kind: "AUTHORED_SOURCE";
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  kind: "SPELL_SOURCE";
+                                  resourceGrantId: string;
+                                  source: {
+                                    sourceInstanceId: string;
+                                    sourceKind:
+                                      | "BACKGROUND"
+                                      | "CLASS"
+                                      | "FEAT"
+                                      | "FEATURE"
+                                      | "ITEM"
+                                      | "OPTION"
+                                      | "RACE"
+                                      | "SUBCLASS";
+                                    spellId: string;
+                                  };
+                                }
+                              | {
+                                  chargeId: string;
+                                  itemInstanceId: string;
+                                  kind: "ITEM_INSTANCE";
+                                }
+                              | {
+                                  kind: "SENSE_GRANT";
+                                  senseGrantId: string;
+                                  source:
+                                    | {
+                                        definitionId: string;
+                                        kind: "AUTHORED";
+                                        sourceInstanceId: string;
+                                        sourceKind:
+                                          | "ANCESTRY"
+                                          | "BACKGROUND"
+                                          | "CLASS"
+                                          | "FEAT"
+                                          | "FEATURE"
+                                          | "OPTION"
+                                          | "RACE"
+                                          | "SPELL"
+                                          | "SUBRACE"
+                                          | "SUBCLASS";
+                                      }
+                                    | {
+                                        equipmentId: string;
+                                        itemInstanceId: string;
+                                        kind: "EQUIPMENT_INSTANCE";
+                                      }
+                                    | {
+                                        companionInstanceId: string;
+                                        creatureId: string;
+                                        kind: "COMPANION_INSTANCE";
+                                      }
+                                    | { kind: "SYSTEM"; systemId: string }
+                                    | {
+                                        adjustmentId: string;
+                                        kind: "MANUAL_ADJUSTMENT";
+                                      };
+                                }
+                              | {
+                                  chargeId: string;
+                                  companionInstanceId: string;
+                                  featureId: string;
+                                  kind: "COMPANION_FEATURE";
+                                };
+                          }
+                        | { kind: "EXTRAS" }
+                        | { companionInstanceId: string; kind: "COMPANION" }
+                        | { kind: "VEHICLE"; vehicleInstanceId: string };
+                      type: "RESET_SHEET_PANEL_ADJUSTMENTS";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      preference:
+                        | { mode: "AUTO" }
+                        | { mode: "EXPLICIT"; speedId: string };
+                      type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
+                    }
+                  | {
+                      commandId: string;
+                      customName?: string | null;
+                      displayAsAttack?: boolean;
+                      expectedVersion: number;
+                      notes?: string | null;
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      type: "UPDATE_SPELL_SOURCE_CUSTOMIZATION";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra:
+                        | {
+                            creatureId: string;
+                            kind: "COMPANION" | "MOUNT" | "OWNED";
+                            originKind: "WORLD" | "SUMMONED";
+                          }
+                        | { kind: "VEHICLE"; vehicleId: string };
+                      type: "ADD_SHEET_EXTRA";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra:
+                        | {
+                            currentHitPoints?: number;
+                            customName?: string | null;
+                            equipmentItemIds?: Array<string>;
+                            extraId: string;
+                            hitDice?: Array<{
+                              die: number;
+                              total: number;
+                              used: number;
+                            }>;
+                            isActive?: boolean;
+                            kind: "COMPANION" | "MOUNT" | "OWNED";
+                            notes?: string | null;
+                            tempHitPoints?: number;
+                          }
+                        | {
+                            currentHitPoints?: number;
+                            customName?: string | null;
+                            equipmentItemIds?: Array<string>;
+                            extraId: string;
+                            isActive?: boolean;
+                            kind: "VEHICLE";
+                            notes?: string | null;
+                          };
+                      type: "UPDATE_SHEET_EXTRA";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      extra: {
+                        extraId: string;
+                        kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
+                      };
+                      type: "REMOVE_SHEET_EXTRA";
+                    }
+                  | {
+                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
+                      commandId: string;
+                      expectedVersion: number;
+                      mode: "BONUS" | "OVERRIDE";
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      sourceNote?: string;
+                      type: "SET_SPELL_MECHANIC_CUSTOMIZATION";
+                      value: number;
+                    }
+                  | {
+                      category: "TO_HIT" | "SAVE_DC" | "DAMAGE";
+                      commandId: string;
+                      expectedVersion: number;
+                      source: {
+                        sourceInstanceId: string;
+                        sourceKind:
+                          | "BACKGROUND"
+                          | "CLASS"
+                          | "FEAT"
+                          | "FEATURE"
+                          | "ITEM"
+                          | "OPTION"
+                          | "RACE"
+                          | "SUBCLASS";
+                        spellId: string;
+                      };
+                      type: "REMOVE_SPELL_MECHANIC_CUSTOMIZATION";
+                    }
+                  | {
+                      actionId?: string;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      owner:
+                        | {
+                            kind: "AUTHORED_GRANT";
+                            resourceGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            kind: "AUTHORED_SOURCE";
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            kind: "SPELL_SOURCE";
+                            resourceGrantId: string;
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | {
+                            chargeId: string;
+                            itemInstanceId: string;
+                            kind: "ITEM_INSTANCE";
+                          }
+                        | {
+                            kind: "SENSE_GRANT";
+                            senseGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            companionInstanceId: string;
+                            featureId: string;
+                            kind: "COMPANION_FEATURE";
+                          };
+                      type: "USE_SHEET_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      owner:
+                        | {
+                            kind: "AUTHORED_GRANT";
+                            resourceGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            kind: "AUTHORED_SOURCE";
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            kind: "SPELL_SOURCE";
+                            resourceGrantId: string;
+                            source: {
+                              sourceInstanceId: string;
+                              sourceKind:
+                                | "BACKGROUND"
+                                | "CLASS"
+                                | "FEAT"
+                                | "FEATURE"
+                                | "ITEM"
+                                | "OPTION"
+                                | "RACE"
+                                | "SUBCLASS";
+                              spellId: string;
+                            };
+                          }
+                        | {
+                            chargeId: string;
+                            itemInstanceId: string;
+                            kind: "ITEM_INSTANCE";
+                          }
+                        | {
+                            kind: "SENSE_GRANT";
+                            senseGrantId: string;
+                            source:
+                              | {
+                                  definitionId: string;
+                                  kind: "AUTHORED";
+                                  sourceInstanceId: string;
+                                  sourceKind:
+                                    | "ANCESTRY"
+                                    | "BACKGROUND"
+                                    | "CLASS"
+                                    | "FEAT"
+                                    | "FEATURE"
+                                    | "OPTION"
+                                    | "RACE"
+                                    | "SPELL"
+                                    | "SUBRACE"
+                                    | "SUBCLASS";
+                                }
+                              | {
+                                  equipmentId: string;
+                                  itemInstanceId: string;
+                                  kind: "EQUIPMENT_INSTANCE";
+                                }
+                              | {
+                                  companionInstanceId: string;
+                                  creatureId: string;
+                                  kind: "COMPANION_INSTANCE";
+                                }
+                              | { kind: "SYSTEM"; systemId: string }
+                              | {
+                                  adjustmentId: string;
+                                  kind: "MANUAL_ADJUSTMENT";
+                                };
+                          }
+                        | {
+                            chargeId: string;
+                            companionInstanceId: string;
+                            featureId: string;
+                            kind: "COMPANION_FEATURE";
+                          };
+                      trigger:
+                        | "SHORT_REST"
+                        | "LONG_REST"
+                        | "DAWN"
+                        | "DUSK"
+                        | "DAILY"
+                        | "MANUAL";
+                      type: "RECOVER_SHEET_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      inspired: boolean;
+                      type: "SET_INSPIRATION";
+                    }
+                  | {
+                      commandId: string;
+                      current?: number;
+                      expectedVersion: number;
+                      maxOverride?: number | null;
+                      temp?: number;
+                      type: "SET_HIT_POINTS";
+                    }
+                  | {
+                      amount: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      mode: "DAMAGE" | "HEAL";
+                      type: "ADJUST_HIT_POINTS";
+                    }
+                  | {
+                      commandId: string;
+                      die: number;
+                      expectedVersion: number;
+                      type: "USE_HIT_DIE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      healingMode: "AUTOMATIC" | "MANUAL";
+                      manualHealingAccepted: boolean;
+                      previewFingerprint: string;
+                      resetMaximumHitPointModifier: boolean;
+                      restKind: "SHORT" | "LONG";
+                      rollEvidence?: {
+                        expression: string;
+                        terms: Array<{
+                          count: number;
+                          die: number;
+                          modifierPerDie: number;
+                          rolls: Array<number>;
+                        }>;
+                        total: number;
+                      };
+                      rollId?: string;
+                      selectedCompanionInstanceIds: Array<string>;
+                      selectedHitDice: Array<{ count: number; die: number }>;
+                      type: "COMPLETE_REST";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      level: number;
+                      notes?: string;
+                      type: "SET_EXHAUSTION";
+                    }
+                  | {
+                      commandId: string;
+                      conditionTypeId: string;
+                      expectedVersion: number;
+                      notes?: string;
+                      type: "ADD_CONDITION";
+                    }
+                  | {
+                      commandId: string;
+                      conditionTypeId: string;
+                      expectedVersion: number;
+                      type: "REMOVE_CONDITION";
+                    }
+                  | {
+                      actionId?: string;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      resourceGrantId: string;
+                      type: "USE_RESOURCE";
+                    }
+                  | {
+                      all?: boolean;
+                      amount?: number;
+                      commandId: string;
+                      expectedVersion: number;
+                      resourceGrantId: string;
+                      type: "RESTORE_RESOURCE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey: string;
+                      type: "USE_SPELL_SLOT";
+                    }
+                  | {
+                      all?: boolean;
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey: string;
+                      type: "RESTORE_SPELL_SLOT";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      slotKey?: string;
+                      sourceId?: string;
+                      spellId: string;
+                      type: "CAST_SPELL";
+                    }
+                  | {
+                      classId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      spellIds: Array<string>;
+                      type: "SET_PREPARED_SPELLS";
+                    }
+                  | {
+                      classId: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      spellIds: Array<string>;
+                      type: "SET_KNOWN_SPELLS";
+                    }
+                  | {
+                      commandId: string;
+                      containerId?: string;
+                      customName?: string;
+                      equipmentId: string;
+                      expectedVersion: number;
+                      notes?: string;
+                      quantity: number;
+                      type: "ADD_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      quantity?: number;
+                      type: "REMOVE_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      containerId?: string | null;
+                      customName?: string | null;
+                      expectedVersion: number;
+                      itemId: string;
+                      notes?: string | null;
+                      quantity?: number;
+                      type: "UPDATE_INVENTORY_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "EQUIP_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "UNEQUIP_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "ATTUNE_ITEM";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      itemId: string;
+                      type: "UNATTUNE_ITEM";
+                    }
+                  | {
+                      amount: number;
+                      campaignCurrencySystemId?: string;
+                      commandId: string;
+                      containerId?: string;
+                      currencyId: string;
+                      expectedVersion: number;
+                      kind?: "RULESET" | "CAMPAIGN";
+                      type: "ADJUST_CURRENCY";
+                    }
+                  | {
+                      amount: number;
+                      campaignCurrencySystemId?: string;
+                      commandId: string;
+                      currencyId: string;
+                      expectedVersion: number;
+                      fromContainerId?: string;
+                      kind?: "RULESET" | "CAMPAIGN";
+                      toContainerId?: string;
+                      type: "MOVE_CURRENCY";
+                    }
+                  | {
+                      body?: string;
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      pinned?: boolean;
+                      title: string;
+                      type: "CREATE_NOTE";
+                    }
+                  | {
+                      body?: string | null;
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId?: string;
+                      noteId: string;
+                      pinned?: boolean;
+                      title?: string;
+                      type: "UPDATE_NOTE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      noteId: string;
+                      type: "DELETE_NOTE";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      label: string;
+                      type: "CREATE_NOTE_GROUP";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      label?: string;
+                      sortOrder?: number;
+                      type: "UPDATE_NOTE_GROUP";
+                    }
+                  | {
+                      commandId: string;
+                      expectedVersion: number;
+                      groupId: string;
+                      type: "DELETE_NOTE_GROUP";
+                    };
+                commandId: string;
+                conditions?:
+                  | string
+                  | number
+                  | boolean
+                  | null
+                  | Array<any>
+                  | Record<string, any>;
+                currentHitPoints?: number;
+                encounterId: string;
+                expectedVersion: number;
+                gmNotes?: string | null;
+                public?: boolean;
+                sideId?: string;
+                tempHitPoints?: number;
+                type: "UPDATE_ACTOR";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REMOVE_ACTOR";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                enemy:
+                  | { kind: "CREATURE"; sourceId: string }
+                  | { kind: "CUSTOM"; label: string; maxHitPoints: number };
+                expectedVersion: number;
+                initiative?: number | null;
+                public?: boolean;
+                sideId?: string;
+                type: "REINFORCE";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                equipmentId: string;
+                expectedVersion: number;
+                loadoutEntryId: string;
+                type: "REPLACE_CREATURE_EQUIPMENT";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                initiative: number;
+                manualOrder?: number | null;
+                type: "SET_INITIATIVE";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "ROLL_ACTOR_INITIATIVE";
+              }
+            | {
+                actorIds: Array<string>;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REORDER";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                systemId?: string;
+                type: "START";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "ADVANCE_TURN";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "PREVIOUS_TURN";
+              }
+            | {
+                actorId: string | null;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "SET_CURRENT_ACTOR";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                round: number;
+                type: "SET_ROUND";
+              }
+            | {
+                commandId: string;
+                definitionIds: Array<string>;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REPLACE_OPTIONAL_COMBAT_RULES";
+              }
+            | {
+                actorId: string;
+                amount?: number;
+                commandId: string;
+                direction: "USE" | "RESTORE";
+                encounterId: string;
+                expectedVersion: number;
+                featureId: string;
+                type: "ADJUST_FEATURE_RESOURCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                reminder: {
+                  actorId?: string | null;
+                  id?: string;
+                  label: string;
+                  notes?: string | null;
+                  order?: number;
+                  public?: boolean;
+                  round?: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
+                };
+                type: "UPSERT_REMINDER";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                reminderId: string;
+                type: "REMOVE_REMINDER";
+              }
+            | {
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                featureId: string;
+                rollDefinitionId: string;
+                type: "ROLL_ENEMY_ACTION";
+                visibility: "PRIVATE" | "TABLE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "COMPLETE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                revisionId: string;
+                type: "UPGRADE_RULE_PACK";
+              }
+            | {
+                actionId: string;
+                actorId: string;
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                optionalCombatIntent?: {
+                  definitionId: string;
+                  optionId: string;
+                  selectionContract: string;
+                  selections: Array<{
+                    fieldId: string;
+                    value:
+                      | { entityId: string; kind: "ENTITY" }
+                      | {
+                          kind: "POSITION";
+                          position: { x: number; y: number };
+                        };
+                  }>;
+                } | null;
+                sceneContext?: {
+                  expectedSceneVersion: number;
+                  sceneId: string;
+                  sourceTokenId: string;
+                  targetTokenId: string;
+                } | null;
+                targetActorId: string;
+                type: "RESOLVE_ACTION";
+              }
+            | {
+                commandId: string;
+                correlationId?: string | null;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                resolution:
+                  | {
+                      kind: "ENTER_DICE";
+                      rawFaces: Array<number>;
+                      requestId: string;
+                    }
+                  | { kind: "SYSTEM_ROLL"; requestId: string }
+                  | { kind: "ENTER_INTEGER"; requestId: string; value: number }
+                  | {
+                      entityId: string;
+                      kind: "INITIATIVE_ENTITY";
+                      requestId: string;
+                    }
+                  | {
+                      bonus:
+                        | {
+                            kind:
+                              | "CHARACTER_ACTION"
+                              | "CHARACTER_SPELL_CAST"
+                              | "CREATURE_FEATURE_ACTION";
+                            optionId: string;
+                          }
+                        | {
+                            actionFactors: Array<
+                              | "MELEE_HEAVY"
+                              | "MELEE_LIGHT_OR_FINESSE"
+                              | "MELEE_TWO_HANDED"
+                              | "RANGED_LOADING"
+                            >;
+                            actorSize:
+                              | "COLOSSAL"
+                              | "DIMUNITIVE"
+                              | "FINE"
+                              | "GARGANTUAN"
+                              | "GIANT"
+                              | "HUGE"
+                              | "LARGE"
+                              | "MEDIUM"
+                              | "SMALL"
+                              | "TINY";
+                            kind: "GM_ADJUDICATED";
+                            optionId: "GM_ADJUDICATED";
+                            spellLevel: number | null;
+                          }
+                        | null;
+                      kind: "INITIATIVE_DECLARATION";
+                      primary:
+                        | {
+                            kind:
+                              | "CHARACTER_ACTION"
+                              | "CHARACTER_SPELL_CAST"
+                              | "CREATURE_FEATURE_ACTION";
+                            optionId: string;
+                          }
+                        | {
+                            actionFactors: Array<
+                              | "MELEE_HEAVY"
+                              | "MELEE_LIGHT_OR_FINESSE"
+                              | "MELEE_TWO_HANDED"
+                              | "RANGED_LOADING"
+                            >;
+                            actorSize:
+                              | "COLOSSAL"
+                              | "DIMUNITIVE"
+                              | "FINE"
+                              | "GARGANTUAN"
+                              | "GIANT"
+                              | "HUGE"
+                              | "LARGE"
+                              | "MEDIUM"
+                              | "SMALL"
+                              | "TINY";
+                            kind: "GM_ADJUDICATED";
+                            optionId: "GM_ADJUDICATED";
+                            spellLevel: number | null;
+                          };
+                      requestId: string;
+                    }
+                  | { kind: "DECLINE" }
+                  | { kind: "OPTION"; optionId: string }
+                  | { kind: "PASSAGE_DECLINE" }
+                  | { kind: "PASSAGE_OPTION"; optionId: string };
+                type: "RESOLVE_RULE_OCCURRENCE";
+              };
+        },
+        {
+          occurrence?: {
+            occurrenceId: string;
+            occurrenceVersion: number;
+            outcome: "SAVE_SUCCESS" | "SAVE_FAILURE" | null;
+            pending:
+              | {
+                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "D20_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: {
+                    max: 20;
+                    min: 1;
+                    requestId: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  };
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "ACTION_OUTCOME_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: number; min: number; requestId: string };
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  choice: {
+                    options: Array<{
+                      actionId: string;
+                      actionSourceKind:
+                        "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                      optionId: string;
+                    }>;
+                    pathDistance: number;
+                    reactorActorId: string;
+                    reactorTokenId: string;
+                  };
+                  encounterVersion: number;
+                  kind: "MOVEMENT_REACTION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "LEGENDARY_RESISTANCE_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string }>;
+                  targetActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "LEGENDARY_ACTION_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    actionId: string;
+                    optionId: string;
+                    ownerFeatureId: string;
+                    targetActorId: string;
+                  }>;
+                  ownerActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "OPTIONAL_COMBAT_CLEAVING";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string; targetActorId: string }>;
+                  sourceActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  encounterVersion: number;
+                  kind: "MOVEMENT_PASSAGE_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    economy: "ACTION" | "BONUS_ACTION";
+                    optionId: string;
+                    ruleKind: "OVERRUN" | "TUMBLE";
+                  }>;
+                  sourceActorId: string;
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "INITIATIVE_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: number; min: number; requestId: string };
+                }
+              | {
+                  actorId: string;
+                  adjudicationFields: Array<
+                    | {
+                        key: "actorSize";
+                        kind: "SELECT";
+                        label: string;
+                        options: Array<{ label: string; value: string }>;
+                        required: true;
+                      }
+                    | {
+                        key: "actionFactors";
+                        kind: "MULTI_SELECT";
+                        label: string;
+                        maximumSelections: number;
+                        minimumSelections: number;
+                        options: Array<{ label: string; value: string }>;
+                      }
+                    | {
+                        key: "spellLevel";
+                        kind: "NULLABLE_INTEGER";
+                        label: string;
+                        maximum: number;
+                        minimum: number;
+                      }
+                  >;
+                  allowedResponses: Array<"INITIATIVE_DECLARATION">;
+                  bonusOptions: Array<{
+                    kind:
+                      | "CHARACTER_ACTION"
+                      | "CHARACTER_SPELL_CAST"
+                      | "CREATURE_FEATURE_ACTION"
+                      | "GM_ADJUDICATED";
+                    label: string;
+                    optionId: string;
+                    selectionContract: string;
+                  }>;
+                  encounterVersion: number;
+                  kind: "INITIATIVE_DECLARATION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  primaryOptions: Array<{
+                    kind:
+                      | "CHARACTER_ACTION"
+                      | "CHARACTER_SPELL_CAST"
+                      | "CREATURE_FEATURE_ACTION"
+                      | "GM_ADJUDICATED";
+                    label: string;
+                    optionId: string;
+                    selectionContract: string;
+                  }>;
+                  requestId: string;
+                }
+              | {
+                  allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
+                  encounterVersion: number;
+                  kind: "RECHARGE_EVIDENCE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  request: { max: 6; min: 1; requestId: string };
+                }
+              | {
+                  allowedResponses: Array<"INITIATIVE_ENTITY">;
+                  encounterVersion: number;
+                  entityKind: "ACTOR" | "SIDE";
+                  kind: "INITIATIVE_ORDER";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  optionIds: Array<string>;
+                  requestId: string;
+                }
+              | null;
+            status: "PENDING" | "COMPLETE";
+          } | null;
+          projection:
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  currentHitPoints: number;
+                  encounterId: string;
+                  features?: Array<{
+                    description: string;
+                    id: string;
+                    label: string;
+                    resource?: {
+                      maximum: number;
+                      remaining: number;
+                      resetKind:
+                        | "DAILY"
+                        | "DAWN"
+                        | "DUSK"
+                        | "LONG_REST"
+                        | "SHORT_REST"
+                        | "MANUAL";
+                      used: number;
+                    } | null;
+                    rollDefinitions?: Array<{
+                      chargeCost?: number | null;
+                      expression: {
+                        count: number;
+                        die: number;
+                        modifier: number;
+                      };
+                      id: string;
+                      kind:
+                        | "ATTACK"
+                        | "DAMAGE"
+                        | "HEALING"
+                        | "ABILITY_CHECK"
+                        | "SAVING_THROW";
+                      label: string;
+                      order: number;
+                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    }>;
+                    section?:
+                      | "TRAIT"
+                      | "ACTION"
+                      | "BONUS_ACTION"
+                      | "REACTION"
+                      | "LEGENDARY_ACTION"
+                      | "LAIR_ACTION"
+                      | "REGIONAL_EFFECT"
+                      | "OTHER";
+                  }>;
+                  gmNotes: string | null;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  maxHitPoints: number;
+                  public: boolean;
+                  resources:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                  stableTieKey: string;
+                  statBlock: {
+                    abilityScores: Record<string, number> | null;
+                    armorClass: number | null;
+                    conditionImmunities: Array<string>;
+                    damageImmunities: Array<string>;
+                    damageResistances: Array<string>;
+                    damageVulnerabilities: Array<string>;
+                    senses: Array<string>;
+                    speeds: Array<any>;
+                  } | null;
+                  systemId: string | null;
+                  tempHitPoints: number;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                manualReminderMode: "OFF" | "SUBTLE";
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                reminders?: Array<{
+                  actorId: string | null;
+                  id: string;
+                  label: string;
+                  notes: string | null;
+                  order: number;
+                  public: boolean;
+                  round: number | null;
+                  timing:
+                    | "ROUND_START"
+                    | "ROUND_END"
+                    | "ROUND_NUMBER"
+                    | "TURN_START"
+                    | "TURN_END";
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              }
+            | {
+                actors: Array<{
+                  conditions:
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | Array<any>
+                    | Record<string, any>;
+                  encounterId: string;
+                  healthBand:
+                    | "HEALTHY"
+                    | "WOUNDED"
+                    | "BLOODIED"
+                    | "CRITICAL"
+                    | "DEFEATED";
+                  id: string;
+                  initiative: number | null;
+                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                  label: string;
+                  manualOrder: number | null;
+                  public: boolean;
+                  sourceId: string | null;
+                  sourceRevision: number | null;
+                }>;
+                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                blueprintChecksum: string;
+                blueprintId: string;
+                blueprintVersion: number;
+                campaignId: string;
+                createdAt: string;
+                currentActorId: string | null;
+                gameSystemId: string;
+                id: string;
+                initiativePolicy?: {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  definitionId: string;
+                  label: string;
+                  procedure:
+                    | "ACTOR_ROLL"
+                    | "ACTOR_SCORE"
+                    | "SIDE_ROLL"
+                    | "DECLARED_ACTION_ROLL";
+                  tieResolverDefinitionId: string;
+                  tieResolverLabel: string;
+                } | null;
+                name: string;
+                optionalCombatRules?: Array<{
+                  definitionId: string;
+                  kind:
+                    | "FLANKING"
+                    | "ALTERNATING_DIAGONALS"
+                    | "FACING"
+                    | "CLIMB_ONTO_LARGER_CREATURE"
+                    | "DISARM"
+                    | "MARK"
+                    | "OVERRUN"
+                    | "SHOVE_ASIDE"
+                    | "TUMBLE"
+                    | "HITTING_COVER"
+                    | "CLEAVING"
+                    | "INJURIES"
+                    | "MASSIVE_DAMAGE"
+                    | "MORALE";
+                  label: string;
+                }>;
+                round: number;
+                rulePackRevisionId?: string | null;
+                status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                updatedAt: string;
+                version: number;
+              };
+          resolution?: {
+            appliedOutcomes: Array<{
+              after:
+                | string
+                | number
+                | boolean
+                | null
+                | Array<any>
+                | Record<string, any>
+                | null;
+              before:
+                | string
+                | number
+                | boolean
+                | null
+                | Array<any>
+                | Record<string, any>
+                | null;
+              correlatedCommandId: string | null;
+              proposed:
+                | {
+                    amount: number;
+                    damageTypeId: string | null;
+                    kind: "DAMAGE";
+                    targetActorId: string;
+                  }
+                | {
+                    amount: number;
+                    kind: "HEAL";
+                    targetActorId: string;
+                    temporary: boolean;
+                  }
+                | {
+                    conditionId: string;
+                    kind: "CONDITION";
+                    operation: "APPLY" | "REMOVE";
+                    targetActorId: string;
+                  }
+                | {
+                    kind: "RESOURCE";
+                    remainingDelta: number;
+                    resourceId: string;
+                    targetActorId: string;
+                  }
+                | {
+                    code: string;
+                    instructions: string;
+                    kind: "MANUAL";
+                    label: string;
+                  };
+              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
+            }>;
+            checksum: string;
+            evaluatorKind: "ZEN";
+            evaluatorVersion: string;
+            modelContractVersion: number;
+            modelKey: string;
+            normalizedFacts:
+              | string
+              | number
+              | boolean
+              | null
+              | Array<any>
+              | Record<string, any>;
+            override: {
+              outcomes: Array<
+                | {
+                    amount: number;
+                    damageTypeId: string | null;
+                    kind: "DAMAGE";
+                    targetActorId: string;
+                  }
+                | {
+                    amount: number;
+                    kind: "HEAL";
+                    targetActorId: string;
+                    temporary: boolean;
+                  }
+                | {
+                    conditionId: string;
+                    kind: "CONDITION";
+                    operation: "APPLY" | "REMOVE";
+                    targetActorId: string;
+                  }
+                | {
+                    kind: "RESOURCE";
+                    remainingDelta: number;
+                    resourceId: string;
+                    targetActorId: string;
+                  }
+                | {
+                    code: string;
+                    instructions: string;
+                    kind: "MANUAL";
+                    label: string;
+                  }
+              >;
+              reason: string;
+            } | null;
+            proposedOutcomes: Array<
+              | {
+                  amount: number;
+                  damageTypeId: string | null;
+                  kind: "DAMAGE";
+                  targetActorId: string;
+                }
+              | {
+                  amount: number;
+                  kind: "HEAL";
+                  targetActorId: string;
+                  temporary: boolean;
+                }
+              | {
+                  conditionId: string;
+                  kind: "CONDITION";
+                  operation: "APPLY" | "REMOVE";
+                  targetActorId: string;
+                }
+              | {
+                  kind: "RESOURCE";
+                  remainingDelta: number;
+                  resourceId: string;
+                  targetActorId: string;
+                }
+              | {
+                  code: string;
+                  instructions: string;
+                  kind: "MANUAL";
+                  label: string;
+                }
+            >;
+            rolls: Array<{
+              characterId: string | null;
+              characterLabel: string;
+              createdAt: string;
+              evidence: {
+                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                modifier: number;
+                subtotal: number;
+                terms: Array<{
+                  count: number;
+                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                  keptRollIndex?: number;
+                  keptRollIndexes?: Array<number>;
+                  modifier?: number;
+                  rollSequences?: Array<Array<number>>;
+                  rolls: Array<number>;
+                  subtotal: number;
+                }>;
+                total: number;
+                transform:
+                  | { kind: "NONE" }
+                  | { kind: "HALF" }
+                  | { kind: "DOUBLE" }
+                  | { kind: "MULTIPLY"; value: number };
+              };
+              id: string;
+              normalizedExpression: string;
+              ruleset: { code: string; systemId: string; version: string };
+              source: {
+                kind:
+                  | "MANUAL"
+                  | "ABILITY_CHECK"
+                  | "SAVING_THROW"
+                  | "SKILL_CHECK"
+                  | "INITIATIVE"
+                  | "ATTACK"
+                  | "DAMAGE"
+                  | "HEALING"
+                  | "HIT_DIE";
+                label: string;
+              };
+            }>;
+            rulePackRevisionId: string;
+            trace:
+              | string
+              | number
+              | boolean
+              | null
+              | Array<any>
+              | Record<string, any>
+              | null;
+          } | null;
+          roll: {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
+              subtotal: number;
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          } | null;
+        }
+      >;
+    };
     development: {
       removeFixtureBlueprint: FunctionReference<
         "mutation",
@@ -70801,6 +70801,7 @@ export declare const internal: {
         "action",
         "internal",
         {
+          attempt?: number;
           campaignId: string;
           operation:
             | { membershipEpoch: string; type: "EVICT_USER"; userId: string }
@@ -70827,6 +70828,12 @@ export declare const internal: {
     encounterActionCommit: {
       commit: FunctionReference<"mutation", "internal", any, any>;
     };
+    encounterCommand: {
+      execute: FunctionReference<"action", "internal", any, any>;
+    };
+    encounterCommandAdmission: {
+      admit: FunctionReference<"query", "internal", any, any>;
+    };
     encounterConcentrationCommit: {
       commit: FunctionReference<"mutation", "internal", any, any>;
     };
@@ -70834,6 +70841,9 @@ export declare const internal: {
       begin: FunctionReference<"mutation", "internal", any, any>;
       commit: FunctionReference<"mutation", "internal", any, any>;
       prepare: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterRoute: {
+      route: FunctionReference<"query", "internal", any, any>;
     };
     encounterRulesCapture: {
       capture: FunctionReference<"query", "internal", any, any>;
@@ -73148,6 +73158,9 @@ export declare const internal: {
     };
   };
   scenes: {
+    commandRetention: {
+      purge: FunctionReference<"mutation", "internal", {}, null>;
+    };
     definitions: {
       cleanup: FunctionReference<
         "mutation",
@@ -182019,7 +182032,6 @@ export declare const internal: {
           applications: number;
           invitations: number;
           memberships: number;
-          rates: number;
           reports: number;
         }
       >;
@@ -182098,7 +182110,7 @@ export declare const internal: {
               id?: number;
               numItems: number;
             };
-            phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS" | "RATE_WINDOWS";
+            phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS";
           };
           userIds: Array<string>;
         },
@@ -182125,7 +182137,7 @@ export declare const internal: {
               id?: number;
               numItems: number;
             };
-            phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS" | "RATE_WINDOWS";
+            phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS";
           };
           userIds: Array<string>;
         },
@@ -182184,7 +182196,7 @@ export declare const internal: {
             id?: number;
             numItems: number;
           };
-          phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS" | "RATE_WINDOWS";
+          phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS";
         },
         {
           continueCursor: string;
@@ -182213,7 +182225,7 @@ export declare const internal: {
             id?: number;
             numItems: number;
           };
-          phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS" | "RATE_WINDOWS";
+          phase: "INVITATIONS" | "REPORTS" | "APPLICATIONS";
         },
         {
           continueCursor: string;
@@ -182248,4 +182260,5 @@ export declare const components: {
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

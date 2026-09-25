@@ -2,6 +2,7 @@ import { createFunctionHandle } from 'convex/server'
 import { Resend, type EmailId } from '@convex-dev/resend'
 import { register } from '@convex-dev/resend/test'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NotificationIntentData } from '@artificer-toolkit/schema/api/notifications'
 import {
@@ -22,6 +23,7 @@ const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
 async function fixture() {
   const t = convexTest(schema, modules)
   t.registerComponent('betterAuth', authSchema, import.meta.glob('../betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   register(t)
   const user = await t.run(async (ctx) =>
     ctx.runMutation(components.betterAuth.adapter.create, {

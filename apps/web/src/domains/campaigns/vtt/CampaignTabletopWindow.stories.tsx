@@ -68,7 +68,6 @@ const mapReadyTimeoutMs = 10_000
 const geometryExecute = fn()
 const liveCommand = fn()
 const mediaGetDelivery = fn()
-const encounterCommandExecute = fn()
 const encounterActorTokenBindingExecute = fn()
 const encounterSceneBindingBind = fn()
 const fogBegin = fn()
@@ -194,9 +193,15 @@ export const GmWindow: Story = {
     await userEvent.click(page.getByRole('button', { name: 'Open turn order' }))
     await userEvent.click(await page.findByRole('button', { name: 'Next turn' }))
     await waitFor(async () => {
-      await expect(encounterCommandExecute).toHaveBeenCalledWith({
-        command: expect.objectContaining({ type: 'ADVANCE_TURN' })
-      })
+      await expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({ type: 'ADVANCE_TURN' }),
+            scope: 'ENCOUNTER'
+          },
+          type: 'COMMAND'
+        })
+      )
     })
     await userEvent.click(page.getByLabelText("Scene token for Ember's Wake"))
     await userEvent.click(await page.findByRole('option', { name: 'Ember' }))
@@ -544,8 +549,6 @@ function renderWindow(
   Object.defineProperty(convex, 'mutation', {
     value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.encounters.commands.execute))
-        return encounterCommandExecute(args)
       if (name === getFunctionName(convexApi.encounters.actorTokenBindings.execute))
         return encounterActorTokenBindingExecute(args)
       if (name === getFunctionName(convexApi.encounters.sceneBindings.bind))
@@ -617,14 +620,6 @@ function renderWindow(
         height: fogInput.layer.height,
         chunkCount: fogInput.chunkManifest.length
       }
-    })
-  })
-  encounterCommandExecute.mockReset().mockImplementation(async () => {
-    return encounterCommandResultDtoSchema.parse({
-      projection: { ...encounter, version: encounter.version + 1 },
-      roll: null,
-      resolution: null,
-      occurrence: null
     })
   })
   encounterActorTokenBindingExecute.mockReset().mockImplementation(async (raw) => {

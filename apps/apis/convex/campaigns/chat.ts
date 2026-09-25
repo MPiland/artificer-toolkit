@@ -25,10 +25,10 @@ import {
   openConversation,
   presentChatEntry,
   readEntryPayload,
-  requireConversationSendCapacity,
   readCampaignAccessTime,
   visibleConversationEntries
 } from './conversationDocuments'
+import { consumeUserRateLimit } from '../lib/rateLimits'
 
 export const list = query({
   args: zodToConvexFields(listCampaignChatEntriesInputSchema.shape),
@@ -106,7 +106,7 @@ export const send = mutation({
       return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
     }
     const now = await readCampaignAccessTime(ctx, authority.campaign)
-    await requireConversationSendCapacity(ctx, authority.campaign.id, userId, now)
+    await consumeUserRateLimit(ctx, 'campaignConversation', userId)
     const character =
       input.mode === 'ROLEPLAY'
         ? await readCampaignAssignedCharacter(ctx, authority.campaign, authority.membership)

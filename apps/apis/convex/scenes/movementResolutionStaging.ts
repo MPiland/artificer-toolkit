@@ -14,6 +14,7 @@ import type { MutationCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
+import { isEncounterMovementContext } from '../encounters/occurrenceOwner'
 import { beginSceneGeometry } from './geometryStaging'
 import { parseGeometrySave, readMovementResolution } from './geometryDocuments'
 import { readMovementResponseAuthority } from './movementResolutionDocuments'
@@ -64,11 +65,7 @@ export async function beginMovementResolution(
     : null
   const context = snapshot?.applicationContext
   const pending =
-    snapshot &&
-    (context?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
-      context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
-      context?.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-      (context?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation))
+    snapshot && isEncounterMovementContext(context)
       ? readEncounterMovementPendingContext(snapshot)
       : null
   const sceneId =

@@ -1,6 +1,7 @@
 import { createFunctionHandle, type PaginationResult } from 'convex/server'
 import { JWT_COOKIE_NAME } from '@convex-dev/better-auth/plugins'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import type { AccountDeleteInput } from '@artificer-toolkit/schema/api/account'
 import type { Doc, TableNames } from './_generated/dataModel'
@@ -22,6 +23,7 @@ const audience = process.env.CONVEX_SITE_URL
 async function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const password = 'Native-http-delete-password-2817!'
   const users = await t.run(async (ctx) => {
     const auth = createAuth(ctx)
@@ -211,17 +213,34 @@ describe('account deletion HTTP endpoint', () => {
   it('rolls back provider, app, schedules, and cookies when late native cleanup fails', async () => {
     const base = await fixture()
     await base.t.run(async (ctx) => {
-      for (let index = 0; index < 9; index++)
-        await ctx.db.insert('socialActionRateLimits', {
-          userId: (await ctx.db
-            .query('userProfiles')
-            .withIndex('by_authUserId', (q) => q.eq('authUserId', base.owner.user._id))
-            .unique())!.userId,
-          action: 'REPORT',
-          window: 'DAY',
-          count: 1,
-          windowStartedAt: new Date(Date.now() + index).toISOString()
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_authUserId', (q) => q.eq('authUserId', base.owner.user._id))
+        .unique()
+      // One row beyond the latest-25 feed bound makes the late native cleanup fail.
+      for (let index = 0; index < 26; index++) {
+        const occurredAt = new Date(Date.UTC(2026, 8, 4, 0, 0, index)).toISOString()
+        const sourcePublicId = crypto.randomUUID()
+        await ctx.db.insert('notificationFeedItems', {
+          id: crypto.randomUUID(),
+          userId: profile!.userId,
+          workflowKey: 'social-application-decided',
+          sourceKind: 'SOCIAL_APPLICATION',
+          sourcePublicId,
+          groupingKey: null,
+          data: {
+            kind: 'SOCIAL_APPLICATION_DECIDED',
+            sourcePublicId,
+            listingPublicId: crypto.randomUUID(),
+            listingTitle: 'Game invitation',
+            decision: 'ACCEPTED',
+            occurredAt
+          },
+          occurredAt,
+          seenAt: null,
+          readAt: null
         })
+      }
     })
     const before = await base.snapshot()
     const response = await base.request({

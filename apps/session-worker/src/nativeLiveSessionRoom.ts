@@ -33,6 +33,11 @@ import {
   SceneBarrierIndex,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
+import type {
+  EncounterCommandInputDto,
+  EncounterCommandResultDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { decodeJwt } from 'jose'
 import { z } from 'zod'
 
@@ -49,6 +54,8 @@ import {
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
 import { callLiveSessionRoute, LiveSessionRouteError } from './liveSessionRoutes.js'
+import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
+import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
@@ -160,6 +167,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     { envelope: SceneTransientEnvelopeDto; generation: number }
   >()
   #outboxFlush: Promise<void> | null = null
+  #rulesRuntime: Promise<RulesRuntimeService> | null = null
   #sceneSync: Promise<void> | null = null
   #tokenTransientChain: Promise<void> = Promise.resolve()
   #transientChain: Promise<void> = Promise.resolve()
@@ -624,6 +632,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#rejectCommand(socket, commandId, 'AUTHORITY_CHANGED', 'Live Session authority changed.')
       return
     }
+    if (message.command.scope === 'ENCOUNTER')
+      return this.#executeEncounterCommand(socket, admission, value, message.command.command)
     const sceneCommand =
       message.command.scope === 'SCENE'
         ? liveSessionSceneCommandInputSchema.safeParse(message.command.command)
@@ -815,6 +825,73 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult)
     this.#publishInBackground()
     return
+  }
+
+  /**
+   * Encounter rules read Scene state from Convex, so earlier Scene commands publish first. Success is
+   * acknowledged only after Convex commits; a retry reuses the command ID and replays the receipt.
+   */
+  async #executeEncounterCommand(
+    socket: WebSocket,
+    admission: Admission,
+    value: SocketAttachment,
+    command: EncounterCommandInputDto
+  ): Promise<void> {
+    try {
+      await this.#flushOutbox()
+    } catch {
+      this.#rejectCommand(
+        socket,
+        command.commandId,
+        'UNAVAILABLE',
+        'Earlier table changes are still saving; try again.'
+      )
+      return
+    }
+    let result: EncounterCommandResultDto
+    try {
+      result = await executeLiveEncounterCommand({
+        environment: this.env,
+        accessToken: admission.accessToken,
+        actor: {
+          campaignId: value.campaignId,
+          authorityEpoch: value.authorityEpoch,
+          expectedUserId: admission.userId,
+          expectedRole: admission.role
+        },
+        command,
+        runtime: await this.#liveRulesRuntime(),
+        random: secureRandomInt
+      })
+    } catch (error) {
+      const status = error instanceof LiveSessionRouteError ? error.status : 0
+      this.#rejectCommand(
+        socket,
+        command.commandId,
+        status === 401 || status === 403
+          ? 'FORBIDDEN'
+          : status === 409
+            ? 'STALE_STATE'
+            : 'UNAVAILABLE',
+        status === 409
+          ? 'The Encounter changed; review the current state and try again.'
+          : 'The Encounter command could not be completed.'
+      )
+      return
+    }
+    // A member removed while the command ran must not receive its result.
+    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
+    send(socket, {
+      commandId: command.commandId,
+      delta: { scope: 'ENCOUNTER', result },
+      sequence: this.#journal.readCurrent()?.sequence ?? 0,
+      type: 'COMMAND_COMMITTED'
+    })
+  }
+
+  #liveRulesRuntime(): Promise<RulesRuntimeService> {
+    this.#rulesRuntime ??= createNativeLiveRulesRuntime(this.env.RULES_CONTINUATION_SECRET)
+    return this.#rulesRuntime
   }
 
   #broadcastSceneCommitted(
@@ -1478,13 +1555,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const current = this.#journal.readCurrent()
     if (!current || current.status === 'RELEASED') return this.#closeSockets({ type: 'CLOSE_ROOM' })
 
+    // No new commands arrive once sockets close; in-flight ones (including forwarded Encounter
+    // commands, which Convex fences only by DO_ACTIVE authority) finish before the drain fence.
+    const closed = this.#closeSockets({ type: 'CLOSE_ROOM' })
+    await this.#commandChain
+    const draining = this.#journal.readCurrent() ?? current
     const fence = {
-      authorityEpoch: current.authorityEpoch,
-      finalSequence: current.drainFinalSequence ?? current.sequence,
-      finalStateChecksum: current.drainFinalChecksum ?? current.stateChecksum
+      authorityEpoch: draining.authorityEpoch,
+      finalSequence: draining.drainFinalSequence ?? draining.sequence,
+      finalStateChecksum: draining.drainFinalChecksum ?? draining.stateChecksum
     }
     this.#journal.beginDrain(fence)
-    const closed = this.#closeSockets({ type: 'CLOSE_ROOM' })
     const input = {
       campaignId,
       epoch: fence.authorityEpoch,
@@ -1534,7 +1615,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (socket.readyState === WebSocket.OPEN)
         socket.close(
           1008,
-          operation.type === 'CLOSE_ROOM' ? 'The Campaign live table closed.' : 'Campaign access ended.'
+          operation.type === 'CLOSE_ROOM'
+            ? 'The Campaign live table closed.'
+            : 'Campaign access ended.'
         )
       closed += 1
     }

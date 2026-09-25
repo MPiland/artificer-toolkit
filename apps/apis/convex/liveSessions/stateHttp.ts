@@ -49,6 +49,12 @@ const encounterActionCommit = makeFunctionReference<'mutation', JsonObject, unkn
 const encounterConcentrationCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterConcentrationCommit:commit'
 )
+const encounterRoute = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/encounterRoute:route'
+)
+const encounterCommand = makeFunctionReference<'action', JsonObject, unknown>(
+  'liveSessions/encounterCommand:execute'
+)
 const jsonObjectSchema = z.record(z.string(), z.json())
 type JsonObject = z.infer<typeof jsonObjectSchema>
 const noStore = { 'Cache-Control': 'no-store' }
@@ -107,6 +113,16 @@ export const encounterConcentrationCommitHttp = liveStateHttp(
   true,
   'Live Session concentration commit unavailable.',
   (ctx, input) => ctx.runMutation(encounterConcentrationCommit, input)
+)
+export const encounterRouteHttp = liveStateHttp(
+  true,
+  'Live Session Encounter route unavailable.',
+  (ctx, input) => ctx.runQuery(encounterRoute, input)
+)
+export const encounterCommandHttp = liveStateHttp(
+  true,
+  'Live Session Encounter command unavailable.',
+  (ctx, input) => ctx.runAction(encounterCommand, input)
 )
 export const activateHttp = liveStateHttp(
   false,

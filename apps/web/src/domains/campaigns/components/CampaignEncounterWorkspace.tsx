@@ -35,6 +35,7 @@ import { EncounterActorCard } from './EncounterActorCard'
 import { EncounterReinforcement } from './EncounterReinforcement'
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 import { EncounterReminders } from './EncounterReminders'
+import { useCampaignLiveSession } from '../vtt/useCampaignLiveSession'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
 export function CampaignEncounterWorkspace({
@@ -67,9 +68,12 @@ export function CampaignEncounterWorkspace({
       encounter.actors.find((actor) => actor.initiative === null)?.id ??
       null
   )
+  const live = useCampaignLiveSession({
+    campaignId: campaign.id,
+    enabled: canManage && encounter.status !== 'COMPLETED'
+  })
   const command = useMutation({
-    mutationFn: (input: EncounterCommandInputDto) =>
-      convex.mutation(convexApi.encounters.commands.execute, { command: input }),
+    mutationFn: live.sendEncounterCommand,
     onSuccess: (result) => {
       const updated = encounterGmProjectionDtoSchema.parse(result.projection)
       if (result.roll) {
@@ -96,6 +100,7 @@ export function CampaignEncounterWorkspace({
     }
   })
   const readOnly = !canManage || encounter.status === 'COMPLETED'
+  const commandBlocked = command.isPending || !live.commandReady
   const pendingDecision = useQuery({
     ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
       encounterId: encounter.id
@@ -117,7 +122,7 @@ export function CampaignEncounterWorkspace({
     actorSides.data?.actors.map((actor) => [actor.id, actor.sideId]) ?? []
   )
   const structureDisabled =
-    command.isPending ||
+    commandBlocked ||
     pendingDecision.isPending ||
     Boolean(pendingDecision.error) ||
     pendingDecision.data !== null ||
@@ -168,7 +173,7 @@ export function CampaignEncounterWorkspace({
               <NumberInput
                 className={encounterStyles.encounterRoundField}
                 classNames={{ input: sharedStyles.input }}
-                disabled={command.isPending}
+                disabled={commandBlocked}
                 label='Round'
                 min={1}
                 value={round}
@@ -198,7 +203,7 @@ export function CampaignEncounterWorkspace({
                 label: `${system.label} · ${system.rulesetCode} ${system.rulesetVersion}`,
                 value: system.id
               }))}
-              disabled={systems.isPending || !systems.data?.length || command.isPending}
+              disabled={systems.isPending || !systems.data?.length || commandBlocked}
               label='Game system'
               placeholder={systems.isPending ? 'Loading systems…' : 'Choose a system'}
               searchable
@@ -211,7 +216,7 @@ export function CampaignEncounterWorkspace({
                 (requiresManualInitiative && missingInitiative) ||
                 encounter.actors.length === 0 ||
                 !rulesetSystemId ||
-                command.isPending
+                commandBlocked
               }
               onClick={() =>
                 rulesetSystemId && commandWithVersion({ type: 'START', systemId: rulesetSystemId })
@@ -226,7 +231,7 @@ export function CampaignEncounterWorkspace({
               readOnly ||
               (requiresManualInitiative && missingInitiative) ||
               encounter.actors.length === 0 ||
-              command.isPending
+              commandBlocked
             }
             onClick={() => commandWithVersion({ type: 'START' })}
           >
@@ -238,14 +243,14 @@ export function CampaignEncounterWorkspace({
               className={encounterStyles.encounterTurnSelect}
               classNames={{ input: sharedStyles.input }}
               data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}
-              disabled={command.isPending}
+              disabled={commandBlocked}
               label='Current turn'
               value={encounter.currentActorId}
               onChange={(actorId) => commandWithVersion({ type: 'SET_CURRENT_ACTOR', actorId })}
             />
             <Button
               className={encounterStyles.encounterTurnButton}
-              disabled={command.isPending}
+              disabled={commandBlocked}
               variant='default'
               onClick={() => commandWithVersion({ type: 'PREVIOUS_TURN' })}
             >
@@ -253,7 +258,7 @@ export function CampaignEncounterWorkspace({
             </Button>
             <Button
               className={encounterStyles.encounterTurnButton}
-              disabled={command.isPending}
+              disabled={commandBlocked}
               onClick={() => commandWithVersion({ type: 'ADVANCE_TURN' })}
             >
               Next turn
@@ -262,7 +267,7 @@ export function CampaignEncounterWorkspace({
               <Menu.Target>
                 <ActionIcon
                   aria-label='Encounter actions'
-                  disabled={command.isPending}
+                  disabled={commandBlocked}
                   size='lg'
                   variant='subtle'
                 >
@@ -286,12 +291,18 @@ export function CampaignEncounterWorkspace({
       {encounter.status === 'PREPARED' ? (
         <CampaignEncounterDecision
           campaignId={campaign.id}
-          connected={canManage}
+          connected={live.commandReady}
           encounter={encounter}
           onResolved={(result) =>
             onUpdated(encounterGmProjectionDtoSchema.parse(result.projection))
           }
+          sendCommand={live.sendEncounterCommand}
         />
+      ) : null}
+      {!readOnly && !live.commandReady ? (
+        <Text c='dimmed' size='sm'>
+          {live.error ?? 'Connecting to the table…'}
+        </Text>
       ) : null}
       {command.error ? (
         <Alert color='red'>The Encounter couldn’t be updated. Try that action again.</Alert>
@@ -380,7 +391,7 @@ export function CampaignEncounterWorkspace({
                   <ActionIcon
                     aria-label={`Remove ${actor.label}`}
                     color='red'
-                    disabled={command.isPending}
+                    disabled={commandBlocked}
                     mr='sm'
                     variant='subtle'
                     onClick={() => setRemoveActorId(actor.id)}
@@ -395,7 +406,7 @@ export function CampaignEncounterWorkspace({
                 actor={actor}
                 campaign={campaign}
                 currentUserId={currentUserId}
-                disabled={readOnly || command.isPending}
+                disabled={readOnly || commandBlocked}
                 onCommand={commandWithVersion}
               />
             </Accordion.Panel>
@@ -420,7 +431,7 @@ export function CampaignEncounterWorkspace({
         onCommand={commandWithVersion}
       />
       <EncounterReminders
-        disabled={readOnly || command.isPending}
+        disabled={readOnly || commandBlocked}
         encounter={encounter}
         onCommand={commandWithVersion}
       />

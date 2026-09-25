@@ -15,6 +15,7 @@ import type { SceneLiveEntity } from '@artificer-toolkit/schema/api/sceneLiveSta
 import type { SceneAtomicDelta } from '@artificer-toolkit/shared/vtt/scene'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mutation } from '../lib/mutations'
+import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { readLiveScene, parseLiveEntity, advanceLiveState } from './liveDocuments'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 import { scenePresentationFenceSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
@@ -26,6 +27,7 @@ export const execute = mutation({
   },
   returns: zodToConvex(sceneCommandResultDtoSchema),
   handler: async (ctx, args): Promise<SceneCommandResultDto> => {
+    await consumeSceneWriteRateLimit(ctx)
     const parsed = sceneLiveCommandInputDtoSchema.parse(args.input)
     const fence = args.presentation
       ? scenePresentationFenceSchema.parse(args.presentation)

@@ -183,7 +183,7 @@ async function settleStart(
               )
             })()
     current = encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(api.encounters.commands.execute, {
+      await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: current.projection.id,
@@ -383,7 +383,7 @@ export async function setupCreatureReactionRun(
       await settleStart(
         base,
         encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(api.encounters.commands.execute, {
+          await base.owner.caller.mutation(internal.encounters.commands.execute, {
             command: {
               type: 'START',
               encounterId: run.id,

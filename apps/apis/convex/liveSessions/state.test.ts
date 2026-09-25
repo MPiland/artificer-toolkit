@@ -338,7 +338,8 @@ it('publishes one resolved live door command with exact replay, fences and atomi
     actorUserId: base.owner.userId,
     actorRole: 'OWNER',
     command: { scope: 'SCENE', command, presentation: presentationFence },
-    occurredAt: '2026-09-22T18:00:00.000Z',
+    // Commands occur inside this authority epoch, before any later access change.
+    occurredAt: new Date().toISOString(),
     receiptId: crypto.randomUUID(),
     expectedSceneResult
   }
@@ -353,7 +354,7 @@ it('publishes one resolved live door command with exact replay, fences and atomi
     base.owner.caller.action(executeGeometry, { input: command, presentation: presentationFence })
   ).rejects.toThrow('owned by its Campaign live table')
   await expect(base.t.mutation(publish, { ...input, actorRole: 'PLAYER' })).rejects.toThrow(
-    'committed Campaign owner'
+    'actor role mismatch'
   )
 
   const published = await base.t.mutation(publish, input)
@@ -387,9 +388,11 @@ it('publishes one resolved live door command with exact replay, fences and atomi
       .unique()
     if (!campaign || !owner || !newOwner || !currentPresentation)
       throw new Error('Missing Campaign fixture.')
+    // Ownership transfer restarts both members' access after the committed command.
+    const transferredAt = new Date(Date.parse(input.occurredAt) + 1).toISOString()
     await ctx.db.patch(campaign._id, { status: 'ARCHIVED', ownerUserId: base.other.userId })
-    await ctx.db.patch(owner._id, { role: 'PLAYER' })
-    await ctx.db.patch(newOwner._id, { role: 'OWNER' })
+    await ctx.db.patch(owner._id, { role: 'PLAYER', accessStartedAt: transferredAt })
+    await ctx.db.patch(newOwner._id, { role: 'OWNER', accessStartedAt: transferredAt })
     await ctx.db.patch(currentPresentation._id, { version: currentPresentation.version + 1 })
   })
   await expect(
@@ -590,7 +593,7 @@ it('publishes exact standalone movement and undo while live authority rejects di
     actorUserId: base.other.userId,
     actorRole: 'PLAYER',
     command: { scope: 'SCENE', command: move, presentation: presentationFence },
-    occurredAt: '2026-09-22T19:00:00.000Z',
+    occurredAt: new Date().toISOString(),
     receiptId: crypto.randomUUID(),
     expectedSceneResult: moveResult
   }
@@ -651,6 +654,9 @@ it('publishes exact standalone movement and undo while live authority rejects di
       }
     })
   ).rejects.toThrow('Scene result mismatch')
+  await expect(
+    base.t.mutation(publish, { ...movePublication, actorRole: 'OWNER' })
+  ).rejects.toThrow('actor role mismatch')
 
   await base.t.run(async (ctx) => {
     const member = await ctx.db
@@ -692,9 +698,16 @@ it('publishes exact standalone movement and undo while live authority rejects di
       )
       .unique()
     if (!campaign || !owner || !newOwner) throw new Error('Missing Campaign fixture.')
+    // Ownership transfer restarts both members' access after the committed move and undo.
+    const transferredAt = new Date(Date.parse(movePublication.occurredAt) + 2).toISOString()
     await ctx.db.patch(campaign._id, { ownerUserId: base.other.userId })
-    await ctx.db.patch(owner._id, { role: 'PLAYER' })
-    await ctx.db.patch(newOwner._id, { role: 'OWNER', status: 'ACTIVE', leftAt: null })
+    await ctx.db.patch(owner._id, { role: 'PLAYER', accessStartedAt: transferredAt })
+    await ctx.db.patch(newOwner._id, {
+      role: 'OWNER',
+      status: 'ACTIVE',
+      leftAt: null,
+      accessStartedAt: transferredAt
+    })
   })
 
   const undo = {
@@ -724,7 +737,7 @@ it('publishes exact standalone movement and undo while live authority rejects di
     actorUserId: base.owner.userId,
     actorRole: 'OWNER',
     command: { scope: 'SCENE', command: undo, presentation: presentationFence },
-    occurredAt: '2026-09-22T19:00:01.000Z',
+    occurredAt: new Date(Date.parse(movePublication.occurredAt) + 1).toISOString(),
     receiptId: crypto.randomUUID(),
     expectedSceneResult: undoResult
   }

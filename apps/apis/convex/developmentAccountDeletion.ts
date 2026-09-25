@@ -1100,7 +1100,7 @@ async function readDeferred(
   userId: string,
   known: DevelopmentAccountDeletionKnown
 ): Promise<Tables> {
-  const [ownedAssets, socialProfiles, limits, feed, intents, copyJobs] = await Promise.all([
+  const [ownedAssets, socialProfiles, feed, intents, copyJobs] = await Promise.all([
     bounded(
       ctx.db.query('mediaAssets').withIndex('by_ownerUserId', (q) => q.eq('ownerUserId', userId)),
       32,
@@ -1110,13 +1110,6 @@ async function readDeferred(
       ctx.db.query('socialProfiles').withIndex('by_userId', (q) => q.eq('userId', userId)),
       1,
       'socialProfiles'
-    ),
-    bounded(
-      ctx.db
-        .query('socialActionRateLimits')
-        .withIndex('by_userId_action_window', (q) => q.eq('userId', userId)),
-      8,
-      'socialActionRateLimits'
     ),
     bounded(
       ctx.db
@@ -1343,7 +1336,6 @@ async function readDeferred(
     campaignScenes: uniqueRows(campaignScenes.flat()),
     authoredImageSlots: uniqueRows(imageSlots.flat()),
     socialProfiles,
-    socialActionRateLimits: limits,
     socialBlocks: uniqueRows(blocks.flat(2)),
     campaignInvites: uniqueRows([...invitesCreated, ...invitesReceived]),
     socialApplications: uniqueRows(applications.flat()),

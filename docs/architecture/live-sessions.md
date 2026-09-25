@@ -236,9 +236,32 @@ only the persistence and projection pieces. Local transaction tests cover respon
 one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. Durable
 room dispatch/recovery remains unfinished. These private routes alone do not establish command acceptance.
 
+**Single Encounter command door.** Browsers cannot execute Encounter commands directly:
+`encounters/commands:execute` and `encounters/commandActions:execute` are internal. Every Encounter
+command enters through the Session room. The private `encounter-route` query
+(`liveSessions/encounterRoute:route`) names the room planner for the current pending occurrence —
+`ACTION`, `TURN`, `CONCENTRATION`, `MOVEMENT` or `NATIVE` — and returns only that enum. It applies
+the same native resume precedence as `commands.ts` through the one shared classifier,
+`encounters/occurrenceOwner.ts`: Disarm and Cleaving occurrences route `NATIVE`. A PLAYER may
+classify only an occurrence that `encounters/pendingReads` already shows them. The private
+`encounter-command` action (`liveSessions/encounterCommand:execute`) runs a forwarded command
+through the unchanged native implementation, including movement-response staging, as the forwarding
+user. Both routes require the Worker secret, the user's identity, the expected user and role, an
+ACTIVE Campaign, a `DO_ACTIVE` authority at the given epoch, and a Run in that Campaign
+(`liveSessions/encounterCommandAdmission.ts`). The admission check and native execution run as
+separate transactions, which Convex fences only by `DO_ACTIVE` authority. Current: room closure
+(`#closeRoom` in `apps/session-worker/src/nativeLiveSessionRoom.ts`) closes every socket, so no new
+command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
+before it sets the drain fence and releases authority.
+
+Real-backend HTTP development drivers (`apps/apis/tests/development*.ts` over a browser Convex
+client) therefore cannot execute Encounter commands; those Encounter journeys run only under the
+in-process convex-test adapter, which may call internal functions.
+
 **Worker-boundary validators.** The private rules captures and commits
 (`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,
-encounterConcentrationCommit,encounterMovement,encounterTurn,encounterTurnCommit}.ts`) are internal
+encounterCommand,encounterCommandAdmission,encounterConcentrationCommit,encounterMovement,
+encounterRoute,encounterTurn,encounterTurnCommit}.ts`) are internal
 functions reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no
 `returns` validator; each handler takes `unknown` and parses it with its shared Zod contract before
 any read, and the Worker parses every response with the same contracts. Converting these large
@@ -280,7 +303,8 @@ flowchart LR
 ```
 
 Direct Convex mutations that overlap the active Scene projection are fenced until the Session DO
-drains and releases authority. Character and Encounter commands use their owning Convex functions.
+drains and releases authority. Character commands use their owning Convex functions; Encounter
+commands enter through the room, which forwards them to their owning Convex functions.
 One Character version and its receipt are committed in the same Convex transaction. The current
 Scene command lane does not publish Character mutations; the new preparation path reads authorized
 Character inputs for the approved DO rules integration.
@@ -322,8 +346,12 @@ matching authority epoch, sequence, state checksum, and result. Convex publicati
 causes the room to bypass ordering or accept an overlapping direct write.
 
 Publication finishes a command already authorized and committed by the room. Its protected payload
-records the actor's command-time role. Only the internal publication scope may use retained historical
-membership after departure or a role change, or publish after Session finish or Campaign archive.
+records the actor's command-time role. Current: `liveSessions/state:publish` requires that role to
+equal the stored membership role. The only exception, per ADR 0029 command-time role evidence, is a
+command that occurred in the current authority epoch (at or after its `createdAt`) and before the
+member's `accessStartedAt`, which covers ownership transfer or rejoin after the command committed.
+Only the internal publication scope may use retained historical membership after departure, or
+publish after Session finish or Campaign archive.
 Campaign, membership, Scene, and Session identity must still match; deletion permits publication only
 while draining the room. Door and undo require the recorded OWNER role; movement requires that role
 or control of the token. Epoch, contiguous sequence, checksums, Scene versions, and exact results remain
@@ -331,7 +359,8 @@ mandatory. Public access and new commands continue to require current permission
 changes use the ordered control above, so prior commands publish before their presentation is replaced.
 
 Current DO command coverage is incomplete: Door state, standalone token movement and its undo.
-Character Sheet commands use Convex. Other Encounter rule commands still compute there, and
+Character Sheet commands use Convex. Other Encounter rule commands enter through the room but still
+compute in the native Convex implementation (see the single Encounter command door above), and
 Encounter-bound movement is rejected by both the DO and the active-authority Convex fence. These
 are remaining R06 integration gaps. Frozen decisions, rolls, effects, and receipts retain their
 issued evidence while subscriptions expose the latest published durable state.
@@ -345,7 +374,9 @@ once and binds its persisted room identity to the exact Campaign; the WebSocket 
 
 The signing key is checked before reserving authority. An `ACTIVATING` reservation expires at the
 latest ticket expiry issued for that epoch; issuing another ticket extends that deadline without
-changing the epoch. Once the reservation expires, direct Convex writes are available again and a new
+changing the epoch, but never past the reservation's `createdAt` plus five minutes
+(`claimCampaignLiveAuthority` in `liveSessions/authority.ts`), so a reconnect loop cannot hold an
+unused reservation indefinitely. Once the reservation expires, direct Convex writes are available again and a new
 join claims a fresh epoch. Expired tickets and epochs cannot activate it. `DO_ACTIVE` and `DRAINING`
 authority never expires through this admission deadline. For transitional records without a deadline,
 the last stored update plus the ticket lifetime is used; an obsolete pending join must request a new
@@ -385,6 +416,11 @@ revocation evict the exact user from active rooms. Campaign archive/delete close
 finishing a Campaign Session does not affect live play. Sign-out and password/security actions close the browser's live socket; a later explicit
 reconnect authenticates normally when the underlying auth session remains valid. Social profile
 suspension is separate and continues to preserve Campaign access.
+
+Room eviction and closure are fire-and-forget from their producing mutation. Current:
+`liveSessions/control.ts` delivers them with up to five attempts, rescheduling through the Convex
+scheduler after 1, 2, 4 and 8 seconds on network failure, 408, 429 or any 5xx. Other 4xx responses
+and missing configuration fail immediately. Presentation control is synchronous and does not retry.
 
 ## Transient previews
 
@@ -462,6 +498,30 @@ The tabletop subscribes to `encounters/sessionReads:active` for its active Encou
 pending decision together. One identity check, Campaign authorization, and active Run lookup supply
 both recipient-filtered results from the same Convex snapshot. A different Session or no active Run
 returns both values as null. Scene bindings and prepared Encounter decisions retain their own reads.
+
+## Security and limits
+
+Current rate limits live in `apps/apis/convex/lib/rateLimits.ts` (`@convex-dev/rate-limiter` 0.4.0).
+Each is keyed only by the authenticated user ID and consumed inside the authorized mutation before any
+write, so a rejection rolls back the whole transaction. Account deletion resets every user-keyed counter.
+
+| Limit                  | Kind and allowance                    | Consumed by                                                                                                                                      |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `liveSessionTicket`    | Token bucket, 30/min, burst 10        | `liveSessions/admission:authorize`, called by `liveSessions/tickets:issue`                                                                       |
+| `sceneWrite`           | Token bucket, 240/min, burst 80       | `scenes/commands:execute`, `geometryFastCommands:execute`, `fogCommands` begin/append/publish, `undo:executeFast`, `undo:finish`, `geometryStaging:begin` |
+| `campaignConversation` | Token bucket, 30/min, burst 30        | Campaign chat, public rolls and table rolls                                                                                                      |
+| Social                 | Fixed UTC-aligned hour/day windows    | Applications, invitations, reports and blocks ([policy](persistence.md#native-social-rate-limits--local-implementation))                         |
+
+The `sceneWrite` burst admits two maximum fog saves (begin, 32 appends, publish) back to back.
+The activation reservation cap, publication role check and control retry are described under
+[Ticket and authentication flow](#ticket-and-authentication-flow) and
+[Supported live-command flow](#supported-live-command-flow).
+
+Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
+(`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their
+`sceneGeometrySaves`, in self-rescheduling batches of 64. Replay by command ID and owner undo
+therefore reach back at most 30 days. Open follow-up: derived fog saves keep a `geometrySaveId` that
+can point at a pruned geometry save, and superseded fog saves and chunks are not yet garbage-collected.
 
 ## Configuration
 

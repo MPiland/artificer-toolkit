@@ -18,6 +18,8 @@ import {
   socialStoredBlockSchema
 } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { fixture } from '../../tests/fixtures/socialWriters'
+import { exhaustSocialRateLimit, readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
+import { resetSocialRateLimit } from '../lib/rateLimits'
 
 const remove = makeFunctionReference<'mutation', z.input<typeof socialBlockInputSchema>, null>(
   'social/blocks:remove'
@@ -138,21 +140,14 @@ describe('native Social block removal', () => {
         .unique()
     )
     if (!thirdProfile) throw new Error('Missing third Social profile.')
-    await base.t.run(async (ctx) => {
-      const limit = await ctx.db
-        .query('socialActionRateLimits')
-        .withIndex('by_userId_action_window', (q) =>
-          q.eq('userId', base.owner.userId).eq('action', 'BLOCK').eq('window', 'HOUR')
-        )
-        .unique()
-      if (!limit) throw new Error('Missing block allowance.')
-      await ctx.db.patch(limit._id, { count: 30 })
-    })
+    await exhaustSocialRateLimit(base.t, base.owner.userId, 'BLOCK')
     const before = await base.snapshot()
+    const limitsBefore = await readSocialRateLimits(base.t, base.owner.userId, 'BLOCK')
     await expect(
       base.owner.caller.mutation(create, { profilePublicId: thirdProfile.id })
     ).rejects.toThrow('Too many Social actions')
     expect(await base.snapshot()).toEqual(before)
+    expect(await readSocialRateLimits(base.t, base.owner.userId, 'BLOCK')).toEqual(limitsBefore)
   })
   it('keeps a blocked generation invalid after unblock until bounded cleanup finalizes it', async () => {
     const base = await fixture()
@@ -236,12 +231,11 @@ describe('native Social block removal', () => {
     expect(after.blocks).toEqual(
       before.blocks.filter((row) => row.blockerProfileId === base.other.id)
     )
-    const { blocks: _beforeBlocks, rates: beforeRates, ...beforeSource } = before
-    const { blocks: _afterBlocks, rates: afterRates, ...afterSource } = after
+    const { blocks: _beforeBlocks, ...beforeSource } = before
+    const { blocks: _afterBlocks, ...afterSource } = after
     expect(afterSource).toEqual(beforeSource)
-    expect(afterRates.filter((row) => row.action !== 'BLOCK')).toEqual(beforeRates)
-    expect(afterRates.filter((row) => row.action === 'BLOCK')).toMatchObject([
-      { userId: base.ownerActor.userId, window: 'HOUR', count: 1 }
+    expect(await readSocialRateLimits(base.t, base.ownerActor.userId, 'BLOCK')).toMatchObject([
+      { value: 29 }
     ])
     await expect(
       base.otherActor.caller.query(getListing, {
@@ -292,28 +286,23 @@ describe('native Social block removal', () => {
   it('rolls back a rate-limited removal and consumes one allowance for competing removals', async () => {
     const base = await blockedFixture()
     const input = { profilePublicId: base.other.id }
-    const counterId = await base.t.run((ctx) =>
-      ctx.db.insert('socialActionRateLimits', {
-        userId: base.ownerActor.userId,
-        action: 'BLOCK',
-        window: 'HOUR',
-        windowStartedAt: new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000).toISOString(),
-        count: 30
-      })
-    )
+    await exhaustSocialRateLimit(base.t, base.ownerActor.userId, 'BLOCK')
     const before = await base.snapshot()
     await expect(base.ownerActor.caller.mutation(remove, input)).rejects.toThrow(
       'Too many Social actions'
     )
     expect(await base.snapshot()).toEqual(before)
-    await base.t.run((ctx) => ctx.db.patch(counterId, { count: 29 }))
+    await base.t.run((ctx) => resetSocialRateLimit(ctx, base.ownerActor.userId, 'BLOCK'))
+    await exhaustSocialRateLimit(base.t, base.ownerActor.userId, 'BLOCK', 1)
     const outcomes = await Promise.allSettled([
       base.ownerActor.caller.mutation(remove, input),
       base.ownerActor.caller.mutation(remove, input)
     ])
     expect(outcomes.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
     expect(outcomes.filter((result) => result.status === 'rejected')).toHaveLength(1)
-    expect(await base.t.run((ctx) => ctx.db.get(counterId))).toMatchObject({ count: 30 })
+    expect(await readSocialRateLimits(base.t, base.ownerActor.userId, 'BLOCK')).toMatchObject([
+      { value: 0 }
+    ])
     expect((await base.snapshot()).blocks).toEqual([])
   })
 })

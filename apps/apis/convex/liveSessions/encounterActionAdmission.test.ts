@@ -52,7 +52,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { internal } from '../_generated/api'
 import { readRunActor, readRunState } from '../encounters/documents'
 import {
   insertActiveLiveAuthority,
@@ -250,7 +250,7 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   }
   const result = fresh
     ? null
-    : await base.owner.caller.mutation(api.encounters.commands.execute, { command })
+    : await base.owner.caller.mutation(internal.encounters.commands.execute, { command })
   if (!fresh) {
     if (!result) throw new Error('Missing executed action fixture result.')
     expect(result.occurrence?.status).toBe(pending ? 'PENDING' : 'COMPLETE')

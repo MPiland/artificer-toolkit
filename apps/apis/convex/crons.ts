@@ -8,4 +8,10 @@ crons.interval(
   internal.notifications.delivery.dispatch,
   {}
 )
+crons.daily(
+  'purge expired Scene command receipts',
+  { hourUTC: 9, minuteUTC: 0 },
+  internal.scenes.commandRetention.purge,
+  {}
+)
 export default crons

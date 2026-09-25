@@ -31,9 +31,9 @@ export async function resumeNativeConcentration(
   ctx: MutationCtx,
   response: ResolveRuleOccurrenceInputDto,
   userId: string
-): Promise<EncounterCommandResultDto | null> {
+): Promise<EncounterCommandResultDto> {
   const admission = await readNativeConcentrationResponseAdmission(ctx, response, userId)
-  if (!admission) return null
+  if (!admission) throw new Error('The concentration occurrence is unavailable.')
   if (admission.kind === 'REPLAY') return admission.result
   const {
     state,

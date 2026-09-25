@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { createFunctionHandle } from 'convex/server'
 import { convexTest } from 'convex-test'
 import { register } from '@convex-dev/r2/test'
@@ -29,6 +30,7 @@ beforeEach(async () => {
   vi.stubEnv('LOCAL_R2_ENDPOINT', server.endpoint)
   t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('../betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   register(t)
   registerRetrier(t, 'r2/actionRetrier')
 })

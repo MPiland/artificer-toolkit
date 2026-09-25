@@ -7,7 +7,7 @@ import {
 import { socialStoredReportSchema } from '@artificer-toolkit/schema/projections/socialModerationPersistence'
 import { mutation } from '../lib/mutations'
 import { requireSocialViewer } from './visibility'
-import { consumeSocialRateLimit } from './rateLimits'
+import { consumeSocialRateLimit } from '../lib/rateLimits'
 import { captureReportEvidence } from './reportEvidence'
 
 export const create = mutation({

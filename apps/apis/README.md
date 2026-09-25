@@ -49,7 +49,8 @@ The sections below preserve dated implementation decisions and partial-gate note
 of how the cutover was built, not current deployment instructions or acceptance status. Use the
 machine acceptance ledger and current guides above for present behavior.
 
-Native `encounters/commands:execute` uses `encounterExecuteInputSchema` and the existing command
+Native `encounters/commands:execute` is internal; browsers reach it only through the Session room
+(see [live-sessions](../../docs/architecture/live-sessions.md)). It uses `encounterExecuteInputSchema` and the existing command
 result DTO. Its current local slice implements GM reminder upsert/removal, with current authority,
 exact Run versions and atomic state/projection/receipt writes. Matching retries return the original
 stored result. Other commands, player reads and browser wiring remain unfinished; see
@@ -231,10 +232,21 @@ and maturity masking. Discovery/search, blocks, audited moderation and the corre
 also have local implementation proof. Full native backend/browser lifecycle acceptance remains pending. See
 [inbox contracts](../../docs/architecture/persistence.md#native-social-admission-inboxes--local-implementation).
 
-The internal `social/rateLimits` helper implements the shared Social fixed UTC hour/day allowances
-with compact, transaction-owned counters and account-deletion cleanup. It exposes no client mutation;
-application, invitation, report and block writers consume it. SQL callers
-consume the same extracted shared policy. See
+Current: `convex/lib/rateLimits.ts` owns every rate limit through the `@convex-dev/rate-limiter`
+component (0.4.0). Each limit is keyed only by the authenticated user ID and is consumed inside the
+authorized mutation before any write, so a rejection rolls back the whole transaction:
+
+- `liveSessionTicket` (token bucket, 30/min, burst 10): `liveSessions/admission:authorize`, called by
+  `liveSessions/tickets:issue`.
+- `sceneWrite` (token bucket, 240/min, burst 80): `scenes/commands:execute`,
+  `scenes/geometryFastCommands:execute`, `scenes/fogCommands` `begin`/`append`/`publish`,
+  `scenes/undo:executeFast` and `undo:finish`, and `scenes/geometryStaging:begin`.
+- `campaignConversation` (token bucket, 30/min, burst 30): chat, public rolls and table rolls.
+- Social (fixed UTC-aligned hour/day windows from the shared `SOCIAL_RATE_LIMITS` policy):
+  application, invitation, report and block writers.
+
+Account deletion (`lib/authTriggers.helper.ts`) resets every user-keyed counter. The component
+exposes no client mutation. See
 [native Social rate limits](../../docs/architecture/persistence.md#native-social-rate-limits--local-implementation).
 
 Internal `social/retention` exposes bounded preview/apply pages and scheduled report-audit cleanup.

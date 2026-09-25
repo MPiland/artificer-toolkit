@@ -95,9 +95,9 @@ describe('native live-room control client', () => {
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => new Response(null, { status: 503 }))
+      vi.fn(async () => new Response(null, { status: 400 }))
     )
-    await expect(base.t.action(send, input)).rejects.toThrow('status 503')
+    await expect(base.t.action(send, input)).rejects.toThrow('status 400')
   })
 
   it('evicts one membership epoch from the Campaign room without any Session', async () => {
@@ -130,5 +130,64 @@ describe('native live-room control client', () => {
         }
       }
     ])
+  })
+
+  it('retries transient room-control failures with bounded exponential backoff', async () => {
+    const base = await readyCharacterFixture()
+    vi.useFakeTimers()
+    const statuses = [503, 429, 204]
+    const request = vi.fn(async () => new Response(null, { status: statuses.shift() ?? 204 }))
+    vi.stubGlobal('fetch', request)
+    const input = {
+      campaignId: crypto.randomUUID(),
+      userId: crypto.randomUUID(),
+      membershipEpoch: new Date().toISOString()
+    }
+
+    await expect(base.t.action(evictUser, input)).rejects.toThrow('status 503')
+    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+
+    expect(request).toHaveBeenCalledTimes(3)
+    const retries = await base.t.run((ctx) =>
+      ctx.db.system
+        .query('_scheduled_functions')
+        .filter((q) => q.eq(q.field('name'), 'liveSessions/control:send'))
+        .collect()
+    )
+    const retry = {
+      campaignId: input.campaignId,
+      operation: {
+        type: 'EVICT_USER',
+        userId: input.userId,
+        membershipEpoch: input.membershipEpoch
+      }
+    }
+    expect(retries.map((job) => ({ args: job.args, state: job.state.kind }))).toEqual([
+      { args: [{ ...retry, attempt: 1 }], state: 'failed' },
+      { args: [{ ...retry, attempt: 2 }], state: 'success' }
+    ])
+    expect(retries[1]!.scheduledTime - retries[0]!.scheduledTime).toBeGreaterThanOrEqual(2_000)
+    vi.useRealTimers()
+  })
+
+  it('stops after the bounded attempts and never retries contract rejections', async () => {
+    const base = await readyCharacterFixture()
+    vi.useFakeTimers()
+    const unavailable = vi.fn(async () => new Response(null, { status: 503 }))
+    vi.stubGlobal('fetch', unavailable)
+    const input: LiveSessionControlInput = {
+      campaignId: crypto.randomUUID(),
+      operation: { type: 'CLOSE_ROOM' }
+    }
+    await expect(base.t.action(send, input)).rejects.toThrow('status 503')
+    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(unavailable).toHaveBeenCalledTimes(5)
+
+    const rejected = vi.fn(async () => new Response(null, { status: 400 }))
+    vi.stubGlobal('fetch', rejected)
+    await expect(base.t.action(send, input)).rejects.toThrow('status 400')
+    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(rejected).toHaveBeenCalledOnce()
+    vi.useRealTimers()
   })
 })

@@ -35,111 +35,20 @@ export async function resolveNativeLiveTurnEffectPerception(input: {
     target: input.target,
     targets: input.targets,
     effect: input.effect,
-    loadScene: async ({ observerActorId, subjectActorId }) => {
-      const response = await input.capture({
-        kind: 'SCENE_PERCEPTION',
-        observerActorId,
-        subjectActorId
+    loadScene: async (actors) => {
+      const loaded = await readNativeLivePerceptionScene({
+        ...actors,
+        campaignId: input.state.campaignId,
+        capture: input.capture
       })
-      if (response.kind !== 'SCENE_PERCEPTION')
-        throw new Error('Turn effect perception capture kind mismatch.')
-      if (!response.context) return null
-      const { header, observerTokenId, subjectTokenId } = response.context
-      if (header.campaignId !== input.state.campaignId)
-        throw new Error('Turn effect Scene is stale.')
-      const scene: Pick<
-        CampaignSceneState,
-        | 'ambientIllumination'
-        | 'barriers'
-        | 'darknessZones'
-        | 'doorStates'
-        | 'grid'
-        | 'lights'
-        | 'tokens'
-      > = {
-        ambientIllumination: header.ambientIllumination,
-        barriers: [],
-        darknessZones: [],
-        doorStates: {},
-        grid: header.grid,
-        lights: [],
-        tokens: []
-      }
-      for (const collection of ['tokens', 'barriers', 'darknessZones', 'lights'] as const) {
-        const ids = new Set<string>()
-        const cursors = new Set<string>()
-        let cursor: SceneCurrentEntityPage['next'] = { phase: 'BASE', afterOrdinal: null }
-        while (cursor) {
-          const key = `${cursor.phase}:${cursor.afterOrdinal ?? ''}`
-          if (cursors.has(key)) throw new Error('Turn effect Scene page cursor repeated.')
-          cursors.add(key)
-          const response = await input.capture({
-            kind: 'SCENE_PERCEPTION_ENTITIES',
-            page: {
-              sceneId: header.id,
-              expectedVersion: header.version,
-              definitionSaveId: header.definitionSaveId,
-              collection,
-              numItems: 8,
-              ...cursor
-            }
-          })
-          if (
-            response.kind !== 'SCENE_PERCEPTION_ENTITIES' ||
-            response.page.version !== header.version ||
-            response.page.collection !== collection ||
-            response.page.page.length > 8
-          )
-            throw new Error('Turn effect Scene page binding mismatch.')
-          let lastOrdinal = cursor.afterOrdinal ?? -1
-          for (const entry of response.page.page) {
-            const value = entry.value
-            if (
-              value.collection !== collection ||
-              entry.ordinal <= lastOrdinal ||
-              ids.has(value.entity.id)
-            )
-              throw new Error('Turn effect Scene page geometry mismatch.')
-            lastOrdinal = entry.ordinal
-            ids.add(value.entity.id)
-            if (ids.size > header.currentCounts[collection])
-              throw new Error('Turn effect Scene page count mismatch.')
-            if (value.collection === 'tokens') scene.tokens.push(value.entity)
-            else if (value.collection === 'barriers') {
-              scene.barriers.push(value.entity)
-              if (entry.doorState !== null) scene.doorStates[value.entity.id] = entry.doorState
-            } else if (value.collection === 'darknessZones') scene.darknessZones.push(value.entity)
-            else if (value.collection === 'lights') scene.lights.push(value.entity)
-          }
-          const next = response.page.next
-          if (
-            (next?.phase === cursor.phase &&
-              (next.afterOrdinal === null ||
-                next.afterOrdinal <= (cursor.afterOrdinal ?? -1) ||
-                (response.page.page.length > 0 && next.afterOrdinal < lastOrdinal))) ||
-            (next?.phase === 'BASE' && cursor.phase === 'APPENDED') ||
-            (cursor.phase === 'BASE' && next?.phase === 'APPENDED' && next.afterOrdinal !== null) ||
-            (next === null && cursor.phase === 'BASE')
-          )
-            throw new Error('Turn effect Scene page cursor mismatch.')
-          cursor = next
-        }
-        if (ids.size !== header.currentCounts[collection])
-          throw new Error('Turn effect Scene page count mismatch.')
-      }
+      if (!loaded) return null
       sceneFence = {
-        sceneId: header.id,
-        sceneVersion: header.version,
-        definitionSaveId: header.definitionSaveId
+        sceneId: loaded.id,
+        sceneVersion: loaded.version,
+        definitionSaveId: loaded.definitionSaveId
       }
       input.onSceneRead(sceneFence)
-      return {
-        id: header.id,
-        version: header.version,
-        scene,
-        observerTokenId,
-        subjectTokenId
-      }
+      return loaded
     },
     loadTarget: input.loadTarget,
     loadDefinition: async (id) => {
@@ -208,4 +117,111 @@ export async function resolveNativeLiveTurnEffectPerception(input: {
       return effects
     }
   })
+}
+
+/** Reads the perception Scene through bounded, cursor-checked entity pages of the live capture. */
+export async function readNativeLivePerceptionScene(input: {
+  campaignId: string
+  observerActorId: string
+  subjectActorId: string
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const response = await input.capture({
+    kind: 'SCENE_PERCEPTION',
+    observerActorId: input.observerActorId,
+    subjectActorId: input.subjectActorId
+  })
+  if (response.kind !== 'SCENE_PERCEPTION')
+    throw new Error('Turn effect perception capture kind mismatch.')
+  if (!response.context) return null
+  const { header, observerTokenId, subjectTokenId } = response.context
+  if (header.campaignId !== input.campaignId) throw new Error('Turn effect Scene is stale.')
+  const scene: Pick<
+    CampaignSceneState,
+    | 'ambientIllumination'
+    | 'barriers'
+    | 'darknessZones'
+    | 'doorStates'
+    | 'grid'
+    | 'lights'
+    | 'tokens'
+  > = {
+    ambientIllumination: header.ambientIllumination,
+    barriers: [],
+    darknessZones: [],
+    doorStates: {},
+    grid: header.grid,
+    lights: [],
+    tokens: []
+  }
+  for (const collection of ['tokens', 'barriers', 'darknessZones', 'lights'] as const) {
+    const ids = new Set<string>()
+    const cursors = new Set<string>()
+    let cursor: SceneCurrentEntityPage['next'] = { phase: 'BASE', afterOrdinal: null }
+    while (cursor) {
+      const key = `${cursor.phase}:${cursor.afterOrdinal ?? ''}`
+      if (cursors.has(key)) throw new Error('Turn effect Scene page cursor repeated.')
+      cursors.add(key)
+      const response = await input.capture({
+        kind: 'SCENE_PERCEPTION_ENTITIES',
+        page: {
+          sceneId: header.id,
+          expectedVersion: header.version,
+          definitionSaveId: header.definitionSaveId,
+          collection,
+          numItems: 8,
+          ...cursor
+        }
+      })
+      if (
+        response.kind !== 'SCENE_PERCEPTION_ENTITIES' ||
+        response.page.version !== header.version ||
+        response.page.collection !== collection ||
+        response.page.page.length > 8
+      )
+        throw new Error('Turn effect Scene page binding mismatch.')
+      let lastOrdinal = cursor.afterOrdinal ?? -1
+      for (const entry of response.page.page) {
+        const value = entry.value
+        if (
+          value.collection !== collection ||
+          entry.ordinal <= lastOrdinal ||
+          ids.has(value.entity.id)
+        )
+          throw new Error('Turn effect Scene page geometry mismatch.')
+        lastOrdinal = entry.ordinal
+        ids.add(value.entity.id)
+        if (ids.size > header.currentCounts[collection])
+          throw new Error('Turn effect Scene page count mismatch.')
+        if (value.collection === 'tokens') scene.tokens.push(value.entity)
+        else if (value.collection === 'barriers') {
+          scene.barriers.push(value.entity)
+          if (entry.doorState !== null) scene.doorStates[value.entity.id] = entry.doorState
+        } else if (value.collection === 'darknessZones') scene.darknessZones.push(value.entity)
+        else if (value.collection === 'lights') scene.lights.push(value.entity)
+      }
+      const next = response.page.next
+      if (
+        (next?.phase === cursor.phase &&
+          (next.afterOrdinal === null ||
+            next.afterOrdinal <= (cursor.afterOrdinal ?? -1) ||
+            (response.page.page.length > 0 && next.afterOrdinal < lastOrdinal))) ||
+        (next?.phase === 'BASE' && cursor.phase === 'APPENDED') ||
+        (cursor.phase === 'BASE' && next?.phase === 'APPENDED' && next.afterOrdinal !== null) ||
+        (next === null && cursor.phase === 'BASE')
+      )
+        throw new Error('Turn effect Scene page cursor mismatch.')
+      cursor = next
+    }
+    if (ids.size !== header.currentCounts[collection])
+      throw new Error('Turn effect Scene page count mismatch.')
+  }
+  return {
+    id: header.id,
+    version: header.version,
+    definitionSaveId: header.definitionSaveId,
+    scene,
+    observerTokenId,
+    subjectTokenId
+  }
 }

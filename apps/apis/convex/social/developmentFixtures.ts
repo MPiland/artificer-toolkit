@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import { internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
+import { resetSocialRateLimit } from '../lib/rateLimits'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { uuidSchema } from '@artificer-toolkit/schema/api/campaignContractSchemas'
 import { components, internal } from '../_generated/api'
@@ -139,15 +140,6 @@ async function readFixtureState(ctx: QueryCtx | MutationCtx, args: FixtureArgs) 
     )
       throw new Error('Fixture Social audit ownership mismatch.')
   }
-  const rates = await Promise.all(
-    userIds.map((userId) =>
-      ctx.db
-        .query('socialActionRateLimits')
-        .withIndex('by_userId_action_window', (q) => q.eq('userId', userId))
-        .take(9)
-    )
-  )
-  if (rates.some((page) => page.length > 8)) throw new Error('Fixture Social rate bounds exceeded.')
   const memberships = await Promise.all(
     userIds.map((userId) =>
       ctx.db
@@ -166,7 +158,6 @@ async function readFixtureState(ctx: QueryCtx | MutationCtx, args: FixtureArgs) 
     invitations,
     reports,
     audits,
-    rates,
     memberships
   }
 }
@@ -370,8 +361,7 @@ export const ageFixtureRecords = internalMutation({
     applications: v.number(),
     invitations: v.number(),
     reports: v.number(),
-    memberships: v.number(),
-    rates: v.number()
+    memberships: v.number()
   }),
   handler: async (ctx, args) => {
     const state = await readFixtureState(ctx, args)
@@ -427,15 +417,7 @@ export const ageFixtureRecords = internalMutation({
         await ctx.db.patch(membership._id, { leftAt: terminalAt })
         memberships++
       }
-    let rates = 0
-    for (const page of state.rates)
-      for (const row of page) {
-        await ctx.db.patch(row._id, {
-          windowStartedAt: new Date(Date.now() - 3 * 86_400_000).toISOString()
-        })
-        rates++
-      }
-    return { applications, invitations, reports, memberships, rates }
+    return { applications, invitations, reports, memberships }
   }
 })
 
@@ -485,16 +467,9 @@ export const resetBlockPair = internalMutation({
       invalidations[0]!.generation !== block.invalidationGeneration
     )
       throw new Error('Fixture Social block invalidation mismatch.')
-    const rates = await ctx.db
-      .query('socialActionRateLimits')
-      .withIndex('by_userId_action_window', (q) =>
-        q.eq('userId', blockerUserId).eq('action', 'BLOCK')
-      )
-      .take(3)
-    if (rates.length !== 1) throw new Error('Fixture Social block rate limit mismatch.')
     await ctx.db.delete(block._id)
     await ctx.db.delete(invalidations[0]!._id)
-    await ctx.db.delete(rates[0]!._id)
+    await resetSocialRateLimit(ctx, blockerUserId, 'BLOCK')
     return null
   }
 })

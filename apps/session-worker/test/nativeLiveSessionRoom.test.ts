@@ -1597,7 +1597,10 @@ it('closes every socket when the live Session ends', async () => {
       })
     ).json()
   ).toEqual({ closed: 1 })
-  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'The Campaign live table closed.' })
+  await expect(closed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'The Campaign live table closed.'
+  })
   expect(base.authorityLifecycleCalls).toEqual([
     '/live-sessions/begin-drain',
     '/live-sessions/release'
@@ -2159,3 +2162,183 @@ it.each([false, true])(
     expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
   }
 )
+
+function encounterResult(campaignId: string, encounterId: string) {
+  return {
+    projection: {
+      id: encounterId,
+      campaignId,
+      gameSystemId: crypto.randomUUID(),
+      blueprintId: crypto.randomUUID(),
+      blueprintVersion: 1,
+      blueprintChecksum: 'a'.repeat(64),
+      name: 'Live Encounter',
+      status: 'ACTIVE' as const,
+      automationMode: 'ASSISTED' as const,
+      rulePackRevisionId: null,
+      version: 4,
+      round: 2,
+      currentActorId: null,
+      actors: [],
+      createdAt: '2026-09-24T00:00:00.000Z',
+      updatedAt: '2026-09-24T00:00:00.000Z'
+    },
+    roll: null,
+    resolution: null,
+    occurrence: null
+  }
+}
+
+async function routeEncounterRequests(
+  base: Awaited<ReturnType<typeof fixture>>,
+  handle: (
+    pathname: string,
+    request: Request
+  ) => Promise<Response | undefined> | Response | undefined
+) {
+  await runInDurableObject(base.stub, () => {
+    const previous = vi.mocked(globalThis.fetch).getMockImplementation()
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      const handled = await handle(new URL(request.url).pathname, request.clone())
+      if (handled) return handled
+      if (!previous) throw new Error('Missing base native fetch mock.')
+      return previous(input, init)
+    })
+  })
+}
+
+it('forwards an unplanned Encounter command in room order and acknowledges only its initiator', async () => {
+  const base = await fixture(doorScene(crypto.randomUUID()).scene)
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const player = await connectPlayer(base)
+  const encounterId = crypto.randomUUID()
+  const commandId = crypto.randomUUID()
+  const forwarded: unknown[] = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname !== '/live-sessions/encounter-command') return undefined
+    expect(request.headers.get('authorization')).toBe(`Bearer ${base.accessToken}`)
+    forwarded.push(await request.json())
+    return Response.json(encounterResult(base.capture.campaignId, encounterId))
+  })
+  player.messages.length = 0
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.find(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toMatchObject({ delta: { scope: 'ENCOUNTER', result: { projection: { round: 2 } } } })
+  )
+  expect(forwarded).toEqual([
+    {
+      campaignId: base.capture.campaignId,
+      authorityEpoch: base.authorityEpoch,
+      expectedUserId: base.userId,
+      expectedRole: 'OWNER',
+      command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+    }
+  ])
+  expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+})
+
+it('asks Convex which planner owns a decision and follows a NATIVE route', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const encounterId = crypto.randomUUID()
+  const occurrenceId = crypto.randomUUID()
+  const commandId = crypto.randomUUID()
+  const calls: string[] = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/encounter-route') {
+      calls.push(pathname)
+      expect(await request.json()).toMatchObject({ encounterId, occurrenceId })
+      return Response.json({ route: 'NATIVE' })
+    }
+    if (pathname === '/live-sessions/encounter-command') {
+      calls.push(pathname)
+      return Response.json(encounterResult(base.capture.campaignId, encounterId))
+    }
+    return undefined
+  })
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId,
+          commandId,
+          expectedVersion: 3,
+          occurrenceId,
+          expectedOccurrenceVersion: 1,
+          correlationId: null,
+          resolution: { kind: 'SYSTEM_ROLL', requestId: 'roll-1' }
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  expect(calls).toEqual(['/live-sessions/encounter-route', '/live-sessions/encounter-command'])
+})
+
+it('rejects a refused Encounter command with a generic code and no Convex detail', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const commandId = crypto.randomUUID()
+  await routeEncounterRequests(base, (pathname) =>
+    pathname === '/live-sessions/encounter-command'
+      ? new Response('Encounter version is stale: internal detail', { status: 409 })
+      : undefined
+  )
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'SET_ROUND',
+          encounterId: crypto.randomUUID(),
+          commandId,
+          expectedVersion: 3,
+          round: 2
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+    ).toMatchObject({ code: 'STALE_STATE' })
+  )
+  expect(JSON.stringify(base.messages)).not.toContain('internal detail')
+})

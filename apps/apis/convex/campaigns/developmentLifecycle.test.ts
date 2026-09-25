@@ -17,7 +17,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { api, components } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import { assertAbsent } from './developmentLifecycle'
 
@@ -153,7 +153,7 @@ describe('reserved native Campaign lifecycle proof', () => {
     expect(run.automationMode).toBe('MANUAL')
     expect(run.initiativePolicy).toBeNull()
     for (const [index, actor] of run.actors.entries()) {
-      const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: run.id,
@@ -166,7 +166,7 @@ describe('reserved native Campaign lifecycle proof', () => {
       })
       run = encounterGmProjectionDtoSchema.parse(result.projection)
     }
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -262,7 +262,6 @@ describe('reserved native Campaign lifecycle proof', () => {
         rows.sort((a, b) => a._id.localeCompare(b._id))
       return {
         socialProfiles: sort(await ctx.db.query('socialProfiles').collect()),
-        socialActionRateLimits: sort(await ctx.db.query('socialActionRateLimits').collect()),
         socialProfileInvalidations: sort(
           await ctx.db.query('socialProfileInvalidations').collect()
         ),
@@ -273,7 +272,6 @@ describe('reserved native Campaign lifecycle proof', () => {
     expect(socialBefore.socialProfiles).toHaveLength(2)
     expect(socialBefore.socialBlocks).toHaveLength(1)
     expect(socialBefore.socialBlockInvalidations).toHaveLength(1)
-    expect(socialBefore.socialActionRateLimits).toHaveLength(1)
     const state = await base.t.query(inspect, base.target)
     const decoded: unknown = JSON.parse(state.campaignStateJson)
     expect(decoded).toMatchObject({

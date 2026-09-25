@@ -79,7 +79,7 @@ const webSocketOpenState = 1
 
 function applyRecipientDelta(
   state: LiveSessionRecipientStateDto,
-  delta: LiveSessionRecipientDeltaDto | null
+  delta: Exclude<LiveSessionRecipientDeltaDto, { scope: 'ENCOUNTER' }> | null
 ): LiveSessionRecipientStateDto | null {
   if (delta === null) return state
   if (delta.scope === 'SCENE_VERSION') {
@@ -287,6 +287,13 @@ export function createLiveSessionConnection(
             }
           }
         } else if (message.type === 'COMMAND_COMMITTED') {
+          // Encounter commits persist in Convex and converge through subscriptions; they do not
+          // advance the room sequence, so they acknowledge the initiator without touching state.
+          if (message.delta?.scope === 'ENCOUNTER') {
+            pendingCommands.get(message.commandId)?.resolve(message)
+            pendingCommands.delete(message.commandId)
+            return
+          }
           if (sequence === null || recipientState === null) {
             commandReady = false
             emitDurableState()

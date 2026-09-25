@@ -1,5 +1,6 @@
 'use node'
 
+import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
 import { z } from 'zod'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
@@ -15,7 +16,15 @@ import {
   setCampaignLiveScenePresentationResultDtoSchema,
   type SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { internalAction } from '../_generated/server'
+import { internalAction, type ActionCtx } from '../_generated/server'
+
+const CONTROL_MAX_ATTEMPTS = 5
+const CONTROL_RETRY_BASE_DELAY_MS = 1_000
+const retryReference = makeFunctionReference<
+  'action',
+  LiveSessionControlInput & { attempt: number },
+  null
+>('liveSessions/control:send')
 
 const uuidSchema = z.string().check(z.uuid())
 const membershipEpochSchema = z.iso.datetime({ offset: true })
@@ -43,20 +52,47 @@ function configuration() {
   return { secret, url }
 }
 
-async function post(input: LiveSessionControlInput) {
+function prepareRequest(input: LiveSessionControlInput) {
   const body = liveSessionControlInputSchema.parse(input)
   const { secret, url } = configuration()
-  const response = await fetch(url, {
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret
-    },
-    method: 'POST'
-  })
-  if (!response.ok)
-    throw new Error(`Live Session Worker control request failed with status ${response.status}.`)
+  return () =>
+    fetch(url, {
+      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+        [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret
+      },
+      method: 'POST'
+    })
+}
+
+function rejected(status: number) {
+  return new Error(`Live Session Worker control request failed with status ${status}.`)
+}
+
+async function post(input: LiveSessionControlInput) {
+  const response = await prepareRequest(input)()
+  if (!response.ok) throw rejected(response.status)
   return response
+}
+
+/**
+ * Room control is fire-and-forget from its producing mutation, so network failures and transient
+ * Worker statuses retry with bounded exponential backoff (1s, 2s, 4s, 8s). Configuration errors and
+ * contract rejections fail immediately.
+ */
+async function deliver(ctx: ActionCtx, input: LiveSessionControlInput, attempt: number) {
+  const dispatch = prepareRequest(input)
+  const response = await dispatch().catch(() => null)
+  if (response?.ok) return
+  const transient =
+    !response || response.status === 408 || response.status === 429 || response.status >= 500
+  if (transient && attempt + 1 < CONTROL_MAX_ATTEMPTS)
+    await ctx.scheduler.runAfter(CONTROL_RETRY_BASE_DELAY_MS * 2 ** attempt, retryReference, {
+      ...input,
+      attempt: attempt + 1
+    })
+  throw response ? rejected(response.status) : new Error('Live Session Worker is unreachable.')
 }
 
 export const present = internalAction({
@@ -71,10 +107,13 @@ export const present = internalAction({
 })
 
 export const send = internalAction({
-  args: zodToConvexFields(liveSessionControlInputSchema.shape),
+  args: {
+    ...zodToConvexFields(liveSessionControlInputSchema.shape),
+    attempt: v.optional(v.number())
+  },
   returns: v.null(),
-  handler: async (_ctx, args) => {
-    await post(liveSessionControlInputSchema.parse(args))
+  handler: async (ctx, { attempt, ...args }) => {
+    await deliver(ctx, liveSessionControlInputSchema.parse(args), attempt ?? 0)
     return null
   }
 })
@@ -82,16 +121,20 @@ export const send = internalAction({
 export const evictUser = internalAction({
   args: zodToConvexFields(evictionInputSchema.shape),
   returns: v.null(),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const input = evictionInputSchema.parse(args)
-    await post({
-      campaignId: input.campaignId,
-      operation: {
-        type: 'EVICT_USER',
-        userId: input.userId,
-        membershipEpoch: input.membershipEpoch
-      }
-    })
+    await deliver(
+      ctx,
+      {
+        campaignId: input.campaignId,
+        operation: {
+          type: 'EVICT_USER',
+          userId: input.userId,
+          membershipEpoch: input.membershipEpoch
+        }
+      },
+      0
+    )
     return null
   }
 })

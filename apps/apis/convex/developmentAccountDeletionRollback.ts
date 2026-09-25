@@ -117,7 +117,6 @@ function assertImmediateCleanup(
     'userRollHistory',
     'accountEntitlements',
     'socialProfiles',
-    'socialActionRateLimits',
     'notificationFeedItems'
   ]) {
     if (!tables[name]) throw new Error('Required cleanup catalogue is missing: ' + name)

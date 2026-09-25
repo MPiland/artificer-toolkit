@@ -990,19 +990,6 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
     'socialProfiles'
   )
   const socialProfileIds = socialProfiles.map((row) => row.id)
-  const socialActionRateLimits = await children(
-    users,
-    (id) =>
-      rows(
-        ctx.db
-          .query('socialActionRateLimits')
-          .withIndex('by_userId_action_window', (q) => q.eq('userId', id)),
-        32,
-        'socialActionRateLimits'
-      ),
-    128,
-    'socialActionRateLimits'
-  )
   const socialProfileInvalidations = await children(
     users,
     (id) =>
@@ -1151,7 +1138,6 @@ async function personalRows(ctx: Ctx, fixture: DevelopmentCampaignFixture) {
     ),
     authoredCatalogueOwnerCounts,
     socialProfiles,
-    socialActionRateLimits,
     socialProfileInvalidations,
     socialBlocks,
     socialBlockInvalidations,

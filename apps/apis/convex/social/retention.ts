@@ -11,21 +11,14 @@ import {
   socialRetentionPreviewResultSchema,
   type SocialRetentionPreviewInput
 } from '@artificer-toolkit/schema/api/socialRetention'
-import {
-  socialStoredApplicationSchema,
-  socialStoredRateLimitSchema
-} from '@artificer-toolkit/schema/projections/socialPersistence'
+import { socialStoredApplicationSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import {
   campaignStoredInviteSchema,
   campaignStoredMembershipSchema
 } from '@artificer-toolkit/schema/projections/campaignPersistence'
 import { socialStoredReportSchema } from '@artificer-toolkit/schema/projections/socialModerationPersistence'
 
-type RetentionId =
-  | Id<'campaignInvites'>
-  | Id<'socialReports'>
-  | Id<'socialApplications'>
-  | Id<'socialActionRateLimits'>
+type RetentionId = Id<'campaignInvites'> | Id<'socialReports'> | Id<'socialApplications'>
 type RetentionCursor = {
   continueCursor: string
   isDone: boolean
@@ -41,7 +34,6 @@ function cutoffValues(input: SocialRetentionPreviewInput) {
   const asOf = Date.parse(input.asOf)
   if (asOf < 0 || asOf > Date.now()) throw new Error('Retention requires a current or past cutoff.')
   const terminalBefore = asOf - 180 * 86_400_000
-  const ratesBefore = asOf - 2 * 86_400_000
   const reportCutoff = new Date(asOf)
   const month = reportCutoff.getUTCMonth()
   reportCutoff.setUTCFullYear(reportCutoff.getUTCFullYear() - 2)
@@ -52,7 +44,7 @@ function cutoffValues(input: SocialRetentionPreviewInput) {
     .map((length) => `${reportsBefore.slice(0, length)}Z`)
     .filter((value) => value >= reportRangeStart && Date.parse(value) < reportCutoff.getTime())
     .sort()
-  return { terminalBefore, ratesBefore, reportCutoff, reportRangeStart, earlierShortTimes }
+  return { terminalBefore, reportCutoff, reportRangeStart, earlierShortTimes }
 }
 
 async function selectRetentionPage(
@@ -60,8 +52,7 @@ async function selectRetentionPage(
   input: SocialRetentionPreviewInput,
   requireNoReports = false
 ): Promise<RetentionSelection> {
-  const { terminalBefore, ratesBefore, reportCutoff, reportRangeStart, earlierShortTimes } =
-    cutoffValues(input)
+  const { terminalBefore, reportCutoff, reportRangeStart, earlierShortTimes } = cutoffValues(input)
   const pagination = { ...input.paginationOpts, maximumRowsRead: 8, maximumBytesRead: 1024 * 1024 }
   if (input.phase === 'INVITATIONS') {
     const result = await ctx.db.query('campaignInvites').paginate(pagination)
@@ -87,16 +78,6 @@ async function selectRetentionPage(
         Date.parse(row.resolvedAt) < reportCutoff.getTime()
         ? [{ id: _id, reportId: row.id }]
         : []
-    })
-    const { page, ...cursor } = result
-    return { ...cursor, scanned: page.length, matches }
-  }
-  if (input.phase === 'RATE_WINDOWS') {
-    const result = await ctx.db.query('socialActionRateLimits').paginate(pagination)
-    const matches = result.page.flatMap((raw) => {
-      const { _id, _creationTime, ...stored } = raw
-      const row = socialStoredRateLimitSchema.parse(stored)
-      return Date.parse(row.windowStartedAt) < ratesBefore ? [{ id: _id }] : []
     })
     const { page, ...cursor } = result
     return { ...cursor, scanned: page.length, matches }

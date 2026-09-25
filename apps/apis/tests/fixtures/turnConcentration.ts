@@ -158,7 +158,7 @@ export async function turnConcentrationFixture(mode: 'AUTOMATIC' | 'ASSISTED') {
   })
   const observer = run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!observer) throw new Error('Turn concentration observer is unavailable.')
-  const removed = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: run.id,

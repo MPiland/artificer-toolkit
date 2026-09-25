@@ -23,7 +23,7 @@ import {
   encounterRunStateSchema,
   encounterRunActorStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (maximum: number) => maximum - 1 }))
 
@@ -260,7 +260,7 @@ it('keeps an Assisted reaction inert until entered dice, then replays one create
   })
   let targetTurns = 0
   for (let advances = 0; advances < 12 && targetTurns < 2; advances++) {
-    const advanced = await scene.owner.caller.mutation(api.encounters.commands.execute, {
+    const advanced = await scene.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -273,7 +273,7 @@ it('keeps an Assisted reaction inert until entered dice, then replays one create
       continue
     }
     const resolved = await scene.owner.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       diceResponse(base.run.id, advanced, 20)
     )
     projection = resolved.projection

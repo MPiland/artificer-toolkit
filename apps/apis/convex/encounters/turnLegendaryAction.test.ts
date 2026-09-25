@@ -403,7 +403,7 @@ async function setup(
     for (const featureId of fixedCharges
       ? [automaticChargedBiteFeatureId, ...(recharge ? [rechargeFeatureId] : [])]
       : []) {
-      await base.owner.caller.mutation(api.encounters.commands.execute, {
+      await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'ADJUST_FEATURE_RESOURCE',
           encounterId: run.id,
@@ -433,7 +433,7 @@ async function start(base: Awaited<ReturnType<typeof setup>>) {
       expectedVersion: base.run.version
     }
   } satisfies EncounterExecuteInput
-  let result = await base.owner.caller.mutation(api.encounters.commands.execute, input)
+  let result = await base.owner.caller.mutation(internal.encounters.commands.execute, input)
   let responses = 0
   while (result.occurrence?.status === 'PENDING') {
     expect(responses++).toBeLessThan(12)
@@ -473,14 +473,14 @@ async function start(base: Awaited<ReturnType<typeof setup>>) {
             }
     }
     result = await base.owner.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       response(base.run.id, result, resolution)
     )
   }
   expect(result.projection.status).toBe('ACTIVE')
-  await expect(base.owner.caller.mutation(api.encounters.commands.execute, input)).resolves.toEqual(
-    result
-  )
+  await expect(
+    base.owner.caller.mutation(internal.encounters.commands.execute, input)
+  ).resolves.toEqual(result)
   return result
 }
 
@@ -490,7 +490,7 @@ describe('native Encounter turn Legendary Actions', () => {
     const started = await start(base)
     const loadTargets = vi.spyOn(movementTargets, 'loadMovementTargets')
     try {
-      const result = await base.owner.caller.action(api.encounters.commandActions.execute, {
+      const result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: {
           type: 'ADVANCE_TURN',
           encounterId: base.run.id,
@@ -511,7 +511,7 @@ describe('native Encounter turn Legendary Actions', () => {
     async (procedure) => {
       const base = await setup('ASSISTED', 2, true, 'EACH_ROUND', procedure)
       let result = await start(base)
-      result = await base.owner.caller.action(api.encounters.commandActions.execute, {
+      result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: {
           type: 'ADVANCE_TURN',
           encounterId: base.run.id,
@@ -522,14 +522,14 @@ describe('native Encounter turn Legendary Actions', () => {
       if (result.occurrence?.pending?.kind !== 'LEGENDARY_ACTION_CHOICE')
         throw new Error('Expected the first turn owner window.')
       result = await base.owner.caller.action(
-        api.encounters.commandActions.execute,
+        internal.encounters.commandActions.execute,
         response(base.run.id, result, { kind: 'DECLINE' })
       )
       const firstRecharge = result.occurrence?.pending
       if (!firstRecharge || firstRecharge.kind !== 'RECHARGE_EVIDENCE')
         throw new Error('Expected second actor Recharge.')
       result = await base.owner.caller.action(
-        api.encounters.commandActions.execute,
+        internal.encounters.commandActions.execute,
         response(base.run.id, result, {
           kind: 'ENTER_INTEGER',
           requestId: firstRecharge.request.requestId,
@@ -538,7 +538,7 @@ describe('native Encounter turn Legendary Actions', () => {
       )
       let expectedVersion = result.projection.version
       for (const actor of base.run.actors) {
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'ADJUST_FEATURE_RESOURCE',
             encounterId: base.run.id,
@@ -561,7 +561,7 @@ describe('native Encounter turn Legendary Actions', () => {
           expectedVersion
         }
       } satisfies EncounterExecuteInput
-      result = await base.owner.caller.action(api.encounters.commandActions.execute, advance)
+      result = await base.owner.caller.action(internal.encounters.commandActions.execute, advance)
       const choice = result.occurrence?.pending
       if (!choice || choice.kind !== 'LEGENDARY_ACTION_CHOICE')
         throw new Error('EACH_ROUND must offer the outgoing Legendary window before initiative.')
@@ -571,7 +571,7 @@ describe('native Encounter turn Legendary Actions', () => {
         optionId: choice.options[0]!.optionId
       })
       result = await base.owner.caller
-        .action(api.encounters.commandActions.execute, option)
+        .action(internal.encounters.commandActions.execute, option)
         .catch((cause: unknown) => {
           throw new Error('Legendary option failed.', { cause })
         })
@@ -585,7 +585,7 @@ describe('native Encounter turn Legendary Actions', () => {
         rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
       })
       result = await base.owner.caller
-        .action(api.encounters.commandActions.execute, dice)
+        .action(internal.encounters.commandActions.execute, dice)
         .catch((cause: unknown) => {
           throw new Error('Legendary dice response failed.', { cause })
         })
@@ -625,7 +625,7 @@ describe('native Encounter turn Legendary Actions', () => {
         }
         const input = response(base.run.id, result, resolution)
         initiativeResponses.push(input)
-        result = await base.owner.caller.action(api.encounters.commandActions.execute, input)
+        result = await base.owner.caller.action(internal.encounters.commandActions.execute, input)
       }
       const recharge = result.occurrence?.pending
       if (!recharge || recharge.kind !== 'RECHARGE_EVIDENCE')
@@ -633,14 +633,17 @@ describe('native Encounter turn Legendary Actions', () => {
       unchangedMechanics(before, await stored(base.t, base.run.id))
       for (const input of [advance, option, dice, ...initiativeResponses])
         await expect(
-          base.owner.caller.action(api.encounters.commandActions.execute, input)
+          base.owner.caller.action(internal.encounters.commandActions.execute, input)
         ).resolves.toEqual(result)
       const rechargeInput = response(base.run.id, result, {
         kind: 'ENTER_INTEGER',
         requestId: recharge.request.requestId,
         value: 5
       })
-      result = await base.owner.caller.action(api.encounters.commandActions.execute, rechargeInput)
+      result = await base.owner.caller.action(
+        internal.encounters.commandActions.execute,
+        rechargeInput
+      )
       expect(result).toMatchObject({
         projection: { status: 'ACTIVE', round: 2, version: expectedVersion + 1 },
         occurrence: { status: 'COMPLETE', pending: null }
@@ -655,7 +658,7 @@ describe('native Encounter turn Legendary Actions', () => {
       expect(acting.currentHitPoints).toBe(10)
       for (const input of [advance, option, dice, ...initiativeResponses, rechargeInput])
         await expect(
-          base.owner.caller.action(api.encounters.commandActions.execute, input)
+          base.owner.caller.action(internal.encounters.commandActions.execute, input)
         ).resolves.toEqual(result)
       expect(await stored(base.t, base.run.id)).toEqual(terminal)
     },
@@ -675,7 +678,7 @@ describe('native Encounter turn Legendary Actions', () => {
         expectedVersion: started.projection.version
       }
     } satisfies EncounterExecuteInput
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, advance)
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, advance)
     const expectedOwners = base.run.actors
       .map((actor) => actor.id)
       .filter((id) => id !== started.projection.currentActorId)
@@ -703,7 +706,7 @@ describe('native Encounter turn Legendary Actions', () => {
       ).resolves.toBeNull()
       unchangedMechanics(before, await stored(base.t, base.run.id))
       await expect(
-        base.owner.caller.mutation(api.encounters.commands.execute, advance)
+        base.owner.caller.mutation(internal.encounters.commands.execute, advance)
       ).resolves.toEqual(result)
       const command = response(
         base.run.id,
@@ -713,9 +716,9 @@ describe('native Encounter turn Legendary Actions', () => {
           : { kind: 'OPTION', optionId: pending.options[0]!.optionId }
       )
       responses.push(command)
-      result = await base.owner.caller.action(api.encounters.commandActions.execute, command)
+      result = await base.owner.caller.action(internal.encounters.commandActions.execute, command)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, command)
+        base.owner.caller.action(internal.encounters.commandActions.execute, command)
       ).resolves.toEqual(result)
     }
     expect(result).toMatchObject({
@@ -773,7 +776,7 @@ describe('native Encounter turn Legendary Actions', () => {
     }
     for (const input of [advance, ...responses])
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, input)
+        base.owner.caller.action(internal.encounters.commandActions.execute, input)
       ).resolves.toEqual(result)
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
@@ -791,7 +794,7 @@ describe('native Encounter turn Legendary Actions', () => {
         expectedVersion: started.projection.version
       }
     } satisfies EncounterExecuteInput
-    let result = await base.owner.caller.action(api.encounters.commandActions.execute, advance)
+    let result = await base.owner.caller.action(internal.encounters.commandActions.execute, advance)
     const first = result.occurrence?.pending
     if (!first || first.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected the first Legendary owner.')
@@ -801,7 +804,7 @@ describe('native Encounter turn Legendary Actions', () => {
       optionId: first.options[0]!.optionId
     })
     result = await base.owner.caller
-      .action(api.encounters.commandActions.execute, option)
+      .action(internal.encounters.commandActions.execute, option)
       .catch((cause: unknown) => {
         throw new Error('Legendary option failed.', { cause })
       })
@@ -820,7 +823,7 @@ describe('native Encounter turn Legendary Actions', () => {
       })
     ).resolves.toBeNull()
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, option)
+      base.owner.caller.action(internal.encounters.commandActions.execute, option)
     ).resolves.toEqual(result)
     const dice = response(base.run.id, result, {
       kind: 'ENTER_DICE',
@@ -828,7 +831,7 @@ describe('native Encounter turn Legendary Actions', () => {
       rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
     })
     result = await base.owner.caller
-      .action(api.encounters.commandActions.execute, dice)
+      .action(internal.encounters.commandActions.execute, dice)
       .catch((cause: unknown) => {
         throw new Error('Legendary dice response failed.', { cause })
       })
@@ -838,11 +841,11 @@ describe('native Encounter turn Legendary Actions', () => {
     expect(second.ownerActorId).not.toBe(selectedOwner)
     unchangedMechanics(before, await stored(base.t, base.run.id))
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, dice)
+      base.owner.caller.action(internal.encounters.commandActions.execute, dice)
     ).resolves.toEqual(result)
     const afterDice = await stored(base.t, base.run.id)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, {
+      base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: {
           ...dice.command,
           resolution: {
@@ -856,7 +859,7 @@ describe('native Encounter turn Legendary Actions', () => {
     expect(await stored(base.t, base.run.id)).toEqual(afterDice)
     const decline = response(base.run.id, result, { kind: 'DECLINE' })
     result = await base.owner.caller
-      .action(api.encounters.commandActions.execute, decline)
+      .action(internal.encounters.commandActions.execute, decline)
       .catch((cause: unknown) => {
         throw new Error('Remaining owner decline failed.', { cause })
       })
@@ -866,14 +869,17 @@ describe('native Encounter turn Legendary Actions', () => {
     unchangedMechanics(before, await stored(base.t, base.run.id))
     for (const input of [advance, option, dice, decline])
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, input)
+        base.owner.caller.action(internal.encounters.commandActions.execute, input)
       ).resolves.toEqual(result)
     const rechargeInput = response(base.run.id, result, {
       kind: 'ENTER_INTEGER',
       requestId: recharge.request.requestId,
       value: 5
     })
-    result = await base.owner.caller.action(api.encounters.commandActions.execute, rechargeInput)
+    result = await base.owner.caller.action(
+      internal.encounters.commandActions.execute,
+      rechargeInput
+    )
     expect(result).toMatchObject({
       projection: { version: started.projection.version + 1 },
       occurrence: { status: 'COMPLETE', pending: null }
@@ -925,7 +931,7 @@ describe('native Encounter turn Legendary Actions', () => {
     try {
       for (const input of [advance, option, dice, decline, rechargeInput])
         await expect(
-          base.owner.caller.action(api.encounters.commandActions.execute, input)
+          base.owner.caller.action(internal.encounters.commandActions.execute, input)
         ).resolves.toEqual(result)
     } finally {
       entropy.mockRestore()
@@ -936,7 +942,7 @@ describe('native Encounter turn Legendary Actions', () => {
   it('rejects another player, stale options, changed retained owner source and changed lifecycle publication without writes', async () => {
     const base = await setup('AUTOMATIC')
     const started = await start(base)
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -950,16 +956,16 @@ describe('native Encounter turn Legendary Actions', () => {
     const valid = response(base.run.id, result, { kind: 'DECLINE' })
     const before = await stored(base.t, base.run.id)
     await expect(
-      base.other.caller.action(api.encounters.commandActions.execute, valid)
+      base.other.caller.action(internal.encounters.commandActions.execute, valid)
     ).rejects.toThrow()
     await expect(
       base.owner.caller.action(
-        api.encounters.commandActions.execute,
+        internal.encounters.commandActions.execute,
         response(base.run.id, result, { kind: 'OPTION', optionId: 'f'.repeat(64) })
       )
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(before)
-    result = await base.owner.caller.action(api.encounters.commandActions.execute, valid)
+    result = await base.owner.caller.action(internal.encounters.commandActions.execute, valid)
     const remaining = response(base.run.id, result, { kind: 'DECLINE' })
     const original = (await stored(base.t, base.run.id)).actors.find(
       (row) => row.id === first.ownerActorId
@@ -975,7 +981,7 @@ describe('native Encounter turn Legendary Actions', () => {
     })
     const changedSource = await stored(base.t, base.run.id)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, remaining)
+      base.owner.caller.action(internal.encounters.commandActions.execute, remaining)
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(changedSource)
     await base.t.run((ctx) =>
@@ -999,7 +1005,7 @@ describe('native Encounter turn Legendary Actions', () => {
     })
     const changedDefinition = await stored(base.t, base.run.id)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, remaining)
+      base.owner.caller.action(internal.encounters.commandActions.execute, remaining)
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(changedDefinition)
   }, 30000)
@@ -1007,7 +1013,7 @@ describe('native Encounter turn Legendary Actions', () => {
   it('rolls back the enclosing terminal mutation including the Legendary spend, target damage, cursor and receipt', async () => {
     const base = await setup('AUTOMATIC', 2)
     const started = await start(base)
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -1043,13 +1049,13 @@ describe('native Encounter turn Legendary Actions', () => {
     ).resolves.toEqual({ rolledBack: true })
     expect(await stored(base.t, base.run.id)).toEqual(before)
     const terminal = await base.owner.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       terminalInput
     )
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect(terminal.projection.version).toBe(started.projection.version + 1)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, terminalInput)
+      base.owner.caller.action(internal.encounters.commandActions.execute, terminalInput)
     ).resolves.toEqual(terminal)
     expect((await stored(base.t, base.run.id)).receipts).toHaveLength(before.receipts.length + 1)
   }, 30000)
@@ -1308,7 +1314,7 @@ describe('private DO turn Legendary Action response', () => {
   it('replays an accepted Legendary decline after the turn reaches pending initiative order', async () => {
     const base = await setup('AUTOMATIC', 2, false, 'EACH_ROUND')
     const started = await start(base)
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -1319,12 +1325,12 @@ describe('private DO turn Legendary Action response', () => {
     if (result.occurrence?.pending?.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected the first outgoing Legendary choice.')
     result = await base.owner.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       response(base.run.id, result, { kind: 'DECLINE' })
     )
     expect(result.occurrence?.status).toBe('COMPLETE')
     const secondAdvanceVersion = result.projection.version
-    result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -1338,7 +1344,7 @@ describe('private DO turn Legendary Action response', () => {
     const decline = response(base.run.id, result, { kind: 'DECLINE' }).command
     const rolls = vi.spyOn(rollRandom, 'nextRollInt').mockImplementation((maximum) => maximum - 1)
     try {
-      result = await base.owner.caller.action(api.encounters.commandActions.execute, {
+      result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: decline
       })
     } finally {

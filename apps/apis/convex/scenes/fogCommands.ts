@@ -20,6 +20,7 @@ import { sceneStoredFogCommandSchema } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { type MutationCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
+import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { advanceLiveState, readLiveScene } from './liveDocuments'
 import { parseFogCommand, parseFogSave, readFogSave } from './fogDocuments'
 import { publishFogLayer } from './fogPublication'
@@ -126,6 +127,7 @@ export const begin = mutation({
   args: { input: zodToConvex(sceneFogPatchInputSchema) },
   returns: zodToConvex(sceneFogSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneFogSaveProgress> => {
+    await consumeSceneWriteRateLimit(ctx)
     const input = normalizeBegin(sceneFogPatchInputSchema.parse(args.input))
     const { header, campaign, userId } = await readLiveScene(ctx, input.sceneId, 'OWNER')
     assertActive(campaign)
@@ -196,6 +198,7 @@ export const append = mutation({
   args: { input: zodToConvex(sceneFogAppendInputSchema) },
   returns: zodToConvex(sceneFogSaveProgressSchema),
   handler: async (ctx, args): Promise<SceneFogSaveProgress> => {
+    await consumeSceneWriteRateLimit(ctx)
     const input = normalizeAppend(sceneFogAppendInputSchema.parse(args.input))
     const { row, save, campaign, userId } = await readFogSave(ctx, input.saveId)
     if (save.geometrySaveId) throw new Error('Derived Scene fog saves cannot be changed manually.')
@@ -235,6 +238,7 @@ export const publish = mutation({
   args: zodToConvexFields(sceneFogSaveLookupSchema.shape),
   returns: zodToConvex(sceneFogCommandResultSchema),
   handler: async (ctx, args) => {
+    await consumeSceneWriteRateLimit(ctx)
     const lookup = sceneFogSaveLookupSchema.parse(args)
     const { row, save, header, campaign, userId, liveRow, live } = await readFogSave(
       ctx,

@@ -1,5 +1,6 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import type { AccountDeleteInput } from '@artificer-toolkit/schema/api/account'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -34,6 +35,7 @@ const executeWithActorId = makeFunctionReference<
 async function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const password = 'Local-account-delete-confirmation-8175!'
   const hash = await t.run(async (ctx) => (await createAuth(ctx).$context).password.hash(password))
   const user = await t.run(async (ctx) =>
@@ -450,25 +452,41 @@ describe('installed native account deletion cascade', () => {
     const identity = await base.caller.query(api.account.identity, {})
     if (!identity) throw new Error('Missing fixture identity.')
     await base.t.run(async (ctx) => {
-      for (let index = 0; index < 9; index++)
-        await ctx.db.insert('socialActionRateLimits', {
+      // One row beyond the latest-25 feed bound makes the late native cleanup fail.
+      for (let index = 0; index < 26; index++) {
+        const occurredAt = new Date(Date.UTC(2026, 8, 4, 0, 0, index)).toISOString()
+        const sourcePublicId = crypto.randomUUID()
+        await ctx.db.insert('notificationFeedItems', {
+          id: crypto.randomUUID(),
           userId: identity.userId,
-          action: 'APPLICATION',
-          window: 'HOUR',
-          windowStartedAt: new Date().toISOString(),
-          count: 1
+          workflowKey: 'social-application-decided',
+          sourceKind: 'SOCIAL_APPLICATION',
+          sourcePublicId,
+          groupingKey: null,
+          data: {
+            kind: 'SOCIAL_APPLICATION_DECIDED',
+            sourcePublicId,
+            listingPublicId: crypto.randomUUID(),
+            listingTitle: 'Game invitation',
+            decision: 'ACCEPTED',
+            occurredAt
+          },
+          occurredAt,
+          seenAt: null,
+          readAt: null
         })
+      }
     })
     const before = await base.globalSnapshot()
     expect(before.users.isDone && before.accounts.isDone && before.sessions.isDone).toBe(true)
-    const limitsBefore = await base.t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())
-    expect(limitsBefore).toHaveLength(9)
+    const feedBefore = await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())
+    expect(feedBefore).toHaveLength(26)
     await expect(
       base.t.mutation(execute, { sessionToken: base.session.token, command: base.input })
-    ).rejects.toThrow('Invalid Social rate-limit cardinality.')
+    ).rejects.toThrow('Notification retention limit exceeded.')
     expect(await base.globalSnapshot()).toEqual(before)
-    expect(await base.t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toEqual(
-      limitsBefore
+    expect(await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())).toEqual(
+      feedBefore
     )
     await expect(base.caller.query(api.account.identity, {})).resolves.toHaveProperty(
       'userId',

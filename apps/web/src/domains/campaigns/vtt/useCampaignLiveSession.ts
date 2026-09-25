@@ -1,5 +1,9 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type {
+  EncounterCommandInputDto,
+  EncounterCommandResultDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type {
   LiveSessionCommandDto,
   LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -25,7 +29,7 @@ export function useCampaignLiveSession({
 }: {
   campaignId: string
   enabled: boolean
-  onTransient: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
+  onTransient?: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
 }) {
   const connection = useRef<LiveSessionConnection | null>(null)
   const onTransientRef = useRef(onTransient)
@@ -72,7 +76,7 @@ export function useCampaignLiveSession({
         setSequence(state.sequence)
       },
       onStatus: setStatus,
-      onTransient: (message) => onTransientRef.current(message),
+      onTransient: (message) => onTransientRef.current?.(message),
       url: resolveLiveSessionWebSocketUrl(configuredUrl, campaignId)
     })
     connection.current = liveConnection
@@ -91,6 +95,16 @@ export function useCampaignLiveSession({
     },
     []
   )
+  // Every Encounter command enters through the room, which runs or forwards it (live-sessions.md).
+  const sendEncounterCommand = useCallback(
+    async (command: EncounterCommandInputDto): Promise<EncounterCommandResultDto> => {
+      const commit = await sendCommand({ command, scope: 'ENCOUNTER' })
+      if (commit.delta?.scope !== 'ENCOUNTER')
+        throw new Error('Live play acknowledged the Encounter command without a result.')
+      return commit.delta.result
+    },
+    [sendCommand]
+  )
   const sendTransient = useCallback((envelope: SceneTransientEnvelopeDto) => {
     return connection.current?.sendTransient(envelope) ?? false
   }, [])
@@ -107,6 +121,7 @@ export function useCampaignLiveSession({
     recipientState,
     rejection,
     sendCommand,
+    sendEncounterCommand,
     sendTransient,
     sequence,
     status,

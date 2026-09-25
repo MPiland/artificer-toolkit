@@ -37,7 +37,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
 import { createRulesRuntime } from '../rules/runtime'
-import { api, internal } from '../_generated/api'
+import { internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import * as random from '../lib/rollRandom'
 import { readRunActors, readRunState } from './documents'
@@ -642,7 +642,7 @@ describe('native turn effect planning and terminal transactions', () => {
 
   it('merges Automatic outgoing and incoming maintained cleanup evidence and exactly replays', async () => {
     const base = await turnActiveEffectFixture('AUTOMATIC')
-    const started = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -676,7 +676,7 @@ describe('native turn effect planning and terminal transactions', () => {
       ;(values as Uint32Array)[0] = 0
       return values
     })
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, advance)
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, advance)
     const terminal = await base.t.run(async (ctx) => ({
       states: await ctx.db.query('encounterMaintainedEffectStates').take(129),
       effects: await ctx.db.query('encounterActiveRuleEffects').take(129),
@@ -709,7 +709,7 @@ describe('native turn effect planning and terminal transactions', () => {
     )
     entropy.mockClear()
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, advance)
+      base.owner.caller.mutation(internal.encounters.commands.execute, advance)
     ).resolves.toEqual(result)
     expect(entropy).not.toHaveBeenCalled()
     expect(

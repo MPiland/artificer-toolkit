@@ -431,9 +431,12 @@ describe('native Character action sources', () => {
         self ? fixture.actor.id : fixture.target.id
       )
       const before = await records(fixture)
-      const pendingResult = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
-        command
-      })
+      const pendingResult = await fixture.owner.caller.mutation(
+        internal.encounters.commands.execute,
+        {
+          command
+        }
+      )
       expect(await records(fixture)).toEqual(before)
       const pending = pendingResult.occurrence?.pending
       if (pending?.kind !== 'ACTION_OUTCOME_EVIDENCE')
@@ -459,7 +462,7 @@ describe('native Character action sources', () => {
           const character = before[0]!
           await ctx.db.patch(character._id, { streamVersion: character.streamVersion + 1 })
           await expect(
-            ctx.runMutation(api.encounters.commands.execute, { command: response })
+            ctx.runMutation(internal.encounters.commands.execute, { command: response })
           ).rejects.toThrow()
           throw new Error('restore current Character')
         })
@@ -467,12 +470,12 @@ describe('native Character action sources', () => {
       expect(await records(fixture)).toEqual(before)
       await expect(
         fixture.owner.caller.run(async (ctx) => {
-          await ctx.runMutation(api.encounters.commands.execute, { command: response })
+          await ctx.runMutation(internal.encounters.commands.execute, { command: response })
           throw new Error('rollback Character evidence')
         })
       ).rejects.toThrow('rollback Character evidence')
       expect(await records(fixture)).toEqual(before)
-      const result = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+      const result = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: response
       })
       const after = await records(fixture)
@@ -504,10 +507,10 @@ describe('native Character action sources', () => {
         expect(JSON.parse(target.stateJson).currentHitPoints).toBe(fixture.target.maxHitPoints)
       }
       await expect(
-        fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+        fixture.owner.caller.mutation(internal.encounters.commands.execute, { command })
       ).resolves.toEqual(result)
       await expect(
-        fixture.owner.caller.mutation(api.encounters.commands.execute, { command: response })
+        fixture.owner.caller.mutation(internal.encounters.commands.execute, { command: response })
       ).resolves.toEqual(result)
       expect(await records(fixture)).toEqual(after)
     },
@@ -518,7 +521,9 @@ describe('native Character action sources', () => {
     const fixture = await setup()
     const command = input(fixture)
     const before = await records(fixture)
-    const result = await fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+    const result = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+      command
+    })
     const after = await records(fixture)
     const [beforeCharacter, beforeActor] = before
     const [afterCharacter, afterActor] = after
@@ -560,7 +565,7 @@ describe('native Character action sources', () => {
       targetCharacterStreamVersion: afterCharacter.streamVersion
     })
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, { command })
     ).resolves.toEqual(result)
     expect(await records(fixture)).toEqual(after)
     await fixture.t.run(async (ctx) => {
@@ -570,7 +575,7 @@ describe('native Character action sources', () => {
       })
     })
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, { command })
     ).rejects.toThrow(/receipt mismatch/)
     await fixture.t.run(async (ctx) => {
       const tampered = JSON.parse(receipt.resultJson)
@@ -586,7 +591,7 @@ describe('native Character action sources', () => {
       await ctx.db.patch(commandRow._id, { ruleResultChecksum: resultChecksum })
     })
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, { command })
     ).rejects.toThrow(/Character action receipt mismatch/)
   }, 30000)
 
@@ -613,7 +618,9 @@ describe('native Character action sources', () => {
         ])
       )
     const before = await snapshot()
-    const result = await fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+    const result = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+      command
+    })
     const after = await snapshot()
     if (!before[0] || !before[1] || !after[0] || !after[1] || !after[0].sheetState)
       throw new Error('Missing separate source records.')
@@ -631,7 +638,7 @@ describe('native Character action sources', () => {
       ])
     )
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, { command })
     ).resolves.toEqual(result)
     expect(await snapshot()).toEqual(after)
 
@@ -656,7 +663,7 @@ describe('native Character action sources', () => {
     )
     await expect(
       rollbackFixture.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(api.encounters.commands.execute, {
+        await ctx.runMutation(internal.encounters.commands.execute, {
           command: input(rollbackFixture, crypto.randomUUID(), rollbackFixture.target.id)
         })
         throw new Error('terminal failure')
@@ -689,7 +696,7 @@ describe('native Character action sources', () => {
       throw new Error('Automatic Character maintenance policy is unavailable.')
     const before = await maintenanceRecords(fixture)
     const root = input(fixture)
-    const created = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+    const created = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
       command: root
     })
     const afterCreated = await maintenanceRecords(fixture)
@@ -740,13 +747,13 @@ describe('native Character action sources', () => {
     const beforeReplacement = await maintenanceRecords(fixture)
     await expect(
       fixture.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(api.encounters.commands.execute, { command: replacementRoot })
+        await ctx.runMutation(internal.encounters.commands.execute, { command: replacementRoot })
         throw new Error('rollback Character maintenance replacement')
       })
     ).rejects.toThrow('rollback Character maintenance replacement')
     expect(await maintenanceRecords(fixture)).toEqual(beforeReplacement)
 
-    const replaced = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+    const replaced = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
       command: replacementRoot
     })
     const afterReplacement = await maintenanceRecords(fixture)
@@ -790,7 +797,9 @@ describe('native Character action sources', () => {
       replaced.projection
     )
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command: replacementRoot })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: replacementRoot
+      })
     ).resolves.toEqual(replaced)
     expect(await maintenanceRecords(fixture)).toEqual(afterReplacement)
   }, 60000)
@@ -805,7 +814,7 @@ describe('native Character action sources', () => {
     const maintenanceDefinitionId = fixture.maintenanceDefinitionId
     const firstRoot = input(fixture, crypto.randomUUID(), fixture.target.id)
     const before = await maintenanceRecords(fixture)
-    const firstIssued = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+    const firstIssued = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
       command: firstRoot
     })
     const firstPending = firstIssued.occurrence?.pending
@@ -837,7 +846,7 @@ describe('native Character action sources', () => {
         requestId: firstPending.request.requestId
       }
     }
-    const firstSettled = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+    const firstSettled = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
       command: firstResponse
     })
     const firstComplete = await maintenanceRecords(fixture)
@@ -911,9 +920,12 @@ describe('native Character action sources', () => {
       firstSettled.projection.version
     )
     const beforeReplacement = await maintenanceRecords(fixture)
-    const replacementIssued = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
-      command: replacementRoot
-    })
+    const replacementIssued = await fixture.owner.caller.mutation(
+      internal.encounters.commands.execute,
+      {
+        command: replacementRoot
+      }
+    )
     const replacementPending = replacementIssued.occurrence?.pending
     if (replacementPending?.kind !== 'ACTION_OUTCOME_EVIDENCE')
       throw new Error('Expected replacement Character outcome evidence.')
@@ -961,7 +973,7 @@ describe('native Character action sources', () => {
       return state.version
     })
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, {
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementResponse
       })
     ).rejects.toThrow(/pending action source or target changed/)
@@ -989,7 +1001,7 @@ describe('native Character action sources', () => {
       await ctx.db.patch(character._id, { status: 'DRAFT' })
     })
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, {
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementResponse
       })
     ).rejects.toThrow(/Stored Character identity mismatch/)
@@ -1005,7 +1017,7 @@ describe('native Character action sources', () => {
 
     await expect(
       fixture.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(api.encounters.commands.execute, {
+        await ctx.runMutation(internal.encounters.commands.execute, {
           command: replacementResponse
         })
         throw new Error('rollback resumed Character maintenance')
@@ -1013,7 +1025,7 @@ describe('native Character action sources', () => {
     ).rejects.toThrow('rollback resumed Character maintenance')
     expect(await maintenanceRecords(fixture)).toEqual(replacementStaged)
 
-    const replaced = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+    const replaced = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
       command: replacementResponse
     })
     const replacementComplete = await maintenanceRecords(fixture)
@@ -1079,12 +1091,12 @@ describe('native Character action sources', () => {
       replaced.projection
     )
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, {
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementRoot
       })
     ).resolves.toEqual(replaced)
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, {
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementResponse
       })
     ).resolves.toEqual(replaced)
@@ -1103,7 +1115,9 @@ describe('native Character action sources', () => {
     })
     const before = await records(fixture)
     await expect(
-      fixture.owner.caller.mutation(api.encounters.commands.execute, { command: input(fixture) })
+      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: input(fixture)
+      })
     ).rejects.toThrow(/stale/)
     expect(await records(fixture)).toEqual(before)
   }, 30000)

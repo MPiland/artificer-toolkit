@@ -7,6 +7,11 @@ import {
   liveSessionEncounterActionCommitInputSchema,
   liveSessionEncounterActionPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import {
+  liveSessionEncounterCommandInputSchema,
+  liveSessionEncounterRouteInputSchema,
+  liveSessionEncounterRouteResponseSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
@@ -137,6 +142,14 @@ const liveSessionRoutes = {
   },
   encounterConcentrationCommit: {
     input: liveSessionEncounterConcentrationCommitInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
+  encounterRoute: {
+    input: liveSessionEncounterRouteInputSchema,
+    output: liveSessionEncounterRouteResponseSchema
+  },
+  encounterCommand: {
+    input: liveSessionEncounterCommandInputSchema,
     output: encounterCommandResultDtoSchema
   }
 } satisfies Record<

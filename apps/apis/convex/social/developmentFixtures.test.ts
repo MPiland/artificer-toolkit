@@ -17,6 +17,7 @@ import type {
 } from '@artificer-toolkit/schema/api/socialModeration'
 import type { z } from 'zod'
 import { fixture } from '../../tests/fixtures/socialWriters'
+import { readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
 import { components } from '../_generated/api'
 
 type FixtureArgs = {
@@ -29,7 +30,7 @@ type FixtureArgs = {
 const age = makeFunctionReference<
   'mutation',
   FixtureArgs,
-  { applications: number; invitations: number; reports: number; memberships: number; rates: number }
+  { applications: number; invitations: number; reports: number; memberships: number }
 >('social/developmentFixtures:ageFixtureRecords')
 const remove = makeFunctionReference<'mutation', FixtureArgs, null>(
   'social/developmentFixtures:removeFixtureState'
@@ -182,19 +183,15 @@ describe('development Social fixture guards', () => {
           .withIndex('by_firstProfileId_secondProfileId_generation', (q) =>
             q.eq('firstProfileId', firstProfileId!).eq('secondProfileId', secondProfileId!)
           )
-          .collect(),
-        rate: await ctx.db
-          .query('socialActionRateLimits')
-          .withIndex('by_userId_action_window', (q) =>
-            q.eq('userId', base.owner.userId).eq('action', 'BLOCK').eq('window', 'HOUR')
-          )
-          .unique()
+          .collect()
       }))
     ).resolves.toMatchObject({
       block: expect.anything(),
-      invalidations: [expect.anything()],
-      rate: expect.anything()
+      invalidations: [expect.anything()]
     })
+    expect(await readSocialRateLimits(base.t, base.owner.userId, 'BLOCK')).toMatchObject([
+      { value: 29 }
+    ])
 
     await base.t.mutation(resetBlockPair, {
       blockerUserId: base.owner.userId,
@@ -214,15 +211,12 @@ describe('development Social fixture guards', () => {
           .withIndex('by_firstProfileId_secondProfileId_generation', (q) =>
             q.eq('firstProfileId', firstProfileId!).eq('secondProfileId', secondProfileId!)
           )
-          .collect(),
-        rate: await ctx.db
-          .query('socialActionRateLimits')
-          .withIndex('by_userId_action_window', (q) =>
-            q.eq('userId', base.owner.userId).eq('action', 'BLOCK').eq('window', 'HOUR')
-          )
-          .unique()
+          .collect()
       }))
-    ).toEqual({ block: null, invalidations: [], rate: null })
+    ).toEqual({ block: null, invalidations: [] })
+    expect(await readSocialRateLimits(base.t, base.owner.userId, 'BLOCK')).toEqual([
+      { value: 30, ts: 0 }
+    ])
     expect(await unchangedState()).toEqual(unchangedBefore)
   }, 30_000)
 

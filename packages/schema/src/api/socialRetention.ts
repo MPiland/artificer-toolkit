@@ -3,7 +3,7 @@ import { timestampSchema } from './campaignContractSchemas.js'
 import { socialSearchBackfillInputSchema } from './socialDiscovery.js'
 
 export const socialRetentionPreviewInputSchema = z.extend(socialSearchBackfillInputSchema, {
-  phase: z.enum(['INVITATIONS', 'REPORTS', 'APPLICATIONS', 'RATE_WINDOWS']),
+  phase: z.enum(['INVITATIONS', 'REPORTS', 'APPLICATIONS']),
   asOf: timestampSchema.check(
     z.refine(
       (value) => new Date(value).toISOString() === value,

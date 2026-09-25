@@ -18,6 +18,7 @@ import { populateCampaignLifecycleInventory } from './developmentCampaignLifecyc
 import { populateCampaignLifecycleCharacter } from './developmentCampaignLifecycleCharacter.js'
 import { createEncounterLifecycleScenes } from './developmentEncounterScenes.js'
 import type { developmentCli } from './developmentCli.js'
+import { executeEncounterCommand } from './developmentClient'
 
 type FixtureAuthor = {
   client: ConvexHttpClient
@@ -268,7 +269,7 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
   })
   let runVersion = run.version
   for (const [index, actor] of run.actors.entries()) {
-    const result = await auditor.client.mutation(api.encounters.commands.execute, {
+    const result = await auditor.client.mutation(executeEncounterCommand, {
       command: {
         type: 'SET_INITIATIVE',
         encounterId: run.id,
@@ -281,7 +282,7 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
     })
     runVersion = result.projection.version
   }
-  const started = await auditor.client.mutation(api.encounters.commands.execute, {
+  const started = await auditor.client.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: run.id,

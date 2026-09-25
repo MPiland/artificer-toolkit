@@ -143,7 +143,7 @@ export async function nativeDisarmFixture(
     ? run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     : creatures[1]
   if (!actor || !target) throw new Error('Missing Disarm participants.')
-  await base.owner.caller.mutation(api.encounters.commands.execute, {
+  await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REPLACE_OPTIONAL_COMBAT_RULES',
       encounterId: run.id,

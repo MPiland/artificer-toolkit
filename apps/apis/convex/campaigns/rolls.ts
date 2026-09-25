@@ -26,9 +26,9 @@ import {
   openConversation,
   presentChatEntry,
   readEntryPayload,
-  requireConversationSendCapacity,
   readCampaignAccessTime
 } from './conversationDocuments'
+import { consumeUserRateLimit } from '../lib/rateLimits'
 
 async function evaluateOwnerRoll(
   ctx: QueryCtx,
@@ -104,7 +104,7 @@ export const execute = mutation({
       return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
     }
     const now = await readCampaignAccessTime(ctx, authority.campaign)
-    await requireConversationSendCapacity(ctx, authority.campaign.id, userId, now)
+    await consumeUserRateLimit(ctx, 'campaignConversation', userId)
     if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
     const roll =
       input.roll.characterId === null

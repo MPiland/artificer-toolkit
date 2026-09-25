@@ -13,7 +13,7 @@ import { mutation } from '../lib/mutations'
 import { readActiveCampaignMembers } from '../campaigns/authority'
 import { cancelNotification, enqueueNotification } from '../notifications/intents'
 import { requireSocialViewer, presentSocialProfile } from './visibility'
-import { consumeSocialRateLimit } from './rateLimits'
+import { consumeSocialRateLimit } from '../lib/rateLimits'
 import {
   readAdmissionListing,
   readApplication,

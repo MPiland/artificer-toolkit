@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import {
   bindScene,
@@ -170,12 +170,12 @@ export async function verifyEncounterAutomation({
         const before = projection
         const input = { command }
         let result = encounterCommandResultDtoSchema.parse(
-          await owner.mutation(api.encounters.commands.execute, input)
+          await owner.mutation(executeEncounterCommand, input)
         )
         if (result.occurrence?.status === 'PENDING') {
           assert.deepEqual(result.projection, before)
           operation = 'root replay'
-          assert.deepEqual(await owner.mutation(api.encounters.commands.execute, input), result)
+          assert.deepEqual(await owner.mutation(executeEncounterCommand, input), result)
         }
         for (let responseIndex = 0; result.occurrence?.status === 'PENDING'; responseIndex++) {
           assert.ok(
@@ -229,13 +229,13 @@ export async function verifyEncounterAutomation({
           const expectedOccurrenceVersion = result.occurrence.occurrenceVersion
           operation = `player denial responseIndex=${responseIndex} expectedOccurrenceVersion=${expectedOccurrenceVersion}`
           await assert.rejects(
-            player.mutation(api.encounters.commands.execute, continuation),
+            player.mutation(executeEncounterCommand, continuation),
             /Campaign not found/
           )
           const previousOccurrenceVersion = result.occurrence.occurrenceVersion
           operation = `continuation responseIndex=${responseIndex} expectedOccurrenceVersion=${expectedOccurrenceVersion}`
           result = encounterCommandResultDtoSchema.parse(
-            await owner.mutation(api.encounters.commands.execute, continuation)
+            await owner.mutation(executeEncounterCommand, continuation)
           )
           assert.ok(result.occurrence)
           assert.equal(result.occurrence.occurrenceVersion, previousOccurrenceVersion + 1)
@@ -302,11 +302,11 @@ export async function verifyEncounterAutomation({
       const command = { ...commandBase(), type: 'REMOVE_ACTOR' as const, actorId: removed.id }
       const beforeRemoval = projection
       await assert.rejects(
-        player.mutation(api.encounters.commands.execute, { command }),
+        player.mutation(executeEncounterCommand, { command }),
         /Campaign not found/
       )
       await assert.rejects(
-        owner.mutation(api.encounters.commands.execute, {
+        owner.mutation(executeEncounterCommand, {
           command: { ...command, expectedVersion: command.expectedVersion - 1 }
         }),
         /Encounter version is stale/
@@ -359,7 +359,7 @@ export async function verifyEncounterAutomation({
       }
     }))
     const contested = await Promise.allSettled(
-      contenders.map((input) => owner.mutation(api.encounters.commands.execute, input))
+      contenders.map((input) => owner.mutation(executeEncounterCommand, input))
     )
     const winnerIndex = contested.findIndex((result) => result.status === 'fulfilled')
     assert.notEqual(winnerIndex, -1)
@@ -430,10 +430,10 @@ export async function verifyEncounterAutomation({
       limit: 100
     })
     for (const { input, result } of terminalRoots) {
-      assert.deepEqual(await owner.mutation(api.encounters.commands.execute, input), result)
+      assert.deepEqual(await owner.mutation(executeEncounterCommand, input), result)
     }
     for (const input of resolutionInputs) {
-      const replay = await owner.mutation(api.encounters.commands.execute, input)
+      const replay = await owner.mutation(executeEncounterCommand, input)
       assert.deepEqual(replay.projection, projection)
       assert.equal(replay.occurrence?.status, 'COMPLETE')
     }

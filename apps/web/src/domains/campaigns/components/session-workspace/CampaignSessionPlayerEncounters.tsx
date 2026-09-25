@@ -11,6 +11,7 @@ import {
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
 import { CampaignEncounterDecision } from '../CampaignEncounterDecision'
+import { useCampaignLiveSession } from '../../vtt/useCampaignLiveSession'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignSessionPlayerEncounters({ campaign }: { campaign: CampaignDetailDto }) {
@@ -40,6 +41,10 @@ export function CampaignSessionPlayerEncounters({ campaign }: { campaign: Campai
     pendingPreparedIds.add(parsed.data.id)
   }
   const visible = [...visibleById.values()]
+  const live = useCampaignLiveSession({
+    campaignId: campaign.id,
+    enabled: campaign.status === 'ACTIVE' && pendingPreparedIds.size > 0
+  })
 
   return (
     <section className={styles.sessionEncounterPanel} aria-labelledby='session-player-encounters'>
@@ -63,8 +68,9 @@ export function CampaignSessionPlayerEncounters({ campaign }: { campaign: Campai
             {pendingPreparedIds.has(encounter.id) ? (
               <CampaignEncounterDecision
                 campaignId={campaign.id}
-                connected={campaign.status === 'ACTIVE'}
+                connected={live.commandReady}
                 encounter={encounter}
+                sendCommand={live.sendEncounterCommand}
               />
             ) : null}
           </Group>

@@ -9,7 +9,11 @@ import type {
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { fixture as admissionFixture } from '../../tests/fixtures/socialAdmission'
 import { api } from '../_generated/api'
-import * as rateLimits from './rateLimits'
+import * as rateLimits from '../lib/rateLimits'
+import {
+  adjustSocialRateLimitWindow,
+  readSocialRateLimits
+} from '../../tests/fixtures/socialRateLimits'
 
 const create = makeFunctionReference<
   'mutation',
@@ -27,11 +31,10 @@ async function setup() {
   const profiles = await base.t.run((ctx) => ctx.db.query('socialProfiles').take(3))
   const host = profiles.find((profile) => profile.userId === base.owner.userId)!
   const player = profiles.find((profile) => profile.userId === base.other.userId)!
-  const snapshot = () =>
-    base.t.run(async (ctx) => ({
-      reports: await ctx.db.query('socialReports').take(30),
-      rates: await ctx.db.query('socialActionRateLimits').take(30)
-    }))
+  const snapshot = async () => ({
+    reports: await base.t.run((ctx) => ctx.db.query('socialReports').take(30)),
+    rates: await readSocialRateLimits(base.t, base.other.userId, 'REPORT')
+  })
   return { ...base, host, player, reportSnapshot: snapshot }
 }
 
@@ -461,23 +464,17 @@ describe('native Social report capture', () => {
     }
     const full = await base.reportSnapshot()
     expect(full.reports).toHaveLength(5)
-    expect(full.rates.filter((row) => row.action === 'REPORT').map((row) => row.count)).toEqual([
-      5, 5
-    ])
+    expect(full.rates.map((window) => window.value)).toEqual([0, 15])
     await expect(base.other.caller.mutation(create, { input })).rejects.toThrow(
       'Too many Social actions'
     )
     expect(await base.reportSnapshot()).toEqual(full)
-    await base.t.run(async (ctx) => {
-      for (const row of full.rates.filter((row) => row.action === 'REPORT')) {
-        await ctx.db.patch(row._id, { count: row.window === 'DAY' ? 19 : 1 })
-      }
-    })
+    // Leave one day allowance with a fresh hour window.
+    await adjustSocialRateLimitWindow(base.t, base.other.userId, 'REPORT', 0, 'RESET')
+    await adjustSocialRateLimitWindow(base.t, base.other.userId, 'REPORT', 1, 14)
     await base.other.caller.mutation(create, { input })
     const dayFull = await base.reportSnapshot()
-    expect(
-      dayFull.rates.find((row) => row.action === 'REPORT' && row.window === 'DAY')?.count
-    ).toBe(20)
+    expect(dayFull.rates[1]?.value).toBe(0)
     await expect(base.other.caller.mutation(create, { input })).rejects.toThrow(
       'Too many Social actions'
     )

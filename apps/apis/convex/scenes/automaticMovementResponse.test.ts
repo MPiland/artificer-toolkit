@@ -1,6 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   SceneGeometryBeginResult,
@@ -104,7 +104,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
       after.receipts.filter((receipt) => receipt.occurrenceId === choice.occurrenceId).length
     ).toBeGreaterThan(1)
     await expect(
-      value.owner.caller.mutation(api.encounters.commands.execute, {
+      value.owner.caller.mutation(internal.encounters.commands.execute, {
         command: { ...command, commandId: crypto.randomUUID() }
       })
     ).rejects.toThrow('Rule occurrence is unavailable.')

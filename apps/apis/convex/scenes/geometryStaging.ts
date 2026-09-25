@@ -24,6 +24,7 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation, withSceneVisionTracking } from '../lib/mutations'
+import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { internal } from '../_generated/api'
 // eslint-disable-next-line no-restricted-imports -- Preserve lazy return metadata and apply the same Scene vision tracking in the handler.
 import { internalMutation as rawInternalMutation, type MutationCtx } from '../_generated/server'
@@ -63,8 +64,10 @@ export const begin = rawInternalMutation({
   get returns() {
     return zodToConvex(sceneGeometryBeginResultSchema)
   },
-  handler: (ctx, args): Promise<SceneGeometryBeginResult> =>
-    beginSceneGeometry(withSceneVisionTracking(ctx), args)
+  handler: async (ctx, args): Promise<SceneGeometryBeginResult> => {
+    await consumeSceneWriteRateLimit(ctx)
+    return beginSceneGeometry(withSceneVisionTracking(ctx), args)
+  }
 })
 
 /** Both public movement and decision responses use the same private geometry/fog staging. */

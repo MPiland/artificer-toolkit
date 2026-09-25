@@ -12,8 +12,8 @@ import type {
   SubmitSocialApplicationInput,
   socialApplicationVersionInputSchema
 } from '@artificer-toolkit/schema/api/socialHub'
-import { SOCIAL_RATE_LIMITS } from '@artificer-toolkit/shared/social/rateLimits'
 import { fixture as setup } from '../../tests/fixtures/socialWriters'
+import { exhaustSocialRateLimit, readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
 import * as intents from '../notifications/intents'
 
 const submitApplication = makeFunctionReference<
@@ -338,7 +338,7 @@ describe('native Social admission source writers', () => {
       message: 'First',
       expectedListingVersion: base.listing.version
     })
-    const afterFirst = await base.snapshot()
+    const afterFirst = await readSocialRateLimits(base.t, base.other.userId, 'APPLICATION')
     await expect(
       base.other.caller.mutation(submitApplication, {
         listingPublicId: base.listing.listingPublicId,
@@ -346,8 +346,7 @@ describe('native Social admission source writers', () => {
         expectedListingVersion: base.listing.version
       })
     ).rejects.toThrow('active application')
-    const afterDuplicate = await base.snapshot()
-    expect(afterDuplicate.rates).toEqual(afterFirst.rates)
+    expect(await readSocialRateLimits(base.t, base.other.userId, 'APPLICATION')).toEqual(afterFirst)
     expect(submitted.status).toBe('SUBMITTED')
 
     const invitation = await base.owner.caller.mutation(createInvitation, {
@@ -355,7 +354,7 @@ describe('native Social admission source writers', () => {
       expectedListingVersion: base.listing.version,
       username: 'AdmissionPlayer'
     })
-    const beforeInviteDuplicate = await base.snapshot()
+    const beforeInviteDuplicate = await readSocialRateLimits(base.t, base.owner.userId, 'INVITE')
     await expect(
       base.owner.caller.mutation(createInvitation, {
         listingPublicId: base.listing.listingPublicId,
@@ -363,7 +362,9 @@ describe('native Social admission source writers', () => {
         username: 'ADMISSIONPLAYER'
       })
     ).rejects.toThrow('pending invitation')
-    expect((await base.snapshot()).rates).toEqual(beforeInviteDuplicate.rates)
+    expect(await readSocialRateLimits(base.t, base.owner.userId, 'INVITE')).toEqual(
+      beforeInviteDuplicate
+    )
     expect(invitation.status).toBe('PENDING')
   })
 
@@ -440,18 +441,9 @@ describe('native Social admission source writers', () => {
     async (action) => {
       const base = await setup()
       const actor = action === 'APPLICATION' ? base.other : base.owner
-      const windows = SOCIAL_RATE_LIMITS[action]
-      const lastWindow = windows[windows.length - 1]!
-      await base.t.run((ctx) =>
-        ctx.db.insert('socialActionRateLimits', {
-          userId: actor.userId,
-          action,
-          window: lastWindow.window,
-          windowStartedAt: new Date(Date.now() + 86_400_000).toISOString(),
-          count: lastWindow.limit
-        })
-      )
+      await exhaustSocialRateLimit(base.t, actor.userId, action)
       const before = await base.snapshot()
+      const limitsBefore = await readSocialRateLimits(base.t, actor.userId, action)
       const command =
         action === 'APPLICATION'
           ? actor.caller.mutation(submitApplication, {
@@ -466,6 +458,7 @@ describe('native Social admission source writers', () => {
             })
       await expect(command).rejects.toThrow('Too many Social actions')
       expect(await base.snapshot()).toEqual(before)
+      expect(await readSocialRateLimits(base.t, actor.userId, action)).toEqual(limitsBefore)
     }
   )
 

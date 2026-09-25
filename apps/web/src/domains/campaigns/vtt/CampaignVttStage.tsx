@@ -515,18 +515,12 @@ export function CampaignVttStage({
       command: EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
     ): Promise<EncounterCommandResultDto> => {
       const actorTokenBinding = encounterActorTokenBindingCommandInputDtoSchema.safeParse(command)
+      if (!actorTokenBinding.success)
+        return live.sendEncounterCommand(encounterCommandInputDtoSchema.parse(command))
       return encounterCommandResultDtoSchema.parse(
-        actorTokenBinding.success
-          ? await convex.mutation(convexApi.encounters.actorTokenBindings.execute, {
-              input: actorTokenBinding.data
-            })
-          : command.type === 'RESOLVE_RULE_OCCURRENCE'
-            ? await convex.action(convexApi.encounters.commandActions.execute, {
-                command: encounterCommandInputDtoSchema.parse(command)
-              })
-            : await convex.mutation(convexApi.encounters.commands.execute, {
-                command: encounterCommandInputDtoSchema.parse(command)
-              })
+        await convex.mutation(convexApi.encounters.actorTokenBindings.execute, {
+          input: actorTokenBinding.data
+        })
       )
     }
   })
@@ -1059,9 +1053,10 @@ export function CampaignVttStage({
           {preparedPendingEncounters.map((encounter) => (
             <CampaignEncounterDecision
               campaignId={campaign.id}
-              connected={campaign.status === 'ACTIVE' && live.status === 'CONNECTED'}
+              connected={campaign.status === 'ACTIVE' && live.commandReady}
               encounter={encounter}
               key={encounter.id}
+              sendCommand={live.sendEncounterCommand}
             />
           ))}
           {campaign.capabilities.readTableChat ? (

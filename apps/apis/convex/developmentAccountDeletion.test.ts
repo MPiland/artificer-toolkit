@@ -1,5 +1,6 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import type {
   DevelopmentAccountDeletionInspectInput,
@@ -29,6 +30,7 @@ const inspect = makeFunctionReference<
 async function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const createAccount = async (name: string) => {
     const user = await t.run(async (ctx) =>
       ctx.runMutation(components.betterAuth.adapter.create, {

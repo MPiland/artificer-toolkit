@@ -206,14 +206,14 @@ describe('native initiative declarations', () => {
         expectedVersion: base.run.version
       }
     }
-    const pending = await base.owner.caller.mutation(api.encounters.commands.execute, start)
+    const pending = await base.owner.caller.mutation(internal.encounters.commands.execute, start)
     if (
       !pending.occurrence?.pending ||
       pending.occurrence.pending.kind !== 'INITIATIVE_DECLARATION'
     )
       throw new Error('Expected first declaration.')
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, start)
+      base.owner.caller.mutation(internal.encounters.commands.execute, start)
     ).resolves.toEqual(pending)
     expect(await storedInitiative(base)).toMatchObject({
       rounds: [],
@@ -225,9 +225,9 @@ describe('native initiative declarations', () => {
       encounterId: base.run.id,
       pending: pending.occurrence.pending
     })
-    const continued = await base.owner.caller.mutation(api.encounters.commands.execute, first)
+    const continued = await base.owner.caller.mutation(internal.encounters.commands.execute, first)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, first)
+      base.owner.caller.mutation(internal.encounters.commands.execute, first)
     ).resolves.toEqual(continued)
     if (
       !continued.occurrence?.pending ||
@@ -247,20 +247,20 @@ describe('native initiative declarations', () => {
     const beforeTerminal = await storedInitiative(base)
     await expect(
       base.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(api.encounters.commands.execute, terminal)
+        await ctx.runMutation(internal.encounters.commands.execute, terminal)
         throw new Error('rollback declaration terminal')
       })
     ).rejects.toThrow('rollback declaration terminal')
     expect(await storedInitiative(base)).toEqual(beforeTerminal)
-    const settled = await base.owner.caller.mutation(api.encounters.commands.execute, terminal)
+    const settled = await base.owner.caller.mutation(internal.encounters.commands.execute, terminal)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, terminal)
+      base.owner.caller.mutation(internal.encounters.commands.execute, terminal)
     ).resolves.toEqual(settled)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, first)
+      base.owner.caller.mutation(internal.encounters.commands.execute, first)
     ).resolves.toEqual(settled)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, start)
+      base.owner.caller.mutation(internal.encounters.commands.execute, start)
     ).resolves.toEqual(settled)
     expect(settled).toMatchObject({
       projection: { status: 'ACTIVE', round: 1, currentActorId: expect.any(String) },
@@ -275,7 +275,7 @@ describe('native initiative declarations', () => {
 
   it('settles Assisted declarations through score evidence and GM order', async () => {
     const base = await setup({ automationMode: 'ASSISTED' })
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -300,7 +300,7 @@ describe('native initiative declarations', () => {
                 }
               : null
       if (!resolution) throw new Error('Unexpected Assisted initiative request.')
-      result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: base.run.id,
@@ -322,7 +322,7 @@ describe('native initiative declarations', () => {
 
   it('reissues declarations when EACH_ROUND wraps', async () => {
     const base = await setup({ cadence: 'EACH_ROUND' })
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -337,12 +337,12 @@ describe('native initiative declarations', () => {
       )
         throw new Error('Expected declaration.')
       result = await base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         declarationCommand({ encounterId: base.run.id, pending: result.occurrence.pending })
       )
     }
     expect(result.projection).toMatchObject({ status: 'ACTIVE', round: 1 })
-    const next = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const next = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -350,7 +350,7 @@ describe('native initiative declarations', () => {
         expectedVersion: result.projection.version
       }
     })
-    const turn = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const turn = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -374,14 +374,14 @@ describe('native initiative declarations', () => {
     const changedRound = await storedInitiative(base)
     await expect(
       base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         declarationCommand({ encounterId: base.run.id, pending: turn.occurrence.pending })
       )
     ).rejects.toThrow()
     expect(await storedInitiative(base)).toEqual(changedRound)
     await base.t.run((ctx) => ctx.db.patch(beforeRound._id, { version: beforeRound.version }))
     const nextRoundFirst = await base.owner.caller.mutation(
-      api.encounters.commands.execute,
+      internal.encounters.commands.execute,
       declarationCommand({ encounterId: base.run.id, pending: turn.occurrence.pending })
     )
     if (
@@ -390,7 +390,7 @@ describe('native initiative declarations', () => {
     )
       throw new Error('Expected second second-round declaration.')
     const secondRound = await base.owner.caller.mutation(
-      api.encounters.commands.execute,
+      internal.encounters.commands.execute,
       declarationCommand({ encounterId: base.run.id, pending: nextRoundFirst.occurrence.pending })
     )
     expect(secondRound.projection).toMatchObject({ status: 'ACTIVE', round: 2 })
@@ -399,7 +399,7 @@ describe('native initiative declarations', () => {
 
   it('refuses a declaration whose staged Run binding was tampered with', async () => {
     const base = await setup()
-    await base.owner.caller.mutation(api.encounters.commands.execute, {
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -441,7 +441,7 @@ describe('native initiative declarations', () => {
 
   it('refuses a changed actor cohort before accepting another declaration', async () => {
     const base = await setup()
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -481,7 +481,7 @@ describe('native initiative declarations', () => {
     const before = await storedInitiative(base)
     await expect(
       base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         declarationCommand({ encounterId: base.run.id, pending })
       )
     ).rejects.toThrow('Rule occurrence is unavailable.')
@@ -521,7 +521,7 @@ describe('native initiative declarations', () => {
     })
     const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
     if (!characterActor) throw new Error('Expected assigned Character actor.')
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -569,7 +569,7 @@ describe('native initiative declarations', () => {
           })
         ).rejects.toThrow()
         await expect(
-          base.player.caller.mutation(api.encounters.commands.execute, response)
+          base.player.caller.mutation(internal.encounters.commands.execute, response)
         ).rejects.toThrow()
         await base.t.run(async (ctx) => {
           const membership = await ctx.db
@@ -592,16 +592,19 @@ describe('native initiative declarations', () => {
           ctx.db.query('encounterRuleOccurrences').collect()
         )
         await expect(
-          base.player.caller.mutation(api.encounters.commands.execute, stale)
+          base.player.caller.mutation(internal.encounters.commands.execute, stale)
         ).rejects.toThrow()
         expect(
           await base.t.run((ctx) => ctx.db.query('encounterRuleOccurrences').collect())
         ).toEqual(beforeStale)
-        result = await base.player.caller.action(api.encounters.commandActions.execute, response)
+        result = await base.player.caller.action(
+          internal.encounters.commandActions.execute,
+          response
+        )
         expect(encounterPlayerProjectionDtoSchema.safeParse(result.projection).success).toBe(true)
         expect(result.occurrence?.pending).toBeNull()
         await expect(
-          base.player.caller.action(api.encounters.commandActions.execute, response)
+          base.player.caller.action(internal.encounters.commandActions.execute, response)
         ).resolves.toEqual(result)
         result = {
           ...result,
@@ -624,12 +627,12 @@ describe('native initiative declarations', () => {
         ).toEqual([])
         await expect(
           base.player.caller.mutation(
-            api.encounters.commands.execute,
+            internal.encounters.commands.execute,
             declarationCommand({ encounterId: run.id, pending })
           )
         ).rejects.toThrow()
         result = await base.owner.caller.mutation(
-          api.encounters.commands.execute,
+          internal.encounters.commands.execute,
           declarationCommand({ encounterId: run.id, pending })
         )
       }
@@ -724,7 +727,7 @@ describe('native initiative declarations', () => {
         commandId: crypto.randomUUID(),
         expectedVersion: run.version
       }
-      let current = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      let current = await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: start
       })
       if (current.occurrence?.pending?.kind !== 'INITIATIVE_DECLARATION')
@@ -1189,7 +1192,7 @@ describe('native initiative declarations', () => {
         .map((actor) => actor.sourceId)
     ).toEqual([null, base.character.id, secondCharacter.id])
 
-    await base.owner.caller.mutation(api.encounters.commands.execute, {
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -1213,16 +1216,16 @@ describe('native initiative declarations', () => {
             encounterId: run.id
           })
         ).toBeNull()
-        await base.player.caller.mutation(api.encounters.commands.execute, command)
+        await base.player.caller.mutation(internal.encounters.commands.execute, command)
       } else if (actor.sourceId === secondCharacter.id) {
         expect(
           await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
             encounterId: run.id
           })
         ).toBeNull()
-        await secondPlayer.mutation(api.encounters.commands.execute, command)
+        await secondPlayer.mutation(internal.encounters.commands.execute, command)
       } else {
-        await base.owner.caller.mutation(api.encounters.commands.execute, command)
+        await base.owner.caller.mutation(internal.encounters.commands.execute, command)
       }
       pending = await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: run.id
@@ -1240,13 +1243,13 @@ describe('native initiative declarations', () => {
       })
     ).toBeNull()
     const terminal = declarationCommand({ encounterId: run.id, pending: finalPending })
-    const settled = await secondPlayer.action(api.encounters.commandActions.execute, terminal)
+    const settled = await secondPlayer.action(internal.encounters.commandActions.execute, terminal)
     expect(settled.projection.status).toBe('ACTIVE')
     expect(encounterPlayerProjectionDtoSchema.safeParse(settled.projection).success).toBe(true)
     expect(settled.projection.actors.every((actor) => !('currentHitPoints' in actor))).toBe(true)
     const beforeReplay = await storedInitiative(base)
     await expect(
-      secondPlayer.action(api.encounters.commandActions.execute, terminal)
+      secondPlayer.action(internal.encounters.commandActions.execute, terminal)
     ).resolves.toEqual(settled)
     expect(await storedInitiative(base)).toEqual(beforeReplay)
 
@@ -1265,7 +1268,7 @@ describe('native initiative declarations', () => {
         groupId: 'session-notes'
       }
     })
-    const advanced = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const advanced = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: run.id,
@@ -1327,7 +1330,7 @@ describe('native initiative declarations', () => {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique()
     )
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -1346,7 +1349,7 @@ describe('native initiative declarations', () => {
       encounterId: run.id,
       pending: { ...pending, primaryOptions: [option] }
     })
-    result = await base.owner.caller.mutation(api.encounters.commands.execute, response)
+    result = await base.owner.caller.mutation(internal.encounters.commands.execute, response)
     expect(result.projection.status).toBe('ACTIVE')
     const after = await base.t.run(async (ctx) => ({
       actor: await ctx.db
@@ -1372,7 +1375,7 @@ describe('native initiative declarations', () => {
         .collect()
     }))
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, response)
+      base.owner.caller.mutation(internal.encounters.commands.execute, response)
     ).resolves.toEqual(result)
     expect(
       await base.t.run(async (ctx) => ({

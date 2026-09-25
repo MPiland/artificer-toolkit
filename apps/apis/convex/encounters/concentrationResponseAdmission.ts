@@ -6,7 +6,6 @@ import {
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
-import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { QueryCtx } from '../_generated/server'
@@ -16,6 +15,7 @@ import { readRunActors, readRunProjection, readRunState } from './documents'
 import { readNativeConcentrationPending } from './concentrationPending'
 import { readNativeConcentrationParentDamage } from './concentrationParent'
 import { presentTimelineEntry } from './timelineEntries'
+import { isNativeConcentrationOccurrence } from './occurrenceOwner'
 
 /** Admits one concentration child response without preparing facts or writing state. */
 export async function readNativeConcentrationResponseAdmission(
@@ -27,7 +27,7 @@ export async function readNativeConcentrationResponseAdmission(
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', response.occurrenceId))
     .unique()
-  if (!occurrence || occurrence.rootCommandId !== concentrationCommandId(occurrence.id)) return null
+  if (!occurrence || !isNativeConcentrationOccurrence(occurrence)) return null
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', response.encounterId))

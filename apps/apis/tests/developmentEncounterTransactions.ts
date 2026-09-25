@@ -13,7 +13,7 @@ import {
 import { campaignSessionDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import {
   bindScene,
   bindToken,
@@ -94,8 +94,8 @@ export async function verifyEncounterTransactions({
     prepared
   )
   const starts = await Promise.all([
-    concurrent('OWNER', api.encounters.commands.execute, start),
-    concurrent('OWNER', api.encounters.commands.execute, start)
+    concurrent('OWNER', executeEncounterCommand, start),
+    concurrent('OWNER', executeEncounterCommand, start)
   ])
   assert.deepEqual(starts[0], starts[1])
   const started = encounterCommandResultDtoSchema.parse(starts[0])
@@ -200,8 +200,8 @@ export async function verifyEncounterTransactions({
   const firstAdvance = advance()
   const secondAdvance = advance()
   const advances = await Promise.allSettled([
-    concurrent('OWNER', api.encounters.commands.execute, firstAdvance),
-    concurrent('OWNER', api.encounters.commands.execute, secondAdvance)
+    concurrent('OWNER', executeEncounterCommand, firstAdvance),
+    concurrent('OWNER', executeEncounterCommand, secondAdvance)
   ])
   assert.equal(advances.filter((result) => result.status === 'fulfilled').length, 1)
   for (const result of advances) {
@@ -221,7 +221,7 @@ export async function verifyEncounterTransactions({
   })
   try {
     const transfer = await Promise.allSettled([
-      concurrent('OWNER', api.encounters.commands.execute, transferAdvance),
+      concurrent('OWNER', executeEncounterCommand, transferAdvance),
       concurrent('PLAYER', api.campaigns.ownership.accept, { campaignId })
     ])
     const accepted = transfer[1]!
@@ -239,10 +239,7 @@ export async function verifyEncounterTransactions({
     )
     assert.deepEqual(current.actors, beforeTransferActors)
     projection = current
-    await assert.rejects(
-      owner.mutation(api.encounters.commands.execute, advance()),
-      /Campaign not found/
-    )
+    await assert.rejects(owner.mutation(executeEncounterCommand, advance()), /Campaign not found/)
   } finally {
     const current: CampaignDetailDto = await player.query(api.campaigns.queries.get, {
       id: campaignId
@@ -264,7 +261,7 @@ export async function verifyEncounterTransactions({
     }),
     { ok: true }
   )
-  assert.deepEqual(await owner.mutation(api.encounters.commands.execute, start), started)
+  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), started)
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
   assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
   const complete: EncounterExecuteInput = {
@@ -284,7 +281,7 @@ export async function verifyEncounterTransactions({
     commandId: crypto.randomUUID()
   }
   const finishes = await Promise.allSettled([
-    concurrent('OWNER', api.encounters.commands.execute, complete),
+    concurrent('OWNER', executeEncounterCommand, complete),
     concurrent('OWNER', api.campaigns.sessionFinish.finish, finishInput)
   ])
   const [completeResult, finishResult] = finishes
@@ -300,7 +297,7 @@ export async function verifyEncounterTransactions({
   assert.equal(completed.version, projection.version + 1)
   projection = completed
   assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
-  assert.deepEqual(await owner.mutation(api.encounters.commands.execute, start), started)
+  assert.deepEqual(await owner.mutation(executeEncounterCommand, start), started)
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
   assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), tokenResult)
   assert.deepEqual(

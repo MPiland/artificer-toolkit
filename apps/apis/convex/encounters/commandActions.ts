@@ -12,7 +12,7 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryBeginResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { action } from '../_generated/server'
+import { internalAction, type ActionCtx } from '../_generated/server'
 import { completeSceneGeometry } from '../scenes/geometryActions'
 
 const beginResponse = makeFunctionReference<
@@ -38,18 +38,25 @@ const resultValidator: Validator<EncounterCommandResultDto, 'required', string> 
   z.core.$ZodType<EncounterCommandResultDto>
 >(encounterCommandResultDtoSchema)
 
-export const execute = action({
+/** Internal: browsers reach Encounter commands only through the Session room. */
+export const execute = internalAction({
   args: inputValidator,
   returns: resultValidator,
-  handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
-    const input = encounterExecuteInputSchema.parse(args)
-    if (input.command.type === 'RESOLVE_RULE_OCCURRENCE') {
-      const begin = await ctx.runMutation(beginResponse, input.command)
-      if (begin) {
-        if (begin.kind === 'READY') await completeSceneGeometry(ctx, begin)
-        return ctx.runQuery(responseResult, input.command)
-      }
-    }
-    return ctx.runMutation(executeCommand, input)
-  }
+  handler: (ctx, args): Promise<EncounterCommandResultDto> =>
+    executeNativeEncounterCommand(ctx, encounterExecuteInputSchema.parse(args))
 })
+
+/** Runs one native Encounter command as the caller's identity, staging movement responses first. */
+export async function executeNativeEncounterCommand(
+  ctx: Pick<ActionCtx, 'runQuery' | 'runMutation'>,
+  input: EncounterExecuteInput
+): Promise<EncounterCommandResultDto> {
+  if (input.command.type === 'RESOLVE_RULE_OCCURRENCE') {
+    const begin = await ctx.runMutation(beginResponse, input.command)
+    if (begin) {
+      if (begin.kind === 'READY') await completeSceneGeometry(ctx, begin)
+      return ctx.runQuery(responseResult, input.command)
+    }
+  }
+  return ctx.runMutation(executeCommand, input)
+}

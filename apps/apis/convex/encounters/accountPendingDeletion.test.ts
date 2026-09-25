@@ -74,7 +74,7 @@ async function preparePendingDeletion() {
       })
     ]
   })
-  const reinforced = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+  const reinforced = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REINFORCE',
       encounterId: fixture.run.id,
@@ -106,7 +106,7 @@ async function preparePendingDeletion() {
   }
   const continueStart = async () =>
     encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(api.encounters.commands.execute, { command: start })
+      await base.owner.caller.mutation(internal.encounters.commands.execute, { command: start })
     )
   let current = await continueStart()
 
@@ -136,7 +136,7 @@ async function preparePendingDeletion() {
         )
       }
       current = encounterCommandResultDtoSchema.parse(
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'ADVANCE_TURN',
             encounterId: base.run.id,
@@ -158,7 +158,7 @@ async function preparePendingDeletion() {
     if (pending.kind === 'INITIATIVE_DECLARATION') {
       if (pending.actorId === other.id) {
         current = encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(api.encounters.commands.execute, {
+          await base.owner.caller.mutation(internal.encounters.commands.execute, {
             command: {
               type: 'RESOLVE_RULE_OCCURRENCE',
               encounterId: base.run.id,
@@ -191,7 +191,7 @@ async function preparePendingDeletion() {
           throw new Error('Expected the public Character initiative declaration.')
         expect(playerDeclaration.actorId).toBe(actor.id)
 
-        await base.player.caller.action(api.encounters.commandActions.execute, {
+        await base.player.caller.action(internal.encounters.commandActions.execute, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
             encounterId: base.run.id,
@@ -212,7 +212,7 @@ async function preparePendingDeletion() {
 
     if (pending.kind === 'INITIATIVE_EVIDENCE') {
       current = encounterCommandResultDtoSchema.parse(
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
             encounterId: base.run.id,
@@ -235,7 +235,7 @@ async function preparePendingDeletion() {
     if (pending.kind === 'INITIATIVE_ORDER') {
       expect(pending.optionIds).toContain(other.id)
       current = encounterCommandResultDtoSchema.parse(
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
             encounterId: base.run.id,
@@ -280,7 +280,7 @@ describe('trusted account cleanup during another actor pending turn effect', () 
       }
     }
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, remove)
+      base.owner.caller.mutation(internal.encounters.commands.execute, remove)
     ).rejects.toThrow('Resolve the pending Encounter occurrence')
     expect(await capture(base)).toEqual(before)
 

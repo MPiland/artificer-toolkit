@@ -1,15 +1,12 @@
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
-  encounterCommandInputDtoSchema,
-  encounterCommandResultDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type EncounterCommandInputDto,
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto,
-  type EncounterCommandResultDto,
-  type ResolveRuleOccurrenceInputDto
+  type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { CampaignTabletopDecisionDrawer } from '../vtt/CampaignTabletopDecisionDrawer'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -18,14 +15,15 @@ export function CampaignEncounterDecision({
   campaignId,
   connected,
   encounter,
-  onResolved
+  onResolved,
+  sendCommand
 }: {
   campaignId: string
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   onResolved?: (result: EncounterCommandResultDto) => void
+  sendCommand: (command: EncounterCommandInputDto) => Promise<EncounterCommandResultDto>
 }) {
-  const convex = useConvex()
   const queryClient = useQueryClient()
   const pending = useQuery({
     ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
@@ -35,12 +33,7 @@ export function CampaignEncounterDecision({
       occurrence === null ? null : pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(occurrence)
   })
   const resolve = useMutation({
-    mutationFn: async (command: ResolveRuleOccurrenceInputDto) =>
-      encounterCommandResultDtoSchema.parse(
-        await convex.action(convexApi.encounters.commandActions.execute, {
-          command: encounterCommandInputDtoSchema.parse(command)
-        })
-      ),
+    mutationFn: sendCommand,
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaignId) })
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })

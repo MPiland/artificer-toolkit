@@ -28,8 +28,9 @@ Character Builder is intentionally distinct from node-map authoring. Builder int
 
 ## Focused validation
 
-`@artificer-toolkit/shared/social/rateLimits` owns the fixed-hour/day Social allowances. Native Convex
-domain functions consume the pure policy and own authorization, timestamps, persistence and rollback.
+`@artificer-toolkit/shared/social/rateLimits` owns the fixed-hour/day Social allowances
+(`SOCIAL_RATE_LIMITS`). Convex `lib/rateLimits.ts` maps them onto `@convex-dev/rate-limiter` fixed
+windows and owns authorization, counters and rollback.
 
 `@artificer-toolkit/shared/account/ageAttestation` owns the pure UTC 18+ birthday check used by
 Social viewing preferences. It stores nothing and does not perform identity or age verification;

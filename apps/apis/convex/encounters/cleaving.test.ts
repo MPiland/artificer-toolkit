@@ -380,7 +380,7 @@ async function setup(
       ? [creatureActors[0]!, characterActor!, ...creatureActors.slice(1)]
       : createdRun.actors
   const run = { ...createdRun, actors: orderedActors }
-  await base.owner.caller.mutation(api.encounters.commands.execute, {
+  await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REPLACE_OPTIONAL_COMBAT_RULES',
       encounterId: run.id,
@@ -646,7 +646,10 @@ function response(
 }
 
 async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
-  let result = await base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+  let result = await base.owner.caller.action(
+    internal.encounters.commandActions.execute,
+    base.command
+  )
   const evidence: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -665,7 +668,7 @@ async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
       }
     }
     evidence.push(input)
-    result = await base.owner.caller.action(api.encounters.commandActions.execute, input)
+    result = await base.owner.caller.action(internal.encounters.commandActions.execute, input)
   }
   return { result, evidence }
 }
@@ -1044,11 +1047,11 @@ describe('native Cleaving action settlement', () => {
         ).resolves.toEqual({ rolledBack: true })
         expect(await records(base)).toEqual(afterParent)
         concentration = encounterCommandResultDtoSchema.parse(
-          await base.other.caller.action(api.encounters.commandActions.execute, input)
+          await base.other.caller.action(internal.encounters.commandActions.execute, input)
         )
         retryConcentration = async () =>
           encounterCommandResultDtoSchema.parse(
-            await base.other.caller.action(api.encounters.commandActions.execute, input)
+            await base.other.caller.action(internal.encounters.commandActions.execute, input)
           )
       }
       expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
@@ -1063,7 +1066,7 @@ describe('native Cleaving action settlement', () => {
       ).toBe(parentReceipt.resultJson)
       const cleaving = await pendingChoice(base)
       const decline = response(base, cleaving, true)
-      const declined = await base.owner.caller.action(api.encounters.commandActions.execute, {
+      const declined = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: decline
       })
       expect((await records(base)).occurrences.some((entry) => entry.state === 'PENDING')).toBe(
@@ -1071,7 +1074,7 @@ describe('native Cleaving action settlement', () => {
       )
       await expect(retryConcentration()).resolves.toEqual(concentration)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, { command: decline })
+        base.owner.caller.action(internal.encounters.commandActions.execute, { command: decline })
       ).resolves.toEqual(declined)
       const effects = await base.t.run((ctx) =>
         ctx.db
@@ -1169,7 +1172,7 @@ describe('native Cleaving action settlement', () => {
       expect(await current()).toEqual(before)
       random.mockClear()
       random.mockReturnValue(0)
-      const applied = await base.owner.caller.action(api.encounters.commandActions.execute, {
+      const applied = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: input
       })
       const after = await current()
@@ -1200,14 +1203,14 @@ describe('native Cleaving action settlement', () => {
       const next = await pendingChoice(base)
       expect(next.occurrenceId).not.toBe(first.occurrenceId)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+        base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
       ).resolves.toEqual(applied)
       const nextTargetId = next.options[0]!.targetActorId
       const nextTargetBefore = encounterRunActorStateSchema.parse(
         JSON.parse(after.records.actors.find((actor) => actor.id === nextTargetId)!.stateJson)
       )
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, {
+        base.owner.caller.action(internal.encounters.commandActions.execute, {
           command: response(base, next)
         })
       ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE' } })
@@ -1244,19 +1247,22 @@ describe('native Cleaving action settlement', () => {
         const first = await pendingChoice(base)
         expect(first.options).toHaveLength(2)
         const firstResponse = response(base, first)
-        const firstResult = await base.owner.caller.action(api.encounters.commandActions.execute, {
-          command: firstResponse
-        })
+        const firstResult = await base.owner.caller.action(
+          internal.encounters.commandActions.execute,
+          {
+            command: firstResponse
+          }
+        )
         const second = await pendingChoice(base)
         expect(second.options).toHaveLength(1)
         expect(second.occurrenceId).not.toBe(first.occurrenceId)
         await expect(
-          base.owner.caller.action(api.encounters.commandActions.execute, {
+          base.owner.caller.action(internal.encounters.commandActions.execute, {
             command: firstResponse
           })
         ).resolves.toEqual(firstResult)
         const secondResponse = response(base, second)
-        await base.owner.caller.action(api.encounters.commandActions.execute, {
+        await base.owner.caller.action(internal.encounters.commandActions.execute, {
           command: secondResponse
         })
         expect(
@@ -1287,10 +1293,10 @@ describe('native Cleaving action settlement', () => {
             .sort((left, right) => right - left)
         ).toEqual([29, 18])
         await expect(
-          base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+          base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
         ).resolves.toEqual(result)
         for (const retained of evidence)
-          await base.owner.caller.action(api.encounters.commandActions.execute, retained)
+          await base.owner.caller.action(internal.encounters.commandActions.execute, retained)
         expect(await records(base)).toEqual(final)
       } finally {
         random.mockRestore()
@@ -1304,7 +1310,7 @@ describe('native Cleaving action settlement', () => {
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+        base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
       ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE' } })
     } finally {
       random.mockRestore()
@@ -1312,17 +1318,17 @@ describe('native Cleaving action settlement', () => {
     const before = await records(base)
     const pending = await pendingChoice(base)
     const input = response(base, pending, true)
-    const result = await base.owner.caller.action(api.encounters.commandActions.execute, {
+    const result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
       command: input
     })
     const after = await records(base)
     expect(after.actors).toEqual(before.actors)
     expect(after.run?.version).toBe(before.run!.version + 1)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+      base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
     ).resolves.toEqual(result)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, {
+      base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: {
           ...input,
           resolution: { kind: 'OPTION', optionId: pending.options[0]!.optionId }
@@ -1330,7 +1336,7 @@ describe('native Cleaving action settlement', () => {
       })
     ).rejects.toThrow()
     await expect(
-      base.other.caller.action(api.encounters.commandActions.execute, { command: input })
+      base.other.caller.action(internal.encounters.commandActions.execute, { command: input })
     ).rejects.toThrow()
     await expect(
       base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -1370,7 +1376,7 @@ describe('native Cleaving action settlement', () => {
       expect(pin.kind).toBe('CHARACTER')
       expect(pin.streamVersion).toBeGreaterThan(base.actor.sourceRevision!)
       await expect(
-        base.other.caller.action(api.encounters.commandActions.execute, {
+        base.other.caller.action(internal.encounters.commandActions.execute, {
           command: {
             ...response(base, ownerChoice),
             resolution: { kind: 'OPTION', optionId: hidden.optionId }
@@ -1379,17 +1385,17 @@ describe('native Cleaving action settlement', () => {
       ).rejects.toThrow('Cleaving target is unavailable')
       expect(await records(base)).toEqual(before)
       const input = response(base, playerChoice)
-      const applied = await base.other.caller.action(api.encounters.commandActions.execute, {
+      const applied = await base.other.caller.action(internal.encounters.commandActions.execute, {
         command: input
       })
       expect(applied.projection.actors.some((actor) => actor.id === hidden.targetActorId)).toBe(
         false
       )
       await expect(
-        base.other.caller.action(api.encounters.commandActions.execute, { command: input })
+        base.other.caller.action(internal.encounters.commandActions.execute, { command: input })
       ).resolves.toEqual(applied)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+        base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
       ).rejects.toThrow('receipt mismatch')
       const remaining = await pendingChoice(base)
       expect(remaining.options.map((option) => option.targetActorId)).toEqual([
@@ -1400,7 +1406,7 @@ describe('native Cleaving action settlement', () => {
           encounterId: base.run.id
         })
       ).resolves.toBeNull()
-      await base.owner.caller.action(api.encounters.commandActions.execute, {
+      await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: response(base, remaining, true)
       })
     },
@@ -1411,7 +1417,7 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+      await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
     } finally {
       random.mockRestore()
     }
@@ -1443,12 +1449,12 @@ describe('native Cleaving action settlement', () => {
     })
     const before = await records(base)
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, {
+      base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: response(base, pending)
       })
     ).rejects.toThrow()
     expect(await records(base)).toEqual(before)
-    await base.owner.caller.action(api.encounters.commandActions.execute, {
+    await base.owner.caller.action(internal.encounters.commandActions.execute, {
       command: response(base, pending, true)
     })
     const after = await records(base)
@@ -1490,12 +1496,12 @@ describe('native Cleaving action settlement', () => {
     })
     const before = await records(base)
     await expect(
-      base.other.caller.action(api.encounters.commandActions.execute, {
+      base.other.caller.action(internal.encounters.commandActions.execute, {
         command: response(base, pending)
       })
     ).rejects.toThrow()
     expect(await records(base)).toEqual(before)
-    await base.other.caller.action(api.encounters.commandActions.execute, {
+    await base.other.caller.action(internal.encounters.commandActions.execute, {
       command: response(base, pending, true)
     })
     const after = await records(base)
@@ -1528,7 +1534,7 @@ describe('native Cleaving action settlement', () => {
         })
       const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(reason === 'miss' ? 0 : 18)
       try {
-        await base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+        await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
       } finally {
         random.mockRestore()
       }
@@ -1546,7 +1552,7 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await base.owner.caller.action(api.encounters.commandActions.execute, base.command)
+      await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
     } finally {
       random.mockRestore()
     }
@@ -1583,7 +1589,7 @@ describe('native Cleaving action settlement', () => {
       })
       const stale = await records(base)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+        base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
       ).rejects.toThrow()
       expect(await records(base)).toEqual(stale)
       await base.t.run(async (ctx) => {
@@ -1606,7 +1612,7 @@ describe('native Cleaving action settlement', () => {
       })
       const tampered = await records(base)
       await expect(
-        base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+        base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
       ).rejects.toThrow()
       expect(await records(base)).toEqual(tampered)
       await base.t.run((ctx) =>
@@ -1616,7 +1622,7 @@ describe('native Cleaving action settlement', () => {
         })
       )
     }
-    await base.owner.caller.action(api.encounters.commandActions.execute, { command: input })
+    await base.owner.caller.action(internal.encounters.commandActions.execute, { command: input })
     expect((await records(base)).run?.version).toBe(before.run!.version + 1)
   }, 30000)
 })

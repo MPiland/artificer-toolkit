@@ -140,6 +140,7 @@ describe('useCampaignLiveSession', () => {
       'recipientState',
       'rejection',
       'sendCommand',
+      'sendEncounterCommand',
       'sendTransient',
       'sequence',
       'status',

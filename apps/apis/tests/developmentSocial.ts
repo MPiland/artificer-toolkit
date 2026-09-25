@@ -383,7 +383,6 @@ export async function verifySocialLifecycle(
   )
   assert.equal(await applyPhase('INVITATIONS'), 1)
   assert.equal(await applyPhase('REPORTS'), 2)
-  assert.ok((await applyPhase('RATE_WINDOWS')) > 0)
   for (const account of [player, invitee]) {
     const current = await owner.client.query(api.campaigns.queries.get, { id: campaign.id })
     const member = current.memberships.find((entry) => entry.userId === account.userId)

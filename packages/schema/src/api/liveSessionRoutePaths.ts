@@ -17,5 +17,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterActionCommit: '/live-sessions/encounter-action',
   encounterTurnPending: '/live-sessions/encounter-turn-pending',
   encounterTurnCommit: '/live-sessions/encounter-turn',
-  encounterConcentrationCommit: '/live-sessions/encounter-concentration'
+  encounterConcentrationCommit: '/live-sessions/encounter-concentration',
+  encounterRoute: '/live-sessions/encounter-route',
+  encounterCommand: '/live-sessions/encounter-command'
 } as const

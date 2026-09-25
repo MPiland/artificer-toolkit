@@ -23,6 +23,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+import { LivePlannerUnsupportedError } from './nativeRulesRuntime.js'
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import {
@@ -116,14 +117,13 @@ export async function planNativeLiveEncounterAction(
       context.commandFingerprint !== admission.fingerprint ||
       checksumCanonicalJson(root) !== admission.fingerprint ||
       context.initiatorUserId !== initial.expectedUserId ||
-      context.contest ||
-      snapshot.deferredCleaving ||
-      root.optionalCombatIntent != null ||
       snapshot.request.requestId !== resolution.requestId ||
       (context.d20Policy === null && resolution.kind === 'ENTER_DICE') ||
       (context.d20Policy !== null && resolution.kind === 'ENTER_INTEGER')
     )
       throw new Error('The pending action evidence is invalid.')
+    if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
+      throw new LivePlannerUnsupportedError('contested, Cleaving or optional-combat action evidence')
   }
   const inputs = await capture({ kind: 'INPUTS' })
   if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
@@ -138,8 +138,7 @@ export async function planNativeLiveEncounterAction(
     !state.actorIds.includes(command.targetActorId)
   )
     throw new Error('Encounter rules input binding mismatch.')
-  if (state.automationMode === 'MANUAL')
-    throw new Error('Native action execution requires Automatic or Assisted Encounter mode.')
+  if (state.automationMode === 'MANUAL') throw new LivePlannerUnsupportedError('Manual-mode actions')
 
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
@@ -208,7 +207,7 @@ export async function planNativeLiveEncounterAction(
       }
     : null
   if (command.optionalCombatIntent != null)
-    throw new Error('Native action execution requires the complete contextual action coordinator.')
+    throw new LivePlannerUnsupportedError('optional-combat actions')
   if (
     !targetPolicyPermitsEncounterActor({
       actorId: prepared.actor.id,
@@ -306,7 +305,7 @@ export async function planNativeLiveEncounterAction(
           }
         }
       })
-      if (candidate) throw new Error('The action requires a Legendary Resistance decision.')
+      if (candidate) throw new LivePlannerUnsupportedError('Legendary Resistance decisions')
     }
   })
   const occurredAt = new Date().toISOString()
@@ -342,7 +341,7 @@ export async function planNativeLiveEncounterAction(
       targetActorId: prepared.target.id
     }).length
   )
-    throw new Error('Native action execution requires the complete contextual action coordinator.')
+    throw new LivePlannerUnsupportedError('spatially interpreted actions')
   const mechanics = planNativeEncounterActionMechanics(
     {
       prepared,

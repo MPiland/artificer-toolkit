@@ -11,7 +11,7 @@ import {
   createPlatformRulesRuntime,
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { turnConcentrationFixture } from '../../tests/fixtures/turnConcentration'
@@ -112,7 +112,7 @@ async function start(base: Fixture, preferredActorId?: string) {
       expectedVersion: base.run.version
     }
   }
-  let result = await base.owner.caller.mutation(api.encounters.commands.execute, command)
+  let result = await base.owner.caller.mutation(internal.encounters.commands.execute, command)
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
     if (
@@ -136,7 +136,7 @@ async function start(base: Fixture, preferredActorId?: string) {
                 pending.optionIds.find((optionId) => optionId === preferredActorId) ??
                 pending.optionIds[0]!
             }
-    result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -220,7 +220,7 @@ async function prepareTurn(base: Fixture) {
 }
 
 async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) {
-  let result = await base.owner.caller.mutation(api.encounters.commands.execute, command)
+  let result = await base.owner.caller.mutation(internal.encounters.commands.execute, command)
   const responses: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -228,7 +228,7 @@ async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) 
       throw new Error('Expected original turn-effect evidence before concentration.')
     const input = response(base.run.id, pending, 1)
     responses.push(input)
-    result = await base.owner.caller.action(api.encounters.commandActions.execute, input)
+    result = await base.owner.caller.action(internal.encounters.commandActions.execute, input)
   }
   return { result: encounterCommandResultDtoSchema.parse(result), responses }
 }
@@ -281,7 +281,7 @@ describe('turn damage concentration ordering', () => {
       expect(pending.encounterVersion).toBe(parent.projection.version + check.versionDelta)
       const input = response(base.run.id, pending, check.face)
       const result = encounterCommandResultDtoSchema.parse(
-        await check.caller.action(api.encounters.commandActions.execute, input)
+        await check.caller.action(internal.encounters.commandActions.execute, input)
       )
       expect(result.occurrence).toMatchObject({ status: 'COMPLETE', outcome: check.outcome })
       completed.push({ caller: check.caller, input, result })
@@ -297,11 +297,11 @@ describe('turn damage concentration ordering', () => {
     expect(parentReceipt(terminal)).toEqual(parentReceipt(before))
     for (const check of completed) {
       await expect(
-        check.caller.action(api.encounters.commandActions.execute, check.input)
+        check.caller.action(internal.encounters.commandActions.execute, check.input)
       ).resolves.toEqual(check.result)
     }
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, responses.at(-1)!)
+      base.owner.caller.action(internal.encounters.commandActions.execute, responses.at(-1)!)
     ).resolves.toEqual(parent)
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
@@ -353,7 +353,7 @@ describe('turn damage concentration ordering', () => {
       expect(after.run?.version).toBe(before.run!.version + 1)
       random.mockClear()
       await expect(
-        base.owner.caller.mutation(api.encounters.commands.execute, command)
+        base.owner.caller.mutation(internal.encounters.commands.execute, command)
       ).resolves.toEqual(result)
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(after)
@@ -371,7 +371,7 @@ describe('turn damage concentration ordering', () => {
       random.mockReset()
       for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
       const result = await base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         prepared.advance
       )
       expect(result.occurrence?.status).toBe('COMPLETE')
@@ -408,7 +408,7 @@ describe('turn damage concentration ordering', () => {
       expect(after.run?.version).toBe(before.run!.version + 1)
       random.mockClear()
       await expect(
-        base.owner.caller.mutation(api.encounters.commands.execute, prepared.advance)
+        base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
       ).resolves.toEqual(result)
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(after)
@@ -445,7 +445,7 @@ describe('turn damage concentration ordering', () => {
     try {
       await expect(
         prepared.bOwner.controller.caller.action(
-          api.encounters.commandActions.execute,
+          internal.encounters.commandActions.execute,
           unauthorized
         )
       ).rejects.toThrow()
@@ -475,7 +475,7 @@ describe('turn damage concentration ordering', () => {
     ).resolves.toEqual({ rolledBack: true })
     expect(await records(base)).toEqual(afterParent)
     const failed = await prepared.aOwner.controller.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       firstResponse
     )
     expect(failed.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
@@ -489,7 +489,7 @@ describe('turn damage concentration ordering', () => {
     const finalTurnResponse = responses.at(-1)
     if (!finalTurnResponse) throw new Error('Missing final turn-effect response.')
     await expect(
-      base.owner.caller.action(api.encounters.commandActions.execute, finalTurnResponse)
+      base.owner.caller.action(internal.encounters.commandActions.execute, finalTurnResponse)
     ).resolves.toEqual(parent)
     expect(await records(base)).toEqual(afterFailure)
     const second = await prepared.bOwner.controller.caller.query(
@@ -506,23 +506,26 @@ describe('turn damage concentration ordering', () => {
     ).resolves.toBeNull()
     const secondResponse = response(base.run.id, second, 20)
     const success = await prepared.bOwner.controller.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       secondResponse
     )
     expect(success.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
     const terminal = await records(base)
     expect(terminal.run?.version).toBe(afterFailure.run!.version)
     await expect(
-      prepared.aOwner.controller.caller.action(api.encounters.commandActions.execute, firstResponse)
+      prepared.aOwner.controller.caller.action(
+        internal.encounters.commandActions.execute,
+        firstResponse
+      )
     ).resolves.toEqual(failed)
     await expect(
       prepared.bOwner.controller.caller.action(
-        api.encounters.commandActions.execute,
+        internal.encounters.commandActions.execute,
         secondResponse
       )
     ).resolves.toEqual(success)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, prepared.advance)
+      base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
     ).resolves.toEqual(parent)
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
@@ -758,7 +761,7 @@ it('commits ordered Automatic turn concentration through the private DO terminal
         base.owner.caller.run(async (ctx) => {
           previews.push(
             encounterCommandResultDtoSchema.parse(
-              await ctx.runMutation(api.encounters.commands.execute, prepared.advance)
+              await ctx.runMutation(internal.encounters.commands.execute, prepared.advance)
             )
           )
           throw new Error('Roll back native concentration preview.')

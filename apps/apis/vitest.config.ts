@@ -17,7 +17,9 @@ export default defineConfig({
           '@convex-dev/better-auth',
           '@convex-dev/resend',
           '@convex-dev/r2',
-          '@convex-dev/action-retrier'
+          '@convex-dev/action-retrier',
+          '@convex-dev/rate-limiter',
+          '@convex-dev/batch-worker'
         ]
       }
     },

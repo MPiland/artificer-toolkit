@@ -1,11 +1,23 @@
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountUsage'
 import { internal } from '../_generated/api'
 import schema from '../schema'
-import { consumeSocialRateLimit } from './rateLimits'
-import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountUsage'
+import { readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
+import { consumeSocialRateLimit, consumeUserRateLimit, socialRateLimits } from './rateLimits'
 
 const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
+
+function setup() {
+  const t = convexTest(schema, modules)
+  registerRateLimiter(t)
+  return t
+}
+
+const unused = (action: Parameters<typeof socialRateLimits>[0]) =>
+  socialRateLimits(action).map(({ config }) => ({ value: config.rate, ts: 0 }))
+
 beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2030-01-01T00:15:00.000Z'))
@@ -13,6 +25,28 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllTimers()
   vi.useRealTimers()
+})
+
+describe('user token-bucket limits', () => {
+  it.each([
+    ['liveSessionTicket', 10, 2_000, 'Too many live table connection attempts'],
+    ['sceneWrite', 80, 250, 'Too many Scene changes'],
+    ['campaignConversation', 30, 2_000, 'Chat is temporarily rate limited']
+  ] as const)(
+    'admits the %s burst of %i, rejects the next, and refills one token per %ims',
+    async (name, burst, refillMs, message) => {
+      const t = setup()
+      const userId = crypto.randomUUID()
+      for (let count = 0; count < burst; count++)
+        await t.run((ctx) => consumeUserRateLimit(ctx, name, userId))
+      await expect(t.run((ctx) => consumeUserRateLimit(ctx, name, userId))).rejects.toThrow(message)
+      await t.run((ctx) => consumeUserRateLimit(ctx, name, crypto.randomUUID()))
+      // One millisecond past the refill interval keeps the float arithmetic above one token.
+      vi.setSystemTime(Date.now() + refillMs + 1)
+      await t.run((ctx) => consumeUserRateLimit(ctx, name, userId))
+      await expect(t.run((ctx) => consumeUserRateLimit(ctx, name, userId))).rejects.toThrow(message)
+    }
+  )
 })
 
 describe('native Social fixed-window limits', () => {
@@ -24,23 +58,20 @@ describe('native Social fixed-window limits', () => {
   ] as const)(
     'preserves the %s hourly allowance of %i and isolates accounts/actions',
     async (action, limit) => {
-      const t = convexTest(schema, modules)
+      const t = setup()
       const userId = crypto.randomUUID()
       for (let count = 0; count < limit; count++)
         await t.run((ctx) => consumeSocialRateLimit(ctx, userId, action))
-      const before = await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())
+      const before = await readSocialRateLimits(t, userId, action)
+      expect(before[0]).toEqual({ value: 0, ts: Date.parse('2030-01-01T00:00:00.000Z') })
       await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, action))).rejects.toThrow(
         'Too many Social actions'
       )
-      expect(await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toEqual(before)
+      expect(await readSocialRateLimits(t, userId, action)).toEqual(before)
       await t.run((ctx) => consumeSocialRateLimit(ctx, crypto.randomUUID(), action))
       await t.run((ctx) =>
         consumeSocialRateLimit(ctx, userId, action === 'BLOCK' ? 'INVITE' : 'BLOCK')
       )
-      expect(before.find((row) => row.window === 'HOUR')).toMatchObject({
-        count: limit,
-        windowStartedAt: '2030-01-01T00:00:00.000Z'
-      })
     }
   )
 
@@ -50,56 +81,55 @@ describe('native Social fixed-window limits', () => {
   ] as const)(
     'keeps the %s daily allowance across hours and rolls back the hour when the day rejects',
     async (action, perHour, hours) => {
-      const t = convexTest(schema, modules)
+      const t = setup()
       const userId = crypto.randomUUID()
       for (let hour = 0; hour < hours; hour++) {
         vi.setSystemTime(new Date(Date.UTC(2030, 0, 1, hour, 15)))
         for (let count = 0; count < perHour; count++)
           await t.run((ctx) => consumeSocialRateLimit(ctx, userId, action))
       }
-      const before = await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())
-      expect(before).toHaveLength(2)
-      expect(before.find((row) => row.window === 'DAY')?.count).toBe(perHour * hours)
       vi.setSystemTime(new Date(Date.UTC(2030, 0, 1, hours, 15)))
+      const before = await readSocialRateLimits(t, userId, action)
+      expect(before[1]?.value).toBe(0)
       await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, action))).rejects.toThrow(
         'Too many Social actions'
       )
-      expect(await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toEqual(before)
+      expect(await readSocialRateLimits(t, userId, action)).toEqual(before)
       vi.setSystemTime(new Date('2030-01-02T00:00:00.000Z'))
       await t.run((ctx) => consumeSocialRateLimit(ctx, userId, action))
-      const reset = await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())
-      expect(reset.map((row) => row._id).sort()).toEqual(before.map((row) => row._id).sort())
-      expect(
-        reset.every((row) => row.count === 1 && row.windowStartedAt === '2030-01-02T00:00:00.000Z')
-      ).toBe(true)
+      expect(await readSocialRateLimits(t, userId, action)).toEqual(
+        socialRateLimits(action).map(({ config }) => ({
+          value: config.rate - 1,
+          ts: Date.parse('2030-01-02T00:00:00.000Z')
+        }))
+      )
     }
   )
 
   it('uses UTC boundaries and cannot reset an allowance by moving the clock backwards', async () => {
-    const t = convexTest(schema, modules)
+    const t = setup()
     const userId = crypto.randomUUID()
     vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
     for (let count = 0; count < 29; count++)
       await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
     vi.setSystemTime(new Date('2030-01-01T00:59:59.999Z'))
-    await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
-    expect(
-      (await t.run((ctx) => ctx.db.query('socialActionRateLimits').unique()))?.windowStartedAt
-    ).toBe('2030-01-01T01:00:00.000Z')
+    await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
+      'Too many Social actions'
+    )
     vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
+    await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
     await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
       'Too many Social actions'
     )
     vi.setSystemTime(new Date('2030-01-01T02:00:00.000Z'))
     await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
-    expect(await t.run((ctx) => ctx.db.query('socialActionRateLimits').unique())).toMatchObject({
-      count: 1,
-      windowStartedAt: '2030-01-01T02:00:00.000Z'
-    })
+    expect(await readSocialRateLimits(t, userId, 'BLOCK')).toEqual([
+      { value: 29, ts: Date.parse('2030-01-01T02:00:00.000Z') }
+    ])
   })
 
   it('rolls every allowance back with a failed source mutation', async () => {
-    const t = convexTest(schema, modules)
+    const t = setup()
     const userId = crypto.randomUUID()
     await expect(
       t.run(async (ctx) => {
@@ -108,12 +138,21 @@ describe('native Social fixed-window limits', () => {
         throw new Error('source rejected')
       })
     ).rejects.toThrow('source rejected')
-    expect(await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toEqual([])
-    expect(await t.run((ctx) => ctx.db.query('accountEntitlements').collect())).toEqual([])
+    expect(await readSocialRateLimits(t, userId, 'APPLICATION')).toEqual(unused('APPLICATION'))
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('accountEntitlements')
+          .withIndex('by_userId', (q) => q.eq('userId', userId))
+          .take(1)
+      )
+    ).toEqual([])
   })
+})
 
-  it('removes only the deleted account counters through the real account-deletion trigger', async () => {
-    const t = convexTest(schema, modules)
+describe('account deletion', () => {
+  it('erases only the deleted account counters through the real account-deletion trigger', async () => {
+    const t = setup()
     const userId = crypto.randomUUID()
     const otherId = crypto.randomUUID()
     await t.run(async (ctx) => {
@@ -128,7 +167,9 @@ describe('native Social fixed-window limits', () => {
         await consumeSocialRateLimit(ctx, userId, action)
       await consumeSocialRateLimit(ctx, otherId, 'BLOCK')
     })
-    expect(await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toHaveLength(7)
+    for (let count = 0; count < 10; count++)
+      await t.run((ctx) => consumeUserRateLimit(ctx, 'liveSessionTicket', userId))
+    const otherBefore = await readSocialRateLimits(t, otherId, 'BLOCK')
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: 'deleted-auth-user' } })
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(4))).toEqual([
@@ -136,9 +177,10 @@ describe('native Social fixed-window limits', () => {
       expect.objectContaining({ state: { kind: 'success' } }),
       expect.objectContaining({ state: { kind: 'success' } })
     ])
-    const remaining = await t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())
-    expect(remaining).toHaveLength(1)
-    expect(remaining[0]?.userId).toBe(otherId)
-    expect(await t.run((ctx) => ctx.db.query('userProfiles').collect())).toEqual([])
+    for (const action of ['APPLICATION', 'INVITE', 'REPORT', 'BLOCK'] as const)
+      expect(await readSocialRateLimits(t, userId, action)).toEqual(unused(action))
+    expect(await readSocialRateLimits(t, otherId, 'BLOCK')).toEqual(otherBefore)
+    await t.run((ctx) => consumeUserRateLimit(ctx, 'liveSessionTicket', userId))
+    expect(await t.run((ctx) => ctx.db.query('userProfiles').take(1))).toEqual([])
   })
 })

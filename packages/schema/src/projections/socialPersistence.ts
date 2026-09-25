@@ -122,11 +122,3 @@ export const socialStoredApplicationSchema = z.extend(
     updatedAt: timestampSchema
   }
 )
-
-export const socialStoredRateLimitSchema = z.strictObject({
-  userId: uuidSchema,
-  action: z.enum(['APPLICATION', 'INVITE', 'REPORT', 'BLOCK']),
-  window: z.enum(['HOUR', 'DAY']),
-  windowStartedAt: timestampSchema,
-  count: z.number().check(z.int()).check(z.gte(1))
-})

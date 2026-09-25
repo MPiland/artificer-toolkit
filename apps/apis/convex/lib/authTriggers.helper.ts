@@ -10,6 +10,7 @@ import { retainAccountCampaignMedia } from '../media/accountRetention.helper'
 import { retainedFeed } from '../notifications/feed'
 import { prepareSocialAccountDeletion } from '../social/accountCleanup'
 import { syncAccountUsage } from './accountUsage'
+import { resetAccountRateLimits } from './rateLimits'
 
 type AuthUser = { _id: string }
 
@@ -71,12 +72,7 @@ export async function onAuthUserDelete(ctx: MutationCtx, user: AuthUser): Promis
     await syncAccountUsage(ctx, 'savedEncounters', blueprint.id)
   }
   if (socialProfile) await ctx.db.delete(socialProfile._id)
-  const socialLimits = await ctx.db
-    .query('socialActionRateLimits')
-    .withIndex('by_userId_action_window', (query) => query.eq('userId', profile.userId))
-    .take(9)
-  if (socialLimits.length > 8) throw new Error('Invalid Social rate-limit cardinality.')
-  for (const limit of socialLimits) await ctx.db.delete(limit._id)
+  await resetAccountRateLimits(ctx, profile.userId)
   const notifications = await retainedFeed(ctx, profile.userId)
   for (const notification of notifications) await ctx.db.delete(notification._id)
   const entitlement = await ctx.db

@@ -4,7 +4,6 @@ import type {
   SocialRetentionPreviewInput,
   SocialRetentionPreviewResult
 } from '@artificer-toolkit/schema/api/socialRetention'
-import { socialStoredRateLimitSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { timestampSchema } from '@artificer-toolkit/schema/api/campaignContractSchemas'
 import { fixture, snapshot } from '../../tests/fixtures/socialAdmission'
 import { api } from '../_generated/api'
@@ -84,21 +83,23 @@ describe('social retention preview', () => {
   it('counts bounded pages and returns only preview metadata', async () => {
     const base = await fixture()
     await base.t.run(async (ctx) => {
-      for (let index = 0; index < 10; index++) {
-        await ctx.db.insert(
-          'socialActionRateLimits',
-          socialStoredRateLimitSchema.parse({
-            userId: crypto.randomUUID(),
-            action: 'REPORT',
-            window: 'DAY',
-            windowStartedAt: '2026-01-01T00:00:00.000Z',
-            count: 1
-          })
-        )
-      }
+      const invite = await ctx.db
+        .query('campaignInvites')
+        .withIndex('by_publicId', (q) => q.eq('id', base.acceptedInviteId))
+        .unique()
+      if (!invite) throw new Error('Missing accepted invitation.')
+      const { _id, _creationTime, ...stored } = invite
+      // Eight expired copies follow the two fixture invitations in creation order.
+      for (let index = 0; index < 8; index++)
+        await ctx.db.insert('campaignInvites', {
+          ...stored,
+          id: crypto.randomUUID(),
+          respondedAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z'
+        })
     })
-    const first = await run(base, 'RATE_WINDOWS')
-    expect(first).toMatchObject({ scanned: 8, eligible: 8, isDone: false })
+    const first = await run(base, 'INVITATIONS')
+    expect(first).toMatchObject({ scanned: 8, eligible: 6, isDone: false })
     expect(
       Object.keys(first).every((key) =>
         ['scanned', 'eligible', 'isDone', 'continueCursor', 'splitCursor', 'pageStatus'].includes(
@@ -106,29 +107,10 @@ describe('social retention preview', () => {
         )
       )
     ).toBe(true)
-    const second = await run(base, 'RATE_WINDOWS', {
+    const second = await run(base, 'INVITATIONS', {
       paginationOpts: { cursor: first.continueCursor, numItems: 8 }
     })
     expect(second).toMatchObject({ scanned: 2, eligible: 2, isDone: true })
-  })
-
-  it('keeps rate windows exactly on the strict two-day cutoff', async () => {
-    const base = await fixture()
-    await base.t.run(async (ctx) => {
-      for (const windowStartedAt of ['2026-08-30T00:00:00.000Z', '2026-08-29T23:59:59.999Z']) {
-        await ctx.db.insert(
-          'socialActionRateLimits',
-          socialStoredRateLimitSchema.parse({
-            userId: crypto.randomUUID(),
-            action: 'REPORT',
-            window: 'DAY',
-            windowStartedAt,
-            count: 1
-          })
-        )
-      }
-    })
-    expect((await run(base, 'RATE_WINDOWS')).eligible).toBe(1)
   })
 
   it.each([

@@ -1,3 +1,4 @@
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { createFunctionHandle } from 'convex/server'
 import { convexTest } from 'convex-test'
 import { describe, expect, it, vi } from 'vitest'
@@ -11,6 +12,7 @@ const modules = import.meta.glob('./**/*.*s')
 async function fixture() {
   const t = convexTest(schema, modules)
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const actors = []
   for (let index = 0; index < 2; index++) {
     const user = await t.run(async (ctx) =>

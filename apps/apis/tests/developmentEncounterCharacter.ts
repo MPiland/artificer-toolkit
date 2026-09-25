@@ -3,7 +3,7 @@ import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encoun
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 
 // The same assertions run against the local transactional adapter and authenticated HTTP clients.
 export async function verifyEncounterCharacterCommands({
@@ -76,16 +76,10 @@ export async function verifyEncounterCharacterCommands({
       }
     }
   }
-  await assert.rejects(
-    anonymous.mutation(api.encounters.commands.execute, damage),
-    /Unauthenticated/
-  )
-  await assert.rejects(
-    player.mutation(api.encounters.commands.execute, damage),
-    /Campaign not found/
-  )
+  await assert.rejects(anonymous.mutation(executeEncounterCommand, damage), /Unauthenticated/)
+  await assert.rejects(player.mutation(executeEncounterCommand, damage), /Campaign not found/)
   const damaged = await measure('nestedCharacterDamage', () =>
-    owner.mutation(api.encounters.commands.execute, damage)
+    owner.mutation(executeEncounterCommand, damage)
   )
   const damagedActor = encounterGmProjectionDtoSchema
     .parse(damaged.projection)
@@ -97,19 +91,17 @@ export async function verifyEncounterCharacterCommands({
   assert.equal(sheet.overview.currentHitPoints, 9)
   assert.equal(sheet.meta.streamVersion, preparedSheet.streamVersion + 1)
   assert.deepEqual(
-    await measure('nestedDamageReplay', () =>
-      owner.mutation(api.encounters.commands.execute, damage)
-    ),
+    await measure('nestedDamageReplay', () => owner.mutation(executeEncounterCommand, damage)),
     damaged
   )
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: { ...damage.command, expectedVersion: damaged.projection.version }
     }),
     /different input/
   )
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: { ...damage.command, commandId: crypto.randomUUID() }
     }),
     /version|stale/i
@@ -125,7 +117,7 @@ export async function verifyEncounterCharacterCommands({
     }
   }
   const rolled = await measure('characterInitiative', () =>
-    owner.mutation(api.encounters.commands.execute, initiative)
+    owner.mutation(executeEncounterCommand, initiative)
   )
   assert.equal(rolled.roll?.characterId, characterId)
   assert.equal(rolled.roll.source.kind, 'INITIATIVE')
@@ -133,9 +125,7 @@ export async function verifyEncounterCharacterCommands({
     Number.isFinite(rolled.projection.actors.find((entry) => entry.id === actor.id)?.initiative)
   )
   assert.deepEqual(
-    await measure('initiativeReplay', () =>
-      owner.mutation(api.encounters.commands.execute, initiative)
-    ),
+    await measure('initiativeReplay', () => owner.mutation(executeEncounterCommand, initiative)),
     rolled
   )
   assert.deepEqual(

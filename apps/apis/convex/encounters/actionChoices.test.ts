@@ -10,7 +10,7 @@ import {
   getNativeOptionalActionChoices,
   nativeDisarmFixture
 } from '../../tests/fixtures/nativeDisarm'
-import { api } from '../_generated/api'
+import { internal } from '../_generated/api'
 
 function inputs(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
   if (!base.command.optionalCombatIntent) throw new Error('Missing Disarm intent.')
@@ -149,7 +149,7 @@ describe('native public Encounter action choices', () => {
       ).rejects.toThrow()
     }
     expect(await disarmRecords(base)).toEqual(before)
-    const disabled = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const disabled = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'REPLACE_OPTIONAL_COMBAT_RULES',
         encounterId: base.run.id,

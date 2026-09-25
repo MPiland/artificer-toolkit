@@ -50,7 +50,7 @@ import {
 } from './encounterAction'
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { importedSubject } from './publication'
-import { api, components, internal } from '../../convex/_generated/api'
+import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
 import { createRulesRuntime } from '../../convex/rules/runtime'
 
@@ -217,7 +217,7 @@ export async function turnCharacterEffectFixture() {
   })
   const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!opponent) throw new Error('Expected the fixture opponent.')
-  const removed = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: created.id,

@@ -5,7 +5,7 @@ import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { bindScene, bindToken } from './developmentEncounterLifecycle'
 import { createEncounterLifecycleScene } from './developmentEncounterScenes'
 import { reactionBinding } from './fixtures/movementReaction'
@@ -220,7 +220,7 @@ export async function prepareEncounterMovementFixture({
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === playerCharacterId
   )
   if (!reactor || !mover) throw new Error('Movement reaction fixture actors are unavailable.')
-  let started = await owner.mutation(api.encounters.commands.execute, {
+  let started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: created.id,
@@ -254,7 +254,7 @@ export async function prepareEncounterMovementFixture({
       if (!entityId) throw new Error('Movement reaction fixture has no initiative choice.')
       resolution = { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
     }
-    started = await owner.mutation(api.encounters.commands.execute, {
+    started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: created.id,
@@ -292,7 +292,7 @@ export async function prepareEncounterMovementFixture({
     ).projection
   }
   run = (
-    await owner.mutation(api.encounters.commands.execute, {
+    await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: created.id,

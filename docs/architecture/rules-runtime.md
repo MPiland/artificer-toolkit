@@ -770,7 +770,8 @@ Run, so concurrent starts conflict and the retried loser is rejected. Pending in
 `PREPARED`; its eventual settlement checks the same invariant before committing turn effects.
 Completed command retries still return their original receipt.
 
-The public Encounter command mutation verifies the current authenticated identity once and passes
+The internal Encounter command mutation, reached only through the Session room's forwarded command
+(see [live sessions](live-sessions.md)), verifies the current authenticated identity once and passes
 that server-derived user ID through its internal action and response coordinators. Each coordinator
 retains its Campaign, Session, controller, pending-initiator, and replay checks; no command input can
 supply the acting user ID.

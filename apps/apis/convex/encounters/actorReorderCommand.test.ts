@@ -66,14 +66,14 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
         expectedVersion: projection.version
       }
     }
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, request)
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, request)
     projection = result.projection as EncounterGmProjectionDto
     return { request, result }
   }
   const start = async () => {
     if (mode === 'MANUAL') {
       for (const [index, actor] of projection.actors.entries()) {
-        const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'SET_INITIATIVE',
             encounterId: projection.id,
@@ -86,7 +86,7 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
         projection = result.projection as EncounterGmProjectionDto
       }
     }
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: projection.id,
@@ -100,7 +100,7 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
         const pending = result.occurrence.pending
         if (!pending || pending.kind !== 'INITIATIVE_ORDER' || !pending.optionIds[0])
           throw new Error('Unexpected automatic side decision')
-        result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+        result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
             encounterId: projection.id,
@@ -122,7 +122,7 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
     return result
   }
   const advance = async () => {
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: projection.id,
@@ -190,12 +190,12 @@ describe('native Encounter reorder', () => {
     expect(result.projection.actors.map((actor) => actor.id)).toEqual(actorIds)
     await base.execute({ type: 'REORDER', actorIds: [...actorIds].reverse() })
     const beforeReplay = await base.capture()
-    expect(await base.owner.caller.mutation(api.encounters.commands.execute, request)).toEqual(
+    expect(await base.owner.caller.mutation(internal.encounters.commands.execute, request)).toEqual(
       result
     )
     expect(await base.capture()).toEqual(beforeReplay)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, {
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: { ...request.command, actorIds: [...actorIds].reverse() }
       })
     ).rejects.toThrow(/different input/)
@@ -211,7 +211,7 @@ describe('native Encounter reorder', () => {
     })
     const corrupt = await base.capture()
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, request)
+      base.owner.caller.mutation(internal.encounters.commands.execute, request)
     ).rejects.toThrow(/receipt mismatch/)
     expect(await base.capture()).toEqual(corrupt)
   }, 30_000)
@@ -288,17 +288,17 @@ describe('native Encounter reorder', () => {
       [ids[1]!, ids[0]!, ...ids.slice(2)]
     ]) {
       await expect(
-        base.owner.caller.mutation(api.encounters.commands.execute, {
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: { ...request.command, actorIds }
         })
       ).rejects.toThrow(/exactly once|current turn/)
       expect(await base.capture()).toEqual(before)
     }
     await expect(
-      base.player.caller.mutation(api.encounters.commands.execute, request)
+      base.player.caller.mutation(internal.encounters.commands.execute, request)
     ).rejects.toThrow(/Campaign not found/)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, {
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: { ...request.command, expectedVersion: request.command.expectedVersion - 1 }
       })
     ).rejects.toThrow(/stale/)

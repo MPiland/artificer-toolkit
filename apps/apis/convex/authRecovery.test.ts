@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import { components, internal } from './_generated/api'
 import schema from './schema'
@@ -11,6 +12,7 @@ process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
 function fixture() {
   const t = convexTest(schema, import.meta.glob('./**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+  registerRateLimiter(t)
   const email = `${crypto.randomUUID()}@example.invalid`
   const identifier = `forget-password-otp-${email}`
   return {

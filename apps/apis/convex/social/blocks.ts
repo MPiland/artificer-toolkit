@@ -17,7 +17,7 @@ import {
 import { query, type QueryCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { presentSocialProfile, requireSocialViewer } from './visibility'
-import { consumeSocialRateLimit } from './rateLimits'
+import { consumeSocialRateLimit } from '../lib/rateLimits'
 import { readBlockInvalidation } from './blockInvalidation'
 import { makeFunctionReference } from 'convex/server'
 

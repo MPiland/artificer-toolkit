@@ -8,7 +8,7 @@ import {
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommandAction } from './developmentClient'
 import { readAuthoritativeSceneToken } from './developmentEncounterCutover'
 import type { prepareEncounterMovementFixture } from './developmentEncounterMovement'
 
@@ -104,8 +104,8 @@ export async function verifyEncounterReactionTransactions({
     resolution: { kind: 'OPTION', optionId: option.optionId }
   }
   const duplicates = await Promise.all([
-    owner.action(api.encounters.commandActions.execute, { command: selected }),
-    peer.action(api.encounters.commandActions.execute, { command: selected })
+    owner.action(executeEncounterCommandAction, { command: selected }),
+    peer.action(executeEncounterCommandAction, { command: selected })
   ])
   assert.deepEqual(duplicates[0], duplicates[1])
   assert.equal(duplicates[0].occurrence?.occurrenceId, pending.occurrenceId)
@@ -151,8 +151,8 @@ export async function verifyEncounterReactionTransactions({
   })
   const contenders = [dice(crypto.randomUUID()), dice(crypto.randomUUID())] as const
   const raced = await Promise.allSettled([
-    owner.action(api.encounters.commandActions.execute, { command: contenders[0] }),
-    peer.action(api.encounters.commandActions.execute, { command: contenders[1] })
+    owner.action(executeEncounterCommandAction, { command: contenders[0] }),
+    peer.action(executeEncounterCommandAction, { command: contenders[1] })
   ])
   assert.equal(raced.filter((result) => result.status === 'fulfilled').length, 1)
   const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
@@ -162,7 +162,7 @@ export async function verifyEncounterReactionTransactions({
     throw new Error('Reaction dice contention did not produce one winner and one stale loser.')
   assert.match(String(loser.reason), /stale/)
   assert.deepEqual(
-    await owner.action(api.encounters.commandActions.execute, {
+    await owner.action(executeEncounterCommandAction, {
       command: contenders[winnerIndex]!
     }),
     winner.value
@@ -243,8 +243,8 @@ export async function verifyEncounterReactionTransactions({
     }
     const outcomeCommands = [command, { ...command, commandId: crypto.randomUUID() }] as const
     const outcomeResults = await Promise.allSettled([
-      owner.action(api.encounters.commandActions.execute, { command: outcomeCommands[0] }),
-      peer.action(api.encounters.commandActions.execute, { command: outcomeCommands[1] })
+      owner.action(executeEncounterCommandAction, { command: outcomeCommands[0] }),
+      peer.action(executeEncounterCommandAction, { command: outcomeCommands[1] })
     ])
     assert.equal(outcomeResults.filter((result) => result.status === 'fulfilled').length, 1)
     const outcomeWinnerIndex = outcomeResults.findIndex((result) => result.status === 'fulfilled')
@@ -262,13 +262,13 @@ export async function verifyEncounterReactionTransactions({
     const losingCommand = outcomeCommands[1 - outcomeWinnerIndex]!
     const settled = await readRetryState()
     assert.deepEqual(
-      await owner.action(api.encounters.commandActions.execute, { command: winningCommand }),
+      await owner.action(executeEncounterCommandAction, { command: winningCommand }),
       outcomeWinner.value
     )
     assert.deepEqual(await readRetryState(), settled, 'Outcome winner replay cannot change state.')
     let loserRetryReason: string | null = null
     await assert.rejects(
-      peer.action(api.encounters.commandActions.execute, { command: losingCommand }),
+      peer.action(executeEncounterCommandAction, { command: losingCommand }),
       (error: unknown) => {
         loserRetryReason = String(error)
         assert.match(loserRetryReason, staleOutcome)
@@ -374,7 +374,7 @@ export async function verifyEncounterReactionTransactions({
   )
 
   assert.deepEqual(
-    await owner.action(api.encounters.commandActions.execute, { command: terminalCommand }),
+    await owner.action(executeEncounterCommandAction, { command: terminalCommand }),
     terminal
   )
   const replay = await player.action(api.scenes.geometryActions.execute, {

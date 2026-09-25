@@ -56,7 +56,7 @@ it('plans the same Character action and target facts in the Worker using private
   })
   const clubItem = sheet?.inventory.items.find((item) => item.equipmentId === club.id)
   if (!sheet || !clubItem) throw new Error('Missing fixture Club.')
-  const equipped = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+  const equipped = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'UPDATE_ACTOR',
       encounterId: fixture.run.id,
@@ -75,7 +75,7 @@ it('plans the same Character action and target facts in the Worker using private
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })
-  const reinforced = await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+  const reinforced = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REINFORCE',
       encounterId: fixture.run.id,

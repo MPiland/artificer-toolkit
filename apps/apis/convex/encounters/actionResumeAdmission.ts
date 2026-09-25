@@ -12,6 +12,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readNativeEncounterActionAdmission } from './actionAdmission'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
+import { isNativeActionOccurrence } from './occurrenceOwner'
 
 /** Returns null only for occurrences owned by another native coordinator. */
 export async function readNativeEncounterActionResponseAdmission(
@@ -38,8 +39,10 @@ export async function readNativeEncounterActionResponseAdmission(
           JSON.parse(occurrence.pendingSnapshotJson)
         )
   if (
-    rootReceipt?.commandType !== 'RESOLVE_ACTION' &&
-    snapshot?.applicationContext.kind !== 'ENCOUNTER_ACTION'
+    !isNativeActionOccurrence({
+      context: snapshot?.applicationContext ?? null,
+      rootCommandType: rootReceipt?.commandType ?? null
+    })
   )
     return null
   if (occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)

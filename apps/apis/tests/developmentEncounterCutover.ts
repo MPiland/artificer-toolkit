@@ -9,7 +9,11 @@ import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/en
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import {
+  type DevelopmentClient,
+  executeEncounterCommand,
+  executeEncounterCommandAction
+} from './developmentClient'
 import {
   bindScene,
   bindToken,
@@ -85,7 +89,7 @@ export async function prepareEncounterCutoverFixture({
     blueprintId: lifecycle.blueprint.id,
     commandId: crypto.randomUUID()
   })
-  let started = await owner.mutation(api.encounters.commands.execute, {
+  let started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: run.id,
@@ -100,7 +104,7 @@ export async function prepareEncounterCutoverFixture({
     if (pending?.kind !== 'INITIATIVE_ORDER')
       throw new Error('Automatic cutover initiative requested an unexpected continuation.')
     assert.ok(pending.optionIds[0])
-    started = await owner.mutation(api.encounters.commands.execute, {
+    started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: run.id,
@@ -644,7 +648,7 @@ async function prepareCutoverWorkloadAggregate({
     blueprintId,
     commandId: crypto.randomUUID()
   })
-  let started = await owner.mutation(api.encounters.commands.execute, {
+  let started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: created.id,
@@ -671,7 +675,7 @@ async function prepareCutoverWorkloadAggregate({
             }
           : null
     if (!resolution) throw new Error(`${aggregate} workload initiative requested ${pending.kind}.`)
-    started = await owner.mutation(api.encounters.commands.execute, {
+    started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: created.id,
@@ -692,7 +696,7 @@ async function prepareCutoverWorkloadAggregate({
   for (let index = 1; index <= encounterCutoverWorkloadDefinition.actors; index++) {
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await owner.mutation(api.encounters.commands.execute, {
+        await owner.mutation(executeEncounterCommand, {
           command: {
             type: 'ADVANCE_TURN',
             encounterId: run.id,
@@ -720,7 +724,7 @@ async function prepareCutoverWorkloadAggregate({
   for (let index = 0; index < actorIds.length; index += 2)
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await owner.mutation(api.encounters.commands.execute, {
+        await owner.mutation(executeEncounterCommand, {
           command: {
             type: 'UPDATE_ACTOR',
             encounterId: run.id,
@@ -784,7 +788,7 @@ async function executeCutoverWorkloadAction(
   const targetBefore = aggregate.run.actors.find((actor) => actor.id === targetActorId)
   if (!targetBefore) throw new Error('V15 workload action target is unavailable.')
   const result = await timeCutoverCommand('RESOLVE_ACTION', commandSamples, () =>
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_ACTION',
         encounterId: aggregate.run.id,
@@ -862,7 +866,7 @@ async function executeCutoverWorkloadReaction(
   let terminalCommandId = crypto.randomUUID()
   let responseSubmittedAt = Date.now()
   let resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-    owner.action(api.encounters.commandActions.execute, {
+    owner.action(executeEncounterCommandAction, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: terminalCommandId,
@@ -900,7 +904,7 @@ async function executeCutoverWorkloadReaction(
     terminalCommandId = crypto.randomUUID()
     responseSubmittedAt = Date.now()
     resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-      owner.action(api.encounters.commandActions.execute, {
+      owner.action(executeEncounterCommandAction, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           commandId: terminalCommandId,
@@ -958,7 +962,7 @@ async function executeCutoverWorkloadReaction(
   aggregate.run = encounterGmProjectionDtoSchema.parse(
     (
       await timeCutoverCommand('ADVANCE_TURN', commandSamples, () =>
-        owner.mutation(api.encounters.commands.execute, {
+        owner.mutation(executeEncounterCommand, {
           command: {
             type: 'ADVANCE_TURN',
             encounterId: aggregate.run.id,
@@ -1001,8 +1005,8 @@ async function verifyCutoverWorkloadPreflight({
   })
   const contenders = [action(crypto.randomUUID()), action(crypto.randomUUID())] as const
   const raced = await Promise.allSettled([
-    owner.mutation(api.encounters.commands.execute, contenders[0]),
-    peer.mutation(api.encounters.commands.execute, contenders[1])
+    owner.mutation(executeEncounterCommand, contenders[0]),
+    peer.mutation(executeEncounterCommand, contenders[1])
   ])
   assert.equal(raced.filter((result) => result.status === 'fulfilled').length, 1)
   const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
@@ -1020,7 +1024,7 @@ async function verifyCutoverWorkloadPreflight({
     limit: 100
   })
   assert.deepEqual(
-    await owner.mutation(api.encounters.commands.execute, contenders[winnerIndex]!),
+    await owner.mutation(executeEncounterCommand, contenders[winnerIndex]!),
     winner.value
   )
   assert.deepEqual(
@@ -1035,7 +1039,7 @@ async function verifyCutoverWorkloadPreflight({
     timelineAfterWinner
   )
   await assert.rejects(
-    owner.mutation(api.encounters.commands.execute, {
+    owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_ACTION',
         encounterId: aggregate.run.id,
@@ -1089,7 +1093,7 @@ async function verifyCutoverWorkloadPreflight({
   for (let index = 1; index < encounterCutoverWorkloadDefinition.actors; index++)
     aggregate.run = encounterGmProjectionDtoSchema.parse(
       (
-        await owner.mutation(api.encounters.commands.execute, {
+        await owner.mutation(executeEncounterCommand, {
           command: {
             type: 'ADVANCE_TURN',
             encounterId: aggregate.run.id,

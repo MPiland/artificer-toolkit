@@ -1,6 +1,7 @@
 import { createEmailVerificationToken } from 'better-auth/api'
 import { createFunctionHandle } from 'convex/server'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAuthOptions } from './authFactory.helper'
 import { api, components, internal } from './_generated/api'
@@ -13,6 +14,7 @@ process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
 const t = convexTest(schema, import.meta.glob('./**/*.*s'))
 
 t.registerComponent('betterAuth', authSchema, import.meta.glob('./betterAuth/**/*.*s'))
+registerRateLimiter(t)
 
 async function createAuthUser(withProfile: boolean) {
   return await t.run(async (ctx) => {

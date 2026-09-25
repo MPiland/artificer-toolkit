@@ -12,7 +12,6 @@ import {
   socialStoredBlockInvalidationSchema,
   socialStoredListingInvalidationSchema,
   socialStoredProfileInvalidationSchema,
-  socialStoredRateLimitSchema,
   socialStoredApplicationSchema
 } from '@artificer-toolkit/schema/projections/socialPersistence'
 
@@ -83,10 +82,6 @@ export const socialTables = {
     ])
     .index('by_listingId_status_submittedAt_id', ['listingId', 'status', 'submittedAt', 'id'])
     .index('by_listingId_applicantProfileId_status', ['listingId', 'applicantProfileId', 'status']),
-  socialActionRateLimits: defineTable(zodToConvexFields(socialStoredRateLimitSchema.shape)).index(
-    'by_userId_action_window',
-    ['userId', 'action', 'window']
-  ),
   socialProfiles: defineTable(zodToConvexFields(socialStoredProfileSchema.shape))
     .index('by_userId', ['userId'])
     .index('by_publicId', ['id']),

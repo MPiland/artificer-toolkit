@@ -1,6 +1,6 @@
 # Phase 8.2 Convex cutover handoff
 
-**Status:** active; S0–S3 committed locally, S4–S7 in progress (see Current progress).  
+**Status:** active; S0–S3, S4A and the S5 Convex half committed locally; S4–S7 remainder in progress (see Current progress).  
 **Updated:** 2026-09-24 (later session).  
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup. The relocation is committed (`85443906`); later slices are separate commits. No phase completion is claimed.
 
@@ -38,13 +38,27 @@ Validation at the S3 commit:
 
 Rule from here on: run a local codegen push for every slice that touches Convex (see `AGENTS.md` validation guidance), and serialize compiler/test runs with the validation lock described in `AGENTS.md`.
 
+- **S6 rules (partial):** carried weapons count as drawn unless an action requires equipping; pure shield-conflict evaluator (`encounterWieldConflict.ts`).
+- **S4A, single Encounter command door:**
+  - Every Encounter command enters through the room (`ENCOUNTER` command scope). The room runs the DO planners for actions, turns and concentration and forwards everything else, or anything a planner marks `LivePlannerUnsupportedError`, to Convex through the private `encounterCommand` route. The private `encounterRoute` route classifies pending decisions with the shared `encounters/occurrenceOwner.ts` classifier.
+  - `encounters/commands:execute` and `commandActions:execute` are internal; browsers can no longer run Encounter commands.
+  - Web sends Encounter commands through `useCampaignLiveSession().sendEncounterCommand`. Encounter acks resolve only the initiator and never advance the room sequence.
+  - Room closure closes sockets and waits for in-flight commands before setting the drain fence.
+  - The real-backend HTTP dev drivers (`apps/apis/tests/development*.ts`) can no longer execute Encounter commands; they still run under the in-process adapter. R08 does not use them.
+- **S5 Convex hardening:** `@convex-dev/rate-limiter` limits (tickets, Scene writes, conversation, Social), the 5-minute ACTIVATING cap, the publication role check, eviction retry with backoff, and 30-day Scene command retention. See the Security and limits section of [live-session coordination](../architecture/live-sessions.md).
+
+Validation at the S4A/S5 commit:
+
+- Full Convex suite: 355 files, 2,110/2,112 tests. The two failures were missing rate-limiter registrations in account-deletion tests; they are fixed and pass on rerun. One avatar loopback test timed out once on a rerun and then passed.
+- Worker 73/73; focused web tests; apis/worker/web typechecks; local codegen push.
+
 Next:
 
-- **S4:** R06 room dispatch, capture cache, closing the public Encounter path, deleting the Convex-side rules path and the retired rule-pack feature.
-- **In parallel under the validation lock:**
-  - S5 Convex hardening: rate limiter, startup-lock cap, publication role check, eviction retry, retention.
-  - S6 rules: weapons count as drawn; pure shield-conflict evaluator.
-- **Waiting on S4:** the S5 room limits and the S6 shield prompt and GM-preview privacy, because they live in the room file.
+- **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), the capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature, deleting the `commitNativeLiveConcentrationResponse` wrapper.
+- **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and MANUAL mode, then delete their Convex rules code.
+- **S5 room half:** per-socket token buckets, socket caps, unauthenticated-socket alarm, byte-accurate 64 KB cap, queue bounds, cached AUTHORITY capture, admission re-capture. Web handling for the new rate-limit messages.
+- **S6 remaining:** shield-stow accept/decline prompt in the live action flow; private-by-default GM previews with a share toggle.
+- **Open follow-up:** Scene fog save retention (derived fog saves keep `geometrySaveId` after their geometry save is pruned; superseded fog saves and chunks are not garbage-collected).
 
 ## Authority and present state
 

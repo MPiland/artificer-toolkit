@@ -140,7 +140,7 @@ async function settleStart(
               )
             })()
     current = encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(api.encounters.commands.execute, {
+      await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: current.projection.id,
@@ -219,7 +219,7 @@ async function recurringFixture(
       await settleStart(
         base,
         encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(api.encounters.commands.execute, {
+          await base.owner.caller.mutation(internal.encounters.commands.execute, {
             command: {
               type: 'START',
               encounterId: run.id,
@@ -240,7 +240,7 @@ async function recurringFixture(
   if (run.currentActorId !== actor.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'SET_CURRENT_ACTOR',
             encounterId: run.id,
@@ -310,7 +310,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
   const base = await recurringFixture('HEAL')
   const action = actionInput(base)
   expect(base.actor.currentHitPoints).toBe(base.actor.maxHitPoints)
-  const created = await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+  const created = await base.base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action
   })
   expect(created.occurrence?.status).toBe('COMPLETE')
@@ -331,13 +331,13 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
     }
   })
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, { command: action })
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, { command: action })
   ).resolves.toEqual(created)
   expect(await stored(base)).toEqual(afterAction)
 
   let projection = encounterGmProjectionDtoSchema.parse(
     (
-      await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+      await base.base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: base.run.id,
@@ -358,7 +358,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
     }
   }
   const firstTick = await base.base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     firstAdvance
   )
   projection = encounterGmProjectionDtoSchema.parse(firstTick.projection)
@@ -367,7 +367,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
   )
   expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, firstAdvance)
   ).resolves.toEqual(firstTick)
 
   const secondAdvance: EncounterExecuteInput = {
@@ -379,7 +379,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
     }
   }
   const expired = await base.base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     secondAdvance
   )
   expect(
@@ -389,7 +389,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
   ).toBe(base.actor.maxHitPoints)
   expect((await stored(base)).effects).toEqual([])
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, secondAdvance)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, secondAdvance)
   ).resolves.toEqual(expired)
 }, 30000)
 
@@ -399,7 +399,7 @@ it.each([
 ])('creates recurring damage only for the selected $label branch', async ({ face, effects }) => {
   const base = await recurringFixture('SAVE_DAMAGE', 'ASSISTED')
   const action = actionInput(base)
-  const issued = await base.base.owner.caller.mutation(api.encounters.commands.execute, {
+  const issued = await base.base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -427,14 +427,17 @@ it.each([
       }
     }
   }
-  const settled = await base.base.owner.caller.mutation(api.encounters.commands.execute, response)
+  const settled = await base.base.owner.caller.mutation(
+    internal.encounters.commands.execute,
+    response
+  )
   expect(settled.occurrence?.status).toBe('COMPLETE')
   expect((await stored(base)).effects).toHaveLength(effects)
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, { command: action })
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, { command: action })
   ).resolves.toEqual(settled)
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, response)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, response)
   ).resolves.toEqual(settled)
   const afterAction = await stored(base)
   expect(afterAction.effects).toHaveLength(effects)
@@ -456,16 +459,16 @@ it.each([
     }
   }
   const firstPending = await base.base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     firstAdvance
   )
   expect(firstPending.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, firstAdvance)
   ).resolves.toEqual(firstPending)
   const firstResponse = diceResponse(base.run.id, firstPending)
   const firstTick = await base.base.owner.caller.action(
-    api.encounters.commandActions.execute,
+    internal.encounters.commandActions.execute,
     firstResponse
   )
   projection = encounterGmProjectionDtoSchema.parse(firstTick.projection)
@@ -474,10 +477,10 @@ it.each([
   )
   expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
   await expect(
-    base.base.owner.caller.action(api.encounters.commandActions.execute, firstResponse)
+    base.base.owner.caller.action(internal.encounters.commandActions.execute, firstResponse)
   ).resolves.toEqual(firstTick)
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, firstAdvance)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, firstAdvance)
   ).resolves.toEqual(firstTick)
 
   const bridgeAdvance: EncounterExecuteInput = {
@@ -489,7 +492,7 @@ it.each([
     }
   }
   const bridged = await base.base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     bridgeAdvance
   )
   projection = encounterGmProjectionDtoSchema.parse(bridged.projection)
@@ -504,13 +507,13 @@ it.each([
     }
   }
   const finalPending = await base.base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     finalAdvance
   )
   expect(finalPending.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   const finalResponse = diceResponse(base.run.id, finalPending)
   const expired = await base.base.owner.caller.action(
-    api.encounters.commandActions.execute,
+    internal.encounters.commandActions.execute,
     finalResponse
   )
   expect(
@@ -520,9 +523,9 @@ it.each([
   ).toBe(base.target.currentHitPoints - 3)
   expect((await stored(base)).effects).toEqual([])
   await expect(
-    base.base.owner.caller.action(api.encounters.commandActions.execute, finalResponse)
+    base.base.owner.caller.action(internal.encounters.commandActions.execute, finalResponse)
   ).resolves.toEqual(expired)
   await expect(
-    base.base.owner.caller.mutation(api.encounters.commands.execute, finalAdvance)
+    base.base.owner.caller.mutation(internal.encounters.commands.execute, finalAdvance)
   ).resolves.toEqual(expired)
 })

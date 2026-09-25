@@ -232,7 +232,7 @@ describe('native initiative Spell declarations', () => {
     const base = await setup()
     const actor = base.run.actors.find((value) => value.kind === 'CHARACTER')
     if (!actor) throw new Error('Expected Character actor.')
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -245,7 +245,7 @@ describe('native initiative Spell declarations', () => {
       throw new Error('Expected declaration.')
     if (!pending.primaryOptions.some((value) => value.kind === 'CHARACTER_SPELL_CAST')) {
       result = await base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         gmCommand(base.run.id, pending)
       )
       pending = result.occurrence?.pending
@@ -285,7 +285,7 @@ describe('native initiative Spell declarations', () => {
       })
     )
     result = await base.player.caller.action(
-      api.encounters.commandActions.execute,
+      internal.encounters.commandActions.execute,
       spellCommand(base.run.id, pending, option.optionId)
     )
     pending = await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -293,7 +293,7 @@ describe('native initiative Spell declarations', () => {
     })
     if (pending && pending.kind === 'INITIATIVE_DECLARATION')
       result = await base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         gmCommand(base.run.id, pending)
       )
     expect(result.projection.status).toBe('ACTIVE')
@@ -330,7 +330,7 @@ describe('native initiative Spell declarations', () => {
 
   it('rejects a response after the Spell publication changes before any encounter write', async () => {
     const base = await setup()
-    let result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -343,7 +343,7 @@ describe('native initiative Spell declarations', () => {
       throw new Error('Expected declaration.')
     if (!pending.primaryOptions.some((value) => value.kind === 'CHARACTER_SPELL_CAST')) {
       result = await base.owner.caller.mutation(
-        api.encounters.commands.execute,
+        internal.encounters.commands.execute,
         gmCommand(base.run.id, pending)
       )
       pending = result.occurrence?.pending
@@ -390,7 +390,7 @@ describe('native initiative Spell declarations', () => {
       commands: await ctx.db.query('encounterRunCommands').collect()
     }))
     await expect(
-      base.player.caller.action(api.encounters.commandActions.execute, response)
+      base.player.caller.action(internal.encounters.commandActions.execute, response)
     ).rejects.toThrow(/stale/)
     expect(
       await base.t.run(async (ctx) => ({

@@ -1,5 +1,6 @@
 import { createFunctionHandle } from 'convex/server'
 import { convexTest } from 'convex-test'
+import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
 import {
@@ -110,6 +111,7 @@ export async function publicationFixture(
 ) {
   const t = convexTest(schema, modules)
   t.registerComponent('betterAuth', authSchema, authModules)
+  registerRateLimiter(t)
   await t.mutation(internal.content.import.bootstrap, {
     systems: [
       {

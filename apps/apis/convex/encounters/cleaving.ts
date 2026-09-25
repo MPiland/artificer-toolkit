@@ -13,7 +13,6 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   storedRuleExecutionResultDtoSchema,
   type StoredRuleExecutionResultDto
@@ -186,27 +185,17 @@ export async function rebuildNativeDeferredCleaving(
   })
 }
 
-/** Returns null only when the occurrence belongs to another native coordinator. */
+/** Called only for occurrences `readNativeEncounterOccurrenceOwner` assigns to Cleaving. */
 export async function resumeNativeCleaving(
   ctx: MutationCtx,
   response: ResolveRuleOccurrenceInputDto,
   userId: string
-): Promise<EncounterCommandResultDto | null> {
+): Promise<EncounterCommandResultDto> {
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', response.occurrenceId))
     .unique()
-  if (!occurrence) return null
-  const snapshot =
-    occurrence.pendingSnapshotJson === null
-      ? null
-      : serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(occurrence.pendingSnapshotJson)
-        )
-  const isCleaving =
-    snapshot?.applicationContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' ||
-    occurrence.rootCommandId === cleavingChildCommandIdentity(occurrence.id)
-  if (!isCleaving) return null
+  if (!occurrence) throw new Error('Rule occurrence is unavailable.')
   if (response.resolution.kind !== 'OPTION' && response.resolution.kind !== 'DECLINE')
     throw new Error('Cleaving requires a target choice or decline.')
   const run = await ctx.db

@@ -74,6 +74,7 @@ __metadata:
     "@convex-dev/better-auth": "npm:0.12.5"
     "@convex-dev/migrations": "npm:0.3.6"
     "@convex-dev/r2": "npm:0.10.2"
+    "@convex-dev/rate-limiter": "npm:0.4.0"
     "@convex-dev/resend": "npm:0.2.8"
     auth: "npm:1.6.15"
     better-auth: "patch:better-auth@npm%3A1.6.15#~/.yarn/patches/better-auth-npm-1.6.15-9073440fd1.patch"
@@ -1626,6 +1627,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@convex-dev/batch-worker@npm:0.3.4":
+  version: 0.3.4
+  resolution: "@convex-dev/batch-worker@npm:0.3.4"
+  dependencies:
+    convex-helpers: "npm:^0.1.119"
+  peerDependencies:
+    convex: ^1.43.0
+  checksum: 10c0/03ba2f3392cf406e74896427dd02666650a3400440461f54d6fff322a62d966113ab1097fe0429044839c2a905760f48602f38de4edbfb75b78c4a380a07e92b
+  languageName: node
+  linkType: hard
+
 "@convex-dev/batch-worker@npm:^0.2.2":
   version: 0.2.2
   resolution: "@convex-dev/batch-worker@npm:0.2.2"
@@ -1698,6 +1710,21 @@ __metadata:
     vue:
       optional: true
   checksum: 10c0/0470febe0f7cd02820360b700f6c809cbf0b97e8be23fe8e563015b774c75662162c95cfa671eb7344fb75c4fe9e52b6cd42ca475031fc3db601d63c7295ae30
+  languageName: node
+  linkType: hard
+
+"@convex-dev/rate-limiter@npm:0.4.0":
+  version: 0.4.0
+  resolution: "@convex-dev/rate-limiter@npm:0.4.0"
+  dependencies:
+    "@convex-dev/batch-worker": "npm:0.3.4"
+  peerDependencies:
+    convex: ^1.43.0
+    react: ^18.2.0 || ^19.0.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+  checksum: 10c0/7d66753d46ee4a7f18085a9c87ebd2be291621dab78eed782b256db8306be1f7ebbfc0a8a06dcda8fa6ae3a8f0284197ce18ef6a1702a7bdb2a399742a0e5601
   languageName: node
   linkType: hard
 
@@ -11301,6 +11328,33 @@ __metadata:
   bin:
     convex-helpers: bin.cjs
   checksum: 10c0/dcb6cf20242cfea1c228fdf6e94debb4ca7f194e04291a55fce00c74859e2c0a76e77826f75a1774f8493538288552449b915fa251ab244dc01a67f6f4293804
+  languageName: node
+  linkType: hard
+
+"convex-helpers@npm:^0.1.119":
+  version: 0.1.124
+  resolution: "convex-helpers@npm:0.1.124"
+  peerDependencies:
+    "@standard-schema/spec": ^1.0.0
+    convex: ^1.43.0
+    hono: ^4.0.5
+    react: ^17.0.2 || ^18.0.0 || ^19.0.0
+    typescript: ^5.5 || ^6.0.0 || ^7.0.0
+    zod: ^3.25.0 || ^4.0.0
+  peerDependenciesMeta:
+    "@standard-schema/spec":
+      optional: true
+    hono:
+      optional: true
+    react:
+      optional: true
+    typescript:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    convex-helpers: bin.cjs
+  checksum: 10c0/2ea80ecc65b5f885e5542ce32a55fe74d6b150e1497bb26b2622cc40d4067fce669e5ced6e8da667e173f3b7eb600d3b782f4be84838799163e2bdc40b1f9455
   languageName: node
   linkType: hard
 

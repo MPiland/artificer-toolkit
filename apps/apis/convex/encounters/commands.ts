@@ -74,7 +74,7 @@ import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime
 import { matchesNativeTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { dnd5eInitiativeFactAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import type { Doc } from '../_generated/dataModel'
-import { mutation } from '../lib/mutations'
+import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireInitiativeDeclarationController } from './initiativeDeclarationAuthority'
@@ -113,6 +113,7 @@ import { readNativeTurnCommandPending } from './turnCommandPending'
 import { readNativeTurnResponseReplay } from './turnResponseReplay'
 import { resumeNativeCleaving } from './cleaving'
 import { resumeNativeConcentration } from './concentrationResponses'
+import { readNativeEncounterOccurrenceOwner } from './occurrenceOwner'
 import {
   createEncounterInitiativeDeclarationRequest,
   compileEncounterInitiativeDeclaration
@@ -185,7 +186,7 @@ async function redactDeclarationCommandResult(input: {
   })
 }
 
-export const execute = mutation({
+export const execute = internalMutation({
   args: inputValidator,
   returns: resultValidator,
   handler: async (ctx, args): Promise<EncounterCommandResultDto> => {
@@ -331,13 +332,14 @@ export const execute = mutation({
       .unique()
     if (!row) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
+    const occurrenceOwner =
+      input.type === 'RESOLVE_RULE_OCCURRENCE'
+        ? await readNativeEncounterOccurrenceOwner(ctx, row, input.occurrenceId)
+        : null
     if (input.type === 'RESOLVE_RULE_OCCURRENCE') {
-      const disarm = await resumeNativeDisarm(ctx, input, row, userId)
-      if (disarm) return disarm
-      const concentration = await resumeNativeConcentration(ctx, input, userId)
-      if (concentration) return concentration
-      const cleaving = await resumeNativeCleaving(ctx, input, userId)
-      if (cleaving) return cleaving
+      if (occurrenceOwner === 'DISARM') return resumeNativeDisarm(ctx, input, row, userId)
+      if (occurrenceOwner === 'CONCENTRATION') return resumeNativeConcentration(ctx, input, userId)
+      if (occurrenceOwner === 'CLEAVING') return resumeNativeCleaving(ctx, input, userId)
     }
     if (membership.role !== 'OWNER') {
       if (
@@ -349,10 +351,8 @@ export const execute = mutation({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (row.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
-    if (input.type === 'RESOLVE_RULE_OCCURRENCE') {
-      const result = await resumeNativeEncounterAction(ctx, input, row, userId)
-      if (result) return result
-    }
+    if (input.type === 'RESOLVE_RULE_OCCURRENCE' && occurrenceOwner === 'ACTION')
+      return resumeNativeEncounterAction(ctx, input, row, userId)
     const { fingerprint: commandFingerprint, result: replayResult } =
       await readNativeEncounterCommandReplay(ctx, { input, row, campaign })
     if (replayResult) return replayResult

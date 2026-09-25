@@ -30,7 +30,11 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import {
+  type DevelopmentClient,
+  executeEncounterCommand,
+  executeEncounterCommandAction
+} from './developmentClient'
 import { developmentCli } from './developmentCli'
 import { createDisarmCreature, createDisarmWeapon } from './fixtures/disarmCreature'
 
@@ -171,7 +175,7 @@ export async function verifyEncounterDisarm({
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  let started = await owner.mutation(api.encounters.commands.execute, {
+  let started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: created.id,
@@ -197,7 +201,7 @@ export async function verifyEncounterDisarm({
       assert.ok(entityId)
       resolution = { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
     }
-    started = await owner.mutation(api.encounters.commands.execute, {
+    started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: created.id,
@@ -327,7 +331,7 @@ export async function verifyEncounterDisarm({
   if (run.currentActorId !== source.id) {
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await owner.mutation(api.encounters.commands.execute, {
+        await owner.mutation(executeEncounterCommand, {
           command: {
             type: 'SET_CURRENT_ACTOR',
             encounterId: run.id,
@@ -453,7 +457,7 @@ export async function verifyEncounterDisarm({
       command = browserRoot.command
     }
     const initiated =
-      browserRoot?.result ?? (await owner.mutation(api.encounters.commands.execute, { command }))
+      browserRoot?.result ?? (await owner.mutation(executeEncounterCommand, { command }))
     let first = evidence(initiated, 20)
     await controls?.assertInitiatorPrivacy()
     assert.deepEqual(await snapshot(), before)
@@ -467,13 +471,13 @@ export async function verifyEncounterDisarm({
       }),
       null
     )
-    assert.deepEqual(await owner.mutation(api.encounters.commands.execute, { command }), initiated)
+    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command }), initiated)
     await assert.rejects(
-      player.mutation(api.encounters.commands.execute, { command: first }),
+      player.mutation(executeEncounterCommand, { command: first }),
       /current Disarm participant/
     )
     await assert.rejects(
-      owner.mutation(api.encounters.commands.execute, {
+      owner.mutation(executeEncounterCommand, {
         command: {
           ...first,
           commandId: crypto.randomUUID(),
@@ -493,8 +497,7 @@ export async function verifyEncounterDisarm({
       first = browserFirst.command
     }
     const answered =
-      browserFirst?.result ??
-      (await owner.mutation(api.encounters.commands.execute, { command: first }))
+      browserFirst?.result ?? (await owner.mutation(executeEncounterCommand, { command: first }))
     let second = evidence(answered, 1)
     await controls?.assertDefenderPending()
     assert.equal(answered.occurrence?.occurrenceId, initiated.occurrence?.occurrenceId)
@@ -507,7 +510,7 @@ export async function verifyEncounterDisarm({
       answered.occurrence?.pending
     )
     await assert.rejects(
-      owner.mutation(api.encounters.commands.execute, {
+      owner.mutation(executeEncounterCommand, {
         command: { ...first, commandId: crypto.randomUUID() }
       }),
       /stale/
@@ -530,8 +533,8 @@ export async function verifyEncounterDisarm({
     else {
       const contenders = [second, { ...second, commandId: crypto.randomUUID() }] as const
       const raced = await Promise.allSettled([
-        player.action(api.encounters.commandActions.execute, { command: contenders[0] }),
-        player.action(api.encounters.commandActions.execute, { command: contenders[1] })
+        player.action(executeEncounterCommandAction, { command: contenders[0] }),
+        player.action(executeEncounterCommandAction, { command: contenders[1] })
       ])
       assert.equal(raced.filter((result) => result.status === 'fulfilled').length, 1)
       const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
@@ -589,7 +592,7 @@ export async function verifyEncounterDisarm({
       assert.equal(after.timeline.entries.length, before.timeline.entries.length + 1)
       // A persisted response receipt would replay before the stale-version check.
       await assert.rejects(
-        player.action(api.encounters.commandActions.execute, { command: staleSecond }),
+        player.action(executeEncounterCommandAction, { command: staleSecond }),
         /The Disarm occurrence version is stale/
       )
       assert.deepEqual(await snapshot(), after)
@@ -644,17 +647,14 @@ export async function verifyEncounterDisarm({
     assert.equal(output.actionEconomyTransition?.beforeUsed, 0)
     assert.equal(output.actionEconomyTransition?.afterUsed, 1)
 
-    const rootReplay = await owner.mutation(api.encounters.commands.execute, { command })
+    const rootReplay = await owner.mutation(executeEncounterCommand, { command })
     assert.deepEqual(rootReplay, { ...completed, projection: after.run })
-    assert.deepEqual(await owner.mutation(api.encounters.commands.execute, { command }), rootReplay)
-    assert.deepEqual(
-      await owner.mutation(api.encounters.commands.execute, { command: first }),
-      answered
-    )
+    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command }), rootReplay)
+    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command: first }), answered)
     assert.deepEqual(
       browserSecond
-        ? await player.mutation(api.encounters.commands.execute, { command: second })
-        : await player.action(api.encounters.commandActions.execute, { command: second }),
+        ? await player.mutation(executeEncounterCommand, { command: second })
+        : await player.action(executeEncounterCommandAction, { command: second }),
       completed
     )
     assert.deepEqual(await snapshot(), after)

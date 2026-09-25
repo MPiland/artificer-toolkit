@@ -1,7 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type {
   EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto
@@ -39,7 +38,7 @@ const result: EncounterCommandResultDto = {
 }
 
 const mocks = vi.hoisted(() => ({
-  action: vi.fn(),
+  sendCommand: vi.fn(),
   convexQuery: vi.fn(),
   useMutation: vi.fn(),
   useQuery: vi.fn()
@@ -53,10 +52,6 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useMutation: mocks.useMutation,
   useQuery: mocks.useQuery
-}))
-vi.mock('convex/react', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('convex/react')>()),
-  useConvex: () => ({ action: mocks.action })
 }))
 
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
@@ -77,7 +72,7 @@ describe('CampaignEncounterDecision', () => {
         return next
       }
     }))
-    mocks.action.mockResolvedValue(result)
+    mocks.sendCommand.mockResolvedValue(result)
   })
 
   it('submits the actual initiative declaration and disappears after the reactive pending update', async () => {
@@ -87,6 +82,7 @@ describe('CampaignEncounterDecision', () => {
         campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
+        sendCommand={mocks.sendCommand}
       />
     )
 
@@ -96,21 +92,18 @@ describe('CampaignEncounterDecision', () => {
     await user.click(screen.getByRole('button', { name: 'Declare actions' }))
 
     await waitFor(() =>
-      expect(mocks.action).toHaveBeenCalledWith(
-        convexApi.encounters.commandActions.execute,
+      expect(mocks.sendCommand).toHaveBeenCalledWith(
         expect.objectContaining({
-          command: expect.objectContaining({
-            type: 'RESOLVE_RULE_OCCURRENCE',
-            encounterId: tabletopGmEncounter.id,
-            occurrenceId,
-            expectedOccurrenceVersion: 2,
-            resolution: {
-              kind: 'INITIATIVE_DECLARATION',
-              requestId: 'speed-factor-declaration',
-              primary: { kind: 'CHARACTER_ACTION', optionId: 'action:longsword' },
-              bonus: null
-            }
-          })
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: tabletopGmEncounter.id,
+          occurrenceId,
+          expectedOccurrenceVersion: 2,
+          resolution: {
+            kind: 'INITIATIVE_DECLARATION',
+            requestId: 'speed-factor-declaration',
+            primary: { kind: 'CHARACTER_ACTION', optionId: 'action:longsword' },
+            bonus: null
+          }
         })
       )
     )
@@ -121,6 +114,7 @@ describe('CampaignEncounterDecision', () => {
         campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
+        sendCommand={mocks.sendCommand}
       />
     )
     expect(screen.queryByRole('button', { name: 'Open pending decision' })).not.toBeInTheDocument()
@@ -133,6 +127,7 @@ describe('CampaignEncounterDecision', () => {
         campaignId={tabletopGmEncounter.campaignId}
         connected={false}
         encounter={tabletopGmEncounter}
+        sendCommand={mocks.sendCommand}
       />
     )
 

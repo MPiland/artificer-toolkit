@@ -48,6 +48,7 @@ import {
   populateCampaignLifecycleCharacter,
   reconcileCampaignDeletionPersonalExpected
 } from './developmentCampaignLifecycleCharacter'
+import { executeEncounterCommand } from './developmentClient'
 
 const rollback = makeFunctionReference<
   'action',
@@ -881,7 +882,6 @@ export async function verifyCampaignLifecycle(input: {
   assert.equal(admissionPersonal.socialProfiles!.length, 4)
   assert.equal(admissionPersonal.socialBlocks!.length, 1)
   assert.equal(admissionPersonal.socialBlockInvalidations!.length, 1)
-  assert.ok(admissionPersonal.socialActionRateLimits!.length > 0)
   stage('populated-native-pending-admission-unrelated-social', {
     listingDraft,
     listing,
@@ -961,7 +961,7 @@ export async function verifyCampaignLifecycle(input: {
   assert.equal(run.automationMode, 'MANUAL')
   assert.equal(run.initiativePolicy, null)
   for (const [index, actor] of run.actors.entries()) {
-    const result = await owner.mutation(api.encounters.commands.execute, {
+    const result = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'SET_INITIATIVE',
         encounterId: run.id,
@@ -974,7 +974,7 @@ export async function verifyCampaignLifecycle(input: {
     })
     run = encounterGmProjectionDtoSchema.parse(result.projection)
   }
-  const started = await owner.mutation(api.encounters.commands.execute, {
+  const started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
       encounterId: run.id,

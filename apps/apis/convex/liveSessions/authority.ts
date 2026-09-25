@@ -29,6 +29,8 @@ const authorityValue = v.object({
   updatedAt: v.string()
 })
 
+const ACTIVATION_RESERVATION_MAX_LIFETIME_MS = 5 * 60_000
+
 const authorityIdentityFields = {
   campaignId: zodToConvex(postgresUuidSchema),
   epoch: zodToConvex(postgresUuidSchema)
@@ -183,15 +185,20 @@ export async function claimCampaignLiveAuthority(
     if (current.phase === 'DRAINING') throw new Error('Live Session authority is draining.')
     if (current.phase === 'ACTIVATING' && current.activationFingerprint !== fingerprint)
       throw new Error('Live Session activation inputs changed.')
+    // Reissued tickets extend an unused reservation only up to its absolute startup lifetime.
+    const activationExpiresAt = Math.min(
+      input.expiresAt,
+      Date.parse(current.createdAt) + ACTIVATION_RESERVATION_MAX_LIFETIME_MS
+    )
     if (
       current.phase === 'ACTIVATING' &&
-      input.expiresAt >
+      activationExpiresAt >
         (current.activationExpiresAt ??
           Date.parse(current.updatedAt) + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000)
     ) {
-      await ctx.db.patch(current._id, { activationExpiresAt: input.expiresAt })
+      await ctx.db.patch(current._id, { activationExpiresAt })
       return {
-        authority: { ...current, activationExpiresAt: input.expiresAt },
+        authority: { ...current, activationExpiresAt },
         campaign,
         membership
       }

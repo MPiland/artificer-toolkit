@@ -15,7 +15,6 @@ import {
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { DND5E_DISARM_OPERATION_KEY } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -461,51 +460,24 @@ export async function executeNativeDisarm(
   return responseResult
 }
 
-/** Returns null for occurrences owned by another native coordinator. */
+/** Called only for occurrences `readNativeEncounterOccurrenceOwner` assigns to Disarm. */
 export async function resumeNativeDisarm(
   ctx: MutationCtx,
   response: ResolveRuleOccurrenceInputDto,
   run: Doc<'encounterRuns'>,
   userId: string
-): Promise<EncounterCommandResultDto | null> {
+): Promise<EncounterCommandResultDto> {
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', response.occurrenceId))
     .unique()
-  if (!occurrence) return null
-  const snapshot =
-    occurrence.pendingSnapshotJson === null
-      ? null
-      : serverRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(occurrence.pendingSnapshotJson)
-        )
+  if (!occurrence) throw new Error('Rule occurrence is unavailable.')
   const rootReceipt = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_campaignId_commandId', (q) =>
       q.eq('campaignId', run.campaignId).eq('commandId', occurrence.rootCommandId)
     )
     .unique()
-  if (
-    snapshot?.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-    snapshot.applicationContext.contest?.actionKind !== 'DISARM'
-  ) {
-    if (occurrence.state !== 'COMPLETED' || rootReceipt?.commandType !== 'RESOLVE_ACTION')
-      return null
-    const ruleReceipt = await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) =>
-        q.eq('encounterId', run.id).eq('commandId', occurrence.rootCommandId)
-      )
-      .unique()
-    if (!ruleReceipt) return null
-    const payload = storedRuleExecutionResultDtoSchema.parse(JSON.parse(ruleReceipt.resultJson))
-    if (
-      payload.status !== 'COMPLETE' ||
-      payload.applicationOutputs.kind !== 'CONTESTED_ACTION' ||
-      payload.applicationOutputs.policy.moduleKey !== DND5E_DISARM_OPERATION_KEY
-    )
-      return null
-  }
   if (
     occurrence.encounterId !== run.id ||
     occurrence.campaignId !== run.campaignId ||

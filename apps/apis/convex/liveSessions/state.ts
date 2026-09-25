@@ -16,7 +16,7 @@ import {
 import { requireCampaignLiveAuthority } from './authorityGuard'
 import { publishResolvedGeometryCommand } from '../scenes/geometryFastCommands'
 import { publishResolvedUndoCommand } from '../scenes/undo'
-import { livePublicationCampaignScope } from '../campaigns/authority'
+import { livePublicationCampaignScope, requireCampaignAuthority } from '../campaigns/authority'
 
 const authorityResponseValue = zodToConvex(liveSessionAuthorityDtoSchema)
 
@@ -37,6 +37,19 @@ export const publish = internalMutation({
     const authority = await requireCampaignLiveAuthority(ctx, input)
     if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
     const authorityScope = livePublicationCampaignScope(authority)
+    const { membership } = await requireCampaignAuthority(
+      ctx,
+      input.campaignId,
+      input.actorUserId,
+      authorityScope
+    )
+    // ADR 0029 keeps command-time role evidence only across a later access change (transfer or
+    // rejoin); a command inside the member's current access, or before this epoch, uses the stored role.
+    const accessChangedAfterCommand =
+      Date.parse(input.occurredAt) >= Date.parse(authority.createdAt) &&
+      Date.parse(input.occurredAt) < Date.parse(membership.accessStartedAt)
+    if (!accessChangedAfterCommand && membership.role !== input.actorRole)
+      throw new Error('Live Session publication actor role mismatch.')
 
     const publication = {
       actorUserId: input.actorUserId,

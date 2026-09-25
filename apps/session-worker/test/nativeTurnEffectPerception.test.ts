@@ -4,19 +4,9 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { sceneCurrentEntityPageSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 
-import { resolveNativeLiveTurnEffectPerception } from '../src/nativeTurnEffectPerception.js'
-
-const sceneReads = vi.hoisted(() => vi.fn())
-vi.mock('@artificer-toolkit/rules-runtime/encounterTurnEffectPerception', () => ({
-  resolveEncounterTurnEffectPerception: async (input: {
-    loadScene: (actors: { observerActorId: string; subjectActorId: string }) => Promise<unknown>
-  }) => {
-    sceneReads(await input.loadScene({ observerActorId: observerId, subjectActorId: subjectId }))
-    return null
-  }
-}))
+import { readNativeLivePerceptionScene } from '../src/nativeTurnEffectPerception.js'
 
 const campaignId = '00000000-0000-4000-8000-000000000101'
 const sceneId = '00000000-0000-4000-8000-000000000102'
@@ -85,21 +75,12 @@ const header = sceneLiveStateHeaderSchema.parse({
   visionRevealMode: 'ON_DRAG'
 })
 
-it('reads BASE then multiple APPENDED pages and reports the complete Scene fence', async () => {
+it('reads BASE then multiple APPENDED pages and returns the complete Scene fence', async () => {
   const requests: LiveSessionEncounterRulesRequest[] = []
-  const onSceneRead = vi.fn()
-  await resolveNativeLiveTurnEffectPerception({
-    // The mocked shared resolver exercises only its loadScene callback.
-    state: { campaignId } as Parameters<typeof resolveNativeLiveTurnEffectPerception>[0]['state'],
-    actors: [],
-    target: {} as Parameters<typeof resolveNativeLiveTurnEffectPerception>[0]['target'],
-    targets: new Map(),
-    effect: {} as Parameters<typeof resolveNativeLiveTurnEffectPerception>[0]['effect'],
-    system: { id: systemId } as Parameters<
-      typeof resolveNativeLiveTurnEffectPerception
-    >[0]['system'],
-    loadTarget: async () => undefined,
-    onSceneRead,
+  const loaded = await readNativeLivePerceptionScene({
+    campaignId,
+    observerActorId: observerId,
+    subjectActorId: subjectId,
     capture: async (request) => {
       requests.push(request)
       if (request.kind === 'SCENE_PERCEPTION')
@@ -154,12 +135,10 @@ it('reads BASE then multiple APPENDED pages and reports the complete Scene fence
         : []
     )
   ).toEqual(['BASE', 'APPENDED', 'APPENDED'])
-  expect(sceneReads).toHaveBeenCalledWith(
-    expect.objectContaining({ scene: expect.objectContaining({ tokens }) })
-  )
-  expect(onSceneRead).toHaveBeenCalledWith({
-    sceneId,
-    sceneVersion: header.version,
-    definitionSaveId: saveId
+  expect(loaded).toMatchObject({
+    id: sceneId,
+    version: header.version,
+    definitionSaveId: saveId,
+    scene: { tokens }
   })
 })

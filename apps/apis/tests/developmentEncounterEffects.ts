@@ -26,7 +26,7 @@ import {
   type SceneExplorationState
 } from '@artificer-toolkit/shared/vtt'
 import { api } from '../convex/_generated/api.js'
-import type { DevelopmentClient } from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { encounterEffectFeatureId, encounterEffectId } from './fixtures/encounterEffects'
 
 const actionChoices = makeFunctionReference<
@@ -163,7 +163,7 @@ export async function verifyEncounterEffects({
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
-    let started = await owner.mutation(api.encounters.commands.execute, {
+    let started = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'START',
         encounterId: created.id,
@@ -191,7 +191,7 @@ export async function verifyEncounterEffects({
       } else {
         throw new Error('Action-effect fixture requested an unexpected initiative continuation.')
       }
-      started = await owner.mutation(api.encounters.commands.execute, {
+      started = await owner.mutation(executeEncounterCommand, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: created.id,
@@ -218,7 +218,7 @@ export async function verifyEncounterEffects({
     if (run.currentActorId !== source.id) {
       run = encounterGmProjectionDtoSchema.parse(
         (
-          await owner.mutation(api.encounters.commands.execute, {
+          await owner.mutation(executeEncounterCommand, {
             command: {
               type: 'SET_CURRENT_ACTOR',
               encounterId: run.id,
@@ -449,8 +449,7 @@ export async function verifyEncounterEffects({
         root = browserRoot.command
       }
       const issued =
-        browserRoot?.result ??
-        (await owner.mutation(api.encounters.commands.execute, { command: root }))
+        browserRoot?.result ?? (await owner.mutation(executeEncounterCommand, { command: root }))
       assert.equal(issued.occurrence?.status, 'PENDING')
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
@@ -492,7 +491,7 @@ export async function verifyEncounterEffects({
         }
       }
       await assert.rejects(
-        () => player.mutation(api.encounters.commands.execute, { command: response }),
+        () => player.mutation(executeEncounterCommand, { command: response }),
         /owner|permission|authorized|not found/i
       )
       const browserResponse = await controls?.resolveEvidence(response)
@@ -502,7 +501,7 @@ export async function verifyEncounterEffects({
       }
       const terminal =
         browserResponse?.result ??
-        (await owner.mutation(api.encounters.commands.execute, { command: response }))
+        (await owner.mutation(executeEncounterCommand, { command: response }))
       assert.equal(terminal.occurrence?.status, 'COMPLETE')
       const finalRun = encounterGmProjectionDtoSchema.parse(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
@@ -530,12 +529,12 @@ export async function verifyEncounterEffects({
       )
       await controls?.assertTerminal()
       assert.deepEqual(
-        await owner.mutation(api.encounters.commands.execute, { command: root }),
+        await owner.mutation(executeEncounterCommand, { command: root }),
         terminal,
         'Exact root replay must retain the completed action receipt.'
       )
       assert.deepEqual(
-        await owner.mutation(api.encounters.commands.execute, { command: response }),
+        await owner.mutation(executeEncounterCommand, { command: response }),
         terminal,
         'Exact terminal replay must retain the completed receipt.'
       )
@@ -571,7 +570,7 @@ export async function verifyEncounterEffects({
     const settled = encounterGmProjectionDtoSchema.parse(
       await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
     )
-    const completed = await owner.mutation(api.encounters.commands.execute, {
+    const completed = await owner.mutation(executeEncounterCommand, {
       command: {
         type: 'COMPLETE',
         encounterId: run.id,

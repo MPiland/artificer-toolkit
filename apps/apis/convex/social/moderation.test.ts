@@ -15,6 +15,14 @@ import type {
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { api, components, internal } from '../_generated/api'
 import * as documents from './moderationDocuments'
+import { consumeSocialRateLimit, socialRateLimits } from '../lib/rateLimits'
+import { readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
+
+// Account deletion removes each counter, so reads fall back to the full, never-used allowance.
+const clearedReportLimits = socialRateLimits('REPORT').map(({ config }) => ({
+  value: config.rate,
+  ts: 0
+}))
 
 const create = makeFunctionReference<
   'mutation',
@@ -485,20 +493,7 @@ describe('native Social moderation report review', () => {
           .withIndex('by_userId', (q) => q.eq('userId', actor.userId))
           .unique()
         if (!profile) throw new Error('Missing account.')
-        const rate = await ctx.db
-          .query('socialActionRateLimits')
-          .withIndex('by_userId_action_window', (q) => q.eq('userId', actor.userId))
-          .first()
-        if (!rate)
-          await ctx.db.insert('socialActionRateLimits', {
-            userId: actor.userId,
-            action: 'REPORT',
-            window: 'DAY',
-            count: 1,
-            windowStartedAt: new Date(
-              Math.floor(Date.now() / 86_400_000) * 86_400_000
-            ).toISOString()
-          })
+        await consumeSocialRateLimit(ctx, actor.userId, 'REPORT')
         return profile
       })
       const socialProfile = await base.t.run((ctx) =>
@@ -532,10 +527,6 @@ describe('native Social moderation report review', () => {
             .query('socialProfiles')
             .withIndex('by_userId', (q) => q.eq('userId', actor.userId))
             .unique(),
-          rates: await ctx.db
-            .query('socialActionRateLimits')
-            .withIndex('by_userId_action_window', (q) => q.eq('userId', actor.userId))
-            .take(9),
           reports: await ctx.db.query('socialReports').take(40),
           audits: await ctx.db.query('socialModerationActions').take(40)
         }))
@@ -543,10 +534,12 @@ describe('native Social moderation report review', () => {
         authUser: null,
         account: null,
         profile: null,
-        rates: [],
         reports: evidenceBefore.reports,
         audits: evidenceBefore.audits
       })
+      expect(await readSocialRateLimits(base.t, actor.userId, 'REPORT')).toEqual(
+        clearedReportLimits
+      )
       await expect(actor.caller.query(api.account.identity, {})).rejects.toThrow('Unauthenticated')
       if (reference === 'REPORTER')
         await expect(base.owner.caller.mutation(open, { reportPublicId })).resolves.toMatchObject({
@@ -572,13 +565,7 @@ describe('native Social moderation report review', () => {
         .withIndex('by_userId', (q) => q.eq('userId', unrelated.userId))
         .unique()
       if (!profile) throw new Error('Missing unrelated account.')
-      await ctx.db.insert('socialActionRateLimits', {
-        userId: unrelated.userId,
-        action: 'REPORT',
-        window: 'DAY',
-        count: 1,
-        windowStartedAt: new Date(Math.floor(Date.now() / 86_400_000) * 86_400_000).toISOString()
-      })
+      await consumeSocialRateLimit(ctx, unrelated.userId, 'REPORT')
       return profile
     })
     const before = await base.moderationSnapshot()
@@ -608,13 +595,12 @@ describe('native Social moderation report review', () => {
         profile: await ctx.db
           .query('socialProfiles')
           .withIndex('by_userId', (q) => q.eq('userId', unrelated.userId))
-          .unique(),
-        rates: await ctx.db
-          .query('socialActionRateLimits')
-          .withIndex('by_userId_action_window', (q) => q.eq('userId', unrelated.userId))
-          .take(9)
+          .unique()
       }))
-    ).toEqual({ authUser: null, account: null, profile: null, rates: [] })
+    ).toEqual({ authUser: null, account: null, profile: null })
+    expect(await readSocialRateLimits(base.t, unrelated.userId, 'REPORT')).toEqual(
+      clearedReportLimits
+    )
     expect(await base.moderationSnapshot()).toEqual(before)
     await expect(
       base.owner.caller.mutation(open, {

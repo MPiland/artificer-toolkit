@@ -195,24 +195,6 @@ export async function readEntryPayload(ctx: QueryCtx, entryId: string) {
   return payload
 }
 
-export async function requireConversationSendCapacity(
-  ctx: QueryCtx,
-  campaignId: string,
-  userId: string,
-  now: number
-) {
-  const recent = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_createdAt', (q) =>
-      q
-        .eq('campaignId', campaignId)
-        .eq('authorUserId', userId)
-        .gte('createdAt', new Date(now - 60_000).toISOString())
-    )
-    .take(30)
-  if (recent.length >= 30) throw new Error('Chat is temporarily rate limited.')
-}
-
 /** Text and public rolls share one atomic header/payload retention boundary. */
 export async function insertConversationEntry(
   ctx: MutationCtx,

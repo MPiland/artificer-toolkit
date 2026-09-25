@@ -79,7 +79,7 @@ describe('runSocialRetention', () => {
 
     await runSocialRetention(['--deployment-name', 'forge', '--as-of', asOf], environment)
 
-    expect(execute).toHaveBeenCalledTimes(5)
+    expect(execute).toHaveBeenCalledTimes(4)
     const calls = execute.mock.calls.map((call) => {
       const options = call[2]
       return socialRetentionPreviewInputSchema.parse(
@@ -90,8 +90,7 @@ describe('runSocialRetention', () => {
       'INVITATIONS',
       'INVITATIONS',
       'REPORTS',
-      'APPLICATIONS',
-      'RATE_WINDOWS'
+      'APPLICATIONS'
     ])
     expect(calls.every((input) => input.asOf === asOf && input.paginationOpts.numItems === 8)).toBe(
       true

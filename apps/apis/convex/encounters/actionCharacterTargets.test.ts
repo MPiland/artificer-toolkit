@@ -213,7 +213,7 @@ async function setup(relationship = false) {
   const actor = prepared.actors.find((candidate) => candidate.kind === 'CREATURE')
   const target = prepared.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('Missing Creature or Character action fixture actor.')
-  let active = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  let active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'START',
       encounterId: prepared.id,
@@ -225,7 +225,7 @@ async function setup(relationship = false) {
     const pending = active.occurrence.pending
     if (!pending || pending.kind !== 'INITIATIVE_ORDER' || !pending.optionIds[0])
       throw new Error('Unexpected Automatic initiative decision.')
-    active = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: prepared.id,
@@ -243,7 +243,7 @@ async function setup(relationship = false) {
     })
   }
   if (active.projection.currentActorId !== actor.id) {
-    active = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: prepared.id,
@@ -337,7 +337,7 @@ describe('native Creature actions against Character targets', () => {
     const before = await records(base)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(14)
     try {
-      const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: input
       })
       const after = await records(base)
@@ -376,7 +376,7 @@ describe('native Creature actions against Character targets', () => {
       const created = await effects()
       expect(created).toHaveLength(1)
       await expect(
-        base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+        base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
       ).resolves.toEqual(result)
       expect(await records(base)).toEqual(after)
       expect(await effects()).toEqual(created)
@@ -395,7 +395,7 @@ describe('native Creature actions against Character targets', () => {
       expectedVersion: base.run.version
     })
     const before = await records(base)
-    const result = await base.owner.caller.mutation(api.encounters.commands.execute, {
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: input
     })
     const after = await records(base)
@@ -432,7 +432,7 @@ describe('native Creature actions against Character targets', () => {
       })
     })
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, { command: input })
+      base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
     ).resolves.toEqual(result)
     expect(await records(base)).toEqual(after)
     expect(after.characterReceipts[0]).toMatchObject({ actorId: base.owner.userId })
@@ -523,7 +523,7 @@ describe('native Creature actions against Character targets', () => {
     })
     const before = await records(base)
     await expect(
-      base.owner.caller.mutation(api.encounters.commands.execute, {
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: command({
           encounterId: base.run.id,
           actorId: base.actor.id,
@@ -541,7 +541,7 @@ describe('native Creature actions against Character targets', () => {
     const before = await records(base)
     await expect(
       base.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(api.encounters.commands.execute, {
+        await ctx.runMutation(internal.encounters.commands.execute, {
           command: command({
             encounterId: base.run.id,
             actorId: base.actor.id,

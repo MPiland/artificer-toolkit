@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
+import { consumeUserRateLimit } from '../lib/rateLimits'
 import { claimCampaignLiveAuthority } from './authority'
 
 export const authorize = internalMutation({
@@ -15,6 +16,7 @@ export const authorize = internalMutation({
   handler: async (ctx, args): Promise<LiveSessionTicketAdmissionDto> => {
     const input = liveSessionJoinOptionsDtoSchema.parse({ campaignId: args.campaignId })
     const { userId } = await requireIdentity(ctx)
+    await consumeUserRateLimit(ctx, 'liveSessionTicket', userId)
     const { authority, campaign, membership } = await claimCampaignLiveAuthority(ctx, {
       ...input,
       expiresAt: args.expiresAt,

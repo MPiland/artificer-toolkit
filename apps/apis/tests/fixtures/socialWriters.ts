@@ -104,7 +104,6 @@ export async function fixture() {
       applications: await ctx.db.query('socialApplications').collect(),
       invitations: await ctx.db.query('campaignInvites').collect(),
       listings: await ctx.db.query('socialListings').collect(),
-      rates: await ctx.db.query('socialActionRateLimits').collect(),
       notifications: await ctx.db.query('notificationDeliveryIntents').collect(),
       feed: await ctx.db.query('notificationFeedItems').collect()
     }))

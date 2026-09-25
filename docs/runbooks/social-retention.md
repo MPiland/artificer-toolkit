@@ -3,7 +3,7 @@
 ## Native Convex retention — local implementation
 
 `social/retention:preview` is an internal, read-only query. It counts eligibility for `INVITATIONS`,
-`REPORTS`, `APPLICATIONS` or `RATE_WINDOWS`, with at most eight source records per page. Supply the
+`REPORTS` or `APPLICATIONS`, with at most eight source records per page. Supply the
 same canonical millisecond UTC `asOf` and phase while following `paginationOpts.cursor` through
 `isDone`; an empty page is not completion. The result contains `scanned`, `eligible` and pagination
 metadata only. Pages are separate read snapshots, so live changes can affect aggregate counts.
@@ -12,12 +12,13 @@ The preview preserves the SQL cutoffs below, including strict boundaries, calend
 clamping, the accepted-application membership exception and report-reference protection. Applications
 protected only by expired terminal reports count as eligible after those reports are purged, matching
 the legacy dry run. Missing listing/applicant references never make an application eligible.
-Blocks and durable invalidation events are untouched.
+Blocks and durable invalidation events are untouched. Social rate-limit counters are not a retention
+phase: they live in the `@convex-dev/rate-limiter` component, which replaces elapsed windows itself,
+and account deletion resets them.
 
 Internal `social/retention:apply` uses the same phase, cutoff and pagination input plus
 `confirm: 'purge-expired-social-data'`. It returns counts/cursors and `deleted`, with at most eight
-source deletions per transaction. Process invitations, reports, applications and rate windows in that
-order; finish each phase before advancing. Continue through empty pages until `isDone`. Preserve the
+source deletions per transaction. Process invitations, reports and applications in that order; finish each phase before advancing. Continue through empty pages until `isDone`. Preserve the
 cutoff across interruption/retry; replaying a page rechecks current eligibility. Application apply
 requires all referenced reports to be gone. Each report deletion schedules bounded audit cleanup in
 the same transaction; cleanup may complete after the operator receives the page result.

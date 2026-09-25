@@ -95,10 +95,6 @@ async function isFixturePage(
         scope.profileIds.has(row.applicantProfileId)
     )
   }
-  if (input.phase === 'RATE_WINDOWS') {
-    const page = await ctx.db.query('socialActionRateLimits').paginate(pagination)
-    return page.page.every((row) => scope.userIds.has(row.userId))
-  }
   const page = await ctx.db.query('socialReports').paginate(pagination)
   for (const row of page.page) {
     if (!scope.profileIds.has(row.reporterProfileId)) return false

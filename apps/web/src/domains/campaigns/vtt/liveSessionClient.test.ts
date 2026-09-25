@@ -8,6 +8,7 @@ import type {
   SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
@@ -276,6 +277,59 @@ describe('live-session browser connection', () => {
       lastAppliedSequence: 5,
       type: 'RESUME'
     })
+    connection.close()
+  })
+
+  it('acknowledges an Encounter commit without advancing the room sequence', async () => {
+    const durableStates: unknown[] = []
+    const errors: Error[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+    const encounterCommand = {
+      command: {
+        commandId,
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'ADVANCE_TURN'
+      },
+      scope: 'ENCOUNTER'
+    } satisfies LiveSessionCommandDto
+    const committed = connection.submitCommand(encounterCommand)
+    const result = {
+      occurrence: null,
+      projection: tabletopGmEncounter,
+      resolution: null,
+      roll: null
+    }
+    // The room reports its current sequence, which may run ahead of this client.
+    socket.receive({
+      commandId,
+      delta: { result, scope: 'ENCOUNTER' },
+      sequence: 6,
+      type: 'COMMAND_COMMITTED'
+    })
+    await expect(committed).resolves.toMatchObject({ delta: { result, scope: 'ENCOUNTER' } })
+    expect(errors).toEqual([])
+    expect(durableStates.at(-1)).toMatchObject({ commandReady: true, sequence: 4 })
     connection.close()
   })
 

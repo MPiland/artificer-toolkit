@@ -210,7 +210,7 @@ async function settleStart(
               throw new Error('Maintained action fixture requested an unsupported continuation.')
             })()
     current = encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(api.encounters.commands.execute, {
+      await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: current.projection.id,
@@ -288,7 +288,7 @@ async function setup(
       await settleStart(
         base,
         encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(api.encounters.commands.execute, {
+          await base.owner.caller.mutation(internal.encounters.commands.execute, {
             command: {
               type: 'START',
               encounterId: run.id,
@@ -311,7 +311,7 @@ async function setup(
   if (run.currentActorId !== actor.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await base.owner.caller.mutation(api.encounters.commands.execute, {
+        await base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: {
             type: 'SET_CURRENT_ACTOR',
             encounterId: run.id,
@@ -460,13 +460,13 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   const before = await records(base)
   await expect(
     base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(api.encounters.commands.execute, { command: first })
+      await ctx.runMutation(internal.encounters.commands.execute, { command: first })
       throw new Error('rollback maintained action')
     })
   ).rejects.toThrow('rollback maintained action')
   expect(await records(base)).toEqual(before)
 
-  const created = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const created = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: first
   })
   expect(created.occurrence?.status).toBe('COMPLETE')
@@ -500,7 +500,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
     }
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, { command: first })
+    base.owner.caller.mutation(internal.encounters.commands.execute, { command: first })
   ).resolves.toEqual(created)
   expect(await records(base)).toEqual(afterCreated)
 
@@ -585,13 +585,13 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   const beforeReplacement = await records(base)
   await expect(
     base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(api.encounters.commands.execute, { command: replacement })
+      await ctx.runMutation(internal.encounters.commands.execute, { command: replacement })
       throw new Error('rollback maintained replacement')
     })
   ).rejects.toThrow('rollback maintained replacement')
   expect(await records(base)).toEqual(beforeReplacement)
 
-  const replaced = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const replaced = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: replacement
   })
   projection = encounterGmProjectionDtoSchema.parse(replaced.projection)
@@ -657,9 +657,12 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   })
   await resetActionAllowance(base)
   const retainedRoot = action(base, projection.version, base.actor.id)
-  const retainedReplacement = await base.owner.caller.mutation(api.encounters.commands.execute, {
-    command: retainedRoot
-  })
+  const retainedReplacement = await base.owner.caller.mutation(
+    internal.encounters.commands.execute,
+    {
+      command: retainedRoot
+    }
+  )
   const retainedComplete = await records(base)
   expect(retainedComplete.maintainedStates).toHaveLength(1)
   expect(retainedComplete.maintainedStates[0]?.id).not.toBe(emptyPrior)
@@ -692,7 +695,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   })
   const root = action(base, base.run.version, base.characterTarget.id)
   const before = await records(base)
-  const issued = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: root
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -714,13 +717,13 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
 
   await expect(
     base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(api.encounters.commands.execute, response)
+      await ctx.runMutation(internal.encounters.commands.execute, response)
       throw new Error('rollback Assisted maintenance')
     })
   ).rejects.toThrow('rollback Assisted maintenance')
   expect(await records(base)).toEqual(staged)
 
-  const settled = await base.owner.caller.mutation(api.encounters.commands.execute, response)
+  const settled = await base.owner.caller.mutation(internal.encounters.commands.execute, response)
   expect(settled.occurrence?.status).toBe('COMPLETE')
   const firstComplete = await records(base)
   expect(firstComplete.maintainedStates).toHaveLength(1)
@@ -746,16 +749,16 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     }
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, { command: root })
+    base.owner.caller.mutation(internal.encounters.commands.execute, { command: root })
   ).resolves.toEqual(settled)
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, response)
+    base.owner.caller.mutation(internal.encounters.commands.execute, response)
   ).resolves.toEqual(settled)
   expect(await records(base)).toEqual(firstComplete)
 
   await resetActionAllowance(base)
   const sameTargetRoot = action(base, settled.projection.version, base.characterTarget.id)
-  const sameTargetIssued = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const sameTargetIssued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: sameTargetRoot
   })
   expect(sameTargetIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -776,7 +779,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     return state.version
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, sameTargetResponse)
+    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
   ).rejects.toThrow('pending action source or target changed')
   await base.t.run(async (ctx) => {
     const state = await ctx.db
@@ -801,7 +804,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, sameTargetResponse)
+    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
   ).rejects.toThrow('Stored Character identity mismatch')
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -816,7 +819,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   const beforeSameTargetVersion = sameTargetStaged.character!.streamVersion
   const beforeDmState = sameTargetStaged.campaignCharacterState
   const sameTargetReplaced = await base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     sameTargetResponse
   )
   const sameTargetComplete = await records(base)
@@ -844,14 +847,14 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     }
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, { command: sameTargetRoot })
+    base.owner.caller.mutation(internal.encounters.commands.execute, { command: sameTargetRoot })
   ).resolves.toEqual(sameTargetReplaced)
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, sameTargetResponse)
+    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
   ).resolves.toEqual(sameTargetReplaced)
   expect(await records(base)).toEqual(sameTargetComplete)
 
-  const removed = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: base.run.id,
@@ -867,7 +870,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   await resetActionAllowance(base)
   let projection = encounterGmProjectionDtoSchema.parse(removed.projection)
   const detachedRoot = action(base, projection.version, base.secondActor.id)
-  const detachedIssued = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const detachedIssued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: detachedRoot
   })
   expect(detachedIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -882,7 +885,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, detachedResponse)
+    base.owner.caller.mutation(internal.encounters.commands.execute, detachedResponse)
   ).rejects.toThrow('Maintained-effect Character owner is unavailable')
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -895,7 +898,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(await records(base)).toEqual(detachedStaged)
   const beforeDetachedVersion = detachedStaged.character!.streamVersion
   const detachedReplaced = await base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     detachedResponse
   )
   projection = encounterGmProjectionDtoSchema.parse(detachedReplaced.projection)
@@ -935,10 +938,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     }
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, { command: detachedRoot })
+    base.owner.caller.mutation(internal.encounters.commands.execute, { command: detachedRoot })
   ).resolves.toEqual(detachedReplaced)
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, detachedResponse)
+    base.owner.caller.mutation(internal.encounters.commands.execute, detachedResponse)
   ).resolves.toEqual(detachedReplaced)
   expect(await records(base)).toEqual(detachedComplete)
   expect(projection.version).toBe(detachedComplete.run?.version)
@@ -947,7 +950,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
 it('rejects a missing current maintenance definition while an Assisted action is paused', async () => {
   const base = await setup('SAVE_DAMAGE', 'ASSISTED')
   const root = action(base, base.run.version, base.characterTarget.id)
-  const issued = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: root
   })
 
@@ -962,7 +965,7 @@ it('rejects a missing current maintenance definition while an Assisted action is
     await ctx.db.delete(definition._id)
   })
   await expect(
-    base.owner.caller.mutation(api.encounters.commands.execute, diceResponse(issued))
+    base.owner.caller.mutation(internal.encounters.commands.execute, diceResponse(issued))
   ).rejects.toThrow('maintenance definition is no longer current')
   expect(await records(base)).toEqual(staged)
 }, 60000)
@@ -972,7 +975,7 @@ async function setupMaintenanceCapture(
   healTarget: 'SELF' | 'CHARACTER' = 'SELF'
 ) {
   const base = await setup('HEAL', 'AUTOMATIC', healTarget)
-  const created = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const created = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action(
       base,
       base.run.version,
@@ -1641,12 +1644,12 @@ it('refuses a maintained action when a dependent link changes between capture pa
 
 it('reads a detached Character owner only through its live maintained dependent', async () => {
   const base = await setup('SAVE_DAMAGE', 'ASSISTED')
-  const issued = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action(base, base.run.version, base.characterTarget.id)
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   const settled = await base.owner.caller.mutation(
-    api.encounters.commands.execute,
+    internal.encounters.commands.execute,
     diceResponse(issued)
   )
   expect(settled.occurrence?.status).toBe('COMPLETE')
@@ -1655,7 +1658,7 @@ it('reads a detached Character owner only through its live maintained dependent'
   const dependent = beforeRemoval.characterEffects[0]
   if (!state || !dependent || dependent.maintainedEffectStateId !== state.id)
     throw new Error('Missing maintained Character link.')
-  const removed = await base.owner.caller.mutation(api.encounters.commands.execute, {
+  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: base.run.id,

@@ -62,6 +62,7 @@ import type {
   EncounterBlueprintListInput,
   EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
+import { executeEncounterCommand } from './developmentClient'
 
 // Backend integration only. Fixture invitation hashes use the existing internal
 // component CLI; passwords/tokens stay in memory, and signup email is not scheduled.
@@ -2878,7 +2879,7 @@ try {
           [firstRun, secondRun].map(async (run) => {
             assert.equal(run.status, 'PREPARED')
             assert.equal(run.actors.length, 1)
-            const initiative = await owner.client.mutation(api.encounters.commands.execute, {
+            const initiative = await owner.client.mutation(executeEncounterCommand, {
               command: {
                 type: 'SET_INITIATIVE',
                 encounterId: run.id,
@@ -2905,8 +2906,8 @@ try {
         owner.client.setAuth(await owner.fetchToken())
         startPeer.setAuth(await owner.fetchToken())
         const starts = await Promise.allSettled([
-          owner.client.mutation(api.encounters.commands.execute, startInputs[0]!),
-          startPeer.mutation(api.encounters.commands.execute, startInputs[1]!)
+          owner.client.mutation(executeEncounterCommand, startInputs[0]!),
+          startPeer.mutation(executeEncounterCommand, startInputs[1]!)
         ])
         assert.equal(starts.filter((entry) => entry.status === 'fulfilled').length, 1)
         const winnerIndex = starts.findIndex((entry) => entry.status === 'fulfilled')
@@ -2929,7 +2930,7 @@ try {
           }),
           preparedRuns[loserIndex]
         )
-        await owner.client.mutation(api.encounters.commands.execute, {
+        await owner.client.mutation(executeEncounterCommand, {
           command: {
             type: 'COMPLETE',
             encounterId: winner.value.projection.id,
@@ -2938,7 +2939,7 @@ try {
           }
         })
         const loserStarted = await owner.client.mutation(
-          api.encounters.commands.execute,
+          executeEncounterCommand,
           startInputs[loserIndex]!
         )
         assert.equal(loserStarted.projection.status, 'ACTIVE')
@@ -2949,10 +2950,10 @@ try {
           loserStarted.projection
         )
         assert.deepEqual(
-          await owner.client.mutation(api.encounters.commands.execute, startInputs[winnerIndex]!),
+          await owner.client.mutation(executeEncounterCommand, startInputs[winnerIndex]!),
           winner.value
         )
-        await owner.client.mutation(api.encounters.commands.execute, {
+        await owner.client.mutation(executeEncounterCommand, {
           command: {
             type: 'COMPLETE',
             encounterId: loserStarted.projection.id,
@@ -4859,7 +4860,6 @@ try {
         'userRollHistory',
         'accountEntitlements',
         'socialProfiles',
-        'socialActionRateLimits',
         'notificationFeedItems'
       ]) {
         assert.ok(tables[name], 'Required cleanup catalogue is missing: ' + name)
@@ -4893,7 +4893,6 @@ try {
         'campaignScenes',
         'authoredImageSlots',
         'socialProfiles',
-        'socialActionRateLimits',
         'socialBlocks',
         'campaignInvites',
         'socialApplications',

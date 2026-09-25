@@ -1,4 +1,6 @@
 import { z } from '../zod.js'
+import { encounterCommandResultDtoSchema } from './encounterData.js'
+import { encounterCommandInputDtoSchema } from './encounters.js'
 import {
   campaignSceneStateDtoSchema,
   sceneCommandInputDtoSchema,
@@ -12,10 +14,15 @@ export const liveSessionSequenceDtoSchema = z
   .check(z.nonnegative())
   .check(z.lte(Number.MAX_SAFE_INTEGER))
 
-export const liveSessionCommandDtoSchema = z.strictObject({
-  scope: z.literal('SCENE'),
-  command: sceneCommandInputDtoSchema
-})
+/**
+ * Scene commands change the room's live projection; Encounter commands are planned by the room and
+ * committed by Convex before acknowledgement. Encounter-bound token moves stay Scene-scoped here:
+ * the room recognizes the binding and runs the Encounter movement rules for them.
+ */
+export const liveSessionCommandDtoSchema = z.discriminatedUnion('scope', [
+  z.strictObject({ scope: z.literal('SCENE'), command: sceneCommandInputDtoSchema }),
+  z.strictObject({ scope: z.literal('ENCOUNTER'), command: encounterCommandInputDtoSchema })
+])
 
 export const liveSessionRecipientStateDtoSchema = z.strictObject({
   recipientRole: z.enum(['OWNER', 'PLAYER']),
@@ -24,6 +31,8 @@ export const liveSessionRecipientStateDtoSchema = z.strictObject({
 
 export const liveSessionRecipientDeltaDtoSchema = z.discriminatedUnion('scope', [
   z.strictObject({ scope: z.literal('SCENE'), result: sceneCommandResultDtoSchema }),
+  // Sent only to the initiator; other recipients converge through Convex subscriptions.
+  z.strictObject({ scope: z.literal('ENCOUNTER'), result: encounterCommandResultDtoSchema }),
   z.strictObject({
     scope: z.literal('SCENE_VERSION'),
     sceneId: uuidSchema,

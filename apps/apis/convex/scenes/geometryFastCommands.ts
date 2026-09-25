@@ -26,6 +26,7 @@ import { applySceneGeometryDelta, sceneTokenMovementFailure } from '@artificer-t
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
+import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
 import { readCurrentEntitiesFromScene } from './currentEntities'
 import { parseGeometryCommand, parseGeometrySave } from './geometryDocuments'
 import {
@@ -676,5 +677,8 @@ export async function publishResolvedGeometryCommand(
 export const execute = mutation({
   args: zodToConvexFields(sceneGeometryExecuteInputSchema.shape),
   returns: zodToConvex(sceneGeometryCommandResultSchema),
-  handler: (ctx, args) => executeGeometryFast(ctx, sceneGeometryExecuteInputSchema.parse(args))
+  handler: async (ctx, args) => {
+    await consumeSceneWriteRateLimit(ctx)
+    return executeGeometryFast(ctx, sceneGeometryExecuteInputSchema.parse(args))
+  }
 })

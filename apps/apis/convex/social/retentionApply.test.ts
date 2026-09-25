@@ -7,7 +7,6 @@ import type {
   SocialRetentionPreviewResult
 } from '@artificer-toolkit/schema/api/socialRetention'
 import { socialRetentionApplyInputSchema } from '@artificer-toolkit/schema/api/socialRetention'
-import { socialStoredRateLimitSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { socialStoredModerationActionSchema } from '@artificer-toolkit/schema/projections/socialModerationPersistence'
 import { fixture, snapshot } from '../../tests/fixtures/socialAdmission'
 import { api } from '../_generated/api'
@@ -154,32 +153,43 @@ it('deletes only terminal invitations still eligible at apply time and retains u
   expect((await base.t.mutation(apply, input('INVITATIONS'))).deleted).toBe(0)
 })
 
-it('resumes native cursors across deletions and keeps the strict two-day boundary', async () => {
+it('resumes native cursors across deletions and keeps the strict 180-day boundary', async () => {
   const base = await fixture()
+  const boundaryId = crypto.randomUUID()
   await base.t.run(async (ctx) => {
-    for (let index = 0; index < 11; index++)
-      await ctx.db.insert(
-        'socialActionRateLimits',
-        socialStoredRateLimitSchema.parse({
-          userId: crypto.randomUUID(),
-          action: 'REPORT',
-          window: 'DAY',
-          windowStartedAt: index === 10 ? '2026-08-30T00:00:00.000Z' : '2026-08-29T23:59:59.999Z',
-          count: 1
-        })
-      )
+    const invite = await ctx.db
+      .query('campaignInvites')
+      .withIndex('by_publicId', (q) => q.eq('id', base.acceptedInviteId))
+      .unique()
+    if (!invite) throw new Error('Missing accepted invitation.')
+    const { _id, _creationTime, ...stored } = invite
+    // Nine copies follow the two fixture invitations; the last sits exactly on the cutoff.
+    for (let index = 0; index < 9; index++) {
+      const respondedAt = index === 8 ? '2026-03-05T00:00:00.000Z' : '2026-03-04T23:59:59.999Z'
+      await ctx.db.insert('campaignInvites', {
+        ...stored,
+        id: index === 8 ? boundaryId : crypto.randomUUID(),
+        respondedAt,
+        updatedAt: respondedAt
+      })
+    }
   })
-  const first = await base.t.mutation(apply, input('RATE_WINDOWS'))
-  expect(first).toMatchObject({ scanned: 8, deleted: 8, isDone: false })
+  const first = await base.t.mutation(apply, input('INVITATIONS'))
+  expect(first).toMatchObject({ scanned: 8, deleted: 6, isDone: false })
   const second = await base.t.mutation(apply, {
-    ...input('RATE_WINDOWS'),
+    ...input('INVITATIONS'),
     paginationOpts: { cursor: first.continueCursor, numItems: 8 }
   })
   expect(second).toMatchObject({ scanned: 3, deleted: 2, isDone: true })
-  expect((await base.t.mutation(apply, input('RATE_WINDOWS'))).deleted).toBe(0)
-  expect(await base.t.run((ctx) => ctx.db.query('socialActionRateLimits').collect())).toMatchObject(
-    [{ windowStartedAt: '2026-08-30T00:00:00.000Z' }]
-  )
+  expect((await base.t.mutation(apply, input('INVITATIONS'))).deleted).toBe(0)
+  expect(
+    await base.t.run((ctx) =>
+      ctx.db
+        .query('campaignInvites')
+        .withIndex('by_publicId', (q) => q.eq('id', boundaryId))
+        .unique()
+    )
+  ).toMatchObject({ respondedAt: '2026-03-05T00:00:00.000Z' })
 })
 
 it('keeps applications until expired reports are removed, then clears the report audit in bounded retry-safe batches', async () => {

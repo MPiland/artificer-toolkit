@@ -891,7 +891,8 @@ recorded in `.codex/validation/feat-catalogue-roots-20260916/`.
 
 ### Native Run commands — partial local implementation
 
-`encounters/commands:execute` accepts the shared Encounter command wrapper and currently implements
+The internal `encounters/commands:execute`, reached only through the Session room's
+[single Encounter command door](live-sessions.md), accepts the shared Encounter command wrapper and currently implements
 reminder writes, actor updates/removal, initiative edits, Manual/Automatic/Assisted start, Assisted
 continuation, turn advancement, completion and the Automatic action scope described above. It requires
 the current Campaign owner, except for an initiative declaration assigned to the caller's current
@@ -2584,25 +2585,26 @@ complete V02 proof remain pending; play changes remain separate from the immutab
 ```mermaid
 flowchart LR
     Source[Authorized Social source transaction] --> Policy[Shared fixed UTC hour/day limits]
-    Policy --> Counter[socialActionRateLimits: user UUID + action + window]
+    Policy --> Counter[rate-limiter component: fixed window keyed by user ID]
     Counter --> Commit[Commit source and counters together]
     Failure[Rejected source or exhausted limit] --> Rollback[Roll back all writes]
 ```
 
-The neutral `@artificer-toolkit/shared/social/rateLimits` policy preserves the existing allowances:
-applications 10/hour and 30/day, invitations 20/hour, reports 5/hour and 20/day, and block/unblock
-30/hour. Transitional SQL source services now consume this same policy without changing behavior.
-The native helper is internal code, not a callable client mutation; native event-producer wiring
-remains pending. Like the SQL baseline, failed source transactions do not consume an allowance.
-This is separate from authentication's rejected-attempt throttling.
+The neutral `@artificer-toolkit/shared/social/rateLimits` policy (`SOCIAL_RATE_LIMITS`) sets the
+allowances: applications 10/hour and 30/day, invitations 20/hour, reports 5/hour and 20/day, and
+block/unblock 30/hour. Current: `apps/apis/convex/lib/rateLimits.ts` maps each action/window onto a
+`@convex-dev/rate-limiter` (0.4.0) fixed window aligned to UTC (`start: 0`), keyed by the
+authenticated user ID. Application, invitation, report and block writers consume it inside the
+authorized mutation before writing; a failed source transaction or an exhausted window rolls back
+every counter and source write, so rejected attempts consume no allowance. The helper is internal
+code, not a callable client mutation. This is separate from authentication's rejected-attempt
+throttling.
 
-Native storage retains one current bucket per user/action/window rather than rows for every expired
-window. It replaces an elapsed bucket atomically, retains the future bucket if the server clock moves
-backwards, and does not add TTL jobs or a rate-limit service. Existing active-window usage must be
-preserved if SQL counters are imported. Account deletion removes all owned buckets in its transaction,
-with an explicit four-actions/two-windows cardinality check; no historical usage audit is promised.
-Focused tests cover policy parity, independent user/action budgets, UTC boundaries, day exhaustion
-rolling back the hour, source rollback, clock regression and recipient-scoped deletion.
+The same module owns the non-Social user limits (live-session tickets, Scene writes and Campaign
+conversation); see [live sessions](live-sessions.md#security-and-limits). Account deletion
+(`lib/authTriggers.helper.ts`) resets every user-keyed counter in its transaction; no historical
+usage audit is promised. The former `socialActionRateLimits` table and its Social retention phase
+are deleted.
 
 Social block invalidation is not implemented by this helper. Pro GM's unlimited hosted Campaigns mean
 a pair may have unbounded pending-admission fanout. The architect's 2026-09-08

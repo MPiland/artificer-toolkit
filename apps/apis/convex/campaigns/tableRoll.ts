@@ -13,9 +13,9 @@ import {
   openConversation,
   presentChatEntry,
   readEntryPayload,
-  requireConversationSendCapacity,
   readCampaignAccessTime
 } from './conversationDocuments'
+import { consumeUserRateLimit } from '../lib/rateLimits'
 
 /** Inserts an already-authorized RollRecord without evaluating or retaining it again. */
 export async function insertPreEvaluatedCampaignTableRoll(
@@ -61,7 +61,7 @@ export async function insertPreEvaluatedCampaignTableRoll(
     return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
   }
   const now = await readCampaignAccessTime(ctx, authority.campaign)
-  await requireConversationSendCapacity(ctx, authority.campaign.id, userId, now)
+  await consumeUserRateLimit(ctx, 'campaignConversation', userId)
   const header = campaignStoredEntryHeaderSchema.parse({
     id: crypto.randomUUID(),
     campaignId: authority.campaign.id,

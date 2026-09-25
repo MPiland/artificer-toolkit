@@ -10,7 +10,7 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { readRunState } from './documents'
 import { loadMovementTargets } from './movementTargets'
 import { loadNativeConcentrationState, prepareNativeConcentrationEnd } from './concentrationState'
@@ -33,7 +33,7 @@ async function setupFixture() {
 it('forecasts Concentration cleanup without writes and matches the committed failure', async () => {
   const fixture = await setupFixture()
   const seeded = await seedConcentration(fixture)
-  await fixture.owner.caller.mutation(api.encounters.commands.execute, {
+  await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
     command: concentrationAction(fixture)
   })
   const before = await concentrationRecords(fixture)
@@ -136,7 +136,9 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
     correlationId: null,
     resolution: { kind: 'SYSTEM_ROLL' as const, requestId: snapshot.request.requestId }
   }
-  const result = await fixture.player.caller.mutation(api.encounters.commands.execute, { command })
+  const result = await fixture.player.caller.mutation(internal.encounters.commands.execute, {
+    command
+  })
   expect(result.occurrence?.outcome).toBe('SAVE_FAILURE')
   const after = await concentrationRecords(fixture)
   const receipt = after.receipts.find((entry) => entry.commandId === command.commandId)
@@ -168,7 +170,7 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
     checksum: after.character?.checksum
   })
   expect(
-    await fixture.player.caller.mutation(api.encounters.commands.execute, { command })
+    await fixture.player.caller.mutation(internal.encounters.commands.execute, { command })
   ).toEqual(result)
   expect(await concentrationRecords(fixture)).toEqual(after)
 }, 60_000)
