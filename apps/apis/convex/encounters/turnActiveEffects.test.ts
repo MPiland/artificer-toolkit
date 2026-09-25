@@ -37,6 +37,7 @@ import {
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {
@@ -237,7 +238,7 @@ afterEach(() => {
 
 describe('private DO turn active-effect terminal', () => {
   it('commits outgoing and incoming Character effects atomically with native lifecycle parity and exact replay', async () => {
-    const turn = await liveCharacterTurn('AUTOMATIC')
+    const turn = await liveCharacterTurn('AUTO_ROLL')
     const { base, started, command } = turn
     const outgoing = await seedTurnSaveEffect(base, {
       stage: 'END_OF_TURN',
@@ -403,7 +404,7 @@ describe('private DO turn active-effect terminal', () => {
   }, 60_000)
 
   it('resolves private ASSISTED turn-effect evidence and commits its retained root exactly once', async () => {
-    const turn = await liveCharacterTurn('ASSISTED', 'ENCOUNTER_START')
+    const turn = await liveCharacterTurn('PROMPT', 'ENCOUNTER_START')
     const { base, started, command } = turn
     const effect = await seedTurnSaveEffect(base, {
       stage: 'END_OF_TURN',
@@ -531,10 +532,11 @@ describe('private DO turn active-effect terminal', () => {
 })
 
 async function liveCharacterTurn(
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL',
+  mode: FixtureRolls | 'MANUAL',
   cadence: 'EACH_ROUND' | 'ENCOUNTER_START' = 'EACH_ROUND'
 ) {
   const fixture = await turnCharacterEffectFixture()
+  if (mode === 'PROMPT') await setAutoRollDice(fixture.t, fixture.owner.userId, false)
   const initiative = createEncounterInitiativeDefinitions([{ procedure: 'ACTOR_ROLL', cadence }])
   await fixture.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -547,7 +549,7 @@ async function liveCharacterTurn(
   await fixture.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: mode === 'MANUAL' ? 'MANUAL' : 'ASSISTED',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
@@ -576,7 +578,7 @@ async function liveCharacterTurn(
       expectedVersion: base.run.version
     }
   })
-  if (mode === 'ASSISTED') started = await resolveInitiative(base, started)
+  if (mode === 'PROMPT') started = await resolveInitiative(base, started)
   if (started.projection.status !== 'ACTIVE') throw new Error('Expected an active Character Run.')
   const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
@@ -660,6 +662,7 @@ async function planLiveTurn(turn: Awaited<ReturnType<typeof liveCharacterTurn>>)
 describe('native public turn active-effect journeys', () => {
   it('uses staged Character damage facts for EACH_ROUND initiative while the turn remains pending', async () => {
     const fixture = await turnCharacterEffectFixture()
+    await setAutoRollDice(fixture.t, fixture.owner.userId, false)
     const initiative = createEncounterInitiativeDefinitions([
       { procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
     ])
@@ -752,6 +755,7 @@ describe('native public turn active-effect journeys', () => {
 
   it('redacts accepted Character declaration replay while incoming turn-effect dice remain GM-only', async () => {
     const base = await turnCharacterEffectFixture()
+    await setAutoRollDice(base.t, base.owner.userId, false)
     expect(base.run.actors).toHaveLength(1)
     const actor = base.run.actors[0]!
     expect(actor.kind).toBe('CHARACTER')
@@ -860,7 +864,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('replays an accepted initiative declaration while START awaits incoming effect dice', async () => {
-    const base = await turnActiveEffectFixture('ASSISTED', 'DECLARED_ACTION_ROLL')
+    const base = await turnActiveEffectFixture('PROMPT', 'DECLARED_ACTION_ROLL')
     const effect = await seedTurnSaveEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
@@ -928,7 +932,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('START rolls incoming effects, updates and expires their lifecycles, and exactly replays without writes or dice', async () => {
-    const base = await turnActiveEffectFixture('AUTOMATIC')
+    const base = await turnActiveEffectFixture('AUTO_ROLL')
     const tick = await seedTurnSaveEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 2,
@@ -1014,7 +1018,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('ADVANCE_TURN applies outgoing then incoming effects to the same actor across the round boundary', async () => {
-    const base = await turnActiveEffectFixture('AUTOMATIC')
+    const base = await turnActiveEffectFixture('AUTO_ROLL')
     const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -1095,7 +1099,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('retains outgoing effects through initiative, Recharge, and incoming dice; only terminal completion publishes the whole turn', async () => {
-    const base = await turnActiveEffectFixture('ASSISTED')
+    const base = await turnActiveEffectFixture('PROMPT')
     const starting = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -1242,7 +1246,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('START retains the first effect while the second awaits dice and rejects stale retained lifecycle without writes', async () => {
-    const base = await turnActiveEffectFixture('ASSISTED')
+    const base = await turnActiveEffectFixture('PROMPT')
     const first = await seedTurnSaveEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 2,
@@ -1297,7 +1301,7 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('rejects player evidence, wrong requests, stale target/source and rolls back an induced terminal failure', async () => {
-    const base = await turnActiveEffectFixture('ASSISTED')
+    const base = await turnActiveEffectFixture('PROMPT')
     const effect = await seedTurnSaveEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,

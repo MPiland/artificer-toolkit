@@ -293,7 +293,7 @@ export async function planNativeLiveEncounterAction(
     adapter: prepared.adapter,
     plan: prepared.plan,
     occurrenceId,
-    automationMode: state.automationMode,
+    autoRoll: admission.autoRollDice,
     binding: prepared.binding,
     ...(resume ? { resume } : {}),
     afterTest: async (test) => {
@@ -385,6 +385,7 @@ export async function planNativeLiveEncounterAction(
   })
   const concentration = await planNativeLiveConcentration({
     state: nextState,
+    autoRoll: admission.autoRollDice,
     parentOccurrenceId: occurrenceId,
     parentCommandFingerprint: admission.fingerprint,
     applications: nativeConcentrationDamageApplications(

@@ -193,7 +193,7 @@ async function setup() {
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactors[0]!.id
     })
@@ -431,7 +431,7 @@ async function setupMixedResourceSiblings() {
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: characterReactor.id
     })
@@ -526,7 +526,7 @@ async function settleSiblings(
     const execution = await executeNativeMovementReactionAction(ctx, {
       runtime: await createRulesRuntime(ctx, base.owner.userId),
       occurrenceId,
-      automationMode: 'AUTOMATIC',
+      autoRoll: true,
       prepared,
       random: (maximum) => maximum - 1
     })
@@ -647,7 +647,7 @@ describe('native sibling movement reaction receipts', () => {
           const execution = await executeNativeMovementReactionAction(ctx, {
             runtime: await createRulesRuntime(ctx, base.owner.userId),
             occurrenceId,
-            automationMode: 'AUTOMATIC',
+            autoRoll: true,
             prepared,
             random: (maximum) =>
               prepared.prepared.source.kind === 'CHARACTER_ACTION' ? 0 : maximum - 1
@@ -836,7 +836,7 @@ describe('native sibling movement reaction receipts', () => {
         const execution = await executeNativeMovementReactionAction(ctx, {
           runtime: await createRulesRuntime(ctx, base.owner.userId),
           occurrenceId,
-          automationMode: 'AUTOMATIC',
+          autoRoll: true,
           prepared,
           random: (maximum) =>
             prepared.prepared.source.kind === 'CHARACTER_ACTION' ? 0 : maximum - 1

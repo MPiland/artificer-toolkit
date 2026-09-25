@@ -19,6 +19,7 @@ import {
 } from './geometryDocuments'
 import { discoverSceneMovementReactions } from './movementPerceptionValidation'
 import { persistSpatialPreparation } from './spatialPreparationPersistence'
+import { readAutoRollDice } from '../lib/rollPreferences'
 
 /** The geometry action validates the complete path before requesting sealed rule evidence. */
 export const prepare = internalMutation({
@@ -136,6 +137,8 @@ export async function evaluateInitialSceneMovement(
     request,
     state: geometry.encounter,
     userId,
+    // The moving user rolls in this slice.
+    autoRoll: await readAutoRollDice(ctx, userId),
     root: {
       commandId: save.commandId,
       commandFingerprint: save.inputChecksum,

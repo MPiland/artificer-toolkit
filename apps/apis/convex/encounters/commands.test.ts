@@ -35,6 +35,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { requireEncounterPolicySources } from './sourceDependencies'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
@@ -197,6 +198,7 @@ async function setup(
           options.sideRoll ? 'SIDE_ROLL' : 'ACTOR_ROLL'
         )
       : null
+  if (options.assisted) await setAutoRollDice(base.t, base.owner.userId, false)
   if (options.manual || options.automatic || options.assisted) {
     const settings = await base.owner.caller.query(getPlaySettings, {
       campaignId: campaign.id
@@ -205,7 +207,7 @@ async function setup(
     await base.owner.caller.mutation(savePlaySettings, {
       ...fields,
       expectedVersion: version,
-      automationMode: options.manual ? 'MANUAL' : options.assisted ? 'ASSISTED' : 'AUTOMATIC',
+      automationMode: options.manual ? 'MANUAL' : 'ASSISTED',
       manualReminderMode: 'OFF',
       initiativePolicyDefinitionId,
       initiativeTieDefinitionId: null
@@ -353,7 +355,7 @@ async function setupCharacterAutomatic() {
   await base.other.caller.mutation(savePlaySettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null

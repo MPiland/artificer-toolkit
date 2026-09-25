@@ -52,6 +52,12 @@ const save = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
+// Widened to send an automation mode the contract no longer accepts.
+const saveUnchecked = makeFunctionReference<
+  'mutation',
+  Omit<SaveCampaignPlaySettingsInput, 'automationMode'> & { automationMode: string },
+  CampaignPlaySettingsDto
+>('campaigns/playSettings:save')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -298,8 +304,8 @@ describe('native Campaign play settings', () => {
     expect(frozen.optionalCombatSnapshotChecksum).toBe(
       checksumCanonicalJson(frozen.optionalCombatSnapshot)
     )
-    await owner.caller.mutation(save, { ...input(saved), automationMode: 'AUTOMATIC' })
-    expect((await read()).automationMode).toBe('AUTOMATIC')
+    await owner.caller.mutation(save, { ...input(saved), automationMode: 'ASSISTED' })
+    expect((await read()).automationMode).toBe('ASSISTED')
     expect(frozen.automationMode).toBe('MANUAL')
     await t.run(async (ctx) => {
       const graph = await ctx.db
@@ -646,6 +652,13 @@ describe('native Campaign play settings', () => {
         ...input(settings),
         expectedVersion: 1,
         initiativeTieDefinitionId: crypto.randomUUID()
+      })
+    ).rejects.toThrow()
+    await expect(
+      owner.caller.mutation(saveUnchecked, {
+        ...input(settings),
+        expectedVersion: 1,
+        automationMode: 'AUTOMATIC'
       })
     ).rejects.toThrow()
     expect(await stored(t)).toEqual(after)

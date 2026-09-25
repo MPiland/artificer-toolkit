@@ -13,6 +13,7 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
+import type { EncounterEvidenceMode } from './encounterEvidenceMode.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { findEncounterFeatureResource } from './encounterActorRuleOutput.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
@@ -224,7 +225,7 @@ export async function executeEncounterRechargeCandidate(input: {
   occurrenceId: string
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  mode: EncounterEvidenceMode
   continuation?: ServerRuleExecutionContinuationDto
   rawDie?: number
   rollD6?: () => number
@@ -315,7 +316,7 @@ export async function executeEncounterRechargeCandidate(input: {
     }
   }
   requireD6Request(started.continuation)
-  if (input.mode === 'ASSISTED')
+  if (input.mode === 'PROMPT')
     return { kind: 'PENDING', candidate: input.candidate, continuation: started.continuation }
   if (!input.rollD6) throw new EncounterValidationError('Automatic recharge evidence is required.')
   return settle(started.continuation, input.rollD6())

@@ -11,6 +11,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
 import { readRunProjection, readRunState } from './documents'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Authorizes one action and verifies sealed replay before any fresh execution. */
 export async function readNativeEncounterActionAdmission(
@@ -43,7 +44,7 @@ export async function readNativeEncounterActionAdmission(
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
@@ -64,7 +65,7 @@ export async function readNativeEncounterActionAdmission(
       replay.version > state.version ||
       replay.commandFingerprint !== fingerprint
     )
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse(JSON.parse(replay.resultJson))
     if (
       checksumCanonicalJson(JSON.parse(replay.commandJson)) !== fingerprint ||
@@ -171,12 +172,12 @@ export async function readNativeEncounterActionAdmission(
       throw new Error('Stored Encounter Character action receipt mismatch.')
     return { kind: 'REPLAY' as const, input, run, state, campaign, fingerprint, result }
   }
-  if (state.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
-  if (state.status !== 'ACTIVE') throw new Error('Actions require an active Encounter.')
+  if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
+  if (state.status !== 'ACTIVE')
+    rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
   if (state.automationMode === 'MANUAL')
-    throw new Error('Native action execution requires Automatic or Assisted Encounter mode.')
-  if (state.currentActorId !== input.actorId)
-    throw new Error('The selected actor does not have the turn.')
+    throw new Error('Native action execution requires an Assisted Encounter.')
+  if (state.currentActorId !== input.actorId) rejectDomain('NOT_CURRENT_ACTOR')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (query) =>
@@ -186,11 +187,10 @@ export async function readNativeEncounterActionAdmission(
   if (pending.length > 1) throw new Error('Stored Encounter occurrence state is invalid.')
   if (pending.length === 1) {
     const occurrence = pending[0]!
-    if (occurrence.rootCommandId !== input.commandId)
-      throw new Error('An Encounter rule occurrence is awaiting resolution.')
+    if (occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
     const { context } = readNativeActionPending(occurrence)
     if (context.commandFingerprint !== fingerprint || context.initiatorUserId !== userId)
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     if (!resume)
       return {
         kind: 'REPLAY' as const,
@@ -205,16 +205,15 @@ export async function readNativeEncounterActionAdmission(
       resume.occurrence._id !== occurrence._id ||
       resume.occurrence.version !== occurrence.version
     )
-      throw new Error('The action occurrence version is stale.')
-  } else if (resume) throw new Error('The action occurrence is no longer pending.')
+      rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
+  } else if (resume) rejectDomain('VERSION_STALE', 'The action occurrence is no longer pending.')
   const usedRoot = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_campaignId_rootCommandId', (query) =>
       query.eq('campaignId', campaign.id).eq('rootCommandId', input.commandId)
     )
     .unique()
-  if (usedRoot && usedRoot._id !== resume?.occurrence._id)
-    throw new Error('Command ID was already used with different input.')
+  if (usedRoot && usedRoot._id !== resume?.occurrence._id) rejectDomain('COMMAND_ID_REUSED')
 
   return {
     kind: 'READY' as const,

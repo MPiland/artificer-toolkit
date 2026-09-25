@@ -14,11 +14,9 @@ import type {
   SceneSessionVisionCaptureInput,
   SceneSessionVisionScope
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   concentrationCommandId,
   concentrationOccurrenceId
@@ -30,6 +28,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { seedConcentration } from '../../tests/fixtures/concentration'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import {
@@ -140,24 +139,6 @@ async function installConcentration(
     run: value.base.run,
     target,
     character
-  })
-}
-
-async function setAssisted(value: MovementFixture) {
-  await value.base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
-      .unique()
-    if (!row) throw new Error('Movement Concentration Run is unavailable.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      automationMode: 'ASSISTED'
-    })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
   })
 }
 
@@ -446,7 +427,10 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     radius: 5,
     targetActorId: value.base.mover.id
   })
-  await setAssisted(value)
+  // The mover's GM rolls the Concentration check; the stationary Character's controller resumes the
+  // shared effect and rolls the later hazard.
+  await setAutoRollDice(value.base.t, value.base.owner.userId, false)
+  await setAutoRollDice(value.base.t, value.additionalPlayer.userId, false)
   await refreshSceneVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
 
@@ -719,28 +703,15 @@ it.each(['native', 'private'] as const)(
     if (route === 'private') vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
     const seeded = await installConcentration(value)
-    await setAssisted(value)
+    await setAutoRollDice(value.base.t, value.base.owner.userId, false)
     await refreshSceneVision(value)
     await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
     await value.owner.caller.mutation(prepare, value.request)
-    const initial = await value.owner.caller.mutation(finish, value.request)
-    const choice = initial.occurrence?.pending
-    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
-      throw new Error('Expected the Assisted reaction choice.')
-    const select = response({
-      encounterId: value.base.run.id,
-      pending: choice,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
-    })
-    await expect(value.player.caller.mutation(begin, select)).rejects.toThrow('another controller')
-    const selected = await value.owner.caller.mutation(begin, select)
-    if (!selected || selected.kind !== 'READY') throw new Error('Expected reaction action staging.')
-    let request: Request = { ...value.request, saveId: selected.saveId }
-    await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, request)
-    const actionEvidence = (await value.owner.caller.mutation(finish, request)).occurrence?.pending
+    // The System-automatic reaction fires without a choice; its dice pause as evidence.
+    const actionEvidence = (await value.owner.caller.mutation(finish, value.request)).occurrence
+      ?.pending
     if (!actionEvidence || actionEvidence.kind !== 'D20_EVIDENCE')
-      throw new Error('Expected reaction d20 evidence.')
+      throw new Error('Expected reaction d20 evidence without a reaction choice.')
     const action = response({
       encounterId: value.base.run.id,
       pending: actionEvidence,
@@ -750,10 +721,11 @@ it.each(['native', 'private'] as const)(
         rawFaces: [20]
       }
     })
+    await expect(value.player.caller.mutation(begin, action)).rejects.toThrow('another controller')
     const actionStarted = await value.owner.caller.mutation(begin, action)
     if (!actionStarted || actionStarted.kind !== 'READY')
       throw new Error('Expected reaction evidence staging.')
-    request = { ...request, saveId: actionStarted.saveId }
+    let request: Request = { ...value.request, saveId: actionStarted.saveId }
     await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
     await value.owner.caller.mutation(prepare, request)
     const pending = (await value.owner.caller.mutation(finish, request)).occurrence?.pending

@@ -21,6 +21,7 @@ import { readRunProjection, readRunState } from './documents'
 import { internalQuery, query, type QueryCtx } from '../_generated/server'
 import { readRecipientContext } from '../scenes/recipientContext'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
+import { rejectDomain } from '../lib/domainRejections'
 
 async function readBoundSceneScope(
   ctx: QueryCtx,
@@ -38,14 +39,14 @@ async function readBoundSceneScope(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { campaign } = await requireCampaignAuthority(ctx, run.campaignId, userId)
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (run.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
   if (
     input.expectedEncounterVersion !== undefined &&
     run.version !== input.expectedEncounterVersion
   )
-    throw new Error('Encounter version is stale.')
+    rejectDomain('VERSION_STALE')
   readRunState(run)
   readRunProjection(run)
 
@@ -146,7 +147,7 @@ export const bind = mutation({
       userId
     )
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     if (encounter.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
     readRunState(encounter)

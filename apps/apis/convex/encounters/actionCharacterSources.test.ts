@@ -36,6 +36,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
@@ -81,11 +82,7 @@ type SetupOptions = {
   useResource?: boolean
 }
 
-async function setup(
-  self = true,
-  automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC',
-  options: SetupOptions = {}
-) {
+async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: SetupOptions = {}) {
   const chargeId = crypto.randomUUID()
   const feature = wolf.features?.find((value) => value.label === 'Bite')
   const effect = structuredClone(feature?.effects?.[0])
@@ -126,7 +123,7 @@ async function setup(
           return {
             id: outcome.id,
             scalingKind: 'NONE' as const,
-            ...(automationMode === 'ASSISTED'
+            ...(rolls === 'PROMPT'
               ? { effectKind: 'HEAL' as const, valueKind: 'DICE' as const, diceConfig: '1d6' }
               : {
                   effectKind: 'DAMAGE' as const,
@@ -162,8 +159,10 @@ async function setup(
       }
     ]
   })
+  for (const user of [base.owner, base.other])
+    await setAutoRollDice(base.t, user.userId, rolls === 'AUTO_ROLL')
   const { draft, character } = await base.createCharacter()
-  if (automationMode === 'ASSISTED') character.state.hitpoints.current = 1
+  if (rolls === 'PROMPT') character.state.hitpoints.current = 1
   await base.owner.caller.mutation(api.characters.commit.commit, {
     expectedDraftId: draft.id,
     mode: 'create',
@@ -239,14 +238,14 @@ async function setup(
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
@@ -422,7 +421,7 @@ describe('native Character action sources', () => {
   it.each([true, false])(
     'retains an Assisted Character resource until its terminal evidence (self: %s)',
     async (self) => {
-      const fixture = await setup(self, 'ASSISTED')
+      const fixture = await setup(self, 'PROMPT')
       const command = input(
         fixture,
         crypto.randomUUID(),
@@ -698,7 +697,7 @@ describe('native Character action sources', () => {
   }, 30000)
 
   it('creates and replaces Automatic self maintenance with one Character stream advance', async () => {
-    const fixture = await setup(true, 'AUTOMATIC', { maintained: true })
+    const fixture = await setup(true, 'AUTO_ROLL', { maintained: true })
     if (!fixture.maintenanceDefinitionId)
       throw new Error('Automatic Character maintenance policy is unavailable.')
     const before = await maintenanceRecords(fixture)
@@ -802,7 +801,7 @@ describe('native Character action sources', () => {
   }, 60000)
 
   it('resumes Assisted maintenance and advances a distinct source Character once for cleanup', async () => {
-    const fixture = await setup(false, 'ASSISTED', {
+    const fixture = await setup(false, 'PROMPT', {
       maintained: true,
       useResource: false
     })

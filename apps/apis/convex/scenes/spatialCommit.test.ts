@@ -65,7 +65,7 @@ async function setup(
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
       .unique()
     if (!run) throw new Error('Fixture Run missing')
-    const state = { ...readRunState(run), automationMode: 'AUTOMATIC' as const }
+    const state = { ...readRunState(run), automationMode: 'ASSISTED' as const }
     await ctx.db.patch(run._id, {
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
@@ -112,6 +112,8 @@ async function setup(
     occurrenceId: crypto.randomUUID(),
     executionCommandId: input.commandId,
     occurredAt: new Date().toISOString(),
+    // The initiating owner keeps the default auto-roll preference.
+    autoRoll: true,
     root: {
       commandId: input.commandId,
       commandFingerprint: checksumCanonicalJson(input),

@@ -13,6 +13,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, internal } from '../_generated/api'
+import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
@@ -49,8 +50,8 @@ function response(
   } satisfies EncounterExecuteInput
 }
 
-async function setupFixture(automationMode: 'AUTOMATIC' | 'ASSISTED') {
-  const fixture = await setupConcentration(automationMode)
+async function setupFixture(rolls: FixtureRolls) {
+  const fixture = await setupConcentration(rolls)
   await fixture.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')
@@ -65,7 +66,7 @@ async function setupFixture(automationMode: 'AUTOMATIC' | 'ASSISTED') {
   return fixture
 }
 it('pauses an Assisted concentration child and settles success without cleanup', async () => {
-  const fixture = await setupFixture('ASSISTED')
+  const fixture = await setupFixture('PROMPT')
   const seeded = await seedConcentration(fixture)
   const root = concentrationAction(fixture)
   const before = await concentrationRecords(fixture)
@@ -135,7 +136,7 @@ it('pauses an Assisted concentration child and settles success without cleanup',
 }, 60_000)
 
 it('does not create a concentration child when finalized applied damage is zero', async () => {
-  const fixture = await setupFixture('ASSISTED')
+  const fixture = await setupFixture('PROMPT')
   const seeded = await seedConcentration(fixture)
   await fixture.t.run(async (ctx) => {
     const characterRow = await ctx.db
@@ -184,7 +185,7 @@ it.each([
 ])(
   'settles Automatic concentration atomically for $outcome',
   async ({ face, cleanup }) => {
-    const fixture = await setupFixture('AUTOMATIC')
+    const fixture = await setupFixture('AUTO_ROLL')
     const seeded = await seedConcentration(fixture)
     const root = concentrationAction(fixture)
     const before = await concentrationRecords(fixture)
@@ -230,7 +231,7 @@ it.each([
 )
 
 it('cleans the exact concentration state on failure and preserves an independent condition', async () => {
-  const fixture = await setupFixture('ASSISTED')
+  const fixture = await setupFixture('PROMPT')
   const seeded = await seedConcentration(fixture)
   const parent = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
     command: concentrationAction(fixture)

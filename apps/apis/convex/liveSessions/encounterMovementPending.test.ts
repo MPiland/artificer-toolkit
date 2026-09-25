@@ -7,11 +7,7 @@ import {
   liveSessionMovementSettlementSchema,
   type LiveSessionMovementCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
   bindEncounterActorRuleOutputToFacts,
@@ -19,6 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { readRunActors, readRunState } from '../encounters/documents'
@@ -36,22 +33,6 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-
-async function setAssisted(value: Fixture) {
-  await value.base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
-      .unique()
-    if (!row) throw new Error('Movement Run is unavailable.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const next = encounterRunStateSchema.parse({ ...state, automationMode: 'ASSISTED' })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
-  })
-}
 
 async function records(value: Fixture) {
   return value.base.t.run(async (ctx) => ({
@@ -179,7 +160,7 @@ it('publishes an Assisted spatial evidence pause without settling retained no-in
     radius: 5,
     targetActorId: value.base.mover.id
   })
-  await setAssisted(value)
+  await setAutoRollDice(value.base.t, value.base.owner.userId, false)
   const { base, preparation } = await preparePrivateCommit(value)
   expect(preparation.outcome.kind).toBe('PENDING')
   if (preparation.outcome.kind !== 'PENDING') throw new Error('Expected spatial dice pause.')

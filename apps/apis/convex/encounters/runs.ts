@@ -42,6 +42,7 @@ import { characterProjectionState } from './characterStates'
 import { readRunProjection, readRunState } from './documents'
 import { removeEncounterRunChildren } from './campaignDeletion'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
+import { rejectDomain } from '../lib/domainRejections'
 const projectionValidator: Validator<EncounterGmProjectionDto, 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterGmProjectionDto>
 >(encounterGmProjectionDtoSchema)
@@ -58,7 +59,7 @@ export const create = mutation({
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
 
     const commandFingerprint = checksumCanonicalJson(input)
     const prior = await ctx.db
@@ -69,7 +70,7 @@ export const create = mutation({
       .unique()
     if (prior) {
       if (prior.commandType !== 'CREATE' || prior.commandFingerprint !== commandFingerprint)
-        throw new Error('Command ID was already used with different input.')
+        rejectDomain('COMMAND_ID_REUSED')
       const row = await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', prior.encounterId))
@@ -265,7 +266,7 @@ export const deletePrepared = mutation({
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     const inputFingerprint = checksumCanonicalJson(input)
     const [prior, encounterCommand] = await Promise.all([
       ctx.db
@@ -283,17 +284,17 @@ export const deletePrepared = mutation({
     ])
     if (prior) {
       if (prior.commandType !== 'DELETE_ENCOUNTER' || prior.inputFingerprint !== inputFingerprint)
-        throw new Error('Command ID was already used with different input.')
+        rejectDomain('COMMAND_ID_REUSED')
       return deletePreparedEncounterResultDtoSchema.parse(prior.resultPayload)
     }
-    if (encounterCommand) throw new Error('Command ID was already used with different input.')
+    if (encounterCommand) rejectDomain('COMMAND_ID_REUSED')
     const run = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
       .unique()
     if (!run || run.campaignId !== campaign.id || run.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter is unavailable.')
-    if (run.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
+    if (run.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
     if (run.status !== 'PREPARED') throw new Error('Only prepared Encounters can be deleted.')
     readRunState(run)
     readRunProjection(run)

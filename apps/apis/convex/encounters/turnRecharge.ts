@@ -21,9 +21,11 @@ export async function prepareNativeTurnRecharge(input: {
   actors?: EncounterRunActorState[]
   pending?: ServerRuleExecutionPendingSnapshotDto
   rawDie?: number
+  autoRoll: boolean
 }) {
   return prepareEncounterTurnRecharge({
     state: input.state,
+    autoRoll: input.autoRoll,
     root: input.root,
     occurrenceId: input.occurrenceId,
     actors: input.actors ?? (await readRunActors(input.ctx, input.state)),

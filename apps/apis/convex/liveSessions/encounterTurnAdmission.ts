@@ -32,6 +32,7 @@ import {
 import { readNativeTurnResponseReplay } from '../encounters/turnResponseReplay'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { requireInitiativeDeclarationController } from '../encounters/initiativeDeclarationAuthority'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Raw authorization and replay proof; turn rules are evaluated by the Session DO. */
 export async function readLiveEncounterTurnAdmission(
@@ -73,7 +74,7 @@ export async function readLiveEncounterTurnAdmission(
   const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
   if (membership.role !== scope.expectedRole) throw new Error('Campaign not found.')
   if (campaign.id !== scope.campaignId) throw new Error('Live Session Encounter scope mismatch.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
   const { fingerprint, result } = await readNativeEncounterCommandReplay(ctx, {
@@ -277,12 +278,6 @@ export async function readLiveEncounterTurnAdmission(
         resume: null
       }
     }
-    if (
-      context.kind === 'ENCOUNTER_INITIATIVE' &&
-      state.automationMode === 'AUTOMATIC' &&
-      input.resolution.kind !== 'INITIATIVE_ENTITY'
-    )
-      throw new Error('Initiative response state is unavailable.')
     const prepared = prepareEncounterTurnResponse({
       pending: snapshot,
       command: input,
@@ -299,7 +294,7 @@ export async function readLiveEncounterTurnAdmission(
         q.eq('campaignId', campaign.id).eq('rootCommandId', input.commandId)
       )
       .unique()
-    if (commandCollision) throw new Error('Command ID was already used with different input.')
+    if (commandCollision) rejectDomain('COMMAND_ID_REUSED')
     return {
       input,
       row,
@@ -338,11 +333,12 @@ export async function readLiveEncounterTurnAdmission(
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', row.id).eq('state', 'PENDING'))
     .take(2)
   if (occurrences.length > 1) throw new Error('Stored Encounter occurrence state is invalid.')
-  if (occurrences.length) throw new Error('An Encounter rule occurrence is awaiting resolution.')
-  if (input.expectedVersion !== row.version) throw new Error('Encounter version is stale.')
-  if (row.status === 'COMPLETED') throw new Error('Completed Encounters are read-only.')
+  if (occurrences.length) rejectDomain('PENDING_DECISION')
+  if (input.expectedVersion !== row.version) rejectDomain('VERSION_STALE')
+  if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (input.type === 'START') {
-    if (state.status !== 'PREPARED') throw new Error('Only prepared Encounters can start.')
+    if (state.status !== 'PREPARED')
+      rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only prepared Encounters can start.')
     if (input.systemId !== undefined && input.systemId !== state.gameSystemId)
       throw new Error('Encounter does not match the requested Game System.')
     if (state.actorIds.length === 0) throw new Error('Add an actor before starting.')
@@ -352,9 +348,9 @@ export async function readLiveEncounterTurnAdmission(
         q.eq('campaignId', campaign.id).eq('status', 'ACTIVE')
       )
       .first()
-    if (active) throw new Error('Campaign already has an active Encounter.')
+    if (active) rejectDomain('ACTIVE_ENCOUNTER_EXISTS')
   } else if (state.status !== 'ACTIVE' || state.currentActorId === null)
-    throw new Error('Only active Encounters with a current actor can advance.')
+    rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only active Encounters with a current actor can advance.')
   return {
     input,
     row,

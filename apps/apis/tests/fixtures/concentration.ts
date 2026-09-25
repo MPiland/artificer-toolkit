@@ -22,6 +22,7 @@ import { sourceImportBatches } from '../../convex/content/importBatches'
 import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
+import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 
 const creatureId = '00000000-0000-4000-8000-000000000ce0'
 const featureId = '00000000-0000-4000-8000-000000000ce1'
@@ -76,8 +77,9 @@ const creature = {
   )
 }
 
-export async function setupConcentration(automationMode: 'AUTOMATIC' | 'ASSISTED') {
+export async function setupConcentration(rolls: FixtureRolls) {
   const base = await setupCharacterRun()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   for (const definitions of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     ...SRD_CONCENTRATION_DEFINITIONS
@@ -114,14 +116,14 @@ export async function setupConcentration(automationMode: 'AUTOMATIC' | 'ASSISTED
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })

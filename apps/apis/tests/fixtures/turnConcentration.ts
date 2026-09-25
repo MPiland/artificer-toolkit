@@ -18,6 +18,7 @@ import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/r
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { turnCharacterEffectFixture } from './turnActiveEffectFixtures'
 import { api, components, internal } from '../../convex/_generated/api'
+import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -39,8 +40,9 @@ const createRun = makeFunctionReference<
   EncounterGmProjectionDto
 >('encounters/runs:create')
 
-export async function turnConcentrationFixture(mode: 'AUTOMATIC' | 'ASSISTED') {
+export async function turnConcentrationFixture(rolls: FixtureRolls) {
   const base = await turnCharacterEffectFixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   const target = await base.createCharacter()
   await base.player.caller.mutation(api.characters.commit.commit, {
     expectedDraftId: target.draft.id,
@@ -140,7 +142,7 @@ export async function turnConcentrationFixture(mode: 'AUTOMATIC' | 'ASSISTED') {
   await base.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null

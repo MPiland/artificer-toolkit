@@ -45,7 +45,7 @@ describe('native public Encounter action choices', () => {
   ])(
     'offers labeled actions and exact held-item choices without writes: $label',
     async ({ characterSource, characterTarget }) => {
-      const base = await nativeDisarmFixture('AUTOMATIC', characterTarget, characterSource)
+      const base = await nativeDisarmFixture('AUTO_ROLL', characterTarget, characterSource)
       const before = await disarmRecords(base)
       const input = inputs(base)
       const catalogue = await base.owner.caller.query(getNativeActionChoices, input.catalogue)
@@ -95,7 +95,7 @@ describe('native public Encounter action choices', () => {
   )
 
   it('denies a current PLAYER and an authenticated outsider both discovery reads without writes', async () => {
-    const base = await nativeDisarmFixture('ASSISTED', false, true)
+    const base = await nativeDisarmFixture('PROMPT', false, true)
     const input = inputs(base)
     const before = await disarmRecords(base)
     await expect(

@@ -7,9 +7,8 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 
@@ -48,22 +47,6 @@ function command(input: {
     correlationId: null,
     resolution: input.resolution
   }
-}
-
-async function setAssisted(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
-  await base.t.run(async (ctx) => {
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!run) throw new Error('Expected Scene LR Run.')
-    const state = encounterRunStateSchema.parse(JSON.parse(run.stateJson))
-    const next = encounterRunStateSchema.parse({ ...state, automationMode: 'ASSISTED' })
-    await ctx.db.patch(run._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
-  })
 }
 
 it.each(['USE', 'DECLINE'] as const)(
@@ -194,7 +177,7 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
   const base = await setupCreatureReactionRun(null, false, false, 'CHOICE', 'CHOICE', {
     outcomeDice: true
   })
-  await setAssisted(base)
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   await value.owner.caller.mutation(prepare, value.request)

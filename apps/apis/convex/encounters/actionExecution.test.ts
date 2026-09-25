@@ -312,7 +312,7 @@ describe('native phased action execution', () => {
           }
         ]
       }),
-      automationMode: 'ASSISTED' as const,
+      autoRoll: false,
       afterTest: async () => undefined
     }
     const test = await advanceNativeActionGraphs(input)
@@ -352,16 +352,18 @@ describe('native phased action execution', () => {
     expect(complete.d20).not.toBeNull()
     expect(complete.d20).toEqual(automatic.d20)
     expect(complete.phaseReceipts).toEqual(automatic.phaseReceipts)
+    // Turning auto-roll on mid-action resumes the sealed prompt instead of rerunning the action.
     await expect(
       advanceNativeActionGraphs({
         ...input,
-        automationMode: 'AUTOMATIC',
+        autoRoll: true,
         resume: {
           pending: outcome,
           resolution: { kind: 'SYSTEM_ROLL', requestId: outcome.continuation.request.requestId }
-        }
+        },
+        random: deterministic([3])
       })
-    ).rejects.toThrow('without rerunning')
+    ).resolves.toEqual(complete)
   })
 
   it('executes a hit TEST then dice damage OUTCOME with sealed receipts before mechanics', async () => {
@@ -480,7 +482,7 @@ describe('native phased action execution', () => {
     })
     const assistedInput = {
       ...nestedInput,
-      automationMode: 'ASSISTED' as const,
+      autoRoll: false,
       random: deterministic([14, 0, 0, 0])
     }
     let assisted = await advanceNativeActionGraphs(assistedInput)

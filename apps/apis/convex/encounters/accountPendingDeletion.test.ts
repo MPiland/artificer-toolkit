@@ -14,6 +14,7 @@ import {
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture
@@ -64,6 +65,7 @@ function initiativeDeclarationResolution(
 
 async function preparePendingDeletion() {
   const fixture = await turnCharacterEffectFixture()
+  await setAutoRollDice(fixture.t, fixture.owner.userId, false)
   await fixture.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [

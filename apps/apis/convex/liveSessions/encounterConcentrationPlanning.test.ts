@@ -69,13 +69,13 @@ async function runtime() {
 }
 
 it.each([
-  { mode: 'AUTOMATIC' as const, face: 20, outcome: 'SAVE_SUCCESS' as const },
-  { mode: 'AUTOMATIC' as const, face: 1, outcome: 'SAVE_FAILURE' as const },
-  { mode: 'ASSISTED' as const, face: 20, outcome: 'PENDING' as const }
+  { rolls: 'AUTO_ROLL' as const, face: 20, outcome: 'SAVE_SUCCESS' as const },
+  { rolls: 'AUTO_ROLL' as const, face: 1, outcome: 'SAVE_FAILURE' as const },
+  { rolls: 'PROMPT' as const, face: 20, outcome: 'PENDING' as const }
 ])(
-  'plans $mode concentration $outcome against native settlement',
-  async ({ mode, face, outcome }) => {
-    const fixture = await setupConcentration(mode)
+  'plans $rolls concentration $outcome against native settlement',
+  async ({ rolls, face, outcome }) => {
+    const fixture = await setupConcentration(rolls)
     const seeded = await seedConcentration(fixture)
     await fixture.t.run(async (ctx) => {
       const run = await ctx.db
@@ -342,7 +342,7 @@ it.each([
 ])(
   'commits and replays the planned concentration $outcome atomically',
   async ({ face, outcome }) => {
-    const fixture = await setupConcentration('AUTOMATIC')
+    const fixture = await setupConcentration('AUTO_ROLL')
     const seeded = await seedConcentration(fixture)
     await fixture.t.run(async (ctx) => {
       const row = await ctx.db

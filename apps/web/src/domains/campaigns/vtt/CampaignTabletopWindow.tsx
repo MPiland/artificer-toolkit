@@ -1,7 +1,8 @@
-import { Badge, Group, Text } from '@mantine/core'
+import { Badge, Group, Switch, Text } from '@mantine/core'
 import { Gamepad2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useCampaignDetail } from '#app/data/campaigns/queries'
+import { useAutoRollDicePreference } from '#app/settings/useAutoRollDicePreference'
 import { CampaignGmRoller } from '../components/CampaignGmRoller'
 import { CampaignVttStage } from './CampaignVttStage'
 import * as styles from './CampaignTabletopWindow.css'
@@ -14,6 +15,7 @@ export function CampaignTabletopWindow({
   currentUserId: string
 }) {
   const campaign = useCampaignDetail(campaignId)
+  const autoRoll = useAutoRollDicePreference()
 
   useEffect(() => {
     const previousTitle = document.title
@@ -37,9 +39,22 @@ export function CampaignTabletopWindow({
             {campaign.role === 'OWNER' ? 'GM' : 'Player'}
           </Badge>
         </Group>
-        <Text c='dimmed' size='xs'>
-          {campaign.role === 'OWNER' ? 'Live editing available' : 'Play view'}
-        </Text>
+        <Group gap='md' wrap='nowrap'>
+          <Switch
+            aria-label='Roll my dice automatically'
+            checked={autoRoll.autoRollDice}
+            disabled={autoRoll.disabled}
+            error={
+              autoRoll.loadFailed || autoRoll.updateError ? 'Auto-roll is unavailable.' : undefined
+            }
+            label='Auto-roll'
+            size='xs'
+            onChange={(event) => autoRoll.setAutoRollDice(event.currentTarget.checked)}
+          />
+          <Text c='dimmed' size='xs'>
+            {campaign.role === 'OWNER' ? 'Live editing available' : 'Play view'}
+          </Text>
+        </Group>
       </header>
       <div className={styles.stage}>
         <CampaignVttStage campaign={campaign} currentUserId={currentUserId} />

@@ -19,6 +19,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 
 const creatureId = '00000000-0000-4000-8000-0000000008d0'
@@ -153,6 +154,7 @@ async function settleStart(
 
 async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
   const base = await setupCharacterRun()
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')

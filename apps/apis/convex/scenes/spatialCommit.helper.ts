@@ -7,6 +7,7 @@ import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { settleSceneMovementSettlements } from './movementSettlements'
 import { evaluateInitialSceneMovement } from './spatialPreparation'
 import { persistSpatialPreparation } from './spatialPreparationPersistence'
+import { readAutoRollDice } from '../lib/rollPreferences'
 
 type Geometry = {
   sceneTokens: readonly SceneToken[]
@@ -112,6 +113,7 @@ export async function commitPreparedSpatialTerminal(
       occurrenceVersion: result.occurrenceVersion,
       executionCommandId: save.commandId,
       occurredAt: preparation.occurredAt,
+      autoRoll: await readAutoRollDice(ctx, root.initiatorUserId),
       frozenTerminal: preparation.outcome
     },
     'COMMIT'

@@ -54,7 +54,11 @@ import {
   liveSessionSceneCommandInputSchema,
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
-import { callLiveSessionRoute, LiveSessionRouteError } from './liveSessionRoutes.js'
+import {
+  callLiveSessionRoute,
+  LiveSessionDomainRejectionError,
+  LiveSessionRouteError
+} from './liveSessionRoutes.js'
 import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
@@ -920,6 +924,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         random: secureRandomInt
       })
     } catch (error) {
+      // Expected domain rejections carry a user-safe message; everything else stays generic.
+      if (error instanceof LiveSessionDomainRejectionError) {
+        send(socket, {
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
+          message: error.rejection.message,
+          reason: error.rejection.reason,
+          type: 'COMMAND_REJECTED'
+        })
+        return
+      }
       const status = error instanceof LiveSessionRouteError ? error.status : 0
       this.#rejectCommand(
         socket,
@@ -983,6 +999,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       ...(correction ? { correction } : {}),
       currentSequence,
       message,
+      reason: null,
       type: 'COMMAND_REJECTED'
     })
   }

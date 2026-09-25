@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { assertDomainRejection } from './developmentClient'
 import { openEncounterCommandRoom } from './developmentHttpClient'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
@@ -8,7 +9,8 @@ const commandIds = [
   '00000000-0000-4000-8000-000000000004',
   '00000000-0000-4000-8000-000000000005',
   '00000000-0000-4000-8000-000000000006',
-  '00000000-0000-4000-8000-000000000007'
+  '00000000-0000-4000-8000-000000000007',
+  '00000000-0000-4000-8000-000000000008'
 ] as const
 const origin = 'http://localhost:3000'
 
@@ -139,9 +141,23 @@ socket.receive({
   commandId: commandIds[1],
   currentSequence: 5,
   message: 'The Encounter changed; review the current state and try again.',
+  reason: null,
   type: 'COMMAND_REJECTED'
 })
 await assert.rejects(second, /^Error: STALE_STATE: The Encounter changed/)
+
+// A domain rejection rejects with the same ConvexError data a direct Convex call throws.
+const domain = room.execute(command(commandIds[4]))
+assert.deepEqual(socket.sent[5], commandMessage(commandIds[4], 5))
+socket.receive({
+  code: 'DOMAIN_REJECTED',
+  commandId: commandIds[4],
+  currentSequence: 5,
+  message: 'Encounter version is stale.',
+  reason: 'VERSION_STALE',
+  type: 'COMMAND_REJECTED'
+})
+await assert.rejects(domain, (error) => assertDomainRejection(error, 'VERSION_STALE'))
 
 // A closed socket fails pending commands and releases the room for a fresh connection.
 const third = room.execute(command(commandIds[2]))

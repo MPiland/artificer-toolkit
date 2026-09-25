@@ -16,13 +16,10 @@ import {
   reactionRecords
 } from '../../tests/fixtures/movementReactionEffects'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import {
-  encounterRunStateSchema,
-  encounterRunActorStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { api, internal } from '../_generated/api'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (maximum: number) => maximum - 1 }))
@@ -45,22 +42,6 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-
-async function setAssisted(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!row) throw new Error('Movement reaction Run missing.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const next = encounterRunStateSchema.parse({ ...state, automationMode: 'ASSISTED' })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
-  })
-}
 
 async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
   return base.t.run((ctx) =>
@@ -149,13 +130,13 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
   expect(before.actors).not.toEqual((await reactionRecords(base.t, base.run.id)).actors)
 }, 30_000)
 
-it('keeps an Assisted reaction inert until entered dice, then replays one created effect', async () => {
+it('fires an automatic reaction without a choice and keeps it inert until entered dice, then replays one created effect', async () => {
   const base = await setupCreatureReactionRun(null, true, false, 'AUTOMATIC')
   const frightened = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'FRIGHTENED'
   )
   if (!frightened) throw new Error('Expected the System Frightened condition.')
-  await setAssisted(base)
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   await scene.owner.caller.mutation(observe, {
     saveId: scene.request.saveId,
@@ -167,31 +148,19 @@ it('keeps an Assisted reaction inert until entered dice, then replays one create
   expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   expect(await effects(base)).toEqual([])
 
-  const pendingResult = await scene.owner.caller.mutation(finish, scene.request)
-  const choice = pendingResult.occurrence?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
-    throw new Error('Expected the assisted movement reaction choice.')
+  const attack = await scene.owner.caller.mutation(finish, scene.request)
+  const attackPending = attack.occurrence?.pending
+  if (!attackPending || attackPending.kind !== 'D20_EVIDENCE')
+    throw new Error('Expected assisted reaction attack evidence without a reaction choice.')
   expect(await effects(base)).toEqual([])
-  const stale = resolution(base.run.id, choice, {
-    kind: 'OPTION',
-    optionId: choice.choice.options[0].optionId
+  const stale = resolution(base.run.id, attackPending, {
+    kind: 'ENTER_DICE',
+    requestId: attackPending.request.requestId,
+    rawFaces: [20]
   })
   await expect(
     scene.owner.caller.mutation(begin, { ...stale, expectedVersion: stale.expectedVersion - 1 })
   ).rejects.toThrow()
-  expect(await effects(base)).toEqual([])
-
-  const response = resolution(base.run.id, choice, {
-    kind: 'OPTION',
-    optionId: choice.choice.options[0].optionId
-  })
-  const started = await scene.owner.caller.mutation(begin, response)
-  if (!started || started.kind !== 'READY') throw new Error('Expected staged assisted response.')
-  const reactionRequest = { ...scene.request, saveId: started.saveId }
-  const attack = await publish(scene, reactionRequest)
-  const attackPending = attack.result.occurrence?.pending
-  if (!attackPending || attackPending.kind !== 'D20_EVIDENCE')
-    throw new Error('Expected assisted reaction attack evidence.')
   expect(await effects(base)).toEqual([])
   const attackStarted = await scene.owner.caller.mutation(
     begin,

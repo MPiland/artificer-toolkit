@@ -162,6 +162,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={pending}
@@ -194,6 +195,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={adjudicatedPending}
@@ -230,6 +232,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
         pending={adjudicatedPending}
@@ -247,6 +250,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={actionOutcomePending}
@@ -269,6 +273,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
         pending={actionOutcomePending}
@@ -281,6 +286,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={actionOutcomePending}
@@ -293,12 +299,55 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer void', () => {
+  it('lets the GM void the pending decision and hides the control from players', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const { rerender } = renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        pending={actionOutcomePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('button', { name: 'Void decision' }))
+
+    expect(onResolve).toHaveBeenCalledWith({
+      type: 'VOID_RULE_OCCURRENCE',
+      encounterId: tabletopGmEncounter.id,
+      commandId: expect.any(String),
+      expectedVersion: actionOutcomePending.encounterVersion,
+      occurrenceId,
+      expectedOccurrenceVersion: actionOutcomePending.occurrenceVersion
+    })
+    expect(await screen.findByText('Decision voided.')).toBeVisible()
+
+    rerender(
+      <CampaignTabletopDecisionDrawer
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        pending={actionOutcomePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    expect(screen.queryByRole('button', { name: 'Void decision' })).not.toBeInTheDocument()
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer passage choice', () => {
   it('submits passage options and decline with the existing command envelope', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={passagePending}
@@ -325,6 +374,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
         pending={passagePending}
@@ -339,6 +389,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={passagePending}
@@ -350,6 +401,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={d20Pending}
@@ -368,6 +420,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={legendaryPending}
@@ -384,6 +437,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
         pending={cleavingPending}
@@ -397,6 +451,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        canVoid={false}
         connected
         encounter={tabletopGmEncounter}
         pending={cleavingPending}

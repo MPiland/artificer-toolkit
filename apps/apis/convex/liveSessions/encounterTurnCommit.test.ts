@@ -40,6 +40,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -116,6 +117,8 @@ async function setup() {
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
+  // Assisted initiative prompts for evidence only while the GM's auto-roll is off.
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Turn commit target',

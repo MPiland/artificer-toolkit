@@ -2358,8 +2358,67 @@ it('rejects a refused Encounter command with a generic code and no Convex detail
       base.messages.find(
         (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
       )
-    ).toMatchObject({ code: 'STALE_STATE' })
+    ).toMatchObject({ code: 'STALE_STATE', reason: null })
   )
+  expect(JSON.stringify(base.messages)).not.toContain('internal detail')
+})
+
+it('forwards an expected domain rejection and keeps an unexpected failure generic', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const [rejectedId, failedId] = [crypto.randomUUID(), crypto.randomUUID()]
+  // The room serializes commands, so the first forwarded command is the rejected one.
+  let forwarded = 0
+  await routeEncounterRequests(base, (pathname) => {
+    if (pathname !== '/live-sessions/encounter-command') return undefined
+    forwarded += 1
+    return forwarded === 1
+      ? Response.json(
+          {
+            code: 'DOMAIN_REJECTED',
+            reason: 'ACTIVE_ENCOUNTER_EXISTS',
+            message: 'Campaign already has an active Encounter.'
+          },
+          { status: 422 }
+        )
+      : Response.json({ code: 'INTERNAL', message: 'internal detail' }, { status: 500 })
+  })
+  for (const commandId of [rejectedId, failedId])
+    base.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'SET_ROUND',
+            encounterId: crypto.randomUUID(),
+            commandId,
+            expectedVersion: 3,
+            round: 2
+          }
+        }
+      })
+    )
+  const rejection = (commandId: string) =>
+    base.messages.find(
+      (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+    )
+  await vi.waitFor(() => {
+    expect(rejection(rejectedId)).toMatchObject({
+      code: 'DOMAIN_REJECTED',
+      message: 'Campaign already has an active Encounter.',
+      reason: 'ACTIVE_ENCOUNTER_EXISTS'
+    })
+    expect(rejection(failedId)).toMatchObject({
+      code: 'UNAVAILABLE',
+      message: 'The Encounter command could not be completed.',
+      reason: null
+    })
+  })
   expect(JSON.stringify(base.messages)).not.toContain('internal detail')
 })
 

@@ -51,6 +51,8 @@ export type MovementContinuationInput<
 > = {
   state: EncounterRunState
   userId: string
+  /** The roller's auto-roll preference; the moving initiator rolls in this slice. */
+  autoRoll: boolean
   root: SpatialMovementRuleRoot
   sceneVersion: number
   sceneTokens: readonly SceneToken[]
@@ -266,6 +268,7 @@ export async function prepareEncounterMovementContinuation<
         occurrenceVersion: input.occurrenceVersion,
         executionCommandId: input.executionCommandId,
         occurredAt: input.occurredAt,
+        autoRoll: input.autoRoll,
         interruptForConcentration: true,
         maintenanceProjection,
         root,

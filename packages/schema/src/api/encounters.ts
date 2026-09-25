@@ -6,20 +6,23 @@ import { characterSheetCommandInputDtoSchema } from './characterSheetCommandInpu
 import {
   commandBaseDtoSchema,
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
 export {
   initiativeDeclarationSelectionDtoSchema,
   optionalCombatActionIntentDtoSchema,
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
   InitiativeDeclarationSelectionDto,
   OptionalCombatActionIntentDto,
   ResolveEncounterActionInputDto,
-  ResolveRuleOccurrenceInputDto
+  ResolveRuleOccurrenceInputDto,
+  VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
 
 export {
@@ -220,7 +223,8 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   completeEncounterInputDtoSchema,
   upgradeEncounterRulePackInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  voidRuleOccurrenceInputDtoSchema
 ])
 
 export const encounterExecuteInputSchema = z.strictObject({

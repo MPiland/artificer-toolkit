@@ -291,6 +291,7 @@ export function CampaignEncounterWorkspace({
       {encounter.status === 'PREPARED' ? (
         <CampaignEncounterDecision
           campaignId={campaign.id}
+          canVoid={canManage}
           connected={live.commandReady}
           encounter={encounter}
           onResolved={(result) =>
@@ -545,5 +546,6 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'CREATE') return 'Encounter created'
   if (commandType === 'START') return 'Encounter started'
   if (commandType === 'COMPLETE') return 'Encounter completed'
+  if (commandType === 'VOID_RULE_OCCURRENCE') return 'Voided by the GM'
   return commandType.toLowerCase().replaceAll('_', ' ')
 }

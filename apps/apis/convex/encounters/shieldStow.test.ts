@@ -151,7 +151,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
     const state = encounterRunStateSchema.parse({
       ...readRunState(row),
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })

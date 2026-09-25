@@ -39,7 +39,7 @@ async function fixture() {
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
       .unique()
     if (!row) throw new Error('Fixture Run missing')
-    const state = { ...readRunState(row), automationMode: 'AUTOMATIC' as const }
+    const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
     await ctx.db.patch(row._id, {
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
@@ -90,7 +90,8 @@ function input(base: Awaited<ReturnType<typeof fixture>>): NativeSpatialMovement
     currentPosition: token.position,
     occurrenceId: ids.occurrence,
     executionCommandId: ids.command,
-    occurredAt: new Date().toISOString()
+    occurredAt: new Date().toISOString(),
+    autoRoll: true
   }
 }
 

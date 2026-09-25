@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   activeOptionalCombatDefinitions,
@@ -22,7 +23,6 @@ export {
   DND5E_TUMBLE_POLICY_MODULE
 } from './policyModuleRegistration.js'
 
-type AutomationMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 type ActionEconomy = 'ACTION' | 'BONUS_ACTION'
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 
@@ -46,7 +46,7 @@ interface ContestEvidence {
 }
 
 interface PolicyInput {
-  readonly automationMode: AutomationMode
+  readonly automationMode: AutomationModeDto
   readonly gameSystemId: string
   readonly optionalCombatSnapshot: unknown
   readonly optionalCombatSnapshotChecksum: string | null | undefined

@@ -14,10 +14,7 @@ import type {
   SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -29,6 +26,7 @@ import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/project
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 // Keep handler compilation outside the per-operation test timer.
@@ -79,23 +77,8 @@ const observe = makeFunctionReference<
 
 async function setup(selected = false) {
   const base = await setupCreatureReactionRun(null, selected, true)
-  if (selected)
-    await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-        .unique()
-      if (!row) throw new Error('Missing selected reaction Run.')
-      const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-      const assisted = encounterRunStateSchema.parse({
-        ...state,
-        automationMode: 'ASSISTED'
-      })
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(assisted),
-        stateChecksum: checksumCanonicalJson(assisted)
-      })
-    })
+  // The GM selects the reaction and rolls its dice; prompt for them as evidence.
+  if (selected) await setAutoRollDice(base.t, base.owner.userId, false)
   if (!base.additionalReactorActor) throw new Error('Fixture additional reactor missing.')
   const sceneId = crypto.randomUUID()
   const definitionSaveId = crypto.randomUUID()

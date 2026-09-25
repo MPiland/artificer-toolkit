@@ -15,6 +15,7 @@ describe('Cloudflare live-session ticket verification', () => {
   it('accepts only the signed room, actor, role, and expiration claims', async () => {
     const issuedAt = Math.floor(now.getTime() / 1000)
     const ticket = await new SignJWT({
+      authorityEpoch: '00000000-0000-4000-8000-000000000005',
       campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
       v: LIVE_SESSION_TICKET_VERSION
@@ -41,6 +42,7 @@ describe('Cloudflare live-session ticket verification', () => {
   it('rejects a correctly signed ticket from the retired Session-scoped version', async () => {
     const issuedAt = Math.floor(now.getTime() / 1000)
     const ticket = await new SignJWT({
+      authorityEpoch: '00000000-0000-4000-8000-000000000005',
       campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
       sessionId: '00000000-0000-4000-8000-000000000002',

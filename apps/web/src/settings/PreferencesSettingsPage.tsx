@@ -1,15 +1,17 @@
-import { SegmentedControl, useMantineColorScheme } from '@mantine/core'
+import { Alert, SegmentedControl, Stack, Switch, useMantineColorScheme } from '@mantine/core'
 import { useAuthoringExperience } from '#forms/layout/useAuthoringExperience'
 import { NotificationPreferences } from '#app/notifications/NotificationPreferences'
 import { DiceSettingsControls } from './DiceSettingsControls'
 import { MatureContentPreference } from './MatureContentPreference'
 import { useDicePresentationPreferences } from './dicePreferences'
 import * as styles from './settings.css'
+import { useAutoRollDicePreference } from './useAutoRollDicePreference'
 
 export function PreferencesSettingsPage() {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
   const [dicePreferences, setDicePreferences] = useDicePresentationPreferences()
   const { experience, isUpdating, setExperience } = useAuthoringExperience()
+  const autoRoll = useAutoRollDicePreference()
 
   return (
     <section aria-labelledby='preferences-settings-title'>
@@ -60,6 +62,26 @@ export function PreferencesSettingsPage() {
         />
       </div>
       <MatureContentPreference />
+      <div className={styles.settingRow}>
+        <div className={styles.settingCopy}>
+          <h3 className={styles.settingTitle}>Roll my dice automatically</h3>
+          <p className={styles.settingDescription}>
+            The app rolls for you when a roll is needed. Turn off to enter physical dice results.
+          </p>
+        </div>
+        <Stack gap='xs'>
+          <Switch
+            aria-label='Roll my dice automatically'
+            checked={autoRoll.autoRollDice}
+            disabled={autoRoll.disabled}
+            onChange={(event) => autoRoll.setAutoRollDice(event.currentTarget.checked)}
+          />
+          {autoRoll.loadFailed ? (
+            <Alert color='red'>Dice rolling preference is unavailable. Reload to try again.</Alert>
+          ) : null}
+          {autoRoll.updateError ? <Alert color='red'>{autoRoll.updateError.message}</Alert> : null}
+        </Stack>
+      </div>
       <DiceSettingsControls value={dicePreferences} onChange={setDicePreferences} />
       <div className={styles.settingRow}>
         <div className={styles.settingCopy}>

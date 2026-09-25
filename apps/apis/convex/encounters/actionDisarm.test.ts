@@ -63,7 +63,7 @@ function contestedOutput(records: Awaited<ReturnType<typeof disarmRecords>>) {
 
 describe('native public Disarm commands', () => {
   it('lets the assigned Character initiator answer before handing the Creature defender request to the owner', async () => {
-    const base = await nativeDisarmFixture('ASSISTED', false, true)
+    const base = await nativeDisarmFixture('PROMPT', false, true)
     const before = await disarmRecords(base)
     await expect(
       base.player.caller.mutation(internal.encounters.commands.execute, { command: base.command })
@@ -280,7 +280,7 @@ describe('native public Disarm commands', () => {
   )
 
   it('changes only the selected Character item use state, retaining inventory and Character ownership', async () => {
-    const base = await nativeDisarmFixture('AUTOMATIC', true)
+    const base = await nativeDisarmFixture('AUTO_ROLL', true)
     const before = await disarmRecords(base)
     const random = vi
       .spyOn(rollRandom, 'nextRollInt')
@@ -328,7 +328,7 @@ describe('native public Disarm commands', () => {
   it.each([false, true])(
     'seals Assisted participants, hides wrong-player requests and accepts current defender evidence (Character target: %s)',
     async (characterTarget) => {
-      const base = await nativeDisarmFixture('ASSISTED', characterTarget)
+      const base = await nativeDisarmFixture('PROMPT', characterTarget)
       const before = await disarmRecords(base)
       const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
         command: base.command
@@ -525,7 +525,7 @@ describe('native public Disarm commands', () => {
     ).rejects.toThrow()
     expect(await disarmRecords(base)).toEqual(before)
 
-    const assisted = await nativeDisarmFixture('ASSISTED', true)
+    const assisted = await nativeDisarmFixture('PROMPT', true)
     const result = await assisted.owner.caller.mutation(internal.encounters.commands.execute, {
       command: assisted.command
     })

@@ -47,6 +47,7 @@ export const liveSessionCorrectionDtoSchema = z.strictObject({
 
 export const liveSessionCommandRejectionCodeDtoSchema = z.enum([
   'AUTHORITY_CHANGED',
+  'DOMAIN_REJECTED',
   'FORBIDDEN',
   'INVALID_COMMAND',
   'SESSION_CLOSED',

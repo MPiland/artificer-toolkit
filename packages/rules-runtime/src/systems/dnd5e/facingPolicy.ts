@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   activeOptionalCombatDefinitions,
@@ -30,7 +31,7 @@ export interface Dnd5eFacingPolicyResult {
 }
 
 function resolveFacingDefinition(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   gameSystemId: string
   optionalCombatSnapshot: unknown
   optionalCombatSnapshotChecksum: string | null | undefined
@@ -74,7 +75,7 @@ function validTokenFact(token: Dnd5eFacingTokenFact): boolean {
  * the exact frozen Encounter FACING definition. It returns no labels, IDs, or Scene data.
  */
 export function resolveDnd5eFacingArcs(input: {
-  readonly automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  readonly automationMode: AutomationModeDto
   readonly gameSystemId: string
   readonly grid: SceneGrid | null
   readonly optionalCombatSnapshot: unknown

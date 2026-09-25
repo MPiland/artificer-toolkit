@@ -1,0 +1,328 @@
+import { v } from 'convex/values'
+import { v5 as uuidV5 } from 'uuid'
+import {
+  encounterCommandResultDtoSchema,
+  encounterGmProjectionDtoSchema,
+  voidRuleOccurrenceInputDtoSchema,
+  type EncounterCommandResultDto,
+  type ResolveRuleOccurrenceInputDto,
+  type VoidRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterStoredRuleOccurrenceSchema,
+  encounterStoredRunCommandSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  serverRuleExecutionPendingSnapshotDtoSchema,
+  type ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { Doc } from '../_generated/dataModel'
+import type { MutationCtx } from '../_generated/server'
+import { requireCampaignAuthority } from '../campaigns/authority'
+import { rejectDomain } from '../lib/domainRejections'
+import { requireIdentity } from '../lib/identity'
+import { internalMutation } from '../lib/mutations'
+import { readRunProjection, readRunState } from './documents'
+import { readPendingRunDecision } from './pendingReads'
+import { insertRunCommand } from './timelineEntries'
+
+type Resolution = ResolveRuleOccurrenceInputDto['resolution']
+type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
+type MovementReactionContext = Extract<PendingContext, { kind: 'ENCOUNTER_MOVEMENT_REACTION' }>
+/** Only the facts that decide a void, so the decision stays one pure table. */
+export type RuleOccurrenceVoidFacts =
+  | { kind: Exclude<PendingContext['kind'], 'ENCOUNTER_MOVEMENT_REACTION'> }
+  | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
+
+/** What a GM void does to one pending decision (ADR 0034 decision 2). */
+export type RuleOccurrenceVoid =
+  | { kind: 'CANCEL' }
+  | { kind: 'DECLINE'; resolution: Resolution }
+  | { kind: 'REFUSE'; message: string }
+
+const answerRequired = (subject: string): RuleOccurrenceVoid => ({
+  kind: 'REFUSE',
+  message: `${subject} can't be voided; answer it to continue.`
+})
+
+/**
+ * Paused action evidence cancels the whole action (nothing it staged is applied). Declinable
+ * responses resolve as a decline. Steps that play cannot continue without are refused.
+ */
+export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): RuleOccurrenceVoid {
+  switch (context.kind) {
+    case 'ENCOUNTER_ACTION':
+    case 'ENCOUNTER_CHARACTER_RULE_ACTION':
+    case 'ENCOUNTER_ACTOR_RULE_ACTION':
+    case 'ENCOUNTER_ACTOR_SPELL_CAST':
+    case 'ENCOUNTER_CREATURE_RULE_ACTION':
+      return { kind: 'CANCEL' }
+    case 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING':
+    case 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE':
+      return { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
+    case 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE':
+      return { kind: 'DECLINE', resolution: { kind: 'PASSAGE_DECLINE' } }
+    case 'ENCOUNTER_MOVEMENT_REACTION':
+      return context.phase.kind === 'CHOICE' || context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
+        ? { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
+        : answerRequired('Dice during a move')
+    case 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK':
+      return answerRequired('A Concentration save')
+    case 'ENCOUNTER_INITIATIVE':
+    case 'ENCOUNTER_INITIATIVE_DECLARATION':
+      return answerRequired('Initiative')
+    case 'ENCOUNTER_TURN_RECHARGE':
+      return answerRequired('A Recharge roll')
+    case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
+      return answerRequired('A turn-effect save')
+    case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
+      return answerRequired('A Legendary Action roll')
+    case 'ENCOUNTER_SPATIAL_MOVEMENT':
+    case 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST':
+      return answerRequired('Dice during a move')
+    case 'NONE':
+      return answerRequired('This decision')
+  }
+}
+
+// Deterministic so a retried void finishes the same decline instead of refusing it as settled.
+const voidNamespace = 'b6f0d5e2-7d1c-4b5e-9a43-2f1d0c8e6a71'
+export function voidDeclineCommandId(voidCommandId: string) {
+  return uuidV5(`${voidCommandId}:decline`, voidNamespace)
+}
+
+type VoidScope = {
+  input: VoidRuleOccurrenceInputDto
+  userId: string
+  run: Doc<'encounterRuns'>
+  campaign: Doc<'campaigns'>
+  membership: Doc<'campaignMemberships'>
+  occurrence: Doc<'encounterRuleOccurrences'>
+  fingerprint: string
+}
+
+type VoidAdmission =
+  | { kind: 'REPLAY'; result: EncounterCommandResultDto }
+  | ({ kind: 'READY' } & VoidScope)
+
+/** GM-only; the stored VOID receipt replays before any currentness check. */
+async function admitVoid(ctx: MutationCtx, args: unknown): Promise<VoidAdmission> {
+  const { userId } = await requireIdentity(ctx)
+  const parsed = voidRuleOccurrenceInputDtoSchema.parse(args)
+  const input = {
+    ...parsed,
+    encounterId: parsed.encounterId.toLowerCase(),
+    commandId: parsed.commandId.toLowerCase(),
+    occurrenceId: parsed.occurrenceId.toLowerCase()
+  }
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
+  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
+  const fingerprint = checksumCanonicalJson(input)
+  const prior = await ctx.db
+    .query('encounterRunCommands')
+    .withIndex('by_campaignId_commandId', (q) =>
+      q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
+    )
+    .unique()
+  if (prior) {
+    if (
+      prior.commandType !== 'VOID_RULE_OCCURRENCE' ||
+      prior.encounterId !== run.id ||
+      prior.commandFingerprint !== fingerprint
+    )
+      rejectDomain('COMMAND_ID_REUSED')
+    const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+    if (checksumCanonicalJson(result) !== prior.resultChecksum)
+      throw new Error('Stored Encounter void receipt mismatch.')
+    return { kind: 'REPLAY', result }
+  }
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', input.occurrenceId))
+    .unique()
+  if (!occurrence || occurrence.campaignId !== campaign.id || occurrence.encounterId !== run.id)
+    throw new Error('Rule occurrence is unavailable.')
+  return { kind: 'READY', input, userId, run, campaign, membership, occurrence, fingerprint }
+}
+
+/** Publishes the "Voided by the GM" timeline entry; the Run version advances with it. */
+async function recordVoid(ctx: MutationCtx, scope: VoidScope, status: 'COMPLETE' | 'VOIDED') {
+  const { input, run, campaign, occurrence } = scope
+  const version = run.version + 1
+  const updatedAt = new Date().toISOString()
+  const state = encounterRunStateSchema.parse({ ...readRunState(run), version, updatedAt })
+  const projection = encounterGmProjectionDtoSchema.parse({
+    ...readRunProjection(run),
+    version,
+    updatedAt
+  })
+  const result = encounterCommandResultDtoSchema.parse({
+    projection,
+    roll: null,
+    resolution: null,
+    occurrence: {
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      status,
+      outcome: null,
+      pending: null
+    }
+  })
+  await ctx.db.patch(run._id, {
+    version,
+    updatedAt,
+    stateJson: JSON.stringify(state),
+    stateChecksum: checksumCanonicalJson(state),
+    projectionJson: JSON.stringify(projection),
+    projectionChecksum: checksumCanonicalJson(projection)
+  })
+  await insertRunCommand(
+    ctx,
+    encounterStoredRunCommandSchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: campaign.id,
+      encounterId: run.id,
+      commandId: input.commandId,
+      commandType: input.type,
+      ruleOccurrenceId: occurrence.id,
+      commandFingerprint: scope.fingerprint,
+      actorUserId: scope.userId,
+      version,
+      commandJson: JSON.stringify(input),
+      resultJson: JSON.stringify(result),
+      resultChecksum: checksumCanonicalJson(result),
+      createdAt: updatedAt
+    })
+  )
+  return result
+}
+
+async function hasDeclineReceipt(ctx: MutationCtx, scope: VoidScope) {
+  const commandId = voidDeclineCommandId(scope.input.commandId)
+  const [runCommand, ruleReceipt] = await Promise.all([
+    ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', scope.campaign.id).eq('commandId', commandId)
+      )
+      .unique(),
+    ctx.db
+      .query('encounterRuleReceipts')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', scope.campaign.id).eq('commandId', commandId)
+      )
+      .unique()
+  ])
+  return runCommand !== null || ruleReceipt !== null
+}
+
+/**
+ * Settles a cancel atomically, or returns the decline the orchestrator runs through the same path
+ * a GM answer takes. A void whose decline already committed only records its timeline entry.
+ */
+// Internal to the void orchestrator: the handler's Zod contract validates input, as at the Worker boundary.
+export const prepare = internalMutation({
+  args: v.any(),
+  handler: async (
+    ctx,
+    args: unknown
+  ): Promise<
+    | { kind: 'COMPLETE'; result: EncounterCommandResultDto }
+    | { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto }
+    | { kind: 'RECORD' }
+  > => {
+    const admission = await admitVoid(ctx, args)
+    if (admission.kind === 'REPLAY') return { kind: 'COMPLETE', result: admission.result }
+    const { input, run, occurrence } = admission
+    if (occurrence.state !== 'PENDING') {
+      if (await hasDeclineReceipt(ctx, admission)) return { kind: 'RECORD' }
+      rejectDomain('DECISION_NOT_PENDING')
+    }
+    if (
+      run.version !== input.expectedVersion ||
+      occurrence.version !== input.expectedOccurrenceVersion
+    )
+      rejectDomain('VERSION_STALE')
+    if (occurrence.pendingSnapshotJson === null)
+      throw new Error('Stored Encounter occurrence state is invalid.')
+    const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
+      JSON.parse(occurrence.pendingSnapshotJson)
+    )
+    const outcome = classifyRuleOccurrenceVoid(snapshot.applicationContext)
+    if (outcome.kind === 'REFUSE') rejectDomain('DECISION_REQUIRES_ANSWER', outcome.message)
+    if (outcome.kind === 'DECLINE')
+      return {
+        kind: 'DECLINE',
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: input.encounterId,
+          commandId: voidDeclineCommandId(input.commandId),
+          expectedVersion: input.expectedVersion,
+          correlationId: null,
+          occurrenceId: occurrence.id,
+          expectedOccurrenceVersion: occurrence.version,
+          resolution: outcome.resolution
+        }
+      }
+    // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
+    const updatedAt = new Date().toISOString()
+    const { _id, _creationTime, ...stored } = occurrence
+    const voided = encounterStoredRuleOccurrenceSchema.parse({
+      ...stored,
+      state: 'VOIDED',
+      version: occurrence.version + 1,
+      pendingSnapshotJson: null,
+      pendingSnapshotChecksum: null,
+      completedAt: updatedAt,
+      updatedAt
+    })
+    await ctx.db.patch(_id, voided)
+    return {
+      kind: 'COMPLETE',
+      result: await recordVoid(
+        ctx,
+        { ...admission, occurrence: { ...occurrence, ...voided } },
+        'VOIDED'
+      )
+    }
+  }
+})
+
+/**
+ * Records a void after its decline committed. A turn or move that pauses again stays fenced to the
+ * current Run version, so it returns the next decision instead of a separate timeline entry.
+ */
+// Internal to the void orchestrator: the handler's Zod contract validates input.
+export const record = internalMutation({
+  args: v.any(),
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
+    const admission = await admitVoid(ctx, args)
+    if (admission.kind === 'REPLAY') return admission.result
+    const { input, run, campaign, membership, occurrence } = admission
+    if (occurrence.state === 'PENDING' && occurrence.version === input.expectedOccurrenceVersion)
+      throw new Error('The voided decision did not settle.')
+    const pending = await readPendingRunDecision(ctx, run, campaign, membership)
+    if (pending)
+      return encounterCommandResultDtoSchema.parse({
+        projection: readRunProjection(run),
+        roll: null,
+        resolution: null,
+        occurrence: {
+          occurrenceId: pending.occurrenceId,
+          occurrenceVersion: pending.occurrenceVersion,
+          status: 'PENDING',
+          outcome: null,
+          pending
+        }
+      })
+    return recordVoid(ctx, admission, occurrence.state === 'VOIDED' ? 'VOIDED' : 'COMPLETE')
+  }
+})

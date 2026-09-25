@@ -52,7 +52,7 @@ export async function reconstructNativeMovementResistanceTest(input: {
     adapter: input.prepared.prepared.adapter,
     binding: input.prepared.prepared.binding,
     plan: input.prepared.executionPlan,
-    automationMode: 'ASSISTED' as const,
+    autoRoll: false,
     afterTest: async () => undefined,
     random: () => {
       throw new Error('Retained TEST evidence must not roll again.')

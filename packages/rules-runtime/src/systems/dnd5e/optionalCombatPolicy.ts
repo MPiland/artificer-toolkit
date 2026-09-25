@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
@@ -13,7 +14,7 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 export { DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY } from '@artificer-toolkit/schema/shared/optionalCombat'
 
 function hasExactAlternatingDiagonalModule(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   optionalCombatSnapshot: unknown
   optionalCombatSnapshotChecksum: string | null | undefined
 }): boolean {

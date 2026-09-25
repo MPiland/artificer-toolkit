@@ -1,3 +1,7 @@
+import {
+  domainRejectionErrorDataSchema,
+  type DomainRejectionErrorData
+} from '@artificer-toolkit/schema/api/domainRejections'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   liveSessionCharacterRulesInputSchema,
@@ -63,6 +67,17 @@ export class LiveSessionRouteError extends Error {
   constructor(readonly status: number) {
     super('Live Session route request failed.')
     this.name = 'LiveSessionRouteError'
+  }
+}
+
+/** A private route refused an expected domain command; the rejection message is user-safe. */
+export class LiveSessionDomainRejectionError extends LiveSessionRouteError {
+  constructor(
+    status: number,
+    readonly rejection: DomainRejectionErrorData
+  ) {
+    super(status)
+    this.name = 'LiveSessionDomainRejectionError'
   }
 }
 
@@ -195,7 +210,14 @@ export async function callLiveSessionRoute<R extends LiveSessionRoute>(
         signal: controller.signal
       }
     )
-    if (!response.ok) throw new LiveSessionRouteError(response.status)
+    if (!response.ok) {
+      const rejection = domainRejectionErrorDataSchema.safeParse(
+        await response.json().catch(() => null)
+      )
+      throw rejection.success
+        ? new LiveSessionDomainRejectionError(response.status, rejection.data)
+        : new LiveSessionRouteError(response.status)
+    }
     // Correlated generic: the parser selected by `route` produces exactly RouteOutput<R>.
     return output.parse(await response.json()) as RouteOutput<R>
   } catch (error) {

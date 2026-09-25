@@ -8,6 +8,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readRunActors } from './documents'
 import { createEncounterInitiativeStore } from './initiativeStore'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Validates the current normalized turn before either native or DO terminal persistence. */
 export async function readNativeTurnSettlement(input: {
@@ -60,7 +61,7 @@ export async function readNativeTurnSettlement(input: {
         q.eq('campaignId', campaign.id).eq('status', 'ACTIVE')
       )
       .first()
-    if (active) throw new Error('Campaign already has an active Encounter.')
+    if (active) rejectDomain('ACTIVE_ENCOUNTER_EXISTS')
   }
 
   const initiative = createEncounterInitiativeStore(ctx)

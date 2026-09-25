@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
   type ServerAggregateChoicePendingSnapshotDto
@@ -22,7 +23,7 @@ export type NativeCleavingCandidate = {
 
 /** Builds the sealed child from already-finalized action facts only. */
 export function createNativeCleavingChoice(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   gameSystemId: string
   optionalCombatSnapshot: unknown
   optionalCombatSnapshotChecksum: string

@@ -349,7 +349,7 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactor.id
     })

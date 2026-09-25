@@ -138,6 +138,8 @@ export async function verifyEncounterEffects({
     })
     campaign = await owner.query(api.campaigns.queries.get, { id: campaignId })
   }
+  // The GM issues the save; with auto-roll off, Assisted prompts for its d20 evidence.
+  await owner.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {

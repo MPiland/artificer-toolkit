@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   activeOptionalCombatDefinitions,
@@ -30,7 +31,6 @@ export const DND5E_MARK_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-type AutomationMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
 type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
 type AbilityCheckKind = 'ATHLETICS' | 'ACROBATICS'
@@ -71,7 +71,7 @@ interface D20ContestEvidence {
 }
 
 interface Dnd5ePolicyInput {
-  readonly automationMode: AutomationMode
+  readonly automationMode: AutomationModeDto
   readonly gameSystemId: string
   readonly optionalCombatSnapshot: unknown
   readonly optionalCombatSnapshotChecksum: string | null | undefined

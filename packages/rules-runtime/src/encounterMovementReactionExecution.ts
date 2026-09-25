@@ -64,7 +64,7 @@ export function bindEncounterMovementReactionInterruption(
 export async function executeEncounterMovementReactionAction(input: {
   runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
   occurrenceId: string
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  autoRoll: boolean
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   random: NonNullable<Parameters<typeof executeNativeActionGraphs>[0]['random']>
@@ -75,7 +75,7 @@ export async function executeEncounterMovementReactionAction(input: {
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    automationMode: input.automationMode,
+    autoRoll: input.autoRoll,
     ...(input.resume ? { resume: input.resume } : {}),
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
@@ -142,7 +142,7 @@ export async function executeEncounterMovementReactionAction(input: {
 export async function resumeEncounterMovementLegendaryResistance(input: {
   runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
   occurrenceId: string
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  autoRoll: boolean
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto

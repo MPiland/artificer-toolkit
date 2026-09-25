@@ -158,7 +158,7 @@ export async function fixture() {
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: base.actor.id,
       optionalCombatSnapshot: optionalSnapshot,

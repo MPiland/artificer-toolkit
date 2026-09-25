@@ -100,6 +100,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand,
         userId: base.owner.userId,
+        autoRoll: true,
         targets
       }).then((result) => ({
         kind: result.kind,
@@ -128,6 +129,7 @@ describe('native movement passage execution', () => {
           resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
           responseCommand,
           userId: base.owner.userId,
+          autoRoll: true,
           targets,
           retained: { receipt: result.receipt! }
         })
@@ -157,6 +159,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand: optionCommand(base.owner.userId, option.optionId),
         userId: base.owner.userId,
+        autoRoll: false,
         targets
       })
     })
@@ -182,6 +185,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
         responseCommand: systemCommand,
         userId: base.owner.userId,
+        autoRoll: false,
         targets
       })
     })
@@ -204,6 +208,7 @@ describe('native movement passage execution', () => {
           resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
           responseCommand: systemCommand,
           userId: base.owner.userId,
+          autoRoll: false,
           targets,
           retained: { snapshot: second.snapshot }
         })
@@ -229,6 +234,7 @@ describe('native movement passage execution', () => {
           resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
           responseCommand: systemCommand,
           userId: base.owner.userId,
+          autoRoll: false,
           targets,
           retained: { snapshot: extraPendingSnapshot }
         })
@@ -256,6 +262,7 @@ describe('native movement passage execution', () => {
         },
         responseCommand: enterCommand,
         userId: base.owner.userId,
+        autoRoll: false,
         targets
       }).then((value) => ({
         kind: value.kind,
@@ -280,6 +287,7 @@ describe('native movement passage execution', () => {
         },
         responseCommand: enterCommand,
         userId: base.owner.userId,
+        autoRoll: false,
         targets,
         retained: { receipt: entered.receipt! }
       }).then((value) => ({
@@ -306,6 +314,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'SYSTEM_ROLL', requestId: second.snapshot.request.requestId },
         responseCommand: defenderSystemCommand,
         userId: base.owner.userId,
+        autoRoll: false,
         targets
       }).then((value) => ({
         kind: value.kind,
@@ -330,6 +339,7 @@ describe('native movement passage execution', () => {
           resolution: { kind: 'SYSTEM_ROLL', requestId: second.snapshot.request.requestId },
           responseCommand: defenderSystemCommand,
           userId: base.owner.userId,
+          autoRoll: false,
           targets,
           retained: { receipt: systemCompleted.receipt! }
         }).then((value) => ({
@@ -362,6 +372,7 @@ describe('native movement passage execution', () => {
           },
           responseCommand: enterCommand,
           userId: base.owner.userId,
+          autoRoll: false,
           targets,
           retained: { receipt: forged }
         })
@@ -387,6 +398,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand,
         userId: base.owner.userId,
+        autoRoll: true,
         targets
       })
     })
@@ -430,6 +442,7 @@ describe('native movement passage execution', () => {
             resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
             responseCommand,
             userId: base.owner.userId,
+            autoRoll: true,
             targets,
             retained: { receipt }
           })

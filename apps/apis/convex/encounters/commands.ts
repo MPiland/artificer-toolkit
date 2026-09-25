@@ -92,6 +92,8 @@ import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encou
 import { snapshotEncounterOptionalCombatPolicies } from './policySnapshots'
 import { replaceActorEquipment } from './actorEquipment'
 import { createRulesRuntime } from '../rules/runtime'
+import { readAutoRollDice } from '../lib/rollPreferences'
+import { encounterEvidenceMode } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
 import { removeEncounterActor } from './actorRemovalCommand'
 import { reorderEncounterActors } from './actorReorderCommand'
 import { reinforceEncounterActors } from './actorReinforcementCommand'
@@ -117,6 +119,7 @@ import {
   createEncounterInitiativeDeclarationRequest,
   compileEncounterInitiativeDeclaration
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationCompiler'
+import { rejectDomain } from '../lib/domainRejections'
 
 const executeEncounterCharacterCommand = makeFunctionReference<
   'mutation',
@@ -341,7 +344,7 @@ export const execute = internalMutation({
       )
         throw new Error('Campaign not found.')
     }
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     if (row.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
     if (input.type === 'RESOLVE_RULE_OCCURRENCE' && occurrenceOwner === 'ACTION')
@@ -429,13 +432,17 @@ export const execute = internalMutation({
               result: completedReplay
             })
           : completedReplay
+      // A non-replayed answer to an occurrence that is no longer pending is stale.
       if (pendingOccurrence?._id !== resolvedOccurrence._id)
-        throw new Error('Rule occurrence is unavailable.')
+        rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
     } else if (pendingOccurrence) {
-      throw new Error('An Encounter rule occurrence is awaiting resolution.')
+      rejectDomain('PENDING_DECISION')
     }
-    if (row.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
-    if (row.status === 'COMPLETED') throw new Error('Completed Encounters are read-only.')
+    if (row.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
+    if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
+    // Initiative prompts go to the GM in this slice, so the GM's auto-roll preference applies.
+    const initiativeEvidenceMode = async () =>
+      encounterEvidenceMode(state.automationMode, await readAutoRollDice(ctx, campaign.ownerUserId))
     const updatedAt = new Date().toISOString()
     let reminders = state.reminders
     let actors = projection.actors
@@ -464,7 +471,8 @@ export const execute = internalMutation({
         throw new Error('Encounter reminder was not found.')
       reminders = reminders.filter((reminder) => reminder.id !== input.reminderId)
     } else if (input.type === 'START') {
-      if (state.status !== 'PREPARED') throw new Error('Only prepared Encounters can start.')
+      if (state.status !== 'PREPARED')
+        rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only prepared Encounters can start.')
       if (input.systemId !== undefined && input.systemId !== state.gameSystemId)
         throw new Error('Encounter does not match the requested Game System.')
       if (actors.length === 0) throw new Error('Add an actor before starting.')
@@ -583,7 +591,7 @@ export const execute = internalMutation({
         snapshotChecksum,
         sources,
         adapter,
-        mode: state.automationMode,
+        mode: await initiativeEvidenceMode(),
         legacyOrderedActorIds: stableActors({ actors }).map((actor) => actor.id),
         integerSource: ({ min, max }) => min + nextRollInt(max - min + 1)
       })
@@ -700,7 +708,8 @@ export const execute = internalMutation({
       input.type === 'SET_CURRENT_ACTOR' ||
       input.type === 'SET_ROUND'
     ) {
-      if (state.status !== 'ACTIVE') throw new Error('Only active Encounters can correct turns.')
+      if (state.status !== 'ACTIVE')
+        rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only active Encounters can correct turns.')
       const initiative = createEncounterInitiativeStore(ctx)
       const normalized = await initiative.lockInitiativeRound({
         encounterId: row.id,
@@ -757,7 +766,10 @@ export const execute = internalMutation({
       }
     } else if (input.type === 'ADVANCE_TURN') {
       if (state.status !== 'ACTIVE' || state.currentActorId === null)
-        throw new Error('Only active Encounters with a current actor can advance.')
+        rejectDomain(
+          'ENCOUNTER_NOT_ACTIVE',
+          'Only active Encounters with a current actor can advance.'
+        )
       const initiative = createEncounterInitiativeStore(ctx)
       const normalized = await initiative.lockInitiativeRound({
         encounterId: row.id,
@@ -1244,7 +1256,7 @@ export const execute = internalMutation({
             stagedMovementTargets
           ),
           adapter: dnd5eInitiativeFactAdapter,
-          mode: state.automationMode,
+          mode: await initiativeEvidenceMode(),
           legacyOrderedActorIds: state.actorIds,
           integerSource: ({ min, max }) => min + nextRollInt(max - min + 1)
         })
@@ -1457,7 +1469,6 @@ export const execute = internalMutation({
       if (
         (isEachRound ? state.status !== 'ACTIVE' : state.status !== 'PREPARED') ||
         state.automationMode === 'MANUAL' ||
-        (state.automationMode === 'AUTOMATIC' && resolution.kind !== 'INITIATIVE_ENTITY') ||
         root.rootCommandId !== resolvedOccurrence.rootCommandId ||
         root.commandFingerprint !== checksumCanonicalJson(rootCommand) ||
         (isEachRound
@@ -1605,7 +1616,7 @@ export const execute = internalMutation({
         snapshotChecksum,
         sources,
         adapter: dnd5eInitiativeFactAdapter,
-        mode: state.automationMode,
+        mode: await initiativeEvidenceMode(),
         pending: restored.pending,
         requestId: resolution.requestId,
         value,
@@ -1736,7 +1747,10 @@ export const execute = internalMutation({
         state.status !== 'PREPARED' &&
         state.status !== 'ACTIVE'
       )
-        throw new Error('Initiative can only be set on a prepared or active Encounter.')
+        rejectDomain(
+          'ENCOUNTER_NOT_ACTIVE',
+          'Initiative can only be set on a prepared or active Encounter.'
+        )
       const projectedActor = actors.find((actor) => actor.id === input.actorId)
       if (!projectedActor) throw new Error('Encounter actor was not found.')
       const actorRow = await ctx.db
@@ -1854,7 +1868,10 @@ export const execute = internalMutation({
       })
     } else if (input.type === 'ADJUST_FEATURE_RESOURCE') {
       if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
-        throw new Error('Feature resources can only be changed on a prepared or active Encounter.')
+        rejectDomain(
+          'ENCOUNTER_NOT_ACTIVE',
+          'Feature resources can only be changed on a prepared or active Encounter.'
+        )
       const projectedActor = actors.find((actor) => actor.id === input.actorId)
       if (!projectedActor) throw new Error('Encounter actor was not found.')
       const actorRow = await ctx.db
@@ -1951,7 +1968,10 @@ export const execute = internalMutation({
       creatureEquipmentReplacement = replacement.provenance
     } else if (input.type === 'REPLACE_OPTIONAL_COMBAT_RULES') {
       if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
-        throw new Error('Only prepared or active Encounters can change optional combat rules.')
+        rejectDomain(
+          'ENCOUNTER_NOT_ACTIVE',
+          'Only prepared or active Encounters can change optional combat rules.'
+        )
       const snapshot = await snapshotEncounterOptionalCombatPolicies(
         ctx,
         campaign,
@@ -1968,7 +1988,8 @@ export const execute = internalMutation({
         })
       )
     } else if (input.type === 'ROLL_ENEMY_ACTION') {
-      if (state.status !== 'ACTIVE') throw new Error('Enemy actions require an active Encounter.')
+      if (state.status !== 'ACTIVE')
+        rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Enemy actions require an active Encounter.')
       const projectedActor = actors.find((actor) => actor.id === input.actorId)
       if (!projectedActor) throw new Error('Encounter actor was not found.')
       const actorRow = await ctx.db
@@ -2065,7 +2086,10 @@ export const execute = internalMutation({
         )
     } else if (input.type === 'COMPLETE') {
       if (state.status !== 'ACTIVE' || state.currentActorId === null)
-        throw new Error('Only an active Encounter with a current actor can complete.')
+        rejectDomain(
+          'ENCOUNTER_NOT_ACTIVE',
+          'Only an active Encounter with a current actor can complete.'
+        )
       const initiative = createEncounterInitiativeStore(ctx)
       const normalized = await initiative.lockInitiativeRound({
         encounterId: row.id,

@@ -56,6 +56,8 @@ export async function planNativeLiveConcentration(input: {
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
+  /** The roller's auto-roll preference; the initiator rolls Concentration in this slice. */
+  autoRoll: boolean
   resume?: {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     context: NativeConcentrationContext
@@ -90,7 +92,7 @@ export async function planNativeLiveConcentration(input: {
     failed: boolean
     selectedNatural: number
   } | null = null
-  if (input.resume && (!input.applications.length || input.state.automationMode !== 'ASSISTED'))
+  if (input.resume && (!input.applications.length || input.state.automationMode === 'MANUAL'))
     throw new Error('The concentration response is unavailable.')
   if (!input.applications.length || input.state.automationMode === 'MANUAL')
     return { ...projection, completed, cleanups, pending, resumed, nextState: state }
@@ -195,7 +197,7 @@ export async function planNativeLiveConcentration(input: {
         })
     if (started && started.status !== 'PAUSED')
       throw new Error('Concentration did not request bounded d20 evidence.')
-    if (started && input.state.automationMode === 'ASSISTED') {
+    if (started && !input.autoRoll) {
       pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...started.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',

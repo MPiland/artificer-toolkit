@@ -21,6 +21,7 @@ import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/en
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunActors, readRunState } from './documents'
 import { removeAccountCharacterActors, removeEncounterActor } from './actorRemovalCommand'
@@ -55,12 +56,13 @@ const finishSession = makeFunctionReference<
   CampaignSessionDto
 >('campaigns/sessionFinish:finish')
 
-async function setup(mode: 'MANUAL' | 'ASSISTED' | 'AUTOMATIC' = 'MANUAL') {
+async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   const base = await setupCharacterRun()
+  if (mode === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   let initiativePolicyDefinitionId: string | null = null
   if (mode !== 'MANUAL') {
     const { definitions, policyIds } = createEncounterInitiativeDefinitions([
-      { cadence: 'ENCOUNTER_START', procedure: mode === 'AUTOMATIC' ? 'SIDE_ROLL' : 'ACTOR_ROLL' }
+      { cadence: 'ENCOUNTER_START', procedure: mode === 'AUTO_ROLL' ? 'SIDE_ROLL' : 'ACTOR_ROLL' }
     ])
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -76,7 +78,7 @@ async function setup(mode: 'MANUAL' | 'ASSISTED' | 'AUTOMATIC' = 'MANUAL') {
   await base.owner.caller.mutation(saveSettings, {
     ...settings,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: mode === 'MANUAL' ? 'MANUAL' : 'ASSISTED',
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null,
     ...(mode === 'MANUAL'
@@ -319,7 +321,7 @@ describe('native actor removal transaction', () => {
   })
 
   it('supersedes a frozen Assisted initiative and preserves its maintenance receipt on retry', async () => {
-    const base = await setup('ASSISTED')
+    const base = await setup('PROMPT')
     const started = await base.owner.caller.mutation(execute, {
       command: {
         type: 'START',
@@ -358,7 +360,7 @@ describe('native actor removal transaction', () => {
   })
 
   it('reconciles an empty automatic SIDE_ROLL side and preserves historical removal replay', async () => {
-    const base = await setup('AUTOMATIC')
+    const base = await setup('AUTO_ROLL')
     const removed = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
     const [firstSurvivor, secondSurvivor] = base.run.actors.filter(
       (actor) => actor.kind === 'CUSTOM'

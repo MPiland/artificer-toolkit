@@ -137,16 +137,14 @@ function CampaignTableSettingsForm({
       <div className={styles.scheduleGrid}>
         <Select
           data={[
-            { value: 'AUTOMATIC', label: 'Automatic' },
             { value: 'ASSISTED', label: 'Assisted' },
             { value: 'MANUAL', label: 'Manual' }
           ]}
+          description='Assisted resolves the rules for you. Manual tracks turns, HP and dice only.'
           disabled={!editable}
           label='Automation mode'
           onChange={(value) => {
-            if (value === 'AUTOMATIC' || value === 'ASSISTED' || value === 'MANUAL') {
-              set('automationMode', value)
-            }
+            if (value === 'ASSISTED' || value === 'MANUAL') set('automationMode', value)
           }}
           value={draft.automationMode}
         />

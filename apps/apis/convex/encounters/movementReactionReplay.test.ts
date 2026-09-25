@@ -56,7 +56,7 @@ describe('native movement reaction replay', () => {
         const issued = await executeNativeMovementReactionAction(ctx, {
           runtime,
           occurrenceId: input.occurrenceId,
-          automationMode: 'ASSISTED',
+          autoRoll: false,
           prepared
         })
         if (issued.kind !== 'PENDING') throw new Error('Expected issued pending action.')
@@ -68,7 +68,7 @@ describe('native movement reaction replay', () => {
             adapter: prepared.prepared.adapter,
             plan: prepared.executionPlan,
             occurrenceId: input.occurrenceId,
-            automationMode: 'ASSISTED',
+            autoRoll: false,
             binding: prepared.prepared.binding,
             afterTest: async () => undefined,
             resume: {
@@ -188,7 +188,7 @@ describe('native movement reaction replay', () => {
         const completed = await executeNativeMovementReactionAction(ctx, {
           runtime,
           occurrenceId: input.occurrenceId,
-          automationMode: 'AUTOMATIC',
+          autoRoll: true,
           prepared,
           random: (maximum) => (maximum === 20 ? maximum - 1 : 0)
         })
@@ -264,7 +264,7 @@ describe('native movement reaction replay', () => {
       const execution = await executeNativeMovementReactionAction(ctx, {
         runtime: await createRulesRuntime(ctx, base.owner.userId),
         occurrenceId: input.occurrenceId,
-        automationMode: 'AUTOMATIC',
+        autoRoll: true,
         prepared,
         random: (maximum) => maximum - 1
       })

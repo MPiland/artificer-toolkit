@@ -33,6 +33,7 @@ import {
 } from './encounterInitiativeStaging.js'
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 
 type InitiativeRoot = Parameters<typeof createEncounterInitiativePendingSnapshot>[0]['root']
 
@@ -42,6 +43,8 @@ export async function prepareEncounterTurnInitiative(input: {
   root: TurnCoordinatorRootDto
   occurrenceId: string
   actors: readonly EncounterRunActorState[]
+  /** The roller's auto-roll preference; the initiator rolls initiative in this slice. */
+  autoRoll: boolean
   loadSources(): Promise<InitiativeFactSources>
   loadDeclarations(): Promise<{
     sources: readonly (InitiativeDeclarationSource & { controllerUserId: string | null })[]
@@ -178,8 +181,7 @@ export async function prepareEncounterTurnInitiative(input: {
       if (
         resolution.requestId !== request.requestId ||
         (scorePhase && resolution.kind === 'INITIATIVE_ENTITY') ||
-        (!scorePhase && resolution.kind !== 'INITIATIVE_ENTITY') ||
-        (state.automationMode === 'AUTOMATIC' && resolution.kind !== 'INITIATIVE_ENTITY')
+        (!scorePhase && resolution.kind !== 'INITIATIVE_ENTITY')
       )
         throw new Error('Encounter initiative resolution is unavailable.')
     } else if (
@@ -366,7 +368,7 @@ export async function prepareEncounterTurnInitiative(input: {
       snapshotChecksum,
       sources,
       adapter: dnd5eInitiativeFactAdapter,
-      mode: state.automationMode,
+      mode: encounterEvidenceMode(state.automationMode, input.autoRoll),
       pending: restored.pending,
       requestId: resolution.requestId,
       value,
@@ -383,7 +385,7 @@ export async function prepareEncounterTurnInitiative(input: {
       snapshotChecksum,
       sources: snapshot ? await input.loadSources() : { characterIds: [], actors: [] },
       adapter: snapshot ? dnd5eInitiativeFactAdapter : null,
-      mode: state.automationMode,
+      mode: encounterEvidenceMode(state.automationMode, input.autoRoll),
       legacyOrderedActorIds,
       integerSource: input.integerSource
     })

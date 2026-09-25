@@ -10,6 +10,7 @@ import { TestRouterProvider } from '#test/TestRouterProvider'
 const mocks = vi.hoisted(() => ({
   deleteAccount: vi.fn(),
   requestPasswordReset: vi.fn(),
+  setAutoRollDice: vi.fn(),
   updateEmail: vi.fn(),
   updatePassword: vi.fn(),
   updateSocialContentPreference: vi.fn()
@@ -29,6 +30,8 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => {
     ...actual,
     convexQuery: (reference: Parameters<typeof actual.convexQuery>[0], args: unknown) => {
       const options = actual.convexQuery(reference, args)
+      if (getFunctionName(reference) === 'account:rollPreferences')
+        return { ...options, queryFn: async () => ({ autoRollDice: true }) }
       if (getFunctionName(reference) !== 'social/profiles:getEligibility') return options
       return {
         ...options,
@@ -47,10 +50,12 @@ vi.mock('convex/react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('convex/react')>()
   return {
     ...actual,
-    useMutation: (reference: Parameters<typeof actual.useMutation>[0]) =>
-      getFunctionName(reference) === 'social/profiles:updatePreference'
-        ? mocks.updateSocialContentPreference
-        : actual.useMutation(reference)
+    useMutation: (reference: Parameters<typeof actual.useMutation>[0]) => {
+      const name = getFunctionName(reference)
+      if (name === 'social/profiles:updatePreference') return mocks.updateSocialContentPreference
+      if (name === 'account:setAutoRollDice') return mocks.setAutoRollDice
+      return actual.useMutation(reference)
+    }
   }
 })
 
@@ -160,6 +165,33 @@ describe('settings pages', () => {
         screen.queryByRole('dialog', { name: 'Confirm you are 18 or older' })
       ).not.toBeInTheDocument()
     })
+  })
+
+  it('persists the automatic dice rolling preference', async () => {
+    mocks.setAutoRollDice.mockResolvedValue(null)
+    renderWithAppProviders(<PreferencesSettingsPage />)
+
+    const autoRoll = await screen.findByRole('switch', { name: 'Roll my dice automatically' })
+    await waitFor(() => {
+      expect(autoRoll).toBeEnabled()
+      expect(autoRoll).toBeChecked()
+    })
+    fireEvent.click(autoRoll)
+
+    await waitFor(() => expect(mocks.setAutoRollDice).toHaveBeenCalledWith({ autoRollDice: false }))
+    await waitFor(() => expect(autoRoll).not.toBeChecked())
+  })
+
+  it('keeps the saved dice rolling preference when the update fails', async () => {
+    mocks.setAutoRollDice.mockRejectedValue(new Error('Dice preference could not be saved.'))
+    renderWithAppProviders(<PreferencesSettingsPage />)
+
+    const autoRoll = await screen.findByRole('switch', { name: 'Roll my dice automatically' })
+    await waitFor(() => expect(autoRoll).toBeEnabled())
+    fireEvent.click(autoRoll)
+
+    expect(await screen.findByText('Dice preference could not be saved.')).toBeInTheDocument()
+    expect(autoRoll).toBeChecked()
   })
 
   it('requests a confirmed email change', async () => {

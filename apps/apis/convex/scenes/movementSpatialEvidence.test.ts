@@ -7,12 +7,9 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import * as rollRandom from '../lib/rollRandom'
@@ -38,22 +35,6 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-
-async function setAssisted(value: Awaited<ReturnType<typeof setupAutomaticSceneMovement>>) {
-  await value.base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
-      .unique()
-    if (!row) throw new Error('Scene Run missing.')
-    const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const next = encounterRunStateSchema.parse({ ...state, automationMode: 'ASSISTED' })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
-  })
-}
 
 function response(input: {
   encounterId: string
@@ -127,7 +108,7 @@ it('publishes two assisted spatial save contacts before both retained reactions'
       { x: 600, y: 50 }
     ]
   })
-  await setAssisted(value)
+  await setAutoRollDice(value.base.t, value.base.owner.userId, false)
   const firstEffect = await seedSpatialSaveEffect(value, {
     center: { x: 250, y: 50 },
     radius: 5,
@@ -205,7 +186,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
       { x: 600, y: 50 }
     ]
   })
-  await setAssisted(value)
+  await setAutoRollDice(value.base.t, value.base.owner.userId, false)
   const prefix = await seedSpatialSaveEffect(value, {
     center: { x: 275, y: 50 },
     radius: 5,

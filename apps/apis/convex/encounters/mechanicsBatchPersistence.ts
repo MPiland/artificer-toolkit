@@ -20,6 +20,7 @@ import type {
   EncounterMechanicsBatchInput,
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { rejectDomain } from '../lib/domainRejections'
 
 export type EncounterMechanicsBatchResult = {
   updatedActor: Awaited<ReturnType<typeof readRunActor>>
@@ -77,11 +78,10 @@ export async function readEncounterMechanicsBatchTarget(
   if (!runRow) throw new Error('Encounter Run was not found.')
   const state = readRunState(runRow)
   const { campaign } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
-  if (state.version !== input.expectedEncounterVersion)
-    throw new Error('Encounter version is stale.')
+  if (state.version !== input.expectedEncounterVersion) rejectDomain('VERSION_STALE')
 
   const actor = await readRunActor(ctx, state, input.targetActorId.toLowerCase())
   const actorRow = await ctx.db
@@ -124,7 +124,7 @@ export async function persistEncounterMechanicsBatchPlan(
     currentRun.version !== input.expectedEncounterVersion ||
     currentRun.stateChecksum !== target.runRow.stateChecksum
   )
-    throw new Error('Encounter version is stale.')
+    rejectDomain('VERSION_STALE')
   if (
     checksumCanonicalJson(prepared.actor) !== checksumCanonicalJson(actor) ||
     !currentActor ||

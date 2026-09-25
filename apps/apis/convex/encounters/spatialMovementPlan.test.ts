@@ -24,7 +24,7 @@ async function completedExecution() {
       .withIndex('by_publicId', (query) => query.eq('id', base.run.id))
       .unique()
     if (!row) throw new Error('Fixture Run is unavailable.')
-    const state = { ...readRunState(row), automationMode: 'AUTOMATIC' as const }
+    const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
     await ctx.db.patch(row._id, {
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
@@ -68,7 +68,8 @@ async function completedExecution() {
     currentPosition: base.tokens[0]!.position,
     occurrenceId,
     executionCommandId: commandId,
-    occurredAt: '2026-09-14T00:00:00.000Z'
+    occurredAt: '2026-09-14T00:00:00.000Z',
+    autoRoll: true
   }
   const evaluated = await base.other.caller.run((ctx) =>
     evaluateNativeSpatialMovement(ctx, input, 'PREVIEW')

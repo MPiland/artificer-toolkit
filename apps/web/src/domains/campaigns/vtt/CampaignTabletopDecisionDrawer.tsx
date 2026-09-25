@@ -19,7 +19,8 @@ import type {
   EncounterGmProjectionDto,
   EncounterCommandResultDto,
   EncounterPlayerProjectionDto,
-  ResolveRuleOccurrenceInputDto
+  ResolveRuleOccurrenceInputDto,
+  VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { initiativeDeclarationSelectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -30,17 +31,22 @@ import {
 } from './CampaignTabletopDecisionDrawer.model'
 
 export function CampaignTabletopDecisionDrawer({
+  canVoid,
   connected,
   encounter,
   pending,
   submitting,
   onResolve
 }: {
+  /** The GM may void a stuck decision. */
+  canVoid: boolean
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto
   submitting: boolean
-  onResolve: (command: ResolveRuleOccurrenceInputDto) => Promise<EncounterCommandResultDto>
+  onResolve: (
+    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+  ) => Promise<EncounterCommandResultDto>
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const [localPending, setLocalPending] = useState(false)
@@ -66,26 +72,32 @@ export function CampaignTabletopDecisionDrawer({
     setError(null)
   }, [pending.occurrenceId, pending.occurrenceVersion])
 
-  async function resolve(resolution: ResolveRuleOccurrenceInputDto['resolution']): Promise<void> {
+  async function resolve(
+    resolution: ResolveRuleOccurrenceInputDto['resolution'] | 'VOID'
+  ): Promise<void> {
     if (disabled) return
     setLocalPending(true)
     setFeedback(null)
     setError(null)
+    const target = {
+      encounterId: encounter.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion
+    }
     try {
-      const result = await onResolve({
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        encounterId: encounter.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: pending.encounterVersion,
-        occurrenceId: pending.occurrenceId,
-        expectedOccurrenceVersion: pending.occurrenceVersion,
-        correlationId: null,
-        resolution
-      })
+      const result = await onResolve(
+        resolution === 'VOID'
+          ? { type: 'VOID_RULE_OCCURRENCE', ...target }
+          : { type: 'RESOLVE_RULE_OCCURRENCE', ...target, correlationId: null, resolution }
+      )
       setFeedback(
         result.occurrence?.status === 'PENDING'
           ? 'Decision recorded. Another decision is ready.'
-          : 'Decision resolved.'
+          : resolution === 'VOID'
+            ? 'Decision voided.'
+            : 'Decision resolved.'
       )
     } catch (nextError) {
       setError(
@@ -351,6 +363,22 @@ export function CampaignTabletopDecisionDrawer({
               onPrimaryOptionIdChange={setPrimaryOptionId}
               onSubmit={(resolution) => void resolve(resolution)}
             />
+          ) : null}
+          {canVoid ? (
+            <Stack gap={4}>
+              <Button
+                color='red'
+                disabled={disabled}
+                variant='subtle'
+                onClick={() => void resolve('VOID')}
+              >
+                Void decision
+              </Button>
+              <Text c='dimmed' size='xs'>
+                Cancels a paused action or declines an optional choice. Rolls play can't continue
+                without stay open.
+              </Text>
+            </Stack>
           ) : null}
           {feedback ? (
             <Alert aria-live='polite' color='green'>

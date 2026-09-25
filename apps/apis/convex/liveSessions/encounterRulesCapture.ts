@@ -19,6 +19,7 @@ import { readNativeEncounterActionAdmission } from '../encounters/actionAdmissio
 import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { requireIdentity } from '../lib/identity'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import { readCharacterEffect, readEncounterEffect } from '../rules/effectStore'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
@@ -27,6 +28,7 @@ import { readEncounterTurnCapture } from './encounterTurnCapture'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
+import { rejectDomain } from '../lib/domainRejections'
 
 type SemanticResponse = {
   [K in LiveSessionEncounterRulesResponse['kind']]: Omit<
@@ -52,6 +54,8 @@ export async function readEncounterRulesCapture(
     const response = {
       kind: 'TURN_COMMAND' as const,
       campaignOwnerUserId: admission.campaign.ownerUserId,
+      // Turn-flow prompts (Recharge, Legendary Actions, turn saves, initiative) go to the GM.
+      autoRollDice: await readAutoRollDice(ctx, admission.campaign.ownerUserId),
       command: admission.input,
       fingerprint: admission.fingerprint,
       occurrenceVersion: admission.pending?.occurrence.version ?? null,
@@ -178,6 +182,7 @@ export async function readEncounterRulesCapture(
             snapshot: responseAdmission.kind === 'READY' ? responseAdmission.pending.snapshot : null
           }
         : { kind: 'ACTION_COMMAND' as const }),
+      autoRollDice: await readAutoRollDice(ctx, userId),
       command: admission.input,
       fingerprint: admission.fingerprint,
       result:
@@ -203,7 +208,7 @@ export async function readEncounterRulesCapture(
     (!concentrationAdmission && !movementAdmission && !turnAdmission && membership.role !== 'OWNER')
   )
     throw new Error('Live Session role mismatch.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (!movementAdmission) {
     await requireActiveCampaignLiveAuthority(ctx, {
       campaignId: campaign.id,
@@ -234,6 +239,7 @@ export async function readEncounterRulesCapture(
     response = {
       kind: 'MOVEMENT_INPUTS',
       campaignOwnerUserId: campaign.ownerUserId,
+      autoRollDice: await readAutoRollDice(ctx, userId),
       save: movementAdmission.save,
       header: movementAdmission.header,
       bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)

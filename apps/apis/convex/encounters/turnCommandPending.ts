@@ -9,6 +9,7 @@ import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rul
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { rejectDomain } from '../lib/domainRejections'
 
 export async function readNativeTurnCommandPending(
   ctx: QueryCtx,
@@ -41,7 +42,7 @@ export async function readNativeTurnCommandPending(
       rootCommandOccurrence.pendingSnapshotChecksum === null ||
       rootCommandOccurrence.expectedEncounterVersion !== row.version
     )
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     const pendingSnapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
       JSON.parse(rootCommandOccurrence.pendingSnapshotJson)
     )
@@ -60,7 +61,7 @@ export async function readNativeTurnCommandPending(
       pendingContext.root.expectedEncounterVersion !== row.version ||
       input.expectedVersion !== row.version
     )
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,

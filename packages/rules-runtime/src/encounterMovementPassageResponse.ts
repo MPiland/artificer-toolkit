@@ -37,6 +37,8 @@ export async function evaluateEncounterMovementPassageResponse<
     occurrenceId: string
     occurrenceVersion: number
     userId: string
+    /** The roller's auto-roll preference; the responding user rolls in this slice. */
+    autoRoll: boolean
     responseCommand: ResolutionCommand
     occurredAt: string
     retained?: Outcome
@@ -54,6 +56,7 @@ export async function evaluateEncounterMovementPassageResponse<
     continueMovement: (input: {
       state: EncounterRunState
       userId: string
+      autoRoll: boolean
       root: FrozenMovementReactionRemainder['root']
       sceneVersion: number
       sceneTokens: readonly SceneToken[]
@@ -129,6 +132,7 @@ export async function evaluateEncounterMovementPassageResponse<
   }
   const evaluated = await callbacks.evaluateContest({
     state,
+    autoRoll: input.autoRoll,
     snapshot,
     resolution,
     responseCommand,
@@ -221,6 +225,7 @@ export async function evaluateEncounterMovementPassageResponse<
   const continued = await callbacks.continueMovement({
     state,
     userId: input.userId,
+    autoRoll: input.autoRoll,
     root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: input.sceneTokens,

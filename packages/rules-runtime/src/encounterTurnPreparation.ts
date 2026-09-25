@@ -18,6 +18,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   input: {
     state: EncounterRunState
     campaign: { id: string; ownerUserId: string }
+    /** The turn-flow roller's auto-roll preference; the GM rolls every turn step in this slice. */
+    autoRoll: boolean
     root: TurnCoordinatorRootDto
     occurrenceId: string
     actors: EncounterRunActorState[]
@@ -32,6 +34,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         Parameters<typeof prepareEncounterTurnEffects<TCharacterFacts>>[0],
         | 'state'
         | 'userId'
+        | 'autoRoll'
         | 'root'
         | 'occurrenceId'
         | 'actors'
@@ -48,6 +51,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         Parameters<typeof prepareTurnLegendaryActions<TCharacterFacts>>[0],
         | 'state'
         | 'userId'
+        | 'autoRoll'
         | 'root'
         | 'occurrenceId'
         | 'actors'
@@ -62,7 +66,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     initiative: (
       input: Pick<
         Parameters<typeof prepareEncounterTurnInitiative>[0],
-        'state' | 'root' | 'occurrenceId' | 'actors'
+        'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors'
       > & {
         movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
         resume?: Parameters<typeof prepareEncounterTurnInitiative>[0]['resume']
@@ -71,12 +75,12 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     recharge: (
       input: Pick<
         Parameters<typeof prepareEncounterTurnRecharge>[0],
-        'state' | 'root' | 'occurrenceId' | 'actors' | 'pending' | 'rawDie'
+        'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors' | 'pending' | 'rawDie'
       >
     ) => ReturnType<typeof prepareEncounterTurnRecharge>
   }
 ) {
-  const { state, campaign, occurrenceId, pending } = input
+  const { state, campaign, autoRoll, occurrenceId, pending } = input
   let root = input.root
   const effectContext =
     pending?.applicationContext.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
@@ -88,6 +92,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       ? await stages.effects({
           state,
           userId: campaign.ownerUserId,
+          autoRoll,
           root,
           occurrenceId,
           actors: input.actors,
@@ -107,6 +112,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   let legendary = await stages.legendary({
     state,
     userId: campaign.ownerUserId,
+    autoRoll,
     root,
     occurrenceId,
     actors: outgoingActors,
@@ -122,6 +128,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   if (needsInitiative) {
     const initiative = await stages.initiative({
       state,
+      autoRoll,
       root,
       occurrenceId,
       actors: legendary.actors,
@@ -132,6 +139,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     legendary = await stages.legendary({
       state,
       userId: campaign.ownerUserId,
+      autoRoll,
       root,
       occurrenceId,
       actors: outgoingActors,
@@ -143,6 +151,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   }
   const recharge = await stages.recharge({
     state,
+    autoRoll,
     root,
     occurrenceId,
     actors: legendary.actors,
@@ -175,6 +184,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   const incoming = await stages.effects({
     state,
     userId: campaign.ownerUserId,
+    autoRoll,
     root,
     occurrenceId,
     actors: recharge.actors,

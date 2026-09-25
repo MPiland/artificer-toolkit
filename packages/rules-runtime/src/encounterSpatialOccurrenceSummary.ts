@@ -12,7 +12,7 @@ export function projectEncounterSpatialOccurrenceSummary(
   occurrence: {
     id: string
     version: number
-    state: 'PENDING' | 'COMPLETED'
+    state: 'PENDING' | 'COMPLETED' | 'VOIDED'
     pendingSnapshot: ServerRuleExecutionPendingSnapshotDto | null
   },
   encounterVersion: number,
@@ -22,11 +22,11 @@ export function projectEncounterSpatialOccurrenceSummary(
     assignedActorId?: string | null
   }
 ): EncounterRuleOccurrenceSummaryDto {
-  if (occurrence.state === 'COMPLETED') {
+  if (occurrence.state !== 'PENDING') {
     return {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
-      status: 'COMPLETE',
+      status: occurrence.state === 'VOIDED' ? 'VOIDED' : 'COMPLETE',
       outcome: null,
       pending: null
     }

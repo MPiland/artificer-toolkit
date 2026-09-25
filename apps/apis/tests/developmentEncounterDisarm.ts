@@ -31,6 +31,7 @@ import {
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../convex/_generated/api.js'
 import {
+  assertDomainRejection,
   type DevelopmentClient,
   executeEncounterCommand,
   executeEncounterCommandAction
@@ -130,6 +131,8 @@ export async function verifyEncounterDisarm({
   })
   const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find((entry) => entry.document.kind === 'DISARM')
   assert.ok(disarm)
+  // The GM initiates the Disarm; with auto-roll off, Assisted prompts both participants for d20s.
+  await owner.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {
@@ -542,7 +545,7 @@ export async function verifyEncounterDisarm({
       const loser = raced[1 - winnerIndex]
       if (!winner || winner.status !== 'fulfilled' || !loser || loser.status !== 'rejected')
         throw new Error('Disarm contention did not produce one winner and one stale loser.')
-      assert.match(String(loser.reason), /The Disarm occurrence version is stale/)
+      assertDomainRejection(loser.reason, 'VERSION_STALE')
       second = contenders[winnerIndex]!
       staleSecond = contenders[1 - winnerIndex]!
       completed = encounterCommandResultDtoSchema.parse(winner.value)
@@ -593,7 +596,7 @@ export async function verifyEncounterDisarm({
       // A persisted response receipt would replay before the stale-version check.
       await assert.rejects(
         player.action(executeEncounterCommandAction, { command: staleSecond }),
-        /The Disarm occurrence version is stale/
+        (error) => assertDomainRejection(error, 'VERSION_STALE')
       )
       assert.deepEqual(await snapshot(), after)
     }

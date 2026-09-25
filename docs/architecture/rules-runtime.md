@@ -472,8 +472,8 @@ Normalized initiative settlement and turn advancement now live in
 participant and side DTOs plus the three existing update operations. It preserves exact cohort/order
 validation, side contiguity, versioned participant transitions and checksum-bound advance plans.
 SQL and staged in-memory callers reuse it through the transitional functions facade; the backend
-retains transaction and persistence ownership. Native Manual, Automatic, and Assisted `START` now
-persist terminal normalized state and checksum-bound occurrence/command receipts atomically; an
+retains transaction and persistence ownership. Native Manual and Assisted `START` (auto-rolled or
+prompted) now persist terminal normalized state and checksum-bound occurrence/command receipts atomically; an
 Assisted pause retains the unchanged Run until its one occurrence settles. Native `ADVANCE_TURN`
 updates the same normalized cursor and carries `ENCOUNTER_START` order into the next round. Native
 `EACH_ROUND` reevaluation, active turn effects, the remaining Run commands, and browser integration
@@ -862,10 +862,20 @@ advancing Recharge response that re-pauses the occurrence also owns a command-sp
 `TURN_EFFECTS_PENDING` receipt containing only its public pending summary; the sealed continuation and
 staged plans remain occurrence-only.
 
-Application services own random generation and persist exact evidence. Automatic mode may produce
-server evidence, Assisted mode may pause for system or physical input, and Manual mode applies no
-mechanical outcomes while optional sanitized reminders remain policy controlled. Automation mode never
-changes whether authored mechanics are structurally complete.
+Application services own random generation and persist exact evidence. **CURRENT (ADR 0034):**
+there are two automation modes, Assisted and Manual. In Assisted mode, a rules step that needs dice
+asks the roller's "Roll my dice automatically" preference (`userProfiles.autoRollDice`, default on):
+when it is on the server rolls immediately and records the same app-roll evidence a `SYSTEM_ROLL`
+records; when it is off the step pauses for system or physical input as before. Rules-runtime
+functions take the preference as an explicit `autoRoll` input, and lifecycle functions take an
+`EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`, see `encounterEvidenceMode.ts`). The roller in
+this slice is the action, move or response initiator, and the Campaign owner for turn-flow steps
+(initiative, Recharge, turn-effect saves, Legendary Actions); Convex reads the preference in the
+transaction that would create the prompt, and the Session room receives it in the `ACTION_*`,
+`TURN_COMMAND`, `CONCENTRATION_RESPONSE` and `MOVEMENT_INPUTS` captures. A resumed action prompt keeps
+prompting until that action settles; other flows apply the current preference at each new roll.
+Manual mode applies no mechanical outcomes while optional sanitized reminders remain policy
+controlled. Automation mode never changes whether authored mechanics are structurally complete.
 
 For a recognized Manual command, the owning aggregate records a completed, idempotent receipt at its
 unchanged version without invoking the Kernel, generating random evidence, or applying domain state.
@@ -1127,7 +1137,7 @@ and recharge; Feature-owned UUID charge identities retain their own state and co
 definition source is installed through the same reusable-definition path as other pinned policy data.
 The policy graph factories and immutable Creature Feature/option discovery are implemented. Recharge execution is
 integrated into the shared turn occurrence for the incoming actor only. It enforces one pinned d6
-evidence stage with a terminal Boolean result, supports Automatic and Assisted evidence, stages
+evidence stage with a terminal Boolean result, supports auto-rolled and prompted evidence, stages
 Feature-owned recovery until terminal turn commit, and records exact evidence in the terminal receipt.
 Legendary Action owner-start recovery follows the same rule: the occurrence seals an ordered refresh
 plan with owner/resource identity, lifecycle definition pin, actor currentness checksum, and before/after
@@ -1221,8 +1231,8 @@ reusable-definition selector. Native resolution and normalization retain the sel
 leaving it empty keeps an ordinary ability-save modifier.
 
 The maintenance identity is separate from the Kernel and binds concentration state/replacement and
-aggregate-owned application behavior. **CURRENT / Automatic and
-Assisted execution:** a completed Encounter action stages one deterministic receipt-only child
+aggregate-owned application behavior. **CURRENT / auto-rolled and prompted
+execution:** a completed Encounter action stages one deterministic receipt-only child
 occurrence for each finalized positive damage application against an exact maintained concentration
 state. The parent receipt retains only base action evidence. In Assisted mode, the first child pauses
 and only the current Campaign GM or current assigned controller of the maintained Character may settle
@@ -1237,7 +1247,7 @@ absence, and unavailable occurrence mutations use one public unavailable categor
 **CURRENT / native local integration:** direct finalized damage creates these children in the parent
 mutation. Before Assisted dice, the coordinator checks the exact parent damage receipt, current c3
 publication/descriptor, c2 graph, System vocabulary, Character facts and scoped save contributors.
-Automatic cleanup remains in the parent transaction; parent replay verifies the child's exact owner
+Auto-rolled cleanup remains in the parent transaction; parent replay verifies the child's exact owner
 revision transitions against its final projection. Assisted success retains the Run version; failure
 advances it once. Native rollback, physical/system dice, stale refusal and exact replay have local proof.
 One server-only `deferredCleaving` context can retain the sealed Cleaving choice during concentration
@@ -1365,9 +1375,10 @@ application applies the existing generic bounded-usage primitive and resets only
 authoritative lifecycle boundary. Separately authored feature/item charges remain owned by their
 existing Character or Encounter-actor aggregate.
 
-Automatic mode selects and resolves only System-authorized automatic policy; Assisted mode persists
-the controller/GM choice and any subsequent evidence pause; Manual mode performs no reaction
-mechanics or usage mutation. Reconnect returns the same compact authorized choice from the pending
+Assisted mode resolves System-authorized automatic reactions without a choice and persists the
+controller/GM choice for choice reactions; their dice follow the roller's auto-roll preference (the
+old Assisted override that turned automatic reactions into choices is removed with the Automatic
+mode). Manual mode performs no reaction mechanics or usage mutation. Reconnect returns the same compact authorized choice from the pending
 occurrence. Other players receive no candidate-count, source, controller, or hidden-trigger side
 channel.
 

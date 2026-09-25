@@ -79,6 +79,7 @@ describe('CampaignEncounterDecision', () => {
     const user = userEvent.setup()
     const view = renderWithAppProviders(
       <CampaignEncounterDecision
+        canVoid
         campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
@@ -111,6 +112,7 @@ describe('CampaignEncounterDecision', () => {
     currentPending = null
     view.rerender(
       <CampaignEncounterDecision
+        canVoid
         campaignId={tabletopGmEncounter.campaignId}
         connected
         encounter={tabletopGmEncounter}
@@ -124,6 +126,7 @@ describe('CampaignEncounterDecision', () => {
     const user = userEvent.setup()
     renderWithAppProviders(
       <CampaignEncounterDecision
+        canVoid
         campaignId={tabletopGmEncounter.campaignId}
         connected={false}
         encounter={tabletopGmEncounter}

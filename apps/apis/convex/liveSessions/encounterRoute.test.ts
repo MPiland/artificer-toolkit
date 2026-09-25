@@ -156,7 +156,7 @@ async function setup() {
   await base.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null

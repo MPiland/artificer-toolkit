@@ -37,6 +37,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -83,6 +84,8 @@ afterEach(() => {
 
 async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   const base = await fixture()
+  // Assisted START prompts for initiative only while the GM's auto-roll is off.
+  if (mode === 'ASSISTED') await setAutoRollDice(base.t, base.owner.userId, false)
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
   ])

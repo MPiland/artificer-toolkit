@@ -186,7 +186,7 @@ export async function publishSpatialPending<TSettlement>(
     occurrence: {
       id: string
       version: number
-      state: 'PENDING' | 'COMPLETED'
+      state: Doc<'encounterRuleOccurrences'>['state']
       pendingSnapshot: ReturnType<typeof serverRuleExecutionPendingSnapshotDtoSchema.parse> | null
     },
     encounterVersion: number,

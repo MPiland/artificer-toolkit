@@ -62,7 +62,7 @@ import type {
   EncounterBlueprintListInput,
   EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
-import { executeEncounterCommand } from './developmentClient'
+import { assertDomainRejection, executeEncounterCommand } from './developmentClient'
 import { DevelopmentHttpClient } from './developmentHttpClient'
 
 // Backend integration only. Fixture invitation hashes use the existing internal
@@ -2928,7 +2928,7 @@ try {
         const loser = starts[1 - winnerIndex]
         if (!winner || winner.status !== 'fulfilled' || !loser || loser.status !== 'rejected')
           throw new Error('Native concurrent START did not produce one winner and one rejection.')
-        assert.match(String(loser.reason), /Campaign already has an active Encounter\./)
+        assertDomainRejection(loser.reason, 'ACTIVE_ENCOUNTER_EXISTS')
         const loserIndex = 1 - winnerIndex
         assert.equal(winner.value.projection.status, 'ACTIVE')
         assert.deepEqual(

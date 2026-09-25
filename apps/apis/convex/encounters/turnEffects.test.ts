@@ -347,10 +347,7 @@ async function fixture(assisted = false) {
       .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
       .unique()
     if (!row) throw new Error('Missing fixture Run.')
-    const state = {
-      ...readRunState(row),
-      automationMode: assisted ? ('ASSISTED' as const) : ('AUTOMATIC' as const)
-    }
+    const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
     await ctx.db.patch(row._id, {
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state)
@@ -365,6 +362,7 @@ async function fixture(assisted = false) {
       root: root(state, base.owner.userId, actor.id),
       occurrenceId: crypto.randomUUID(),
       userId: base.owner.userId,
+      autoRoll: !assisted,
       boundary: { ordinal: 1 as const, stage: 'START_OF_TURN' as const, actorId: actor.id }
     }
   })
@@ -667,7 +665,7 @@ describe('native turn effect planning and terminal transactions', () => {
   }, 30000)
 
   it('merges Automatic outgoing and incoming maintained cleanup evidence and exactly replays', async () => {
-    const base = await turnActiveEffectFixture('AUTOMATIC')
+    const base = await turnActiveEffectFixture('AUTO_ROLL')
     const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -973,6 +971,7 @@ describe('native turn effect planning and terminal transactions', () => {
         actor: facts.actors.find((actor) => actor.id === base.actor.id)!,
         root: root(facts.state, base.owner.userId, base.actor.id),
         userId: base.owner.userId,
+        autoRoll: true,
         occurrenceId: crypto.randomUUID(),
         boundary: { ordinal: 0 as const, stage: 'END_OF_TURN' as const, actorId: base.actor.id }
       }

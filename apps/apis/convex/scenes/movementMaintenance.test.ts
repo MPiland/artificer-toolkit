@@ -10,10 +10,7 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -22,6 +19,7 @@ import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 
@@ -93,24 +91,6 @@ async function encounterMechanics(base: MaintainedBase) {
     effects: snapshot.effects,
     maintainedStates: snapshot.maintainedStates
   }
-}
-
-async function setAssisted(base: MaintainedBase) {
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!row) throw new Error('Maintained movement Run is unavailable.')
-    const state = encounterRunStateSchema.parse({
-      ...JSON.parse(row.stateJson),
-      automationMode: 'ASSISTED'
-    })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
-  })
 }
 
 async function resetReactionAndDetachScene(base: MaintainedBase) {
@@ -645,7 +625,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   )
   await base.owner.caller.mutation(prepare, firstScene.request)
   await base.owner.caller.mutation(finish, firstScene.request)
-  await setAssisted(base)
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const currentRun = await resetReactionAndDetachScene(base)
   const assistedScene = await setupReactionMovementScene(
     { ...base, run: currentRun },
@@ -656,31 +636,16 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     saveId: assistedScene.saveId,
     characterRevisions: []
   })
-  const beforeChoice = await encounterMechanics(base)
+  const beforeEvidence = await encounterMechanics(base)
   expect((await base.owner.caller.mutation(prepare, assistedScene.request)).outcome.kind).toBe(
     'PENDING'
   )
-  const choice = (await base.owner.caller.mutation(finish, assistedScene.request)).occurrence
+  // The System-automatic reaction fires without a choice; its d20 pauses as evidence.
+  const evidence = (await base.owner.caller.mutation(finish, assistedScene.request)).occurrence
     ?.pending
-  expect(await encounterMechanics(base)).toEqual(beforeChoice)
-  if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
-    throw new Error('Expected Assisted maintained movement choice.')
-  const selected = await base.owner.caller.mutation(
-    begin,
-    response({
-      encounterId: base.run.id,
-      pending: choice,
-      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
-    })
-  )
-  if (!selected || selected.kind !== 'READY')
-    throw new Error('Expected Assisted maintained action staging.')
-  const evidenceRequest = { ...assistedScene.request, saveId: selected.saveId }
-  await base.owner.caller.mutation(observe, { saveId: selected.saveId, characterRevisions: [] })
-  expect((await base.owner.caller.mutation(prepare, evidenceRequest)).outcome.kind).toBe('PENDING')
-  const evidence = (await base.owner.caller.mutation(finish, evidenceRequest)).occurrence?.pending
+  expect(await encounterMechanics(base)).toEqual(beforeEvidence)
   if (!evidence || evidence.kind !== 'D20_EVIDENCE')
-    throw new Error('Expected Assisted maintained d20 evidence.')
+    throw new Error('Expected Assisted maintained d20 evidence without a reaction choice.')
   const pendingGameplay = await encounterMechanics(base)
   const pendingSnapshot = await base.t.run(async (ctx) => {
     const occurrence = await ctx.db

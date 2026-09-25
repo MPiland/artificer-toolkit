@@ -53,13 +53,15 @@ export async function verifyEncounterActionTransactions({
       { kind: 'CUSTOM', label: 'V14 target', maxHitPoints: 10 }
     ]
   })
+  // Assisted with the GM's auto-roll on: initiative and the contended action roll on the server.
+  await owner.mutation(api.account.setAutoRollDice, { autoRollDice: true })
   async function prepareActionRun(campaignId: string) {
     const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
     const { version, updatedAt: _updatedAt, ...fields } = settings
     await owner.mutation(api.campaigns.playSettings.save, {
       ...fields,
       expectedVersion: version,
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       initiativePolicyDefinitionId,
       initiativeTieDefinitionId: null
     })

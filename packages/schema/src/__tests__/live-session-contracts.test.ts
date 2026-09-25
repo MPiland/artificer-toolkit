@@ -294,15 +294,36 @@ describe('live-session contracts', () => {
         correction: { scope: 'SCENE', state: scene },
         currentSequence: 9,
         message: 'Scene state changed.',
+        reason: null,
         type: 'COMMAND_REJECTED'
       })
     ).toMatchObject({ commandId: ids.command, code: 'STALE_STATE', currentSequence: 9 })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        code: 'DOMAIN_REJECTED',
+        commandId: ids.command,
+        currentSequence: 9,
+        message: 'Encounter version is stale.',
+        reason: 'VERSION_STALE',
+        type: 'COMMAND_REJECTED'
+      })
+    ).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' })
     expect(
       liveSessionWebSocketServerMessageDtoSchema.safeParse({
         code: 'SOMETHING_ELSE',
         commandId: ids.command,
         currentSequence: 9,
         message: 'No.',
+        reason: null,
+        type: 'COMMAND_REJECTED'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        code: 'STALE_STATE',
+        commandId: ids.command,
+        currentSequence: 9,
+        message: 'Scene state changed.',
         type: 'COMMAND_REJECTED'
       }).success
     ).toBe(false)

@@ -288,7 +288,7 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
 export async function executeEncounterMovementReactionAction(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  autoRoll: boolean
   prepared: PreparedEncounterMovementReactionAction
   continuation?: ServerRuleExecutionContinuationDto
   expectedD20Policy?: ServerRuleExecutionD20PolicyDto
@@ -375,7 +375,7 @@ export async function executeEncounterMovementReactionAction(input: {
     })
     if (execution.status === 'PAUSED') {
       const policy = deriveEncounterActionD20Policy({ continuation: execution.continuation, bound })
-      if (input.automationMode === 'ASSISTED') {
+      if (!input.autoRoll) {
         return {
           kind: 'PENDING',
           continuation: execution.continuation,

@@ -19,7 +19,7 @@ import { projectNativeMovementConcentrationEnd } from './movementMaintenance'
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
 
 async function setupFixture() {
-  const fixture = await setupConcentration('ASSISTED')
+  const fixture = await setupConcentration('PROMPT')
   await fixture.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')

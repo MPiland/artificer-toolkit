@@ -9,7 +9,8 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterExecuteInput,
   type EncounterCommandResultDto,
-  type ResolveRuleOccurrenceInputDto
+  type ResolveRuleOccurrenceInputDto,
+  type VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryBeginResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { internalAction, type ActionCtx } from '../_generated/server'
@@ -25,6 +26,18 @@ const responseResult = makeFunctionReference<
   ResolveRuleOccurrenceInputDto,
   EncounterCommandResultDto
 >('scenes/movementResolutionReads:result')
+const prepareVoid = makeFunctionReference<
+  'mutation',
+  VoidRuleOccurrenceInputDto,
+  | { kind: 'COMPLETE'; result: EncounterCommandResultDto }
+  | { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto }
+  | { kind: 'RECORD' }
+>('encounters/occurrenceVoid:prepare')
+const recordVoid = makeFunctionReference<
+  'mutation',
+  VoidRuleOccurrenceInputDto,
+  EncounterCommandResultDto
+>('encounters/occurrenceVoid:record')
 const executeCommand = makeFunctionReference<
   'mutation',
   EncounterExecuteInput,
@@ -51,6 +64,14 @@ export async function executeNativeEncounterCommand(
   ctx: Pick<ActionCtx, 'runQuery' | 'runMutation'>,
   input: EncounterExecuteInput
 ): Promise<EncounterCommandResultDto> {
+  if (input.command.type === 'VOID_RULE_OCCURRENCE') {
+    // A declinable decision settles through the same path as a GM answer, then records the void.
+    const prepared = await ctx.runMutation(prepareVoid, input.command)
+    if (prepared.kind === 'COMPLETE') return prepared.result
+    if (prepared.kind === 'DECLINE')
+      await executeNativeEncounterCommand(ctx, { command: prepared.command })
+    return ctx.runMutation(recordVoid, input.command)
+  }
   if (input.command.type === 'RESOLVE_RULE_OCCURRENCE') {
     const begin = await ctx.runMutation(beginResponse, input.command)
     if (begin) {

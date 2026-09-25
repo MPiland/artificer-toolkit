@@ -19,6 +19,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readRunProjection, readRunState } from './documents'
 import { requireUnusedEvidenceCommandId } from './timelineEntries'
+import { rejectDomain } from '../lib/domainRejections'
 
 const projectionMetadataFields = zMini.omit(encounterGmProjectionDtoSchema, {
   actors: true,
@@ -88,7 +89,7 @@ export async function readNativeEncounterCommandReplay(
       prior.encounterId !== row.id ||
       prior.commandFingerprint !== commandFingerprint
     )
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
     const projection = encounterGmProjectionDtoSchema.parse(result.projection)
     if (

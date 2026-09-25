@@ -31,6 +31,7 @@ import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import {
   preparePrivateMovementResponse,
@@ -88,7 +89,7 @@ function optional(kind: 'OVERRUN' | 'TUMBLE') {
 /** Actual Scene setup with two authored Creature snapshots and active optional-combat definitions. */
 async function setupPassageScene(
   input: {
-    automationMode?: 'ASSISTED' | 'AUTOMATIC'
+    rolls?: FixtureRolls
     perceptionRequirement?: 'SEE'
     laterBlocker?: boolean
     path?: { x: number; y: number }[]
@@ -100,6 +101,7 @@ async function setupPassageScene(
     input.laterBlocker ?? false,
     'AUTOMATIC'
   )
+  if (input.rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   for (const definitions of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     optional('OVERRUN'),
@@ -136,7 +138,7 @@ async function setupPassageScene(
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: input.automationMode ?? 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: base.mover.id,
       optionalCombatSnapshot: optionalSnapshot,
@@ -342,7 +344,7 @@ describe('native Scene movement passage', () => {
 
   it('resumes an assisted spatial pause into Passage using the original movement distance', async () => {
     const value = await setupPassageScene({
-      automationMode: 'ASSISTED',
+      rolls: 'PROMPT',
       path: [
         { x: 150, y: 50 },
         { x: 700, y: 50 }
@@ -429,7 +431,7 @@ describe('native Scene movement passage', () => {
   }, 30_000)
 
   it('revalidates reaction eligibility in the final transaction after passage preparation', async () => {
-    const value = await setupPassageScene({ automationMode: 'ASSISTED' })
+    const value = await setupPassageScene({ rolls: 'PROMPT' })
     const { choice } = await issuePassage(value)
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
     if (!option) throw new Error('Expected an Overrun passage option.')
@@ -475,7 +477,7 @@ describe('native Scene movement passage', () => {
 
   it('keeps an assisted passage pending through both canonical d20 requests before consuming its allowance', async () => {
     const value = await setupPassageScene({
-      automationMode: 'ASSISTED',
+      rolls: 'PROMPT',
       perceptionRequirement: 'SEE'
     })
     const { choice } = await issuePassage(value)
@@ -511,10 +513,15 @@ describe('native Scene movement passage', () => {
       rawFaces: [1]
     })
     expect(completed.request.perceptionEnvironments).toHaveLength(1)
+    // The retained System-automatic reaction fires without a choice; its d20 pauses as evidence.
     const reaction = completed.result.occurrence?.pending
-    if (!reaction || reaction.kind !== 'MOVEMENT_REACTION')
-      throw new Error('Expected the retained reaction after the assisted contest.')
-    const terminal = await respond(value, reaction, { kind: 'DECLINE' })
+    if (!reaction || reaction.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the retained automatic reaction d20 after the assisted contest.')
+    const terminal = await respond(value, reaction, {
+      kind: 'ENTER_DICE',
+      requestId: reaction.request.requestId,
+      rawFaces: [1]
+    })
     expect(terminal.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     const after = await value.base.t.run(async (ctx) =>
       ctx.db
@@ -532,7 +539,7 @@ describe('native Scene movement passage', () => {
     async (route) => {
       const authSecret = 'private-passage-auth-secret-at-least-32-bytes'
       if (route === 'private') vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
-      const value = await setupPassageScene({ automationMode: 'ASSISTED' })
+      const value = await setupPassageScene({ rolls: 'PROMPT' })
       await exhaustFixtureReaction(value)
       const { choice } = await issuePassage(value)
       const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
@@ -690,7 +697,7 @@ describe('native Scene movement passage', () => {
   ] as const)(
     'stops a %s passage at contact while consuming its allowance once',
     async (_, initiatorFaces, defenderFaces) => {
-      const value = await setupPassageScene({ automationMode: 'ASSISTED' })
+      const value = await setupPassageScene({ rolls: 'PROMPT' })
       await exhaustFixtureReaction(value)
       const { choice } = await issuePassage(value)
       const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
@@ -751,7 +758,7 @@ describe('native Scene movement passage', () => {
   )
 
   it('hides assisted Creature evidence from an unassigned player while the owner resolves both participants', async () => {
-    const value = await setupPassageScene({ automationMode: 'ASSISTED' })
+    const value = await setupPassageScene({ rolls: 'PROMPT' })
     await exhaustFixtureReaction(value)
     const { choice } = await issuePassage(value)
     expect(

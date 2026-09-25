@@ -55,7 +55,7 @@ async function settle(
     const faces = [sourceFace, targetFace][Symbol.iterator]()
     const occurrenceId = crypto.randomUUID()
     const execution = await executeEncounterOptionalContestAction({
-      automationMode: 'AUTOMATIC',
+      autoRoll: true,
       graph: preparation.graph,
       initiator: { ...preparation.contest.initiator, requestNodeId: 'initiator_d20' },
       defender: { ...defender, requestNodeId: 'target_d20' },
@@ -121,7 +121,7 @@ describe('native Disarm preparation and settlement transactions', () => {
   it.each([false, true])(
     'settles only the selected held item and rolls back every write (Character target: %s)',
     async (characterTarget) => {
-      const base = await nativeDisarmFixture('AUTOMATIC', characterTarget)
+      const base = await nativeDisarmFixture('AUTO_ROLL', characterTarget)
       const before = await disarmRecords(base)
       await expect(settle(base, 'win', true)).rejects.toThrow('rollback direct Disarm settlement')
       expect(await disarmRecords(base)).toEqual(before)

@@ -17,7 +17,7 @@ import { EncounterConflictError } from './encounterErrors.js'
  * exactly once at terminal settlement.
  */
 export async function executeEncounterMovementPassageContest(input: {
-  readonly automationMode: 'AUTOMATIC' | 'ASSISTED'
+  readonly autoRoll: boolean
   readonly continuation?: ServerRuleExecutionContinuationDto
   readonly pending: ServerOptionalCombatContestPendingApplicationContextDto
   readonly occurrenceId: string
@@ -87,7 +87,7 @@ export async function executeEncounterMovementPassageContest(input: {
         : null
     : null
   const result = await executeEncounterOptionalContestAction({
-    automationMode: input.automationMode,
+    autoRoll: input.autoRoll,
     ...(input.continuation ? { continuation: input.continuation } : {}),
     graph,
     initiator: { ...input.pending.initiator, requestNodeId: 'initiator_d20' },

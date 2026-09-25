@@ -161,7 +161,8 @@ describe('account deletion', () => {
         authUserId: 'deleted-auth-user',
         bio: null,
         entitlementUsage: zeroAccountUsage,
-        entitlementUsageReady: true
+        entitlementUsageReady: true,
+        autoRollDice: true
       })
       for (const action of ['APPLICATION', 'INVITE', 'REPORT', 'BLOCK'] as const)
         await consumeSocialRateLimit(ctx, userId, action)

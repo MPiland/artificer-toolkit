@@ -4,6 +4,7 @@ import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { evaluateEncounterAutomaticMovementActions } from '@artificer-toolkit/rules-runtime/encounterAutomaticMovementActions'
 import type { MutationCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import { readRunState } from '../encounters/documents'
 import type { MovementTarget } from '../encounters/movementTargets'
 import type { NativeMaintenanceProjection } from '../encounters/actionMaintenance'
@@ -57,8 +58,8 @@ export async function evaluateAutomaticMovementActions(input: {
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
     .unique()
-  if (!run || readRunState(run).automationMode !== 'AUTOMATIC')
-    throw new Error('Automatic movement reactions require Automatic Run mode.')
+  if (!run || readRunState(run).automationMode === 'MANUAL')
+    throw new Error('Automatic movement reactions cannot run in a Manual Encounter.')
   const state = readRunState(run)
   const perception = await readSceneMovementReactionPerception(
     input.ctx,
@@ -82,6 +83,8 @@ export async function evaluateAutomaticMovementActions(input: {
       ...input,
       state,
       userId,
+      // The moving initiator rolls in this slice.
+      autoRoll: await readAutoRollDice(input.ctx, userId),
       runtime,
       facts: perception.facts,
       resolvePerception: perception.resolvePerception,

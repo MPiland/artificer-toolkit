@@ -19,6 +19,7 @@ import { loadNativeConcentrationState } from './concentrationState'
 import type { NativeMaintenanceProjection } from './actionMaintenance'
 import { spatialMovementEffectBeforeTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import { projectSpatialMovementResult } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementResult'
+import { rejectDomain } from '../lib/domainRejections'
 
 type SpatialScope = NonNullable<
   Awaited<ReturnType<ReturnType<typeof createSpatialRuleEffectStore>['scope']>>
@@ -168,7 +169,7 @@ export async function evaluateNativeSpatialMovement(
   const { campaign } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')
-  if (state.version !== expectedEncounterVersion) throw new Error('Encounter version is stale.')
+  if (state.version !== expectedEncounterVersion) rejectDomain('VERSION_STALE')
   const scope = await createSpatialRuleEffectStore(ctx).scope({
     encounterId,
     sceneId: input.sceneId

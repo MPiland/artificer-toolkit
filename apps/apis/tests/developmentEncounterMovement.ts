@@ -173,6 +173,9 @@ export async function prepareEncounterMovementFixture({
       ]
     }
   })
+  // The fixture proves Assisted prompts: both the moving player and the GM enter their own dice.
+  for (const client of [owner, player])
+    await client.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {

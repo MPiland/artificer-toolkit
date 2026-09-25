@@ -6,6 +6,8 @@ import {
   type FunctionReturnType,
   type OptionalRestArgs
 } from 'convex/server'
+import { ConvexError } from 'convex/values'
+import type { DomainRejectionErrorData } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   encounterExecuteInputSchema,
   type EncounterCommandInputDto,
@@ -147,7 +149,16 @@ export function openEncounterCommandRoom(options: {
           new Error('The Session room acknowledged the Encounter command without a result.')
         )
     } else if (message.type === 'COMMAND_REJECTED') {
-      take(message.commandId)?.reject(new Error(`${message.code}: ${message.message}`))
+      // A domain rejection surfaces as the same ConvexError data a direct Convex call throws.
+      take(message.commandId)?.reject(
+        message.reason
+          ? new ConvexError({
+              code: 'DOMAIN_REJECTED',
+              reason: message.reason,
+              message: message.message
+            } satisfies DomainRejectionErrorData)
+          : new Error(`${message.code}: ${message.message}`)
+      )
     }
   }
 

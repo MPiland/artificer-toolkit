@@ -32,6 +32,7 @@ export async function evaluateSceneMovementContinuation(
     request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
     state: EncounterRunState
     userId: string
+    autoRoll: boolean
     root: NativeInput['root']
     sceneVersion: number
     sceneTokens: readonly SceneToken[]

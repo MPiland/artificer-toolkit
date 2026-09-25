@@ -99,6 +99,8 @@ export async function prepareEncounterMovementConcentration<
     occurrenceId: string
     sourceCommandId: string
     userId: string
+    /** The roller's auto-roll preference; the initiator rolls Concentration in this slice. */
+    autoRoll: boolean
     occurredAt: string
     remainder: FrozenMovementReactionRemainder
     source: DamageSource
@@ -216,7 +218,7 @@ export async function prepareEncounterMovementConcentration<
         check.result.occurrenceId === occurrenceId &&
         check.sourceCommandId === input.sourceCommandId
     )
-    if (input.state.automationMode === 'ASSISTED' && !resume) {
+    if (!input.autoRoll && !resume) {
       if (retained)
         throw new Error('Movement Concentration cannot consume unissued player evidence.')
       const { currentSpatialCandidate: _candidate, ...movement } = remainder

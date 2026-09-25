@@ -14,6 +14,7 @@ import { replayNativeMovementReactionAction } from '../encounters/movementReacti
 import { prepareNativeMovementConcentration } from '../encounters/movementConcentration'
 import type { MovementTarget } from '../encounters/movementTargets'
 import { createRulesRuntime } from '../rules/runtime'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import type { assertMovementResolutionCurrent } from './movementResolutionDocuments'
 import { readSceneMovementReactionPerception } from './movementPerceptionValidation'
 import { evaluateSceneMovementContinuation } from './movementContinuation.helper'
@@ -65,6 +66,8 @@ export async function evaluateSceneMovementActionResponse(
       occurrenceId: current.occurrence.id,
       occurrenceVersion: current.occurrence.version,
       userId: current.userId,
+      // The responding user rolls in this slice.
+      autoRoll: await readAutoRollDice(ctx, current.userId),
       responseCommand: input.responseCommand,
       occurredAt: input.occurredAt,
       runtime,

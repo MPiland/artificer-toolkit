@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
-  ResolveRuleOccurrenceInputDto
+  ResolveRuleOccurrenceInputDto,
+  VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -99,7 +100,7 @@ const declarationPending = {
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
 async function resolveDecisionCommand(
-  command: ResolveRuleOccurrenceInputDto
+  command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
 ): Promise<EncounterCommandResultDto> {
   resolveDecision(command)
   return {
@@ -119,6 +120,7 @@ async function resolveDecisionCommand(
 const meta = {
   component: CampaignTabletopDecisionDrawer,
   args: {
+    canVoid: true,
     connected: true,
     encounter: tabletopGmEncounter,
     pending: d20Pending,

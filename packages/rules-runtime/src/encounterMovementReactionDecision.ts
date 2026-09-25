@@ -43,22 +43,6 @@ type OrganizedEncounterMovementReactionDecisions = {
   choiceGroups: readonly EncounterMovementReactionChoiceGroup<EncounterMovementReactionEvaluationSource>[]
 }
 
-export const ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID =
-  '00000000-0000-4000-8000-0000000000f0'
-
-function assistedChoiceOverride<TSource extends MovementReactionEligibilitySource>(
-  entry: EvaluatedEncounterMovementReaction<TSource>
-): EvaluatedEncounterMovementReaction<TSource> {
-  return {
-    ...entry,
-    policy: {
-      ...entry.policy,
-      selectionPolicy: 'CHOICE',
-      choiceDefinitionId: ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID
-    }
-  }
-}
-
 function compareEntry<TSource extends MovementReactionEligibilitySource>(
   left: EvaluatedEncounterMovementReaction<TSource>,
   right: EvaluatedEncounterMovementReaction<TSource>
@@ -89,16 +73,12 @@ function optionId<TSource extends MovementReactionEligibilitySource>(
 export function organizeEncounterMovementReactionDecisions<
   TSource extends MovementReactionEligibilitySource
 >(
-  evaluated: readonly EvaluatedEncounterMovementReaction<TSource>[],
-  automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC'
+  evaluated: readonly EvaluatedEncounterMovementReaction<TSource>[]
 ): {
   automatic: readonly EvaluatedEncounterMovementReaction<TSource>[]
   choiceGroups: readonly EncounterMovementReactionChoiceGroup<TSource>[]
 } {
-  const eligible = evaluated
-    .filter((entry) => entry.policy.eligible)
-    .map((entry) => (automationMode === 'ASSISTED' ? assistedChoiceOverride(entry) : entry))
-    .sort(compareEntry)
+  const eligible = evaluated.filter((entry) => entry.policy.eligible).sort(compareEntry)
   const automatic = eligible.filter((entry) => entry.policy.selectionPolicy === 'AUTOMATIC')
   const choiceEntries = eligible.filter((entry) => entry.policy.selectionPolicy === 'CHOICE')
   const groups: EncounterMovementReactionChoiceGroup<TSource>[] = []

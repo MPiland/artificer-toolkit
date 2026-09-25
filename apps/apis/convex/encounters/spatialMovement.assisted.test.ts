@@ -34,10 +34,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as const)(
+it.each(['PROMPT', 'AUTO_ROLL', 'AUTO_ROLL_PREPARED', 'PROMPT_PREFIX'] as const)(
   'pauses native Character spatial damage, rejects stale resume, and publishes exact entered evidence (%s)',
   async (scenario) => {
-    const automationMode = scenario.startsWith('AUTOMATIC') ? 'AUTOMATIC' : 'ASSISTED'
+    const autoRoll = scenario.startsWith('AUTO_ROLL')
     vi.stubEnv('BETTER_AUTH_SECRET', 'native-spatial-test-secret-at-least-32-bytes')
     const base = await setupCharacterRun()
     const sceneId = crypto.randomUUID()
@@ -98,7 +98,7 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
         .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
         .unique()
       if (!row) throw new Error('Fixture Run missing')
-      const state = { ...readRunState(row), automationMode }
+      const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
       await ctx.db.patch(row._id, {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
@@ -225,7 +225,8 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
       currentPosition: { x: 0, y: 0 },
       occurrenceId,
       executionCommandId: commandId,
-      occurredAt
+      occurredAt,
+      autoRoll
     }
     const current = () =>
       base.owner.caller.run(async (ctx) => {
@@ -253,7 +254,7 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
           effects: await scope!.list()
         }
       })
-    if (scenario === 'ASSISTED_PREFIX')
+    if (scenario === 'PROMPT_PREFIX')
       await base.owner.caller.run(async (ctx) => {
         const scope = await createSpatialRuleEffectStore(ctx).scope({
           encounterId: base.run.id,
@@ -278,13 +279,9 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
     const before = await current()
     const randomRoll = vi.spyOn(rollRandom, 'nextRollInt')
     const pending = await base.owner.caller.run((ctx) =>
-      evaluateNativeSpatialMovement(
-        ctx,
-        movement,
-        automationMode === 'AUTOMATIC' ? 'PREVIEW' : 'COMMIT'
-      )
+      evaluateNativeSpatialMovement(ctx, movement, autoRoll ? 'PREVIEW' : 'COMMIT')
     )
-    if (automationMode === 'AUTOMATIC') {
+    if (autoRoll) {
       expect(pending.kind).toBe('TERMINAL')
       if (pending.kind !== 'TERMINAL' || pending.result.status !== 'BATCH_COMPLETE')
         throw new Error('Expected automatic terminal spatial damage')
@@ -312,7 +309,7 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
       const completed = await base.owner.caller.run((ctx) =>
         evaluateNativeSpatialMovement(ctx, {
           ...movement,
-          ...(scenario === 'AUTOMATIC_PREPARED'
+          ...(scenario === 'AUTO_ROLL_PREPARED'
             ? { frozenTerminal: pending }
             : { frozenReactionRemainder })
         })
@@ -355,7 +352,7 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
         kind: 'ENTER_DICE'
       }
     }
-    if (scenario === 'ASSISTED_PREFIX') {
+    if (scenario === 'PROMPT_PREFIX') {
       const prefixInput = { ...resume, interruptAfterPathDistance: 6 }
       const preview = await base.owner.caller.run(async (ctx) => {
         const boundary = await evaluateNativeSpatialMovement(ctx, prefixInput, 'PREVIEW')

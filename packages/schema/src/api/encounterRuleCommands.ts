@@ -164,5 +164,12 @@ export const resolveRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema
     z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema })
   ])
 })
+/** GM escape hatch for a stuck decision; the outcome depends on the pending decision's kind. */
+export const voidRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema, {
+  type: z.literal('VOID_RULE_OCCURRENCE'),
+  occurrenceId: uuidSchema,
+  expectedOccurrenceVersion: versionSchema
+})
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
+export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>

@@ -67,7 +67,7 @@ async function runtime() {
 }
 
 async function pendingFixture() {
-  const fixture = await setupConcentration('ASSISTED')
+  const fixture = await setupConcentration('PROMPT')
   const seeded = await seedConcentration(fixture)
   await fixture.t.run(async (ctx) => {
     const row = await ctx.db

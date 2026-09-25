@@ -1,3 +1,4 @@
+import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import { requireRechargePending } from './encounterTurnPending.js'
 import {
   discoverEncounterRechargeCandidates,
@@ -119,7 +120,7 @@ async function replayCompletedRecharge(input: {
     occurrenceId: input.occurrenceId,
     definitions: input.definitions,
     runtime: input.runtime,
-    mode: 'ASSISTED'
+    mode: 'PROMPT'
   })
   if (!started || started.kind !== 'PENDING')
     throw new Error('Retained Recharge execution no longer requires d6 evidence.')
@@ -128,7 +129,7 @@ async function replayCompletedRecharge(input: {
     occurrenceId: input.occurrenceId,
     definitions: input.definitions,
     runtime: input.runtime,
-    mode: 'ASSISTED',
+    mode: 'PROMPT',
     continuation: started.continuation,
     rawDie: input.retained.rawDie
   })
@@ -175,6 +176,8 @@ export async function prepareEncounterTurnRecharge(input: {
   actors: EncounterRunActorState[]
   pending?: ServerRuleExecutionPendingSnapshotDto
   rawDie?: number
+  /** The roller's auto-roll preference; the GM rolls Recharge for creatures. */
+  autoRoll: boolean
   definitions: { requireCurrent(definitionId: string): Promise<ReusableDefinitionCurrentDto> }
   createRuntime(): Promise<RulesRuntimeService>
   rollD6(): number
@@ -278,7 +281,7 @@ export async function prepareEncounterTurnRecharge(input: {
       occurrenceId: input.occurrenceId,
       definitions,
       runtime,
-      mode: input.state.automationMode,
+      mode: encounterEvidenceMode(input.state.automationMode, input.autoRoll),
       ...(continuation ? { continuation, rawDie: input.rawDie } : { rollD6: input.rollD6 })
     })
     if (!result) throw new Error('Recharge execution became unavailable.')

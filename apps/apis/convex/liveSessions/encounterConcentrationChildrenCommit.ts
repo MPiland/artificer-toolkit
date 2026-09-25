@@ -64,7 +64,7 @@ export async function persistLiveEncounterConcentrationChildren(
     const { maintainedStateId, ...damage } = application
     const expectedId = concentrationOccurrenceId(parentOccurrenceId, damage)
     if (
-      state.automationMode !== 'AUTOMATIC' ||
+      state.automationMode === 'MANUAL' ||
       result.occurrenceId !== expectedId ||
       result.occurrenceVersion !== 1 ||
       result.evidence.source.gameSystemId !== state.gameSystemId ||
@@ -149,7 +149,7 @@ export async function persistLiveEncounterConcentrationChildren(
   if (pending) {
     const application = remaining.shift()
     if (
-      state.automationMode !== 'ASSISTED' ||
+      state.automationMode === 'MANUAL' ||
       !application ||
       pending.snapshotKind !== 'KERNEL_EVIDENCE' ||
       pending.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'

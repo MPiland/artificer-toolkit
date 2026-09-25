@@ -6,7 +6,10 @@ import {
 } from '@artificer-toolkit/schema/api/auth'
 import {
   accountProfileDtoSchema,
-  type AccountProfileDto
+  accountRollPreferencesDtoSchema,
+  setAutoRollDiceInputSchema,
+  type AccountProfileDto,
+  type AccountRollPreferencesDto
 } from '@artificer-toolkit/schema/api/account'
 import { query } from './_generated/server'
 import { components, internal } from './_generated/api'
@@ -119,6 +122,30 @@ export const setAuthoringExperience = mutation({
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
     await ctx.db.patch(authenticated.profile._id, { authoringExperience: input.experience })
+    return null
+  }
+})
+
+export const rollPreferences = query({
+  args: {},
+  returns: v.object({ autoRollDice: v.boolean() }),
+  handler: async (ctx): Promise<AccountRollPreferencesDto> => {
+    const authenticated = await getAuthenticatedProfile(ctx)
+    if (!authenticated) throw new Error('Unauthenticated')
+    return accountRollPreferencesDtoSchema.parse({
+      autoRollDice: authenticated.profile.autoRollDice
+    })
+  }
+})
+
+export const setAutoRollDice = mutation({
+  args: { autoRollDice: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const input = setAutoRollDiceInputSchema.parse(args)
+    const authenticated = await getAuthenticatedProfile(ctx)
+    if (!authenticated) throw new Error('Unauthenticated')
+    await ctx.db.patch(authenticated.profile._id, { autoRollDice: input.autoRollDice })
     return null
   }
 })

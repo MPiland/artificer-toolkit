@@ -155,6 +155,8 @@ export async function evaluateEncounterMovementPassageContest<
 >(
   input: {
     state: EncounterRunState
+    /** The roller's auto-roll preference; the responding user rolls in this slice. */
+    autoRoll: boolean
     snapshot: ServerRuleExecutionPendingSnapshotDto
     resolution: ResolveRuleOccurrenceInputDto['resolution']
     responseCommand: ResolutionCommand
@@ -217,7 +219,7 @@ export async function evaluateEncounterMovementPassageContest<
       return face
     }
     const execution = await executeEncounterMovementPassageContest({
-      automationMode: input.state.automationMode === 'AUTOMATIC' ? 'AUTOMATIC' : 'ASSISTED',
+      autoRoll: input.autoRoll,
       occurrenceId: input.snapshot.occurrenceId,
       pending,
       rollD20,
@@ -374,7 +376,7 @@ export async function evaluateEncounterMovementPassageContest<
     return face
   }
   const execution = await executeEncounterMovementPassageContest({
-    automationMode: 'ASSISTED',
+    autoRoll: false,
     continuation,
     occurrenceId: input.snapshot.occurrenceId,
     pending,

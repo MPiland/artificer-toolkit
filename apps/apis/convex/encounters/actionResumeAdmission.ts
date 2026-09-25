@@ -13,6 +13,7 @@ import type { QueryCtx } from '../_generated/server'
 import { readNativeEncounterActionAdmission } from './actionAdmission'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
 import { isNativeActionOccurrence } from './occurrenceOwner'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Returns null only for occurrences owned by another native coordinator. */
 export async function readNativeEncounterActionResponseAdmission(
@@ -120,23 +121,22 @@ export async function readNativeEncounterActionResponseAdmission(
     run.version !== response.expectedVersion ||
     occurrence.expectedEncounterVersion !== run.version
   )
-    throw new Error('The action occurrence version is stale.')
-  if (response.commandId === parsed.commandId || rootReceipt)
-    throw new Error('Command ID was already used with different input.')
+    rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
+  if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_campaignId_commandId', (query) =>
       query.eq('campaignId', run.campaignId).eq('commandId', response.commandId)
     )
     .unique()
-  if (used) throw new Error('Command ID was already used with different input.')
+  if (used) rejectDomain('COMMAND_ID_REUSED')
   const root = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_campaignId_rootCommandId', (query) =>
       query.eq('campaignId', run.campaignId).eq('rootCommandId', response.commandId)
     )
     .unique()
-  if (root) throw new Error('Command ID was already used with different input.')
+  if (root) rejectDomain('COMMAND_ID_REUSED')
   const resolution = response.resolution
   if (
     resolution.kind !== 'ENTER_DICE' &&
@@ -145,6 +145,7 @@ export async function readNativeEncounterActionResponseAdmission(
   )
     throw new Error('The action requires dice or integer evidence.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, { occurrence })
-  if (admission.kind !== 'READY') throw new Error('The action occurrence is no longer pending.')
+  if (admission.kind !== 'READY')
+    rejectDomain('VERSION_STALE', 'The action occurrence is no longer pending.')
   return { kind: 'READY' as const, admission, occurrence, pending, resolution }
 }

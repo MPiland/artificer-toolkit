@@ -1108,6 +1108,7 @@ export function CampaignVttStage({
           ) : null}
           {pendingOccurrence && activeEncounter ? (
             <CampaignTabletopDecisionDrawer
+              canVoid={campaign.role === 'OWNER'}
               connected
               encounter={activeEncounter}
               pending={pendingOccurrence}
@@ -1118,6 +1119,7 @@ export function CampaignVttStage({
           {preparedPendingEncounters.map((encounter) => (
             <CampaignEncounterDecision
               campaignId={campaign.id}
+              canVoid={campaign.role === 'OWNER'}
               connected={campaign.status === 'ACTIVE' && live.commandReady}
               encounter={encounter}
               key={encounter.id}

@@ -64,6 +64,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import * as movementTargets from './movementTargets'
@@ -218,7 +219,7 @@ function response(
 }
 
 async function setup(
-  mode: 'AUTOMATIC' | 'ASSISTED',
+  rolls: FixtureRolls,
   creatures = 3,
   recharge = false,
   cadence: 'ENCOUNTER_START' | 'EACH_ROUND' = 'ENCOUNTER_START',
@@ -226,6 +227,7 @@ async function setup(
   fixedCharges = true
 ) {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   await base.t.run(async (ctx) => {
     for (const [index, userId] of [base.owner.userId, base.other.userId].entries()) {
       const profile = await ctx.db
@@ -292,7 +294,7 @@ async function setup(
     ...sourceFeature,
     ruleDefinitionIds: fixedCharges ? [lifecycle.id] : [],
     charges: fixedCharges ? { ...sourceFeature.charges, amount: 3 } : undefined,
-    ...(mode === 'ASSISTED'
+    ...(rolls === 'PROMPT'
       ? {
           rollDefinitions: [
             {
@@ -311,20 +313,19 @@ async function setup(
       ...effect,
       invocation: {
         ...effect.invocation,
-        triggerCode:
-          mode === 'ASSISTED' ? ('MELEE_WEAPON_ATTACK' as const) : ('ACTIVATED' as const),
+        triggerCode: rolls === 'PROMPT' ? ('MELEE_WEAPON_ATTACK' as const) : ('ACTIVATED' as const),
         range: {
           id: effect.invocation.range.id,
-          rangeKind: mode === 'ASSISTED' ? ('UNLIMITED' as const) : ('SELF' as const)
+          rangeKind: rolls === 'PROMPT' ? ('UNLIMITED' as const) : ('SELF' as const)
         },
         targeting:
-          mode === 'ASSISTED'
+          rolls === 'PROMPT'
             ? { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
             : { selectionKind: 'SELF' as const }
       },
       paths: effect.paths?.map((path) => ({
         ...path,
-        pathCode: mode === 'ASSISTED' ? ('ON_HIT' as const) : ('ON_USE' as const)
+        pathCode: rolls === 'PROMPT' ? ('ON_HIT' as const) : ('ON_USE' as const)
       }))
     }))
   }
@@ -368,7 +369,7 @@ async function setup(
   await base.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
@@ -486,7 +487,7 @@ async function start(base: Awaited<ReturnType<typeof setup>>) {
 
 describe('native Encounter turn Legendary Actions', () => {
   it('skips movement target discovery for an 11-Creature Run without fixed unscaled Feature charges', async () => {
-    const base = await setup('AUTOMATIC', 11, false, 'ENCOUNTER_START', 'ACTOR_ROLL', false)
+    const base = await setup('AUTO_ROLL', 11, false, 'ENCOUNTER_START', 'ACTOR_ROLL', false)
     const started = await start(base)
     const loadTargets = vi.spyOn(movementTargets, 'loadMovementTargets')
     try {
@@ -509,7 +510,7 @@ describe('native Encounter turn Legendary Actions', () => {
   it.each(['ACTOR_ROLL', 'DECLARED_ACTION_ROLL'] as const)(
     'finishes the outgoing Legendary window before EACH_ROUND %s initiative and entering Recharge',
     async (procedure) => {
-      const base = await setup('ASSISTED', 2, true, 'EACH_ROUND', procedure)
+      const base = await setup('PROMPT', 2, true, 'EACH_ROUND', procedure)
       let result = await start(base)
       result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
         command: {
@@ -667,7 +668,7 @@ describe('native Encounter turn Legendary Actions', () => {
   )
 
   it('orders other owners, retains decline and Automatic execution, refreshes only the entering owner, and replays once', async () => {
-    const base = await setup('AUTOMATIC')
+    const base = await setup('AUTO_ROLL')
     const started = await start(base)
     await seedUsedAllowances(base)
     const before = await stored(base.t, base.run.id)
@@ -784,7 +785,7 @@ describe('native Encounter turn Legendary Actions', () => {
   }, 30000)
 
   it('holds Assisted d20, both owner choices, refresh and Recharge until one terminal commit', async () => {
-    const base = await setup('ASSISTED', 3, true)
+    const base = await setup('PROMPT', 3, true)
     const started = await start(base)
     await seedUsedAllowances(base)
     const before = await stored(base.t, base.run.id)
@@ -943,7 +944,7 @@ describe('native Encounter turn Legendary Actions', () => {
   }, 30000)
 
   it('rejects another player, stale options, changed retained owner source and changed lifecycle publication without writes', async () => {
-    const base = await setup('AUTOMATIC')
+    const base = await setup('AUTO_ROLL')
     const started = await start(base)
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
@@ -1014,7 +1015,7 @@ describe('native Encounter turn Legendary Actions', () => {
   }, 30000)
 
   it('rolls back the enclosing terminal mutation including the Legendary spend, target damage, cursor and receipt', async () => {
-    const base = await setup('AUTOMATIC', 2)
+    const base = await setup('AUTO_ROLL', 2)
     const started = await start(base)
     const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
@@ -1071,7 +1072,7 @@ describe('private DO turn Legendary Action response', () => {
   })
 
   it('commits one choice and d20 response through pending snapshots before the terminal turn', async () => {
-    const base = await setup('ASSISTED', 2, false)
+    const base = await setup('PROMPT', 2, false)
     const started = await start(base)
     const epoch = crypto.randomUUID()
     await base.t.run((ctx) =>
@@ -1316,7 +1317,7 @@ describe('private DO turn Legendary Action response', () => {
   }, 60_000)
 
   it('replays an accepted Legendary decline after the turn reaches pending initiative order', async () => {
-    const base = await setup('AUTOMATIC', 2, false, 'EACH_ROUND')
+    const base = await setup('AUTO_ROLL', 2, false, 'EACH_ROUND')
     const started = await start(base)
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {

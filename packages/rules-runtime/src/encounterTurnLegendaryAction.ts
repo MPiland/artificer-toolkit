@@ -33,6 +33,8 @@ export type TurnLegendaryActionInput<
 > = {
   state: EncounterRunState
   userId: string
+  /** The roller's auto-roll preference; the GM rolls creature Legendary Actions. */
+  autoRoll: boolean
   occurrenceId: string
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
@@ -171,7 +173,8 @@ export async function prepareTurnLegendaryActions<
     const execution = await executeEncounterMovementReactionAction({
       runtime: await (runtimePromise ??= input.createRuntime()),
       occurrenceId,
-      automationMode: retained ? 'AUTOMATIC' : (state.automationMode as 'AUTOMATIC' | 'ASSISTED'),
+      // Retained evidence replays its recorded dice through the automatic path.
+      autoRoll: retained !== undefined || input.autoRoll,
       prepared: {
         adapter: prepared.adapter,
         published,

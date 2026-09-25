@@ -272,13 +272,13 @@ export const encounterRuleOccurrenceSummaryDtoSchema = z
   .strictObject({
     occurrenceId: uuidSchema,
     occurrenceVersion: versionSchema,
-    status: z.enum(['PENDING', 'COMPLETE']),
+    status: z.enum(['PENDING', 'COMPLETE', 'VOIDED']),
     outcome: z.nullable(z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE'])),
     pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
   })
   .check(
     z.superRefine((value, context) => {
-      if (value.status === 'COMPLETE' && value.pending !== null)
+      if (value.status !== 'PENDING' && value.pending !== null)
         context.addIssue({
           code: 'custom',
           path: ['pending'],

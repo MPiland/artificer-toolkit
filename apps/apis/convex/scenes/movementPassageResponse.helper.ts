@@ -8,6 +8,7 @@ import { loadMovementTargets } from '../encounters/movementTargets'
 import { evaluateSceneMovementContinuation } from './movementContinuation.helper'
 import type { assertMovementResolutionCurrent } from './movementResolutionDocuments'
 import { readSpatialSceneGeometry } from './spatialGeometry'
+import { readAutoRollDice } from '../lib/rollPreferences'
 
 type Current = Awaited<ReturnType<typeof assertMovementResolutionCurrent>>
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
@@ -35,6 +36,8 @@ export async function evaluateSceneMovementPassageResponse(
       occurrenceId: current.occurrence.id,
       occurrenceVersion: current.occurrence.version,
       userId: current.userId,
+      // The responding user rolls in this slice.
+      autoRoll: await readAutoRollDice(ctx, current.userId),
       responseCommand: input.responseCommand,
       occurredAt: input.occurredAt,
       ...(input.retained ? { retained: input.retained } : {}),

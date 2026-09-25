@@ -131,7 +131,7 @@ it('plans the same Character action and target facts in the Worker using private
     const state = encounterRunStateSchema.parse({
       ...readRunState(row),
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       currentActorId: fixture.actor.id,
       round: 1
     })

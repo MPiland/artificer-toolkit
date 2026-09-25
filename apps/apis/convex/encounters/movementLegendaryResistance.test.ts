@@ -97,7 +97,7 @@ it.each([false, true])(
         plan: prepared.executionPlan,
         occurrenceId: occurrence.id,
         binding: prepared.prepared.binding,
-        automationMode: 'AUTOMATIC' as const,
+        autoRoll: true,
         afterTest: async () => undefined,
         random: () => 0
       }
@@ -215,7 +215,7 @@ it.each([false, true])(
       if (!use) {
         const pending = await continueNativeActionAfterTest({
           ...action,
-          automationMode: 'ASSISTED',
+          autoRoll: false,
           boundary,
           legendaryResistance: resolved.audit
         })
@@ -226,7 +226,7 @@ it.each([false, true])(
           prepared,
           occurrenceId: occurrence.id,
           snapshot: retained,
-          automationMode: 'ASSISTED' as const,
+          autoRoll: false,
           retainedExecution: pending
         }
         await expect(
@@ -243,7 +243,7 @@ it.each([false, true])(
         ).rejects.toThrow('does not match the issued response')
         const secondDie = await continueNativeActionAfterTest({
           ...action,
-          automationMode: 'ASSISTED',
+          autoRoll: false,
           boundary,
           legendaryResistance: resolved.audit,
           resume: {
@@ -337,7 +337,7 @@ it.each([false, true])(
         prepared,
         occurrenceId: occurrence.id,
         snapshot: retained,
-        automationMode: 'AUTOMATIC' as const,
+        autoRoll: true,
         retainedExecution: replayed
       }
       const selection = use

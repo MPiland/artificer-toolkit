@@ -48,7 +48,7 @@ describe('native action economy', () => {
       const active = encounterRunStateSchema.parse({
         ...state,
         status: 'ACTIVE',
-        automationMode: 'AUTOMATIC',
+        automationMode: 'ASSISTED',
         round: 1,
         currentActorId: base.actor.id
       })
@@ -141,7 +141,7 @@ describe('native action economy', () => {
       const state = encounterRunStateSchema.parse({
         ...JSON.parse(run.stateJson),
         status: 'ACTIVE',
-        automationMode: 'AUTOMATIC',
+        automationMode: 'ASSISTED',
         round: 1,
         currentActorId: source.id
       })
@@ -211,7 +211,7 @@ describe('native action economy', () => {
       const state = encounterRunStateSchema.parse({
         ...JSON.parse(run.stateJson),
         status: 'ACTIVE',
-        automationMode: 'AUTOMATIC',
+        automationMode: 'ASSISTED',
         round: 1,
         currentActorId: source.id
       })

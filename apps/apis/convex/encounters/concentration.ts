@@ -6,6 +6,7 @@ import type {
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import { createRulesRuntime } from '../rules/runtime'
 import { nextRollInt } from '../lib/rollRandom'
 import {
@@ -109,6 +110,8 @@ export async function startNativeConcentrationChecks(
   let correlationId = input.parentOccurrenceId
   const envelope = checksumRuleDocument(applications)
   const runtime = await createRulesRuntime(ctx, input.userId)
+  // The initiator rolls Concentration saves in this slice.
+  const autoRoll = await readAutoRollDice(ctx, input.userId)
   while (remaining.length) {
     const { maintainedStateId, ...application } = remaining[0]!
     remaining = remaining.slice(1)
@@ -133,7 +136,7 @@ export async function startNativeConcentrationChecks(
     })
     if (execution.status !== 'PAUSED')
       throw new Error('Concentration did not request bounded d20 evidence.')
-    if (input.state.automationMode === 'ASSISTED') {
+    if (!autoRoll) {
       await persistNativeConcentrationPending(ctx, {
         state: input.state,
         context,

@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -126,7 +127,7 @@ export function prepareNativeCharacterActionState(input: {
   resourceUsage: readonly CharacterResourceUsage[]
   characterId: string
   expectedStreamVersion: number
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
 }): {
   actionMechanic: NativeCharacterActionMechanic
   resourceConsumption: NativeCharacterActionResourceConsumption | null

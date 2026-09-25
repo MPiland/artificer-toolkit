@@ -6,15 +6,17 @@ import type {
 import { api, internal } from '../_generated/api'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
-async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
+async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   const base = await setupCharacterRun()
+  if (mode === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   let definitionId: string | null = null
   if (mode !== 'MANUAL') {
     const { definitions, policyIds } = createEncounterInitiativeDefinitions([
-      { cadence: 'ENCOUNTER_START', procedure: mode === 'AUTOMATIC' ? 'SIDE_ROLL' : 'ACTOR_ROLL' }
+      { cadence: 'ENCOUNTER_START', procedure: mode === 'AUTO_ROLL' ? 'SIDE_ROLL' : 'ACTOR_ROLL' }
     ])
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -32,7 +34,7 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
   await base.owner.caller.mutation(api.campaigns.playSettings.save, {
     ...settings,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: mode === 'MANUAL' ? 'MANUAL' : 'ASSISTED',
     initiativePolicyDefinitionId: definitionId,
     initiativeTieDefinitionId: null,
     manualReminderMode: 'OFF'
@@ -94,7 +96,7 @@ async function fixture(mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED' = 'MANUAL') {
         expectedVersion: projection.version
       }
     })
-    if (mode === 'AUTOMATIC') {
+    if (mode === 'AUTO_ROLL') {
       for (let count = 0; result.occurrence?.status === 'PENDING'; count++) {
         if (count >= 8) throw new Error('Side fixture failed to settle')
         const pending = result.occurrence.pending
@@ -306,7 +308,7 @@ describe('native Encounter reorder', () => {
   }, 30_000)
 
   it('preserves contiguous SIDE_ROLL order and refuses a pending Assisted decision', async () => {
-    const side = await fixture('AUTOMATIC')
+    const side = await fixture('AUTO_ROLL')
     const result = await side.start()
     expect(result.occurrence?.status).not.toBe('PENDING')
     const ids = side.projection().actors.map((actor) => actor.id)
@@ -327,7 +329,7 @@ describe('native Encounter reorder', () => {
     } else {
       await side.execute({ type: 'REORDER', actorIds: [ids[0]!, ...ids.slice(1).reverse()] })
     }
-    const assisted = await fixture('ASSISTED')
+    const assisted = await fixture('PROMPT')
     const pending = await assisted.start()
     expect(pending.occurrence?.status).toBe('PENDING')
     const before = await assisted.capture()

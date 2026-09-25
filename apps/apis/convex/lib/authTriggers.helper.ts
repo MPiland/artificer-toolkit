@@ -27,6 +27,7 @@ export async function onAuthUserCreate(ctx: MutationCtx, user: AuthUser): Promis
       bio: null,
       registrationCompleted: true,
       authoringExperience: 'guided',
+      autoRollDice: true,
       entitlementUsage: zeroAccountUsage,
       entitlementUsageReady: true
     })

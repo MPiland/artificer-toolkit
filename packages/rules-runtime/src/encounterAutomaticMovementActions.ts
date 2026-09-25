@@ -119,6 +119,8 @@ export async function evaluateEncounterAutomaticMovementActions<
   input: {
     state: EncounterRunState
     userId: string
+    /** The roller's auto-roll preference; the moving initiator rolls in this slice. */
+    autoRoll: boolean
     runtime: RulesRuntimeService
     facts: ReturnType<typeof buildEncounterMovementReactionFacts<TCharacterFacts>> & {
       runtime: RulesRuntimeService
@@ -165,7 +167,7 @@ export async function evaluateEncounterAutomaticMovementActions<
     executeReaction(input: {
       runtime: RulesRuntimeService
       occurrenceId: string
-      automationMode: 'AUTOMATIC'
+      autoRoll: boolean
       prepared: TPrepared
     }): Promise<
       | PendingNativeActionGraphs
@@ -229,6 +231,7 @@ export async function evaluateEncounterAutomaticMovementActions<
     continueMovement(input: {
       state: EncounterRunState
       userId: string
+      autoRoll: boolean
       root: SpatialMovementRuleRoot
       sceneVersion: number
       sceneTokens: readonly SceneToken[]
@@ -256,8 +259,8 @@ export async function evaluateEncounterAutomaticMovementActions<
 } | null> {
   const first = input.reactionTimeline[0]
   if (!first || first.kind !== 'AUTOMATIC_ACTION') return null
-  if (input.state.automationMode !== 'AUTOMATIC')
-    throw new Error('Automatic movement reactions require Automatic Run mode.')
+  if (input.state.automationMode === 'MANUAL')
+    throw new Error('Automatic movement reactions cannot run in a Manual Encounter.')
   const initialTargets = input.projectedTargets ?? input.facts.targets
   let maintenanceProjection = input.maintenanceProjection
   const initialBoundary =
@@ -378,7 +381,7 @@ export async function evaluateEncounterAutomaticMovementActions<
         : await callbacks.executeReaction({
             runtime: input.runtime,
             occurrenceId: input.occurrenceId,
-            automationMode: 'AUTOMATIC',
+            autoRoll: input.autoRoll,
             prepared
           })
     if (execution.kind === 'LEGENDARY_RESISTANCE') {
@@ -535,6 +538,7 @@ export async function evaluateEncounterAutomaticMovementActions<
   const continued = await callbacks.continueMovement({
     state: input.state,
     userId: input.userId,
+    autoRoll: input.autoRoll,
     root: remainder.root,
     sceneVersion: input.sceneVersion,
     sceneTokens: virtualTokens(input.sceneTokens, input.root.tokenId, position),

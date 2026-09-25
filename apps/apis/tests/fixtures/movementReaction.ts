@@ -463,7 +463,7 @@ export async function setupCreatureReactionRun(
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactor.id
     })

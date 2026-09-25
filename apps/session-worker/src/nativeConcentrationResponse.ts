@@ -137,6 +137,8 @@ export async function planNativeLiveConcentrationResponse(
   }
   const planned = await planNativeLiveConcentration({
     state,
+    // A resumed Concentration sequence keeps prompting until it settles, like the native path.
+    autoRoll: false,
     parentOccurrenceId: context.parentOccurrenceId,
     parentCommandFingerprint: context.parentCommandFingerprint,
     applications: parentApplications,

@@ -11,6 +11,7 @@ import {
 import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { rejectDomain } from '../lib/domainRejections'
 
 type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
 
@@ -70,8 +71,7 @@ export async function requireUnusedEvidenceCommandId(
       query.eq('campaignId', campaignId).eq('commandId', commandId)
     )
     .unique()
-  if (evidence?.commandType === 'RESOLVE_RULE_OCCURRENCE')
-    throw new Error('Command ID was already used with different input.')
+  if (evidence?.commandType === 'RESOLVE_RULE_OCCURRENCE') rejectDomain('COMMAND_ID_REUSED')
 }
 
 export async function insertRunCommand(ctx: MutationCtx, command: StoredCommand) {

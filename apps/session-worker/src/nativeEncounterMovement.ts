@@ -101,6 +101,8 @@ export async function prepareNativeLiveMovement(
     throw new Error('Movement requires an Encounter move.')
   const { runtime, random, scene } = input
   const userId = input.scope.expectedUserId
+  // The moving user rolls in this slice; the player-control slice routes rolls to controllers.
+  const autoRoll = captured.autoRollDice
   const finalActors = new Map(captured.actors.map((actor) => [actor.id, actor]))
   const reactionSettlements = new Map<
     MovementReactionSettlementInput<CharacterFacts, CharacterRow>,
@@ -297,6 +299,7 @@ export async function prepareNativeLiveMovement(
           ...args,
           state,
           userId,
+          autoRoll,
           occurrenceId: step.occurrenceId,
           sourceCommandId: step.executionCommandId,
           occurredAt: step.occurredAt,
@@ -384,6 +387,7 @@ export async function prepareNativeLiveMovement(
             prepareConcentration: async (args) => {
               const result = await prepareNativeLiveMovementConcentration({
                 ...args,
+                autoRoll,
                 capture,
                 runtime,
                 random
@@ -408,6 +412,7 @@ export async function prepareNativeLiveMovement(
     planned = await continueMovement({
       state,
       userId,
+      autoRoll,
       root: {
         commandId: save.commandId,
         commandFingerprint: save.inputChecksum,
@@ -443,6 +448,7 @@ export async function prepareNativeLiveMovement(
         occurrenceId: input.occurrenceId,
         occurrenceVersion: response.command.expectedOccurrenceVersion,
         userId,
+        autoRoll,
         responseCommand: response.responseCommand,
         occurredAt: input.occurredAt,
         runtime,
@@ -464,6 +470,7 @@ export async function prepareNativeLiveMovement(
         prepareConcentration: async (args) => {
           const result = await prepareNativeLiveMovementConcentration({
             ...args,
+            autoRoll,
             capture,
             runtime,
             random
@@ -494,6 +501,7 @@ export async function prepareNativeLiveMovement(
         occurrenceId: input.occurrenceId,
         occurrenceVersion: response.command.expectedOccurrenceVersion,
         userId,
+        autoRoll,
         responseCommand: response.responseCommand,
         occurredAt: input.occurredAt,
         sceneTokens: scene.tokens,
@@ -565,6 +573,7 @@ export async function prepareNativeLiveMovement(
     const evaluated = await continueMovement({
       state,
       userId,
+      autoRoll,
       root: response.root,
       sceneVersion: response.root.currentSceneVersion,
       sceneTokens: scene.tokens,

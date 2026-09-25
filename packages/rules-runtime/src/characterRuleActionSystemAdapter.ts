@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
@@ -281,7 +282,7 @@ export interface CharacterRuleActionSystemAdapter {
    * the definitions their pinned policy understands.
    */
   positionalCapabilityDefinitionIds?(input: {
-    automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+    automationMode: AutomationModeDto
     optionalCombatSnapshot: unknown
     optionalCombatSnapshotChecksum: string | null
   }): readonly string[]
@@ -502,7 +503,7 @@ export interface CharacterRuleActionPositionalCandidateFact {
  * capability, or perception state before any RNG or outcome mutation.
  */
 export interface CharacterRuleActionPositionalFacts {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   candidates: readonly CharacterRuleActionPositionalCandidateFact[]
   dependencyChecksum: string
   optionalCombatSnapshot: unknown

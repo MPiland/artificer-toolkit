@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   activeOptionalCombatDefinitions,
@@ -96,7 +97,7 @@ function resolveExactCapability(input: {
 }
 
 function resolveFlankingDefinition(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   gameSystemId: string
   optionalCombatSnapshot: unknown
   optionalCombatSnapshotChecksum: string | null | undefined
@@ -132,7 +133,7 @@ function resolveFlankingDefinition(input: {
 
 /** Resolves only the current definition-selected positional capability identity. */
 export function resolveDnd5eFlankingParticipantCapabilityDefinitionIds(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   gameSystemId: string
   optionalCombatSnapshot: unknown
   optionalCombatSnapshotChecksum: string | null | undefined
@@ -161,7 +162,7 @@ export function resolveDnd5eFlankingContributor(input: {
     readonly canSeeTarget: boolean
     readonly targetRelationship: RelationshipKind
   }
-  readonly automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  readonly automationMode: AutomationModeDto
   readonly gameSystemId: string
   readonly grid: SceneGrid
   readonly optionalCombatSnapshot: unknown

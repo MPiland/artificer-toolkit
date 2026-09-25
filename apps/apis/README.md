@@ -537,6 +537,9 @@ cryptography is introduced.
 
 `account.session` returns the closed shared UUID/profile/role/feature-flag projection, never the
 Better Auth record or tokens. Authoring preference updates target only the authenticated profile.
+The required `userProfiles.autoRollDice` preference ("Roll my dice automatically", default `true`)
+is read and written only for the caller through `account.rollPreferences` and
+`account.setAutoRollDice`; roll commands read it server-side to roll instead of prompting.
 Older local profile rows default to completed registration and guided authoring; new rows write
 these values explicitly. Web recovery keeps its verified email/code only in component memory;
 refresh requires code entry again. The router now carries only this shared session projection;

@@ -270,6 +270,8 @@ export async function evaluateEncounterTurnEffects(input: {
   }) => Promise<TargetBoundActiveRuleEffectExecutionInput['perception']>
   state: EncounterRunState
   userId: string
+  /** The roller's auto-roll preference; the initiator rolls turn-effect saves in this slice. */
+  autoRoll: boolean
   occurrenceId: string
   actors: EncounterRunActorState[]
   boundary: TurnEffectBoundary
@@ -287,7 +289,7 @@ export async function evaluateEncounterTurnEffects(input: {
   const pending = retained?.context
   if (
     pending &&
-    (input.state.automationMode !== 'ASSISTED' ||
+    (input.state.automationMode === 'MANUAL' ||
       !same(pending.root, input.root) ||
       pending.selectionChecksum !== input.selectionChecksum ||
       pending.completedExecutions.length !== pending.currentCandidate.ordinal ||
@@ -436,7 +438,7 @@ export async function evaluateEncounterTurnEffects(input: {
             })
           })()
         : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
-    if ('continuation' in result && input.state.automationMode === 'AUTOMATIC') {
+    if ('continuation' in result && input.autoRoll) {
       if (!result.evidencePolicy) throw new Error('Automatic turn effect has no d20 policy.')
       result = await resumeTargetBoundActiveRuleEffectWithPause({
         ...effectInput,
@@ -572,6 +574,7 @@ export async function prepareEncounterTurnEffects<
   rollD20: () => number
   resolvePerception: Parameters<typeof evaluateEncounterTurnEffects>[0]['resolvePerception']
   userId: string
+  autoRoll: boolean
   root: TurnCoordinatorRootDto
   occurrenceId: string
   actors: EncounterRunActorState[]

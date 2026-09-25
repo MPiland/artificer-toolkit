@@ -58,6 +58,7 @@ import { api, components, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -318,11 +319,14 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
       campaignId: campaign.id,
       characterId: second.character.id
     })
-  if (assisted)
+  if (assisted) {
+    // The reacting player rolls the selected reaction's dice; prompt for them as evidence.
+    await setAutoRollDice(base.t, player.userId, false)
     await base.t.mutation(internal.content.import.importSubjects, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
     })
+  }
   const blueprint = await gm.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Character movement authority fixture',
@@ -360,7 +364,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: assisted ? 'ASSISTED' : 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: mover.id
     })

@@ -13,12 +13,14 @@ import { queryKeys } from '#app/lib/queryKeys'
 
 export function CampaignEncounterDecision({
   campaignId,
+  canVoid,
   connected,
   encounter,
   onResolved,
   sendCommand
 }: {
   campaignId: string
+  canVoid: boolean
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   onResolved?: (result: EncounterCommandResultDto) => void
@@ -45,6 +47,7 @@ export function CampaignEncounterDecision({
 
   return (
     <CampaignTabletopDecisionDrawer
+      canVoid={canVoid}
       connected={connected}
       encounter={encounter}
       pending={pending.data}

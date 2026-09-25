@@ -29,6 +29,7 @@ import { persistNativeTurnEffects } from './turnEffects'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { startNativeConcentrationChecks } from './concentration'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { readAutoRollDice } from '../lib/rollPreferences'
 
 type CompletionInput = Parameters<typeof completeNativeInitiativeOccurrence>[0]
 
@@ -125,6 +126,8 @@ async function completeTurn(input: {
     ctx,
     state,
     campaign,
+    // Turn-flow prompts go to the GM in this slice.
+    autoRoll: await readAutoRollDice(ctx, campaign.ownerUserId),
     root,
     occurrenceId: input.occurrenceId,
     actors: durableActors,

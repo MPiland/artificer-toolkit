@@ -254,6 +254,20 @@ separate transactions, which Convex fences only by `DO_ACTIVE` authority. Curren
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
 
+**Auto-roll and GM void (CURRENT, ADR 0034).** The `ACTION_COMMAND`, `ACTION_RESPONSE`,
+`TURN_COMMAND`, `CONCENTRATION_RESPONSE` and `MOVEMENT_INPUTS` captures carry the roller's
+`autoRollDice` preference, read in the capture transaction and covered by its read checksum (the
+requesting user; the Campaign owner for `TURN_COMMAND`), so DO planners decide between a server roll
+and a pending prompt without a separate call. `VOID_RULE_OCCURRENCE` always routes `NATIVE`:
+`encounters/commandActions.ts` asks `encounters/occurrenceVoid:prepare` (GM only) to cancel a paused
+action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE` receipt, one Run version) or
+returns a decline that runs through the same path as a GM answer, including movement staging;
+`occurrenceVoid:record` then adds the "Voided by the GM" receipt. When the declined turn or move
+pauses again, the Run version cannot advance without breaking that flow's fences (each Run version
+has exactly one receipt), so the void returns the next decision and adds no timeline entry. Steps
+play cannot continue without (initiative, Concentration saves, Recharge, turn-effect saves,
+Legendary Action dice and dice during a move) are refused with `DECISION_REQUIRES_ANSWER`.
+
 Real-backend HTTP development drivers (`apps/apis/tests/development*.ts`) therefore send Encounter
 commands through the room like the browser: `DevelopmentHttpClient` (`developmentHttpClient.ts`)
 issues a ticket, opens the Worker socket with the ticket subprotocol and the local web Origin,
@@ -564,6 +578,16 @@ signed-in client cannot turn one socket into unbounded Convex work:
 Rate-limit rejections throw `ConvexError` data matching `rateLimitedErrorDataSchema`
 (`packages/schema/src/api/rateLimits.ts`), which survives production error redaction. The web reads it
 through `apps/web/src/lib/errorMessage.ts`.
+
+Expected Encounter command rejections (current), such as a stale version, a pending decision, an
+active Encounter already in the Campaign or a reused command ID, throw `ConvexError` data matching
+`domainRejectionErrorDataSchema` (`packages/schema/src/api/domainRejections.ts`) through
+`rejectDomain` (`apps/apis/convex/lib/domainRejections.ts`): a closed `reason` and a user-safe
+`message`. The Worker-secret routes in `liveSessions/stateHttp.ts` return that data as JSON with
+status 422; every other failure keeps the redacted 409 text. The room forwards it as
+`COMMAND_REJECTED` with code `DOMAIN_REJECTED`, the domain `reason` and its message; every other
+rejection carries `reason: null` and a generic message, so Convex internals never reach clients.
+Integrity checks and authorization gates stay plain errors.
 
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their

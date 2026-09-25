@@ -34,6 +34,7 @@ import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-ru
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import {
   commitNativeLiveEncounterAction,
@@ -229,10 +230,12 @@ async function settleStart(
 
 async function setup(
   kind: 'HEAL' | 'SAVE_DAMAGE',
-  automationMode: 'AUTOMATIC' | 'ASSISTED',
+  rolls: FixtureRolls,
   healTarget: 'SELF' | 'CHARACTER' = 'SELF'
 ) {
   const base = await setupCharacterRun()
+  for (const user of [base.owner, base.player])
+    await setAutoRollDice(base.t, user.userId, rolls === 'AUTO_ROLL')
   const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
   const maintenanceDefinitionId = policies.scenarios[1]!.definitionId
   const maintenanceDefinition = maintenanceDefinitionFixture({ id: maintenanceDefinitionId })
@@ -265,7 +268,7 @@ async function setup(
   await base.owner.caller.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode,
+    automationMode: 'ASSISTED',
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativeTieDefinitionId: null
   })
@@ -456,7 +459,7 @@ async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
 }
 
 it('creates and replaces Automatic maintenance atomically while preserving retained conditions', async () => {
-  const base = await setup('HEAL', 'AUTOMATIC')
+  const base = await setup('HEAL', 'AUTO_ROLL')
   const first = action(base, base.run.version, base.actor.id)
   const before = await records(base)
   await expect(
@@ -681,7 +684,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
 }, 60000)
 
 it('settles Assisted maintenance only at terminal response and cleans a removed Character owner once', async () => {
-  const base = await setup('SAVE_DAMAGE', 'ASSISTED')
+  const base = await setup('SAVE_DAMAGE', 'PROMPT')
   const dmCondition = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'FRIGHTENED'
   )
@@ -949,7 +952,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
 }, 60000)
 
 it('rejects a missing current maintenance definition while an Assisted action is paused', async () => {
-  const base = await setup('SAVE_DAMAGE', 'ASSISTED')
+  const base = await setup('SAVE_DAMAGE', 'PROMPT')
   const root = action(base, base.run.version, base.characterTarget.id)
   const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: root
@@ -975,7 +978,7 @@ async function setupMaintenanceCapture(
   dependentCount: number,
   healTarget: 'SELF' | 'CHARACTER' = 'SELF'
 ) {
-  const base = await setup('HEAL', 'AUTOMATIC', healTarget)
+  const base = await setup('HEAL', 'AUTO_ROLL', healTarget)
   const created = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action(
       base,
@@ -1646,7 +1649,7 @@ it('refuses a maintained action when a dependent link changes between capture pa
 }, 60000)
 
 it('reads a detached Character owner only through its live maintained dependent', async () => {
-  const base = await setup('SAVE_DAMAGE', 'ASSISTED')
+  const base = await setup('SAVE_DAMAGE', 'PROMPT')
   const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action(base, base.run.version, base.characterTarget.id)
   })

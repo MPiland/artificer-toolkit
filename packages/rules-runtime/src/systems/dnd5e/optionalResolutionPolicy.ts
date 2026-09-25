@@ -1,3 +1,4 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   activeOptionalCombatDefinitions,
@@ -38,7 +39,6 @@ export const DND5E_MORALE_POLICY_MODULE = {
 /** Attacker and initial target consume two Encounter actor identities. */
 export const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
 
-type AutomationMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 type Resolution<T> =
   | { readonly kind: 'INERT' }
@@ -47,7 +47,7 @@ type Resolution<T> =
   | { readonly kind: 'PROPOSED'; readonly proposal: T }
 
 interface PolicyInput {
-  readonly automationMode: AutomationMode
+  readonly automationMode: AutomationModeDto
   readonly gameSystemId: string
   readonly optionalCombatSnapshot: unknown
   readonly optionalCombatSnapshotChecksum: string | null | undefined

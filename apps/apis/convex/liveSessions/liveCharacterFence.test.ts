@@ -160,7 +160,7 @@ async function setup() {
     const state = encounterRunStateSchema.parse({
       ...readRunState(row),
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: enemy.id
     })

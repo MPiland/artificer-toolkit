@@ -357,7 +357,7 @@ export async function setupCreatureReactionRun(
   await base.owner.caller.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativeTieDefinitionId: null
   })
@@ -429,7 +429,7 @@ export async function setupCreatureReactionRun(
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1
     })
     const projection = encounterGmProjectionDtoSchema.parse({

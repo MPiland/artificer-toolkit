@@ -120,6 +120,8 @@ export async function evaluateEncounterMovementActionResponse<
     occurrenceId: string
     occurrenceVersion: number
     userId: string
+    /** The roller's auto-roll preference; the responding user rolls in this slice. */
+    autoRoll: boolean
     responseCommand: ReactionContext['root']['resolutionCommands'][number]
     occurredAt: string
     runtime: RulesRuntimeService
@@ -162,7 +164,7 @@ export async function evaluateEncounterMovementActionResponse<
       runtime: RulesRuntimeService
       occurrenceId: string
       prepared: TPrepared
-      automationMode: 'AUTOMATIC' | 'ASSISTED'
+      autoRoll: boolean
       resume?: {
         pending: Extract<ReactionExecution, { kind: 'PENDING' }>
         resolution: Extract<
@@ -175,7 +177,7 @@ export async function evaluateEncounterMovementActionResponse<
       runtime: RulesRuntimeService
       occurrenceId: string
       prepared: TPrepared
-      automationMode: 'AUTOMATIC' | 'ASSISTED'
+      autoRoll: boolean
       snapshot: ServerKernelRuleExecutionPendingSnapshotDto
       selection: Extract<
         ResolveRuleOccurrenceInputDto['resolution'],
@@ -432,7 +434,7 @@ export async function evaluateEncounterMovementActionResponse<
       ? await callbacks.resumeResistance({
           runtime,
           occurrenceId: input.occurrenceId,
-          automationMode: input.state.automationMode === 'AUTOMATIC' ? 'AUTOMATIC' : 'ASSISTED',
+          autoRoll: input.autoRoll,
           prepared,
           snapshot: { ...snapshot, applicationContext: actionContext },
           selection: legendarySelection,
@@ -443,7 +445,7 @@ export async function evaluateEncounterMovementActionResponse<
           runtime,
           occurrenceId: input.occurrenceId,
           prepared,
-          automationMode: input.state.automationMode === 'AUTOMATIC' ? 'AUTOMATIC' : 'ASSISTED',
+          autoRoll: input.autoRoll,
           ...(prior?.kind === 'PENDING' &&
           (resolution.kind === 'ENTER_DICE' ||
             resolution.kind === 'ENTER_INTEGER' ||
@@ -601,6 +603,7 @@ export async function evaluateEncounterMovementActionResponse<
   const continued = await callbacks.continueMovement({
     state: input.state,
     userId: input.userId,
+    autoRoll: input.autoRoll,
     root: context.phase.kind === 'SPATIAL_EVIDENCE' ? root : remainder.root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: input.sceneTokens,

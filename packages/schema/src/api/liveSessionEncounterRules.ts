@@ -158,6 +158,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     campaignOwnerUserId: postgresUuidSchema,
+    autoRollDice: z.boolean(),
     save: sceneStoredGeometrySaveSchema,
     header: sceneLiveStateHeaderSchema,
     bindings: z
@@ -169,6 +170,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     campaignOwnerUserId: postgresUuidSchema,
+    autoRollDice: z.boolean(),
     command: liveSessionEncounterTurnCommandSchema,
     fingerprint: projectionChecksumSchema,
     occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
@@ -287,6 +289,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     kind: z.literal('ACTION_COMMAND'),
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
+    autoRollDice: z.boolean(),
     command: resolveEncounterActionInputDtoSchema,
     fingerprint: projectionChecksumSchema,
     result: z.nullable(encounterCommandResultDtoSchema)
@@ -295,6 +298,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     kind: z.literal('ACTION_RESPONSE'),
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
+    autoRollDice: z.boolean(),
     command: resolveEncounterActionInputDtoSchema,
     fingerprint: projectionChecksumSchema,
     result: z.nullable(encounterCommandResultDtoSchema),

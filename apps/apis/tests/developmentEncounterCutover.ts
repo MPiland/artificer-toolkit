@@ -67,12 +67,14 @@ export async function prepareEncounterCutoverFixture({
   initiativePolicyDefinitionId: string
   lifecycle: Awaited<ReturnType<typeof verifyEncounterLifecycle>>
 }) {
+  // Assisted with the GM's auto-roll on: initiative settles without score prompts.
+  await owner.mutation(api.account.setAutoRollDice, { autoRollDice: true })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })
@@ -102,7 +104,7 @@ export async function prepareEncounterCutoverFixture({
     assert.ok(initiativeOrderResolutions++ < 20, 'Cutover initiative did not settle.')
     const pending = started.occurrence.pending
     if (pending?.kind !== 'INITIATIVE_ORDER')
-      throw new Error('Automatic cutover initiative requested an unexpected continuation.')
+      throw new Error('Auto-rolled cutover initiative requested an unexpected continuation.')
     assert.ok(pending.optionIds[0])
     started = await owner.mutation(executeEncounterCommand, {
       command: {
@@ -626,12 +628,14 @@ async function prepareCutoverWorkloadAggregate({
     name: `V15 ${aggregate.toLowerCase()} workload scene`,
     options: { map: workloadMap, grid: workloadGrid, tokens }
   })
+  // The workload measures server-rolled turns and reactions: Assisted with the GM's auto-roll on.
+  await owner.mutation(api.account.setAutoRollDice, { autoRollDice: true })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })

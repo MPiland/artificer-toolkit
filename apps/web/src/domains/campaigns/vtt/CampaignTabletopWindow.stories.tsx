@@ -384,6 +384,10 @@ function renderWindow(
     queryFn: async () => ({ encounter, pending: null })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
+  const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
+  queryClient.setQueryDefaults(rollPreferencesQuery.queryKey, {
+    queryFn: async () => ({ autoRollDice: true })
+  })
   queryClient.setQueryDefaults(skippedActionChoicesQuery.queryKey, {
     queryFn: async () => null
   })
@@ -393,6 +397,7 @@ function renderWindow(
   queryClient.setQueryData(encountersQuery.queryKey, [encounter])
   queryClient.setQueryData(activeEncounterQuery.queryKey, { encounter, pending: null })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
+  queryClient.setQueryData(rollPreferencesQuery.queryKey, { autoRollDice: true })
   const convex = new ConvexReactClient('https://story-fixture.convex.cloud', {
     logger: false
   })

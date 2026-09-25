@@ -50,6 +50,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -141,8 +142,9 @@ async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterI
   }))
 }
 
-async function setup(mode: 'AUTOMATIC' | 'ASSISTED', creatures = 1, rechargeFeatures = 1) {
+async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   await base.t.run(async (ctx) => {
     for (const [index, userId] of [base.owner.userId, base.other.userId].entries()) {
       const profile = await ctx.db
@@ -235,7 +237,7 @@ async function setup(mode: 'AUTOMATIC' | 'ASSISTED', creatures = 1, rechargeFeat
   await base.owner.caller.mutation(saveSettings, {
     ...settingFields,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
@@ -290,7 +292,7 @@ async function setup(mode: 'AUTOMATIC' | 'ASSISTED', creatures = 1, rechargeFeat
 
 describe('native Encounter turn Recharge', () => {
   it('automatically rolls a Recharge when START enters a depleted Creature and replays the root', async () => {
-    const base = await setup('AUTOMATIC')
+    const base = await setup('AUTO_ROLL')
     const start: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -326,7 +328,7 @@ describe('native Encounter turn Recharge', () => {
   }, 30000)
 
   it('retains the first of two Recharge candidates until the second response atomically settles both', async () => {
-    const base = await setup('ASSISTED', 1, 2)
+    const base = await setup('PROMPT', 1, 2)
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -417,7 +419,7 @@ describe('native Encounter turn Recharge', () => {
   }, 30000)
 
   it('issues owner-only Assisted Recharge evidence for each entering Creature and keeps a failed die spent', async () => {
-    const base = await setup('ASSISTED', 2)
+    const base = await setup('PROMPT', 2)
     const start: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -542,7 +544,7 @@ describe('native Encounter turn Recharge', () => {
   }, 30000)
 
   it('rejects wrong evidence, authority, and stale Feature source without changing a pending Recharge', async () => {
-    const base = await setup('ASSISTED')
+    const base = await setup('PROMPT')
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -645,7 +647,7 @@ describe('private DO turn Recharge terminal', () => {
   })
 
   it('commits an automatic entering-actor Recharge through private HTTP and exactly replays', async () => {
-    const base = await setup('AUTOMATIC', 2)
+    const base = await setup('AUTO_ROLL', 2)
     const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
       ;(values as Uint32Array)[0] = 5
       return values
@@ -818,7 +820,7 @@ describe('private DO turn Recharge terminal', () => {
   it.each(['START', 'ADVANCE_TURN'] as const)(
     'retains two Assisted %s Recharge responses privately until the second commits both',
     async (turnType) => {
-      const base = await setup('ASSISTED', 2, 2)
+      const base = await setup('PROMPT', 2, 2)
       const startCommand = {
         type: 'START' as const,
         encounterId: base.run.id,

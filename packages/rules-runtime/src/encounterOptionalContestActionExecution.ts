@@ -139,7 +139,7 @@ export function completeEncounterOptionalContestActionExecution(input: {
 
 /** Executes the bounded two-d20 contest graph. Persistence and application stay with the Encounter coordinator. */
 export async function executeEncounterOptionalContestAction(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  autoRoll: boolean
   continuation?: ServerRuleExecutionContinuationDto
   graph: Dnd5eOptionalCombatContestGraph
   initiator: OptionalContestD20Policy
@@ -183,7 +183,7 @@ export async function executeEncounterOptionalContestAction(input: {
         },
         published: input.graph.published
       })
-  while (execution.status === 'PAUSED' && input.automationMode === 'AUTOMATIC') {
+  while (execution.status === 'PAUSED' && input.autoRoll) {
     const participant = requireRequest(execution.continuation)
     const policy = participant === 'INITIATOR' ? input.initiator : input.defender
     const faces = resolveFaces({

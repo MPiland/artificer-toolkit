@@ -30,6 +30,18 @@ export const accountProfileUpdateInputSchema = z.strictObject({
 
 export type AccountProfileUpdateInput = z.input<typeof accountProfileUpdateInputSchema>
 
+export const accountRollPreferencesDtoSchema = z.strictObject({
+  autoRollDice: z.boolean()
+})
+
+export type AccountRollPreferencesDto = z.infer<typeof accountRollPreferencesDtoSchema>
+
+export const setAutoRollDiceInputSchema = z.strictObject({
+  autoRollDice: z.boolean()
+})
+
+export type SetAutoRollDiceInput = z.infer<typeof setAutoRollDiceInputSchema>
+
 export const accountUsernameStatusInputSchema = z.strictObject({
   username: z.string().check(z.maxLength(100))
 })

@@ -48,11 +48,13 @@ export async function prepareNativeTurnInitiative(input: {
   root: TurnCoordinatorRootDto
   occurrenceId: string
   actors: readonly EncounterRunActorState[]
+  autoRoll: boolean
   movementTargets?: ReadonlyMap<string, MovementTarget>
 }) {
   const { ctx, state, campaign, actors } = input
   return prepareEncounterTurnInitiative({
     state,
+    autoRoll: input.autoRoll,
     root: input.root,
     occurrenceId: input.occurrenceId,
     actors,

@@ -142,7 +142,7 @@ async function setup() {
   await base.owner.caller.mutation(api.campaigns.playSettings.save, {
     ...settingFields,
     expectedVersion: version,
-    automationMode: 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null

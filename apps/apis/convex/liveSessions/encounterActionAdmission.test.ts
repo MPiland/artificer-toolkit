@@ -52,6 +52,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
 import {
@@ -202,7 +203,7 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
     const state = encounterRunStateSchema.parse({
       ...readRunState(row),
       status: 'ACTIVE',
-      automationMode: pending ? 'ASSISTED' : 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
@@ -237,6 +238,7 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
     if (!capability) throw new Error('Missing action fixture capability.')
     return capability.actionId
   })
+  if (pending) await setAutoRollDice(base.t, base.owner.userId, false)
   const command: ResolveEncounterActionInputDto = {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
@@ -976,4 +978,46 @@ it('rejects reused IDs, stale new commands, unauthorized replay, and a corrupt r
     await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
   })
   await expect(admit(base.command)).rejects.toThrow(/receipt mismatch/i)
+})
+it('returns an expected rejection as structured data and keeps other failures redacted', async () => {
+  const base = await setup()
+  const post = (scope: typeof base.scope, command: ResolveEncounterActionInputDto) =>
+    base.owner.caller.fetch(path, {
+      method: 'POST',
+      headers: { 'x-artificer-live-session-secret': secret },
+      body: JSON.stringify({ ...scope, request: { kind: 'ACTION_COMMAND', command } })
+    })
+  const reused = await post(base.scope, { ...base.command, targetActorId: base.command.actorId })
+  expect(reused.status).toBe(422)
+  expect(await reused.json()).toEqual({
+    code: 'DOMAIN_REJECTED',
+    reason: 'COMMAND_ID_REUSED',
+    message: 'Command ID was already used with different input.'
+  })
+  const mismatched = await post({ ...base.scope, expectedUserId: base.other.userId }, base.command)
+  expect(mismatched.status).toBe(409)
+  expect(await mismatched.text()).toBe('Live Session Encounter inputs unavailable.')
+
+  // ConvexError data survives the forwarded action and its nested mutation.
+  const { encounterId, expectedVersion, ...actor } = base.scope
+  const staleRound = await base.owner.caller.fetch('/live-sessions/encounter-command', {
+    method: 'POST',
+    headers: { 'x-artificer-live-session-secret': secret },
+    body: JSON.stringify({
+      ...actor,
+      command: {
+        type: 'SET_ROUND',
+        encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion,
+        round: 2
+      }
+    })
+  })
+  expect(staleRound.status).toBe(422)
+  expect(await staleRound.json()).toEqual({
+    code: 'DOMAIN_REJECTED',
+    reason: 'VERSION_STALE',
+    message: 'Encounter version is stale.'
+  })
 })

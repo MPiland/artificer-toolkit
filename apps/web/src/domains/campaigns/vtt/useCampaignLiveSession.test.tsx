@@ -115,7 +115,8 @@ describe('useCampaignLiveSession', () => {
         code: 'STALE_STATE',
         commandId,
         currentSequence: 4,
-        message: 'Scene state changed.'
+        message: 'Scene state changed.',
+        reason: null
       })
       options.onError(new Error('connection failed'))
     })

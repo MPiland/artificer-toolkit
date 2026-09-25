@@ -53,6 +53,7 @@ import { importedSubject } from './publication'
 import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
 import { createRulesRuntime } from '../../convex/rules/runtime'
+import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -77,10 +78,11 @@ const saveSettings = makeFunctionReference<
 >('campaigns/playSettings:save')
 
 export async function turnActiveEffectFixture(
-  mode: 'AUTOMATIC' | 'ASSISTED',
+  rolls: FixtureRolls,
   procedure: 'ACTOR_ROLL' | 'DECLARED_ACTION_ROLL' = 'ACTOR_ROLL'
 ) {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   await base.t.run(async (ctx) => {
     for (const [index, userId] of [base.owner.userId, base.other.userId].entries()) {
       const profile = await ctx.db
@@ -154,7 +156,7 @@ export async function turnActiveEffectFixture(
   await base.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: mode,
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null

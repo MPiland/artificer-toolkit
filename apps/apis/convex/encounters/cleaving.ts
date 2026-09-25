@@ -55,6 +55,7 @@ import {
 import { nativeCleavingCandidates } from './cleavingFacts'
 import { insertNativeCleavingChoice } from './actionChildPersistence'
 import { verifyNativeCleavingParentChain } from './cleavingParent'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Called after resource consumption and Run publication, inside the same native mutation. */
 export async function persistNativeCleavingAfterAction(
@@ -309,7 +310,7 @@ export async function resumeNativeCleaving(
       q.eq('campaignId', campaign.id).eq('rootCommandId', response.commandId)
     )
     .unique()
-  if (usedRoot) throw new Error('Command ID was already used with different input.')
+  if (usedRoot) rejectDomain('COMMAND_ID_REUSED')
   await verifyNativeCleavingParentChain(ctx, state, context)
   const optionalSnapshot = encounterOptionalCombatSnapshotDtoSchema.parse(
     state.optionalCombatSnapshot
@@ -342,7 +343,7 @@ export async function resumeNativeCleaving(
       (membership.role !== 'OWNER' &&
         !actors.some((actor) => actor.id === selected.targetActorId && actor.public)))
   )
-    throw new Error('Cleaving target is unavailable.')
+    rejectDomain('TARGET_UNAVAILABLE', 'Cleaving target is unavailable.')
   let target: MovementTarget | undefined
   if (selected) {
     const { candidates, targets } = await nativeCleavingCandidates(ctx, {
@@ -373,7 +374,7 @@ export async function resumeNativeCleaving(
     if (!rebuilt || checksumCanonicalJson(rebuilt) !== checksumCanonicalJson(pending.snapshot))
       throw new Error('Cleaving policy, target, or Scene is stale.')
     target = targets.get(selected.targetActorId)
-    if (!target) throw new Error('Cleaving target is unavailable.')
+    if (!target) rejectDomain('TARGET_UNAVAILABLE', 'Cleaving target is unavailable.')
   }
   const now = new Date().toISOString()
   const remaining = context.damage.remainingAmount

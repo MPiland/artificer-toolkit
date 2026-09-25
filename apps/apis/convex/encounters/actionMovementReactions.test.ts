@@ -54,7 +54,7 @@ describe('native movement reaction action mechanics', () => {
       const execution = await executeNativeMovementReactionAction(ctx, {
         runtime: await createRulesRuntime(ctx, base.owner.userId),
         occurrenceId: input.occurrenceId,
-        automationMode: 'AUTOMATIC',
+        autoRoll: true,
         prepared,
         random: (maximum) => maximum - 1
       })
@@ -154,7 +154,7 @@ describe('native movement reaction action mechanics', () => {
         const execution = await executeNativeMovementReactionAction(ctx, {
           runtime: await createRulesRuntime(ctx, base.owner.userId),
           occurrenceId: input.occurrenceId,
-          automationMode: 'AUTOMATIC',
+          autoRoll: true,
           prepared,
           random: (maximum) => maximum - 1
         })
@@ -224,7 +224,7 @@ describe('native movement reaction action mechanics', () => {
       return executeNativeMovementReactionAction(ctx, {
         runtime: await createRulesRuntime(ctx, base.owner.userId),
         occurrenceId: input.occurrenceId,
-        automationMode: 'ASSISTED',
+        autoRoll: false,
         prepared
       })
     })

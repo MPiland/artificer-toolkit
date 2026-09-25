@@ -32,6 +32,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { nextRollInt } from '../lib/rollRandom'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import { createRulesRuntime } from '../rules/runtime'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt'
 import { projectNativeDisarmPendingForMember, readNativeDisarmPending } from './actionDisarmPending'
@@ -42,6 +43,7 @@ import { nativeActionPendingResult } from './actionPending'
 import { projectNativeGm } from './nativeProjection'
 import { readRunActor, readRunActors, readRunProjection, readRunState } from './documents'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries'
+import { rejectDomain } from '../lib/domainRejections'
 
 type DisarmResume = {
   occurrence: Doc<'encounterRuleOccurrences'>
@@ -104,7 +106,7 @@ export async function executeNativeDisarm(
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (!resume && membership.role !== 'OWNER') throw new Error('Campaign not found.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
@@ -116,13 +118,11 @@ export async function executeNativeDisarm(
     )
     .unique()
   if (rootReceipt) {
-    if (resume || rootReceipt.actorUserId !== userId)
-      throw new Error('Command ID was already used with different input.')
+    if (resume || rootReceipt.actorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
     return (await readNativeDisarmReplay(ctx, { run, command: input, receipt: rootReceipt })).result
   }
-  if (state.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
-  if (state.automationMode === 'MANUAL')
-    throw new Error('Disarm requires Automatic or Assisted Encounter mode.')
+  if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
+  if (state.automationMode === 'MANUAL') throw new Error('Disarm requires an Assisted Encounter.')
   const pendingOccurrences = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
@@ -130,15 +130,12 @@ export async function executeNativeDisarm(
   if (pendingOccurrences.length > 1)
     throw new Error('Stored Encounter occurrence state is invalid.')
   const occurrence = pendingOccurrences[0]
-  if (occurrence && occurrence.rootCommandId !== input.commandId)
-    throw new Error('An Encounter rule occurrence is awaiting resolution.')
+  if (occurrence && occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
   const prior = occurrence ? readNativeDisarmPending(occurrence) : null
   const initiatorUserId = prior?.context.initiatorUserId ?? userId
-  if (prior && prior.context.commandFingerprint !== fingerprint)
-    throw new Error('Command ID was already used with different input.')
+  if (prior && prior.context.commandFingerprint !== fingerprint) rejectDomain('COMMAND_ID_REUSED')
   if (!resume && prior) {
-    if (initiatorUserId !== userId)
-      throw new Error('Command ID was already used with different input.')
+    if (initiatorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
     return nativeActionPendingResult(run, occurrence!)
   }
   if (resume) {
@@ -154,7 +151,7 @@ export async function executeNativeDisarm(
       resume.response.occurrenceId !== occurrence.id ||
       resume.resolution.requestId !== prior.snapshot.request.requestId
     )
-      throw new Error('The Disarm occurrence version or evidence request is stale.')
+      rejectDomain('VERSION_STALE', 'The Disarm occurrence version or evidence request is stale.')
     if (!(await projectNativeDisarmPendingForMember(ctx, run, campaign, membership, occurrence)))
       throw new Error('The current Disarm participant must supply this evidence.')
   }
@@ -164,8 +161,7 @@ export async function executeNativeDisarm(
       q.eq('campaignId', campaign.id).eq('rootCommandId', input.commandId)
     )
     .unique()
-  if (usedRoot && usedRoot._id !== resume?.occurrence._id)
-    throw new Error('Command ID was already used with different input.')
+  if (usedRoot && usedRoot._id !== resume?.occurrence._id) rejectDomain('COMMAND_ID_REUSED')
   const [actor, target, actors] = await Promise.all([
     readRunActor(ctx, state, input.actorId),
     readRunActor(ctx, state, input.targetActorId),
@@ -215,7 +211,8 @@ export async function executeNativeDisarm(
   const { checkDefinitionId: _checkDefinitionId, ...defender } = contest.defender
   const execution = await executeEncounterOptionalContestAction({
     runtime,
-    automationMode: state.automationMode,
+    // The Disarm initiator rolls both sides of the contest in this slice, even when another user answers.
+    autoRoll: await readAutoRollDice(ctx, initiatorUserId),
     graph: preparation.graph,
     initiator: { ...contest.initiator, requestNodeId: 'initiator_d20' },
     defender: { ...defender, requestNodeId: 'target_d20' },
@@ -487,7 +484,7 @@ export async function resumeNativeDisarm(
   const state = readRunState(run)
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
   const pending = occurrence.state === 'PENDING' ? readNativeDisarmPending(occurrence) : null
@@ -538,9 +535,8 @@ export async function resumeNativeDisarm(
     run.version !== response.expectedVersion ||
     occurrence.expectedEncounterVersion !== run.version
   )
-    throw new Error('The Disarm occurrence version is stale.')
-  if (response.commandId === command.commandId || rootReceipt)
-    throw new Error('Command ID was already used with different input.')
+    rejectDomain('VERSION_STALE', 'The Disarm occurrence version is stale.')
+  if (response.commandId === command.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const [usedCommand, usedRoot] = await Promise.all([
     ctx.db
       .query('encounterRunCommands')
@@ -555,7 +551,7 @@ export async function resumeNativeDisarm(
       )
       .unique()
   ])
-  if (usedCommand || usedRoot) throw new Error('Command ID was already used with different input.')
+  if (usedCommand || usedRoot) rejectDomain('COMMAND_ID_REUSED')
   const resolution = response.resolution
   if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
     throw new Error('Disarm requires d20 evidence.')

@@ -131,6 +131,8 @@ export async function persistNativeTurnEffects(
   const commandType = input.state.status === 'PREPARED' ? 'START' : 'ADVANCE_TURN'
   const evaluated = await evaluateEncounterTurnEffects({
     ...input,
+    // The retained plan replays its recorded evidence and never rolls.
+    autoRoll: false,
     createRuntime: () => createRulesRuntime(ctx, input.userId),
     rollD20: () => nextRollInt(20) + 1,
     resolvePerception: (perception) =>

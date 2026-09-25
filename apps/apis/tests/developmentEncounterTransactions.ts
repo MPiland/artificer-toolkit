@@ -13,7 +13,11 @@ import {
 import { campaignSessionDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { api } from '../convex/_generated/api.js'
-import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
+import {
+  assertDomainRejection,
+  type DevelopmentClient,
+  executeEncounterCommand
+} from './developmentClient'
 import {
   bindScene,
   bindToken,
@@ -211,7 +215,7 @@ export async function verifyEncounterTransactions({
       )
       assert.equal(next.version, projection.version + 1)
       projection = next
-    } else assert.match(String(result.reason), /version is stale/)
+    } else assertDomainRejection(result.reason, 'VERSION_STALE')
   }
   const beforeTransferActors = projection.actors
   const transferAdvance = advance()

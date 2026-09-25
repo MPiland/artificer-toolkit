@@ -165,6 +165,40 @@ describe('Convex identity foundation', () => {
     expect((await callerB.query(api.account.session, {})).user?.authoringExperience).toBe('guided')
   })
 
+  it('defaults new profiles to automatic dice and persists the choice only for the caller', async () => {
+    await expect(t.query(api.account.rollPreferences, {})).rejects.toThrow('Unauthenticated')
+    await expect(t.mutation(api.account.setAutoRollDice, { autoRollDice: false })).rejects.toThrow(
+      'Unauthenticated'
+    )
+    const userA = await createAuthUser(true)
+    const userB = await createAuthUser(true)
+    const callerA = t.withIdentity({
+      subject: userA._id,
+      sessionId: (await createSession(userA._id))._id
+    })
+    const callerB = t.withIdentity({
+      subject: userB._id,
+      sessionId: (await createSession(userB._id))._id
+    })
+
+    await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
+      autoRollDice: true
+    })
+    await expect(
+      callerA.mutation(api.account.setAutoRollDice, { autoRollDice: false })
+    ).resolves.toBeNull()
+    await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
+      autoRollDice: false
+    })
+    await expect(callerB.query(api.account.rollPreferences, {})).resolves.toEqual({
+      autoRollDice: true
+    })
+    await callerA.mutation(api.account.setAutoRollDice, { autoRollDice: true })
+    await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
+      autoRollDice: true
+    })
+  })
+
   it('returns only the app UUID and role for an authenticated profile', async () => {
     const user = await createAuthUser(true)
     const session = await createSession(user._id)

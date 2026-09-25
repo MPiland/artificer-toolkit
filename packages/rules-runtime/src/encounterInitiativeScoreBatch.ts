@@ -5,6 +5,7 @@ import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/se
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import type { InitiativeFactBinding } from './initiativeFactAdapter.js'
+import type { EncounterEvidenceMode } from './encounterEvidenceMode.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   resumeInitiativeScoreGraph,
@@ -15,7 +16,6 @@ import {
 type InitiativeGraphSnapshot = EncounterInitiativePolicySnapshotDto['evaluationGraph']
 type InitiativeProcedure = 'ACTOR_ROLL' | 'ACTOR_SCORE' | 'SIDE_ROLL' | 'DECLARED_ACTION_ROLL'
 type InitiativeScoreBatchPhase = 'PRIMARY' | 'TIE_RESOLUTION'
-type InitiativeScoreBatchMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 
 export type InitiativeScoreBatchEntity = {
   kind: 'ACTOR' | 'SIDE'
@@ -62,7 +62,7 @@ type InitiativeScoreBatchContext = {
   pin: InitiativePolicyGraphPinDto
   procedure: InitiativeProcedure
   phase: InitiativeScoreBatchPhase
-  mode: InitiativeScoreBatchMode
+  mode: EncounterEvidenceMode
   integerSource?: TrustedInitiativeIntegerSource
 }
 
@@ -184,7 +184,7 @@ async function executeEntity(input: {
   ) {
     return { kind: 'COMPLETE', result: unavailable(input.entity, 'EVIDENCE_NOT_ALLOWED') }
   }
-  if (input.context.mode === 'ASSISTED') {
+  if (input.context.mode === 'PROMPT') {
     return { kind: 'PENDING', continuation: started.continuation }
   }
   return {
@@ -225,7 +225,7 @@ export async function startInitiativeScoreBatch(input: {
   pin: InitiativePolicyGraphPinDto
   procedure: InitiativeProcedure
   phase: InitiativeScoreBatchPhase
-  mode: InitiativeScoreBatchMode
+  mode: EncounterEvidenceMode
   entities: readonly InitiativeScoreBatchEntity[]
   integerSource?: TrustedInitiativeIntegerSource
 }): Promise<InitiativeScoreBatchResult> {
@@ -243,7 +243,7 @@ export async function resumeInitiativeScoreBatch(input: {
   pin: InitiativePolicyGraphPinDto
   procedure: InitiativeProcedure
   phase: InitiativeScoreBatchPhase
-  mode: InitiativeScoreBatchMode
+  mode: EncounterEvidenceMode
   batch: PendingInitiativeScoreBatch
   requestId: string
   value: number
@@ -303,7 +303,7 @@ export async function resumeInitiativeScoreBatch(input: {
         entities: input.batch.remaining
       })
     }
-    if (context.mode === 'ASSISTED') {
+    if (context.mode === 'PROMPT') {
       return {
         kind: 'PENDING',
         completed: input.batch.completed,

@@ -29,6 +29,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import { createRulesRuntime } from '../rules/runtime'
 import { readRunActor, readRunActors } from './documents'
 import { projectNativeGm } from './nativeProjection'
@@ -133,7 +134,8 @@ export async function executeNativeEncounterAction(
     adapter,
     plan,
     occurrenceId,
-    automationMode: state.automationMode,
+    // The initiator rolls the action's dice in this slice.
+    autoRoll: await readAutoRollDice(ctx, userId),
     binding,
     ...(resume && priorPending
       ? {

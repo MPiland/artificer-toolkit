@@ -1,5 +1,6 @@
 import { z } from '../zod.js'
 
+import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
@@ -520,7 +521,7 @@ export const encounterOptionalCombatSummaryDtoSchema = z.strictObject({
 })
 
 export function activeOptionalCombatDefinitions(input: {
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  automationMode: AutomationModeDto
   snapshot: z.infer<typeof encounterOptionalCombatSnapshotDtoSchema> | null
 }) {
   return input.automationMode === 'MANUAL' || input.snapshot === null

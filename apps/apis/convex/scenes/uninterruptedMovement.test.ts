@@ -23,7 +23,7 @@ const prepare = makeFunctionReference<
 >('scenes/spatialPreparation:prepare')
 
 async function setup(
-  mode: 'MANUAL' | 'AUTOMATIC' | 'ASSISTED',
+  mode: 'MANUAL' | 'ASSISTED',
   movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY'
 ) {
   const fixture = await createSpatialPreparationFixture()
@@ -116,7 +116,7 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
 it.each(['STAGING', 'PUBLICATION'] as const)(
   'refuses a bound token submitted as standalone movement at %s without publishing state',
   async (stage) => {
-    const value = await setup('AUTOMATIC')
+    const value = await setup('ASSISTED')
     const input = {
       ...value.input,
       commandId: crypto.randomUUID(),
@@ -153,7 +153,7 @@ it.each(['STAGING', 'PUBLICATION'] as const)(
 )
 
 it('keeps Encounter-bound movement fenced after a Campaign Session has finished', async () => {
-  const value = await setup('AUTOMATIC')
+  const value = await setup('ASSISTED')
   const session = await value.base.other.caller.mutation(api.campaigns.sessions.create, {
     campaignId: value.base.campaign.id
   })
@@ -176,8 +176,8 @@ it('keeps Encounter-bound movement fenced after a Campaign Session has finished'
 
 it.each([
   { mode: 'MANUAL', movementKind: 'VOLUNTARY' },
-  { mode: 'AUTOMATIC', movementKind: 'VOLUNTARY' },
-  { mode: 'AUTOMATIC', movementKind: 'FORCED' },
+  { mode: 'ASSISTED', movementKind: 'VOLUNTARY' },
+  { mode: 'ASSISTED', movementKind: 'FORCED' },
   { mode: 'ASSISTED', movementKind: 'TELEPORT' }
 ] as const)(
   'publishes $mode $movementKind movement and fog without a Run occurrence',
@@ -210,7 +210,7 @@ it.each([
     expect(after.occurrences).toEqual(before.occurrences)
     expect(after.receipts).toEqual(before.receipts)
     expect(after.effects).toEqual(before.effects)
-    if (mode === 'AUTOMATIC' && movementKind === 'VOLUNTARY') await seedSpatialEffect(value.base)
+    if (mode === 'ASSISTED' && movementKind === 'VOLUNTARY') await seedSpatialEffect(value.base)
     const beforeReplay = await current(value)
     await expect(
       value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, value.request)
@@ -223,7 +223,7 @@ it.each([
 it.each(['NEW_EFFECT', 'INCOMPLETE_FOG'] as const)(
   'refuses %s after preparation without publishing any movement',
   async (failure) => {
-    const value = await setup('AUTOMATIC')
+    const value = await setup('ASSISTED')
     await value.base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
       saveId: value.saveId,
       characterRevisions: []

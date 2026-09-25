@@ -167,7 +167,7 @@ describe('native Character action resource persistence', () => {
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
         expectedStreamVersion: current.active.streamVersion,
-        automationMode: 'AUTOMATIC'
+        automationMode: 'ASSISTED'
       })
       if (!prepared.resourceConsumption) throw new Error('Missing resource consumption.')
       const binding = entry.compilation.resourceBinding
@@ -186,7 +186,7 @@ describe('native Character action resource persistence', () => {
           resourceUsage: current.sheetState.resourceUsage,
           characterId: character.id,
           expectedStreamVersion: current.active.streamVersion,
-          automationMode: 'AUTOMATIC'
+          automationMode: 'ASSISTED'
         })
       ).toThrow('unavailable or stale')
       let staleRawUsageRefused = false
@@ -209,7 +209,7 @@ describe('native Character action resource persistence', () => {
           ],
           characterId: character.id,
           expectedStreamVersion: current.active.streamVersion,
-          automationMode: 'AUTOMATIC'
+          automationMode: 'ASSISTED'
         })
       } catch (error) {
         staleRawUsageRefused = error instanceof Error && /unavailable or stale/.test(error.message)

@@ -51,14 +51,14 @@ async function withPreparedSaveAction(test: (input: PreparedSaveAction) => Promi
   })
 }
 
-function testInput(input: PreparedSaveAction, automationMode: 'AUTOMATIC' | 'ASSISTED') {
+function testInput(input: PreparedSaveAction, autoRoll: boolean) {
   return {
     runtime: input.runtime,
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
     binding: input.prepared.prepared.binding,
-    automationMode,
+    autoRoll,
     afterTest: async () => undefined
   }
 }
@@ -67,7 +67,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
   await withPreparedSaveAction(async (source) => {
     let randomCalls = 0
     const boundary = await prepareNativeActionTest({
-      ...testInput(source, 'AUTOMATIC'),
+      ...testInput(source, true),
       random: () => {
         randomCalls += 1
         return 0
@@ -83,7 +83,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
     tamperedEvidence.d20.rawFaces[0] = 20
     await expect(
       continueNativeActionAfterTest({
-        ...testInput(source, 'AUTOMATIC'),
+        ...testInput(source, true),
         boundary: tamperedEvidence
       })
     ).rejects.toThrow()
@@ -92,7 +92,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
     tamperedFacts.currentHitPoints += 1
     await expect(
       continueNativeActionAfterTest({
-        ...testInput(source, 'AUTOMATIC'),
+        ...testInput(source, true),
         binding: tamperedFacts,
         boundary
       })
@@ -102,7 +102,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
     tamperedPolicy.d20Policy.modifier += 1
     await expect(
       continueNativeActionAfterTest({
-        ...testInput(source, 'AUTOMATIC'),
+        ...testInput(source, true),
         boundary: tamperedPolicy
       })
     ).rejects.toThrow('TEST policy is stale')
@@ -112,7 +112,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
     tamperedExecution.phaseReceipts[0]!.execution = tamperedExecution.execution
     await expect(
       continueNativeActionAfterTest({
-        ...testInput(source, 'AUTOMATIC'),
+        ...testInput(source, true),
         boundary: tamperedExecution
       })
     ).rejects.toThrow('TEST execution is stale')
@@ -121,7 +121,7 @@ it('seals a genuine failed SAVE TEST before OUTCOME and rejects tampering', asyn
 
 it('pauses and resumes only OUTCOME evidence after an assisted TEST boundary', async () => {
   await withPreparedSaveAction(async (source) => {
-    const input = testInput(source, 'ASSISTED')
+    const input = testInput(source, false)
     const pending = await prepareNativeActionTest(input)
     expect(pending.kind).toBe('PENDING')
     if (pending.kind !== 'PENDING') throw new Error('Expected TEST evidence request.')

@@ -34,6 +34,7 @@ import {
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -94,10 +95,11 @@ const commitPrivateTurn = makeFunctionReference<
 async function setup(
   options: {
     cadence?: 'ENCOUNTER_START' | 'EACH_ROUND'
-    automationMode?: 'AUTOMATIC' | 'ASSISTED'
+    rolls?: FixtureRolls
   } = {}
 ) {
   const base = await fixture()
+  if (options.rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'DECLARED_ACTION_ROLL', cadence: options.cadence ?? 'ENCOUNTER_START' }
   ])
@@ -119,7 +121,7 @@ async function setup(
   await base.owner.caller.mutation(saveSettings, {
     ...fields,
     expectedVersion: version,
-    automationMode: options.automationMode ?? 'AUTOMATIC',
+    automationMode: 'ASSISTED',
     manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: policyId,
     initiativeTieDefinitionId: null
@@ -274,7 +276,7 @@ describe('native initiative declarations', () => {
   }, 30000)
 
   it('settles Assisted declarations through score evidence and GM order', async () => {
-    const base = await setup({ automationMode: 'ASSISTED' })
+    const base = await setup({ rolls: 'PROMPT' })
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: {
         type: 'START',
@@ -503,7 +505,7 @@ describe('native initiative declarations', () => {
     await base.owner.caller.mutation(saveSettings, {
       ...fields,
       expectedVersion: version,
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: initiative.policyIds[0]!,
       initiativeTieDefinitionId: null
@@ -682,7 +684,7 @@ describe('native initiative declarations', () => {
       await base.owner.caller.mutation(saveSettings, {
         ...fields,
         expectedVersion: version,
-        automationMode: 'AUTOMATIC',
+        automationMode: 'ASSISTED',
         manualReminderMode: 'OFF',
         initiativePolicyDefinitionId: initiative.policyIds[0]!,
         initiativeTieDefinitionId: null
@@ -1159,7 +1161,7 @@ describe('native initiative declarations', () => {
     await base.owner.caller.mutation(saveSettings, {
       ...fields,
       expectedVersion: version,
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: initiative.policyIds[0]!,
       initiativeTieDefinitionId: null

@@ -272,7 +272,7 @@ export async function setupAutomaticCharacterMovement(
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode: 'AUTOMATIC',
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: reactors[0]!.id
     })

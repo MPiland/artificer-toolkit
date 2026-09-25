@@ -267,7 +267,7 @@ export async function replayEncounterMovementReactionAction(input: {
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    automationMode: 'ASSISTED',
+    autoRoll: false,
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined
   })
@@ -302,7 +302,7 @@ export async function replayEncounterMovementReactionAction(input: {
       adapter: input.prepared.prepared.adapter,
       plan: input.prepared.executionPlan,
       occurrenceId: input.occurrenceId,
-      automationMode: 'ASSISTED',
+      autoRoll: false,
       binding: input.prepared.prepared.binding,
       afterTest: async () => undefined,
       resume: { pending: result, resolution }
@@ -438,7 +438,7 @@ async function replayResistanceAction(
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    automationMode: 'ASSISTED' as const,
+    autoRoll: false,
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
     boundary,

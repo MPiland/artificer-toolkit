@@ -260,6 +260,7 @@ describe('live-session browser connection', () => {
       commandId: rejectedCommand.command.commandId,
       currentSequence: 5,
       message: 'Scene state changed.',
+      reason: null,
       type: 'COMMAND_REJECTED'
     })
     await expect(rejected).rejects.toThrow('Scene state changed.')
@@ -510,6 +511,7 @@ describe('live-session browser connection', () => {
       correction: { scope: 'SCENE', state: correctedScene },
       currentSequence: 6,
       message: 'Scene state changed.',
+      reason: null,
       type: 'COMMAND_REJECTED'
     })
     expect(durableStates.at(-1)).toMatchObject({

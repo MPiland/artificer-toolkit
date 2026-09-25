@@ -50,7 +50,7 @@ describe('optional combat contracts', () => {
   it('accepts one UUID-backed adapter definition and only activates it outside Manual mode', () => {
     const parsed = encounterOptionalCombatSnapshotDtoSchema.parse(snapshot())
     expect(
-      activeOptionalCombatDefinitions({ automationMode: 'AUTOMATIC', snapshot: parsed })
+      activeOptionalCombatDefinitions({ automationMode: 'ASSISTED', snapshot: parsed })
     ).toHaveLength(1)
     expect(activeOptionalCombatDefinitions({ automationMode: 'MANUAL', snapshot: parsed })).toEqual(
       []

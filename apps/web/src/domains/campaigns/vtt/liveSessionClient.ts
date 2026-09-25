@@ -12,6 +12,7 @@ import {
   type LiveSessionWebSocketServerMessageDto,
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
@@ -47,6 +48,7 @@ export interface LiveSessionCommandRejection {
   correction?: LiveSessionCorrectionDto
   currentSequence: number
   message: string
+  reason: DomainRejectionReasonDto | null
 }
 
 type LiveSessionClientMessage = Extract<

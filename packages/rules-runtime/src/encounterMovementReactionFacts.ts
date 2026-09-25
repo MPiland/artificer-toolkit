@@ -20,7 +20,7 @@ export function buildEncounterMovementReactionFacts<
 }) {
   const { state, targets, system } = input
   if (state.automationMode === 'MANUAL')
-    throw new Error('Movement reactions require an Automatic or Assisted Encounter.')
+    throw new Error('Movement reactions require an Assisted Encounter.')
   const actors = state.actorIds.map((id) => {
     const target = targets.get(id)
     if (

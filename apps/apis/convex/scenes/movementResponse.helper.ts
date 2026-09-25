@@ -8,6 +8,7 @@ import {
   readSceneMovementReactionPerception,
   discoverSceneMovementReactions
 } from './movementPerceptionValidation'
+import { readAutoRollDice } from '../lib/rollPreferences'
 
 /** Dispatches the issued movement phase through the same read-only coordinator at prepare and finish. */
 export async function evaluateSceneMovementResponse(
@@ -48,6 +49,8 @@ export async function evaluateSceneMovementResponse(
     request,
     state: current.state,
     userId: current.userId,
+    // The responding user rolls in this slice.
+    autoRoll: await readAutoRollDice(ctx, current.userId),
     root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: perception.geometry.sceneTokens,

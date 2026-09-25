@@ -8,7 +8,11 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { api } from '../convex/_generated/api.js'
-import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
+import {
+  assertDomainRejection,
+  type DevelopmentClient,
+  executeEncounterCommand
+} from './developmentClient'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import {
   bindScene,
@@ -81,12 +85,16 @@ export async function verifyEncounterAutomation({
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
   const completedRuns: EncounterGmProjectionDto[] = []
   for (const scenario of policies.scenarios) {
+    // The GM rolls turn-flow initiative: auto-roll settles it, otherwise Assisted prompts for it.
+    await owner.mutation(api.account.setAutoRollDice, {
+      autoRollDice: scenario.rolls === 'AUTO_ROLL'
+    })
     const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
     const { version, updatedAt: _updatedAt, ...fields } = settings
     const configured = await owner.mutation(api.campaigns.playSettings.save, {
       ...fields,
       expectedVersion: version,
-      automationMode: scenario.automationMode,
+      automationMode: 'ASSISTED',
       initiativePolicyDefinitionId: scenario.definitionId,
       initiativeTieDefinitionId: null
     })
@@ -99,7 +107,7 @@ export async function verifyEncounterAutomation({
       await owner.mutation(api.encounters.runs.create, creation)
     )
     assert.equal(prepared.status, 'PREPARED')
-    assert.equal(prepared.automationMode, scenario.automationMode)
+    assert.equal(prepared.automationMode, 'ASSISTED')
     assert.equal(prepared.initiativePolicy?.definitionId, scenario.definitionId)
     assert.equal(prepared.initiativePolicy.procedure, scenario.procedure)
     assert.equal(prepared.initiativePolicy.cadence, scenario.cadence)
@@ -193,11 +201,7 @@ export async function verifyEncounterAutomation({
             { type: 'RESOLVE_RULE_OCCURRENCE' }
           >['resolution']
           if (pending.kind === 'INITIATIVE_EVIDENCE') {
-            assert.equal(
-              scenario.automationMode,
-              'ASSISTED',
-              'Automatic mode requested manual score entry.'
-            )
+            assert.equal(scenario.rolls, 'PROMPT', 'Auto-roll requested manual score entry.')
             resolution = {
               kind: 'ENTER_INTEGER',
               requestId: pending.request.requestId,
@@ -246,12 +250,12 @@ export async function verifyEncounterAutomation({
         projection = encounterGmProjectionDtoSchema.parse(result.projection)
         assert.equal(projection.version, before.version + 1)
         assert.deepEqual(projection.initiativePolicy, prepared.initiativePolicy)
-        assert.equal(projection.automationMode, scenario.automationMode)
+        assert.equal(projection.automationMode, 'ASSISTED')
         terminalRoots.push({ input, result })
         return result
       } catch (error) {
         throw new Error(
-          `Encounter automation failed: automationMode=${scenario.automationMode} procedure=${scenario.procedure} cadence=${scenario.cadence} commandType=${command.type} operation=${operation}`,
+          `Encounter automation failed: rolls=${scenario.rolls} procedure=${scenario.procedure} cadence=${scenario.cadence} commandType=${command.type} operation=${operation}`,
           { cause: error }
         )
       }
@@ -294,7 +298,7 @@ export async function verifyEncounterAutomation({
     assert.equal(projection.round, 3)
     if (scenario.cadence === 'ENCOUNTER_START')
       assert.equal(projection.currentActorId, roundOneOrder[0])
-    if (scenario.automationMode === 'ASSISTED' || scenario.procedure === 'SIDE_ROLL')
+    if (scenario.rolls === 'PROMPT' || scenario.procedure === 'SIDE_ROLL')
       assert.ok(pendingResponses > 0)
 
     await execute({ ...commandBase(), type: 'SET_CURRENT_ACTOR', actorId: wolves[0]!.id })
@@ -309,7 +313,7 @@ export async function verifyEncounterAutomation({
         owner.mutation(executeEncounterCommand, {
           command: { ...command, expectedVersion: command.expectedVersion - 1 }
         }),
-        /Encounter version is stale/
+        (error) => assertDomainRejection(error, 'VERSION_STALE')
       )
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
@@ -366,7 +370,7 @@ export async function verifyEncounterAutomation({
     assert.equal(contested.filter((result) => result.status === 'fulfilled').length, 1)
     const loser = contested.find((result) => result.status === 'rejected')
     assert.ok(loser && loser.status === 'rejected')
-    assert.match(String(loser.reason), /Encounter version is stale/)
+    assertDomainRejection(loser.reason, 'VERSION_STALE')
     const winner = contested[winnerIndex]!
     assert.ok(winner.status === 'fulfilled')
     const winningResult = encounterCommandResultDtoSchema.parse(winner.value)

@@ -23,6 +23,7 @@ import type { QueryCtx } from '../_generated/server'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { prepareNativeActionEconomy } from './actionEconomy'
 import { readNativeActionSceneContext } from './actionSceneContext'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Shares current source, target and issued choices between discovery and command execution. */
 export async function readNativeDisarmSelection(
@@ -229,7 +230,8 @@ export async function readNativeDisarmSelection(
         currentness: targetFacts.characterCurrentness
       }
     }
-    if (target.kind !== 'CREATURE') throw new Error('Optional combat target is unavailable.')
+    if (target.kind !== 'CREATURE')
+      rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
     const facts = readEncounterActorOptionalContestFacts(target)
     return {
       ownerState: 'ENCOUNTER_ACTOR' as const,

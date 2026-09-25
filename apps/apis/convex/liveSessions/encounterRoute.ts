@@ -5,6 +5,7 @@ import {
   type LiveSessionEncounterRoute
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { internalQuery } from '../_generated/server'
+import { rejectDomain } from '../lib/domainRejections'
 import { readNativeEncounterOccurrenceOwner } from '../encounters/occurrenceOwner'
 import { readPendingRunDecision } from '../encounters/pendingReads'
 import { requireLiveEncounterRun } from './encounterCommandAdmission'
@@ -21,8 +22,9 @@ export const route = internalQuery({
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
       .take(2)
     const occurrenceId = input.occurrenceId.toLowerCase()
+    // The client answered an occurrence that is no longer the pending one.
     if (pending.length !== 1 || pending[0]!.id !== occurrenceId)
-      throw new Error('Rule occurrence is unavailable.')
+      rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
     if (
       membership.role !== 'OWNER' &&
       (await readPendingRunDecision(ctx, run, campaign, membership))?.occurrenceId !== occurrenceId

@@ -42,7 +42,8 @@ export default defineSchema({
     mediaBytes: v.optional(v.number()),
     entitlementUsage: zodToConvex(accountUsageSchema),
     entitlementUsageReady: v.boolean(),
-    authoringExperience: v.optional(v.union(v.literal('guided'), v.literal('advanced')))
+    authoringExperience: v.optional(v.union(v.literal('guided'), v.literal('advanced'))),
+    autoRollDice: v.boolean()
   })
     .index('by_authUserId', ['authUserId'])
     .index('by_userId', ['userId']),

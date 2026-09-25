@@ -5,6 +5,7 @@ import { readNativeEncounterActionAdmission } from '../encounters/actionAdmissio
 import { readNativeEncounterActionResponseAdmission } from '../encounters/actionResumeAdmission'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Shared authorization and replay fences for the pending and terminal action transactions. */
 export async function readLiveEncounterActionAdmission(
@@ -57,6 +58,6 @@ export async function readLiveEncounterActionAdmission(
   if (admission.kind === 'REPLAY') return { ...admission, resume: null }
   const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
   if (resume && resume.resolution.requestId !== resume.pending.snapshot.request.requestId)
-    throw new Error('The action evidence request is stale.')
+    rejectDomain('VERSION_STALE', 'The action evidence request is stale.')
   return { ...admission, resume }
 }

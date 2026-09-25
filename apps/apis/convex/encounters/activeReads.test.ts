@@ -31,6 +31,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -75,6 +76,7 @@ const activeState = makeFunctionReference<
 
 it('reads the active projection and pending decision together with existing visibility and membership rules', async () => {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, false)
   const campaign = await base.owner.caller.mutation(createCampaign, {
     name: 'Campaign encounter read',
     format: 'ONGOING',

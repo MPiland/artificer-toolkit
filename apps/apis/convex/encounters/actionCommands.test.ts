@@ -56,6 +56,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { loadMovementTargets } from './movementTargets'
@@ -468,7 +469,7 @@ async function setup({
   phased = false,
   nestedForced = false,
   targetCreature = false,
-  automationMode = 'AUTOMATIC',
+  rolls = 'AUTO_ROLL',
   distance = false,
   uppercaseTokens = false,
   condition = false,
@@ -481,7 +482,7 @@ async function setup({
   phased?: boolean
   nestedForced?: boolean
   targetCreature?: boolean
-  automationMode?: 'AUTOMATIC' | 'ASSISTED'
+  rolls?: FixtureRolls
   distance?: boolean
   uppercaseTokens?: boolean
   condition?: boolean
@@ -489,13 +490,14 @@ async function setup({
   conditionImmune?: boolean
 } = {}) {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   const actionCreature = nativeCreature(
     charged,
     self,
     recurring,
     phased,
     nestedForced,
-    automationMode === 'ASSISTED',
+    rolls === 'PROMPT',
     distance,
     condition,
     directRepeatSave,
@@ -560,14 +562,14 @@ async function setup({
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
@@ -889,7 +891,7 @@ describe('native encounter actions', () => {
       charged: true,
       phased: true,
       targetCreature: true,
-      automationMode: 'ASSISTED'
+      rolls: 'PROMPT'
     })
     await base.t.run((ctx) =>
       ctx.db.insert('campaignMemberships', {
@@ -1348,7 +1350,7 @@ describe('native encounter actions', () => {
     const base = await distanceSetup({
       phased: true,
       targetCreature: true,
-      automationMode: 'ASSISTED'
+      rolls: 'PROMPT'
     })
     const input = command({
       encounterId: base.run.id,
@@ -1406,7 +1408,7 @@ describe('native encounter actions', () => {
   }, 30000)
 
   it('completes Assisted distance evidence atomically and replays every response once', async () => {
-    const base = await distanceSetup({ automationMode: 'ASSISTED', charged: true })
+    const base = await distanceSetup({ rolls: 'PROMPT', charged: true })
     const input = command({
       encounterId: base.run.id,
       expectedVersion: base.run.version,
@@ -1743,10 +1745,10 @@ describe('native encounter actions', () => {
       )
     ).rejects.toThrow('resource is unavailable')
   }, 30000)
-  it.each(['AUTOMATIC', 'ASSISTED'] as const)(
+  it.each(['AUTO_ROLL', 'PROMPT'] as const)(
     'creates one recurring condition effect atomically and replays its typed receipt (%s)',
-    async (automationMode) => {
-      const base = await setup({ self: true, recurring: true, condition: true, automationMode })
+    async (rolls) => {
+      const base = await setup({ self: true, recurring: true, condition: true, rolls })
       const input = command({
         encounterId: base.run.id,
         actorId: base.actor.id,
@@ -1812,7 +1814,7 @@ describe('native encounter actions', () => {
       const base = await setup({
         directRepeatSave: true,
         targetCreature: true,
-        automationMode: 'ASSISTED'
+        rolls: 'PROMPT'
       })
       const input = command({
         encounterId: base.run.id,
@@ -1860,7 +1862,7 @@ describe('native encounter actions', () => {
       directRepeatSave: true,
       targetCreature: true,
       conditionImmune: true,
-      automationMode: 'ASSISTED'
+      rolls: 'PROMPT'
     })
     const frightened = srdSystemRecord.conditionTypes.find((value) => value.code === 'FRIGHTENED')
     if (!frightened) throw new Error('Missing frightened condition fixture.')

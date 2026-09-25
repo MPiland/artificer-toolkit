@@ -24,6 +24,7 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { parseLiveEntity } from '../scenes/liveDocuments'
+import { rejectDomain } from '../lib/domainRejections'
 
 const inputValidator: Validator<EncounterActorTokenBindingCommandInputDto, 'required', string> =
   zodToConvex<z.core.$ZodType<EncounterActorTokenBindingCommandInputDto>>(
@@ -55,7 +56,7 @@ export const execute = mutation({
     if (!run) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
     if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     if (run.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
     const state = readRunState(run)
@@ -73,7 +74,7 @@ export const execute = mutation({
         prior.encounterId !== run.id ||
         prior.commandFingerprint !== fingerprint
       )
-        throw new Error('Command ID was already used with different input.')
+        rejectDomain('COMMAND_ID_REUSED')
       const storedInput = encounterActorTokenBindingCommandInputDtoSchema.parse(
         JSON.parse(prior.commandJson)
       )

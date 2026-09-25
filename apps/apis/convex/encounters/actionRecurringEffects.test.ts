@@ -20,6 +20,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 
 const recurringCreatureId = '00000000-0000-4000-8000-0000000008c0'
@@ -157,11 +158,9 @@ async function settleStart(
   return current
 }
 
-async function recurringFixture(
-  kind: 'HEAL' | 'SAVE_DAMAGE',
-  automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC'
-) {
+async function recurringFixture(kind: 'HEAL' | 'SAVE_DAMAGE', rolls: FixtureRolls = 'AUTO_ROLL') {
   const base = await fixture()
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
   await base.t.mutation(internal.content.import.bootstrap, policies.bootstrap)
   await base.t.mutation(internal.content.import.importDefinitions, policies.imported)
@@ -196,7 +195,7 @@ async function recurringFixture(
   await base.owner.caller.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode,
+    automationMode: 'ASSISTED',
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativeTieDefinitionId: null
   })
@@ -397,7 +396,7 @@ it.each([
   { face: 1, effects: 1, label: 'failed save' },
   { face: 20, effects: 0, label: 'successful save' }
 ])('creates recurring damage only for the selected $label branch', async ({ face, effects }) => {
-  const base = await recurringFixture('SAVE_DAMAGE', 'ASSISTED')
+  const base = await recurringFixture('SAVE_DAMAGE', 'PROMPT')
   const action = actionInput(base)
   const issued = await base.base.owner.caller.mutation(internal.encounters.commands.execute, {
     command: action

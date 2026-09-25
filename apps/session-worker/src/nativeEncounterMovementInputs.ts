@@ -301,6 +301,7 @@ export async function readNativeLiveMovementInputs(input: {
     save,
     response,
     header,
+    autoRollDice: movement.autoRollDice,
     state,
     system,
     actors,

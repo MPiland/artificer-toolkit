@@ -341,7 +341,8 @@ type NativeActionBaseInput = {
   adapter: CharacterRuleActionSystemAdapter
   plan: CharacterRuleActionExecutionPlan
   occurrenceId: string
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  /** The roller's preference: roll immediately instead of pausing for evidence. */
+  autoRoll: boolean
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(
     execution: ServerCompletedRuleExecutionDto,
@@ -500,7 +501,7 @@ export async function prepareNativeActionTest(
         boundFactsChecksum: current.factsChecksum
       }
     })
-    if (input.automationMode === 'ASSISTED')
+    if (!input.autoRoll)
       return {
         kind: 'PENDING',
         continuation: result.continuation,
@@ -717,7 +718,7 @@ export async function continueNativeActionAfterTest(
       bound,
       twoPhase
     })
-    if (input.automationMode === 'ASSISTED')
+    if (!input.autoRoll)
       return {
         kind: 'PENDING',
         continuation: result.continuation,
@@ -784,15 +785,15 @@ export async function advanceNativeActionGraphs(input: {
   adapter: CharacterRuleActionSystemAdapter
   plan: CharacterRuleActionExecutionPlan
   occurrenceId: string
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
+  /** The roller's preference: roll immediately instead of pausing for evidence. */
+  autoRoll: boolean
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(execution: ServerCompletedRuleExecutionDto): Promise<void>
   resume?: { pending: PendingNativeActionGraphs; resolution: NativeActionEvidenceResolution }
   random?: (maximum: number) => number
 }): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
-  if (input.automationMode === 'AUTOMATIC' && input.resume)
-    throw new Error('Sealed action evidence must resume without rerunning the action.')
-  if (input.automationMode === 'AUTOMATIC')
+  // A resumed prompt keeps prompting until this action settles; auto-roll applies when it starts.
+  if (input.autoRoll && !input.resume)
     return {
       kind: 'COMPLETE',
       ...(await executeNativeActionGraphs(input))

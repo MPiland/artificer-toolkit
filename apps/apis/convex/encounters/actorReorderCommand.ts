@@ -21,6 +21,7 @@ import { createEncounterInitiativeStore } from './initiativeStore'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries'
+import { rejectDomain } from '../lib/domainRejections'
 
 export async function reorderEncounterActors(
   ctx: MutationCtx,
@@ -40,7 +41,7 @@ export async function reorderEncounterActors(
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
   if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
@@ -58,7 +59,7 @@ export async function reorderEncounterActors(
       prior.actorUserId !== userId ||
       prior.commandFingerprint !== fingerprint
     )
-      throw new Error('Command ID was already used with different input.')
+      rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
     const projection = encounterGmProjectionDtoSchema.parse(result.projection)
     if (
@@ -107,8 +108,8 @@ export async function reorderEncounterActors(
     }
     return result
   }
-  if (row.version !== input.expectedVersion) throw new Error('Encounter version is stale.')
-  if (row.status === 'COMPLETED') throw new Error('Completed Encounters are read-only.')
+  if (row.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
+  if (row.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const state = readRunState(row)
   const projection = readRunProjection(row)
   const actors = await readRunActors(ctx, state)

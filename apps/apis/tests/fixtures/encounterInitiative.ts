@@ -178,10 +178,10 @@ export function createEncounterLifecyclePolicyFixture(
   options: { includeMovementReactionPolicies?: boolean } = {}
 ) {
   const scenarios = [
-    { automationMode: 'AUTOMATIC', procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' },
-    { automationMode: 'AUTOMATIC', procedure: 'SIDE_ROLL', cadence: 'EACH_ROUND' },
-    { automationMode: 'ASSISTED', procedure: 'SIDE_ROLL', cadence: 'ENCOUNTER_START' },
-    { automationMode: 'ASSISTED', procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
+    { rolls: 'AUTO_ROLL', procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' },
+    { rolls: 'AUTO_ROLL', procedure: 'SIDE_ROLL', cadence: 'EACH_ROUND' },
+    { rolls: 'PROMPT', procedure: 'SIDE_ROLL', cadence: 'ENCOUNTER_START' },
+    { rolls: 'PROMPT', procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
   ] as const
   const initiative = createEncounterInitiativeDefinitions(scenarios)
   const movementReaction = options.includeMovementReactionPolicies

@@ -28,7 +28,14 @@ export async function restoreEncounterInitiativeTurnActors<
   prepareEffects: (
     input: Pick<
       Parameters<typeof prepareEncounterTurnEffects<TCharacterFacts>>[0],
-      'state' | 'userId' | 'root' | 'occurrenceId' | 'actors' | 'boundary' | 'retainedPhase'
+      | 'state'
+      | 'userId'
+      | 'autoRoll'
+      | 'root'
+      | 'occurrenceId'
+      | 'actors'
+      | 'boundary'
+      | 'retainedPhase'
     >
   ) => ReturnType<typeof prepareEncounterTurnEffects<TCharacterFacts>>
   prepareLegendary: (
@@ -36,6 +43,7 @@ export async function restoreEncounterInitiativeTurnActors<
       Parameters<typeof prepareTurnLegendaryActions<TCharacterFacts>>[0],
       | 'state'
       | 'userId'
+      | 'autoRoll'
       | 'occurrenceId'
       | 'updatedAt'
       | 'actors'
@@ -118,9 +126,11 @@ export async function restoreEncounterInitiativeTurnActors<
     },
     resolutionCommands: root.resolutionCommands
   }
+  // Reconstruction replays retained evidence and never rolls.
   const outgoing = await input.prepareEffects({
     state,
     userId: input.campaign.ownerUserId,
+    autoRoll: false,
     root: turnRoot,
     occurrenceId: input.occurrenceId,
     actors: await input.readActors(),
@@ -131,6 +141,7 @@ export async function restoreEncounterInitiativeTurnActors<
   const prepared = await input.prepareLegendary({
     state,
     userId: input.campaign.ownerUserId,
+    autoRoll: false,
     occurrenceId: input.occurrenceId,
     updatedAt: input.updatedAt,
     actors: outgoing.actors,

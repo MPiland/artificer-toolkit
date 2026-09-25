@@ -218,7 +218,8 @@ it('replays retained SYSTEM_ROLL spatial evidence without random generation', as
     currentPosition: { x: 0, y: 0 },
     occurrenceId,
     executionCommandId: commandId,
-    occurredAt
+    occurredAt,
+    autoRoll: false
   }
   const pending = await base.owner.caller.run((ctx) =>
     evaluateNativeSpatialMovement(ctx, movement, 'PREVIEW')

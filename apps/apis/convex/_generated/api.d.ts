@@ -33,6 +33,12 @@ export declare const api: {
       {},
       { bio: null | string; username: null | string }
     >;
+    rollPreferences: FunctionReference<
+      "query",
+      "public",
+      {},
+      { autoRollDice: boolean }
+    >;
     session: FunctionReference<
       "query",
       "public",
@@ -57,6 +63,12 @@ export declare const api: {
       "mutation",
       "public",
       { experience: "guided" | "advanced" },
+      null
+    >;
+    setAutoRollDice: FunctionReference<
+      "mutation",
+      "public",
+      { autoRollDice: boolean },
       null
     >;
     updateProfile: FunctionReference<
@@ -11943,7 +11955,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
-          automationMode?: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+          automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
           contentGuidance: string | null;
@@ -12006,7 +12018,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
-          automationMode?: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+          automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
           contentGuidance: string | null;
@@ -12032,7 +12044,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
-          automationMode?: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+          automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
           contentGuidance: string | null;
@@ -45434,7 +45446,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -45522,7 +45534,7 @@ export declare const api: {
                   sourceId: string | null;
                   sourceRevision: number | null;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -45931,7 +45943,7 @@ export declare const api: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           projection:
             | {
@@ -46026,7 +46038,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -46114,7 +46126,7 @@ export declare const api: {
                   sourceId: string | null;
                   sourceRevision: number | null;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -47967,6 +47979,14 @@ export declare const api: {
                           | { kind: "PASSAGE_DECLINE" }
                           | { kind: "PASSAGE_OPTION"; optionId: string };
                         type: "RESOLVE_RULE_OCCURRENCE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedOccurrenceVersion: number;
+                        expectedVersion: number;
+                        occurrenceId: string;
+                        type: "VOID_RULE_OCCURRENCE";
                       };
                 };
                 kind: "COMMAND";
@@ -48264,7 +48284,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
-            automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+            automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
             blueprintVersion: number;
@@ -48348,7 +48368,7 @@ export declare const api: {
               sourceId: string | null;
               sourceRevision: number | null;
             }>;
-            automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+            automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
             blueprintVersion: number;
@@ -48496,7 +48516,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
-            automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+            automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
             blueprintVersion: number;
@@ -48580,7 +48600,7 @@ export declare const api: {
               sourceId: string | null;
               sourceRevision: number | null;
             }>;
-            automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+            automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
             blueprintVersion: number;
@@ -48721,7 +48741,7 @@ export declare const api: {
                 systemId: string | null;
                 tempHitPoints: number;
               }>;
-              automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+              automationMode: "ASSISTED" | "MANUAL";
               blueprintChecksum: string;
               blueprintId: string;
               blueprintVersion: number;
@@ -48805,7 +48825,7 @@ export declare const api: {
                 sourceId: string | null;
                 sourceRevision: number | null;
               }>;
-              automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+              automationMode: "ASSISTED" | "MANUAL";
               blueprintChecksum: string;
               blueprintId: string;
               blueprintVersion: number;
@@ -48947,7 +48967,7 @@ export declare const api: {
                 systemId: string | null;
                 tempHitPoints: number;
               }>;
-              automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+              automationMode: "ASSISTED" | "MANUAL";
               blueprintChecksum: string;
               blueprintId: string;
               blueprintVersion: number;
@@ -49031,7 +49051,7 @@ export declare const api: {
                 sourceId: string | null;
                 sourceRevision: number | null;
               }>;
-              automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+              automationMode: "ASSISTED" | "MANUAL";
               blueprintChecksum: string;
               blueprintId: string;
               blueprintVersion: number;
@@ -49170,7 +49190,7 @@ export declare const api: {
             systemId: string | null;
             tempHitPoints: number;
           }>;
-          automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+          automationMode: "ASSISTED" | "MANUAL";
           blueprintChecksum: string;
           blueprintId: string;
           blueprintVersion: number;
@@ -51264,7 +51284,7 @@ export declare const api: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           replayed: boolean;
           sceneId: string;
@@ -52650,7 +52670,7 @@ export declare const api: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           replayed: boolean;
           sceneId: string;
@@ -53340,7 +53360,7 @@ export declare const api: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           replayed: boolean;
           sceneId: string;
@@ -53946,7 +53966,7 @@ export declare const api: {
                     requestId: string;
                   }
                 | null;
-              status: "PENDING" | "COMPLETE";
+              status: "PENDING" | "COMPLETE" | "VOIDED";
             } | null;
             replayed: boolean;
             sceneId: string;
@@ -65915,6 +65935,14 @@ export declare const internal: {
                   | { kind: "PASSAGE_DECLINE" }
                   | { kind: "PASSAGE_OPTION"; optionId: string };
                 type: "RESOLVE_RULE_OCCURRENCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                type: "VOID_RULE_OCCURRENCE";
               };
         },
         {
@@ -66087,7 +66115,7 @@ export declare const internal: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           projection:
             | {
@@ -66182,7 +66210,7 @@ export declare const internal: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -66270,7 +66298,7 @@ export declare const internal: {
                   sourceId: string | null;
                   sourceRevision: number | null;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -67936,6 +67964,14 @@ export declare const internal: {
                   | { kind: "PASSAGE_DECLINE" }
                   | { kind: "PASSAGE_OPTION"; optionId: string };
                 type: "RESOLVE_RULE_OCCURRENCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                type: "VOID_RULE_OCCURRENCE";
               };
         },
         {
@@ -68108,7 +68144,7 @@ export declare const internal: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           projection:
             | {
@@ -68203,7 +68239,7 @@ export declare const internal: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -68291,7 +68327,7 @@ export declare const internal: {
                   sourceId: string | null;
                   sourceRevision: number | null;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -70031,6 +70067,14 @@ export declare const internal: {
                           | { kind: "PASSAGE_DECLINE" }
                           | { kind: "PASSAGE_OPTION"; optionId: string };
                         type: "RESOLVE_RULE_OCCURRENCE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedOccurrenceVersion: number;
+                        expectedVersion: number;
+                        occurrenceId: string;
+                        type: "VOID_RULE_OCCURRENCE";
                       };
                 };
                 kind: "COMMAND";
@@ -70100,6 +70144,10 @@ export declare const internal: {
         },
         null
       >;
+    };
+    occurrenceVoid: {
+      prepare: FunctionReference<"mutation", "internal", any, any>;
+      record: FunctionReference<"mutation", "internal", any, any>;
     };
     pendingReads: {
       forPrepared: FunctionReference<
@@ -71694,7 +71742,7 @@ export declare const internal: {
                     requestId: string;
                   }
                 | null;
-              status: "PENDING" | "COMPLETE";
+              status: "PENDING" | "COMPLETE" | "VOIDED";
             } | null;
             replayed: boolean;
             sceneId: string;
@@ -74041,7 +74089,7 @@ export declare const internal: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           replayed: boolean;
           sceneId: string;
@@ -74841,7 +74889,7 @@ export declare const internal: {
                       requestId: string;
                     }
                   | null;
-                status: "PENDING" | "COMPLETE";
+                status: "PENDING" | "COMPLETE" | "VOIDED";
               } | null;
               replayed: boolean;
               sceneId: string;
@@ -80287,7 +80335,7 @@ export declare const internal: {
                                           requestId: string;
                                         }
                                       | null;
-                                    status: "PENDING" | "COMPLETE";
+                                    status: "PENDING" | "COMPLETE" | "VOIDED";
                                   };
                                   occurrenceId: string;
                                   occurrenceVersion: number;
@@ -96602,7 +96650,7 @@ export declare const internal: {
                                             requestId: string;
                                           }
                                         | null;
-                                      status: "PENDING" | "COMPLETE";
+                                      status: "PENDING" | "COMPLETE" | "VOIDED";
                                     };
                                     occurrenceId: string;
                                     occurrenceVersion: number;
@@ -112875,7 +112923,7 @@ export declare const internal: {
                                         requestId: string;
                                       }
                                     | null;
-                                  status: "PENDING" | "COMPLETE";
+                                  status: "PENDING" | "COMPLETE" | "VOIDED";
                                 };
                                 occurrenceId: string;
                                 occurrenceVersion: number;
@@ -128467,7 +128515,7 @@ export declare const internal: {
                   requestId: string;
                 }
               | null;
-            status: "PENDING" | "COMPLETE";
+            status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
           projection:
             | {
@@ -128562,7 +128610,7 @@ export declare const internal: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -128650,7 +128698,7 @@ export declare const internal: {
                   sourceId: string | null;
                   sourceRevision: number | null;
                 }>;
-                automationMode: "AUTOMATIC" | "ASSISTED" | "MANUAL";
+                automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
                 blueprintVersion: number;
@@ -129593,7 +129641,7 @@ export declare const internal: {
                       requestId: string;
                     }
                   | null;
-                status: "PENDING" | "COMPLETE";
+                status: "PENDING" | "COMPLETE" | "VOIDED";
               } | null;
               replayed: boolean;
               sceneId: string;
@@ -135348,7 +135396,7 @@ export declare const internal: {
                                           requestId: string;
                                         }
                                       | null;
-                                    status: "PENDING" | "COMPLETE";
+                                    status: "PENDING" | "COMPLETE" | "VOIDED";
                                   };
                                   occurrenceId: string;
                                   occurrenceVersion: number;
@@ -151663,7 +151711,7 @@ export declare const internal: {
                                             requestId: string;
                                           }
                                         | null;
-                                      status: "PENDING" | "COMPLETE";
+                                      status: "PENDING" | "COMPLETE" | "VOIDED";
                                     };
                                     occurrenceId: string;
                                     occurrenceVersion: number;
@@ -167936,7 +167984,7 @@ export declare const internal: {
                                         requestId: string;
                                       }
                                     | null;
-                                  status: "PENDING" | "COMPLETE";
+                                  status: "PENDING" | "COMPLETE" | "VOIDED";
                                 };
                                 occurrenceId: string;
                                 occurrenceVersion: number;

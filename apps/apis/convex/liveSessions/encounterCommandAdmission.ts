@@ -5,6 +5,7 @@ import { internalQuery, type QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** The room's forwarded user, role, active Campaign and DO_ACTIVE epoch must all match the Run. */
 export async function requireLiveEncounterRun(
@@ -15,7 +16,7 @@ export async function requireLiveEncounterRun(
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
   if (membership.role !== input.expectedRole) throw new Error('Live Session role mismatch.')
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   await requireActiveCampaignLiveAuthority(ctx, {
     campaignId: campaign.id,
     epoch: input.authorityEpoch

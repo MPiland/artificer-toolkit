@@ -55,6 +55,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
   automaticChargedCreature,
   automaticChargedBiteFeatureId,
@@ -99,7 +100,7 @@ const capture = makeFunctionReference<
 >('liveSessions/encounterRulesCapture:capture')
 
 async function setup(
-  automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC',
+  rolls: FixtureRolls = 'AUTO_ROLL',
   characterSource = false,
   characterTarget = false
 ) {
@@ -286,6 +287,8 @@ async function setup(
       }
     })
   })
+  for (const user of [base.owner, base.other, ...(targetController ? [targetController] : [])])
+    await setAutoRollDice(base.t, user.userId, rolls === 'AUTO_ROLL')
   const optional = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (definition) => definition.document.kind === 'CLEAVING'
   )
@@ -415,14 +418,14 @@ async function setup(
     const state = encounterRunStateSchema.parse({
       ...JSON.parse(row.stateJson),
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
-      automationMode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
@@ -680,7 +683,7 @@ describe('native Cleaving action settlement', () => {
     vi.unstubAllEnvs()
   })
   it('commits the selected Character Cleaving choice with native root and child parity', async () => {
-    const base = await setup('AUTOMATIC', false, true)
+    const base = await setup('AUTO_ROLL', false, true)
     const command = base.command.command
     if (command.type !== 'RESOLVE_ACTION') throw new Error('Missing Cleaving action command.')
     const workerSecret = 'private-cleaving-planning-test-secret-at-least-32-bytes'
@@ -852,7 +855,7 @@ describe('native Cleaving action settlement', () => {
   ])(
     'orders an Assisted concentration $outcome before the deferred Cleaving choice via $transport',
     async ({ face, outcome, transport }) => {
-      const base = await setup('ASSISTED', false, true)
+      const base = await setup('PROMPT', false, true)
       if (!base.characterId) throw new Error('Missing Cleaving concentration Character.')
       const seeded = await seedConcentration({
         t: base.t,
@@ -1104,7 +1107,7 @@ describe('native Cleaving action settlement', () => {
   )
 
   it('cleans an attacker-owned concentration dependent after Automatic Cleaving damage', async () => {
-    const base = await setup('AUTOMATIC', true, true)
+    const base = await setup('AUTO_ROLL', true, true)
     if (!base.characterId) throw new Error('Missing Cleaving source Character.')
     const seeded = await seedConcentration({
       t: base.t,
@@ -1221,7 +1224,7 @@ describe('native Cleaving action settlement', () => {
     }
   }, 60_000)
 
-  it.each(['AUTOMATIC', 'ASSISTED'] as const)(
+  it.each(['AUTO_ROLL', 'PROMPT'] as const)(
     'carries one finalized %s attack through a bounded chain without rolling or spending again',
     async (mode) => {
       const base = await setup(mode)
@@ -1343,7 +1346,7 @@ describe('native Cleaving action settlement', () => {
     expect(await records(base)).toEqual(after)
   }, 30000)
 
-  it.each(['AUTOMATIC', 'ASSISTED'] as const)(
+  it.each(['AUTO_ROLL', 'PROMPT'] as const)(
     'lets the current Character controller choose a visible %s child and keeps private choices and another responder replay unavailable',
     async (mode) => {
       const base = await setup(mode, true)
@@ -1467,7 +1470,7 @@ describe('native Cleaving action settlement', () => {
   }, 30000)
 
   it('refuses a choice after canonical Character currentness changes and still lets the current controller decline', async () => {
-    const base = await setup('AUTOMATIC', true)
+    const base = await setup('AUTO_ROLL', true)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
       await completeParent(base)

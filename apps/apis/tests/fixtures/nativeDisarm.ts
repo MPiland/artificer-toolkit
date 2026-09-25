@@ -40,6 +40,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 
 import { createDisarmCreature, createDisarmWeapon, disarmHeldEntryId } from './disarmCreature'
+import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 export { disarmHeldEntryId, disarmOtherEntryId } from './disarmCreature'
 export const getNativeActionChoices = makeFunctionReference<
   'query',
@@ -53,7 +54,7 @@ export const getNativeOptionalActionChoices = makeFunctionReference<
 >('encounters/actionChoices:optional')
 
 export async function nativeDisarmFixture(
-  mode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC',
+  rolls: FixtureRolls = 'AUTO_ROLL',
   characterTarget = false,
   characterSource = false
 ) {
@@ -61,6 +62,7 @@ export async function nativeDisarmFixture(
     throw new Error('Disarm fixture requires a Creature participant.')
   const weapon = createDisarmWeapon(characterSource ? club.id : undefined)
   const base = await setupCharacterRun({}, characterSource ? weapon : undefined)
+  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   const sheet = await base.player.caller.query(api.characters.sheet.get, {
     id: base.character.id
   })
@@ -161,14 +163,14 @@ export async function nativeDisarmFixture(
     const state = encounterRunStateSchema.parse({
       ...JSON.parse(row.stateJson),
       status: 'ACTIVE',
-      automationMode: mode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })
     const projection = encounterGmProjectionDtoSchema.parse({
       ...JSON.parse(row.projectionJson),
       status: 'ACTIVE',
-      automationMode: mode,
+      automationMode: 'ASSISTED',
       round: 1,
       currentActorId: actor.id
     })

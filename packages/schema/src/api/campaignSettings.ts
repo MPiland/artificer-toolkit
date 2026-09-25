@@ -26,7 +26,8 @@ const optionalCombatDefinitionIdsDtoSchema = z
       }
     })
   )
-export const automationModeDtoSchema = z.enum(['AUTOMATIC', 'ASSISTED', 'MANUAL'])
+export const automationModeDtoSchema = z.enum(['ASSISTED', 'MANUAL'])
+export type AutomationModeDto = z.infer<typeof automationModeDtoSchema>
 export const manualReminderModeDtoSchema = z.enum(['OFF', 'SUBTLE'])
 
 const campaignPlaySettingsBaseDtoSchema = z.strictObject({

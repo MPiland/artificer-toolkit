@@ -7,6 +7,7 @@ import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readRunProjection, readRunState } from './documents'
 import { loadMovementTargets, type MovementTarget } from './movementTargets'
+import { rejectDomain } from '../lib/domainRejections'
 
 export async function loadNativeMovementReactionSources(
   ctx: MutationCtx,
@@ -25,10 +26,9 @@ export async function loadNativeMovementReactionSources(
   const { campaign } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')
-  if (state.version !== input.expectedEncounterVersion)
-    throw new Error('Encounter version is stale.')
+  if (state.version !== input.expectedEncounterVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE' || state.automationMode === 'MANUAL')
-    throw new Error('Movement reactions require an active Automatic or Assisted Encounter.')
+    throw new Error('Movement reactions require an active Assisted Encounter.')
   const targets =
     movementTargets ??
     (await loadMovementTargets(

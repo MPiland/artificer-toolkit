@@ -3,6 +3,7 @@ import type { InitiativePolicyTieResolverPinDto } from '@artificer-toolkit/schem
 import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 
+import type { EncounterEvidenceMode } from './encounterEvidenceMode.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   prepareInitiativeOrdering,
@@ -68,7 +69,7 @@ type TieResolutionContext = {
   graph: InitiativeTieGraphSnapshot
   pin: InitiativePolicyTieResolverPinDto
   procedure: InitiativeProcedure
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  mode: EncounterEvidenceMode
   entitiesById: ReadonlyMap<string, InitiativeScoreBatchEntity>
   integerSource?: TrustedInitiativeIntegerSource
 }
@@ -490,7 +491,7 @@ function contextFromInput(input: {
   graph: InitiativeTieGraphSnapshot
   pin: InitiativePolicyTieResolverPinDto
   procedure: InitiativeProcedure
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  mode: EncounterEvidenceMode
   entities: readonly InitiativeScoreBatchEntity[]
   integerSource?: TrustedInitiativeIntegerSource
 }): TieResolutionContext {
@@ -505,7 +506,7 @@ export async function startInitiativeTieResolution(input: {
   graph: InitiativeTieGraphSnapshot
   pin: InitiativePolicyTieResolverPinDto
   procedure: InitiativeProcedure
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  mode: EncounterEvidenceMode
   entities: readonly InitiativeScoreBatchEntity[]
   scoreGroups: readonly InitiativeScoreOrderGroup[]
   integerSource?: TrustedInitiativeIntegerSource
@@ -531,7 +532,7 @@ export async function resumeInitiativeTieResolution(input: {
   graph: InitiativeTieGraphSnapshot
   pin: InitiativePolicyTieResolverPinDto
   procedure: InitiativeProcedure
-  mode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  mode: EncounterEvidenceMode
   entities: readonly InitiativeScoreBatchEntity[]
   pending: PendingInitiativeTieResolution
   requestId: string

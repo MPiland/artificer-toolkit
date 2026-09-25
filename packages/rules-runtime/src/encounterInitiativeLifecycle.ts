@@ -3,6 +3,7 @@ import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/sc
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
+import type { EncounterEvidenceMode } from './encounterEvidenceMode.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { createEncounterInitiativeScoreEntities } from './encounterInitiativeEntities.js'
 import {
@@ -34,7 +35,6 @@ import {
 } from './encounterInitiativeTieResolution.js'
 
 type InitiativeRepository = Parameters<typeof settleEncounterInitiativeRound>[0]['repository']
-type InitiativeMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 type InitiativePolicyProcedure = 'ACTOR_ROLL' | 'ACTOR_SCORE' | 'SIDE_ROLL' | 'DECLARED_ACTION_ROLL'
 
 export type EncounterInitiativeExecutionEvidence = {
@@ -83,7 +83,7 @@ type InitiativeLifecycleContext = {
   occurrenceId: string
   gameSystemId: string
   snapshot: EncounterInitiativePolicySnapshotDto
-  mode: InitiativeMode
+  mode: EncounterEvidenceMode
   entities: readonly InitiativeScoreBatchEntity[]
   integerSource?: TrustedInitiativeIntegerSource
 }
@@ -308,7 +308,7 @@ export async function startEncounterInitiativeLifecycle(input: {
   snapshotChecksum: string | null
   sources: InitiativeFactSources
   adapter: InitiativeFactAdapter | null
-  mode: InitiativeMode
+  mode: EncounterEvidenceMode
   legacyOrderedActorIds: readonly string[]
   integerSource?: TrustedInitiativeIntegerSource
 }): Promise<EncounterInitiativeLifecycleResult> {
@@ -395,7 +395,7 @@ export async function resumeEncounterInitiativeLifecycle(input: {
   snapshotChecksum: string
   sources: InitiativeFactSources
   adapter: InitiativeFactAdapter
-  mode: InitiativeMode
+  mode: EncounterEvidenceMode
   pending: PendingEncounterInitiativeLifecycle
   requestId: string
   value: number | { selectedEntityId: string }

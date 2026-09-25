@@ -15,6 +15,7 @@ import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { turnConcentrationFixture } from '../../tests/fixtures/turnConcentration'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
 import {
   commitNativeLiveConcentrationResponse,
@@ -233,7 +234,7 @@ async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) 
 
 describe('turn damage concentration ordering', () => {
   it('retains an Assisted success between failures that advance the Run twice', async () => {
-    const base = await turnConcentrationFixture('ASSISTED')
+    const base = await turnConcentrationFixture('PROMPT')
     const prepared = await prepareTurn(base)
     await seedTurnSaveEffect(
       { ...base, run: { ...base.run, actors: [prepared.b, prepared.a] } },
@@ -305,7 +306,7 @@ describe('turn damage concentration ordering', () => {
   }, 60_000)
 
   it('settles Automatic Concentration after a positive incoming START damage batch', async () => {
-    const base = await turnConcentrationFixture('AUTOMATIC')
+    const base = await turnConcentrationFixture('AUTO_ROLL')
     const seeded = await seedConcentration({
       t: base.t,
       run: base.run,
@@ -360,7 +361,7 @@ describe('turn damage concentration ordering', () => {
   }, 60_000)
 
   it('settles Automatic owner checks in damage order and skips only the failed state remainder', async () => {
-    const base = await turnConcentrationFixture('AUTOMATIC')
+    const base = await turnConcentrationFixture('AUTO_ROLL')
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
     try {
       const prepared = await prepareTurn(base)
@@ -415,7 +416,7 @@ describe('turn damage concentration ordering', () => {
   }, 60_000)
 
   it('publishes one Assisted concentration at a time after the immutable parent turn', async () => {
-    const base = await turnConcentrationFixture('ASSISTED')
+    const base = await turnConcentrationFixture('PROMPT')
     const prepared = await prepareTurn(base)
     const { result: parent, responses } = await finishTurnEffects(base, prepared.advance)
     expect(parent.occurrence?.status).toBe('COMPLETE')
@@ -533,7 +534,10 @@ describe('turn damage concentration ordering', () => {
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     try {
-      const base = await turnConcentrationFixture('ASSISTED')
+      const base = await turnConcentrationFixture('PROMPT')
+      // Each concentration response rolls later siblings with the responder's preference.
+      for (const controller of [base.player, base.targetController])
+        await setAutoRollDice(base.t, controller.userId, false)
       const prepared = await prepareTurn(base)
       const { result: parent, responses } = await finishTurnEffects(base, prepared.advance)
       expect(parent.occurrence?.status).toBe('COMPLETE')
@@ -685,7 +689,7 @@ it('commits ordered Automatic turn concentration through the private DO terminal
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
   try {
-    const base = await turnConcentrationFixture('AUTOMATIC')
+    const base = await turnConcentrationFixture('AUTO_ROLL')
     const prepared = await prepareTurn(base)
     if (prepared.advance.command.type !== 'ADVANCE_TURN')
       throw new Error('Expected an ADVANCE_TURN command.')

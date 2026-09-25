@@ -192,6 +192,8 @@ export type SpatialMovementRuleEvaluation =
  */
 export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   actorUserId: string
+  /** The roller's auto-roll preference; the moving initiator rolls in this slice. */
+  autoRoll: boolean
   encounter: SpatialMovementEncounter
   sceneId: string
   sceneVersion: number
@@ -649,7 +651,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
             rollD20: input.rollD20
           })
         : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
-    if ('continuation' in result && input.encounter.automationMode === 'AUTOMATIC') {
+    if ('continuation' in result && input.autoRoll) {
       const automatic = await resolveAutomatic({
         effectInput,
         paused: result,

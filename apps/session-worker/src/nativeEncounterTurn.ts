@@ -320,6 +320,7 @@ export async function planNativeLiveEncounterTurn(
   if (admission.command.type === 'START' || initiativeResume) {
     const initiative = await stages.initiative({
       state,
+      autoRoll: admission.autoRollDice,
       root,
       occurrenceId,
       actors: initiativeActors,
@@ -346,6 +347,7 @@ export async function planNativeLiveEncounterTurn(
     {
       state,
       campaign,
+      autoRoll: admission.autoRollDice,
       root,
       occurrenceId,
       actors,
@@ -361,6 +363,7 @@ export async function planNativeLiveEncounterTurn(
       ? await prepareNativeLiveTurnCompletion({
           state,
           prepared,
+          autoRoll: admission.autoRollDice,
           occurrenceId,
           occurredAt,
           activeEffectsByActorId,

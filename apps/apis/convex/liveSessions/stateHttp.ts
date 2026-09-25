@@ -1,5 +1,7 @@
 import { constantTimeEqual } from 'better-auth/crypto'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import { z } from 'zod'
 import { httpAction, type ActionCtx } from '../_generated/server'
 
@@ -161,7 +163,11 @@ function liveStateHttp(
     if (input instanceof Response) return input
     try {
       return jsonResponse(await run(ctx, input))
-    } catch {
+    } catch (error) {
+      // Only expected domain rejections reach the room; every other failure stays redacted.
+      const rejection =
+        error instanceof ConvexError ? domainRejectionErrorDataSchema.safeParse(error.data) : null
+      if (rejection?.success) return jsonResponse(rejection.data, 422)
       return textResponse(unavailableMessage, 409)
     }
   })
@@ -191,10 +197,10 @@ async function parseBody(request: Request): Promise<JsonObject | Response> {
   }
 }
 
-function jsonResponse(value: unknown): Response {
+function jsonResponse(value: unknown, status = 200): Response {
   return new Response(JSON.stringify(value), {
     headers: { ...noStore, 'Content-Type': 'application/json' },
-    status: 200
+    status
   })
 }
 

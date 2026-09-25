@@ -69,7 +69,7 @@ export async function executeNativeMovementReactionAction(
   input: {
     runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
     occurrenceId: string
-    automationMode: 'AUTOMATIC' | 'ASSISTED'
+    autoRoll: boolean
     prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
     random?: Parameters<typeof executeNativeActionGraphs>[0]['random']
     resume?: Parameters<typeof advanceNativeActionGraphs>[0]['resume']
@@ -87,7 +87,7 @@ export async function resumeNativeMovementLegendaryResistance(
   input: {
     runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
     occurrenceId: string
-    automationMode: 'AUTOMATIC' | 'ASSISTED'
+    autoRoll: boolean
     prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     selection: Parameters<typeof resolveNativeMovementLegendaryResistance>[0]['selection']

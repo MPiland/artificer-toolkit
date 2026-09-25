@@ -41,7 +41,6 @@ export interface EncounterMovementReactionDiscoveryResult {
 
 export async function discoverEncounterMovementReactionChoices(input: {
   encounter: EncounterMovementReactionEncounter
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
   grid: SceneGrid
   movementKind: SpatialMovementKind
   movingTokenId: string
@@ -97,7 +96,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
     resolvePerception: input.resolvePerception
   })
   const reactionTimeline = sealEncounterMovementReactionTimeline(
-    organizeEncounterMovementReactionDecisions(evaluated, input.automationMode)
+    organizeEncounterMovementReactionDecisions(evaluated)
   )
   const first = reactionTimeline[0]
   return {
@@ -111,7 +110,6 @@ export async function discoverEncounterMovementReactionChoices(input: {
 
 export async function revalidateEncounterMovementReactionOption(input: {
   encounter: EncounterMovementReactionEncounter
-  automationMode: 'AUTOMATIC' | 'ASSISTED'
   movementKind: SpatialMovementKind
   occurrenceId: string
   option: MovementReactionChoiceOptionDto
@@ -171,7 +169,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
     resolvePerception: input.resolvePerception
   })
   const sealed = sealEncounterMovementReactionTimeline(
-    organizeEncounterMovementReactionDecisions(evaluated, input.automationMode)
+    organizeEncounterMovementReactionDecisions(evaluated)
   )
     .flatMap((entry) => (entry.kind === 'AUTOMATIC_ACTION' ? [entry.option] : entry.group.options))
     .find((option) => option.optionId === input.option.optionId)

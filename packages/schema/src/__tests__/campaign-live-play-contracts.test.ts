@@ -64,6 +64,10 @@ describe('Campaign live-play contracts', () => {
     expect(
       campaignPlaySettingsDtoSchema.safeParse({ ...base, automationMode: 'SUGGESTIVE' }).success
     ).toBe(false)
+    // Auto-rolling is a per-person preference now, not a Campaign automation mode.
+    expect(
+      campaignPlaySettingsDtoSchema.safeParse({ ...base, automationMode: 'AUTOMATIC' }).success
+    ).toBe(false)
     expect(
       campaignPlaySettingsDtoSchema.safeParse({ ...base, manualReminderMode: 'LOUD' }).success
     ).toBe(false)

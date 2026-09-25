@@ -16,6 +16,7 @@ import { readNativeConcentrationPending } from './concentrationPending'
 import { readNativeConcentrationParentDamage } from './concentrationParent'
 import { presentTimelineEntry } from './timelineEntries'
 import { isNativeConcentrationOccurrence } from './occurrenceOwner'
+import { rejectDomain } from '../lib/domainRejections'
 
 /** Admits one concentration child response without preparing facts or writing state. */
 export async function readNativeConcentrationResponseAdmission(
@@ -141,10 +142,10 @@ export async function readNativeConcentrationResponseAdmission(
       q.eq('campaignId', campaign.id).eq('rootCommandId', response.commandId)
     )
     .unique()
-  if (reservedCommand) throw new Error('Command ID was already used with different input.')
+  if (reservedCommand) rejectDomain('COMMAND_ID_REUSED')
   const resolution = response.resolution
   if (
-    state.automationMode !== 'ASSISTED' ||
+    state.automationMode === 'MANUAL' ||
     state.status !== 'ACTIVE' ||
     state.version !== response.expectedVersion ||
     occurrence.expectedEncounterVersion !== state.version ||

@@ -92,6 +92,10 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
     optionalCombatSnapshotChecksum: projectionChecksumSchema
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
+    commandType: z.literal('VOID_RULE_OCCURRENCE'),
+    ruleOccurrenceId: postgresUuidSchema
+  }),
+  z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('UPDATE_ACTOR'),
     characterReceiptId: z.nullable(postgresUuidSchema)
   }),
@@ -132,7 +136,7 @@ export const encounterStoredRuleOccurrenceSchema = z
     campaignId: postgresUuidSchema,
     encounterId: postgresUuidSchema,
     rootCommandId: postgresUuidSchema,
-    state: z.enum(['PENDING', 'COMPLETED']),
+    state: z.enum(['PENDING', 'COMPLETED', 'VOIDED']),
     version: z.number().check(z.int()).check(z.nonnegative()),
     expectedEncounterVersion: z.number().check(z.int()).check(z.nonnegative()),
     pendingSnapshotJson: z.nullable(z.string()),
@@ -144,7 +148,7 @@ export const encounterStoredRuleOccurrenceSchema = z
   .check(
     z.superRefine((occurrence, context) => {
       if (
-        occurrence.state === 'COMPLETED'
+        occurrence.state !== 'PENDING'
           ? occurrence.pendingSnapshotJson !== null ||
             occurrence.pendingSnapshotChecksum !== null ||
             occurrence.completedAt === null

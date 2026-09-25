@@ -39,6 +39,7 @@ import {
 import type { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
 import type { SpatialTerminalPublicationCallbacks } from './spatialTerminalPublication'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { rejectDomain } from '../lib/domainRejections'
 
 type MovementResponsePublicationCallbacks = {
   commit: typeof commitPreparedMovementResponse
@@ -373,7 +374,7 @@ export async function publishMovementResponse(
       q.eq('campaignId', input.campaign.id).eq('commandId', resolution.command.commandId)
     )
     .unique()
-  if (priorCommand) throw new Error('Command ID was already used with different input.')
+  if (priorCommand) rejectDomain('COMMAND_ID_REUSED')
   const committed = await callbacks.commit(ctx, request, response)
   const outcome = committed.outcome
   if (outcome.kind === 'PENDING') {

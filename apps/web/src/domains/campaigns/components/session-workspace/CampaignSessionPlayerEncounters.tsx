@@ -68,6 +68,7 @@ export function CampaignSessionPlayerEncounters({ campaign }: { campaign: Campai
             {pendingPreparedIds.has(encounter.id) ? (
               <CampaignEncounterDecision
                 campaignId={campaign.id}
+                canVoid={false}
                 connected={live.commandReady}
                 encounter={encounter}
                 sendCommand={live.sendEncounterCommand}

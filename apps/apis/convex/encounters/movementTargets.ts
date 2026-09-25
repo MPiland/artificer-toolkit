@@ -10,6 +10,7 @@ import {
   buildMovementTarget,
   type MovementTarget as RuntimeMovementTarget
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { rejectDomain } from '../lib/domainRejections'
 
 export type MovementTarget = RuntimeMovementTarget<
   NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
@@ -61,8 +62,7 @@ export async function loadMovementTargets(
   }
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')
-  if (state.version !== input.expectedEncounterVersion)
-    throw new Error('Encounter version is stale.')
+  if (state.version !== input.expectedEncounterVersion) rejectDomain('VERSION_STALE')
   if (targetActorIds.some((id) => !state.actorIds.includes(id)))
     throw new Error('Encounter actor was not found.')
   const currentActors =

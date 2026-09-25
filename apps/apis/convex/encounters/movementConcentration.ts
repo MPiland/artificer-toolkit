@@ -15,6 +15,7 @@ export {
 import type { MutationCtx } from '../_generated/server'
 import { createRulesRuntime } from '../rules/runtime'
 import { nextRollInt } from '../lib/rollRandom'
+import { readAutoRollDice } from '../lib/rollPreferences'
 import type { NativeMaintenanceProjection } from './actionMaintenance'
 import { createNativeConcentrationContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
@@ -50,33 +51,38 @@ export async function prepareNativeMovementConcentration(
     resume?: { snapshot: ServerKernelRuleExecutionPendingSnapshotDto; resolution: DiceResolution }
   }
 ) {
-  return prepareEncounterMovementConcentration(input, {
-    loadState: (targetActorId, targets, projection) =>
-      loadNativeConcentrationState(ctx, {
-        state: input.state,
-        readVersion: input.state.version,
-        targetActorId,
-        userId: input.userId,
-        targets,
-        projection
-      }),
-    runtime: () => createRulesRuntime(ctx, input.userId),
-    random: nextRollInt,
-    projectEnd: async (context, targets, projection) =>
-      projectNativeMovementConcentrationEnd({
-        maintenance: await prepareNativeConcentrationEnd(ctx, {
+  // The moving initiator rolls Concentration saves in this slice.
+  const autoRoll = await readAutoRollDice(ctx, input.userId)
+  return prepareEncounterMovementConcentration(
+    { ...input, autoRoll },
+    {
+      loadState: (targetActorId, targets, projection) =>
+        loadNativeConcentrationState(ctx, {
           state: input.state,
-          context,
+          readVersion: input.state.version,
+          targetActorId,
+          userId: input.userId,
           targets,
           projection
         }),
-        targets,
-        projection,
-        campaignId: input.state.campaignId,
-        gameSystemId: input.state.gameSystemId,
-        occurredAt: input.occurredAt
-      })
-  })
+      runtime: () => createRulesRuntime(ctx, input.userId),
+      random: nextRollInt,
+      projectEnd: async (context, targets, projection) =>
+        projectNativeMovementConcentrationEnd({
+          maintenance: await prepareNativeConcentrationEnd(ctx, {
+            state: input.state,
+            context,
+            targets,
+            projection
+          }),
+          targets,
+          projection,
+          campaignId: input.state.campaignId,
+          gameSystemId: input.state.gameSystemId,
+          occurredAt: input.occurredAt
+        })
+    }
+  )
 }
 
 /** Replays recorded dice and verifies the forecast inside the enclosing Scene transaction. */
