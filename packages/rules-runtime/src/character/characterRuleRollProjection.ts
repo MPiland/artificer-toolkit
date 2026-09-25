@@ -4,14 +4,22 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAcceptedModifierApplicability,
+  dnd5eFoldedModifierApplicability,
+  dnd5eModifierApplies
+} from '../systems/dnd5e/modifierApplicability.js'
+
 type CharacterRollMode = CharacterRulePolicyOutput['rollModes']['initiative']
 
 type CharacterRollContributor =
   CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
 
+/** A save against one authored rule or one condition, which adds the grants scoped to it. */
 type ScopedSavingThrow = {
   abilityId: string
-  ruleDefinitionId: string
+  scope: { ruleDefinitionId: string } | { conditionTypeId: string }
   groups: Map<string, 'BONUS' | 'PENALTY' | 'ADVANTAGE' | 'DISADVANTAGE'>
 }
 
@@ -25,32 +33,31 @@ function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThro
   const scoped = new Map<string, ScopedSavingThrow>()
   for (const modifier of output.grantFold.modifiers) {
     if (
-      modifier.modifierKind !== 'BONUS' &&
-      modifier.modifierKind !== 'PENALTY' &&
-      modifier.modifierKind !== 'ADVANTAGE' &&
-      modifier.modifierKind !== 'DISADVANTAGE'
+      (modifier.modifierKind !== 'BONUS' &&
+        modifier.modifierKind !== 'PENALTY' &&
+        modifier.modifierKind !== 'ADVANTAGE' &&
+        modifier.modifierKind !== 'DISADVANTAGE') ||
+      !dnd5eModifierApplies(
+        dnd5eAcceptedModifierApplicability(modifier),
+        DND5E_CHARACTER_WIDE_TARGET
+      )
     )
       continue
     const grant = record(modifier.grant)
     const domain = record(grant?.domain)
     const abilityId = domain?.ability
-    const ruleDefinitionId = domain?.ruleDefinitionId
-    if (
-      grant?.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
-      typeof abilityId !== 'string' ||
-      typeof ruleDefinitionId !== 'string'
-    )
+    if (grant?.valueDomainCode !== 'SAVING_THROW_MODIFIER' || typeof abilityId !== 'string')
       continue
-    if (domain?.conditionTypeId != null) continue
-    const parsedRuleDefinitionId = postgresUuidSchema.safeParse(ruleDefinitionId)
-    if (!parsedRuleDefinitionId.success) continue
-    const canonicalRuleDefinitionId = parsedRuleDefinitionId.data
-    const key = `${abilityId}:${canonicalRuleDefinitionId}`
-    const entry = scoped.get(key) ?? {
-      abilityId,
-      ruleDefinitionId: canonicalRuleDefinitionId,
-      groups: new Map()
-    }
+    const ruleDefinitionId = postgresUuidSchema.safeParse(domain?.ruleDefinitionId)
+    const conditionTypeId = postgresUuidSchema.safeParse(domain?.conditionTypeId)
+    const scope = ruleDefinitionId.success
+      ? { ruleDefinitionId: ruleDefinitionId.data }
+      : conditionTypeId.success
+        ? { conditionTypeId: conditionTypeId.data }
+        : null
+    if (scope === null) continue
+    const key = `${abilityId}:${JSON.stringify(scope)}`
+    const entry = scoped.get(key) ?? { abilityId, scope, groups: new Map() }
     entry.groups.set(modifier.domainKey, modifier.modifierKind)
     scoped.set(key, entry)
   }
@@ -171,12 +178,19 @@ export function resolveCharacterRulePolicyRollModes(
     for (const [domainKey, modifierKind] of scoped.groups) {
       const group = resolvedModifierGroups.get(domainKey)
       if (!group) continue
+      const contributions = group.contributions.filter((contribution) =>
+        dnd5eModifierApplies(
+          dnd5eFoldedModifierApplicability(output.grantFold, contribution),
+          DND5E_CHARACTER_WIDE_TARGET
+        )
+      )
       if (modifierKind === 'BONUS' || modifierKind === 'PENALTY') {
-        modifier += group.effective
+        modifier += contributions
+          .filter((contribution) => contribution.state === 'APPLIED')
+          .reduce((sum, contribution) => sum + contribution.value, 0)
         continue
       }
-      if (group.effective !== 1) continue
-      for (const contribution of group.contributions) {
+      for (const contribution of contributions) {
         if (!contribution.source || !contribution.grantId || !contribution.domainKey)
           throw new Error('Scoped character saving throws require contributor provenance.')
         scopedContributors.push({
@@ -191,21 +205,23 @@ export function resolveCharacterRulePolicyRollModes(
     const contributors = canonicalizeRollContributors([...base.contributors, ...scopedContributors])
     savingThrowDefinitions.push({
       abilityDefinitionId: base.abilityDefinitionId,
-      ruleDefinitionId: scoped.ruleDefinitionId,
+      ...scoped.scope,
       modifier,
       rollMode: resolveRollMode(contributors),
       contributors
     })
   }
+  const scopeKey = (savingThrow: (typeof savingThrowDefinitions)[number]) =>
+    `${savingThrow.ruleDefinitionId ?? ''}:${savingThrow.conditionTypeId ?? ''}`
   if (
     new Set(
       savingThrowDefinitions.map(
-        (savingThrow) => `${savingThrow.abilityDefinitionId}:${savingThrow.ruleDefinitionId ?? ''}`
+        (savingThrow) => `${savingThrow.abilityDefinitionId}:${scopeKey(savingThrow)}`
       )
     ).size !== savingThrowDefinitions.length
   ) {
     throw new Error(
-      'Character saving throws must map to unique System ability and rule definitions.'
+      'Character saving throws must map to unique System ability, rule and condition definitions.'
     )
   }
   return {
@@ -214,7 +230,7 @@ export function resolveCharacterRulePolicyRollModes(
     rollModes,
     savingThrowDefinitions: savingThrowDefinitions.sort((left, right) =>
       left.abilityDefinitionId === right.abilityDefinitionId
-        ? (left.ruleDefinitionId ?? '').localeCompare(right.ruleDefinitionId ?? '')
+        ? scopeKey(left).localeCompare(scopeKey(right))
         : left.abilityDefinitionId.localeCompare(right.abilityDefinitionId)
     )
   }

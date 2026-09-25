@@ -206,6 +206,7 @@ function rootDescriptor(
         field('damageVulnerabilities', value.damageVulnerabilities),
         field('damageResistances', value.damageResistances),
         field('damageImmunities', value.damageImmunities),
+        field('qualifiedDamageDefenses', value.qualifiedDamageDefenses),
         field('conditionImmunities', value.conditionImmunities),
         field('challengeRatingId', value.challengeRatingId),
         field('xp', value.xp),

@@ -42,6 +42,7 @@ import {
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_ABILITY_DEFINITION_IDS,
+  SRD_DWARVEN_HERITAGE_ID,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
@@ -619,88 +620,63 @@ export function finesseWeaponWithRangedModifiers(equipmentId: string) {
     }
   ]
 }
-/** HEAVY: disadvantage on attack rolls for Small or Tiny characters. Bucket 0x320. */
-export function heavyWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const sizeCondition = (i: number): FacetConditionAuthored<'CHARACTER'> => ({
-    id: equipmentChildId(equipmentId, 0x324, i),
-    order: 1,
-    kind: 'PREDICATE' as const,
-    constraint: 'INCLUDE' as const,
-    predicateCode: 'SIZE' as const,
-    authoringModeKind: 'SELECTED' as const,
-    sizes: ['SMALL', 'TINY'] as SizeCode[]
-  })
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x320, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.DISADVANTAGE,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x320, [
-        sizeCondition(1)
-      ]),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x320, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.DISADVANTAGE,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 2, 0x320, [
-        sizeCondition(2)
-      ]),
-      order: 2
-    }
-  ]
+/**
+ * HEAVY: Small or Tiny wielders have disadvantage on attack rolls with this weapon, so only its own
+ * attack kind is affected. Bucket 0x320; the melee grant keeps index 1 and the ranged grant index 2.
+ */
+function heavyWeaponDisadvantage(
+  equipmentId: string,
+  attackDomain: typeof ATTACK_DOMAIN_CODE.MELEE | typeof ATTACK_DOMAIN_CODE.RANGED,
+  order: number
+): ModifierGrantAuthored {
+  const index = attackDomain === ATTACK_DOMAIN_CODE.MELEE ? 1 : 2
+  return {
+    id: equipmentChildId(equipmentId, 0x320, index),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+    domain: { attackDomain },
+    modifierKind: MODIFIER_KIND.DISADVANTAGE,
+    scope: MODIFIER_SCOPE_KIND.SOURCE,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    restrictions: whileEquippedWithConditionRestriction(equipmentId, index, 0x320, [
+      {
+        id: equipmentChildId(equipmentId, 0x324, index),
+        order: 1,
+        kind: 'PREDICATE' as const,
+        constraint: 'INCLUDE' as const,
+        predicateCode: 'SIZE' as const,
+        authoringModeKind: 'SELECTED' as const,
+        sizes: ['SMALL', 'TINY'] as SizeCode[]
+      }
+    ]),
+    order
+  }
 }
 export function heavyMeleeWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers = meleeWeaponAbilityModifiers(equipmentId)
-  for (const modifier of heavyWeaponModifiers(equipmentId)) {
-    modifier.order = modifiers.length + 1
-    modifiers.push(modifier)
-  }
-  return modifiers
+  return [
+    ...meleeWeaponAbilityModifiers(equipmentId),
+    heavyWeaponDisadvantage(equipmentId, ATTACK_DOMAIN_CODE.MELEE, 3)
+  ]
 }
 export function heavyRangedWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers = rangedWeaponAbilityModifiers(equipmentId)
-  for (const modifier of heavyWeaponModifiers(equipmentId)) {
-    modifier.order = modifiers.length + 1
-    modifiers.push(modifier)
-  }
-  return modifiers
+  return [
+    ...rangedWeaponAbilityModifiers(equipmentId),
+    heavyWeaponDisadvantage(equipmentId, ATTACK_DOMAIN_CODE.RANGED, 3)
+  ]
 }
-/** ARMOR proficiency AC grant: +DEX modifier gated on character having the armor property proficiency. Bucket 0x330. */
+/**
+ * Light and medium armor AC: + DEX modifier while worn (medium caps it at 2). Armor proficiency
+ * does not gate it; SRD non-proficiency only affects checks, saves, attacks and spellcasting.
+ * Bucket 0x330.
+ */
 export function lightArmorModifiers(equipmentId: string) {
-  return armorAbilityModModifiers(equipmentId, 'LIGHT', 'DEXTERITY')
+  return armorAbilityModModifiers(equipmentId, 'DEXTERITY')
 }
 export function mediumArmorModifiers(equipmentId: string) {
-  return armorAbilityModModifiers(equipmentId, 'MEDIUM', 'DEXTERITY', { max: 2 })
-}
-function proficiencyCondition(
-  equipmentId: string,
-  bucket: number,
-  grantIndex: number,
-  property: keyof typeof EQUIPMENT_PROPERTY_CODE
-) {
-  return {
-    id: equipmentChildId(equipmentId, bucket + 4, grantIndex),
-    order: 1,
-    kind: 'PREDICATE' as const,
-    constraint: 'INCLUDE' as const,
-    predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY' as const,
-    authoringModeKind: 'SELECTED' as const,
-    properties: [property]
-  }
+  return armorAbilityModModifiers(equipmentId, 'DEXTERITY', { max: 2 })
 }
 function armorAbilityModModifiers(
   equipmentId: string,
-  property: keyof typeof EQUIPMENT_PROPERTY_CODE,
   ability: AbilityCode,
   bounds: { min?: number; max?: number } = {}
 ) {
@@ -714,12 +690,54 @@ function armorAbilityModModifiers(
       scope: MODIFIER_SCOPE_KIND.GLOBAL,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
       payload: { ability, ...bounds },
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x330, [
-        proficiencyCondition(equipmentId, 0x330, 1, property)
-      ]),
+      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x330, []),
       order: 1
     }
   ]
+}
+/**
+ * Heavy armor Strength requirement: walking speed drops by 10 feet while worn unless the wearer's
+ * Strength score meets the requirement. Dwarves ignore the reduction (SRD Dwarf: "Your speed is not
+ * reduced by wearing heavy armor"). Bucket 0x340 for the grant, 0x341-0x346 for its restriction.
+ */
+export function heavyArmorStrengthModifier(
+  equipmentId: string,
+  strengthRequirement: number,
+  order: number
+): ModifierGrantAuthored {
+  return {
+    id: equipmentChildId(equipmentId, 0x340, 1),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+    domain: { speedId: speedId('WALK') },
+    modifierKind: MODIFIER_KIND.PENALTY,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { valueKind: 'FIXED' as const, amount: 10 },
+    restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x341, [
+      {
+        id: equipmentChildId(equipmentId, 0x345, 1),
+        order: 1,
+        kind: 'PREDICATE' as const,
+        constraint: 'INCLUDE' as const,
+        predicateCode: 'ABILITY_SCORE' as const,
+        authoringModeKind: 'SELECTED' as const,
+        abilities: 'STRENGTH' as const,
+        min: 1,
+        max: strengthRequirement - 1
+      },
+      {
+        id: equipmentChildId(equipmentId, 0x346, 1),
+        order: 2,
+        kind: 'PREDICATE' as const,
+        constraint: 'EXCLUDE' as const,
+        predicateCode: 'HERITAGE' as const,
+        authoringModeKind: 'SELECTED' as const,
+        heritageIds: [SRD_DWARVEN_HERITAGE_ID]
+      }
+    ]),
+    order
+  }
 }
 export function meleeMagicWeaponModifiers(equipmentId: string, bonus: number) {
   return [

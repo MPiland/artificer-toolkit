@@ -8,17 +8,14 @@ import {
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE,
-  TRIGGER
-} from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors
 } from '@artificer-toolkit/shared/rules'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
+import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
 
@@ -420,20 +417,14 @@ export function prepareDnd5eDisarmContest(
   ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_DISARM_FACTS' }
   }
+  // Disarm replaces a weapon attack: only melee and ranged weapon attacks qualify.
+  const attackKind = dnd5eAttackKind(input.triggerCode)
   if (
-    (input.triggerCode !== TRIGGER.MELEE_WEAPON_ATTACK &&
-      input.triggerCode !== TRIGGER.RANGED_WEAPON_ATTACK) ||
+    (attackKind !== 'MELEE' && attackKind !== 'RANGED') ||
     input.sourceEquipment.category !== EQUIPMENT_CATEGORY_CODE.WEAPON ||
     (input.sourceEquipment.state !== 'EQUIPPED' && input.sourceEquipment.state !== 'HELD')
   )
     return { kind: 'NOT_APPLICABLE' }
-  const attackKind =
-    input.triggerCode === TRIGGER.MELEE_WEAPON_ATTACK
-      ? 'MELEE'
-      : input.triggerCode === TRIGGER.RANGED_WEAPON_ATTACK
-        ? 'RANGED'
-        : null
-  if (attackKind === null) return { kind: 'NOT_APPLICABLE' }
   const baseContributors = canonicalContributors(input.attack.baseContributors[attackKind])
   const relationshipContributors = canonicalContributors(input.attack.relationshipContributors)
   if (

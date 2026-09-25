@@ -17,9 +17,16 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   authoredRecordStatusSchema,
   creatureCategoryCodeSchema,
+  damageDefenseBypassCodeSchema,
   measurementUnitCodeSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
+
+export const creatureQualifiedDamageDefenseDtoSchema = z.strictObject({
+  kind: z.enum(['RESISTANCE', 'IMMUNITY']),
+  damageTypeIds: authoredReferenceCollectionSchema(postgresUuidSchema).check(z.minLength(1)),
+  bypassedBy: authoredReferenceCollectionSchema(damageDefenseBypassCodeSchema).check(z.minLength(1))
+})
 
 export const creatureMountProfileDtoSchema = z.object({
   mountType: z.enum(['CONTROLLED', 'INDEPENDENT']),
@@ -181,6 +188,9 @@ const creatureAuthoredDtoObject = z.object({
   damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
   damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
   damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+  qualifiedDamageDefenses: z.optional(
+    authoredNestedCollectionSchema(creatureQualifiedDamageDefenseDtoSchema)
+  ),
   conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
   challengeRatingId: z.optional(authoredIdentifierSchema),
   xp: z.optional(z.number()),

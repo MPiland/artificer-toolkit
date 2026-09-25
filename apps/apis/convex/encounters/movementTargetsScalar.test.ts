@@ -115,6 +115,7 @@ describe('native movement target scalar facts', () => {
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,
+        qualifiedDefenses: [],
         conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds
       }
     })

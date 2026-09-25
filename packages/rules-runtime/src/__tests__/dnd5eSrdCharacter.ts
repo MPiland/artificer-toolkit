@@ -1,0 +1,249 @@
+import {
+  characterRulePolicyInputSchema,
+  type CharacterRulePolicyInput,
+  type CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
+import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  resolveEquipmentAuthored,
+  resolveRaceAuthored
+} from '@artificer-toolkit/shared/subjects/compilers'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd'
+import { SRD_ABILITIES, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { buildCharacterActionRuleFacts } from '../character/characterActionRuleFacts.js'
+import { buildCharacterArmorClassRuleFacts } from '../character/characterArmorClassRuleFacts.js'
+import { buildCharacterDerivedRuleFacts } from '../character/characterDerivedRuleFacts.js'
+import { compileCharacterGrantFoldRuleFacts } from '../character/characterGrantFoldRuleFacts.js'
+import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
+import { buildCharacterMovementRuleFacts } from '../character/characterMovementRuleFacts.js'
+import { prepareCharacterRuleSources } from '../character/characterRuleSnapshot.js'
+import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
+import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
+
+type Ability = (typeof SRD_ABILITIES)[number]['code']
+type SnapshotFeature = CharacterBuildSnapshot['features'][number]
+
+export const SRD = srdBaselineContent.subjects
+
+export function srdByLabel<T extends { readonly label: string }>(
+  items: readonly T[],
+  label: string
+): T {
+  const match = items.find((item) => item.label === label)
+  if (match === undefined) throw new Error(`SRD fixture "${label}" is missing.`)
+  return match
+}
+
+const racesById = new Map<string, RaceAuthored>(SRD.races.map((race) => [race.id, race]))
+const equipmentById = new Map<string, EquipmentAuthored>(
+  SRD.equipment.map((item) => [item.id, item])
+)
+const { registry } = prepareCharacterRuleSources({
+  registry: {
+    races: SRD.races.map((race) => resolveRaceAuthored(race, (id) => racesById.get(id))),
+    classes: SRD.classes,
+    backgrounds: [],
+    equipment: SRD.equipment.map((item) =>
+      resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
+    ),
+    feats: [],
+    features: [],
+    system: { skills: [], speeds: [...SRD_SPEEDS] }
+  },
+  catalog: { spells: [] }
+})
+
+/** The SRD vocabulary slice that saving-throw projection reads. */
+const vocabulary = {
+  document: { abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })) }
+} as Pick<SystemVocabularySnapshot, 'document'>
+
+/** A class, subclass, race or subrace feature acquisition, with any selected options. */
+export function srdFeature(input: {
+  owner: 'CLASS' | 'SUBCLASS'
+  classLabel: string
+  subclassLabel?: string
+  featureLabel: string
+  level: number
+  optionLabels?: readonly string[]
+}): SnapshotFeature {
+  const characterClass = srdByLabel(SRD.classes, input.classLabel)
+  const owner =
+    input.owner === 'SUBCLASS'
+      ? srdByLabel(SRD.classes, input.subclassLabel ?? input.classLabel)
+      : characterClass
+  const feature = srdByLabel(owner.features ?? [], input.featureLabel)
+  const options = (input.optionLabels ?? []).map(
+    (label) => srdByLabel(feature.options ?? [], label).id
+  )
+  return {
+    acquisitionId: `acquired:${feature.id}`,
+    featureId: feature.id,
+    source:
+      input.owner === 'SUBCLASS'
+        ? { kind: 'SUBCLASS', subclassId: owner.id, classLevel: input.level }
+        : { kind: 'CLASS', classId: characterClass.id, classLevel: input.level },
+    timing: { kind: 'CLASS_LEVEL', classId: characterClass.id, classLevel: input.level },
+    ...(options.length > 0
+      ? { selections: [{ selectionKey: 'options', values: [{ kind: 'IDS', ids: options }] }] }
+      : {})
+  }
+}
+
+function raceFeatures(race: RaceAuthored | undefined, kind: 'RACE' | 'SUBRACE') {
+  return (race?.features ?? []).map(
+    (feature): SnapshotFeature => ({
+      featureId: feature.id,
+      source: kind === 'RACE' ? { kind, raceId: race!.id } : { kind, subraceId: race!.id },
+      timing: { kind: 'IMMEDIATE' }
+    })
+  )
+}
+
+export type SrdCharacterInput = {
+  abilities?: Partial<Record<Ability, number>>
+  race?: string
+  subrace?: string
+  classes: readonly { label: string; level: number; subclass?: string }[]
+  features?: readonly SnapshotFeature[]
+  items?: readonly { label: string; equipped?: boolean; attuned?: boolean }[]
+}
+
+export type SrdCharacter = {
+  facts: CharacterRulePolicyInput
+  output: CharacterRulePolicyOutput
+  itemInstanceId: (label: string) => string
+}
+
+/** Evaluates an SRD Character through the real fact builders and the installed D&D policy. */
+export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
+  const race = input.race === undefined ? undefined : srdByLabel(SRD.races, input.race)
+  const subrace = input.subrace === undefined ? undefined : srdByLabel(SRD.races, input.subrace)
+  const classes = input.classes.map((entry) => ({
+    classId: srdByLabel(SRD.classes, entry.label).id,
+    level: entry.level,
+    ...(entry.subclass === undefined
+      ? {}
+      : { subclassId: srdByLabel(SRD.classes, entry.subclass).id })
+  }))
+  const items = (input.items ?? []).map((item, index) => {
+    const equipment = srdByLabel(SRD.equipment, item.label)
+    const compiledItem = registry.equipment[equipment.id]
+    if (compiledItem === undefined) throw new Error(`SRD item "${item.label}" did not compile.`)
+    return {
+      instanceId: `item-${index}`,
+      contentRef: {
+        definitionId: equipment.id,
+        binding: { kind: 'ACTIVE' as const },
+        systemId: equipment.systemId
+      },
+      ...(item.equipped
+        ? {
+            equippedState:
+              compiledItem.category === 'ARMOR'
+                ? { slot: 'ARMOR' as const }
+                : compiledItem.category === 'SHIELD'
+                  ? { slot: 'SHIELD' as const }
+                  : { slot: 'MAIN_HAND' as const }
+          }
+        : {}),
+      attuned: item.attuned ?? false,
+      compiledItem
+    }
+  })
+  const totalLevel = classes.reduce((sum, entry) => sum + entry.level, 0)
+  const snapshot: CharacterBuildSnapshot = {
+    characterId: 'srd-character',
+    systemId: SRD.classes[0]!.systemId,
+    totalLevel,
+    ...(race ? { raceId: race.id } : {}),
+    ...(subrace ? { subraceId: subrace.id } : {}),
+    classes,
+    abilities: Object.fromEntries(
+      SRD_ABILITIES.map(({ code }) => [code, input.abilities?.[code] ?? 10])
+    ),
+    hitpoints: [],
+    features: [
+      ...raceFeatures(race, 'RACE'),
+      ...raceFeatures(subrace, 'SUBRACE'),
+      ...(input.features ?? [])
+    ],
+    equipmentItems: items
+  }
+  const grantFoldFacts = compileCharacterGrantFoldRuleFacts({ snapshot, registry })
+  const facts = characterRulePolicyInputSchema.parse({
+    contractVersion: 4,
+    grantFoldFacts,
+    totalLevel,
+    derivedBaseFacts: buildCharacterDerivedRuleFacts(snapshot, registry),
+    ...buildCharacterItemMechanicsRuleFacts(snapshot),
+    ...buildCharacterMovementRuleFacts(snapshot, registry),
+    ...buildCharacterArmorClassRuleFacts(snapshot),
+    spellAccessCandidates: [],
+    spellClasses: [],
+    spellPreparationClasses: [],
+    spellPreparationCatalog: [],
+    spellPreparationRequest: null,
+    spellCastCandidates: [],
+    spellCastSlots: [],
+    spellCastResources: [],
+    spellcastingClasses: [],
+    chargeCalculations: [],
+    actionCandidates: buildCharacterActionRuleFacts({
+      snapshot,
+      registry,
+      grantFoldFacts,
+      resourcePoolCandidates: []
+    }).actionCandidates,
+    eligibilityFacets: [],
+    rest: { totalHitDice: totalLevel, currentExhaustion: 0, attunementSlotOverride: null }
+  })
+  return {
+    facts,
+    output: resolveCharacterRulePolicyRollModes(
+      evaluateDnd5e2014CharacterPolicy(facts),
+      vocabulary
+    ),
+    itemInstanceId: (label) => {
+      const index = (input.items ?? []).findIndex((item) => item.label === label)
+      if (index < 0) throw new Error(`SRD fixture item "${label}" is missing.`)
+      return `item-${index}`
+    }
+  }
+}
+
+/** One item action's candidate and resolved decision, selected by attack kind and grip. */
+export function itemAction(
+  character: SrdCharacter,
+  label: string,
+  select: { attackKind: string; grip?: 'ONE_HANDED' | 'TWO_HANDED' }
+) {
+  const itemInstanceId = character.itemInstanceId(label)
+  const matches = character.facts.actionCandidates.flatMap((candidate) => {
+    const decision = character.output.actionDecisions.find(
+      (entry) => entry.actionId === candidate.actionId
+    )
+    return candidate.equipment?.itemInstanceId === itemInstanceId &&
+      decision?.mechanic.attackKind === select.attackKind &&
+      (select.grip === undefined || candidate.equipment.grip === select.grip)
+      ? [{ candidate, decision }]
+      : []
+  })
+  if (matches.length !== 1)
+    throw new Error(
+      `Expected one ${select.attackKind} action for "${label}", got ${matches.length}.`
+    )
+  return matches[0]!
+}
+
+/** The first damage expression an action deals. */
+export function damageExpression(decision: {
+  mechanic: CharacterRulePolicyOutput['actionDecisions'][number]['mechanic']
+}) {
+  const damage = decision.mechanic.outcomes.find((outcome) => outcome.kind === 'DAMAGE')
+  if (damage?.kind !== 'DAMAGE') throw new Error('The action deals no damage.')
+  return damage.expression
+}

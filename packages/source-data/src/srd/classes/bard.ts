@@ -843,7 +843,7 @@ export const bard: ClassAuthored = {
             valueDomainCode: VALUE_DOMAIN_CODE.CHARGE_RESET,
             domain: {},
             modifierKind: MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND,
-            scope: MODIFIER_SCOPE_KIND.SOURCE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { resetKind: CHARGE_RESET_KIND.SHORT_REST },
             order: 0,

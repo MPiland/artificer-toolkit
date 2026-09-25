@@ -49,7 +49,8 @@ function referenceIds(
               item.damageVulnerabilities,
               item.damageResistances,
               item.damageImmunities
-            ].flat()
+            ].flat(),
+            qualifiedDamageDefenses: item.qualifiedDamageDefenses
           })
         : collect('damageTypeId', 'damageTypeIds')
     case 'conditionTypes':

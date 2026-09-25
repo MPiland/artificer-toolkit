@@ -2,7 +2,11 @@ import { z } from '../zod.js'
 
 import { AUTHORED_LIMITS, authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { chargeUseDtoSchema } from '../shared/charge.js'
-import { abilityCodeSchema, chargeResetKindSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  chargeResetKindSchema,
+  damageDefenseBypassCodeSchema
+} from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const ENCOUNTER_ACTOR_MODEL_KEY = 'encounter-actor-policy'
@@ -14,10 +18,18 @@ const encounterActorTargetDefenseSchema = z.strictObject({
   damageTypeId: serverUuidIdentityDtoSchema
 })
 
+/** A defense against attacks without any of `bypassedBy` ("from nonmagical attacks"). */
+export const encounterActorQualifiedDefenseSchema = z.strictObject({
+  kind: z.enum(['RESISTANCE', 'IMMUNITY']),
+  damageTypeId: serverUuidIdentityDtoSchema,
+  bypassedBy: z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3))
+})
+
 const normalizedEncounterActorTargetProtectionSchema = z
   .strictObject({
     status: z.literal('NORMALIZED'),
     defenses: z.array(encounterActorTargetDefenseSchema).check(z.maxLength(100)),
+    qualifiedDefenses: z.array(encounterActorQualifiedDefenseSchema).check(z.maxLength(100)),
     conditionImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))
   })
   .check(

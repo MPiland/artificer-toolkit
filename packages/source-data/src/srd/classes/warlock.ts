@@ -686,7 +686,7 @@ export const warlock: ClassAuthored = {
                 valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
                 domain: { attackDomain: 'SPELL' as const },
                 modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { ability: ABILITY_CODE.CHARISMA },
                 order: 0,

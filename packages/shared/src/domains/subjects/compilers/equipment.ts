@@ -70,6 +70,8 @@ export interface ResolvedEquipmentVariantInherited {
 
 export interface ResolvedEquipmentVariantMeta {
   parentEquipmentId: string
+  /** The full variant ancestry, nearest parent first. */
+  ancestorEquipmentIds: string[]
   parentLabel: string
   inherited: ResolvedEquipmentVariantInherited
 }
@@ -106,6 +108,8 @@ export type CompiledEquipmentBase = {
 export type CompiledEquipment = {
   properties: EquipmentPropertyCode[]
   category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
+  /** Variant ancestry of a resolved item, nearest parent first; empty for base equipment. */
+  parentEquipmentIds: string[]
 } & CompiledEquipmentBase
 
 export type CompiledEquipmentVariant = {
@@ -232,6 +236,10 @@ export function resolveEquipmentAuthored(
     properties,
     variant: {
       parentEquipmentId: authored.parentEquipmentId,
+      ancestorEquipmentIds: [
+        authored.parentEquipmentId,
+        ...(resolvedParent.variant?.ancestorEquipmentIds ?? [])
+      ],
       parentLabel: parent.label,
       inherited: {
         category: resolvedParent.category,
@@ -276,7 +284,8 @@ export function compileEquipment(
   return {
     ...base,
     category: authored.category,
-    properties: authored.properties
+    properties: authored.properties,
+    parentEquipmentIds: []
   }
 }
 
@@ -284,6 +293,7 @@ export function compileResolvedEquipment(authored: ResolvedEquipment): CompiledE
   return {
     ...compileEquipmentBase(authored),
     category: authored.category,
-    properties: authored.properties
+    properties: authored.properties,
+    parentEquipmentIds: authored.variant?.ancestorEquipmentIds ?? []
   }
 }

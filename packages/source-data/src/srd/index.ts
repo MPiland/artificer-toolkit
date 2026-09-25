@@ -47,24 +47,67 @@ function normalizeVocabularyList(
   return [...new Set(resolvedIds)]
 }
 
+type QualifiedDamageDefense = NonNullable<CreatureAuthored['qualifiedDamageDefenses']>[number]
+
+/**
+ * Splits SRD damage-defense prose into plain damage types and typed "from nonmagical attacks"
+ * defenses, so a qualified defense never becomes an unconditional one. Qualifiers the model cannot
+ * represent (spell-only resistance, vulnerability to magic weapons of good wielders) are dropped:
+ * the creature then takes normal damage rather than gaining an unconditional defense.
+ */
+function splitSrdDamageDefenses(
+  values: readonly string[] | undefined,
+  kind: QualifiedDamageDefense['kind'] | 'VULNERABILITY',
+  context: string
+): { plain: string[] | undefined; qualified: QualifiedDamageDefense[] } {
+  if (!values) return { plain: undefined, qualified: [] }
+  const plain: string[] = []
+  const qualified: QualifiedDamageDefense[] = []
+  for (const segment of values.flatMap((value) => value.split(';')).map((part) => part.trim())) {
+    if (segment.length === 0 || /\bfrom spells\b|\bmagic weapons wielded\b/i.test(segment)) continue
+    const damageTypeIds = normalizeVocabularyList([segment], srdSystemRecord.damageTypes, context)!
+    if (!/\bnonmagical\b/i.test(segment)) {
+      plain.push(...damageTypeIds)
+      continue
+    }
+    if (kind === 'VULNERABILITY')
+      throw new Error(`Unable to represent ${context} qualifier "${segment}".`)
+    qualified.push({
+      kind,
+      damageTypeIds,
+      bypassedBy: [
+        'MAGICAL',
+        ...(/\bsilvered\b/i.test(segment) ? (['SILVERED'] as const) : []),
+        ...(/\badamantine\b/i.test(segment) ? (['ADAMANTINE'] as const) : [])
+      ]
+    })
+  }
+  return { plain: [...new Set(plain)], qualified }
+}
+
 function normalizeSrdCreature(creature: CreatureAuthored): CreatureAuthored {
+  const resistances = splitSrdDamageDefenses(
+    creature.damageResistances,
+    'RESISTANCE',
+    `${creature.label} damage resistance`
+  )
+  const immunities = splitSrdDamageDefenses(
+    creature.damageImmunities,
+    'IMMUNITY',
+    `${creature.label} damage immunity`
+  )
+  const vulnerabilities = splitSrdDamageDefenses(
+    creature.damageVulnerabilities,
+    'VULNERABILITY',
+    `${creature.label} damage vulnerability`
+  )
+  const qualifiedDamageDefenses = [...resistances.qualified, ...immunities.qualified]
   return {
     ...creature,
-    damageResistances: normalizeVocabularyList(
-      creature.damageResistances,
-      srdSystemRecord.damageTypes,
-      `${creature.label} damage resistance`
-    ),
-    damageImmunities: normalizeVocabularyList(
-      creature.damageImmunities,
-      srdSystemRecord.damageTypes,
-      `${creature.label} damage immunity`
-    ),
-    damageVulnerabilities: normalizeVocabularyList(
-      creature.damageVulnerabilities,
-      srdSystemRecord.damageTypes,
-      `${creature.label} damage vulnerability`
-    ),
+    damageResistances: resistances.plain,
+    damageImmunities: immunities.plain,
+    damageVulnerabilities: vulnerabilities.plain,
+    ...(qualifiedDamageDefenses.length > 0 ? { qualifiedDamageDefenses } : {}),
     conditionImmunities: normalizeVocabularyList(
       creature.conditionImmunities,
       srdSystemRecord.conditionTypes,

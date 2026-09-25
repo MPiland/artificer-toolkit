@@ -1,5 +1,9 @@
 import type { CharacterGrantFoldRestriction } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import type { FacetAuthored, FacetConditionAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  FacetAuthored,
+  FacetConditionAuthored,
+  FacetContextAuthored
+} from '@artificer-toolkit/shared/authored'
 
 type RestrictionCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type NormalizeProficiencyTarget = (kind: string, targetId: string) => string
@@ -15,7 +19,7 @@ function numberOrNull(value: unknown): number | null {
 }
 
 function baseCondition(
-  condition: FacetConditionAuthored<'CHARACTER'>,
+  condition: { readonly id: string; readonly constraint: RestrictionCondition['constraint'] },
   kind: RestrictionCondition['kind']
 ): RestrictionCondition {
   const value = condition as unknown as Record<string, unknown>
@@ -154,6 +158,11 @@ function normalizeCondition(
       return { ...baseCondition(condition, 'SOURCE_STATE'), sourceState: 'EQUIPPED' }
     case 'WHILE_SOURCE_ATTUNED':
       return { ...baseCondition(condition, 'SOURCE_STATE'), sourceState: 'ATTUNED' }
+    case 'SIZE':
+      return {
+        ...baseCondition(condition, 'SIZE'),
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.sizes] : []
+      }
     case 'SKILL_SCORE':
     case 'SAVING_THROW_ABILITY_BONUS':
       return baseCondition(condition, 'UNAVAILABLE')
@@ -169,20 +178,64 @@ function normalizeCondition(
   }
 }
 
+/** An Equipment context names the attacking item; its conditions are evaluated against that item. */
+function normalizeItemContext(
+  context: Extract<FacetContextAuthored, { subject: 'EQUIPMENT' }>
+): RestrictionCondition[] {
+  const identity: RestrictionCondition[] =
+    context.authoringModeKind === 'SELECTED'
+      ? [
+          {
+            ...baseCondition({ id: context.id, constraint: 'INCLUDE' }, 'ITEM_IDENTITY'),
+            mode: 'SELECTED',
+            requiredIds: [...context.equipmentIds]
+          }
+        ]
+      : []
+  return [
+    ...identity,
+    ...(context.conditions ?? []).map((condition): RestrictionCondition => {
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'EQUIPMENT_CATEGORY')
+        return { ...baseCondition(condition, 'ITEM_CATEGORY'), category: condition.category }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'EQUIPMENT_PROPERTY')
+        return {
+          ...baseCondition(condition, 'ITEM_PROPERTY'),
+          category: condition.category ?? null,
+          requiredProperties:
+            condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : []
+        }
+      return baseCondition(condition, 'UNSUPPORTED')
+    })
+  ]
+}
+
+/**
+ * Character contexts become fold conditions and Equipment contexts become attacking-item
+ * conditions. Spell and Resource contexts are read by their own consumers (spell-scoped modifiers
+ * and charge resets); any other subject cannot be evaluated here and fails closed.
+ */
 export function normalizeCharacterGrantRestrictions(
   facet: FacetAuthored | FacetAuthored<'CHARACTER'> | undefined,
   normalizeProficiencyTarget: NormalizeProficiencyTarget = (_kind, targetId) => targetId
 ): CharacterGrantFoldRestriction {
   return (facet?.groups ?? []).map((group) => ({
-    conditions: group.contexts.flatMap((context) =>
-      context.subject === 'CHARACTER'
-        ? (context.conditions ?? []).map((condition) =>
+    conditions: group.contexts.flatMap((context): RestrictionCondition[] => {
+      switch (context.subject) {
+        case 'CHARACTER':
+          return (context.conditions ?? []).map((condition) =>
             normalizeCondition(
               condition as FacetConditionAuthored<'CHARACTER'>,
               normalizeProficiencyTarget
             )
           )
-        : []
-    )
+        case 'EQUIPMENT':
+          return normalizeItemContext(context)
+        case 'SPELL':
+        case 'RESOURCE':
+          return []
+        default:
+          return [baseCondition({ id: context.id, constraint: 'INCLUDE' }, 'UNSUPPORTED')]
+      }
+    })
   }))
 }

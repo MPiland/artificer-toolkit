@@ -65,6 +65,7 @@ export interface CompiledCreature extends CompiledCreatureBase {
   damageVulnerabilities?: string[]
   damageResistances?: string[]
   damageImmunities?: string[]
+  qualifiedDamageDefenses?: CreatureAuthored['qualifiedDamageDefenses']
   conditionImmunities?: string[]
   challengeRatingId?: string
   xp?: number
@@ -239,6 +240,7 @@ function compileCreatureFields(authored: CreatureAuthored): CompiledCreature {
     damageVulnerabilities: authored.damageVulnerabilities,
     damageResistances: authored.damageResistances,
     damageImmunities: authored.damageImmunities,
+    qualifiedDamageDefenses: authored.qualifiedDamageDefenses,
     conditionImmunities: authored.conditionImmunities,
     challengeRatingId: authored.challengeRatingId,
     xp: authored.xp,

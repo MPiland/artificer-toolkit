@@ -60,7 +60,8 @@ export function evaluateDnd5e2014CharacterActions(
       mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, {
         spellcasting: parsedInput.spellcasting,
         spellCastLevel: null,
-        spellDamageBonus: 0
+        spellDamageBonus: 0,
+        spellId: null
       })
     }
   })
@@ -89,7 +90,8 @@ export function evaluateDnd5e2014CharacterActions(
         resolveDnd5eActionMechanic(parsedInput, effect, {
           spellcasting,
           spellCastLevel: candidate.castLevel,
-          spellDamageBonus: sourceMechanics?.damageBonus ?? 0
+          spellDamageBonus: sourceMechanics?.damageBonus ?? 0,
+          spellId: candidate.spellId
         })
       )
     }
@@ -101,7 +103,8 @@ export function evaluateDnd5e2014CharacterActions(
       resolveDnd5eActionMechanic(parsedInput, effect, {
         spellcasting: parsedInput.spellcasting,
         spellCastLevel: null,
-        spellDamageBonus: 0
+        spellDamageBonus: 0,
+        spellId: spell.spellId
       })
     )
   }))

@@ -33,7 +33,11 @@ import {
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  attackingItemPropertyRestriction,
+  closedRuleEffect
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -657,10 +661,15 @@ export const ranger: ClassAuthored = {
                 valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                 domain: { attackDomain: 'RANGED' as const },
                 modifierKind: MODIFIER_KIND.BONUS,
-                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
-                order: 0
+                order: 0,
+                // Ranged weapons only; a thrown melee weapon makes a ranged attack but is not one.
+                restrictions: attackingItemPropertyRestriction(
+                  (entry) => classRowId(RA, 0x7a, 0x10 + entry),
+                  [{ constraint: 'INCLUDE', properties: ['RANGED'] }]
+                )
               }
             ]
           },
@@ -678,7 +687,7 @@ export const ranger: ClassAuthored = {
                 valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
                 domain: {},
                 modifierKind: MODIFIER_KIND.BONUS,
-                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 1 },
                 order: 0,
@@ -727,10 +736,18 @@ export const ranger: ClassAuthored = {
                 valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
                 domain: { attackDomain: 'MELEE' as const },
                 modifierKind: MODIFIER_KIND.BONUS,
-                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
-                order: 0
+                order: 0,
+                // One-handed melee weapon; "no other weapons" stays with the closed rule below.
+                restrictions: attackingItemPropertyRestriction(
+                  (entry) => classRowId(RA, 0x7a, 0x20 + entry),
+                  [
+                    { constraint: 'INCLUDE', properties: ['MELEE'] },
+                    { constraint: 'EXCLUDE', properties: ['TWO_HANDED'] }
+                  ]
+                )
               }
             ]
           },

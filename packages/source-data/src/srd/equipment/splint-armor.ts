@@ -12,7 +12,10 @@ export const splintArmor: EquipmentAuthored = {
   armorClass: 17,
   cost: S.gp(200),
   weight: S.lbs(60),
-  modifiers: [S.stealthDisadvantageModifier(S.equipId(48))],
+  modifiers: [
+    S.stealthDisadvantageModifier(S.equipId(48)),
+    S.heavyArmorStrengthModifier(S.equipId(48), 15, 2)
+  ],
   effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(48), 'EQUIPMENT_ARMOR_STRENGTH_15')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,

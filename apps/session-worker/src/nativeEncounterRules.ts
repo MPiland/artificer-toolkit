@@ -13,6 +13,10 @@ import {
   encounterActionCurrentnessChecksum,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  dnd5eAttackKind,
+  isDnd5eMeleeAttackKind
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -123,7 +127,9 @@ export async function planNativeLiveEncounterAction(
     )
       throw new Error('The pending action evidence is invalid.')
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
-      throw new LivePlannerUnsupportedError('contested, Cleaving or optional-combat action evidence')
+      throw new LivePlannerUnsupportedError(
+        'contested, Cleaving or optional-combat action evidence'
+      )
   }
   const inputs = await capture({ kind: 'INPUTS' })
   if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
@@ -138,7 +144,8 @@ export async function planNativeLiveEncounterAction(
     !state.actorIds.includes(command.targetActorId)
   )
     throw new Error('Encounter rules input binding mismatch.')
-  if (state.automationMode === 'MANUAL') throw new LivePlannerUnsupportedError('Manual-mode actions')
+  if (state.automationMode === 'MANUAL')
+    throw new LivePlannerUnsupportedError('Manual-mode actions')
 
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
@@ -442,10 +449,12 @@ export async function planNativeLiveEncounterAction(
             actionId: command.actionId,
             publishedDefinitionId: execution.published.id,
             publishedDefinitionChecksum: execution.published.checksum,
-            attackKind: ['MELEE_WEAPON_ATTACK', 'UNARMED_ATTACK'].includes(
-              prepared.source.kind === 'CREATURE'
-                ? prepared.source.capability.mechanicFacts.invocation.triggerCode
-                : prepared.source.candidate.mechanicFacts.invocation.triggerCode
+            attackKind: isDnd5eMeleeAttackKind(
+              dnd5eAttackKind(
+                prepared.source.kind === 'CREATURE'
+                  ? prepared.source.capability.mechanicFacts.invocation.triggerCode
+                  : prepared.source.candidate.mechanicFacts.invocation.triggerCode
+              )
             )
               ? 'MELEE'
               : 'OTHER',

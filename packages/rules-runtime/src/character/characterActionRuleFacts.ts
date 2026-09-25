@@ -9,7 +9,10 @@ import type {
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
 
-import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
+import {
+  compiledEquipmentParentIds,
+  getCharacterGrantFoldSelectedOptionIds
+} from './characterGrantFoldSourceFacts.js'
 
 type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
 type CharacterActionSource = ActionCandidate['source']
@@ -26,8 +29,13 @@ export interface CharacterActionRuleFacts {
   entryPoints: CharacterActionRuleEntryPoint[]
 }
 
+/** Every action identity of one Character source starts with this prefix. */
+export function characterSourceActionIdPrefix(sourceId: string): string {
+  return `${sourceId}:ACTION:`
+}
+
 function actionId(sourceId: string, effectId: string): string {
-  const id = `${sourceId}:ACTION:${encodeURIComponent(effectId)}`
+  const id = `${characterSourceActionIdPrefix(sourceId)}${encodeURIComponent(effectId)}`
   if (id.length > 240)
     throw new Error(`Character action identity exceeds 240 characters: ${effectId}`)
   return id
@@ -433,6 +441,7 @@ export function buildCharacterActionRuleFacts(params: {
     const rootEquipment = {
       itemInstanceId: item.instanceId,
       equipmentId: item.contentRef.definitionId,
+      parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
       category: item.compiledItem.category ?? null,
       properties: [...(item.compiledItem.properties ?? [])],
       equipped: Boolean(item.equippedState),
@@ -472,13 +481,7 @@ export function buildCharacterActionRuleFacts(params: {
         mechanicsOwner: { kind: 'FEATURE', id: feature.id },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: {
-          itemInstanceId: item.instanceId,
-          equipmentId: item.contentRef.definitionId,
-          category: item.compiledItem.category ?? null,
-          properties: [...(item.compiledItem.properties ?? [])],
-          equipped: Boolean(item.equippedState),
-          attuned: item.attuned,
-          requiresAttunement: folded.requiresAttunement,
+          ...rootEquipment,
           requiresEquipped: rootRequirements.requiresEquipped || requirements.requiresEquipped,
           requiresAttuned: rootRequirements.requiresAttuned || requirements.requiresAttuned
         },

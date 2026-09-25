@@ -1,4 +1,8 @@
 import { targetPolicyPermitsEncounterActor } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import {
+  dnd5eAttackKind,
+  isDnd5eMeleeAttackKind
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { readNativeActionSceneContext } from './actionSceneContext'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -448,10 +452,12 @@ export async function executeNativeEncounterAction(
         actionId: input.actionId,
         publishedDefinitionId: execution.published.id,
         publishedDefinitionChecksum: execution.published.checksum,
-        attackKind: ['MELEE_WEAPON_ATTACK', 'UNARMED_ATTACK'].includes(
-          source.kind === 'CREATURE'
-            ? source.capability.mechanicFacts.invocation.triggerCode
-            : source.candidate.mechanicFacts.invocation.triggerCode
+        attackKind: isDnd5eMeleeAttackKind(
+          dnd5eAttackKind(
+            source.kind === 'CREATURE'
+              ? source.capability.mechanicFacts.invocation.triggerCode
+              : source.candidate.mechanicFacts.invocation.triggerCode
+          )
         )
           ? 'MELEE'
           : 'OTHER',

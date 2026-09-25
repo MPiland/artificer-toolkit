@@ -3,6 +3,17 @@ import type {
   CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
+import { dnd5eAttackKind } from './attackKind.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAttackingItem,
+  dnd5eCharacterActionTarget,
+  dnd5eModifierApplies,
+  type Dnd5eModifierTarget
+} from './modifierApplicability.js'
+
+const ABILITY_MODIFIER_KINDS = ['ABILITY_MODIFIER_BONUS', 'OPTIONAL_ABILITY_MODIFIER_BONUS']
+
 type ActionCandidate = CharacterActionModelInput['candidates'][number]
 type SpellEffect = CharacterActionModelInput['spellEffects'][number]['effects'][number]
 type RawOutcome = ActionCandidate['mechanicFacts']['outcomes'][number]
@@ -21,7 +32,11 @@ type MechanicContext = {
   readonly spellcasting: SpellcastingMechanics
   readonly spellCastLevel: number | null
   readonly spellDamageBonus: number
+  /** The spell whose effect is resolved, for spell-scoped modifiers. */
+  readonly spellId: string | null
 }
+type ModifierContribution =
+  CharacterActionModelInput['modifierGroups'][number]['contributions'][number]
 
 const ABILITY_ALIASES: Readonly<Record<string, AbilityCode>> = {
   STR: 'STRENGTH',
@@ -172,58 +187,76 @@ export function resolveDnd5eActionMechanic(
   context: MechanicContext
 ): ResolvedMechanic {
   const { invocation, outcomes } = candidate.mechanicFacts
-  const sourceId = 'sourceId' in candidate ? candidate.sourceId : undefined
   const equipment = 'equipment' in candidate ? candidate.equipment : null
-  const attackDomain =
-    invocation.triggerCode === 'MELEE_WEAPON_ATTACK'
-      ? 'MELEE'
-      : invocation.triggerCode === 'RANGED_WEAPON_ATTACK'
-        ? 'RANGED'
-        : invocation.triggerCode === 'UNARMED_ATTACK'
-          ? 'UNARMED'
-          : invocation.triggerCode === 'SPELL_ATTACK'
-            ? 'SPELL'
-            : null
+  const attackKind = dnd5eAttackKind(invocation.triggerCode)
+  const item = dnd5eAttackingItem(equipment)
+  const target: Dnd5eModifierTarget =
+    'sourceId' in candidate
+      ? dnd5eCharacterActionTarget(candidate)
+      : { ...DND5E_CHARACTER_WIDE_TARGET, spellId: context.spellId }
+  const adjustment =
+    equipment === null
+      ? null
+      : (input.itemAdjustments.find((entry) => entry.itemInstanceId === equipment.itemInstanceId) ??
+        null)
+  /** Contributions of the attack's modifier domain and kinds that apply to this action. */
+  const applicable = (
+    valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
+    modifierKinds: readonly string[],
+    applies: (contribution: ModifierContribution) => boolean = (contribution) =>
+      dnd5eModifierApplies(contribution, target)
+  ): ModifierContribution[] =>
+    attackKind === null
+      ? []
+      : input.modifierGroups
+          .filter((group) =>
+            modifierKinds.some(
+              (kind) => group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackKind}`
+            )
+          )
+          .flatMap((group) => group.contributions)
+          .filter(applies)
+  const appliedTotal = (contributions: readonly ModifierContribution[]): number =>
+    contributions
+      .filter((contribution) => contribution.state === 'APPLIED')
+      .reduce((sum, contribution) => sum + contribution.value, 0)
+  const numericKinds = ['BONUS', 'PENALTY', ...ABILITY_MODIFIER_KINDS]
   const resolveAttackBonus = (): number | null => {
-    if (attackDomain === null) return null
-    if (attackDomain === 'SPELL') return context.spellcasting?.attackBonus ?? null
-    const modifierKinds = ['ABILITY_MODIFIER_BONUS', 'OPTIONAL_ABILITY_MODIFIER_BONUS']
-    const values = input.modifierGroups
-      .filter((group) =>
-        modifierKinds.some(
-          (kind) => group.domainKey === `ATTACK_ROLL:${kind}|attackDomain=${attackDomain}`
+    if (attackKind === null) return null
+    if (attackKind === 'SPELL') {
+      if (context.spellcasting?.attackBonus == null) return null
+      // Spellcasting already counts Character-wide spell attack modifiers; add the spell's own.
+      return (
+        context.spellcasting.attackBonus +
+        appliedTotal(
+          applicable(
+            'ATTACK_ROLL',
+            numericKinds,
+            (contribution) =>
+              dnd5eModifierApplies(contribution, target) &&
+              !dnd5eModifierApplies(contribution, DND5E_CHARACTER_WIDE_TARGET)
+          )
         )
       )
-      .flatMap((group) => group.contributions)
-      .filter(
-        (contribution) => contribution.sourceId === sourceId && contribution.state === 'APPLIED'
-      )
-      .map((contribution) => contribution.value)
-    if (values.length === 0) return null
-    const adjustment =
-      equipment !== null
-        ? (input.itemAttackAdjustments.find(
-            (entry) => entry.itemInstanceId === equipment.itemInstanceId
-          ) ?? null)
-        : null
-    if (adjustment?.override !== null && adjustment?.override !== undefined)
-      return adjustment.override
+    }
+    const abilities = applicable('ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
+    if (abilities.length === 0) return null
+    if (adjustment?.attackOverride != null) return adjustment.attackOverride
     const proficiency =
-      attackDomain === 'UNARMED'
+      attackKind === 'UNARMED'
         ? 1
-        : equipment === null ||
-            equipment.equipmentId === undefined ||
-            equipment.equipmentId === null
+        : item === null
           ? 0
           : input.proficiencies
               .filter(
                 (proficiency) =>
                   (proficiency.kind === 'EQUIPMENT' &&
-                    proficiency.subjectId === equipment.equipmentId) ||
+                    (proficiency.subjectId === '*' ||
+                      item.equipmentIds.includes(proficiency.subjectId))) ||
                   (proficiency.kind === 'EQUIPMENT_PROPERTY' &&
-                    (proficiency.category === null ||
-                      proficiency.category === equipment.category) &&
-                    (equipment.properties ?? []).includes(proficiency.subjectId))
+                    (proficiency.category === null || proficiency.category === item.category) &&
+                    (proficiency.subjectId === '*' ||
+                      item.properties.includes(proficiency.subjectId)))
               )
               .reduce(
                 (maximum, proficiencyEntry) =>
@@ -237,24 +270,27 @@ export function resolveDnd5eActionMechanic(
                   ),
                 0
               )
-    const sourceBonus = input.modifierGroups
-      .filter((group) =>
-        ['BONUS', 'PENALTY'].some(
-          (kind) => group.domainKey === `ATTACK_ROLL:${kind}|attackDomain=${attackDomain}`
-        )
-      )
-      .flatMap((group) => group.contributions)
-      .filter(
-        (contribution) => contribution.sourceId === sourceId && contribution.state === 'APPLIED'
-      )
-      .reduce((sum, contribution) => sum + contribution.value, 0)
     return (
-      values.reduce((sum, value) => sum + value, 0) +
+      appliedTotal(abilities) +
       Math.floor(input.proficiencyBonus * proficiency) +
-      sourceBonus +
-      (adjustment?.bonus ?? 0)
+      appliedTotal(applicable('ATTACK_ROLL', ['BONUS', 'PENALTY'])) +
+      (adjustment?.attackBonus ?? 0)
     )
   }
+  const resolveAttackRollMode = (): ResolvedMechanic['attackRollMode'] => {
+    if (attackKind === null) return null
+    // Suppressed duplicate grants still count as roll-mode evidence.
+    const advantage = applicable('ATTACK_ROLL', ['ADVANTAGE']).length > 0
+    const disadvantage = applicable('ATTACK_ROLL', ['DISADVANTAGE']).length > 0
+    return advantage === disadvantage ? 'NORMAL' : advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
+  }
+  /** Weapon and spell attacks add their damage modifiers (ability, +N, Dueling) to the first
+   * damage roll, together with the item's manual damage adjustment. */
+  const attackDamageBonus =
+    attackKind === null
+      ? 0
+      : appliedTotal(applicable('DAMAGE', numericKinds)) + (adjustment?.damageBonus ?? 0)
+  const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
   const resolveSave = (): ResolvedMechanic['save'] => {
     const savingThrow = invocation.savingThrow
     if (savingThrow === null) return null
@@ -306,7 +342,9 @@ export function resolveDnd5eActionMechanic(
           sum + (value === null ? 0 : clamp(value * (entry.multiplier ?? 1), entry.min, entry.max))
         )
       },
-      outcome.kind === 'DAMAGE' ? context.spellDamageBonus : 0
+      outcome.kind === 'DAMAGE'
+        ? context.spellDamageBonus + (outcome === firstDamageOutcome ? attackDamageBonus : 0)
+        : 0
     )
     const scaling: OutcomeScaling = []
     if (
@@ -369,8 +407,9 @@ export function resolveDnd5eActionMechanic(
           }
         : null,
     rangeLabel: rangeLabel(invocation.range),
+    attackKind,
     attackBonus: resolveAttackBonus(),
-    attackRollMode: attackDomain === null ? null : input.attackRollModes[attackDomain],
+    attackRollMode: resolveAttackRollMode(),
     save: resolveSave(),
     outcomes: outcomes.map(resolveOutcome)
   }

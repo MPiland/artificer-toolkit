@@ -102,6 +102,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
     savingThrowDefinitions?: readonly {
       abilityDefinitionId: string
       ruleDefinitionId?: string
+      conditionTypeId?: string
       modifier: number
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
       contributors: readonly Dnd5eConcentrationContributor[]
@@ -124,7 +125,10 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   const savingThrow =
     scopedSaves.length > 0
       ? scopedSaves
-      : constitutionSaves.filter((candidate) => candidate.ruleDefinitionId === undefined)
+      : constitutionSaves.filter(
+          (candidate) =>
+            candidate.ruleDefinitionId === undefined && candidate.conditionTypeId === undefined
+        )
   if (savingThrow.length !== 1 || !Number.isSafeInteger(savingThrow[0]!.modifier))
     throw new Error('D&D concentration saving throw is unavailable.')
   const rollMode = savingThrow[0]!.rollMode

@@ -18,6 +18,7 @@ import type {
   CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
 import {
+  createCharacterMechanicSourceKey,
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey,
   toCharacterResourceOwnerKey
@@ -25,6 +26,7 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { characterSourceActionIdPrefix } from './characterActionRuleFacts.js'
 import type { CharacterSheetRuleProjection } from './characterSheetRuleProjection.js'
 import { resolveCharacterSheetSkillKey } from './characterSheetVocabulary.js'
 import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
@@ -885,6 +887,51 @@ function buildItemPanel(
       }
     ]
   })
+  // The item's resolved attacks, including its manual attack and damage adjustments.
+  const actionPrefix = characterSourceActionIdPrefix(
+    createCharacterMechanicSourceKey({
+      kind: 'EQUIPMENT_INSTANCE',
+      equipmentId: item.equipmentId,
+      itemInstanceId: item.id
+    })
+  )
+  const attacks = params.sheet.actions.items.flatMap((action) =>
+    action.id.startsWith(actionPrefix) && action.mechanic?.attackBonus !== undefined
+      ? [action.mechanic]
+      : []
+  )
+  const attackFacts =
+    attacks.length === 0
+      ? []
+      : [
+          {
+            label: 'Attack bonus',
+            value: [
+              ...new Set(
+                attacks.map((attack) =>
+                  (attack.attackBonus ?? 0) >= 0
+                    ? `+${attack.attackBonus}`
+                    : String(attack.attackBonus)
+                )
+              )
+            ].join(' / ')
+          },
+          {
+            label: 'Damage',
+            value: attacks
+              .map((attack) =>
+                attack.outcomes
+                  .flatMap((outcome) =>
+                    outcome.kind === 'DAMAGE'
+                      ? [`${outcome.expression} ${outcome.damageTypeLabel.toLowerCase()}`]
+                      : []
+                  )
+                  .join(' + ')
+              )
+              .filter((damage) => damage.length > 0)
+              .join(' / ')
+          }
+        ]
   const numericEditors = [
     ['ATTACK_BONUS', 'Attack bonus', { integer: true }],
     ['ATTACK_OVERRIDE', 'Attack override', { integer: true }],
@@ -931,18 +978,7 @@ function buildItemPanel(
           }
         ]
       : []),
-    ...(item.category === 'WEAPON' || mechanics?.displayAsAttack
-      ? [
-          {
-            label: 'Attack bonus',
-            value: `${mechanics?.attackBonus && mechanics.attackBonus > 0 ? '+' : ''}${mechanics?.attackBonus ?? 0}`
-          },
-          {
-            label: 'Damage bonus',
-            value: `${mechanics?.damageBonus && mechanics.damageBonus > 0 ? '+' : ''}${mechanics?.damageBonus ?? 0}`
-          }
-        ]
-      : []),
+    ...attackFacts,
     ...(manualPropertyLabels.length
       ? [{ label: 'Manual properties', value: manualPropertyLabels.join(', ') }]
       : [])

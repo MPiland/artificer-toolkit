@@ -33,6 +33,9 @@ export const sizeCodeSchema = z.enum([
 
 export const creatureCategoryCodeSchema = z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
 
+/** Attack traits that ignore a qualified damage defense. */
+export const damageDefenseBypassCodeSchema = z.enum(['MAGICAL', 'SILVERED', 'ADAMANTINE'])
+
 export const vehicleCategoryCodeSchema = z.enum(['LAND', 'WATER', 'AIR', 'SPELLJAMMER'])
 
 export const classAttributeSchema = z.enum(['SPELLCASTER', 'RESOURCE'])

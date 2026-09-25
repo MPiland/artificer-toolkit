@@ -6,8 +6,14 @@ import {
   type CharacterGrantFoldRestriction,
   type CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
-import { characterPolicyRecord } from './characterPolicyValues.js'
+import { canonicalCharacterAbility, characterPolicyRecord } from './characterPolicyValues.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAcceptedModifierApplicability,
+  dnd5eModifierApplies
+} from './modifierApplicability.js'
 
 type Proficiency = CharacterGrantFoldOutput['proficiencies'][number]
 type Sense = CharacterGrantFoldOutput['senses'][number]
@@ -46,31 +52,17 @@ function totalClassLevel(input: CharacterGrantFoldInput): number {
   return input.base.classes.reduce((sum, entry) => sum + entry.level, 0)
 }
 
-function domainEntries(
-  domain: CharacterGrantFoldSource['modifiers'][number]['domain']
-): [string, unknown][] {
-  if (domain === null) throw new TypeError('Cannot convert undefined or null to object')
-  if (typeof domain === 'object' || typeof domain === 'string') return Object.entries(domain)
-  return []
-}
-
-function buildDomainKey(modifier: CharacterGrantFoldSource['modifiers'][number]): string {
-  const entries = domainEntries(modifier.domain)
-    .filter(([, value]) => {
-      return value != null && value !== ''
-    })
-    .sort(([left], [right]) => left.localeCompare(right))
-  if (entries.length === 0) return `${modifier.valueDomainCode}:${modifier.modifierKind}`
-  return `${modifier.valueDomainCode}:${modifier.modifierKind}|${entries
-    .map(([key, value]) => `${key}=${String(value)}`)
-    .join('|')}`
-}
+const ITEM_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
+  'ITEM_IDENTITY',
+  'ITEM_CATEGORY',
+  'ITEM_PROPERTY'
+])
 
 /**
  * Drawn weapons (rules-runtime.md): attacking with a carried item draws it, so the item's own
- * source-scoped attack and damage bonuses see it as equipped. Roll-mode grants keep the real
- * state because Character-wide attack evidence is not yet filtered by source, and every other
- * gate (attunement, armor class, Global scope) is unchanged.
+ * source-scoped attack and damage modifiers (roll modes included) see it as equipped. Consumers
+ * apply those modifiers only while that item is the attacking source. Every other gate
+ * (attunement, armor class, Global scope) keeps the real state.
  */
 function drawnSourceState(
   modifier: CharacterGrantFoldSource['modifiers'][number],
@@ -78,9 +70,7 @@ function drawnSourceState(
 ): SourceState | undefined {
   if (!sourceState?.carried || sourceState.equipped) return sourceState
   return characterPolicyRecord(modifier.grant).scope === 'SOURCE' &&
-    (modifier.valueDomainCode === 'ATTACK_ROLL' || modifier.valueDomainCode === 'DAMAGE') &&
-    modifier.modifierKind !== 'ADVANTAGE' &&
-    modifier.modifierKind !== 'DISADVANTAGE'
+    (modifier.valueDomainCode === 'ATTACK_ROLL' || modifier.valueDomainCode === 'DAMAGE')
     ? { ...sourceState, equipped: true }
     : sourceState
 }
@@ -109,20 +99,38 @@ export function evaluateDnd5e2014CharacterGrantFold(
   }> = []
   let position = 0
 
+  /**
+   * An ability score as granted so far: the base score with the fixed Character-wide score
+   * modifiers already accepted from earlier sources (race before class, feat and equipment).
+   */
   const abilityValue = (abilityId: string | null): number => {
-    const aliases: Record<string, readonly string[]> = {
-      STRENGTH: ['STRENGTH', 'STR'],
-      DEXTERITY: ['DEXTERITY', 'DEX'],
-      CONSTITUTION: ['CONSTITUTION', 'CON'],
-      INTELLIGENCE: ['INTELLIGENCE', 'INT'],
-      WISDOM: ['WISDOM', 'WIS'],
-      CHARISMA: ['CHARISMA', 'CHA']
+    const ability = canonicalCharacterAbility(abilityId)
+    const base =
+      Object.entries(parsedInput.base.abilities).find(
+        ([key]) => canonicalCharacterAbility(key) === ability
+      )?.[1] ?? 0
+    let score = base
+    let set: number | null = null
+    for (const modifier of acc.modifiers) {
+      const grant = characterPolicyRecord(modifier.grant)
+      const payload = characterPolicyRecord(grant.payload)
+      const amount = payload.amount
+      if (
+        grant.valueDomainCode !== 'ABILITY_SCORE' ||
+        canonicalCharacterAbility(characterPolicyRecord(grant.domain).ability) !== ability ||
+        typeof amount !== 'number' ||
+        (payload.valueKind !== undefined && payload.valueKind !== 'FIXED') ||
+        !dnd5eModifierApplies(
+          dnd5eAcceptedModifierApplicability(modifier),
+          DND5E_CHARACTER_WIDE_TARGET
+        )
+      )
+        continue
+      if (grant.modifierKind === 'BONUS') score += amount
+      else if (grant.modifierKind === 'PENALTY') score -= amount
+      else if (grant.modifierKind === 'SET_VALUE') set = amount
     }
-    for (const key of aliases[String(abilityId)] ?? [String(abilityId)]) {
-      const value = parsedInput.base.abilities[key]
-      if (value !== undefined) return value
-    }
-    return 0
+    return set === null ? score : set + score - base
   }
 
   const meetsProficiency = (condition: RestrictionCondition): boolean => {
@@ -148,7 +156,10 @@ export function evaluateDnd5e2014CharacterGrantFold(
     parsedInput.base.equipment.some(
       (item) =>
         item.equipped &&
-        (condition.mode === 'ALL' || condition.requiredIds.includes(item.equipmentId)) &&
+        (condition.mode === 'ALL' ||
+          [item.equipmentId, ...item.parentEquipmentIds].some((id) =>
+            condition.requiredIds.includes(id)
+          )) &&
         (condition.category == null || item.category === condition.category) &&
         condition.requiredProperties.every((property) => item.properties.includes(property))
     )
@@ -206,17 +217,28 @@ export function evaluateDnd5e2014CharacterGrantFold(
           : condition.sourceState === 'EQUIPPED'
             ? sourceState?.equipped === true
             : sourceState?.attuned === true
+      case 'SIZE':
+        return (
+          condition.mode === 'ALL' ||
+          (parsedInput.base.size !== null && condition.requiredIds.includes(parsedInput.base.size))
+        )
+      case 'ITEM_IDENTITY':
+      case 'ITEM_CATEGORY':
+      case 'ITEM_PROPERTY':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false
     }
   }
 
+  /** Conditions this fold cannot evaluate fail closed whatever their constraint. */
   const conditionPasses = (
     condition: RestrictionCondition,
     sourceState: SourceState | undefined
   ): boolean =>
     condition.kind !== 'UNSUPPORTED' &&
+    condition.kind !== 'UNAVAILABLE' &&
+    !ITEM_CONDITION_KINDS.has(condition.kind) &&
     (condition.constraint === 'INCLUDE'
       ? conditionMatches(condition, sourceState)
       : !conditionMatches(condition, sourceState))
@@ -229,6 +251,31 @@ export function evaluateDnd5e2014CharacterGrantFold(
     groups.some((group) =>
       group.conditions.every((condition) => conditionPasses(condition, sourceState))
     )
+
+  /**
+   * A modifier's attacking-item conditions cannot be decided here, so they are returned for its
+   * consumer: [] when some group passes outright, the residual item groups when only item
+   * conditions remain, and null when no group can pass.
+   */
+  const modifierItemRequirements = (
+    groups: CharacterGrantFoldRestriction,
+    sourceState: SourceState | undefined
+  ): CharacterGrantFoldRestriction | null => {
+    if (groups.length === 0) return []
+    const residual: CharacterGrantFoldRestriction = []
+    for (const group of groups) {
+      const itemConditions = group.conditions.filter((condition) =>
+        ITEM_CONDITION_KINDS.has(condition.kind)
+      )
+      const characterConditionsPass = group.conditions
+        .filter((condition) => !ITEM_CONDITION_KINDS.has(condition.kind))
+        .every((condition) => conditionPasses(condition, sourceState))
+      if (!characterConditionsPass) continue
+      if (itemConditions.length === 0) return []
+      residual.push({ conditions: itemConditions })
+    }
+    return residual.length === 0 ? null : residual
+  }
 
   const applyScalingTargets = (
     operation: ScalingOperation | CharacterGrantFoldSource['feats'][number],
@@ -251,14 +298,24 @@ export function evaluateDnd5e2014CharacterGrantFold(
     sourceState: SourceState | undefined
   ): void => {
     for (const modifier of modifiers) {
-      if (!facetPasses(modifier.restrictions, drawnSourceState(modifier, sourceState))) continue
-      const domainKey = buildDomainKey(modifier)
+      const itemRequirements = modifierItemRequirements(
+        modifier.restrictions,
+        drawnSourceState(modifier, sourceState)
+      )
+      if (itemRequirements === null) continue
+      const domainKey = buildModifierDomainKey(
+        modifier.valueDomainCode,
+        modifier.modifierKind,
+        characterPolicyRecord(modifier.domain)
+      )
       const accepted: Modifier = {
         domainKey,
         modifierKind: modifier.modifierKind,
         grant: modifier.grant,
+        sourceId,
         source: mechanicSource,
-        ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {})
+        ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
+        itemRequirements
       }
       const acceptedModifierIndex = acc.modifiers.length
       acc.modifiers.push(accepted)

@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit"
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/rules-runtime/src"
   },
   "dependencies": {
     "@artificer-toolkit/schema": "workspace:^",
@@ -23,6 +24,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@artificer-toolkit/source-data": "workspace:^",
     "typescript": "^7.0.2"
   }
 }

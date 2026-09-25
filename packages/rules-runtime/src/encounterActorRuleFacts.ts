@@ -1,9 +1,13 @@
 import {
+  encounterActorQualifiedDefenseSchema,
   encounterCreatureRuleFactsSnapshotSchema,
   encounterActorRuleInputSchema,
   type EncounterActorRuleInput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
+import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+
+type QualifiedDefense = ReturnType<typeof encounterActorQualifiedDefenseSchema.parse>
 
 import { featureChargeUsed, snapshotFeatureDefinitions } from './encounterActorState.js'
 
@@ -66,9 +70,36 @@ function normalizedIdentityList(value: unknown): string[] | null {
   return [...ids].sort()
 }
 
+/** Typed "from nonmagical attacks" defenses; malformed data leaves protection unnormalized. */
+function qualifiedDefenseList(value: unknown): QualifiedDefense[] | null {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) return null
+  const parsed = value.map((entry) => creatureQualifiedDamageDefenseDtoSchema.safeParse(entry))
+  if (parsed.some((entry) => !entry.success)) return null
+  return parsed
+    .flatMap((entry) => (entry.success ? [entry.data] : []))
+    .flatMap((defense) =>
+      defense.damageTypeIds.map((damageTypeId) => ({
+        kind: defense.kind,
+        damageTypeId,
+        bypassedBy: [...new Set(defense.bypassedBy)].sort()
+      }))
+    )
+    .sort((left, right) =>
+      left.damageTypeId === right.damageTypeId
+        ? left.kind.localeCompare(right.kind)
+        : left.damageTypeId.localeCompare(right.damageTypeId)
+    )
+}
+
 function snapshotTargetProtection(actor: EncounterActorRuleFactActor) {
   if (actor.kind === 'CUSTOM') {
-    return { status: 'NORMALIZED' as const, defenses: [], conditionImmunityIds: [] }
+    return {
+      status: 'NORMALIZED' as const,
+      defenses: [],
+      qualifiedDefenses: [],
+      conditionImmunityIds: []
+    }
   }
   if (actor.kind !== 'CREATURE') return { status: 'NOT_NORMALIZED' as const }
   const snapshot = isRecord(actor.snapshot) ? actor.snapshot : null
@@ -78,11 +109,13 @@ function snapshotTargetProtection(actor: EncounterActorRuleFactActor) {
   const resistances = normalizedIdentityList(payload.damageResistances)
   const immunities = normalizedIdentityList(payload.damageImmunities)
   const conditionImmunityIds = normalizedIdentityList(payload.conditionImmunities)
+  const qualifiedDefenses = qualifiedDefenseList(payload.qualifiedDamageDefenses)
   if (
     vulnerabilities === null ||
     resistances === null ||
     immunities === null ||
-    conditionImmunityIds === null
+    conditionImmunityIds === null ||
+    qualifiedDefenses === null
   ) {
     return { status: 'NOT_NORMALIZED' as const }
   }
@@ -95,7 +128,7 @@ function snapshotTargetProtection(actor: EncounterActorRuleFactActor) {
       ? left.kind.localeCompare(right.kind)
       : left.damageTypeId.localeCompare(right.damageTypeId)
   )
-  return { status: 'NORMALIZED' as const, defenses, conditionImmunityIds }
+  return { status: 'NORMALIZED' as const, defenses, qualifiedDefenses, conditionImmunityIds }
 }
 
 export function buildEncounterActorRuleFacts(

@@ -491,13 +491,47 @@ facts, unless that action's equipment facts say `requiresEquipped`. Equipped arm
 govern armor class, and attunement stays a deliberate player choice. The initiative declaration
 option generator and compiler share one rule, so options are always compilable; removing an item from
 the inventory removes its candidate. The D&D grant fold applies the same ruling to modifiers: a
-carried item's own Source-scoped `ATTACK_ROLL` and `DAMAGE` grants treat `WHILE_SOURCE_EQUIPPED` as
-met, so a drawn weapon attacks with its authored ability and magic bonuses. Attunement gates, Global
-scope and every other domain (armor class included) still use the real equipped state. Source-scoped
-advantage/disadvantage grants (for example Heavy) also keep the real state, because Character-wide
-attack roll-mode evidence is not yet filtered by source; scoping that evidence is an open follow-up.
-`DAMAGE` modifier grants are folded but not yet added to action damage expressions for any weapon,
-equipped or carried (open follow-up).
+carried item's own Source-scoped `ATTACK_ROLL` and `DAMAGE` grants (roll modes such as Heavy
+included) treat `WHILE_SOURCE_EQUIPPED` as met, so a drawn weapon attacks with its authored ability,
+magic bonuses and roll modes. Attunement gates, Global scope and every other domain (armor class
+included) still use the real equipped state.
+
+**D&D modifier scope and combat math (S6c, 2026-09-24).** `systems/dnd5e/modifierApplicability`
+holds the one scope rule every consumer applies: a `GLOBAL` modifier applies Character-wide and a
+`SOURCE` modifier applies only while its own source is evaluated (attacks and damage with that item,
+that item's armor class). Character-wide features (fighting styles, Unarmored Defense, Draconic
+Resilience) are therefore authored `GLOBAL` with facets. The same predicate narrows by facet:
+Equipment contexts in a modifier's restriction become attacking-item conditions (the grant fold
+returns them as `itemRequirements`; a two-handed grip counts as `TWO_HANDED`), and Spell contexts
+(`scopeSpellIds`) apply only to that spell's attack and damage. A Character-wide value (saves, skills,
+initiative, spellcasting, defenses, speed) never meets an item or spell requirement. Restriction
+conditions the fold cannot evaluate fail closed, whatever their constraint; ability-score facets see
+the fixed score modifiers accepted from earlier sources (race before class and equipment).
+
+`systems/dnd5e/attackKind` is the one classifier from trigger code to `MELEE | RANGED | SPELL |
+UNARMED`; melee and unarmed attacks are melee for flanking and Cleaving. Character action mechanics
+carry `attackKind`; their attack bonus, damage and roll mode read the attack kind's modifier groups
+through the scope predicate. Damage adds the attacking source's damage modifiers (ability, magic +N,
+Dueling) and the item's manual damage adjustment to the first damage roll, so the Sheet and the
+Encounter resolve the same expression. `rollContributorEvidence.attacks` holds Character-wide
+contributors only; `dnd5eAttackRollContributors` adds a given action's own and item-faceted
+contributors, and Encounter preparation and Disarm read it. Proficiency matches an item's variant
+ancestry (`parentEquipmentIds`) and `*`. The fold input carries the Character's `size` for Size
+facets. Penalties are negated once when modifiers resolve.
+
+Armor class `SET_VALUE` replaces the armor or unarmored base (the best applicable one wins; a shield
+still adds) instead of adding to it, and the armor class counts only its worn armor's and active
+shield's own Source-scoped modifiers. A save definition may carry `conditionTypeId`: when an action
+imposes that condition, the Encounter save merges that condition's scoped grants (Steel Will).
+Creature "from nonmagical attacks" defenses are typed `qualifiedDamageDefenses` (with the attack
+traits that bypass them) and apply only to attack damage from an attack lacking every bypassing
+trait; a Character attack is magical when made with a magic item or as a spell attack. Creature
+weapon attacks are treated as nonmagical (Magic Weapons traits are not modeled yet).
+
+Modifier kinds without a consumer (`SET_VALUE` for maximum hit points and sense range, bonus dice,
+damage-type replacement, movement mode/attribute/condition options, and spell-scoped modifiers outside
+spell attack and damage) are rejected when a modifier grant is validated. Speed `SET_VALUE` replaces
+the base speed (Fly).
 
 **Weapon grips.** Every authored Equipment effect has a required, nullable `grip`
 (`ONE_HANDED`/`TWO_HANDED`): it is set exactly on non-passive melee and ranged weapon attack effects
@@ -511,8 +545,9 @@ and the tabletop drawer groups them into one action with a grip control.
 
 `rules-runtime/encounterWieldConflict` is the pure evaluator for the other half of the drawn-weapon
 ruling: when the chosen action's grip is `TWO_HANDED` and an active shield is equipped it returns
-`STOW_SHIELD` with the armor-class delta from `resolveDnd5eActiveShield`, which the armor-class
-computation also uses. `evaluateEncounterCharacterActionWieldConflict` is shared by the action choices
+`STOW_SHIELD` with the armor-class delta from `resolveDnd5eShieldArmorClass`: the active shield's
+base value plus the applied armor-class contributions it owns (a magic shield's +N), read from the
+same armor-class computation. `evaluateEncounterCharacterActionWieldConflict` is shared by the action choices
 query, which exposes `wieldConflict` per Character action, and
 `prepareEncounterActionMechanics`, which enforces it for both the Session DO planner and the Convex
 fallback. A directly resolved `RESOLVE_ACTION` is `PROMPTED`: its submitter (today the GM) must send

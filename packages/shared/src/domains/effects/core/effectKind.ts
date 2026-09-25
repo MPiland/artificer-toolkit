@@ -168,7 +168,8 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.CLOSED_RULE,
     label: 'Closed Rule',
     tooltip: 'Selects an audited deterministic SRD rule descriptor.',
-    description: 'Preserves a closed, resolver-recognized SRD mechanic without free-form scripting.'
+    description:
+      'Records an audited SRD rule by its closed identity without free-form scripting. Only rule kinds with an implemented System consumer change outcomes; the rest are descriptive until their mechanics are authored or implemented.'
   },
   [EFFECT_KIND.MANUAL_ADJUDICATION]: {
     code: EFFECT_KIND.MANUAL_ADJUDICATION,

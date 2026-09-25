@@ -1,6 +1,15 @@
 import { type CoreMeta } from '#core'
 import { valuesOf } from '#utils'
 
+/** An attack trait that ignores a qualified damage defense ("from nonmagical attacks ..."). */
+export const DAMAGE_DEFENSE_BYPASS_CODE = {
+  MAGICAL: 'MAGICAL',
+  SILVERED: 'SILVERED',
+  ADAMANTINE: 'ADAMANTINE'
+} as const
+
+export type DamageDefenseBypassCode = keyof typeof DAMAGE_DEFENSE_BYPASS_CODE
+
 export const CREATURE_CATEGORY_CODE = {
   NPC: 'NPC',
   MONSTER: 'MONSTER',

@@ -1,10 +1,18 @@
 import { z } from '../zod.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
-import { characterMechanicSourceSchema } from './characterGrantFoldRules.js'
+import {
+  characterGrantFoldRestrictionSchema,
+  characterMechanicSourceSchema
+} from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
-import { abilityCodeSchema, equipmentGripSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  attackDomainCodeSchema,
+  equipmentGripSchema,
+  modifierScopeKindSchema
+} from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
@@ -66,6 +74,8 @@ const canonicalConditionDefinitionIdSchema = z
 const actionEquipmentStateSchema = z.strictObject({
   itemInstanceId: identitySchema,
   equipmentId: z.optional(z.nullable(identitySchema)),
+  /** Variant ancestry, nearest parent first; proficiency and item conditions match through it. */
+  parentEquipmentIds: z.array(identitySchema).check(z.maxLength(20)),
   category: z.optional(z.nullable(identitySchema)),
   properties: z.optional(z.array(identitySchema).check(z.maxLength(100))),
   equipped: booleanSchema,
@@ -284,16 +294,20 @@ const actionModifierGroupSchema = z.strictObject({
       z.strictObject({
         sourceId: identitySchema,
         value: finiteNumberSchema,
-        state: z.enum(['APPLIED', 'SUPPRESSED'])
+        state: z.enum(['APPLIED', 'SUPPRESSED']),
+        scope: modifierScopeKindSchema,
+        itemRequirements: characterGrantFoldRestrictionSchema,
+        scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
       })
     )
     .check(z.maxLength(1_000))
 })
 
-const actionItemAttackAdjustmentSchema = z.strictObject({
+const actionItemAdjustmentSchema = z.strictObject({
   itemInstanceId: identitySchema,
-  bonus: finiteNumberSchema,
-  override: z.nullable(finiteNumberSchema)
+  attackBonus: finiteNumberSchema,
+  attackOverride: z.nullable(finiteNumberSchema),
+  damageBonus: finiteNumberSchema
 })
 
 export const characterResolvedActionMechanicSchema = z.strictObject({
@@ -305,6 +319,7 @@ export const characterResolvedActionMechanicSchema = z.strictObject({
   rangeLabel: z.nullable(
     stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
   ),
+  attackKind: z.nullable(attackDomainCodeSchema),
   attackBonus: z.nullable(integerSchema),
   attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
   save: z.nullable(
@@ -742,10 +757,7 @@ export const characterActionModelInputSchema = z.strictObject({
   resources: characterResourcesSchema,
   proficiencies: z._default(z.array(actionProficiencySchema).check(z.maxLength(1_000)), []),
   modifierGroups: z._default(z.array(actionModifierGroupSchema).check(z.maxLength(1_000)), []),
-  itemAttackAdjustments: z._default(
-    z.array(actionItemAttackAdjustmentSchema).check(z.maxLength(500)),
-    []
-  ),
+  itemAdjustments: z._default(z.array(actionItemAdjustmentSchema).check(z.maxLength(500)), []),
   totalLevel: integerSchema.check(z.gte(0)).check(z.lte(20)),
   classLevels: z
     .array(
@@ -762,13 +774,7 @@ export const characterActionModelInputSchema = z.strictObject({
   skills: z
     .array(z.strictObject({ skillId: identitySchema, total: integerSchema }))
     .check(z.maxLength(500)),
-  spellcasting: z.nullable(z.strictObject({ saveDc: integerSchema, attackBonus: integerSchema })),
-  attackRollModes: z.strictObject({
-    MELEE: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-    RANGED: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-    SPELL: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-    UNARMED: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
-  })
+  spellcasting: z.nullable(z.strictObject({ saveDc: integerSchema, attackBonus: integerSchema }))
 })
 
 export type CharacterActionModelInput = z.infer<typeof characterActionModelInputSchema>

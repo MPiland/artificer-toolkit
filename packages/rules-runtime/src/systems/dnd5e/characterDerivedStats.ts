@@ -4,6 +4,12 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eFoldedModifierApplicability,
+  dnd5eModifierApplies
+} from './modifierApplicability.js'
+
 type DerivedStats = Omit<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'>
 type NumericCalculation = DerivedStats['abilities'][number]['score']
 type NumericContribution = NumericCalculation['contributions'][number]
@@ -32,8 +38,10 @@ function requireModifierSource(
   return contribution.source
 }
 
+/** Derived statistics are Character-wide: only modifiers that apply everywhere count. */
 function expandBonuses(
   bonuses: readonly NumericBonus[],
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
   modifierGroups: readonly ResolvedModifierGroup[]
 ): ResolvedBonus[] {
   const resolved: ResolvedBonus[] = []
@@ -54,6 +62,13 @@ function expandBonuses(
     const group = modifierGroups.find((candidate) => candidate.domainKey === bonus.domainKey)
     if (group === undefined) continue
     for (const contribution of group.contributions) {
+      if (
+        !dnd5eModifierApplies(
+          dnd5eFoldedModifierApplicability(grantFold, contribution),
+          DND5E_CHARACTER_WIDE_TARGET
+        )
+      )
+        continue
       const source = requireModifierSource(contribution)
       if (
         contribution.acceptedModifierIndex === undefined ||
@@ -132,6 +147,7 @@ function proficiencyContributions(
 
 function resolvedDerivedBonuses(
   bonuses: readonly NumericBonus[],
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
   modifierGroups: readonly ResolvedModifierGroup[],
   proficiencyValue: number,
   proficiencyOverride: ProficiencyCalculation['override'],
@@ -140,7 +156,7 @@ function resolvedDerivedBonuses(
   const resolved: ResolvedBonus[] = []
   for (const bonus of bonuses) {
     if (bonus.kind !== 'PROFICIENCY') {
-      resolved.push(...expandBonuses([bonus], modifierGroups))
+      resolved.push(...expandBonuses([bonus], grantFold, modifierGroups))
       continue
     }
     if (proficiencyValue === 0) continue
@@ -163,9 +179,10 @@ function resolvedDerivedBonuses(
 
 export function resolveDnd5eCharacterAbilityBonuses(
   record: CharacterRulePolicyInput['derivedBaseFacts']['abilities'][number],
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
   modifierGroups: CharacterRulePolicyOutput['modifierGroups']
 ): ResolvedBonus[] {
-  const bonuses = expandBonuses(record.bonuses, modifierGroups)
+  const bonuses = expandBonuses(record.bonuses, grantFold, modifierGroups)
   const selectedSetIndex = bonuses
     .filter(
       (bonus) =>
@@ -200,7 +217,7 @@ export function evaluateDnd5eCharacterDerivedStats(
   const baseFacts = input.derivedBaseFacts
   const calculatedProficiencyBonus = proficiencyBonus(input.totalLevel)
   const abilities = baseFacts.abilities.map((record) => {
-    const resolvedBonuses = resolveDnd5eCharacterAbilityBonuses(record, modifierGroups)
+    const resolvedBonuses = resolveDnd5eCharacterAbilityBonuses(record, grantFold, modifierGroups)
     const effectiveScore =
       record.scoreOverride === null
         ? record.baseScore +
@@ -247,6 +264,7 @@ export function evaluateDnd5eCharacterDerivedStats(
     )
     const bonuses = resolvedDerivedBonuses(
       record.bonuses,
+      grantFold,
       modifierGroups,
       proficiencyValue,
       record.proficiencyOverride,
@@ -298,6 +316,7 @@ export function evaluateDnd5eCharacterDerivedStats(
     )
     const bonuses = resolvedDerivedBonuses(
       record.bonuses,
+      grantFold,
       modifierGroups,
       proficiencyValue,
       record.proficiencyOverride,
@@ -352,15 +371,19 @@ export function evaluateDnd5eCharacterDerivedStats(
     }
   })
 
-  const initiativeBonuses = expandBonuses(baseFacts.initiative.bonuses, modifierGroups)
+  const initiativeBonuses = expandBonuses(baseFacts.initiative.bonuses, grantFold, modifierGroups)
   const initiativeBase = abilityModifierAt(abilities, baseFacts.initiative.abilityIndex)
   const spellcasting = baseFacts.spellcasting
   const spellcastingModifier =
     spellcasting === null ? 0 : abilityModifierAt(abilities, spellcasting.abilityIndex)
   const spellSaveDcBonuses =
-    spellcasting === null ? [] : expandBonuses(spellcasting.saveDcBonuses, modifierGroups)
+    spellcasting === null
+      ? []
+      : expandBonuses(spellcasting.saveDcBonuses, grantFold, modifierGroups)
   const spellAttackBonuses =
-    spellcasting === null ? [] : expandBonuses(spellcasting.attackBonuses, modifierGroups)
+    spellcasting === null
+      ? []
+      : expandBonuses(spellcasting.attackBonuses, grantFold, modifierGroups)
   const appliedTotal = (bonuses: readonly ResolvedBonus[]): number =>
     bonuses
       .filter((bonus) => bonus.state === 'APPLIED')

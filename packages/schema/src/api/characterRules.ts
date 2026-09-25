@@ -1095,12 +1095,14 @@ export const characterRulePolicyOutputSchema = z.strictObject({
         z.strictObject({
           abilityDefinitionId: serverUuidIdentityDtoSchema,
           ruleDefinitionId: z.optional(serverUuidIdentityDtoSchema),
+          /** Set on a save against a condition, which includes that condition's scoped grants. */
+          conditionTypeId: z.optional(serverUuidIdentityDtoSchema),
           modifier: integerSchema,
           rollMode: characterRollModeSchema,
           contributors: canonicalCharacterRollContributorsSchema
         })
       )
-      .check(z.maxLength(16)),
+      .check(z.maxLength(64)),
     []
   ),
   defenses: canonicalCharacterTargetDefensesSchema,

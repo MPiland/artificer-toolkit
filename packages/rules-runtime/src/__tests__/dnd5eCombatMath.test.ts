@@ -1,0 +1,702 @@
+import { describe, expect, it } from 'vitest'
+import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import {
+  SRD_ABILITIES,
+  SRD_CONDITION_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
+import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
+import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
+import {
+  dnd5eAttackDamageDefenses,
+  dnd5eCharacterAttackTraits
+} from '../systems/dnd5e/attackDamageDefenses.js'
+import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from '../systems/dnd5e/attackKind.js'
+import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
+import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
+import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
+import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eCharacterActionTarget,
+  dnd5eModifierApplies
+} from '../systems/dnd5e/modifierApplicability.js'
+import {
+  SRD,
+  damageExpression,
+  evaluateSrdCharacter,
+  itemAction,
+  srdByLabel,
+  srdFeature
+} from './dnd5eSrdCharacter.js'
+
+const EB_EFFECT = '0b7e4c6a-1f2d-4e3b-9a8c-7d6e5f4a3b2c'
+const FB_EFFECT = '1c8f5d7b-2a3e-4f4c-8b9d-8e7f6a5b4c3d'
+
+const fighter = (level = 1) => ({ label: 'Fighter', level })
+const fightingStyle = (option: string) =>
+  srdFeature({
+    owner: 'CLASS',
+    classLabel: 'Fighter',
+    featureLabel: 'Fighting Style',
+    level: 1,
+    optionLabels: [option]
+  })
+
+describe('D&D 5e weapon attacks', () => {
+  it('a STR 16 fighter hits with a Longsword +1 at +6 for 1d8 + 4 (STR +3, magic +1)', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [fighter()],
+      items: [{ label: 'Longsword +1' }]
+    })
+    const oneHanded = itemAction(character, 'Longsword +1', {
+      attackKind: 'MELEE',
+      grip: 'ONE_HANDED'
+    })
+    expect(oneHanded.decision.mechanic.attackBonus).toBe(6)
+    expect(damageExpression(oneHanded.decision)).toBe('1d8 + 4')
+    expect(
+      damageExpression(
+        itemAction(character, 'Longsword +1', { attackKind: 'MELEE', grip: 'TWO_HANDED' }).decision
+      )
+    ).toBe('1d10 + 4')
+  })
+
+  it('Dueling adds +2 only to a one-handed melee weapon', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [fighter()],
+      features: [fightingStyle('Dueling')],
+      items: [{ label: 'Longsword' }, { label: 'Greatsword' }]
+    })
+    const longsword = (grip: 'ONE_HANDED' | 'TWO_HANDED') =>
+      damageExpression(itemAction(character, 'Longsword', { attackKind: 'MELEE', grip }).decision)
+    expect(longsword('ONE_HANDED')).toBe('1d8 + 5')
+    expect(longsword('TWO_HANDED')).toBe('1d10 + 3')
+    expect(
+      damageExpression(itemAction(character, 'Greatsword', { attackKind: 'MELEE' }).decision)
+    ).toBe('2d6 + 3')
+    // Dueling is a damage bonus: the attack roll is unchanged (+3 STR, +2 proficiency).
+    expect(
+      itemAction(character, 'Longsword', { attackKind: 'MELEE', grip: 'ONE_HANDED' }).decision
+        .mechanic.attackBonus
+    ).toBe(5)
+  })
+
+  it('Archery adds +2 to ranged weapons but not to a thrown dagger', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 16 },
+      classes: [fighter()],
+      features: [fightingStyle('Archery')],
+      items: [{ label: 'Longbow' }, { label: 'Dagger' }]
+    })
+    expect(
+      itemAction(character, 'Longbow', { attackKind: 'RANGED' }).decision.mechanic.attackBonus
+    ).toBe(7)
+    expect(
+      itemAction(character, 'Dagger', { attackKind: 'RANGED' }).decision.mechanic.attackBonus
+    ).toBe(5)
+  })
+
+  it('a Small halfling has disadvantage with a greatsword but not with a dagger (Heavy)', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 14, DEXTERITY: 14 },
+      race: 'Halfling',
+      subrace: 'Lightfoot',
+      classes: [fighter()],
+      items: [{ label: 'Greatsword' }, { label: 'Dagger' }, { label: 'Longbow' }]
+    })
+    expect(
+      itemAction(character, 'Greatsword', { attackKind: 'MELEE' }).decision.mechanic.attackRollMode
+    ).toBe('DISADVANTAGE')
+    expect(
+      itemAction(character, 'Dagger', { attackKind: 'MELEE' }).decision.mechanic.attackRollMode
+    ).toBe('NORMAL')
+    const longbow = itemAction(character, 'Longbow', { attackKind: 'RANGED' })
+    expect(longbow.decision.mechanic.attackRollMode).toBe('DISADVANTAGE')
+    // Heavy is the weapon's own modifier: Character-wide attack evidence does not carry it.
+    expect(character.output.rollContributorEvidence.attacks.MELEE).toEqual([])
+    expect(character.output.rollContributorEvidence.attacks.RANGED).toEqual([])
+  })
+
+  it('a Medium human has no Heavy disadvantage', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 14 },
+      race: 'Human',
+      classes: [fighter()],
+      items: [{ label: 'Greatsword' }]
+    })
+    expect(
+      itemAction(character, 'Greatsword', { attackKind: 'MELEE' }).decision.mechanic.attackRollMode
+    ).toBe('NORMAL')
+  })
+
+  it('a ranged attack reads ranged roll modes and only melee attacks flank', () => {
+    const character = evaluateSrdCharacter({
+      race: 'Halfling',
+      subrace: 'Lightfoot',
+      classes: [fighter()],
+      items: [{ label: 'Longbow' }]
+    })
+    const { candidate } = itemAction(character, 'Longbow', { attackKind: 'RANGED' })
+    const target = dnd5eCharacterActionTarget(candidate)
+    expect(
+      dnd5eAttackRollContributors(character.output, 'RANGED', target).map(
+        (contributor) => contributor.influence
+      )
+    ).toEqual(['DISADVANTAGE'])
+    expect(dnd5eAttackRollContributors(character.output, 'MELEE', target)).toEqual([])
+    expect(dnd5eAttackKind('RANGED_WEAPON_ATTACK')).toBe('RANGED')
+    expect(dnd5eAttackKind('UNARMED_ATTACK')).toBe('UNARMED')
+    expect(dnd5eAttackKind('ACTIVATED')).toBeNull()
+    expect(isDnd5eMeleeAttackKind('MELEE')).toBe(true)
+    expect(isDnd5eMeleeAttackKind('UNARMED')).toBe(true)
+    expect(isDnd5eMeleeAttackKind('RANGED')).toBe(false)
+    expect(isDnd5eMeleeAttackKind('SPELL')).toBe(false)
+  })
+
+  it('a High Elf is proficient with a Longsword +1 through Elf Weapon Training', () => {
+    const elf = evaluateSrdCharacter({
+      abilities: { STRENGTH: 14 },
+      race: 'Elf',
+      subrace: 'High Elf',
+      classes: [{ label: 'Wizard', level: 1 }],
+      items: [{ label: 'Longsword +1' }]
+    })
+    const human = evaluateSrdCharacter({
+      abilities: { STRENGTH: 14 },
+      race: 'Human',
+      classes: [{ label: 'Wizard', level: 1 }],
+      items: [{ label: 'Longsword +1' }]
+    })
+    const attack = (character: typeof elf) =>
+      itemAction(character, 'Longsword +1', { attackKind: 'MELEE', grip: 'ONE_HANDED' }).decision
+        .mechanic.attackBonus
+    // STR +2 for both (the human's 15), proficiency +2 only for the elf, magic +1 for both.
+    expect(attack(elf)).toBe(5)
+    expect(attack(human)).toBe(3)
+  })
+
+  it('a rogue is proficient with a rapier', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 16 },
+      classes: [{ label: 'Rogue', level: 1 }],
+      items: [{ label: 'Rapier' }]
+    })
+    expect(
+      itemAction(character, 'Rapier', { attackKind: 'MELEE' }).decision.mechanic.attackBonus
+    ).toBe(5)
+  })
+})
+
+describe('D&D 5e armor class', () => {
+  it('Draconic Resilience sets unarmored AC to 13 + DEX; a shield still adds', () => {
+    const resilience = srdFeature({
+      owner: 'SUBCLASS',
+      classLabel: 'Sorcerer',
+      subclassLabel: 'Draconic Bloodline',
+      featureLabel: 'Draconic Resilience',
+      level: 1
+    })
+    const evaluate = (items: { label: string; equipped: boolean }[]) =>
+      evaluateSrdCharacter({
+        abilities: { DEXTERITY: 14 },
+        classes: [{ label: 'Sorcerer', level: 1, subclass: 'Draconic Bloodline' }],
+        features: [resilience],
+        items
+      }).output.derivedStats.armorClass.effective
+    expect(evaluate([])).toBe(15)
+    expect(evaluate([{ label: 'Shield', equipped: true }])).toBe(17)
+    expect(evaluate([{ label: 'Leather Armor', equipped: true }])).toBe(13)
+  })
+
+  it('Barbarian Unarmored Defense adds CON only without armor', () => {
+    const unarmoredDefense = srdFeature({
+      owner: 'CLASS',
+      classLabel: 'Barbarian',
+      featureLabel: 'Unarmored Defense',
+      level: 1
+    })
+    const evaluate = (items: { label: string; equipped: boolean }[]) =>
+      evaluateSrdCharacter({
+        abilities: { STRENGTH: 15, DEXTERITY: 14, CONSTITUTION: 16 },
+        classes: [{ label: 'Barbarian', level: 1 }],
+        features: [unarmoredDefense],
+        items
+      }).output.derivedStats.armorClass.effective
+    expect(evaluate([])).toBe(15)
+    expect(evaluate([{ label: 'Shield', equipped: true }])).toBe(17)
+    // Chain mail replaces 10 + DEX with 16 and Unarmored Defense stops applying.
+    expect(evaluate([{ label: 'Chain Mail', equipped: true }])).toBe(16)
+  })
+
+  it('Monk Unarmored Defense is 10 + DEX + WIS without armor or shield', () => {
+    const unarmoredDefense = srdFeature({
+      owner: 'CLASS',
+      classLabel: 'Monk',
+      featureLabel: 'Unarmored Defense',
+      level: 1
+    })
+    const evaluate = (items: { label: string; equipped: boolean }[]) =>
+      evaluateSrdCharacter({
+        abilities: { DEXTERITY: 16, WISDOM: 14 },
+        classes: [{ label: 'Monk', level: 1 }],
+        features: [unarmoredDefense],
+        items
+      }).output.derivedStats.armorClass.effective
+    expect(evaluate([])).toBe(15)
+    expect(evaluate([{ label: 'Shield', equipped: true }])).toBe(15)
+    expect(evaluate([{ label: 'Leather Armor', equipped: true }])).toBe(14)
+  })
+
+  it('Fighter Defense adds +1 only while wearing armor', () => {
+    const evaluate = (items: { label: string; equipped: boolean }[]) =>
+      evaluateSrdCharacter({
+        abilities: { DEXTERITY: 12 },
+        classes: [fighter()],
+        features: [fightingStyle('Defense')],
+        items
+      }).output.derivedStats.armorClass.effective
+    expect(evaluate([])).toBe(11)
+    expect(evaluate([{ label: 'Chain Mail', equipped: true }])).toBe(17)
+  })
+
+  it('light armor keeps its DEX bonus without armor proficiency', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 14 },
+      classes: [{ label: 'Wizard', level: 1 }],
+      items: [{ label: 'Leather Armor', equipped: true }]
+    })
+    expect(character.output.derivedStats.armorClass.effective).toBe(13)
+  })
+
+  it('a PENALTY of 2 lowers AC by 2', () => {
+    const character = evaluateSrdCharacter({ abilities: { DEXTERITY: 10 }, classes: [fighter()] })
+    const penalty: CharacterGrantFoldSource = {
+      sourceId: 'penalty-source',
+      mechanicSource: { kind: 'SYSTEM', systemId: character.facts.grantFoldFacts.base.systemId },
+      sourceState: null,
+      restrictions: [],
+      proficiencies: [],
+      senses: [],
+      modifiers: [
+        {
+          grantId: 'penalty-grant',
+          valueDomainCode: 'ARMOR_CLASS',
+          modifierKind: 'PENALTY',
+          domain: {},
+          grant: {
+            id: 'penalty-grant',
+            valueDomainCode: 'ARMOR_CLASS',
+            modifierKind: 'PENALTY',
+            scope: 'GLOBAL',
+            domain: {},
+            payload: { valueKind: 'FIXED', amount: 2 }
+          },
+          restrictions: [],
+          scopeSpellIds: []
+        }
+      ],
+      feats: [],
+      spells: []
+    }
+    const output = evaluateDnd5e2014CharacterPolicy({
+      ...character.facts,
+      grantFoldFacts: { ...character.facts.grantFoldFacts, background: penalty }
+    })
+    expect(character.output.derivedStats.armorClass.effective).toBe(10)
+    expect(output.derivedStats.armorClass.effective).toBe(8)
+  })
+
+  it('stowing a Shield +1 for a two-handed attack costs 3 AC, its magic bonus included', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [fighter()],
+      items: [
+        { label: 'Chain Mail', equipped: true },
+        { label: 'Shield +1', equipped: true },
+        { label: 'Greatsword' }
+      ]
+    })
+    expect(character.output.derivedStats.armorClass.effective).toBe(19)
+    const { candidate } = itemAction(character, 'Greatsword', { attackKind: 'MELEE' })
+    expect(
+      evaluateEncounterCharacterActionWieldConflict({
+        candidate,
+        ruleFacts: character.facts,
+        policyOutput: character.output
+      })
+    ).toEqual({
+      kind: 'STOW_SHIELD',
+      shieldItemInstanceId: character.itemInstanceId('Shield +1'),
+      armorClassDelta: -3
+    })
+  })
+})
+
+describe('D&D 5e movement', () => {
+  it('heavy armor slows a wearer below its Strength requirement, except a dwarf', () => {
+    const walk = (race: string, strength: number, subrace?: string) =>
+      evaluateSrdCharacter({
+        abilities: { STRENGTH: strength },
+        race,
+        ...(subrace ? { subrace } : {}),
+        classes: [fighter()],
+        items: [{ label: 'Chain Mail', equipped: true }]
+      }).output.movement.speeds[0]!.amount
+    // Chain Mail needs Strength 13; a human's +1 counts (11 -> 12 is slowed, 12 -> 13 is not).
+    expect(walk('Human', 11)).toBe(20)
+    expect(walk('Human', 12)).toBe(30)
+    expect(walk('Dwarf', 10, 'Hill Dwarf')).toBe(25)
+  })
+})
+
+describe('D&D 5e saving throws and defenses', () => {
+  const frightened = SRD_CONDITION_TYPES.find((condition) => condition.code === 'FRIGHTENED')!.id
+  const poisoned = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
+
+  it('Steel Will grants advantage on saves against being frightened only', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { WISDOM: 12 },
+      classes: [{ label: 'Ranger', level: 7, subclass: 'Hunter' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Ranger',
+          subclassLabel: 'Hunter',
+          featureLabel: 'Defensive Tactics',
+          level: 7,
+          optionLabels: ['Steel Will']
+        })
+      ]
+    })
+    const wisdomId = SRD_ABILITIES.find((ability) => ability.code === 'WISDOM')!.id
+    const save = (conditionIds: string[]) =>
+      selectDnd5eTargetSavingThrow({
+        savingThrowDefinitions: character.output.savingThrowDefinitions,
+        abilityDefinitionId: wisdomId,
+        conditionIds
+      }).rollMode
+    expect(save([frightened])).toBe('ADVANTAGE')
+    expect(save([])).toBe('NORMAL')
+    expect(save([poisoned])).toBe('NORMAL')
+    expect(character.output.rollModes.savingThrows.WISDOM).toBe('NORMAL')
+  })
+
+  it('a Couatl is immune to nonmagical weapons but takes damage from a magic weapon', () => {
+    const couatl = srdByLabel(SRD.creatures, 'Couatl')
+    expect(couatl.qualifiedDamageDefenses?.length).toBeGreaterThan(0)
+    const protection = buildEncounterActorRuleFacts({
+      actors: [
+        {
+          id: '6f1c2d3e-4b5a-4c6d-8e7f-9a0b1c2d3e4f',
+          kind: 'CREATURE',
+          systemId: couatl.systemId,
+          snapshot: {
+            payload: {
+              ...couatl,
+              damageVulnerabilities: couatl.damageVulnerabilities ?? [],
+              damageResistances: couatl.damageResistances ?? [],
+              damageImmunities: couatl.damageImmunities ?? [],
+              conditionImmunities: couatl.conditionImmunities ?? []
+            }
+          },
+          resources: null
+        }
+      ]
+    }).actors[0]!.targetProtection
+    if (protection.status !== 'NORMALIZED') throw new Error('Couatl protection is unnormalized.')
+    const piercingId = protection.qualifiedDefenses.find(
+      (defense) => defense.kind === 'IMMUNITY'
+    )!.damageTypeId
+    const immune = (traits: Parameters<typeof dnd5eAttackDamageDefenses>[2]) =>
+      dnd5eAttackDamageDefenses(protection.defenses, protection.qualifiedDefenses, traits).some(
+        (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === piercingId
+      )
+    expect(immune({ magical: false, silvered: false, adamantine: false })).toBe(true)
+    expect(immune({ magical: true, silvered: false, adamantine: false })).toBe(false)
+    // A qualified defense is "from attacks": damage outside an attack is not reduced by it.
+    expect(immune(null)).toBe(false)
+
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [fighter()],
+      items: [{ label: 'Longsword +1' }, { label: 'Longsword' }]
+    })
+    const traits = (label: string) =>
+      dnd5eCharacterAttackTraits({
+        candidate: itemAction(character, label, { attackKind: 'MELEE', grip: 'ONE_HANDED' })
+          .candidate,
+        attackKind: 'MELEE',
+        itemMechanics: character.output.itemMechanics
+      })
+    expect(traits('Longsword +1').magical).toBe(true)
+    expect(traits('Longsword').magical).toBe(false)
+  })
+})
+
+describe('D&D 5e modifier scope', () => {
+  const requirement = (constraint: 'INCLUDE' | 'EXCLUDE', property: string) => [
+    {
+      conditions: [
+        {
+          conditionId: `${constraint}:${property}`,
+          constraint,
+          kind: 'ITEM_PROPERTY' as const,
+          mode: 'SELECTED' as const,
+          abilityId: null,
+          classIds: [],
+          requiredIds: [],
+          secondaryRequiredIds: [],
+          min: null,
+          max: null,
+          proficiencyKind: null,
+          minimumRank: null,
+          category: null,
+          requiredProperties: [property],
+          sourceState: null
+        }
+      ]
+    }
+  ]
+  const sword = {
+    equipmentIds: ['longsword'],
+    category: 'WEAPON',
+    properties: ['MELEE', 'VERSATILE'],
+    grip: 'ONE_HANDED' as const
+  }
+
+  it('GLOBAL applies Character-wide; SOURCE applies only while its source is evaluated', () => {
+    const modifier = { sourceId: 'item', itemRequirements: [], scopeSpellIds: [] }
+    expect(
+      dnd5eModifierApplies({ ...modifier, scope: 'GLOBAL' }, DND5E_CHARACTER_WIDE_TARGET)
+    ).toBe(true)
+    expect(
+      dnd5eModifierApplies({ ...modifier, scope: 'SOURCE' }, DND5E_CHARACTER_WIDE_TARGET)
+    ).toBe(false)
+    expect(
+      dnd5eModifierApplies(
+        { ...modifier, scope: 'SOURCE' },
+        { sourceIds: ['item'], item: sword, spellId: null }
+      )
+    ).toBe(true)
+    expect(
+      dnd5eModifierApplies(
+        { ...modifier, scope: 'SOURCE' },
+        { sourceIds: ['other'], item: sword, spellId: null }
+      )
+    ).toBe(false)
+  })
+
+  it('item facets need the attacking item and a two-handed grip counts as TWO_HANDED', () => {
+    const dueling = {
+      sourceId: 'dueling',
+      scope: 'GLOBAL' as const,
+      itemRequirements: requirement('EXCLUDE', 'TWO_HANDED'),
+      scopeSpellIds: []
+    }
+    expect(dnd5eModifierApplies(dueling, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+    expect(dnd5eModifierApplies(dueling, { sourceIds: [], item: sword, spellId: null })).toBe(true)
+    expect(
+      dnd5eModifierApplies(dueling, {
+        sourceIds: [],
+        item: { ...sword, grip: 'TWO_HANDED' },
+        spellId: null
+      })
+    ).toBe(false)
+  })
+
+  it('spell facets apply only to the named spell', () => {
+    const agonizing = {
+      sourceId: 'invocation',
+      scope: 'GLOBAL' as const,
+      itemRequirements: [],
+      scopeSpellIds: ['eldritch-blast']
+    }
+    expect(dnd5eModifierApplies(agonizing, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+    expect(
+      dnd5eModifierApplies(agonizing, { sourceIds: [], item: null, spellId: 'eldritch-blast' })
+    ).toBe(true)
+    expect(
+      dnd5eModifierApplies(agonizing, { sourceIds: [], item: null, spellId: 'fire-bolt' })
+    ).toBe(false)
+  })
+})
+
+describe('D&D 5e restrictions and spell-scoped damage', () => {
+  it('fails closed on a restriction it cannot evaluate, whatever its constraint', () => {
+    const [group] = normalizeCharacterGrantRestrictions({
+      id: 'facet',
+      groups: [
+        {
+          id: 'group',
+          order: 0,
+          contexts: [
+            {
+              id: 'context',
+              order: 0,
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  id: 'skill-score',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'EXCLUDE',
+                  predicateCode: 'SKILL_SCORE',
+                  authoringModeKind: 'ALL'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    const character = evaluateSrdCharacter({ abilities: { DEXTERITY: 10 }, classes: [fighter()] })
+    const source: CharacterGrantFoldSource = {
+      sourceId: 'unevaluable-source',
+      mechanicSource: { kind: 'SYSTEM', systemId: character.facts.grantFoldFacts.base.systemId },
+      sourceState: null,
+      restrictions: [],
+      proficiencies: [],
+      senses: [],
+      modifiers: [
+        {
+          grantId: 'unevaluable-grant',
+          valueDomainCode: 'ARMOR_CLASS',
+          modifierKind: 'BONUS',
+          domain: {},
+          grant: {
+            id: 'unevaluable-grant',
+            scope: 'GLOBAL',
+            payload: { valueKind: 'FIXED', amount: 5 }
+          },
+          restrictions: [group!],
+          scopeSpellIds: []
+        }
+      ],
+      feats: [],
+      spells: []
+    }
+    const output = evaluateDnd5e2014CharacterPolicy({
+      ...character.facts,
+      grantFoldFacts: { ...character.facts.grantFoldFacts, background: source }
+    })
+    expect(group!.conditions[0]!.kind).toBe('UNAVAILABLE')
+    expect(output.derivedStats.armorClass.effective).toBe(10)
+  })
+
+  it('an Equipment context becomes an attacking-item condition', () => {
+    const [group] = normalizeCharacterGrantRestrictions({
+      id: 'facet',
+      groups: [
+        {
+          id: 'group',
+          order: 0,
+          contexts: [
+            {
+              id: 'context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                {
+                  id: 'melee',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'EQUIPMENT_PROPERTY',
+                  authoringModeKind: 'SELECTED',
+                  properties: ['MELEE']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    expect(group!.conditions.map((condition) => condition.kind)).toEqual(['ITEM_PROPERTY'])
+  })
+
+  it('a spell-scoped damage modifier (Agonizing Blast) adds only to that spell', () => {
+    const effect = (spellId: string) => ({
+      spellId,
+      effects: [
+        {
+          effectId: spellId === 'eldritch-blast' ? EB_EFFECT : FB_EFFECT,
+          mechanicFacts: {
+            invocation: {
+              triggerCode: 'SPELL_ATTACK',
+              activation: null,
+              range: { rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
+              savingThrow: null,
+              reactionMovementTrigger: null
+            },
+            outcomes: [
+              {
+                kind: 'DAMAGE' as const,
+                pathCode: 'ON_HIT',
+                label: null,
+                damageTypeId: 'force',
+                valueKind: 'DICE' as const,
+                scalingKind: 'NONE' as const,
+                scalingSource: null,
+                classId: null,
+                amountKind: null,
+                amountMultiplier: null,
+                values: [
+                  {
+                    level: null,
+                    order: 0,
+                    amount: null,
+                    dice: '1d10',
+                    multiplier: null,
+                    minimum: null,
+                    maximum: null
+                  }
+                ],
+                bonuses: []
+              }
+            ]
+          }
+        }
+      ]
+    })
+    const output = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      spellEffects: [effect('eldritch-blast'), effect('fire-bolt')],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [
+        {
+          domainKey: 'DAMAGE:ABILITY_MODIFIER_BONUS|attackDomain=SPELL',
+          contributions: [
+            {
+              sourceId: 'agonizing-blast',
+              value: 3,
+              state: 'APPLIED',
+              scope: 'GLOBAL',
+              itemRequirements: [],
+              scopeSpellIds: ['eldritch-blast']
+            }
+          ]
+        }
+      ],
+      totalLevel: 1,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: { saveDc: 13, attackBonus: 5 }
+    })
+    const damage = (spellId: string) =>
+      damageExpression({
+        mechanic: output.spellReferenceMechanics.find((entry) => entry.spellId === spellId)!
+          .mechanics[0]!
+      })
+    expect(damage('eldritch-blast')).toBe('1d10 + 3')
+    expect(damage('fire-bolt')).toBe('1d10')
+  })
+})

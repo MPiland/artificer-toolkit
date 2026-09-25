@@ -226,6 +226,13 @@ export function buildCharacterGrantFoldSourceFacts(params: {
   }
 }
 
+/** Variant ancestry of a Character's compiled item, nearest parent first. */
+export function compiledEquipmentParentIds(
+  item: CharacterBuildSnapshot['equipmentItems'][number]['compiledItem']
+): string[] {
+  return item.category === 'VARIANT' ? [item.parentEquipmentId] : [...item.parentEquipmentIds]
+}
+
 export function getCharacterGrantFoldSelectedOptionIds(
   feature: CharacterBuildSnapshot['features'][number]
 ): Set<string> {

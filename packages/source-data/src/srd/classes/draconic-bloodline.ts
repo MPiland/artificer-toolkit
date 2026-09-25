@@ -1,11 +1,13 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   EFFECT_KIND,
+  EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -24,7 +26,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_LANGUAGES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { closedRuleEffect, equippedCategoryRestriction } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -167,10 +169,32 @@ export const draconicBloodlineOrigin: ClassAuthored = {
             valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
             domain: {},
             modifierKind: MODIFIER_KIND.SET_VALUE,
-            scope: MODIFIER_SCOPE_KIND.SOURCE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { amount: 13 },
-            order: 1
+            order: 1,
+            // Replaces the unarmored 10 + DEX base; the next grant restores DEX, a shield still adds.
+            restrictions: equippedCategoryRestriction(
+              (entry) => classRowId(S, 0x7a, 0x10 + entry),
+              'EXCLUDE',
+              [EQUIPMENT_CATEGORY_CODE.ARMOR]
+            )
+          },
+          {
+            id: classRowId(S, 0x7a, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { ability: ABILITY_CODE.DEXTERITY },
+            order: 2,
+            restrictions: equippedCategoryRestriction(
+              (entry) => classRowId(S, 0x7a, 0x18 + entry),
+              'EXCLUDE',
+              [EQUIPMENT_CATEGORY_CODE.ARMOR]
+            )
           }
         ]
       },

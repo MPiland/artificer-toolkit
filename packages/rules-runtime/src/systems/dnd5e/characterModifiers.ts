@@ -9,6 +9,11 @@ import {
   characterPolicyNumber,
   characterPolicyRecord
 } from './characterPolicyValues.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eFoldedModifierApplicability,
+  dnd5eModifierApplies
+} from './modifierApplicability.js'
 
 type Contribution = CharacterRulePolicyOutput['modifierGroups'][number]['contributions'][number]
 export type CharacterResolvedModifierGroup = Omit<
@@ -27,29 +32,32 @@ export function evaluateDnd5eCharacterModifiers(
   type Group = CharacterGrantFoldOutput['modifierGroups'][number]
   type Contribution = Group['contributions'][number] & { resolvedValue: number }
   const proficiencyBonus = Math.floor((Math.max(input.totalLevel, 1) - 1) / 4) + 2
+  const additiveAmount = (payload: Record<string, unknown>): number => {
+    if (payload.valueKind == null)
+      return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
+    if (payload.valueKind === 'SKILL_BONUS' || payload.valueKind === 'SPELL_SLOT_LEVEL') return 0
+    if (payload.valueKind === 'PROFICIENCY_BONUS')
+      return proficiencyBonus * characterPolicyNumber(payload.multiplier ?? 1)
+    if (payload.valueKind === 'CHARACTER_LEVEL')
+      return input.totalLevel * characterPolicyNumber(payload.multiplier ?? 1)
+    if (payload.valueKind === 'CLASS_LEVEL') {
+      return (
+        (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
+          ?.level ?? 0) * characterPolicyNumber(payload.multiplier ?? 1)
+      )
+    }
+    if (payload.valueKind === 'FIXED')
+      return characterPolicyNumber(payload.amount ?? payload.value ?? 0)
+    return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
+  }
   const scalarValue = (
     group: Group,
     contribution: Group['contributions'][number]
   ): number | null => {
     const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
-    if (group.modifierKind === 'BONUS' || group.modifierKind === 'PENALTY') {
-      if (payload.valueKind == null)
-        return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
-      if (payload.valueKind === 'SKILL_BONUS' || payload.valueKind === 'SPELL_SLOT_LEVEL') return 0
-      if (payload.valueKind === 'PROFICIENCY_BONUS')
-        return proficiencyBonus * characterPolicyNumber(payload.multiplier ?? 1)
-      if (payload.valueKind === 'CHARACTER_LEVEL')
-        return input.totalLevel * characterPolicyNumber(payload.multiplier ?? 1)
-      if (payload.valueKind === 'CLASS_LEVEL') {
-        return (
-          (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
-            ?.level ?? 0) * characterPolicyNumber(payload.multiplier ?? 1)
-        )
-      }
-      if (payload.valueKind === 'FIXED')
-        return characterPolicyNumber(payload.amount ?? payload.value ?? 0)
-      return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
-    }
+    // A penalty is authored as a positive amount and is negated here, once, for every consumer.
+    if (group.modifierKind === 'PENALTY') return -additiveAmount(payload)
+    if (group.modifierKind === 'BONUS') return additiveAmount(payload)
     if (group.modifierKind === 'SET_VALUE' || group.modifierKind === 'MODIFY_CHARGE_LIMIT') {
       return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
     }
@@ -76,14 +84,23 @@ export function evaluateDnd5eCharacterModifiers(
     }))
   const abilityGroups = scalarGroups
     .filter((group) => group.valueDomainCode === 'ABILITY_SCORE')
-    .map((group) => ({
-      ...group,
-      lastAcceptedModifierIndex: group.contributions.at(-1)?.acceptedModifierIndex ?? -1,
-      effective:
-        group.modifierKind === 'SET_VALUE'
-          ? (group.contributions.at(-1)?.resolvedValue ?? 0)
-          : group.contributions.reduce((sum, contribution) => sum + contribution.resolvedValue, 0)
-    }))
+    .map((group) => {
+      const contributions = group.contributions.filter((contribution) =>
+        dnd5eModifierApplies(
+          dnd5eFoldedModifierApplicability(grantFold, contribution),
+          DND5E_CHARACTER_WIDE_TARGET
+        )
+      )
+      return {
+        ...group,
+        lastAcceptedModifierIndex: contributions.at(-1)?.acceptedModifierIndex ?? -1,
+        effective:
+          group.modifierKind === 'SET_VALUE'
+            ? (contributions.at(-1)?.resolvedValue ?? 0)
+            : contributions.reduce((sum, contribution) => sum + contribution.resolvedValue, 0)
+      }
+    })
+    .filter((group) => group.lastAcceptedModifierIndex >= 0)
   const abilityScores = input.derivedBaseFacts.abilities.map((ability) => {
     const groups = abilityGroups.filter((group) => {
       const prefix = `ABILITY_SCORE:${group.modifierKind}|ability=`

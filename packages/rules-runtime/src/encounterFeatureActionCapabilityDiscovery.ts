@@ -12,6 +12,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
+import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -710,13 +711,7 @@ export function featureActionMechanic(
 ): Readonly<Record<string, unknown>> {
   const invocation = capability.mechanicFacts.invocation
   const savingThrow = invocation.savingThrow
-  const attackKind =
-    invocation.triggerCode === 'RANGED_WEAPON_ATTACK'
-      ? 'RANGED'
-      : invocation.triggerCode === 'MELEE_WEAPON_ATTACK' ||
-          invocation.triggerCode === 'UNARMED_ATTACK'
-        ? 'MELEE'
-        : null
+  const attackKind = dnd5eAttackKind(invocation.triggerCode)
   const save =
     savingThrow?.dcMethod === 'FIXED_DC' &&
     Number.isSafeInteger(savingThrow.baseDc) &&

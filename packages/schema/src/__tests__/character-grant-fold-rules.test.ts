@@ -13,6 +13,7 @@ const emptyInput = {
     totalLevel: 0,
     raceId: null,
     subraceId: null,
+    size: null,
     abilities: {},
     heritageIds: [],
     featureIds: [],

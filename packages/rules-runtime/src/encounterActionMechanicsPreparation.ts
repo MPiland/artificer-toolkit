@@ -21,6 +21,13 @@ import {
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
+import {
+  dnd5eAttackDamageDefenses,
+  dnd5eCharacterAttackTraits
+} from './systems/dnd5e/attackDamageDefenses.js'
+import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
+import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
+import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
@@ -227,6 +234,23 @@ export async function prepareEncounterActionMechanics<
       featureResource.remaining < resourceUse.cost)
   )
     throw new Error('The selected Encounter feature action resource is unavailable.')
+  const actionMechanic =
+    source.kind === 'CHARACTER_ACTION'
+      ? characterActionState!.actionMechanic
+      : featureActionMechanic(source.capability)
+  const attackKind =
+    typeof actionMechanic.attackKind === 'string' ? actionMechanic.attackKind : null
+  // Only attack damage meets "from nonmagical attacks" defenses; Creature weapons are nonmagical.
+  const attackTraits =
+    attackKind === null
+      ? null
+      : source.kind === 'CHARACTER_ACTION'
+        ? dnd5eCharacterAttackTraits({
+            candidate: source.candidate,
+            attackKind,
+            itemMechanics: source.effectivePolicyOutput.itemMechanics
+          })
+        : { magical: attackKind === 'SPELL', silvered: false, adamantine: false }
   const contributors = await input.loadRelationshipFacts({
     state,
     actors,
@@ -258,31 +282,28 @@ export async function prepareEncounterActionMechanics<
     featureUsed,
     relationshipContributors: contributors,
     binding: {
-      actionMechanic:
-        source.kind === 'CHARACTER_ACTION'
-          ? characterActionState!.actionMechanic
-          : featureActionMechanic(source.capability),
+      actionMechanic,
       sourceDerivedFacts: {
         ...(source.kind === 'CHARACTER_ACTION'
           ? source.effectivePolicyOutput
           : sourceFacts.targetDerivedFacts),
+        // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
-          attacks: {
-            MELEE:
+          attacks: Object.fromEntries(
+            attackDomainCodeSchema.options.map((attackKind) => [
+              attackKind,
               source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
-                    source.effectivePolicyOutput.rollContributorEvidence.attacks.MELEE,
-                    contributors
-                  )
-                : contributors,
-            RANGED:
-              source.kind === 'CHARACTER_ACTION'
-                ? mergeCanonicalD20Contributors(
-                    source.effectivePolicyOutput.rollContributorEvidence.attacks.RANGED,
+                    dnd5eAttackRollContributors(
+                      source.effectivePolicyOutput,
+                      attackKind,
+                      dnd5eCharacterActionTarget(source.candidate)
+                    ),
                     contributors
                   )
                 : contributors
-          }
+            ])
+          )
         }
       },
       targetActorId: target.id,
@@ -292,7 +313,11 @@ export async function prepareEncounterActionMechanics<
       temporaryHitPoints: targetFacts.state.temporary,
       maximumHitPoints: targetFacts.effectiveMaximumHitPoints,
       targetScalarValues: targetFacts.effectiveScalarValues,
-      defenses: targetFacts.defenses,
+      defenses: dnd5eAttackDamageDefenses(
+        targetFacts.defenses,
+        targetFacts.qualifiedDefenses,
+        attackTraits
+      ),
       conditionImmunityIds: targetFacts.conditionImmunityIds
     }
   }

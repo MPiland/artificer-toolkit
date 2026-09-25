@@ -5,6 +5,11 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import { characterPolicyRecord } from './characterPolicyValues.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAcceptedModifierApplicability,
+  dnd5eModifierApplies
+} from './modifierApplicability.js'
 
 export function evaluateDnd5eCharacterDefenses(
   input: CharacterRulePolicyInput,
@@ -13,7 +18,13 @@ export function evaluateDnd5eCharacterDefenses(
   const defenses = new Map<string, CharacterRulePolicyOutput['defenses'][number]>()
   const conditionImmunityIds = new Set<string>()
   for (const modifier of grantFold.modifiers) {
-    if (modifier.modifierKind !== 'ADD_OPTION' && modifier.modifierKind !== 'REMOVE_OPTION')
+    if (
+      (modifier.modifierKind !== 'ADD_OPTION' && modifier.modifierKind !== 'REMOVE_OPTION') ||
+      !dnd5eModifierApplies(
+        dnd5eAcceptedModifierApplicability(modifier),
+        DND5E_CHARACTER_WIDE_TARGET
+      )
+    )
       continue
     const grant = characterPolicyRecord(modifier.grant)
     const payload = characterPolicyRecord(grant.payload)

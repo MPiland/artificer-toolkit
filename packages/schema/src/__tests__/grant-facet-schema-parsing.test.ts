@@ -13,21 +13,21 @@ describe('grant and facet schema parsing', () => {
     let scopeReads = 0
     const grant = {
       grantKind: 'MODIFIER_GRANT',
-      id: 'remove-attribute',
+      id: 'remove-condition-immunity',
       order: 1,
       selectionKind: 'GRANTED',
-      valueDomainCode: 'ATTRIBUTE',
+      valueDomainCode: 'CONDITION_IMMUNITY',
       modifierKind: 'REMOVE_OPTION',
       get scope() {
         scopeReads += 1
         return 'GLOBAL'
       },
-      payload: { attributeId: 'attribute-1' }
+      payload: { conditionTypeId: 'condition-1' }
     }
     expect(modifierGrantDtoSchema.parse(grant)).toMatchObject({
-      valueDomainCode: 'ATTRIBUTE',
+      valueDomainCode: 'CONDITION_IMMUNITY',
       modifierKind: 'REMOVE_OPTION',
-      payload: { attributeId: 'attribute-1' }
+      payload: { conditionTypeId: 'condition-1' }
     })
     expect(scopeReads).toBeLessThanOrEqual(2)
     for (const invalid of [
@@ -42,6 +42,106 @@ describe('grant and facet schema parsing', () => {
       { ...grant, payload: undefined }
     ])
       expect(modifierGrantDtoSchema.safeParse(invalid).success).toBe(false)
+  })
+
+  it('rejects modifiers that no System consumer applies yet, with a clear message', () => {
+    const base = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'grant',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scope: 'GLOBAL'
+    }
+    const unsupported = [
+      {
+        ...base,
+        valueDomainCode: 'ATTRIBUTE',
+        modifierKind: 'ADD_OPTION',
+        payload: { attributeId: 'a' }
+      },
+      {
+        ...base,
+        valueDomainCode: 'MOVEMENT_MODE',
+        modifierKind: 'ADD_OPTION',
+        payload: { movementModeId: 'm' }
+      },
+      {
+        ...base,
+        valueDomainCode: 'CONDITION',
+        modifierKind: 'REMOVE_OPTION',
+        payload: { conditionTypeId: 'c' }
+      },
+      {
+        ...base,
+        valueDomainCode: 'HIT_POINTS_MAX',
+        modifierKind: 'SET_VALUE',
+        payload: { amount: 30 }
+      },
+      {
+        ...base,
+        valueDomainCode: 'SENSE_RANGE',
+        modifierKind: 'SET_VALUE',
+        domain: { senseDefinitionId: '00000000-0000-0000-0000-000000000001' },
+        payload: { amount: 60 }
+      },
+      {
+        ...base,
+        valueDomainCode: 'DAMAGE',
+        modifierKind: 'ADD_BONUS_DIE',
+        domain: { attackDomain: 'MELEE' },
+        payload: { dice: '1d4' }
+      },
+      {
+        ...base,
+        valueDomainCode: 'DAMAGE',
+        modifierKind: 'REPLACE_DAMAGE_TYPE',
+        domain: { attackDomain: 'MELEE' },
+        payload: { damageTypeId: 'fire' }
+      }
+    ]
+    for (const grant of unsupported) {
+      const parsed = modifierGrantDtoSchema.safeParse(grant)
+      expect(parsed.success).toBe(false)
+      expect(parsed.error?.issues.map((issue) => issue.message).join(' ')).toContain(
+        'not supported yet'
+      )
+    }
+    const spellScoped = (valueDomainCode: string, attackDomain: string) => ({
+      ...base,
+      valueDomainCode,
+      modifierKind: 'BONUS',
+      domain: { attackDomain },
+      payload: { valueKind: 'FIXED', amount: 1 },
+      restrictions: {
+        id: 'facet',
+        groups: [
+          {
+            id: 'group',
+            order: 0,
+            contexts: [
+              {
+                id: 'context',
+                order: 0,
+                subject: 'SPELL',
+                authoringModeKind: 'SELECTED',
+                spellIds: ['eldritch-blast']
+              }
+            ]
+          }
+        ]
+      }
+    })
+    expect(modifierGrantDtoSchema.safeParse(spellScoped('DAMAGE', 'SPELL')).success).toBe(true)
+    expect(modifierGrantDtoSchema.safeParse(spellScoped('DAMAGE', 'MELEE')).success).toBe(false)
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode: 'SPEED',
+        modifierKind: 'SET_VALUE',
+        domain: { speedId: 'fly' },
+        payload: { amount: 60 }
+      }).success
+    ).toBe(true)
   })
 
   it('parses features with nested grant groups and options', () => {

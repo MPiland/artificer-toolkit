@@ -5,7 +5,10 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 
-import { resolveDnd5eActiveShield } from './systems/dnd5e/characterVitals.js'
+import {
+  resolveDnd5eActiveShield,
+  resolveDnd5eShieldArmorClass
+} from './systems/dnd5e/characterVitals.js'
 
 export type EncounterWieldConflict =
   | { kind: 'NONE' }
@@ -24,14 +27,15 @@ export type EncounterWieldConflictAcceptance =
  * shared by the action choices query and action preparation. A carried weapon is treated as
  * drawn and any other held weapon can be swapped without an armor class cost, so only an
  * action wielded in both hands (its authored grip) conflicts with a shield. A STOW_SHIELD result
- * lowers armor class by the shield's base contribution in the D&D armor class computation; the
- * caller must obtain the submitter's explicit acceptance before applying it.
+ * lowers armor class by everything the shield adds in the D&D armor class computation, magic
+ * bonuses included; the caller must obtain the submitter's explicit acceptance before applying it.
  */
 export function evaluateEncounterCharacterActionWieldConflict(input: {
   candidate: Pick<CharacterActionCandidate, 'equipment'>
   ruleFacts: Pick<CharacterRulePolicyInput, 'armorClassFacts'>
   policyOutput: {
     grantFold: Pick<CharacterRulePolicyOutput['grantFold'], 'activeEquipmentInstanceIds'>
+    derivedStats: Pick<CharacterRulePolicyOutput['derivedStats'], 'armorClass'>
   }
 }): EncounterWieldConflict {
   const shield =
@@ -46,6 +50,9 @@ export function evaluateEncounterCharacterActionWieldConflict(input: {
     : {
         kind: 'STOW_SHIELD',
         shieldItemInstanceId: shield.itemInstanceId,
-        armorClassDelta: -shield.armorClass
+        armorClassDelta: -resolveDnd5eShieldArmorClass(
+          shield,
+          input.policyOutput.derivedStats.armorClass
+        )
       }
 }

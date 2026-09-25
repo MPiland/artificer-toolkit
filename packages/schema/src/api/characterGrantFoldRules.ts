@@ -1,4 +1,5 @@
 import { z } from '../zod.js'
+import { sizeCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
@@ -59,6 +60,11 @@ const restrictionConditionSchema = z.strictObject({
     'PROFICIENCY',
     'EQUIPMENT_EQUIPPED',
     'SOURCE_STATE',
+    'SIZE',
+    /** Item conditions are evaluated against the attacking item, never Character-wide. */
+    'ITEM_IDENTITY',
+    'ITEM_CATEGORY',
+    'ITEM_PROPERTY',
     'UNAVAILABLE',
     'UNSUPPORTED'
   ]),
@@ -214,6 +220,7 @@ export const characterGrantFoldInputSchema = z
       totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
       raceId: z.nullable(identitySchema),
       subraceId: z.nullable(identitySchema),
+      size: z.nullable(sizeCodeSchema),
       abilities: z.record(identitySchema, z.number()),
       heritageIds: z.array(identitySchema).check(z.maxLength(200)),
       featureIds: z.array(identitySchema).check(z.maxLength(500)),
@@ -232,6 +239,8 @@ export const characterGrantFoldInputSchema = z
         .array(
           z.strictObject({
             equipmentId: identitySchema,
+            /** Variant ancestry, nearest parent first. */
+            parentEquipmentIds: z.array(identitySchema).check(z.maxLength(20)),
             category: z.nullable(codeSchema),
             properties: z.array(codeSchema).check(z.maxLength(100)),
             equipped: z.boolean(),
@@ -273,8 +282,15 @@ const modifierResultSchema = z.strictObject({
   domainKey: identitySchema,
   modifierKind: codeSchema,
   grant: boundedJsonSchema,
+  /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
+  sourceId: identitySchema,
   source: characterMechanicSourceSchema,
-  scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500)))
+  scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
+  /**
+   * Item conditions still to be met by the attacking item, as OR-of-AND groups. Empty means the
+   * modifier is unconditional; a Character-wide value never satisfies a non-empty requirement.
+   */
+  itemRequirements: characterGrantFoldRestrictionSchema
 })
 
 const equipmentChargeUseSchema = z.strictObject({

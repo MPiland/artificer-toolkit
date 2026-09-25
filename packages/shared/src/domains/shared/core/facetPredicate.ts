@@ -515,7 +515,7 @@ export const PREDICATE_REGISTRY = {
     label: 'While Attuned',
     tooltip: 'Applies only while the item is attuned.',
     description:
-      'The modifier applies only when the character is attuned to the item. Attunement is required in addition to equipping the item.',
+      'The modifier applies only while the character is attuned to the item. Attunement alone decides it; add While Equipped when the item must also be worn or wielded.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },

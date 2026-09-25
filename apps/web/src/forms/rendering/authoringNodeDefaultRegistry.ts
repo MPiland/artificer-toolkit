@@ -32,6 +32,7 @@ export type AuthoringDefaultKind =
   | 'creatureLegendaryProfile'
   | 'creatureMountProfile'
   | 'creatureNpcProfile'
+  | 'creatureQualifiedDamageDefense'
   | 'duration'
   | 'durationScalingBreakpoint'
   | 'durationValue'
@@ -153,6 +154,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   creatureLegendaryProfile: ['creatureLegendaryProfile'],
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
+  creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
   durationValue: ['durationValue'],

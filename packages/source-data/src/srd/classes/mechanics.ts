@@ -4,11 +4,93 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  VALUE_DOMAIN_CODE
+  VALUE_DOMAIN_CODE,
+  type AuthoringConstraintCode,
+  type EquipmentCategoryCode,
+  type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
-import type { ModifierGrantAuthored, OptionAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  FacetAuthored,
+  ModifierGrantAuthored,
+  OptionAuthored
+} from '@artificer-toolkit/shared/authored'
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
+
+/**
+ * Character-wide gate on worn equipment: with INCLUDE the character wears an item of every listed
+ * category; with EXCLUDE they wear none. Uses ids `makeId(0..2 + categories.length)`.
+ */
+export function equippedCategoryRestriction(
+  makeId: (entry: number) => string,
+  constraint: AuthoringConstraintCode,
+  categories: readonly EquipmentCategoryCode[]
+): FacetAuthored {
+  return {
+    id: makeId(0),
+    groups: [
+      {
+        id: makeId(1),
+        order: 0,
+        contexts: [
+          {
+            id: makeId(2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: categories.map((category, index) => ({
+              id: makeId(3 + index),
+              order: index,
+              kind: 'PREDICATE' as const,
+              constraint,
+              predicateCode: 'EQUIPMENT_EQUIPPED' as const,
+              authoringModeKind: 'ALL' as const,
+              category
+            }))
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
+ * Gate evaluated against the attacking item: every listed property check must hold (EXCLUDE
+ * negates one). Uses ids `makeId(0..2 + checks.length)`.
+ */
+export function attackingItemPropertyRestriction(
+  makeId: (entry: number) => string,
+  checks: readonly {
+    constraint: AuthoringConstraintCode
+    properties: readonly EquipmentPropertyCode[]
+  }[]
+): FacetAuthored {
+  return {
+    id: makeId(0),
+    groups: [
+      {
+        id: makeId(1),
+        order: 0,
+        contexts: [
+          {
+            id: makeId(2),
+            order: 0,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'ALL',
+            conditions: checks.map(({ constraint, properties }, index) => ({
+              id: makeId(3 + index),
+              order: index,
+              kind: 'PREDICATE' as const,
+              constraint,
+              predicateCode: 'EQUIPMENT_PROPERTY' as const,
+              authoringModeKind: 'SELECTED' as const,
+              properties: [...properties]
+            }))
+          }
+        ]
+      }
+    ]
+  }
+}
 
 const ABILITY_SCORE_IMPROVEMENT_ABILITIES = [
   { ability: ABILITY_CODE.STRENGTH, label: 'Strength' },

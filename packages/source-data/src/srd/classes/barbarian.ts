@@ -32,7 +32,11 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  closedRuleEffect,
+  equippedCategoryRestriction
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -473,10 +477,16 @@ export const barbarian: ClassAuthored = {
             valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
             domain: {},
             modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-            scope: MODIFIER_SCOPE_KIND.SOURCE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { ability: ABILITY_CODE.CONSTITUTION },
-            order: 0
+            order: 0,
+            // Adds to the unarmored 10 + DEX base; a shield is allowed.
+            restrictions: equippedCategoryRestriction(
+              (entry) => classRowId(B, 0x7a, 0x10 + entry),
+              'EXCLUDE',
+              [EQUIPMENT_CATEGORY_CODE.ARMOR]
+            )
           }
         ]
       }

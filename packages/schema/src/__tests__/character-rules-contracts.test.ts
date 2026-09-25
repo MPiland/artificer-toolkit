@@ -108,13 +108,7 @@ describe('Character rule contracts', () => {
       proficiencyBonus: 2,
       abilities: [],
       skills: [],
-      spellcasting: null,
-      attackRollModes: {
-        MELEE: 'NORMAL',
-        RANGED: 'NORMAL',
-        SPELL: 'NORMAL',
-        UNARMED: 'NORMAL'
-      }
+      spellcasting: null
     })
     const output = characterActionModelOutputSchema.parse({
       actionDecisions: [],
@@ -137,6 +131,7 @@ describe('Character rule contracts', () => {
           totalLevel: 0,
           raceId: null,
           subraceId: null,
+          size: null,
           abilities: {},
           heritageIds: [],
           featureIds: [],

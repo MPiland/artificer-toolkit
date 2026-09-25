@@ -208,22 +208,21 @@ export const hunterConclave: ClassAuthored = {
           description: 'You have advantage on saving throws against being frightened.',
           order: 2,
           grants: {
-            modifiers: [
-              {
-                id: classRowId(RA, 13, 4),
-                grantKind: GRANT_KIND.MODIFIER_GRANT,
-                valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                domain: {
-                  ability: ABILITY_CODE.WISDOM,
-                  conditionTypeId: conditionTypeId('FRIGHTENED')
-                },
-                modifierKind: MODIFIER_KIND.ADVANTAGE,
-                scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                payload: undefined,
-                order: 0
-              }
-            ]
+            // Frightening effects call for saves of any ability, so each ability gets the advantage.
+            modifiers: Object.values(ABILITY_CODE).map((ability, index) => ({
+              id: classRowId(RA, 13, 4 + index),
+              grantKind: GRANT_KIND.MODIFIER_GRANT,
+              valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+              domain: {
+                ability,
+                conditionTypeId: conditionTypeId('FRIGHTENED')
+              },
+              modifierKind: MODIFIER_KIND.ADVANTAGE,
+              scope: MODIFIER_SCOPE_KIND.GLOBAL,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              payload: undefined,
+              order: index
+            }))
           }
         }
       ]

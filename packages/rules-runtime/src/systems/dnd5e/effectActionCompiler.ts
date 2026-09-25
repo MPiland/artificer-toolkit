@@ -47,6 +47,7 @@ import {
   MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
   MOVEMENT_REACTION_CHOICE_OPERATION_KEY
 } from '../../movementReactionChoice.js'
+import { isDnd5eMeleeAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
@@ -5147,6 +5148,95 @@ function interpretSpatial(
   ]
 }
 
+type Dnd5eSaveContributor = {
+  sourceId: string
+  grantId: string
+  domainKey: string
+  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+}
+
+/**
+ * The target's save for one ability. A save against a condition the action imposes also takes the
+ * grants scoped to that condition (Steel Will against frightened), merged across such conditions.
+ */
+export function selectDnd5eTargetSavingThrow(input: {
+  savingThrowDefinitions: unknown
+  abilityDefinitionId: string
+  conditionIds: readonly string[]
+}): {
+  modifier: number
+  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  contributors: Dnd5eSaveContributor[]
+} {
+  type SaveDefinition = {
+    conditionTypeId: unknown
+    modifier: number
+    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    contributors: Dnd5eSaveContributor[]
+  }
+  if (!Array.isArray(input.savingThrowDefinitions))
+    throw new Dnd5eEffectActionCompilerError('D&D target saving throws are unavailable.')
+  const definitions = input.savingThrowDefinitions.flatMap(
+    (candidate: unknown): SaveDefinition[] => {
+      const row =
+        typeof candidate === 'object' && candidate !== null
+          ? (candidate as Record<string, unknown>)
+          : null
+      if (
+        row === null ||
+        row.abilityDefinitionId !== input.abilityDefinitionId ||
+        row.ruleDefinitionId !== undefined
+      )
+        return []
+      if (typeof row.modifier !== 'number' || !Number.isSafeInteger(row.modifier))
+        throw new Dnd5eEffectActionCompilerError('D&D target save modifier is unavailable.')
+      const rollMode = row.rollMode
+      if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
+        throw new Dnd5eEffectActionCompilerError('D&D target save roll mode is invalid.')
+      const contributors = (Array.isArray(row.contributors) ? row.contributors : []).map(
+        ({ sourceId, grantId, domainKey, influence }: Dnd5eSaveContributor) => ({
+          sourceId,
+          grantId,
+          domainKey,
+          influence
+        })
+      )
+      return [
+        {
+          conditionTypeId: row.conditionTypeId,
+          modifier: row.modifier,
+          rollMode,
+          contributors
+        }
+      ]
+    }
+  )
+  const base = definitions.find((definition) => definition.conditionTypeId === undefined)
+  if (base === undefined)
+    throw new Dnd5eEffectActionCompilerError('D&D target save modifier is unavailable.')
+  const conditional = definitions.filter(
+    (definition) =>
+      typeof definition.conditionTypeId === 'string' &&
+      input.conditionIds.includes(definition.conditionTypeId)
+  )
+  if (conditional.length === 0) return base
+  const contributors = [
+    ...new Map(
+      conditional
+        .flatMap((definition) => definition.contributors)
+        .map((contributor) => [JSON.stringify(contributor), contributor])
+    ).values()
+  ].sort(compareCanonicalD20Contributors)
+  return {
+    modifier: conditional.reduce(
+      (sum, definition) => sum + definition.modifier - base.modifier,
+      base.modifier
+    ),
+    rollMode: resolveD20Contributors(contributors).rollMode,
+    contributors
+  }
+}
+
 function flankingContributor(input: {
   attackKind: unknown
   gameSystemId: string
@@ -5174,7 +5264,7 @@ function flankingContributor(input: {
   )
   if (!sourceCapability) return null
   const contributor = resolveDnd5eFlankingContributor({
-    attackClassification: input.attackKind === 'MELEE' ? 'MELEE' : 'OTHER',
+    attackClassification: isDnd5eMeleeAttackKind(input.attackKind) ? 'MELEE' : 'OTHER',
     automationMode: facts.automationMode,
     gameSystemId: input.gameSystemId,
     grid: scene.grid,
@@ -5716,7 +5806,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           candidate !== null &&
           (candidate as { abilityDefinitionId?: unknown }).abilityDefinitionId ===
             nestedSaveAbilityDefinitionId &&
-          (candidate as { ruleDefinitionId?: unknown }).ruleDefinitionId === undefined
+          (candidate as { ruleDefinitionId?: unknown }).ruleDefinitionId === undefined &&
+          (candidate as { conditionTypeId?: unknown }).conditionTypeId === undefined
       )
       if (
         matches.length !== 1 ||
@@ -5809,50 +5900,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (save && typeof save.abilityDefinitionId === 'string' && typeof save.dc === 'number') {
       if (!Number.isSafeInteger(save.dc))
         throw new Dnd5eEffectActionCompilerError('D&D save DC is unavailable.')
-      const savingThrowDefinitions = targetDerivedFacts.savingThrowDefinitions
-      if (!Array.isArray(savingThrowDefinitions))
-        throw new Dnd5eEffectActionCompilerError('D&D target saving throws are unavailable.')
-      const targetSave = savingThrowDefinitions.find(
-        (
-          candidate
-        ): candidate is {
-          abilityDefinitionId?: unknown
-          modifier?: unknown
-          rollMode?: unknown
-          contributors?: unknown
-        } =>
-          typeof candidate === 'object' &&
-          candidate !== null &&
-          (candidate as { abilityDefinitionId?: unknown }).abilityDefinitionId ===
-            save.abilityDefinitionId &&
-          (candidate as { ruleDefinitionId?: unknown }).ruleDefinitionId === undefined
-      )
-      const modifier = targetSave?.modifier
-      if (typeof modifier !== 'number' || !Number.isSafeInteger(modifier))
-        throw new Dnd5eEffectActionCompilerError('D&D target save modifier is unavailable.')
-      const rollMode = targetSave?.rollMode
-      if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
-        throw new Dnd5eEffectActionCompilerError('D&D target save roll mode is invalid.')
-      const contributors = (
-        Array.isArray(targetSave?.contributors) ? targetSave.contributors : []
-      ).map(
-        ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        }: {
-          sourceId: string
-          grantId: string
-          domainKey: string
-          influence: 'ADVANTAGE' | 'DISADVANTAGE'
-        }) => ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        })
-      )
+      const targetSave = selectDnd5eTargetSavingThrow({
+        savingThrowDefinitions: targetDerivedFacts.savingThrowDefinitions,
+        abilityDefinitionId: save.abilityDefinitionId,
+        conditionIds: Array.isArray(actionOutcomes)
+          ? actionOutcomes.flatMap((outcome) => {
+              const row = outcome as { kind?: unknown; conditionId?: unknown } | null
+              return row?.kind === 'CONDITION' && typeof row.conditionId === 'string'
+                ? [row.conditionId]
+                : []
+            })
+          : []
+      })
+      const { modifier, rollMode, contributors } = targetSave
       const contributorChecksum = checksumRuleDocument(contributors)
       return {
         facts: {
@@ -5943,7 +6003,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         candidate !== null &&
         (candidate as { abilityDefinitionId?: unknown }).abilityDefinitionId ===
           abilityDefinitionId &&
-        (candidate as { ruleDefinitionId?: unknown }).ruleDefinitionId === undefined
+        (candidate as { ruleDefinitionId?: unknown }).ruleDefinitionId === undefined &&
+        (candidate as { conditionTypeId?: unknown }).conditionTypeId === undefined
     )
     if (
       matches.length !== 1 ||

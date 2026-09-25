@@ -428,6 +428,30 @@ export const rogue: ClassAuthored = {
         skillId('STEALTH')
       ],
       order: 3
+    },
+    // Weapons: hand crossbows, longswords, rapiers, shortswords
+    {
+      id: classRowId(R, 2, 5),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [34, 22, 26, 28].map(equipmentId),
+      order: 4
+    },
+    // Tools: thieves' tools
+    {
+      id: classRowId(R, 2, 6),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [equipmentId(85)],
+      order: 5
     }
   ],
 

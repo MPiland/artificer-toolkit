@@ -4,12 +4,20 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
+
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eFoldedModifierApplicability,
+  dnd5eModifierApplies,
+  type Dnd5eModifierTarget
+} from './modifierApplicability.js'
 
 type ArmorClassEquipment = NonNullable<CharacterRulePolicyInput['armorClassFacts']>['equipment']
 
-/** The one active shield D&D armor class counts, with the base AC it contributes. */
+/** The one active shield D&D armor class counts, with its base armor class. */
 export function resolveDnd5eActiveShield(
   equipment: ArmorClassEquipment,
   activeEquipmentInstanceIds: readonly string[]
@@ -23,6 +31,21 @@ export function resolveDnd5eActiveShield(
   return shield === undefined
     ? null
     : { itemInstanceId: shield.itemInstanceId, armorClass: shield.armorClass ?? 2 }
+}
+
+/** The armor class a shield adds: its base value and the applied modifiers it owns (magic +N). */
+export function resolveDnd5eShieldArmorClass(
+  shield: { itemInstanceId: string; armorClass: number },
+  armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass']
+): number {
+  return armorClass.contributions
+    .filter(
+      (contribution) =>
+        contribution.state === 'APPLIED' &&
+        contribution.source.kind === 'EQUIPMENT_INSTANCE' &&
+        contribution.source.itemInstanceId === shield.itemInstanceId
+    )
+    .reduce((sum, contribution) => sum + contribution.value, shield.armorClass)
 }
 
 export function evaluateDnd5eCharacterVitals(
@@ -43,25 +66,53 @@ export function evaluateDnd5eCharacterVitals(
     )
     .at(-1)
   const shield = resolveDnd5eActiveShield(equipment, grantFold.activeEquipmentInstanceIds)
+  const shieldItem = equipment.find((item) => item.itemInstanceId === shield?.itemInstanceId)
+  // Armor class evaluates the worn armor and the active shield: their own modifiers apply.
+  const target: Dnd5eModifierTarget = {
+    ...DND5E_CHARACTER_WIDE_TARGET,
+    sourceIds: [armor, shieldItem].flatMap((item) =>
+      item === undefined ? [] : [createCharacterMechanicSourceKey(item.source)]
+    )
+  }
+  const applicable = modifierGroups
+    .filter((group) => group.valueDomainCode === 'ARMOR_CLASS')
+    .flatMap((group) =>
+      group.contributions
+        .filter((contribution) =>
+          dnd5eModifierApplies(dnd5eFoldedModifierApplicability(grantFold, contribution), target)
+        )
+        .map((contribution) => ({ modifierKind: group.modifierKind, contribution }))
+    )
+  // "Your AC equals X" replaces the armor (or unarmored) value rather than adding to it; the
+  // authored restriction says when it applies. With several, the best one is used. A shield adds.
+  const replacement = applicable
+    .filter((entry) => entry.modifierKind === 'SET_VALUE')
+    .reduce<number | null>(
+      (best, entry) => Math.max(best ?? Number.NEGATIVE_INFINITY, entry.contribution.value),
+      null
+    )
   const armorBase =
-    (armor === undefined
-      ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
-      : (armor.armorClass ?? 10)) + (shield?.armorClass ?? 0)
-  const armorGroups = modifierGroups.filter((group) => group.valueDomainCode === 'ARMOR_CLASS')
+    (replacement ??
+      (armor === undefined
+        ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
+        : (armor.armorClass ?? 10))) + (shield?.armorClass ?? 0)
+  const additive = applicable
+    .filter((entry) => entry.modifierKind !== 'SET_VALUE')
+    .map(({ contribution }) => ({
+      sourceId: contribution.sourceId,
+      source: contribution.source,
+      value: contribution.value,
+      state: contribution.state,
+      reasonCode: contribution.reasonCode
+    }))
   const armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass'] = {
     base: armorBase,
-    effective: armorBase + armorGroups.reduce((sum, group) => sum + group.effective, 0),
-    contributions: armorGroups
-      .filter((group) => group.modifierKind !== 'SET_VALUE')
-      .flatMap((group) =>
-        group.contributions.map((contribution) => ({
-          sourceId: contribution.sourceId,
-          source: contribution.source,
-          value: contribution.value,
-          state: contribution.state,
-          reasonCode: contribution.reasonCode
-        }))
-      ),
+    effective:
+      armorBase +
+      additive
+        .filter((contribution) => contribution.state === 'APPLIED')
+        .reduce((sum, contribution) => sum + contribution.value, 0),
+    contributions: additive,
     override: null
   }
   const facts = input.hitPointFacts
@@ -100,7 +151,7 @@ export function evaluateDnd5eCharacterVitals(
       ? 0
       : Math.floor(
           (constitution.baseScore +
-            resolveDnd5eCharacterAbilityBonuses(constitution, modifierGroups)
+            resolveDnd5eCharacterAbilityBonuses(constitution, grantFold, modifierGroups)
               .filter(
                 (bonus) => bonus.source.kind !== 'MANUAL_ADJUSTMENT' && bonus.state === 'APPLIED'
               )
@@ -125,8 +176,13 @@ export function evaluateDnd5eCharacterVitals(
   for (const group of modifierGroups) {
     if (group.valueDomainCode !== 'HIT_POINTS_MAX' || group.modifierKind === 'SET_VALUE') continue
     for (const contribution of group.contributions) {
-      if (contribution.source === undefined)
-        throw new Error('Hit point modifier provenance is missing.')
+      if (
+        !dnd5eModifierApplies(
+          dnd5eFoldedModifierApplicability(grantFold, contribution),
+          DND5E_CHARACTER_WIDE_TARGET
+        )
+      )
+        continue
       hitPointContributions.push({
         sourceId: contribution.sourceId,
         source: contribution.source,

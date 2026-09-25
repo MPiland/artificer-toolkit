@@ -375,6 +375,7 @@ describe('native movement target facts', () => {
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,
+        qualifiedDefenses: [],
         conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds
       }
     })

@@ -132,6 +132,7 @@ __metadata:
   dependencies:
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
+    "@artificer-toolkit/source-data": "workspace:^"
     typescript: "npm:^7.0.2"
     uuid: "npm:^14.0.0"
   languageName: unknown

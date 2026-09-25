@@ -662,6 +662,53 @@ const [firstModifierDomain, ...otherModifierDomains] = [...modifierVariantsByDom
 )
 
 /**
+ * Authorable modifiers that no System consumer applies yet (Phase 8.3). Publication and import
+ * reject them rather than store a mechanic that silently does nothing.
+ */
+function unsupportedModifierMessage(value: {
+  valueDomainCode: string
+  modifierKind: string
+}): string | null {
+  const label = `${value.valueDomainCode} ${value.modifierKind}`
+  if (
+    value.modifierKind === 'SET_VALUE' &&
+    (value.valueDomainCode === 'HIT_POINTS_MAX' || value.valueDomainCode === 'SENSE_RANGE')
+  )
+    return `${label} modifiers are not supported yet; use a bonus or penalty.`
+  if (value.modifierKind === 'ADD_BONUS_DIE' || value.modifierKind === 'REPLACE_DAMAGE_TYPE')
+    return `${label} modifiers are not supported yet.`
+  if (
+    value.valueDomainCode === 'MOVEMENT_MODE' ||
+    value.valueDomainCode === 'ATTRIBUTE' ||
+    value.valueDomainCode === 'CONDITION'
+  )
+    return `${label} modifiers are not supported yet.`
+  return null
+}
+
+/** Spell-scoped modifiers are applied only to the attack and damage rolls of those spells. */
+function spellScopedOutsideSpellAttacks(value: {
+  valueDomainCode: string
+  domain?: unknown
+  restrictions?: { groups: readonly { contexts: readonly { subject: string }[] }[] }
+}): boolean {
+  const spellScoped = (value.restrictions?.groups ?? []).some((group) =>
+    group.contexts.some((context) => context.subject === 'SPELL')
+  )
+  const attackDomain =
+    typeof value.domain === 'object' && value.domain !== null
+      ? (value.domain as { attackDomain?: unknown }).attackDomain
+      : undefined
+  return (
+    spellScoped &&
+    !(
+      (value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
+      attackDomain === 'SPELL'
+    )
+  )
+}
+
+/**
  * Modifier grants are one of the highest-risk authored payloads because the
  * valid domain and payload shape both depend on `valueDomainCode` and
  * `modifierKind`. We keep the schema explicit here so later API and seed data
@@ -671,6 +718,16 @@ export const modifierGrantDtoSchema = z
   .discriminatedUnion('valueDomainCode', [firstModifierDomain, ...otherModifierDomains])
   .check(
     z.superRefine((value, ctx) => {
+      const unsupported = unsupportedModifierMessage(value)
+      if (unsupported !== null)
+        ctx.addIssue({ code: 'custom', message: unsupported, path: ['modifierKind'] })
+      if (spellScopedOutsideSpellAttacks(value))
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'Spell-scoped modifiers are supported only for spell attack rolls and spell damage.',
+          path: ['restrictions']
+        })
       if (!value.modifierKind.includes('BONUS')) return
       const payload: unknown = value.payload
       if (typeof payload !== 'object' || payload === null) return

@@ -155,6 +155,8 @@ Starting-equipment option maps expose optional `eligibility` through the shared 
 
 Facet condition arrays use the discriminated `facetCondition` map. `kind` selects either the property-predicate or related-subject (`EXISTS`) branch; both branches retain the authored flat payload shape, and every branch-only field uses `CLEAR` when hidden so changing the discriminant cannot retain stale payload. Generic facet contexts expose subject plus the corresponding `ALL`/`SELECTED` identity controls, while character-only facets use the narrowed character context map. Conditions inside `EXISTS.where` use the enclosing relation for the target subject and the `where` body for selected target IDs; the dedicated `facetBodyCondition` map preserves those two ancestor scopes through recursive nesting.
 
+On a modifier grant, a Character context is evaluated for the Character, an Equipment context (identity, `EQUIPMENT_CATEGORY`, `EQUIPMENT_PROPERTY`) is evaluated against the attacking item, a Spell context scopes the modifier to those spells' attack and damage rolls, and a Resource context scopes charge resets. Other subjects cannot be evaluated and fail closed; modifier grant validation rejects Spell contexts outside spell attack and damage. Creature damage defenses that hold only "from nonmagical attacks" are authored as typed `qualifiedDamageDefenses` entries (kind, damage types, bypassing attack traits), not as prose in the plain resistance and immunity lists.
+
 ## Historical Phase 8.2 implementation record
 
 The dated progress statements below record how the native authoring cutover was built. Every

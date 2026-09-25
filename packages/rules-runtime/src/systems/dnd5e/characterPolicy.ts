@@ -25,6 +25,7 @@ import { evaluateDnd5eCharacterSpellMechanics } from './characterSpellMechanics.
 import { evaluateDnd5eCharacterSpellPreparation } from './characterSpellPreparation.js'
 import { evaluateDnd5eCharacterSpellSlots } from './characterSpellSlots.js'
 import { evaluateDnd5eCharacterVitals } from './characterVitals.js'
+import { dnd5eFoldedModifierApplicability } from './modifierApplicability.js'
 
 /** Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. */
 export function evaluateDnd5e2014CharacterPolicy(
@@ -102,16 +103,17 @@ export function evaluateDnd5e2014CharacterPolicy(
     })),
     modifierGroups: modifierGroups.map((group) => ({
       domainKey: group.domainKey,
-      contributions: group.contributions.map(({ sourceId, value, state }) => ({
-        sourceId,
-        value,
-        state
+      contributions: group.contributions.map((contribution) => ({
+        ...dnd5eFoldedModifierApplicability(grantFold, contribution),
+        value: contribution.value,
+        state: contribution.state
       }))
     })),
-    itemAttackAdjustments: itemMechanics.map((item) => ({
+    itemAdjustments: itemMechanics.map((item) => ({
       itemInstanceId: item.itemInstanceId,
-      bonus: item.calculations.attackBonus.override === null ? item.attackBonus : 0,
-      override: item.calculations.attackBonus.override?.value ?? null
+      attackBonus: item.calculations.attackBonus.override === null ? item.attackBonus : 0,
+      attackOverride: item.calculations.attackBonus.override?.value ?? null,
+      damageBonus: item.damageBonus
     })),
     totalLevel: input.totalLevel,
     classLevels: input.grantFoldFacts.base.classes.map(({ classId, level }) => ({
@@ -133,8 +135,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         : {
             saveDc: derived.spellcasting.saveDc.effective,
             attackBonus: derived.spellcasting.attackBonus.effective
-          },
-    attackRollModes: rolls.rollModes.attacks
+          }
   })
   const recoveredHitDice = (total: number) => (total === 0 ? 0 : Math.max(1, Math.floor(total / 2)))
   return characterRulePolicyOutputSchema.parse({

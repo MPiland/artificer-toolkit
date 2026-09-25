@@ -59,7 +59,7 @@ Also committed: S5 room limits (`3eba2a32`), private-by-default GM previews (`75
 Next (8.2 core, in order):
 
 1. **Grip and carried weapons (in progress):** authored grip markers on weapon effects (versatile one-hand and two-hand actions, shield conflict per grip); carried weapons attack with correct modifiers.
-2. **Combat math correctness** (from the 2026-09-24 authored-data audit; one slice):
+2. **Combat math correctness** (from the 2026-09-24 authored-data audit; one slice). Implemented locally, uncommitted and awaiting integration (reset/reseed, codegen); see the S6c section of [rules-runtime](../architecture/rules-runtime.md). Open: magic ammunition (needs an ammunition-selection decision), `maxBonus` (unused field: remove or reject), GM stat-block display of qualified defenses, and Creature Magic Weapons traits:
    - Damage modifiers (ability, SOURCE +N, Dueling) are folded but never added to damage.
    - Character actions have no attack kind: ranged attacks use melee roll modes, Characters never flank. Consolidate the five attack-kind classifiers and the two modifier group-key builders.
    - Heavy never applies: size is missing from the fold input, so the SIZE restriction fails. Behind it, roll-mode contributors ignore SOURCE scope (`effectActionCompiler.ts` ~5762); after the fix, remove the roll-mode exclusion in `drawnSourceState`.
@@ -80,6 +80,14 @@ Next (8.2 core, in order):
 5b. **Visibility privacy (with player control):** players see no other actor's health by default (PCs or enemies); another player's Sheet is GM-only by default. Opt-in: "Party can view" per Character. Health display levels (Hidden by default, Descriptive, Bar, Exact) are set per Character by its player, and per Encounter for enemies by the GM, with a per-actor override. In Phase 8.3, the GM's per-enemy "Share health state" action posts a descriptive state (Unhurt, Hurt, Bloodied, Near death) once to the table log.
 6. **Table fixes:** players commit moves outside Encounters (web gate), toggle unlocked visible doors, and roll to the table by default with a "To GM" option. Fog of war becomes opt-in per Scene: with fog off, players see every non-hidden entity (today a Scene without fog layers shows players only their own tokens).
 7. **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature.
+7a. **Combat math follow-ups:**
+   - remove `maxBonus` (schema, SRD data, web authoring);
+   - make unarmored AC formulas choose the best, not stack;
+   - reject or implement the remaining unconsumed modifier kinds (SAVE_DC SET_VALUE, PROFICIENCY_BONUS, CHARGE_LIMIT, range/duration/shape, spell-slot and known/prepared counts, action counts), keeping the kinds the SRD uses;
+   - missing weapon and tool proficiencies for Bard, Druid, Monk, Sorcerer and Wizard, and Monk Unarmored Movement mechanics;
+   - the GM stat block shows qualified defenses;
+   - melee spell attacks can flank (the trigger needs a melee or ranged distinction);
+   - Dueling's "no other weapons" condition.
 7b. **R08 proof readiness:** do one local deploy after combat math and rerun an Encounter proof through the room. The `encounter-action-contention` proof imports convex-test-only fixtures (`fixtures/encounterAction` → `fixtures/characters` uses `import.meta.glob`), so split the pure fixture data from the convex-test setup. Proofs that write Scene state directly may be refused while their Campaign's room holds authority; route those writes through the room too.
 8. **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and Manual mode, then delete their Convex rules code.
 9. **S7:** R01–R05 audit, R08 `yarn validate:pre-staging:local`, V15 workload with player-issued commands, docs.
@@ -106,6 +114,15 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
 - **Development proof drivers go through the Session room (2026-09-24).** Since S4A, browsers can't call Encounter command functions, so the real-backend drivers (`apps/apis/tests/development*.ts`, used by the R08 proofs) can no longer run Encounter commands. The drivers will send Encounter commands over a real Session-room WebSocket with a ticket, as the browser does, and their `.codex/validation` output paths move to `local-validation/`. Rejected alternative: admin-key calls that impersonate a user, which would prove a path production never uses. Foundry and Roll20 have no equivalent; this is a testing-integrity choice.
 - **Local deploys are part of local validation (2026-09-24).** `convex codegen` uploads functions only to generate types; it doesn't activate them, so the local backend kept running pre-ADR-0033 functions. Pushing functions to the local Docker deployment is covered by the same local-only authority as resets. Staging and production still need explicit approval.
 - **Domain rejections carry a code and a user-safe message (2026-09-24, in the modes and enforcement slice).** The room currently reduces every Encounter failure to a generic message ("The Encounter command could not be completed."). Foundry and Roll20 show players specific warnings. Expected domain rejections, such as "This Campaign already has an active Encounter" or a stale version, become `ConvexError` data `{ code, message }`, following the `RATE_LIMITED` pattern. The room forwards those messages; unexpected errors stay generic, so internals never leak. Drivers assert on codes.
+- **Magic ammunition is chosen per weapon (2026-09-25, Phase 8.3).** Foundry baseline: a weapon consumes a selected ammunition item, and that item's bonuses apply to the attack. Roll20's 5e sheet also links ammunition per attack. Extensions:
+  - auto-select when only one compatible stack is carried;
+  - a quick ammunition switch in the attack drawer;
+  - ammunition counted down per attack.
+
+  Rejected: GLOBAL ammunition bonuses faceted to launchers, which add up across stacks and remove the player's choice. It needs Sheet UI and inventory consumption, so it lands with Sheet–tabletop integration.
+- **`maxBonus` is removed (2026-09-25).** It is on 165 SRD items, has no consumer and duplicates the authored +N modifiers. Removing the field is cleaner than keeping an authoring option that always fails validation. Foundry has no equivalent; magic bonuses are ordinary modifiers there too.
+- **The Dwarf heavy-armor speed exception is kept (2026-09-25).** It is SRD text.
+- **Unarmored AC formulas choose the best (2026-09-25, queued).** 5e says a creature with several AC formulas picks one, so alternative base formulas (Barbarian, Monk, Draconic Resilience) compete instead of stacking. Foundry's 5e system has the same single-calculation rule.
 - **Local Worker configuration (2026-09-24).** `apps/session-worker/.dev.vars` was rebuilt from the local Convex secrets to match `.dev.vars.example`. The retired executor variables are removed from it, from the local Convex env and from the generated Worker types. `RULES_CONTINUATION_SECRET` is now provisioned locally.
 
 ## Authority and present state

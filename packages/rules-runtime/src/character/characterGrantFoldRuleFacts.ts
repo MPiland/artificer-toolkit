@@ -14,6 +14,7 @@ import { normalizeCharacterGrantRestrictions } from './characterGrantFoldRestric
 import {
   buildCharacterGrantFoldProficiencyFacts,
   buildCharacterGrantFoldSourceFacts,
+  compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 
@@ -234,6 +235,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
     }
   })
 
+  const heritageRaceId = snapshot.subraceId ?? snapshot.raceId
   return {
     contractVersion: 1,
     base: {
@@ -241,6 +243,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
       totalLevel: snapshot.totalLevel,
       raceId: snapshot.raceId ?? null,
       subraceId: snapshot.subraceId ?? null,
+      size: (heritageRaceId ? registry.races[heritageRaceId]?.size : undefined) ?? null,
       abilities: { ...snapshot.abilities },
       heritageIds: [...heritageIds],
       featureIds,
@@ -253,6 +256,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
       })),
       equipment: snapshot.equipmentItems.map((item) => ({
         equipmentId: item.contentRef.definitionId,
+        parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
         category: item.compiledItem.category ?? null,
         properties: [...(item.compiledItem.properties ?? [])],
         equipped: Boolean(item.equippedState),

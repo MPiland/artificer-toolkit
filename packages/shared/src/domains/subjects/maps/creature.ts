@@ -3,6 +3,7 @@ import {
   CREATURE_MOUNT_TYPE_CODE,
   CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_INITIATIVE_MODE_CODE,
+  DAMAGE_DEFENSE_BYPASS_CODE,
   MEASUREMENT_UNIT_OPTIONS,
   SIZE_OPTIONS,
   type DiceExpression
@@ -17,6 +18,7 @@ import type {
   CreatureEquipmentLoadoutEntry,
   CreatureMountProfile,
   CreatureNpcProfile,
+  CreatureQualifiedDamageDefenseAuthored,
   DetailAuthored
 } from '#authored'
 
@@ -224,6 +226,43 @@ export const CREATURE_EQUIPMENT_LOADOUT_NODE_MAP = creatureEquipmentLoadoutNode.
           rootCollectionPath: ['features'],
           valuePath: ['id'],
           labelPath: ['label']
+        })
+      )
+  }
+)
+
+const qualifiedDamageDefenseNode = buildNodeMap<CreatureQualifiedDamageDefenseAuthored>()
+
+export const CREATURE_QUALIFIED_DAMAGE_DEFENSE_NODE_MAP = qualifiedDamageDefenseNode.define(
+  'creatureQualifiedDamageDefense',
+  ({ map, nodes, data }) => {
+    map
+      .set(
+        'kind',
+        nodes.selectSingle(['kind'], 'Defense', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'RESISTANCE', label: 'Resistance' },
+            { code: 'IMMUNITY', label: 'Immunity' }
+          ]
+        })
+      )
+      .set(
+        'damageTypeIds',
+        nodes.selectMulti(['damageTypeIds'], 'Damage Types', {
+          kind: 'DATA',
+          relationship: data.table('damage_types', { selectColumns: ['id', 'label'] })
+        })
+      )
+      .set(
+        'bypassedBy',
+        nodes.selectMulti(['bypassedBy'], 'Except Attacks That Are', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL, label: 'Magical' },
+            { code: DAMAGE_DEFENSE_BYPASS_CODE.SILVERED, label: 'Silvered' },
+            { code: DAMAGE_DEFENSE_BYPASS_CODE.ADAMANTINE, label: 'Adamantine' }
+          ]
         })
       )
   }
@@ -499,6 +538,15 @@ export const CREATURE_NODE_MAP = creatureNode.define(
             })
           },
           { section: CREATURE_SECTIONS.defenses, order: 30 }
+        )
+      )
+      .set(
+        'qualifiedDamageDefenses',
+        groupArray(
+          ['qualifiedDamageDefenses'],
+          'Qualified Damage Defenses',
+          () => CREATURE_QUALIFIED_DAMAGE_DEFENSE_NODE_MAP,
+          { presentation: 'inline', section: CREATURE_SECTIONS.defenses, order: 35 }
         )
       )
       .set(

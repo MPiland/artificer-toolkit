@@ -2,6 +2,7 @@ import type {
   AbilityCode,
   AuthoredRecordStatus,
   CreatureCategoryCode,
+  DamageDefenseBypassCode,
   DiceExpression,
   SizeCode
 } from '#core'
@@ -13,6 +14,16 @@ import type {
   ProficiencyGrantAuthored,
   SpeedAuthored
 } from '#authored'
+
+/**
+ * A resistance or immunity that applies only to attacks without any of `bypassedBy`, as in
+ * "bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered".
+ */
+export interface CreatureQualifiedDamageDefenseAuthored {
+  kind: 'RESISTANCE' | 'IMMUNITY'
+  damageTypeIds: string[]
+  bypassedBy: DamageDefenseBypassCode[]
+}
 
 export interface CreatureMountProfile {
   mountType: 'CONTROLLED' | 'INDEPENDENT'
@@ -84,6 +95,7 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   damageVulnerabilities?: string[]
   damageResistances?: string[]
   damageImmunities?: string[]
+  qualifiedDamageDefenses?: CreatureQualifiedDamageDefenseAuthored[]
   conditionImmunities?: string[]
   challengeRatingId?: string
   xp?: number

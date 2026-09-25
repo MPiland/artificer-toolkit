@@ -28,6 +28,7 @@ import { readEncounterActorConditionState } from './encounterCharacterMechanicsB
 import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
 import { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRollProjection.js'
+import type { Dnd5eQualifiedDamageDefense } from './systems/dnd5e/attackDamageDefenses.js'
 
 export type CharacterMovementFacts = {
   active: { id: string; streamVersion: number; checksum: string }
@@ -65,6 +66,8 @@ export type MovementTarget<
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
+  /** Defenses that apply only to attacks without their bypassing traits. */
+  qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
 }
@@ -261,10 +264,12 @@ export function buildMovementTarget<
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
+          qualifiedDefenses: [],
           conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
         }
       },
       defenses: effectiveRulePolicyOutput.defenses,
+      qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
     }
   }
@@ -327,6 +332,7 @@ export function buildMovementTarget<
       statBlock: snapshotStatBlock(actor)
     },
     defenses: actorRule.targetProtection.defenses,
+    qualifiedDefenses: actorRule.targetProtection.qualifiedDefenses,
     conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds
   }
 }

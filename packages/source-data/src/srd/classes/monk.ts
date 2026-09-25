@@ -13,6 +13,8 @@ import {
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
@@ -23,6 +25,7 @@ import {
   STARTING_EQUIPMENT_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
@@ -30,7 +33,11 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  closedRuleEffect,
+  equippedCategoryRestriction
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -298,7 +305,28 @@ export const monk: ClassAuthored = {
         'Beginning at 1st level, while you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Wisdom modifier.',
       availableAtLevel: 1,
       order: 0,
-      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_DEFENSE)]
+      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_DEFENSE)],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x7a, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { ability: ABILITY_CODE.WISDOM },
+            order: 0,
+            // Adds to the unarmored 10 + DEX base; unlike the barbarian's, a shield ends it.
+            restrictions: equippedCategoryRestriction(
+              (entry) => classRowId(M, 0x7a, 0x10 + entry),
+              'EXCLUDE',
+              [EQUIPMENT_CATEGORY_CODE.ARMOR, EQUIPMENT_CATEGORY_CODE.SHIELD]
+            )
+          }
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 2),

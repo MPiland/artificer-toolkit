@@ -10,6 +10,8 @@ import {
 import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
+import { dnd5eAttackRollContributors } from '@artificer-toolkit/rules-runtime/systems/dnd5e/characterRollModes'
+import { dnd5eCharacterActionTarget } from '@artificer-toolkit/rules-runtime/systems/dnd5e/modifierApplicability'
 import { targetPolicyPermitsEncounterActor } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import {
   snapshotCreatureEquipmentLoadout,
@@ -118,32 +120,22 @@ export async function readNativeDisarmSelection(
       if (decisions.length !== 1 || !decisions[0])
         throw new Error('Optional combat Character action policy is stale.')
       const equipment = source.candidate.equipment
-      const attacks = source.effectivePolicyOutput.rollContributorEvidence.attacks
+      // The same scoped contributors that resolved this action's roll mode.
+      const target = dnd5eCharacterActionTarget(source.candidate)
+      const contributors = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED') =>
+        dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, target).map(
+          ({ sourceId, grantId, domainKey, influence }) => ({
+            sourceId,
+            grantId,
+            domainKey,
+            influence
+          })
+        )
       const baseContributors = {
-        MELEE: attacks.MELEE.map(({ sourceId, grantId, domainKey, influence }) => ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        })),
-        RANGED: attacks.RANGED.map(({ sourceId, grantId, domainKey, influence }) => ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        })),
-        SPELL: attacks.SPELL.map(({ sourceId, grantId, domainKey, influence }) => ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        })),
-        UNARMED: attacks.UNARMED.map(({ sourceId, grantId, domainKey, influence }) => ({
-          sourceId,
-          grantId,
-          domainKey,
-          influence
-        }))
+        MELEE: contributors('MELEE'),
+        RANGED: contributors('RANGED'),
+        SPELL: contributors('SPELL'),
+        UNARMED: contributors('UNARMED')
       }
       return {
         // A carried weapon used to attack is drawn for the attack unless its action requires equipping.

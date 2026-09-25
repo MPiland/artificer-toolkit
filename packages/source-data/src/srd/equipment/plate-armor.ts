@@ -12,7 +12,10 @@ export const plateArmor: EquipmentAuthored = {
   armorClass: 18,
   cost: S.gp(1500),
   weight: S.lbs(65),
-  modifiers: [S.stealthDisadvantageModifier(S.equipId(49))],
+  modifiers: [
+    S.stealthDisadvantageModifier(S.equipId(49)),
+    S.heavyArmorStrengthModifier(S.equipId(49), 15, 2)
+  ],
   effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(49), 'EQUIPMENT_ARMOR_STRENGTH_15')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,

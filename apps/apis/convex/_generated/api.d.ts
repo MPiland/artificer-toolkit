@@ -59527,6 +59527,7 @@ export declare const internal: {
               mechanic: {
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
+                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<
@@ -61104,6 +61105,43 @@ export declare const internal: {
                       | Array<any>
                       | Record<string, any>
                     >;
+                itemRequirements: Array<{
+                  conditions: Array<{
+                    abilityId: string | null;
+                    category: string | null;
+                    classIds: Array<string>;
+                    conditionId: string;
+                    constraint: "INCLUDE" | "EXCLUDE";
+                    kind:
+                      | "ABILITY_SCORE"
+                      | "HERITAGE"
+                      | "CHARACTER_LEVEL"
+                      | "CLASS_LEVEL"
+                      | "FEAT_OBTAINED"
+                      | "FEATURE_OBTAINED"
+                      | "OPTION_OBTAINED"
+                      | "SPELL_OBTAINED"
+                      | "CAN_CAST_SPELL"
+                      | "PROFICIENCY"
+                      | "EQUIPMENT_EQUIPPED"
+                      | "SOURCE_STATE"
+                      | "SIZE"
+                      | "ITEM_IDENTITY"
+                      | "ITEM_CATEGORY"
+                      | "ITEM_PROPERTY"
+                      | "UNAVAILABLE"
+                      | "UNSUPPORTED";
+                    max: number | null;
+                    min: number | null;
+                    minimumRank: "HALF" | "FULL" | "DOUBLE" | null;
+                    mode: "ALL" | "SELECTED" | null;
+                    proficiencyKind: string | null;
+                    requiredIds: Array<string>;
+                    requiredProperties: Array<string>;
+                    secondaryRequiredIds: Array<string>;
+                    sourceState: "CARRIED" | "EQUIPPED" | "ATTUNED" | null;
+                  }>;
+                }>;
                 modifierKind: string;
                 scopeSpellIds?: Array<string>;
                 source:
@@ -61135,6 +61173,7 @@ export declare const internal: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                sourceId: string;
               }>;
               proficiencies: Array<{
                 acceptedProficiencyIndex: number;
@@ -62828,6 +62867,7 @@ export declare const internal: {
             };
             savingThrowDefinitions?: Array<{
               abilityDefinitionId: string;
+              conditionTypeId?: string;
               contributors: Array<{
                 domainKey: string;
                 grantId: string;
@@ -63048,6 +63088,7 @@ export declare const internal: {
               mechanics: Array<{
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
+                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<
@@ -63388,6 +63429,7 @@ export declare const internal: {
               mechanics: Array<{
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
+                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<

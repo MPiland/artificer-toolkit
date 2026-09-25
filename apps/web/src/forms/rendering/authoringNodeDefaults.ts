@@ -197,6 +197,12 @@ export function createDefaultAuthoringNodeValue(
         actionsCount: 3,
         legendaryResistanceCount: 0
       }
+    case 'creatureQualifiedDamageDefense':
+      return {
+        kind: 'RESISTANCE',
+        damageTypeIds: [],
+        bypassedBy: []
+      }
     case 'creatureMountProfile':
       return {
         mountType: 'CONTROLLED',

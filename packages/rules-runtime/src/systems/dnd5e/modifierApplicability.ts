@@ -1,0 +1,153 @@
+import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import type {
+  CharacterGrantFoldOutput,
+  CharacterGrantFoldRestriction
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+
+import { characterPolicyRecord } from './characterPolicyValues.js'
+
+type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
+
+/** The item an attack is made with: its identity then variant ancestry, and the grip used. */
+export type Dnd5eAttackingItem = {
+  readonly equipmentIds: readonly string[]
+  readonly category: string | null
+  readonly properties: readonly string[]
+  readonly grip: 'ONE_HANDED' | 'TWO_HANDED' | null
+}
+
+/**
+ * What a modifier consumer evaluates: the sources whose own (SOURCE-scoped) modifiers apply, the
+ * attacking item for item facets and the spell for spell facets.
+ */
+export type Dnd5eModifierTarget = {
+  readonly sourceIds: readonly string[]
+  readonly item: Dnd5eAttackingItem | null
+  readonly spellId: string | null
+}
+
+/** Character-wide values (saves, skills, initiative, spellcasting) evaluate no source or item. */
+export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
+  sourceIds: [],
+  item: null,
+  spellId: null
+}
+
+/** The facts of one folded modifier that decide where it applies. */
+export type Dnd5eModifierApplicability = {
+  readonly sourceId: string
+  readonly scope: 'GLOBAL' | 'SOURCE'
+  readonly itemRequirements: CharacterGrantFoldRestriction
+  readonly scopeSpellIds: string[]
+}
+
+/** An unknown scope narrows to the modifier's own source. */
+export function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
+  return characterPolicyRecord(grant).scope === 'GLOBAL' ? 'GLOBAL' : 'SOURCE'
+}
+
+function itemConditionMatches(condition: ItemCondition, item: Dnd5eAttackingItem): boolean {
+  switch (condition.kind) {
+    case 'ITEM_IDENTITY':
+      return (
+        condition.mode === 'ALL' ||
+        item.equipmentIds.some((id) => condition.requiredIds.includes(id))
+      )
+    case 'ITEM_CATEGORY':
+      return item.category === condition.category
+    case 'ITEM_PROPERTY': {
+      // An attack made two-handed wields its item as a two-handed weapon.
+      const properties =
+        item.grip === 'TWO_HANDED' ? [...item.properties, 'TWO_HANDED'] : item.properties
+      return (
+        (condition.category === null || item.category === condition.category) &&
+        condition.requiredProperties.every((property) => properties.includes(property))
+      )
+    }
+    default:
+      return false
+  }
+}
+
+/** OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement. */
+export function dnd5eItemRequirementsMet(
+  requirements: CharacterGrantFoldRestriction,
+  item: Dnd5eAttackingItem | null
+): boolean {
+  if (requirements.length === 0) return true
+  if (item === null) return false
+  return requirements.some((group) =>
+    group.conditions.every((condition) =>
+      condition.constraint === 'INCLUDE'
+        ? itemConditionMatches(condition, item)
+        : !itemConditionMatches(condition, item)
+    )
+  )
+}
+
+/**
+ * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
+ * modifier only while its own source is evaluated (an attack with that item, that item's armor
+ * class). Item and spell facets then narrow either kind to the attacking item and the spell.
+ */
+export function dnd5eModifierApplies(
+  modifier: Dnd5eModifierApplicability,
+  target: Dnd5eModifierTarget
+): boolean {
+  return (
+    (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
+    dnd5eItemRequirementsMet(modifier.itemRequirements, target.item) &&
+    (modifier.scopeSpellIds.length === 0 ||
+      (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
+  )
+}
+
+export function dnd5eAcceptedModifierApplicability(
+  modifier: CharacterGrantFoldOutput['modifiers'][number]
+): Dnd5eModifierApplicability {
+  return {
+    sourceId: modifier.sourceId,
+    scope: dnd5eModifierScope(modifier.grant),
+    itemRequirements: modifier.itemRequirements,
+    scopeSpellIds: modifier.scopeSpellIds ?? []
+  }
+}
+
+/** Reads a resolved contribution's applicability from the grant fold that accepted it. */
+export function dnd5eFoldedModifierApplicability(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
+  contribution: { readonly acceptedModifierIndex?: number }
+): Dnd5eModifierApplicability {
+  const modifier =
+    contribution.acceptedModifierIndex === undefined
+      ? undefined
+      : grantFold.modifiers[contribution.acceptedModifierIndex]
+  if (modifier === undefined) throw new Error('Character modifier provenance is missing.')
+  return dnd5eAcceptedModifierApplicability(modifier)
+}
+
+/** A Character action evaluates its own source and, for an item action, the item it attacks with. */
+export function dnd5eCharacterActionTarget(
+  candidate: Pick<CharacterActionCandidate, 'sourceId' | 'equipment'>
+): Dnd5eModifierTarget {
+  return {
+    sourceIds: [candidate.sourceId],
+    item: dnd5eAttackingItem(candidate.equipment),
+    spellId: null
+  }
+}
+
+export function dnd5eAttackingItem(
+  equipment: CharacterActionCandidate['equipment']
+): Dnd5eAttackingItem | null {
+  if (equipment === null) return null
+  return {
+    equipmentIds: [
+      ...(equipment.equipmentId ? [equipment.equipmentId] : []),
+      ...equipment.parentEquipmentIds
+    ],
+    category: equipment.category ?? null,
+    properties: equipment.properties ?? [],
+    grip: equipment.grip
+  }
+}

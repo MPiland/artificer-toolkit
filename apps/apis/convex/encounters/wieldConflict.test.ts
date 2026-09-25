@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 
 const shieldId = 'shield-instance'
@@ -33,15 +36,20 @@ const armorClassFacts = {
 }
 const active = ['armor-instance', shieldId]
 
+type ArmorClassContribution =
+  CharacterRulePolicyOutput['derivedStats']['armorClass']['contributions'][number]
+
 function evaluate(input: {
   grip: 'ONE_HANDED' | 'TWO_HANDED' | null
   armorClassFacts?: CharacterRulePolicyInput['armorClassFacts']
   activeEquipmentInstanceIds?: string[]
+  armorClassContributions?: ArmorClassContribution[]
 }) {
   return evaluateEncounterCharacterActionWieldConflict({
     candidate: {
       equipment: {
         itemInstanceId: 'weapon-instance',
+        parentEquipmentIds: [],
         equipped: false,
         attuned: false,
         requiresAttunement: false,
@@ -54,7 +62,15 @@ function evaluate(input: {
       armorClassFacts: 'armorClassFacts' in input ? input.armorClassFacts : armorClassFacts
     },
     policyOutput: {
-      grantFold: { activeEquipmentInstanceIds: input.activeEquipmentInstanceIds ?? active }
+      grantFold: { activeEquipmentInstanceIds: input.activeEquipmentInstanceIds ?? active },
+      derivedStats: {
+        armorClass: {
+          base: 19,
+          effective: 19,
+          contributions: input.armorClassContributions ?? [],
+          override: null
+        }
+      }
     }
   })
 }
@@ -80,6 +96,40 @@ describe('encounter wield conflict', () => {
         }
       })
     ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -2 })
+  })
+
+  it("counts a magic shield's own bonus: a +1 shield stows 3 AC (SRD: +1 in addition to its 2)", () => {
+    const shieldBonus: ArmorClassContribution = {
+      sourceId: 'shield-source',
+      source: {
+        kind: 'EQUIPMENT_INSTANCE',
+        equipmentId: 'shield-plus-1',
+        itemInstanceId: shieldId
+      },
+      value: 1,
+      state: 'APPLIED',
+      reasonCode: 'STACKED'
+    }
+    const armorBonus: ArmorClassContribution = {
+      ...shieldBonus,
+      source: {
+        kind: 'EQUIPMENT_INSTANCE',
+        equipmentId: 'chain-mail-plus-1',
+        itemInstanceId: 'armor-instance'
+      }
+    }
+    expect(
+      evaluate({
+        grip: 'TWO_HANDED',
+        armorClassFacts: {
+          ...armorClassFacts,
+          equipment: armorClassFacts.equipment.map((item) =>
+            item.category === 'SHIELD' ? { ...item, armorClass: 2 } : item
+          )
+        },
+        armorClassContributions: [shieldBonus, armorBonus]
+      })
+    ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -3 })
   })
 
   it('does not conflict for one-handed or grip-less actions', () => {

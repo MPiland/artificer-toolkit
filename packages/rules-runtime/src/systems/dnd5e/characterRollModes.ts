@@ -4,10 +4,18 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
+import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { canonicalCharacterAbility, characterPolicyRecord } from './characterPolicyValues.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAcceptedModifierApplicability,
+  dnd5eModifierApplies,
+  type Dnd5eModifierTarget
+} from './modifierApplicability.js'
 
 function keyedRecord<Key extends string, Value>(
   keys: readonly Key[],
@@ -16,40 +24,83 @@ function keyedRecord<Key extends string, Value>(
   return Object.fromEntries(keys.map((key) => [key, value(key)])) as Record<Key, Value>
 }
 
+type RollContributor = CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
+
+/**
+ * Advantage and disadvantage contributors of one modifier domain that apply to a target. Suppressed
+ * duplicate grants still supply evidence for qualified roll resolution.
+ */
+function dnd5eRollContributors(
+  policy: {
+    readonly grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>
+    readonly modifierGroups: readonly Pick<
+      CharacterRulePolicyOutput['modifierGroups'][number],
+      'contributions'
+    >[]
+  },
+  target: Dnd5eModifierTarget
+) {
+  return policy.modifierGroups.flatMap((group) =>
+    group.contributions.flatMap((contribution) => {
+      const modifier =
+        contribution.acceptedModifierIndex === undefined
+          ? undefined
+          : policy.grantFold.modifiers[contribution.acceptedModifierIndex]
+      if (modifier === undefined) throw new Error('Character roll modifier provenance is missing.')
+      const grant = characterPolicyRecord(modifier.grant)
+      const influence = grant.modifierKind
+      if (
+        (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
+        !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
+      )
+        return []
+      if (!contribution.source || !contribution.grantId || !contribution.domainKey)
+        throw new Error('Character roll contributors require provenance.')
+      const domain = characterPolicyRecord(grant.domain)
+      return [
+        {
+          valueDomainCode: grant.valueDomainCode,
+          ability: canonicalCharacterAbility(domain.ability),
+          conditionTypeId: domain.conditionTypeId,
+          ruleDefinitionId: domain.ruleDefinitionId,
+          skillId: domain.skillId,
+          attackDomain: domain.attackDomain,
+          evidence: {
+            sourceId: contribution.sourceId,
+            source: contribution.source,
+            grantId: contribution.grantId,
+            domainKey: contribution.domainKey,
+            influence
+          } satisfies RollContributor
+        }
+      ]
+    })
+  )
+}
+
+/**
+ * The attack-roll contributors for one attack kind that apply to a target: Character-wide ones,
+ * plus the attacking source's own and item-faceted ones when an attack is evaluated. The Sheet
+ * action and the Encounter attack both read this, in canonical order.
+ */
+export function dnd5eAttackRollContributors(
+  policy: Parameters<typeof dnd5eRollContributors>[0],
+  attackKind: AttackDomainCode,
+  target: Dnd5eModifierTarget
+): RollContributor[] {
+  return dnd5eRollContributors(policy, target)
+    .filter((entry) => entry.valueDomainCode === 'ATTACK_ROLL' && entry.attackDomain === attackKind)
+    .map((entry) => entry.evidence)
+    .sort(compareCanonicalD20Contributors)
+}
+
 export function evaluateDnd5eCharacterRollModes(
   input: CharacterRulePolicyInput,
   fold: CharacterGrantFoldOutput,
   groups: CharacterResolvedModifierGroup[]
 ): Pick<CharacterRulePolicyOutput, 'rollModes' | 'rollContributorEvidence'> {
-  const contributors = groups.flatMap((group) => {
-    if (
-      group.effective !== 1 ||
-      (group.modifierKind !== 'ADVANTAGE' && group.modifierKind !== 'DISADVANTAGE')
-    )
-      return []
-    const influence = group.modifierKind
-    // Suppressed duplicate grants still supply private evidence for later qualified roll resolution.
-    return group.contributions.map((contribution) => {
-      const domain = characterPolicyRecord(
-        characterPolicyRecord(fold.modifiers[contribution.acceptedModifierIndex]?.grant).domain
-      )
-      return {
-        valueDomainCode: group.valueDomainCode,
-        ability: canonicalCharacterAbility(domain.ability),
-        conditionTypeId: domain.conditionTypeId,
-        ruleDefinitionId: domain.ruleDefinitionId,
-        skillId: domain.skillId,
-        attackDomain: domain.attackDomain,
-        evidence: {
-          sourceId: contribution.sourceId,
-          source: contribution.source,
-          grantId: contribution.grantId,
-          domainKey: contribution.domainKey,
-          influence
-        } satisfies CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
-      }
-    })
-  })
+  const policy = { grantFold: fold, modifierGroups: groups }
+  const contributors = dnd5eRollContributors(policy, DND5E_CHARACTER_WIDE_TARGET)
   type Contributor = (typeof contributors)[number]
   const matching = (predicate: (entry: Contributor) => boolean) =>
     contributors.filter(predicate).map((entry) => entry.evidence)
@@ -101,7 +152,7 @@ export function evaluateDnd5eCharacterRollModes(
       )
     }),
     attacks: keyedRecord(attacks, (attack) =>
-      matching((entry) => entry.valueDomainCode === 'ATTACK_ROLL' && entry.attackDomain === attack)
+      dnd5eAttackRollContributors(policy, attack, DND5E_CHARACTER_WIDE_TARGET)
     )
   }
   return {
