@@ -1021,8 +1021,9 @@ loopback development target, then passes the official CLI explicit URL/key argum
 the saved cloud selection and does not print the key.
 
 Local tabletop browser proofs also need the native [session Worker](../session-worker/README.md).
-Use matching private `LIVE_SESSION_TICKET_SECRET` and `LIVE_SESSION_EXECUTOR_SECRET` values on
-local Convex and the Worker, with `LIVE_SESSION_EXECUTOR_URL=http://127.0.0.1:3211`. Start the
+Use matching private `LIVE_SESSION_TICKET_SECRET`, `LIVE_SESSION_WORKER_SECRET` and
+`RULES_CONTINUATION_SECRET` values on local Convex and the Worker, with
+`CONVEX_SITE_URL=http://127.0.0.1:3211` (see `apps/session-worker/.dev.vars.example`). Start the
 Worker with its documented `--local` command on port 8787. The isolated Vite environment needs
 `VITE_LIVE_SESSION_WEBSOCKET_URL=ws://127.0.0.1:8787` and
 `VITE_MEDIA_STORAGE_ORIGIN=http://127.0.0.1:8026`; restart Vite after changing them and verify the
