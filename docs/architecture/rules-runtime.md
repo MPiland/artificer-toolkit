@@ -490,7 +490,14 @@ or used Character action on a carried weapon treats it as drawn and binds the ca
 facts, unless that action's equipment facts say `requiresEquipped`. Equipped armor and shields still
 govern armor class, and attunement stays a deliberate player choice. The initiative declaration
 option generator and compiler share one rule, so options are always compilable; removing an item from
-the inventory removes its candidate. `rules-runtime/encounterWieldConflict` is the pure evaluator for
+the inventory removes its candidate. The D&D grant fold applies the same ruling to modifiers: a
+carried item's own Source-scoped `ATTACK_ROLL` and `DAMAGE` grants treat `WHILE_SOURCE_EQUIPPED` as
+met, so a drawn weapon attacks with its authored ability and magic bonuses. Attunement gates, Global
+scope and every other domain (armor class included) still use the real equipped state. Source-scoped
+advantage/disadvantage grants (for example Heavy) also keep the real state, because Character-wide
+attack roll-mode evidence is not yet filtered by source; scoping that evidence is an open follow-up.
+`DAMAGE` modifier grants are folded but not yet added to action damage expressions for any weapon,
+equipped or carried (open follow-up). `rules-runtime/encounterWieldConflict` is the pure evaluator for
 the other half of the ruling: when a two-handed (or versatile two-handed) attack would require
 stowing the active shield it returns `STOW_SHIELD` with the armor-class delta from
 `resolveDnd5eActiveShield`, which the armor-class computation also uses.

@@ -73,7 +73,7 @@ afterEach(() => {
 })
 
 /** A Character carrying a two-handed greatsword and a shield, first in initiative. */
-async function setup(shieldEquipped = true) {
+async function setup({ shieldEquipped = true, weaponEquipped = false } = {}) {
   const base = await setupCharacterRun({}, twoHandedWeapon)
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -105,8 +105,11 @@ async function setup(shieldEquipped = true) {
     (item) => item.equipmentId === greatsword.id
   )?.id
   if (!shieldItemId || !weaponItemId) throw new Error('Missing shield stow fixture items.')
-  // Weapon ability modifiers are authored while-equipped, so the fixture equips the weapon too.
-  for (const [index, itemId] of [weaponItemId, ...(shieldEquipped ? [shieldItemId] : [])].entries())
+  const equippedItemIds = [
+    ...(weaponEquipped ? [weaponItemId] : []),
+    ...(shieldEquipped ? [shieldItemId] : [])
+  ]
+  for (const [index, itemId] of equippedItemIds.entries())
     await base.player.caller.mutation(api.characters.sheetCommands.execute, {
       id: base.character.id,
       command: {
@@ -289,7 +292,7 @@ describe('shield stow on two-handed attacks', () => {
   }, 60000)
 
   it('rejects an acceptance when the attack does not stow a shield', async () => {
-    const base = await setup(false)
+    const base = await setup({ shieldEquipped: false })
     const choices = await base.owner.caller.query(getNativeActionChoices, {
       encounterId: base.run.id,
       expectedVersion: base.state.version,
@@ -432,6 +435,11 @@ describe('shield stow on two-handed attacks', () => {
       planningOptions
     )
     if (plan.kind !== 'PLANNED') throw new Error('Expected a completed shield stow plan.')
+    // The room's own post-action facts already reflect the stow before Convex commits it.
+    expect(
+      plan.settlement.projectedTargets.get(base.actor.id)?.effectiveRulePolicyOutput?.derivedStats
+        .armorClass.effective
+    ).toBe(12)
     const before = await base.characterRow()
     const committed = await commitNativeLiveEncounterAction(
       environment,
@@ -470,4 +478,47 @@ describe('shield stow on two-handed attacks', () => {
       afterStreamVersion: after!.streamVersion
     })
   }, 60000)
+})
+
+describe('drawn weapons', () => {
+  it('attacks with a carried weapon using the same modifiers as when it is equipped', async () => {
+    const attack = async (weaponEquipped: boolean) => {
+      const base = await setup({ shieldEquipped: false, weaponEquipped })
+      const choice = (
+        await base.owner.caller.query(getNativeActionChoices, {
+          encounterId: base.run.id,
+          expectedVersion: base.state.version,
+          actorId: base.actor.id
+        })
+      )?.actions.find((action) => action.id === base.actionId)
+      const command = base.command(null)
+      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command
+      })
+      expect(result.occurrence?.status).toBe('COMPLETE')
+      const receipt = await base.t.run((ctx) =>
+        ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_campaignId_commandId', (q) =>
+            q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
+          )
+          .unique()
+      )
+      const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
+      if (
+        stored.status !== 'COMPLETE' ||
+        stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+      )
+        throw new Error('Expected a completed Creature-target attack.')
+      return {
+        attackBonus: choice?.attackBonus,
+        rolledModifier: stored.applicationOutputs.d20?.modifier
+      }
+    }
+    const equipped = await attack(true)
+    const carried = await attack(false)
+    expect(carried.attackBonus).toEqual(expect.any(Number))
+    expect(carried.rolledModifier).toBe(carried.attackBonus)
+    expect(carried).toEqual(equipped)
+  }, 90000)
 })

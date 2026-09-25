@@ -7,6 +7,8 @@ import {
   type CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 
+import { characterPolicyRecord } from './characterPolicyValues.js'
+
 type Proficiency = CharacterGrantFoldOutput['proficiencies'][number]
 type Sense = CharacterGrantFoldOutput['senses'][number]
 type Modifier = CharacterGrantFoldOutput['modifiers'][number]
@@ -62,6 +64,25 @@ function buildDomainKey(modifier: CharacterGrantFoldSource['modifiers'][number])
   return `${modifier.valueDomainCode}:${modifier.modifierKind}|${entries
     .map(([key, value]) => `${key}=${String(value)}`)
     .join('|')}`
+}
+
+/**
+ * Drawn weapons (rules-runtime.md): attacking with a carried item draws it, so the item's own
+ * source-scoped attack and damage bonuses see it as equipped. Roll-mode grants keep the real
+ * state because Character-wide attack evidence is not yet filtered by source, and every other
+ * gate (attunement, armor class, Global scope) is unchanged.
+ */
+function drawnSourceState(
+  modifier: CharacterGrantFoldSource['modifiers'][number],
+  sourceState: SourceState | undefined
+): SourceState | undefined {
+  if (!sourceState?.carried || sourceState.equipped) return sourceState
+  return characterPolicyRecord(modifier.grant).scope === 'SOURCE' &&
+    (modifier.valueDomainCode === 'ATTACK_ROLL' || modifier.valueDomainCode === 'DAMAGE') &&
+    modifier.modifierKind !== 'ADVANTAGE' &&
+    modifier.modifierKind !== 'DISADVANTAGE'
+    ? { ...sourceState, equipped: true }
+    : sourceState
 }
 
 export function evaluateDnd5e2014CharacterGrantFold(
@@ -230,7 +251,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
     sourceState: SourceState | undefined
   ): void => {
     for (const modifier of modifiers) {
-      if (!facetPasses(modifier.restrictions, sourceState)) continue
+      if (!facetPasses(modifier.restrictions, drawnSourceState(modifier, sourceState))) continue
       const domainKey = buildDomainKey(modifier)
       const accepted: Modifier = {
         domainKey,

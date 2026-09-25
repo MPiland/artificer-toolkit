@@ -48,6 +48,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0031](0031-oversized-inventory-cleanup.md)                            | Oversized inventory cleanup with localized pending state              | decision                                                  |
 | [0032](0032-campaign-deletion-lifecycle.md)                            | One fenced, resumable Campaign deletion lifecycle for every size      | decision                                                  |
 | [0033](0033-campaign-owned-play-and-session-log.md)                    | Campaign-owned play, implicit live table and Sessions as a log        | decision (implemented locally)                            |
+| [0034](0034-player-control-rules-assistance-and-roll-prompts.md)       | Player-controlled actors, rules assistance modes and roll prompts     | decision (implementation in progress)                     |
 
 ## Updating an ADR
 
