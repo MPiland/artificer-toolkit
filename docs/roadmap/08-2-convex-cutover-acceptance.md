@@ -9,9 +9,36 @@
 
 Work resumed on 2026-09-09. The exact workspace, completed architecture corrections, personal-development
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
-Acceptance is 59/75. The 16 open cases are P15, V05, V08, V09, V14, F12, V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+Acceptance is 53/75 cases and 195/276 criteria (2026-09-25). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+
+**Criteria and progress (2026-09-25).** Every case in the JSON ledger has a `criteria` array of
+`{ id, text, status, proof }` entries (for example `V09.3`), derived from the case's notes, ADR 0033
+and ADR 0034, using the ledger's status vocabulary. `proof` names the tests, proof modes or browser
+suites that prove the criterion, or is `null` when none exists yet. An ACCEPTED case has only ACCEPTED
+criteria. `node scripts/acceptanceProgress.mjs` prints case and criteria counts per gate, criteria met
+per case and every open criterion; `--json` writes the same report to stdout. The script validates the
+ledger (criteria present, statuses valid, IDs unique, the fixed 75-case total) and exits non-zero when
+it is invalid. Per-gate evidence summaries are in [Phase 8.2 validation](../validation/phase-08-2/README.md).
 
 **ADR 0033 amendment (user-approved 2026-09-24).** The user approved making Encounter Runs Campaign-owned, keying the live table by Campaign and making Sessions an optional log before launch, and approved amending the affected acceptance criteria. P15 (Sessions and control), V05 (admission), V08 (Encounter lifecycle), V09 (actors and initiative), V14 (contention schedules) and F12 (account deletion history) now prove the [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) contract: no open Session gates tickets, room authority, presentation or Encounter commands; finishing a Session leaves Runs, presentation and the table untouched; Runs take their party from ACTIVE Character assignments and a PREPARED Run can be deleted. Their earlier evidence proves the superseded Session-scoped contract and is historical, so each is reopened until it passes on the final source. Proof tiers, the remaining scenarios and the 75-case denominator are unchanged.
+
+**S6b player-controlled actors (2026-09-25).** Players act for the actors they control (Foundry
+ownership), rolls go to the controllers of the actor making them, and players never receive GM data or
+actor health. New criteria are recorded as IN_PROGRESS notes on V09 (control and disposition), V10
+(player actions, warnings, flood control), V11 (roll routing and app rolls) and V12 (redaction and
+replay binding). They are not yet proven. Proof tiers and the 75-case denominator are unchanged.
+
+**ADR 0034 reopening (2026-09-25).** With the player agency criteria recorded in each case's
+`criteria`, V07, V10, V11 and V12 are no longer fully accepted and are reopened to IN_PROGRESS. Their
+earlier criteria keep their ACCEPTED status and evidence. From the [handoff](../handoffs/phase-08-2-convex-cutover.md)
+and [ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md): V07 gains player
+token moves and Encounter-bound movement control; V10 gains the Assisted "Do it anyway" override;
+V11 gains the "Auto-roll my dice" preference and GM void; V12 gains health display levels; V15 gains
+player-issued commands in the workload. The remaining ADR 0034 scope is attached as IN_PROGRESS
+criteria so no pre-beta scope sits outside the ledger (D22 keeps V07 reopened): live Character state
+on V14 (Sheet and Encounter writes as concurrent aggregates); unlocked doors and opt-in fog of war on
+V03 (Scene entities and visibility), which reopens it; roll visibility defaults on P06 (authoritative
+rolls), which reopens it; the Sheet "Party can view" option and roster basics on V12; GM undo on V10.
 
 R06 ownership review is reopened after V15-20260924-05 exposed a missing live Encounter movement
 path. The 2026-09-24 review accepted the user-approved Character authority amendment: all Character

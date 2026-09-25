@@ -1,6 +1,18 @@
 # Phase 8.2 local validation record
 
-**Status:** stopped at the user's request. Declaration code is applied but its two private tests fail; current-tree verification is incomplete. The [living handoff](../../handoffs/phase-08-2-convex-cutover.md) states the exact stopped state and authority limits. The fixed [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.md) remains 65/75. None of the checks below is the complete R08 local release lifecycle.
+**Status:** stopped at the user's request. Declaration code is applied but its two private tests fail; current-tree verification is incomplete. The [living handoff](../../handoffs/phase-08-2-convex-cutover.md) states the exact stopped state and authority limits. The fixed [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.md) is 53/75 as of 2026-09-25 (run `node scripts/acceptanceProgress.mjs` for live counts). None of the checks below is the complete R08 local release lifecycle.
+
+## Acceptance evidence by gate
+
+One summary per gate gives each case's status, acceptance date, proof tier, criteria and evidence origin. Most raw evidence they cite lives only in the Codex backup worktree and will be superseded by the final R08 re-proof.
+
+- [Gate 1 — Foundation, auth, operations](gate-1-foundation-auth-operations.md)
+- [Gate 2 — Content and rules](gate-2-content-rules.md)
+- [Gate 3 — Characters, Campaigns, Social](gate-3-characters-campaigns-social.md)
+- [Gate 4 — Scene, Encounter, VTT](gate-4-scene-encounter-vtt.md)
+- [Gate 5 — Cutover and release](gate-5-cutover-release.md)
+
+## Local checkpoints
 
 Complete output and manifests are retained under ignored `local-validation/phase82-goal-20260923/` in the regular checkout; the copy from the detached worktree completed successfully (robocopy exit 3). `local-validation/phase82-relocation-20260924/transfer-result.json` records the checkout transfer. This durable summary intentionally excludes raw logs, payloads and secrets.
 

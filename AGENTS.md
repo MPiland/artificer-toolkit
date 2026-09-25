@@ -310,6 +310,7 @@ Common repo commands:
 - `yarn turbo:affected:test`
 - `yarn turbo:affected:typecheck`
 - `yarn storybook:web`
+- `node scripts/acceptanceProgress.mjs [--json]` (validate the Phase 8.2 acceptance ledger and report case/criteria progress)
 
 Web workspace commands:
 

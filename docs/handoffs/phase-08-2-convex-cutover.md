@@ -74,6 +74,7 @@ Next (8.2 core, in order):
    - The shield-stow AC delta counts only the shield's base value, not a magic shield's +N.
    - Add direct unit tests in `packages/rules-runtime` (it has none today).
    - Phase 8.3 (with spell casting): APPLY_GRANT effects (19; e.g. Shield, Aid), condition mechanics, long range, and the remaining modifier kinds.
+   - Follow-ups from S6g: `REACTION_COUNT SET_VALUE` with APPLY_GRANT (Shocking Grasp); Barbarian Fast Movement mechanics.
 3. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
 4. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
 5. **Player control:** one actor-control predicate with GM-set controllers; player actions, turn end, initiative and rolls; roll prompts ("Roll dice" or typed, rerolls logged, roll-mode override); redaction; action-economy and movement display; one in-flight player Encounter command per user. Spec: `local-validation/s6/spec-player-actions.md` (local).
@@ -151,7 +152,7 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
 
 ## Authority and present state
 
-The fixed [75-case acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) is **59/75**. Open cases are **P15, V05, V08, V09, V14, F12 (reopened by the ADR 0033 amendment), V15, R01–R06 and R08–R10**; R07 is accepted. The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) controls exact case status. Scoped V07, V10 and V13 acceptance remains intact; combined final-system proof belongs to R08 and V15. Portable helpers, focused tests and typechecks do not accept R06.
+The fixed [75-case acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) is **53/75** cases and **195/276** criteria (2026-09-25; `node scripts/acceptanceProgress.mjs`). Open cases are **P15, V05, V08, V09, V14, F12 (reopened by the ADR 0033 amendment), P06, V03, V07, V10, V11, V12 (reopened 2026-09-25 for ADR 0034 player agency criteria), V15, R01–R06 and R08–R10**; R07 is accepted. The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) controls exact case and criterion status. Scoped V13 acceptance and the earlier ACCEPTED criteria of V07 and V10 remain intact; combined final-system proof belongs to R08 and V15. Portable helpers, focused tests and typechecks do not accept R06.
 
 The cutover keeps heavy live rules **and heavy fact preparation** in the Session Durable Object (DO). Convex owns atomic Character Sheet and Encounter writes and their receipts; Scene publication uses per-entity deltas. Existing TypeScript rules and typed planners are shared by native and DO paths. The DO's ordered room dispatch and crash recovery are still missing, so **do not run or claim V15** yet. No staging, production, retirement, deployment, database reset, journal deletion or real continuation-key transfer is authorized by this handoff.
 
