@@ -30,6 +30,7 @@ const ids = {
 
 const envelope = {
   baselineVersion: 1,
+  audience: 'TABLE',
   kind: 'POINTER_PREVIEW' as const,
   position: { x: 4, y: 8 },
   sceneId: ids.scene,
@@ -67,13 +68,15 @@ const scene = {
 
 describe('live-session contracts', () => {
   it('defines the exact room and short-lived ticket identity', () => {
-    expect(
-      liveSessionJoinOptionsDtoSchema.parse({ campaignId: ids.campaign })
-    ).toEqual({ campaignId: ids.campaign })
+    expect(liveSessionJoinOptionsDtoSchema.parse({ campaignId: ids.campaign })).toEqual({
+      campaignId: ids.campaign
+    })
     // The retired Session-scoped join shape is refused.
     expect(
-      liveSessionJoinOptionsDtoSchema.safeParse({ campaignId: ids.campaign, sessionId: ids.session })
-        .success
+      liveSessionJoinOptionsDtoSchema.safeParse({
+        campaignId: ids.campaign,
+        sessionId: ids.session
+      }).success
     ).toBe(false)
 
     expect(
@@ -169,7 +172,7 @@ describe('live-session contracts', () => {
           }
         }
       }).success
-    ).toBe(false)
+    ).toBe(true)
     expect(
       liveSessionWebSocketClientMessageDtoSchema.parse({
         expectedPresentationVersion: 5,

@@ -13,7 +13,16 @@ import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { Crosshair, Gamepad2, SlidersHorizontal, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  Crosshair,
+  Eye,
+  EyeOff,
+  Gamepad2,
+  SlidersHorizontal,
+  Undo2,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -185,6 +194,8 @@ export function CampaignVttStage({
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
+  // GM pointers, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
+  const [sharePreviews, setSharePreviews] = useState(false)
   const fogOwnerUserIdRef = useRef<string | null>(null)
   fogOwnerUserIdRef.current = fogOwnerUserId
 
@@ -577,6 +588,8 @@ export function CampaignVttStage({
       if (now - (transientSentAt.current.get(streamKey) ?? 0) < 32) return
       transientSequence.current += 1
       const metadata = {
+        audience:
+          campaign.role === 'OWNER' && !sharePreviews ? ('GM' as const) : ('TABLE' as const),
         baselineVersion: current.version,
         sceneId: current.id,
         sequence: transientSequence.current
@@ -595,7 +608,7 @@ export function CampaignVttStage({
         transientSentAt.current.set(streamKey, now)
       }
     },
-    [gmPreviewUserId, live]
+    [campaign.role, gmPreviewUserId, live, sharePreviews]
   )
   const transientRef = useRef(sendTransient)
   transientRef.current = sendTransient
@@ -968,6 +981,16 @@ export function CampaignVttStage({
                   })
                 }}
               />
+              <Tooltip label={sharePreviews ? 'Players see your previews' : 'Previews are private'}>
+                <ActionIcon
+                  aria-label='Show my previews to players'
+                  aria-pressed={sharePreviews}
+                  variant={sharePreviews ? 'filled' : 'default'}
+                  onClick={() => setSharePreviews((current) => !current)}
+                >
+                  {sharePreviews ? <Eye aria-hidden size={18} /> : <EyeOff aria-hidden size={18} />}
+                </ActionIcon>
+              </Tooltip>
               <Tooltip label='Undo last token move'>
                 <ActionIcon
                   aria-label='Undo last token move'

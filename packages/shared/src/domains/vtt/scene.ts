@@ -283,8 +283,12 @@ export interface SceneEvent {
   version: number
 }
 
+/** Who receives a live preview: the whole table, or only the Campaign owner (GM). */
+export type SceneTransientAudience = 'GM' | 'TABLE'
+
 export type SceneTransientEnvelope =
   | {
+      audience: SceneTransientAudience
       baselineVersion: number
       kind: 'TOKEN_DRAG_PREVIEW'
       position: ScenePoint
@@ -294,6 +298,7 @@ export type SceneTransientEnvelope =
       tokenId: string
     }
   | {
+      audience: SceneTransientAudience
       baselineVersion: number
       kind: 'POINTER_PREVIEW'
       position: ScenePoint
@@ -301,6 +306,7 @@ export type SceneTransientEnvelope =
       sequence: number
     }
   | {
+      audience: SceneTransientAudience
       baselineVersion: number
       kind: 'MEASUREMENT_PREVIEW'
       path: ScenePoint[]
@@ -308,6 +314,7 @@ export type SceneTransientEnvelope =
       sequence: number
     }
   | {
+      audience: SceneTransientAudience
       baselineVersion: number
       explored: boolean
       kind: 'FOG_AREA_PREVIEW'

@@ -511,9 +511,12 @@ export const sceneEventDtoSchema: z.ZodMiniType<SceneEvent> = z.strictObject({
   version: versionSchema
 })
 
+const sceneTransientAudienceSchema = z.enum(['GM', 'TABLE'])
+
 export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelope> =
   z.discriminatedUnion('kind', [
     z.strictObject({
+      audience: sceneTransientAudienceSchema,
       baselineVersion: versionSchema,
       kind: z.literal('TOKEN_DRAG_PREVIEW'),
       position: scenePointDtoSchema,
@@ -527,6 +530,7 @@ export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelo
       tokenId: uuidSchema
     }),
     z.strictObject({
+      audience: sceneTransientAudienceSchema,
       baselineVersion: versionSchema,
       kind: z.literal('POINTER_PREVIEW'),
       position: scenePointDtoSchema,
@@ -538,6 +542,7 @@ export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelo
         .check(z.gte(Number.MIN_SAFE_INTEGER), z.lte(Number.MAX_SAFE_INTEGER))
     }),
     z.strictObject({
+      audience: sceneTransientAudienceSchema,
       baselineVersion: versionSchema,
       kind: z.literal('MEASUREMENT_PREVIEW'),
       path: z
@@ -552,6 +557,7 @@ export const sceneTransientEnvelopeDtoSchema: z.ZodMiniType<SceneTransientEnvelo
         .check(z.gte(Number.MIN_SAFE_INTEGER), z.lte(Number.MAX_SAFE_INTEGER))
     }),
     z.strictObject({
+      audience: sceneTransientAudienceSchema,
       baselineVersion: versionSchema,
       explored: z.boolean(),
       kind: z.literal('FOG_AREA_PREVIEW'),
@@ -899,9 +905,7 @@ export type BindEncounterToPresentedSceneResultDto = z.infer<
 export type SetCampaignLiveScenePresentationResultDto = z.infer<
   typeof setCampaignLiveScenePresentationResultDtoSchema
 >
-export type CampaignScenePresentationDto = z.infer<
-  typeof campaignScenePresentationDtoSchema
->
+export type CampaignScenePresentationDto = z.infer<typeof campaignScenePresentationDtoSchema>
 export type CampaignLiveScenePresentationReceiptDto = z.infer<
   typeof campaignLiveScenePresentationReceiptDtoSchema
 >

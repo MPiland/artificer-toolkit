@@ -1407,6 +1407,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       for (const candidate of candidates) {
         if (attachment(candidate.socket)?.socketId === originAttachment.socketId) continue
+        if (envelope.audience === 'GM' && candidate.admission.role !== 'OWNER') continue
         const recipientViewer = viewer(candidate.admission)
         if (!isSceneTokenVisibleToViewer(previewScene, recipientViewer, token.id)) continue
         const preview = projectSceneTokenPreviewForViewer(previewScene, {
@@ -1460,6 +1461,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     )
     for (const candidate of candidates) {
       if (attachment(candidate.socket)?.socketId === originAttachment.socketId) continue
+      if (envelope.audience === 'GM' && candidate.admission.role !== 'OWNER') continue
       if (
         envelope.kind === 'FOG_AREA_PREVIEW' &&
         envelope.ownerUserId !== null &&

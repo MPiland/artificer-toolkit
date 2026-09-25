@@ -264,6 +264,7 @@ async function noTransient(messages: readonly LiveSessionWebSocketServerMessageD
 function tokenPreview(sequence: number, position = { x: 20, y: 10 }) {
   return {
     baselineVersion: 1,
+    audience: 'TABLE',
     kind: 'TOKEN_DRAG_PREVIEW' as const,
     position,
     sceneId,
@@ -356,6 +357,7 @@ it.each([
       type: 'TRANSIENT',
       envelope: {
         baselineVersion: 1,
+        audience: 'TABLE',
         kind: 'POINTER_PREVIEW',
         position: { x: 15, y: 10 },
         sceneId,
@@ -443,6 +445,7 @@ it('fans out controlled token previews and per-player fog only to current author
       envelope: {
         baselineVersion: 1,
         explored: true,
+        audience: 'TABLE',
         kind: 'FOG_AREA_PREVIEW',
         ownerUserId: playerId,
         rectangle: { a: { x: 0, y: 0 }, b: { x: 10, y: 10 } },
@@ -458,6 +461,26 @@ it('fans out controlled token previews and per-player fog only to current author
   await noTransient(other.messages)
   expect(captureModes.length).toBeGreaterThan(0)
   expect(new Set(captureModes)).toEqual(new Set(['FULL']))
+})
+
+it('delivers GM-audience previews only to owner sockets', async () => {
+  const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
+  )
+  await runInDurableObject(stub, () => installFetch(members, (_call, capture) => capture))
+  const owner = await connect(stub, ownerId, 'OWNER')
+  const ownerElsewhere = await connect(stub, ownerId, 'OWNER')
+  const player = await connect(stub, playerId, 'PLAYER')
+
+  owner.socket.send(
+    JSON.stringify({ type: 'TRANSIENT', envelope: { ...tokenPreview(1), audience: 'GM' } })
+  )
+  await vi.waitFor(() => {
+    expect(transient(owner.messages)).toHaveLength(1)
+    expect(transient(ownerElsewhere.messages)).toHaveLength(1)
+  })
+  await noTransient(player.messages)
 })
 
 it.each(['origin', 'recipient'] as const)(
@@ -596,6 +619,7 @@ it('does not block ordered token previews behind a pointer capture', async () =>
       type: 'TRANSIENT',
       envelope: {
         baselineVersion: 1,
+        audience: 'TABLE',
         kind: 'POINTER_PREVIEW',
         position: { x: 15, y: 10 },
         sceneId,

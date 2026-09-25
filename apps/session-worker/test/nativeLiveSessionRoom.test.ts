@@ -1718,6 +1718,7 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
         type: 'TRANSIENT',
         envelope: {
           baselineVersion: 0,
+          audience: 'TABLE',
           kind: 'TOKEN_DRAG_PREVIEW',
           sceneId: value.scene.id,
           tokenId: value.tokenId,
@@ -1761,6 +1762,7 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
           type: 'TRANSIENT',
           envelope: {
             baselineVersion: 0,
+            audience: 'TABLE',
             kind: 'TOKEN_DRAG_PREVIEW',
             sceneId: value.scene.id,
             tokenId: value.tokenId,
@@ -1806,6 +1808,7 @@ it('preserves drag path and rejected-sample sequence through hibernation', async
           type: 'TRANSIENT',
           envelope: {
             baselineVersion: 0,
+            audience: 'TABLE',
             kind: 'TOKEN_DRAG_PREVIEW',
             sceneId: value.scene.id,
             tokenId: value.tokenId,
@@ -1934,6 +1937,7 @@ it.each([false, true])(
           type: 'TRANSIENT',
           envelope: {
             baselineVersion: 0,
+            audience: 'TABLE',
             kind: 'POINTER_PREVIEW',
             position: { x: 10, y: 10 },
             sceneId: crypto.randomUUID(),
@@ -1979,6 +1983,7 @@ it('coalesces queued pointer samples while an authoritative capture is pending',
       JSON.stringify({
         type: 'TRANSIENT',
         envelope: {
+          audience: 'TABLE',
           kind: 'POINTER_PREVIEW',
           sceneId,
           baselineVersion: 0,
@@ -2035,6 +2040,7 @@ it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
         type: 'TRANSIENT',
         envelope: {
           baselineVersion: 1,
+          audience: 'TABLE',
           kind: 'TOKEN_DRAG_PREVIEW',
           position: { x: 20, y: 10 },
           sceneId: crypto.randomUUID(),
@@ -2156,6 +2162,7 @@ it.each([false, true])(
           type: 'TRANSIENT',
           envelope: {
             baselineVersion: 0,
+            audience: 'TABLE',
             kind: 'POINTER_PREVIEW',
             position: { x: 10, y: 10 },
             sceneId: crypto.randomUUID(),
@@ -2443,6 +2450,7 @@ it('reuses a recent authority capture for pointer samples on the same Scene vers
       JSON.stringify({
         type: 'TRANSIENT',
         envelope: {
+          audience: 'TABLE',
           kind: 'POINTER_PREVIEW',
           sceneId: header.id,
           baselineVersion: header.version,
@@ -2508,9 +2516,9 @@ it('rejects commands beyond the pending-command bound without closing the socket
   expect(base.socket.readyState).toBe(WebSocket.OPEN)
   await vi.waitFor(
     () =>
-      expect(
-        base.messages.filter((message) => message.type === 'COMMAND_REJECTED')
-      ).toHaveLength(9),
+      expect(base.messages.filter((message) => message.type === 'COMMAND_REJECTED')).toHaveLength(
+        9
+      ),
     { timeout: 3_000 }
   )
 })

@@ -73,6 +73,7 @@ const command = {
 
 const envelope = {
   baselineVersion: 1,
+  audience: 'TABLE',
   kind: 'POINTER_PREVIEW',
   position: { x: 4, y: 8 },
   sceneId,

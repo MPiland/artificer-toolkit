@@ -313,6 +313,7 @@ describe('VTT scene contracts', () => {
     expect(
       sceneTransientEnvelopeDtoSchema.safeParse({
         baselineVersion: 3,
+        audience: 'TABLE',
         kind: 'TOKEN_DRAG_PREVIEW',
         position: { x: 1, y: 2 },
         sceneId: ids.scene,
@@ -324,6 +325,7 @@ describe('VTT scene contracts', () => {
       sceneTransientEnvelopeDtoSchema.safeParse({
         baselineVersion: 3,
         explored: true,
+        audience: 'TABLE',
         kind: 'FOG_AREA_PREVIEW',
         ownerUserId: ids.campaign,
         rectangle: { a: { x: 1, y: 2 }, b: { x: 10, y: 20 } },
@@ -333,10 +335,20 @@ describe('VTT scene contracts', () => {
     ).toBe(true)
     expect(
       sceneTransientEnvelopeDtoSchema.safeParse({
+        audience: 'TABLE',
         kind: 'TOKEN_DRAG_PREVIEW',
         position: { x: 1, y: 2 },
         sequence: 1,
         tokenId: ids.token
+      }).success
+    ).toBe(false)
+    expect(
+      sceneTransientEnvelopeDtoSchema.safeParse({
+        baselineVersion: 3,
+        kind: 'POINTER_PREVIEW',
+        position: { x: 1, y: 2 },
+        sceneId: ids.scene,
+        sequence: 1
       }).success
     ).toBe(false)
   })

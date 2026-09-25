@@ -437,6 +437,11 @@ Character-vision inputs when needed, validates bounded movement geometry, and pr
 for each current recipient. Hidden tokens, unrevealed barriers, GM annotations, DM-preview fog, and
 other recipient-private state never enter a broader broadcast.
 
+Every preview envelope carries `audience: 'TABLE' | 'GM'` (current). The room delivers a `GM`
+preview only to OWNER sockets. The tabletop sends GM previews (pointer, ruler, drag ghost, fog draft)
+as `GM` by default, and the GM's "Show my previews to players" toolbar toggle switches them to
+`TABLE`. Players always send `TABLE`.
+
 Durable Object SQLite stores the active authority epoch, minimum live projection, sequence/checksum,
 replay receipts, undo evidence, and ordered publication outbox in addition to room/ticket state. The
 live projection is authoritative only for that active Session epoch. Large Scene snapshots use bounded

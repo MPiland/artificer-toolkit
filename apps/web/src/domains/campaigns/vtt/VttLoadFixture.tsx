@@ -188,6 +188,7 @@ export function VttLoadFixture() {
         renderer.applyTransient({
           envelope: {
             baselineVersion: scene.version,
+            audience: 'TABLE',
             kind: 'TOKEN_DRAG_PREVIEW',
             position: { x: 480 + (frameCount % 600), y: 520 + ((frameCount * 2) % 600) },
             sceneId: scene.id,
@@ -199,6 +200,7 @@ export function VttLoadFixture() {
         renderer.applyTransient({
           envelope: {
             baselineVersion: scene.version,
+            audience: 'TABLE',
             kind: 'POINTER_PREVIEW',
             position: { x: 1_400 + ((frameCount * 3) % 1_000), y: 1_200 + (frameCount % 900) },
             sceneId: scene.id,
@@ -209,6 +211,7 @@ export function VttLoadFixture() {
         renderer.applyTransient({
           envelope: {
             baselineVersion: scene.version,
+            audience: 'TABLE',
             kind: 'MEASUREMENT_PREVIEW',
             path: [
               { x: 2_800, y: 2_500 },
