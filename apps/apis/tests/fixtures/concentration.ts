@@ -160,6 +160,7 @@ export function concentrationAction(
 ): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
     encounterId: fixture.run.id,
     commandId,
     expectedVersion,

@@ -493,8 +493,23 @@ option generator and compiler share one rule, so options are always compilable; 
 the inventory removes its candidate. `rules-runtime/encounterWieldConflict` is the pure evaluator for
 the other half of the ruling: when a two-handed (or versatile two-handed) attack would require
 stowing the active shield it returns `STOW_SHIELD` with the armor-class delta from
-`resolveDnd5eActiveShield`, which the armor-class computation also uses. The player must accept or
-decline that stow explicitly; wiring the prompt into the live action flow is S4/S6 work.
+`resolveDnd5eActiveShield`, which the armor-class computation also uses.
+`evaluateEncounterCharacterActionWieldConflict` is the one input extraction (candidate
+`equipment.properties`, Character `armorClassFacts`, effective `grantFold` active equipment, one-handed
+grip) shared by the action choices query, which exposes `wieldConflict` per Character action, and
+`prepareEncounterActionMechanics`, which enforces it for both the Session DO planner and the Convex
+fallback. A directly resolved `RESOLVE_ACTION` is `PROMPTED`: its submitter (today the GM) must send
+`acceptedWieldConflict` naming exactly the evaluated shield, and preparation rejects a missing, stale
+or spurious acceptance. The accepted stow joins the source Character's mechanics batch
+(`stowEquippedItemInstanceId`, applied through the Sheet `UNEQUIP_ITEM` transition), so the stow, any
+resource use and the receipt share one Character version; the action receipt records it as
+`sourceItemUseStateTransition` and armor class recomputes from equipment on the next load. Declining
+sends nothing.
+
+Open follow-ups: initiative-declared attacks, movement reactions, Legendary Actions, Cleaving
+follow-ups and Disarm are `UNPROMPTED` and neither prompt nor stow (Disarm rejects an acceptance).
+Versatile two-handed grip is not modeled, so versatile weapons never conflict. Player-driven action
+submission, which would move the prompt to the player, is not built.
 
 `rules-runtime/encounterInitiativeStaging` owns initial round assembly, timestamp-free occurrence
 serialization/hydration and the in-memory versioned update port. The transitional coordinator

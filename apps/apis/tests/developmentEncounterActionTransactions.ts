@@ -142,6 +142,7 @@ export async function verifyEncounterActionTransactions({
   ): { command: ResolveEncounterActionInputDto } => ({
     command: {
       type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: fixture.run.id,
       commandId,
       expectedVersion: fixture.run.version,
@@ -262,6 +263,7 @@ export async function verifyEncounterActionTransactions({
   const changedPayload: EncounterExecuteInput = {
     command: {
       type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: winnerCommand.encounterId,
       commandId: winnerCommand.commandId,
       expectedVersion: winnerCommand.expectedVersion,

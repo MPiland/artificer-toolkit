@@ -2,6 +2,7 @@ import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
+import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
 
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
 const labelSchema = z.string().check(z.trim()).check(z.minLength(1))
@@ -18,7 +19,13 @@ export const encounterActionChoiceDtoSchema = z.strictObject({
   label: characterSheetActionDtoSchema.shape.label,
   sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
   rangeLabel: z.optional(labelSchema),
-  attackBonus: z.optional(z.number().check(z.int()))
+  attackBonus: z.optional(z.number().check(z.int())),
+  /** Present when attacking with this action stows the active shield; the client must confirm. */
+  wieldConflict: z.nullable(
+    z.extend(encounterAcceptedWieldConflictDtoSchema, {
+      armorClassDelta: z.number().check(z.int()).check(z.lte(0))
+    })
+  )
 })
 
 export const encounterActionChoicesDtoSchema = z.strictObject({

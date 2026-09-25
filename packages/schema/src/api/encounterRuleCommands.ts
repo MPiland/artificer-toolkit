@@ -87,12 +87,25 @@ export const optionalCombatActionIntentDtoSchema = z
   )
 export type OptionalCombatActionIntentDto = z.infer<typeof optionalCombatActionIntentDtoSchema>
 
+/** The submitter's explicit consent to stow this exact shield for a two-handed attack. */
+export const encounterAcceptedWieldConflictDtoSchema = z.strictObject({
+  kind: z.literal('STOW_SHIELD'),
+  shieldItemInstanceId: uuidSchema
+})
+export type EncounterAcceptedWieldConflictDto = z.infer<
+  typeof encounterAcceptedWieldConflictDtoSchema
+>
+
 export const resolveEncounterActionInputDtoSchema = z.extend(commandBaseDtoSchema, {
   type: z.literal('RESOLVE_ACTION'),
   actorId: uuidSchema,
   actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
   targetActorId: uuidSchema,
   optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
+  acceptedWieldConflict: z._default(
+    z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
+    null
+  ),
   /**
    * Required only by action policies that consume exact Scene position. The
    * server locks and validates this dependency before it constructs facts.

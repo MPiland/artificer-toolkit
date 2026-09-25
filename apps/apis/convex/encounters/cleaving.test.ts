@@ -564,6 +564,7 @@ async function setup(
   const command: EncounterExecuteInput = {
     command: {
       type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: run.version + 1,

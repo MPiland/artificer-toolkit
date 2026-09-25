@@ -247,6 +247,7 @@ export async function nativeDisarmFixture(
     })
     const command: ResolveEncounterActionInputDto = {
       type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: state.version,

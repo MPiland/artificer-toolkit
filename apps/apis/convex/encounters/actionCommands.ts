@@ -80,6 +80,7 @@ export async function executeNativeEncounterAction(
     target,
     actors,
     actionId: input.actionId,
+    wieldConflictAcceptance: { kind: 'PROMPTED', accepted: input.acceptedWieldConflict },
     campaignOwnerUserId: campaign.ownerUserId
   })
   const { source, adapter, targetPolicy: policy, plan, actorRules, binding } = prepared

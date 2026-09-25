@@ -15,9 +15,11 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { NativeCharacterActionResourceConsumption } from './character/characterNativeActionResources.js'
 import { requireSnapshotIdentity } from './encounterActorState.js'
+import { unequipCharacterItem } from './character/sheetCommandReducer.js'
 
 type EncounterActor = EncounterRunActorState
 type LoadedCharacterSheetFacts = {
@@ -49,6 +51,8 @@ export type EncounterMechanicsBatchInput = {
   effectiveScalarValues?: Readonly<Record<string, number>>
   spellSlotUsage?: NonNullable<CharacterAuthored['state']['spellSlots']>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
+  /** An accepted wield conflict: unequip this item in the same Character version. */
+  stowEquippedItemInstanceId?: string
 }
 
 export type EncounterMechanicsBatchPlan = {
@@ -60,6 +64,7 @@ export type EncounterMechanicsBatchPlan = {
     after: TargetState
   }
   characterStreamVersion: number | null
+  itemUseStateTransition: CharacterItemUseStateTransitionDto | null
   stateChanged: boolean
   shouldAdvance: boolean
   characterUpdate: {
@@ -81,6 +86,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use spell slots.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
+    if (batch.stowEquippedItemInstanceId !== undefined)
+      throw new Error('Encounter non-Character actors cannot stow Character equipment.')
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     const folded = foldCharacterMechanicsApplications({
       targetActorId: actor.id,
@@ -117,6 +124,7 @@ export function planEncounterMechanicsBatch(input: {
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
+      itemUseStateTransition: null,
       stateChanged: folded.stateChanged,
       shouldAdvance: false,
       characterUpdate: null
@@ -201,6 +209,12 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
+  const stowItemId = batch.stowEquippedItemInstanceId
+  if (stowItemId !== undefined && !loaded.character.state.equipment.equipped.includes(stowItemId))
+    throw new Error('Encounter Character item to stow is no longer equipped.')
+  const equippedCharacter =
+    stowItemId === undefined ? loaded.character : unequipCharacterItem(loaded.character, stowItemId)
+
   const campaignConditionIds = loaded.campaignContext.conditions.map(
     (condition) => condition.conditionTypeId
   )
@@ -263,6 +277,7 @@ export function planEncounterMechanicsBatch(input: {
     conditionStateChanged ||
     spellSlotsChanged ||
     resourceUsageChanged ||
+    stowItemId !== undefined ||
     batch.forceVersionAdvance
   const updatedActor = encounterRunActorStateSchema.parse({
     ...actor,
@@ -277,9 +292,9 @@ export function planEncounterMechanicsBatch(input: {
     conditions: nextActorConditions
   })
   const character = {
-    ...loaded.character,
+    ...equippedCharacter,
     state: {
-      ...loaded.character.state,
+      ...equippedCharacter.state,
       hitpoints: {
         ...loaded.character.state.hitpoints,
         current: folded.after.currentHitPoints,
@@ -297,6 +312,20 @@ export function planEncounterMechanicsBatch(input: {
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.streamVersion + 1 : null,
+    itemUseStateTransition:
+      stowItemId === undefined
+        ? null
+        : {
+            kind: 'CHARACTER_ITEM_USE_STATE',
+            characterId: loaded.active.id,
+            itemInstanceId: stowItemId,
+            fromState: 'EQUIPPED',
+            toState: 'CARRIED',
+            beforeStreamVersion: loaded.active.streamVersion,
+            afterStreamVersion: loaded.active.streamVersion + 1,
+            beforeStateChecksum: checksumRuleDocument(loaded.character.state.equipment),
+            afterStateChecksum: checksumRuleDocument(equippedCharacter.state.equipment)
+          },
     stateChanged: folded.stateChanged || conditionStateChanged,
     shouldAdvance,
     characterUpdate: shouldAdvance

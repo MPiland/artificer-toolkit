@@ -15,6 +15,7 @@ import {
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
+import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { query, type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
@@ -77,11 +78,12 @@ export const get = query({
       ).get(actor.id)
       const facts = target?.characterFacts
       const mechanics = target?.characterReactionSource?.mechanics
-      if (!facts || !mechanics || !target.effectiveRulePolicyOutput)
+      const policyOutput = target?.effectiveRulePolicyOutput
+      if (!facts || !mechanics || !policyOutput)
         throw new Error('Encounter Character actions are unavailable.')
       const sheet = projectCharacterSheetFacts({
         ...facts,
-        ruleEvaluation: { ...facts.ruleEvaluation, output: target.effectiveRulePolicyOutput }
+        ruleEvaluation: { ...facts.ruleEvaluation, output: policyOutput }
       }).sheet
       actions = sheet.actions.items
         .filter(
@@ -96,15 +98,28 @@ export const get = query({
                 entry.compilation.kind === 'COMPILED'
             )
         )
-        .map((action) => ({
-          id: action.id,
-          label: action.label,
-          ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
-          ...(action.mechanic?.rangeLabel ? { rangeLabel: action.mechanic.rangeLabel } : {}),
-          ...(action.mechanic?.attackBonus === undefined
-            ? {}
-            : { attackBonus: action.mechanic.attackBonus })
-        }))
+        .map((action) => {
+          const candidate = mechanics.rulePolicyInput.actionCandidates.find(
+            (value) => value.actionId === action.id
+          )
+          const wieldConflict = candidate
+            ? evaluateEncounterCharacterActionWieldConflict({
+                candidate,
+                ruleFacts: facts.ruleEvaluation.facts,
+                policyOutput
+              })
+            : null
+          return {
+            id: action.id,
+            label: action.label,
+            ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
+            ...(action.mechanic?.rangeLabel ? { rangeLabel: action.mechanic.rangeLabel } : {}),
+            ...(action.mechanic?.attackBonus === undefined
+              ? {}
+              : { attackBonus: action.mechanic.attackBonus }),
+            wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
+          }
+        })
     } else if (actor.kind === 'CREATURE') {
       const system = await requireSystem(ctx, state.gameSystemId)
       actions = discoverEncounterFeatureActionCapabilities({
@@ -115,7 +130,8 @@ export const get = query({
       }).map((action) => ({
         id: action.actionId,
         label: action.label,
-        ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {})
+        ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+        wieldConflict: null
       }))
     }
     return encounterActionChoicesDtoSchema.parse({

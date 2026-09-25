@@ -3,6 +3,7 @@ import { loadNativeEncounterActionSource } from './actionSources'
 import { readRunActor, readRunActors, readRunState } from './documents'
 import { loadMovementTargets, type MovementTarget } from './movementTargets'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import type { EncounterWieldConflictAcceptance } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import type { QueryCtx } from '../_generated/server'
 
 type EncounterState = ReturnType<typeof readRunState>
@@ -18,6 +19,7 @@ export async function prepareNativeEncounterActionMechanics(
     target: EncounterActor
     actors: EncounterActors
     actionId: string
+    wieldConflictAcceptance: EncounterWieldConflictAcceptance
     campaignOwnerUserId: string
     movementTargets?: ReadonlyMap<string, MovementTarget>
   }
@@ -37,6 +39,7 @@ export async function prepareNativeEncounterActionMechanics(
     target,
     actors: input.actors,
     actionId: input.actionId,
+    wieldConflictAcceptance: input.wieldConflictAcceptance,
     movementTargets,
     loadSource: (sourceInput) => loadNativeEncounterActionSource(ctx, sourceInput),
     loadRelationshipFacts: (factsInput) => loadNativeActionRelationshipFacts(ctx, factsInput)

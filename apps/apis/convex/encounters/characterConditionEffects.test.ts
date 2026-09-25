@@ -328,6 +328,7 @@ function action(
 ): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
     encounterId: base.run.id,
     commandId: crypto.randomUUID(),
     expectedVersion,

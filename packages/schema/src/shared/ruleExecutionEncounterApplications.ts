@@ -167,6 +167,35 @@ export const concentrationCheckApplicationOutputDtoSchema = z
     })
   )
 
+/** One committed Character equipment change: Disarm, or a shield stowed for an accepted attack. */
+export const characterItemUseStateTransitionDtoSchema = z
+  .strictObject({
+    kind: z.literal('CHARACTER_ITEM_USE_STATE'),
+    characterId: uuidSchema,
+    itemInstanceId: uuidSchema,
+    fromState: z.literal('EQUIPPED'),
+    toState: z.literal('CARRIED'),
+    beforeStreamVersion: aggregateVersionSchema,
+    afterStreamVersion: aggregateVersionSchema,
+    beforeStateChecksum: checksumSchema,
+    afterStateChecksum: checksumSchema
+  })
+  .check(
+    z.superRefine((value, context) => {
+      if (
+        value.afterStreamVersion !== value.beforeStreamVersion + 1 ||
+        value.beforeStateChecksum === value.afterStateChecksum
+      )
+        context.addIssue({
+          code: 'custom',
+          message: 'Character item state transition is invalid.'
+        })
+    })
+  )
+export type CharacterItemUseStateTransitionDto = z.infer<
+  typeof characterItemUseStateTransitionDtoSchema
+>
+
 export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
   .strictObject({
     kind: z.literal('ENCOUNTER_ACTOR_MECHANICS_BATCH'),
@@ -200,6 +229,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
     ),
     targetFeatureResourceConsumption: z._default(
       z.nullable(encounterFeatureResourceReceiptDtoSchema),
+      null
+    ),
+    sourceItemUseStateTransition: z._default(
+      z.nullable(characterItemUseStateTransitionDtoSchema),
       null
     ),
     legendaryResistance: z._default(
@@ -456,6 +489,18 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
           path: ['sourceCharacterId'],
           message: 'Character resource consumption requires a Character source.'
         })
+      const stow = value.sourceItemUseStateTransition
+      if (
+        stow &&
+        (value.sourceCharacterId == null ||
+          stow.characterId !== value.sourceCharacterId ||
+          stow.afterStreamVersion !== value.sourceCharacterStreamVersion)
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['sourceItemUseStateTransition'],
+          message: 'Source item state transition must match the source Character version.'
+        })
       const sourceMaintenanceMutation =
         value.sourceCharacterId != null &&
         (maintenance?.characterOwnerTransitions.some(
@@ -464,7 +509,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
           false)
       if (
         (value.sourceCharacterStreamVersion === null) !==
-        !(resource !== null || sourceMaintenanceMutation)
+        !(resource !== null || stow !== null || sourceMaintenanceMutation)
       )
         context.addIssue({
           code: 'custom',
@@ -640,17 +685,7 @@ export const contestedActionApplicationOutputDtoSchema = z
     outcome: z.enum(['SOURCE_WIN', 'TARGET_WIN_OR_TIE']),
     stateTransition: z.discriminatedUnion('kind', [
       z.strictObject({ kind: z.literal('NONE') }),
-      z.strictObject({
-        kind: z.literal('CHARACTER_ITEM_USE_STATE'),
-        characterId: uuidSchema,
-        itemInstanceId: uuidSchema,
-        fromState: z.literal('EQUIPPED'),
-        toState: z.literal('CARRIED'),
-        beforeStreamVersion: aggregateVersionSchema,
-        afterStreamVersion: aggregateVersionSchema,
-        beforeStateChecksum: checksumSchema,
-        afterStateChecksum: checksumSchema
-      }),
+      characterItemUseStateTransitionDtoSchema,
       z.strictObject({
         kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
         actorId: uuidSchema,
@@ -714,17 +749,6 @@ export const contestedActionApplicationOutputDtoSchema = z
           code: 'custom',
           path: ['stateTransition'],
           message: 'A contested-action target win or tie cannot mutate item state.'
-        })
-      if (
-        value.stateTransition.kind === 'CHARACTER_ITEM_USE_STATE' &&
-        (value.stateTransition.afterStreamVersion !==
-          value.stateTransition.beforeStreamVersion + 1 ||
-          value.stateTransition.beforeStateChecksum === value.stateTransition.afterStateChecksum)
-      )
-        context.addIssue({
-          code: 'custom',
-          path: ['stateTransition'],
-          message: 'Character contested-action item state transition is invalid.'
         })
       if (
         value.stateTransition.kind === 'ENCOUNTER_ACTOR_ITEM_USE_STATE' &&

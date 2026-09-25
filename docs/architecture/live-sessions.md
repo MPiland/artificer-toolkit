@@ -305,7 +305,10 @@ flowchart LR
 Direct Convex mutations that overlap the active Scene projection are fenced until the Session DO
 drains and releases authority. Character commands use their owning Convex functions; Encounter
 commands enter through the room, which forwards them to their owning Convex functions.
-One Character version and its receipt are committed in the same Convex transaction. The current
+One Character version and its receipt are committed in the same Convex transaction. An accepted
+shield stow on `RESOLVE_ACTION` rides in the source Character's action batch with any resource use;
+the action commit re-applies it and rejects a room result whose `sourceItemUseStateTransition` differs
+from the committed stow ([drawn weapons](rules-runtime.md)). The current
 Scene command lane does not publish Character mutations; the new preparation path reads authorized
 Character inputs for the approved DO rules integration.
 

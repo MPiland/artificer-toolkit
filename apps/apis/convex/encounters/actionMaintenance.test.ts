@@ -332,6 +332,7 @@ function action(
 ): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
     encounterId: base.run.id,
     commandId: crypto.randomUUID(),
     expectedVersion,
@@ -1164,6 +1165,7 @@ it('captures five real maintained dependents and matches native action preflight
       actor: source,
       target: source,
       actionId: command.actionId,
+      wieldConflictAcceptance: { kind: 'UNPROMPTED' },
       campaignOwnerUserId: base.owner.userId
     })
     const expected = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)
@@ -1338,6 +1340,7 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
         actor: source,
         target,
         actionId: command.actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
         campaignOwnerUserId: base.owner.userId
       })
       const maintenance = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)

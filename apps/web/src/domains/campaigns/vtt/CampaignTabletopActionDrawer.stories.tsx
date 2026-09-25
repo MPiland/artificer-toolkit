@@ -27,7 +27,19 @@ const actions = [
     label: 'Quarterstaff',
     sourceLabel: 'Equipment',
     rangeLabel: '5 ft',
-    attackBonus: 4
+    attackBonus: 4,
+    wieldConflict: null
+  }
+] satisfies EncounterActionChoiceDto[]
+const shieldItemInstanceId = '77777777-7777-4777-8777-777777777721'
+const greatswordActions = [
+  {
+    id: 'equipment-greatsword:attack',
+    label: 'Greatsword',
+    sourceLabel: 'Equipment',
+    rangeLabel: '5 ft',
+    attackBonus: 5,
+    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 }
   }
 ] satisfies EncounterActionChoiceDto[]
 const optionalRules = [
@@ -144,6 +156,7 @@ export const ResolveTargetedAction: Story = {
         actorId: sourceActor.id,
         actionId: 'equipment-staff:attack',
         targetActorId: targetActor.id,
+        acceptedWieldConflict: null,
         sceneContext: {
           sceneId: tabletopLiveScene.id,
           expectedSceneVersion: tabletopLiveScene.version,
@@ -210,7 +223,15 @@ export const ResolveDisarm: Story = {
 
 export const CreatureSource: Story = {
   args: {
-    actions: [{ id: 'creature-claw', label: 'Claw', rangeLabel: '5 ft', attackBonus: 5 }],
+    actions: [
+      {
+        id: 'creature-claw',
+        label: 'Claw',
+        rangeLabel: '5 ft',
+        attackBonus: 5,
+        wieldConflict: null
+      }
+    ],
     actionsLoading: false,
     actionChoicesError: null,
     actorIdByTokenId: new Map([
@@ -288,5 +309,51 @@ export const StaleOptionalScope: Story = {
     currentResponse({ ...optionalChoices, optionId: 'd'.repeat(64) })
     await expect(await drawer.findByRole('combobox', { name: 'Held item' })).toBeVisible()
     await expect(drawer.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+  }
+}
+
+export const ConfirmShieldStow: Story = {
+  args: {
+    actions: greatswordActions,
+    actionsLoading: false,
+    actionChoicesError: null,
+    actorIdByTokenId,
+    connected: true,
+    encounter: tabletopGmEncounter,
+    pending: false,
+    scene: tabletopLiveScene,
+    onResolve: resolveActionCommand,
+    optionalRules: [],
+    onLoadOptionalChoices: loadOptionalChoices
+  },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Greatsword · Equipment' }))
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Target' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
+
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+    await expect(
+      drawer.getByText(
+        'Attacking with this weapon stows your shield. AC −2 until you equip it again.'
+      )
+    ).toBeVisible()
+    await userEvent.click(drawer.getByRole('button', { name: 'Cancel' }))
+    await expect(
+      drawer.queryByRole('button', { name: 'Stow shield and attack' })
+    ).not.toBeInTheDocument()
+    await expect(resolveAction).not.toHaveBeenCalled()
+
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Stow shield and attack' }))
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
+    await expect(resolveAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'equipment-greatsword:attack',
+        acceptedWieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId }
+      })
+    )
   }
 }

@@ -72,6 +72,7 @@ export function CampaignTabletopActionDrawer({
     value: string
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [stowConfirmationIdentity, setStowConfirmationIdentity] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const currentActor =
@@ -126,6 +127,9 @@ export function CampaignTabletopActionDrawer({
   const selectionControlsDisabled =
     !connected || pending || submitting || actionsLoading || actionChoicesError !== null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
+  const wieldConflict = optionalRuleId === null ? (selectedAction?.wieldConflict ?? null) : null
+  const confirmingStow =
+    wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
   const incompleteOptionalChoices =
     optionalRuleId !== null &&
     (!selectedOptionalRule ||
@@ -207,7 +211,10 @@ export function CampaignTabletopActionDrawer({
     targetTokenId
   ])
 
-  async function resolveAction(): Promise<void> {
+  async function resolveAction(
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+  ): Promise<void> {
+    setStowConfirmationIdentity(null)
     if (
       !currentActor ||
       !selectedAction ||
@@ -231,6 +238,7 @@ export function CampaignTabletopActionDrawer({
         actionId: selectedAction.id,
         targetActorId,
         sceneContext,
+        acceptedWieldConflict,
         optionalCombatIntent: currentOptionalChoices
           ? {
               definitionId: currentOptionalChoices.definitionId,
@@ -373,21 +381,52 @@ export function CampaignTabletopActionDrawer({
                     }}
                   />
                 ))}
-              <Group>
-                <Button
-                  disabled={
-                    dependentControlsDisabled ||
-                    !selectedAction ||
-                    !targetActorId ||
-                    incompleteOptionalChoices ||
-                    currentOptionalChoicesError !== null
-                  }
-                  loading={submitting}
-                  onClick={() => void resolveAction()}
-                >
-                  Resolve action
-                </Button>
-              </Group>
+              {confirmingStow ? (
+                <Alert color='yellow' title='Stow shield?'>
+                  <Stack gap='sm'>
+                    <Text size='sm'>
+                      Attacking with this weapon stows your shield. AC −
+                      {-wieldConflict.armorClassDelta} until you equip it again.
+                    </Text>
+                    <Group>
+                      <Button
+                        disabled={dependentControlsDisabled}
+                        onClick={() =>
+                          void resolveAction({
+                            kind: wieldConflict.kind,
+                            shieldItemInstanceId: wieldConflict.shieldItemInstanceId
+                          })
+                        }
+                      >
+                        Stow shield and attack
+                      </Button>
+                      <Button variant='default' onClick={() => setStowConfirmationIdentity(null)}>
+                        Cancel
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Alert>
+              ) : (
+                <Group>
+                  <Button
+                    disabled={
+                      dependentControlsDisabled ||
+                      !selectedAction ||
+                      !targetActorId ||
+                      incompleteOptionalChoices ||
+                      currentOptionalChoicesError !== null
+                    }
+                    loading={submitting}
+                    onClick={() =>
+                      wieldConflict
+                        ? setStowConfirmationIdentity(choiceRequestIdentity)
+                        : void resolveAction(null)
+                    }
+                  >
+                    Resolve action
+                  </Button>
+                </Group>
+              )}
             </>
           ) : !actionsLoading && !actionChoicesError ? (
             <Text c='dimmed'>No structured actions are available for the active combatant.</Text>

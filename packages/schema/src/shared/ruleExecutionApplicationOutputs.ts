@@ -15,6 +15,7 @@ import {
   validateStateEffectTransitions
 } from './ruleExecutionMechanics.js'
 import {
+  characterItemUseStateTransitionDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
@@ -72,6 +73,10 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
       ),
       targetFeatureResourceConsumption: z._default(
         z.nullable(encounterFeatureResourceReceiptDtoSchema),
+        null
+      ),
+      sourceItemUseStateTransition: z._default(
+        z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
       activeEffectTransitions: z
@@ -356,12 +361,27 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
           ) ||
           value.targetTransition.before.conditionIds.length !==
             value.targetTransition.after.conditionIds.length
-        const hasResource = value.resourceConsumption !== null
+        const stow = value.sourceItemUseStateTransition
+        const hasSourceMutation = value.resourceConsumption !== null || stow !== null
         const hasActiveEffectCreation = value.activeEffectTransitions.length > 0
+        if (
+          stow &&
+          (value.sourceCharacterId === null ||
+            stow.characterId !== value.sourceCharacterId ||
+            stow.afterStreamVersion !==
+              (value.sourceActorId === value.targetActorId
+                ? value.targetCharacterStreamVersion
+                : value.sourceCharacterStreamVersion))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemUseStateTransition'],
+            message: 'Source item state transition must match the source Character version.'
+          })
         if (
           value.targetCharacterStreamVersion !==
           (transitionChanged ||
-          (value.sourceActorId === value.targetActorId && hasResource) ||
+          (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
           hasActiveEffectCreation
             ? value.targetCharacterStreamVersion
             : null)
@@ -374,7 +394,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
           (value.targetCharacterStreamVersion === null) !==
           !(
             transitionChanged ||
-            (value.sourceActorId === value.targetActorId && hasResource) ||
+            (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
             hasActiveEffectCreation
           )
         )
@@ -384,7 +404,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
           })
         const sourceCharacterMutation =
           value.sourceActorId !== value.targetActorId &&
-          (hasResource ||
+          (hasSourceMutation ||
             (value.sourceCharacterId !== null &&
               (value.maintenanceTransition?.characterOwnerTransitions.some(
                 (transition) => transition.characterId === value.sourceCharacterId

@@ -28,6 +28,7 @@ export type EncounterMechanicsBatchResult = {
     after: TargetState
   }
   characterStreamVersion: number | null
+  itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
   characterReceiptId: string | null
 }
 
@@ -126,7 +127,12 @@ export async function persistEncounterMechanicsBatchPlan(
   )
     throw new Error('Encounter mechanics target changed before settlement.')
   if (actor.kind !== 'CHARACTER') {
-    if (character || plan.characterUpdate || plan.characterStreamVersion !== null)
+    if (
+      character ||
+      plan.characterUpdate ||
+      plan.characterStreamVersion !== null ||
+      plan.itemUseStateTransition
+    )
       throw new Error('Encounter non-Character plan contains Character state.')
     if (plan.stateChanged)
       await ctx.db.patch(actorRow._id, {
@@ -138,6 +144,7 @@ export async function persistEncounterMechanicsBatchPlan(
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
+      itemUseStateTransition: null,
       characterReceiptId: null
     }
   }
@@ -167,6 +174,10 @@ export async function persistEncounterMechanicsBatchPlan(
     plan.characterStreamVersion !== (plan.shouldAdvance ? character.streamVersion + 1 : null) ||
     plan.updatedActor.sourceRevision !==
       (plan.shouldAdvance ? character.streamVersion + 1 : character.streamVersion) ||
+    (plan.itemUseStateTransition &&
+      (!plan.shouldAdvance ||
+        plan.itemUseStateTransition.characterId !== character.id ||
+        plan.itemUseStateTransition.beforeStreamVersion !== character.streamVersion)) ||
     (plan.characterUpdate &&
       (plan.characterUpdate.character.id !== character.id ||
         plan.characterUpdate.character.systemId !== character.systemId ||
@@ -204,7 +215,8 @@ export async function persistEncounterMechanicsBatchPlan(
       updatedAt: input.occurredAt
     })
   }
-  if (plan.stateChanged) {
+  const stow = plan.itemUseStateTransition
+  if (plan.stateChanged || stow) {
     characterReceiptId = crypto.randomUUID()
     const outcomeCount = plan.receiptApplications.filter(
       (application) =>
@@ -215,15 +227,23 @@ export async function persistEncounterMechanicsBatchPlan(
       eventId: characterReceiptId,
       occurredAt: input.occurredAt,
       actorId: userId,
-      eventType: 'CHARACTER_RULE_OUTCOME_APPLIED',
-      summary: `Rule outcomes applied: ${outcomeCount} result${outcomeCount === 1 ? '' : 's'}`
+      ...(plan.stateChanged
+        ? {
+            eventType: 'CHARACTER_RULE_OUTCOME_APPLIED',
+            summary: `Rule outcomes applied: ${outcomeCount} result${outcomeCount === 1 ? '' : 's'}`
+          }
+        : {
+            eventType: 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED',
+            summary: 'Rule equipment state applied'
+          })
     })
     const fingerprint = checksumRuleDocument({
       encounterId: input.encounterId,
       occurrenceId: input.occurrenceId,
       sourceCommandId: input.sourceCommandId,
       targetActorId: input.targetActorId,
-      applications: plan.receiptApplications
+      applications: plan.receiptApplications,
+      ...(stow ? { itemUseStateTransition: stow } : {})
     })
     await ctx.db.insert(
       'characterCommandReceipts',
@@ -249,6 +269,7 @@ export async function persistEncounterMechanicsBatchPlan(
     receiptApplications: plan.receiptApplications,
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
+    itemUseStateTransition: stow,
     characterReceiptId
   }
 }

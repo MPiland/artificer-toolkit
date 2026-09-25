@@ -410,6 +410,7 @@ export async function verifyEncounterEffects({
     }
     let root: ResolveEncounterActionInputDto = {
       type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: run.id,
       commandId: crypto.randomUUID(),
       expectedVersion: run.version,

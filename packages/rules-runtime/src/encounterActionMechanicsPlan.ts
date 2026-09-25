@@ -46,8 +46,13 @@ export function prepareNativeActionMechanicsBatches(input: NativeEncounterAction
   if (input.encounterId !== state.id || input.expectedEncounterVersion !== state.version)
     throw new Error('Encounter action settlement is stale.')
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
+  const stow = prepared.acceptedWieldConflict
+  const sourceMutation = {
+    ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
+    ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
+  }
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
-    source.kind === 'CHARACTER_ACTION' && resourceConsumption && actor.id !== target.id
+    source.kind === 'CHARACTER_ACTION' && (resourceConsumption || stow) && actor.id !== target.id
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -66,7 +71,7 @@ export function prepareNativeActionMechanicsBatches(input: NativeEncounterAction
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
           forceVersionAdvance: false,
-          characterResourceConsumption: resourceConsumption
+          ...sourceMutation
         }
       : null
   const targetBatch: EncounterMechanicsBatchInput = {
@@ -94,9 +99,7 @@ export function prepareNativeActionMechanicsBatches(input: NativeEncounterAction
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
-    ...(source.kind === 'CHARACTER_ACTION' && actor.id === target.id && resourceConsumption
-      ? { characterResourceConsumption: resourceConsumption }
-      : {})
+    ...(source.kind === 'CHARACTER_ACTION' && actor.id === target.id ? sourceMutation : {})
   }
   return { sourceResourceBatch, targetBatch }
 }
@@ -105,11 +108,19 @@ export function finishNativeActionMechanicsSettlement(
   prepared: NativeEncounterActionMechanicsInput['prepared'],
   mechanics: Pick<
     EncounterMechanicsBatchPlan,
-    'updatedActor' | 'receiptApplications' | 'targetTransition' | 'characterStreamVersion'
+    | 'updatedActor'
+    | 'receiptApplications'
+    | 'targetTransition'
+    | 'characterStreamVersion'
+    | 'itemUseStateTransition'
   >,
   sourceResourceMechanics: Pick<
     EncounterMechanicsBatchPlan,
-    'updatedActor' | 'receiptApplications' | 'targetTransition' | 'characterStreamVersion'
+    | 'updatedActor'
+    | 'receiptApplications'
+    | 'targetTransition'
+    | 'characterStreamVersion'
+    | 'itemUseStateTransition'
   > | null
 ) {
   const { actor, target, source, resourceUse, featureResource, featureUsed } = prepared
@@ -131,12 +142,20 @@ export function finishNativeActionMechanicsSettlement(
   }
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
   const sourceCharacterStreamVersion =
-    source.kind === 'CHARACTER_ACTION' && resourceConsumption && actor.id !== target.id
+    source.kind === 'CHARACTER_ACTION' &&
+    (resourceConsumption || prepared.acceptedWieldConflict) &&
+    actor.id !== target.id
       ? (sourceResourceMechanics?.characterStreamVersion ??
         (() => {
           throw new Error('The selected Character action resource was not committed.')
         })())
       : null
+  const sourceItemUseStateTransition = prepared.acceptedWieldConflict
+    ? ((actor.id === target.id ? mechanics : sourceResourceMechanics)?.itemUseStateTransition ??
+      (() => {
+        throw new Error('The accepted shield stow was not committed.')
+      })())
+    : null
   const resourceReceipt = resourceConsumption
     ? {
         poolId: resourceConsumption.poolId,
@@ -169,6 +188,7 @@ export function finishNativeActionMechanicsSettlement(
     settledSource,
     sourceResourceMechanics,
     sourceCharacterStreamVersion,
+    sourceItemUseStateTransition,
     resourceReceipt,
     featureResourceReceipt
   }

@@ -22,6 +22,7 @@ import type { prepareEncounterActionMechanics } from './encounterActionMechanics
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { discoverTurnLegendaryWindows } from './encounterTurnLegendaryDiscovery.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
@@ -53,6 +54,7 @@ export type TurnLegendaryActionInput<
     target: EncounterRunActorState
     actors: readonly EncounterRunActorState[]
     actionId: string
+    wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   }): Promise<Awaited<ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>>>
   definitions: CurrentReusableDefinitionSource
@@ -113,6 +115,7 @@ export async function prepareTurnLegendaryActions<
       target: actor,
       actors: durable,
       actionId: option.actionId,
+      wieldConflictAcceptance: { kind: 'UNPROMPTED' },
       ...(input.movementTargets?.has(actor.id) ? { movementTargets: input.movementTargets } : {})
     })
     const published = prepared.adapter.compile({ action: candidate.action })

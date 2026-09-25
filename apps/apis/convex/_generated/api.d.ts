@@ -45186,6 +45186,11 @@ export declare const api: {
             label: string;
             rangeLabel?: string;
             sourceLabel?: string;
+            wieldConflict: {
+              armorClassDelta: number;
+              kind: "STOW_SHIELD";
+              shieldItemInstanceId: string;
+            } | null;
           }>;
           actorId: string;
           encounterId: string;
@@ -47730,6 +47735,10 @@ export declare const api: {
                         type: "UPGRADE_RULE_PACK";
                       }
                     | {
+                        acceptedWieldConflict?: {
+                          kind: "STOW_SHIELD";
+                          shieldItemInstanceId: string;
+                        } | null;
                         actionId: string;
                         actorId: string;
                         commandId: string;
@@ -65567,6 +65576,10 @@ export declare const internal: {
                 type: "UPGRADE_RULE_PACK";
               }
             | {
+                acceptedWieldConflict?: {
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                } | null;
                 actionId: string;
                 actorId: string;
                 commandId: string;
@@ -67584,6 +67597,10 @@ export declare const internal: {
                 type: "UPGRADE_RULE_PACK";
               }
             | {
+                acceptedWieldConflict?: {
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                } | null;
                 actionId: string;
                 actorId: string;
                 commandId: string;
@@ -69671,6 +69688,10 @@ export declare const internal: {
                         type: "UPGRADE_RULE_PACK";
                       }
                     | {
+                        acceptedWieldConflict?: {
+                          kind: "STOW_SHIELD";
+                          shieldItemInstanceId: string;
+                        } | null;
                         actionId: string;
                         actorId: string;
                         commandId: string;
@@ -76718,6 +76739,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId?: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -77039,6 +77071,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -78162,6 +78205,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId?: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -78483,6 +78537,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -80607,6 +80672,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -80948,6 +81024,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -81665,6 +81752,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -82006,6 +82104,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -83810,6 +83919,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -84169,6 +84289,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -85873,6 +86004,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -86232,6 +86374,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -87465,6 +87618,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -87807,6 +87971,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -90127,6 +90302,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -90469,6 +90655,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -92475,6 +92672,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -92834,6 +93042,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -93682,6 +93901,17 @@ export declare const internal: {
                                     sourceActorId: string;
                                     sourceCharacterId?: string | null;
                                     sourceCharacterStreamVersion: number | null;
+                                    sourceItemUseStateTransition?: {
+                                      afterStateChecksum: string;
+                                      afterStreamVersion: number;
+                                      beforeStateChecksum: string;
+                                      beforeStreamVersion: number;
+                                      characterId: string;
+                                      fromState: "EQUIPPED";
+                                      itemInstanceId: string;
+                                      kind: "CHARACTER_ITEM_USE_STATE";
+                                      toState: "CARRIED";
+                                    } | null;
                                     spellCastConsumption?: {
                                       afterUsed: number | null;
                                       beforeUsed: number | null;
@@ -94008,6 +94238,17 @@ export declare const internal: {
                                     sourceActorId: string;
                                     sourceCharacterId: string | null;
                                     sourceCharacterStreamVersion: number | null;
+                                    sourceItemUseStateTransition?: {
+                                      afterStateChecksum: string;
+                                      afterStreamVersion: number;
+                                      beforeStateChecksum: string;
+                                      beforeStreamVersion: number;
+                                      characterId: string;
+                                      fromState: "EQUIPPED";
+                                      itemInstanceId: string;
+                                      kind: "CHARACTER_ITEM_USE_STATE";
+                                      toState: "CARRIED";
+                                    } | null;
                                     spellCastConsumption?: {
                                       afterUsed: number | null;
                                       beforeUsed: number | null;
@@ -96747,6 +96988,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -97089,6 +97341,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -97807,6 +98070,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -98149,6 +98423,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -99970,6 +100255,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -100330,6 +100626,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -102047,6 +102354,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -102407,6 +102725,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -103642,6 +103971,17 @@ export declare const internal: {
                                             sourceCharacterId?: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -103984,6 +104324,17 @@ export declare const internal: {
                                             sourceCharacterId: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -106335,6 +106686,17 @@ export declare const internal: {
                                             sourceCharacterId?: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -106677,6 +107039,17 @@ export declare const internal: {
                                             sourceCharacterId: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -108709,6 +109082,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -109069,6 +109453,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -109941,6 +110336,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -110275,6 +110681,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -112835,6 +113252,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -113169,6 +113597,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -113872,6 +114311,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -114206,6 +114656,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -115971,6 +116432,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -116316,6 +116788,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -117979,6 +118462,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -118324,6 +118818,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -119542,6 +120047,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -119883,6 +120399,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -122185,6 +122712,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -122526,6 +123064,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -124498,6 +125047,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -124843,6 +125403,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -125689,6 +126260,17 @@ export declare const internal: {
                                   sourceActorId: string;
                                   sourceCharacterId?: string | null;
                                   sourceCharacterStreamVersion: number | null;
+                                  sourceItemUseStateTransition?: {
+                                    afterStateChecksum: string;
+                                    afterStreamVersion: number;
+                                    beforeStateChecksum: string;
+                                    beforeStreamVersion: number;
+                                    characterId: string;
+                                    fromState: "EQUIPPED";
+                                    itemInstanceId: string;
+                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                    toState: "CARRIED";
+                                  } | null;
                                   spellCastConsumption?: {
                                     afterUsed: number | null;
                                     beforeUsed: number | null;
@@ -126013,6 +126595,17 @@ export declare const internal: {
                                   sourceActorId: string;
                                   sourceCharacterId: string | null;
                                   sourceCharacterStreamVersion: number | null;
+                                  sourceItemUseStateTransition?: {
+                                    afterStateChecksum: string;
+                                    afterStreamVersion: number;
+                                    beforeStateChecksum: string;
+                                    beforeStreamVersion: number;
+                                    characterId: string;
+                                    fromState: "EQUIPPED";
+                                    itemInstanceId: string;
+                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                    toState: "CARRIED";
+                                  } | null;
                                   spellCastConsumption?: {
                                     afterUsed: number | null;
                                     beforeUsed: number | null;
@@ -131199,6 +131792,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId?: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -131520,6 +132124,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -132643,6 +133258,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId?: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -132964,6 +133590,17 @@ export declare const internal: {
                               sourceActorId: string;
                               sourceCharacterId: string | null;
                               sourceCharacterStreamVersion: number | null;
+                              sourceItemUseStateTransition?: {
+                                afterStateChecksum: string;
+                                afterStreamVersion: number;
+                                beforeStateChecksum: string;
+                                beforeStreamVersion: number;
+                                characterId: string;
+                                fromState: "EQUIPPED";
+                                itemInstanceId: string;
+                                kind: "CHARACTER_ITEM_USE_STATE";
+                                toState: "CARRIED";
+                              } | null;
                               spellCastConsumption?: {
                                 afterUsed: number | null;
                                 beforeUsed: number | null;
@@ -135088,6 +135725,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -135429,6 +136077,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -136146,6 +136805,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -136487,6 +137157,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -138291,6 +138972,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -138650,6 +139342,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -140354,6 +141057,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -140713,6 +141427,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -141946,6 +142671,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -142288,6 +143024,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -144608,6 +145355,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -144950,6 +145708,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -146956,6 +147725,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -147315,6 +148095,17 @@ export declare const internal: {
                                                   string | null;
                                                 sourceCharacterStreamVersion:
                                                   number | null;
+                                                sourceItemUseStateTransition?: {
+                                                  afterStateChecksum: string;
+                                                  afterStreamVersion: number;
+                                                  beforeStateChecksum: string;
+                                                  beforeStreamVersion: number;
+                                                  characterId: string;
+                                                  fromState: "EQUIPPED";
+                                                  itemInstanceId: string;
+                                                  kind: "CHARACTER_ITEM_USE_STATE";
+                                                  toState: "CARRIED";
+                                                } | null;
                                                 spellCastConsumption?: {
                                                   afterUsed: number | null;
                                                   beforeUsed: number | null;
@@ -148163,6 +148954,17 @@ export declare const internal: {
                                     sourceActorId: string;
                                     sourceCharacterId?: string | null;
                                     sourceCharacterStreamVersion: number | null;
+                                    sourceItemUseStateTransition?: {
+                                      afterStateChecksum: string;
+                                      afterStreamVersion: number;
+                                      beforeStateChecksum: string;
+                                      beforeStreamVersion: number;
+                                      characterId: string;
+                                      fromState: "EQUIPPED";
+                                      itemInstanceId: string;
+                                      kind: "CHARACTER_ITEM_USE_STATE";
+                                      toState: "CARRIED";
+                                    } | null;
                                     spellCastConsumption?: {
                                       afterUsed: number | null;
                                       beforeUsed: number | null;
@@ -148489,6 +149291,17 @@ export declare const internal: {
                                     sourceActorId: string;
                                     sourceCharacterId: string | null;
                                     sourceCharacterStreamVersion: number | null;
+                                    sourceItemUseStateTransition?: {
+                                      afterStateChecksum: string;
+                                      afterStreamVersion: number;
+                                      beforeStateChecksum: string;
+                                      beforeStreamVersion: number;
+                                      characterId: string;
+                                      fromState: "EQUIPPED";
+                                      itemInstanceId: string;
+                                      kind: "CHARACTER_ITEM_USE_STATE";
+                                      toState: "CARRIED";
+                                    } | null;
                                     spellCastConsumption?: {
                                       afterUsed: number | null;
                                       beforeUsed: number | null;
@@ -151228,6 +152041,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -151570,6 +152394,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -152288,6 +153123,17 @@ export declare const internal: {
                                           sourceCharacterId?: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -152630,6 +153476,17 @@ export declare const internal: {
                                           sourceCharacterId: string | null;
                                           sourceCharacterStreamVersion:
                                             number | null;
+                                          sourceItemUseStateTransition?: {
+                                            afterStateChecksum: string;
+                                            afterStreamVersion: number;
+                                            beforeStateChecksum: string;
+                                            beforeStreamVersion: number;
+                                            characterId: string;
+                                            fromState: "EQUIPPED";
+                                            itemInstanceId: string;
+                                            kind: "CHARACTER_ITEM_USE_STATE";
+                                            toState: "CARRIED";
+                                          } | null;
                                           spellCastConsumption?: {
                                             afterUsed: number | null;
                                             beforeUsed: number | null;
@@ -154451,6 +155308,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -154811,6 +155679,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -156528,6 +157407,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -156888,6 +157778,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -158123,6 +159024,17 @@ export declare const internal: {
                                             sourceCharacterId?: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -158465,6 +159377,17 @@ export declare const internal: {
                                             sourceCharacterId: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -160816,6 +161739,17 @@ export declare const internal: {
                                             sourceCharacterId?: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -161158,6 +162092,17 @@ export declare const internal: {
                                             sourceCharacterId: string | null;
                                             sourceCharacterStreamVersion:
                                               number | null;
+                                            sourceItemUseStateTransition?: {
+                                              afterStateChecksum: string;
+                                              afterStreamVersion: number;
+                                              beforeStateChecksum: string;
+                                              beforeStreamVersion: number;
+                                              characterId: string;
+                                              fromState: "EQUIPPED";
+                                              itemInstanceId: string;
+                                              kind: "CHARACTER_ITEM_USE_STATE";
+                                              toState: "CARRIED";
+                                            } | null;
                                             spellCastConsumption?: {
                                               afterUsed: number | null;
                                               beforeUsed: number | null;
@@ -163190,6 +164135,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -163550,6 +164506,17 @@ export declare const internal: {
                                                     string | null;
                                                   sourceCharacterStreamVersion:
                                                     number | null;
+                                                  sourceItemUseStateTransition?: {
+                                                    afterStateChecksum: string;
+                                                    afterStreamVersion: number;
+                                                    beforeStateChecksum: string;
+                                                    beforeStreamVersion: number;
+                                                    characterId: string;
+                                                    fromState: "EQUIPPED";
+                                                    itemInstanceId: string;
+                                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                                    toState: "CARRIED";
+                                                  } | null;
                                                   spellCastConsumption?: {
                                                     afterUsed: number | null;
                                                     beforeUsed: number | null;
@@ -164422,6 +165389,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -164756,6 +165734,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -167316,6 +168305,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -167650,6 +168650,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -168353,6 +169364,17 @@ export declare const internal: {
                                       sourceCharacterId?: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -168687,6 +169709,17 @@ export declare const internal: {
                                       sourceCharacterId: string | null;
                                       sourceCharacterStreamVersion:
                                         number | null;
+                                      sourceItemUseStateTransition?: {
+                                        afterStateChecksum: string;
+                                        afterStreamVersion: number;
+                                        beforeStateChecksum: string;
+                                        beforeStreamVersion: number;
+                                        characterId: string;
+                                        fromState: "EQUIPPED";
+                                        itemInstanceId: string;
+                                        kind: "CHARACTER_ITEM_USE_STATE";
+                                        toState: "CARRIED";
+                                      } | null;
                                       spellCastConsumption?: {
                                         afterUsed: number | null;
                                         beforeUsed: number | null;
@@ -170452,6 +171485,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -170797,6 +171841,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -172460,6 +173515,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -172805,6 +173871,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -174023,6 +175100,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -174364,6 +175452,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -176666,6 +177765,17 @@ export declare const internal: {
                                         sourceCharacterId?: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -177007,6 +178117,17 @@ export declare const internal: {
                                         sourceCharacterId: string | null;
                                         sourceCharacterStreamVersion:
                                           number | null;
+                                        sourceItemUseStateTransition?: {
+                                          afterStateChecksum: string;
+                                          afterStreamVersion: number;
+                                          beforeStateChecksum: string;
+                                          beforeStreamVersion: number;
+                                          characterId: string;
+                                          fromState: "EQUIPPED";
+                                          itemInstanceId: string;
+                                          kind: "CHARACTER_ITEM_USE_STATE";
+                                          toState: "CARRIED";
+                                        } | null;
                                         spellCastConsumption?: {
                                           afterUsed: number | null;
                                           beforeUsed: number | null;
@@ -178979,6 +180100,17 @@ export declare const internal: {
                                               sourceCharacterId?: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -179324,6 +180456,17 @@ export declare const internal: {
                                               sourceCharacterId: string | null;
                                               sourceCharacterStreamVersion:
                                                 number | null;
+                                              sourceItemUseStateTransition?: {
+                                                afterStateChecksum: string;
+                                                afterStreamVersion: number;
+                                                beforeStateChecksum: string;
+                                                beforeStreamVersion: number;
+                                                characterId: string;
+                                                fromState: "EQUIPPED";
+                                                itemInstanceId: string;
+                                                kind: "CHARACTER_ITEM_USE_STATE";
+                                                toState: "CARRIED";
+                                              } | null;
                                               spellCastConsumption?: {
                                                 afterUsed: number | null;
                                                 beforeUsed: number | null;
@@ -180170,6 +181313,17 @@ export declare const internal: {
                                   sourceActorId: string;
                                   sourceCharacterId?: string | null;
                                   sourceCharacterStreamVersion: number | null;
+                                  sourceItemUseStateTransition?: {
+                                    afterStateChecksum: string;
+                                    afterStreamVersion: number;
+                                    beforeStateChecksum: string;
+                                    beforeStreamVersion: number;
+                                    characterId: string;
+                                    fromState: "EQUIPPED";
+                                    itemInstanceId: string;
+                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                    toState: "CARRIED";
+                                  } | null;
                                   spellCastConsumption?: {
                                     afterUsed: number | null;
                                     beforeUsed: number | null;
@@ -180494,6 +181648,17 @@ export declare const internal: {
                                   sourceActorId: string;
                                   sourceCharacterId: string | null;
                                   sourceCharacterStreamVersion: number | null;
+                                  sourceItemUseStateTransition?: {
+                                    afterStateChecksum: string;
+                                    afterStreamVersion: number;
+                                    beforeStateChecksum: string;
+                                    beforeStreamVersion: number;
+                                    characterId: string;
+                                    fromState: "EQUIPPED";
+                                    itemInstanceId: string;
+                                    kind: "CHARACTER_ITEM_USE_STATE";
+                                    toState: "CARRIED";
+                                  } | null;
                                   spellCastConsumption?: {
                                     afterUsed: number | null;
                                     beforeUsed: number | null;

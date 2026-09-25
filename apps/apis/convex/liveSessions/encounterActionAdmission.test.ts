@@ -239,6 +239,7 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   })
   const command: ResolveEncounterActionInputDto = {
     type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
     encounterId: run.id,
     commandId: crypto.randomUUID(),
     expectedVersion: run.version,

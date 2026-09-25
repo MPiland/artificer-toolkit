@@ -103,6 +103,7 @@ function command(input: {
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
     encounterId: input.encounterId,
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion,

@@ -160,6 +160,13 @@ export const commit = internalMutation({
         throw new Error('Live Session action resource scope mismatch.')
     } else if (batch.resourceConsumption !== null)
       throw new Error('Live Session action resource is missing.')
+    const stow = command.acceptedWieldConflict
+    if (stow && (source.kind !== 'CHARACTER' || !source.sourceId))
+      throw new Error('Live Session shield stow scope mismatch.')
+    const sourceMutation = {
+      ...(resource ? { characterResourceConsumption: resource } : {}),
+      ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
+    }
     const common = {
       encounterId: state.id,
       expectedEncounterVersion: state.version,
@@ -168,7 +175,7 @@ export const commit = internalMutation({
       occurredAt: input.occurredAt
     }
     const sourceMechanics =
-      resource && source.id !== target.id
+      (resource || stow) && source.id !== target.id && source.sourceId
         ? await applyLiveEncounterMechanicsBatch(ctx, {
             ...common,
             targetActorId: source.id,
@@ -177,12 +184,12 @@ export const commit = internalMutation({
               sourceCommandId: command.commandId,
               phase: 'DIRECT_ACTION_RESOURCE',
               ordinal: 0,
-              targetCharacterId: resource.characterId
+              targetCharacterId: source.sourceId
             }),
             applications: [],
             effectiveMaximumHitPoints: source.maxHitPoints,
             forceVersionAdvance: false,
-            characterResourceConsumption: resource
+            ...sourceMutation
           })
         : null
     const mechanics = await applyLiveEncounterMechanicsBatch(ctx, {
@@ -196,7 +203,7 @@ export const commit = internalMutation({
       effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
-      ...(resource && source.id === target.id ? { characterResourceConsumption: resource } : {})
+      ...(source.id === target.id ? sourceMutation : {})
     })
     if (
       checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -204,7 +211,11 @@ export const commit = internalMutation({
       checksumCanonicalJson(mechanics.targetTransition) !==
         checksumCanonicalJson(batch.targetTransition) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
-        batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion)
+        batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion) ||
+      // The accepted stow must be exactly the one the room planned and this commit applied.
+      checksumCanonicalJson(
+        (source.id === target.id ? mechanics : sourceMechanics)?.itemUseStateTransition ?? null
+      ) !== checksumCanonicalJson(batch.sourceItemUseStateTransition)
     )
       throw new Error('Live Session mechanics receipt mismatch.')
     const beforeSource =

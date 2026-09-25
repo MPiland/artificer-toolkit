@@ -791,6 +791,7 @@ async function executeCutoverWorkloadAction(
     owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
         encounterId: aggregate.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: aggregate.run.version,
@@ -993,6 +994,7 @@ async function verifyCutoverWorkloadPreflight({
   const action = (commandId: string) => ({
     command: {
       type: 'RESOLVE_ACTION' as const,
+      acceptedWieldConflict: null,
       encounterId: aggregate.run.id,
       commandId,
       expectedVersion: aggregate.run.version,
@@ -1042,6 +1044,7 @@ async function verifyCutoverWorkloadPreflight({
     owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
         encounterId: aggregate.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: aggregate.run.version,

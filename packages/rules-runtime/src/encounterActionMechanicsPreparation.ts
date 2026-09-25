@@ -28,6 +28,10 @@ import type {
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import {
+  evaluateEncounterCharacterActionWieldConflict,
+  type EncounterWieldConflictAcceptance
+} from './encounterWieldConflict.js'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
   sheetState: Pick<CharacterSheetState, 'resourceUsage'>
@@ -75,6 +79,7 @@ export async function prepareEncounterActionMechanics<
   target: EncounterRunActorState
   actors: readonly EncounterRunActorState[]
   actionId: string
+  wieldConflictAcceptance: EncounterWieldConflictAcceptance
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
@@ -175,6 +180,27 @@ export async function prepareEncounterActionMechanics<
           })
         })()
       : null
+  const acceptance = input.wieldConflictAcceptance
+  const wieldConflict =
+    source.kind === 'CHARACTER_ACTION' && characterFacts && acceptance.kind === 'PROMPTED'
+      ? evaluateEncounterCharacterActionWieldConflict({
+          candidate: source.candidate,
+          ruleFacts: characterFacts.ruleEvaluation.facts,
+          policyOutput: source.effectivePolicyOutput
+        })
+      : null
+  const acceptedWieldConflict = wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
+  const accepted = acceptance.kind === 'PROMPTED' ? acceptance.accepted : null
+  if (
+    acceptedWieldConflict
+      ? accepted?.shieldItemInstanceId !== acceptedWieldConflict.shieldItemInstanceId
+      : accepted !== null
+  )
+    throw new Error(
+      acceptedWieldConflict
+        ? 'This attack would stow a shield; confirm it first.'
+        : 'This attack does not stow a shield.'
+    )
   const facts = buildEncounterActorRuleFacts({ actors })
   const actorRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
@@ -225,6 +251,7 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     plan,
     characterActionState,
+    acceptedWieldConflict,
     actorRules,
     resourceUse,
     featureResource,

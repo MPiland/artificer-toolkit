@@ -301,6 +301,7 @@ it('plans the same Character action and target facts in the Worker using private
   ).rejects.toThrow()
   const command = {
     type: 'RESOLVE_ACTION' as const,
+    acceptedWieldConflict: null,
     commandId: crypto.randomUUID(),
     sceneContext: {
       sceneId,
@@ -441,6 +442,7 @@ it('plans the same Character action and target facts in the Worker using private
       actor: actors.find((actor) => actor.id === fixture.actor.id)!,
       target: actors.find((actor) => actor.id === target.id)!,
       actionId,
+      wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
       campaignOwnerUserId: fixture.owner.userId
     })
     if (expected.source.kind !== 'CHARACTER_ACTION') throw new Error('Expected Club action.')
@@ -561,6 +563,7 @@ it('plans the same Character action and target facts in the Worker using private
         actor: actors.find((actor) => actor.id === fixture.actor.id)!,
         target: actors.find((actor) => actor.id === target.id)!,
         actionId,
+        wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
         campaignOwnerUserId: fixture.owner.userId
       })
       const settled = await settleNativeEncounterActionMechanics(ctx, {

@@ -148,6 +148,7 @@ it.each([
         actor: source,
         target,
         actionId: command.actionId,
+        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
         campaignOwnerUserId: fixture.owner.userId
       })
       const maintenance = await prepareNativeActionMaintenance(ctx, prepared, fixture.owner.userId)

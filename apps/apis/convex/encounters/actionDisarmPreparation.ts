@@ -32,6 +32,7 @@ export async function prepareNativeDisarm(
   const { state, actor, target, command } = input
   const intent = command.optionalCombatIntent
   if (!intent) throw new Error('Optional combat Disarm is unavailable.')
+  if (command.acceptedWieldConflict) throw new Error('Disarm does not stow a shield.')
   const {
     prepared,
     sceneContext,

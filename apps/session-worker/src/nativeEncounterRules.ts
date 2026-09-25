@@ -171,6 +171,7 @@ export async function planNativeLiveEncounterAction(
     target: actors.find((actor) => actor.id === command.targetActorId)!,
     actors,
     actionId: command.actionId,
+    wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },
     movementTargets,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>

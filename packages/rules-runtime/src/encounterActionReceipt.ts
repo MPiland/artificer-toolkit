@@ -56,6 +56,7 @@ export function buildEncounterActionStoredExecution(input: {
             spellCastConsumption: null,
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
+            sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             activeEffectTransitions: activeEffectTransitions.map(
               ({ targetActorId: _targetActorId, ...transition }) => ({
                 ...transition,
@@ -79,7 +80,7 @@ export function buildEncounterActionStoredExecution(input: {
             occurrenceId,
             sourceActorId: actor.id,
             targetActorId: target.id,
-            ...(input.maintenanceTransition
+            ...(input.maintenanceTransition || settled.sourceItemUseStateTransition
               ? {
                   sourceCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null
                 }
@@ -87,6 +88,7 @@ export function buildEncounterActionStoredExecution(input: {
             sourceCharacterStreamVersion,
             resourceConsumption: resourceReceipt,
             featureResourceConsumption: featureResourceReceipt,
+            sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             activeEffectTransitions,
             stateEffectTransitions,
             ...(input.maintenanceTransition

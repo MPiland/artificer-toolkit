@@ -231,6 +231,24 @@ function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
   return item
 }
 
+/** The Sheet UNEQUIP_ITEM transition; it reads no Sheet projection, so rule settlement reuses it. */
+export function unequipCharacterItem(
+  character: CharacterAuthored,
+  itemId: string
+): CharacterAuthored {
+  ensureInventoryItem(character, itemId)
+  return clearEmptyStateArrays({
+    ...character,
+    state: {
+      ...character.state,
+      equipment: {
+        ...character.state.equipment,
+        equipped: character.state.equipment.equipped.filter((id) => id !== itemId)
+      }
+    }
+  })
+}
+
 function updateSpellSlotUsage(
   character: CharacterAuthored,
   slotKey: string,
@@ -1119,11 +1137,7 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'UNEQUIP_ITEM':
-      ensureInventoryItem(next, command.itemId)
-      next.state.equipment.equipped = next.state.equipment.equipped.filter(
-        (itemId) => itemId !== command.itemId
-      )
-      return clearEmptyStateArrays(next)
+      return unequipCharacterItem(next, command.itemId)
 
     case 'ATTUNE_ITEM': {
       ensureInventoryItem(next, command.itemId)

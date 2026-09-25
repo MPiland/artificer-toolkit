@@ -9,6 +9,7 @@ import { revalidateEncounterMovementReactionOption } from './encounterMovementRe
 import type { PreparedEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import type { buildEncounterMovementReactionFacts } from './encounterMovementReactionFacts.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 type PreparedMechanics<TCharacterFacts extends ProjectableCharacterFacts> = Awaited<
@@ -58,6 +59,7 @@ export async function prepareEncounterMovementReactionAction<
     actors: readonly EncounterRunActorState[]
     actionId: string
     campaignOwnerUserId: string
+    wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   }) => Promise<TPrepared>
   prepareMaintenance: (
@@ -83,6 +85,7 @@ export async function prepareEncounterMovementReactionAction<
     actors,
     actionId: revalidate.option.actionId,
     campaignOwnerUserId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     movementTargets: facts.targets
   })
   if (

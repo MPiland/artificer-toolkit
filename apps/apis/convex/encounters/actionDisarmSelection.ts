@@ -76,6 +76,7 @@ export async function readNativeDisarmSelection(
     actor,
     target,
     actionId: command.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     campaignOwnerUserId: input.campaignOwnerUserId
   })
   const { source, sourceFacts, targetFacts } = prepared

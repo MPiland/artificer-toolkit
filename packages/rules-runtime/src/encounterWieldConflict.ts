@@ -1,4 +1,9 @@
-import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
+import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 
 import { resolveDnd5eActiveShield } from './systems/dnd5e/characterVitals.js'
@@ -6,6 +11,28 @@ import { resolveDnd5eActiveShield } from './systems/dnd5e/characterVitals.js'
 export type EncounterWieldConflict =
   | { kind: 'NONE' }
   | { kind: 'STOW_SHIELD'; shieldItemInstanceId: string; armorClassDelta: number }
+
+/**
+ * Whether an action path asks its submitter about wield conflicts. Only a directly resolved
+ * action prompts; unprompted paths (declared, reactive and follow-up attacks) never stow.
+ */
+export type EncounterWieldConflictAcceptance =
+  | { kind: 'PROMPTED'; accepted: EncounterAcceptedWieldConflictDto | null }
+  | { kind: 'UNPROMPTED' }
+
+/** One input extraction for the action choices query and action preparation. */
+export function evaluateEncounterCharacterActionWieldConflict(input: {
+  candidate: Pick<CharacterActionCandidate, 'equipment'>
+  ruleFacts: Pick<CharacterRulePolicyInput, 'armorClassFacts'>
+  policyOutput: Pick<CharacterRulePolicyOutput, 'grantFold'>
+}): EncounterWieldConflict {
+  return evaluateEncounterWieldConflict({
+    armorClassFacts: input.ruleFacts.armorClassFacts,
+    activeEquipmentInstanceIds: input.policyOutput.grantFold.activeEquipmentInstanceIds,
+    weaponProperties: input.candidate.equipment?.properties ?? [],
+    grip: 'ONE_HANDED'
+  })
+}
 
 /**
  * Whether attacking with the chosen weapon forces the Character to stow its
