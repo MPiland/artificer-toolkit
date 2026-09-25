@@ -34,6 +34,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
 import { LivePlannerUnsupportedError } from './nativeRulesRuntime.js'
 import {
   callLiveSessionRoute,
@@ -83,6 +84,7 @@ export async function planNativeLiveEncounterAction(
   executionOptions: {
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
+    captures?: LiveCaptureReads
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -105,9 +107,16 @@ export async function planNativeLiveEncounterAction(
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const response = await callLiveSessionRoute(environment, accessToken, 'encounterRules', input)
+    const read = await captureEncounterRules(
+      environment,
+      accessToken,
+      input,
+      revisions,
+      executionOptions.captures
+    )
+    const { response } = read
     if (response.kind !== request.kind) throw new Error('Encounter rules capture kind mismatch.')
-    revisions = mergeNativeRulesRevisions(revisions, response.revisions)
+    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
     dependencies.push({ request: input.request, readChecksum: response.readChecksum })
     return response
   }
@@ -184,7 +193,8 @@ export async function planNativeLiveEncounterAction(
       scope: initial,
       state,
       actor,
-      activeEffectsByActorId
+      activeEffectsByActorId,
+      captures: executionOptions.captures
     })
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target

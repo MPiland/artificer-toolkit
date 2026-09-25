@@ -257,6 +257,25 @@ separate transactions, which Convex fences only by `DO_ACTIVE` authority. Curren
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
 
+**Room capture cache (CURRENT, S4-b).** Room planners read System-level rules content through a
+per-room cache beside the Scene cache (`apps/session-worker/src/nativeCaptureCache.ts`): Encounter
+`DEFINITION` and `SYSTEM_VOCABULARY` captures (read as the Campaign owner) and every Character
+source capture (`PUBLICATIONS` and the `SOURCE_INDEX` catalogues, read as the Character's owner).
+An entry is keyed by route, Campaign (and Character), request and the plan's observed SYSTEM and
+CAMPAIGN revisions, so a revision bump misses; a plan's first read always goes to Convex. A hit keeps
+its original response and read checksum and adds only those two stamps to the plan's revisions, so
+the commit fence still checks what was read. Volatile reads are never cached: command admission, Run
+state, actors and effects, maintenance and turn state, and each Character's `INPUTS` (sheet, hit
+points, conditions, Campaign state). The compiled Character rule context is rebuilt per command
+from the fresh Character and the cached sources, since the Character document itself carries hit
+points and conditions. The cache is cleared whenever the room bumps its cache generation
+(presentation change, member eviction, room close) and is bounded by `ROOM_LIMITS` (60 s, 512
+entries, 16 MB). When Convex refuses a commit (409) from a plan that reused any entry,
+`executeLiveEncounterCommand` drops those entries and replans once from fresh reads; a second refusal
+surfaces as before, and a plan that reused nothing is never replanned. Action and turn planning still
+read every Run actor, because the committed actor rules, Concentration and Cleaving cover the whole
+Run.
+
 **Auto-roll and GM void (CURRENT, ADR 0034).** The `ACTION_COMMAND`, `ACTION_RESPONSE` and
 `MOVEMENT_INPUTS` captures carry `autoRollByActorId`: for each Run actor, the "Auto-roll my dice"
 preference of the user its rolls are routed to (see roll routing below). `TURN_COMMAND` carries the
@@ -291,8 +310,9 @@ removes them from every PREPARED or ACTIVE Run's controller lists in the same tr
 - Encounter-bound token movement follows the bound actor's controllers plus the GM
   (`requireBoundTokenMoveControl`); unbound tokens keep the Scene token's `controlledByUserIds`.
   The room applies the same rule to drag previews: a player's transient capture carries
-  `originBoundTokenControl` (each bound token and whether they control its actor), and the room
-  skips its shared Scene-cache fast path for a player on an Encounter-bound Scene.
+  `originBoundTokenControl` (each bound token and whether they control its actor). On an
+  Encounter-bound Scene the room renders a player's preview from its synchronized Scene cache and
+  reads that control from the short-lived AUTHORITY capture it already reuses for pointers (D25).
 - `encounters.activeReads.active` returns `waitingOn` (`GM`, `PLAYER` or null), so a player's view
   shows who a pending decision they can't answer is waiting on, also after a reload.
 - Every result or replay returned to a non-owner goes through
@@ -662,9 +682,13 @@ signed-in client cannot turn one socket into unbounded Convex work:
 - **Queues:** at most 8 pending commands per socket and 64 per room; a command beyond either is
   rejected with `UNAVAILABLE` and the socket stays open. At most 32 pending previews per socket;
   extra samples are dropped, since previews are lossy.
-- **Pointer captures:** pointer previews reuse an AUTHORITY capture for the same origin and audience
-  for up to 2 s instead of querying Convex per sample. A Scene version change or presentation change
-  bypasses the cached capture.
+- **Preview captures:** pointer previews, and a player's bound-token drag previews on a synchronized
+  Encounter-bound Scene (D25), reuse an AUTHORITY capture for the same origin and audience for up to
+  2 s instead of querying Convex per sample. A Scene version change or presentation change bypasses
+  the cached capture. A Scene with Character vision still captures per drag preview (FULL mode, which
+  rechecks the Character revisions its vision was composed from).
+- **Rules capture cache:** System-level rules captures are reused across Encounter commands for up to
+  60 s, at most 512 entries and 16 MB (see "Room capture cache" above).
 - **Admission freshness:** an admission lasts only until the access token expires; renewing it
   re-captures membership and role from Convex. Evictions close sockets through the retried control
   route.

@@ -21,7 +21,8 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { rebuildNativeLiveDeferredCleaving } from './nativeEncounterCleaving.js'
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
 
 /** Plans one admitted concentration response without publishing the child or touching the Run. */
 export async function planNativeLiveConcentrationResponse(
@@ -29,7 +30,11 @@ export async function planNativeLiveConcentrationResponse(
   accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request' | 'concentrationResponse'>,
   response: ResolveRuleOccurrenceInputDto,
-  executionOptions: { runtime: RulesRuntimeService; random?: (maximum: number) => number }
+  executionOptions: {
+    runtime: RulesRuntimeService
+    random?: (maximum: number) => number
+    captures?: LiveCaptureReads
+  }
 ) {
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
@@ -46,9 +51,16 @@ export async function planNativeLiveConcentrationResponse(
   let revisions: LiveSessionEncounterConcentrationCommitInput['revisions'] = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-    const result = await callLiveSessionRoute(environment, accessToken, 'encounterRules', input)
+    const read = await captureEncounterRules(
+      environment,
+      accessToken,
+      input,
+      revisions,
+      executionOptions.captures
+    )
+    const result = read.response
     if (result.kind !== request.kind) throw new Error('Concentration capture kind mismatch.')
-    revisions = mergeNativeRulesRevisions(revisions, result.revisions)
+    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
     dependencies.push({ request: input.request, readChecksum: result.readChecksum })
     return result
   }
@@ -94,7 +106,8 @@ export async function planNativeLiveConcentrationResponse(
       scope: initial,
       state,
       actor,
-      activeEffectsByActorId
+      activeEffectsByActorId,
+      captures: executionOptions.captures
     })
     revisions = mergeNativeRulesRevisions(revisions, prepared.revisions)
     projectedTargets.set(actor.id, prepared.target)

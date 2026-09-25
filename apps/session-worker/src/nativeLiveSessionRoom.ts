@@ -61,6 +61,7 @@ import {
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
 import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
+import { LiveCaptureCache } from './nativeCaptureCache.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import {
@@ -188,6 +189,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     ROOM_LIMITS.maxPendingTransientsPerSocket * ROOM_LIMITS.maxSocketsPerRoom
   )
   #cache: TransientCache | null = null
+  readonly #captureCache = new LiveCaptureCache()
   #cacheGeneration = 0
   #presentationChanging = false
   #commandChain: Promise<void> = Promise.resolve()
@@ -954,7 +956,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         },
         command,
         runtime: await this.#liveRulesRuntime(),
-        random: secureRandomInt
+        random: secureRandomInt,
+        captureCache: this.#captureCache
       })
     } catch (error) {
       // Expected domain rejections carry a user-safe message; everything else stays generic.
@@ -1097,47 +1100,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return candidate ? [{ admission: candidate, socket }] : (this.#challenge(socket), [])
     })
     if (envelope.kind === 'POINTER_PREVIEW') {
-      // Pointer samples reuse a recent authority capture for the same origin and audience instead
-      // of querying Convex per sample; presentation changes bump the cache generation.
-      const audience = [...new Set(candidates.map(({ admission }) => admission.userId))].sort()
-      const captureKey = `${originAdmission.userId}|${audience.join(',')}`
-      const cached = this.#authorityCaptures.get(captureKey)
-      let capture =
-        cached &&
-        cached.expiresAt > Date.now() &&
-        cached.cacheGeneration === this.#cacheGeneration &&
-        cached.capture.sceneHeader?.id === envelope.sceneId &&
-        cached.capture.sceneHeader.version === envelope.baselineVersion
-          ? cached.capture
-          : null
-      if (!capture) {
-        const cacheGeneration = this.#cacheGeneration
-        try {
-          capture = await this.#capture(
-            originAttachment,
-            originAdmission,
-            candidates,
-            'AUTHORITY',
-            []
-          )
-        } catch (error) {
-          if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
-          capture = await this.#capture(
-            originAttachment,
-            originAdmission,
-            candidates,
-            'AUTHORITY',
-            []
-          )
-        }
-        for (const [key, entry] of this.#authorityCaptures)
-          if (entry.expiresAt <= Date.now()) this.#authorityCaptures.delete(key)
-        this.#authorityCaptures.set(captureKey, {
-          cacheGeneration,
-          capture,
-          expiresAt: Date.now() + ROOM_LIMITS.authorityCaptureTtlMs
-        })
-      }
+      const capture = await this.#authorityCapture(
+        originAttachment,
+        originAdmission,
+        candidates,
+        envelope
+      )
       if (
         capture.sceneHeader?.id !== envelope.sceneId ||
         capture.sceneHeader.version !== envelope.baselineVersion
@@ -1158,25 +1126,36 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
       if (this.#sceneSync) await this.#sceneSync
       const cached = this.#cache
-      // A player's preview on an Encounter-bound Scene needs their bound-actor control (capture).
       if (
         cached?.scene &&
-        (originAdmission.role === 'OWNER' || !cached.sceneEncounterBound) &&
         cached.synchronized &&
         cached.characterRevisions.length === 0 &&
         cached.scene.id === envelope.sceneId &&
         cached.scene.version === envelope.baselineVersion
       ) {
-        await this.#sendTransient(
-          origin,
-          originAttachment,
-          originAdmission,
-          candidates,
-          null,
-          cached.scene,
-          envelope
-        )
-        return
+        // A player's preview on an Encounter-bound Scene needs their bound-actor control, which the
+        // room's short-lived authority capture carries (D25); any mismatch takes the full path.
+        const capture =
+          originAdmission.role === 'OWNER' || !cached.sceneEncounterBound
+            ? null
+            : await this.#authorityCapture(originAttachment, originAdmission, candidates, envelope)
+        if (
+          !capture ||
+          (this.#cache === cached &&
+            capture.sceneHeader?.id === envelope.sceneId &&
+            capture.sceneHeader.version === envelope.baselineVersion)
+        ) {
+          await this.#sendTransient(
+            origin,
+            originAttachment,
+            originAdmission,
+            candidates,
+            capture,
+            cached.scene,
+            envelope
+          )
+          return
+        }
       }
     }
 
@@ -1198,6 +1177,46 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scene,
       envelope
     )
+  }
+
+  /**
+   * A recent authority capture for this origin and audience on the envelope's Scene version, reused
+   * for its short TTL instead of querying Convex per preview sample; presentation changes bump the
+   * cache generation.
+   */
+  async #authorityCapture(
+    originAttachment: SocketAttachment,
+    originAdmission: Admission,
+    candidates: readonly { admission: Admission; socket: WebSocket }[],
+    envelope: Pick<SceneTransientEnvelopeDto, 'sceneId' | 'baselineVersion'>
+  ): Promise<LiveSessionTransientCapture> {
+    const audience = [...new Set(candidates.map(({ admission }) => admission.userId))].sort()
+    const captureKey = `${originAdmission.userId}|${audience.join(',')}`
+    const cached = this.#authorityCaptures.get(captureKey)
+    if (
+      cached &&
+      cached.expiresAt > Date.now() &&
+      cached.cacheGeneration === this.#cacheGeneration &&
+      cached.capture.sceneHeader?.id === envelope.sceneId &&
+      cached.capture.sceneHeader.version === envelope.baselineVersion
+    )
+      return cached.capture
+    const cacheGeneration = this.#cacheGeneration
+    let capture: LiveSessionTransientCapture
+    try {
+      capture = await this.#capture(originAttachment, originAdmission, candidates, 'AUTHORITY', [])
+    } catch (error) {
+      if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
+      capture = await this.#capture(originAttachment, originAdmission, candidates, 'AUTHORITY', [])
+    }
+    for (const [key, entry] of this.#authorityCaptures)
+      if (entry.expiresAt <= Date.now()) this.#authorityCaptures.delete(key)
+    this.#authorityCaptures.set(captureKey, {
+      cacheGeneration,
+      capture,
+      expiresAt: Date.now() + ROOM_LIMITS.authorityCaptureTtlMs
+    })
+    return capture
   }
 
   #overlayDurableSceneCache(sceneId: string): void {
@@ -1667,8 +1686,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   async #presentScene(input: LiveSessionPresentationControlInput) {
     if (this.#activation) await this.#activation
     this.#presentationChanging = true
-    this.#cacheGeneration += 1
-    this.#cache = null
+    this.#bumpCacheGeneration()
     this.#movementIndexes.clear()
     try {
       await this.#flushOutbox()
@@ -1689,8 +1707,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         expectedStateChecksum: current?.stateChecksum ?? null
       })
     } finally {
-      this.#cacheGeneration += 1
-      this.#cache = null
+      this.#bumpCacheGeneration()
       this.#presentationChanging = false
       for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
     }
@@ -1766,10 +1783,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
       closed += 1
     }
-    this.#cache = null
-    this.#cacheGeneration += 1
+    this.#bumpCacheGeneration()
     this.#movementIndexes.clear()
     return closed
+  }
+
+  /** Cached Scene state and rules captures belong to one generation; a bump discards both. */
+  #bumpCacheGeneration(): void {
+    this.#cacheGeneration += 1
+    this.#cache = null
+    this.#captureCache.clear()
   }
 
   #json(value: string): unknown {

@@ -7,7 +7,13 @@ import type { LiveSessionEncounterRoute } from '@artificer-toolkit/schema/api/li
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import {
+  callLiveSessionRoute,
+  LiveSessionDomainRejectionError,
+  LiveSessionRouteError,
+  type NativeLiveSessionEnvironment
+} from './liveSessionRoutes.js'
+import type { LiveCaptureCache, LiveCaptureReads } from './nativeCaptureCache.js'
 import { planNativeLiveConcentrationResponse } from './nativeConcentrationResponse.js'
 import {
   commitNativeLiveEncounterAction,
@@ -29,6 +35,8 @@ export interface LiveEncounterActor {
  * Runs one Encounter command for the room: a DO planner evaluates the rules and Convex commits the
  * result atomically, or the command is forwarded to its Convex implementation when no live planner
  * owns the flow yet. The caller serializes commands and acknowledges only after this resolves.
+ * Planners may reuse cached System-level captures; a refused commit (409) of a plan that reused any
+ * drops those entries and replans once from fresh reads before the refusal surfaces.
  */
 export async function executeLiveEncounterCommand(input: {
   environment: NativeLiveSessionEnvironment
@@ -37,9 +45,9 @@ export async function executeLiveEncounterCommand(input: {
   command: EncounterCommandInputDto
   runtime: RulesRuntimeService
   random(maximum: number): number
+  captureCache?: LiveCaptureCache
 }): Promise<EncounterCommandResultDto> {
-  const { environment, accessToken, actor, command } = input
-  const execution = { runtime: input.runtime, random: input.random }
+  const { environment, accessToken, actor, command, captureCache } = input
   const scope = {
     ...actor,
     encounterId: command.encounterId.toLowerCase(),
@@ -47,7 +55,20 @@ export async function executeLiveEncounterCommand(input: {
   }
   const forward = () =>
     callLiveSessionRoute(environment, accessToken, 'encounterCommand', { ...actor, command })
-  const result = await route()
+  const captures = captureCache?.reads()
+  let result: EncounterCommandResultDto
+  try {
+    result = await route(captures)
+  } catch (error) {
+    if (
+      !(error instanceof LiveSessionRouteError) ||
+      error instanceof LiveSessionDomainRejectionError ||
+      error.status !== 409 ||
+      !captures?.dropReused()
+    )
+      throw error
+    result = await route(captureCache?.reads())
+  }
   // Backstop: every result for a player is the redacted player projection (ADR 0034 decision 1).
   if (
     actor.expectedRole === 'PLAYER' &&
@@ -56,7 +77,8 @@ export async function executeLiveEncounterCommand(input: {
     throw new Error('An Encounter result for a player was not redacted.')
   return result
 
-  async function route(): Promise<EncounterCommandResultDto> {
+  async function route(reads: LiveCaptureReads | undefined): Promise<EncounterCommandResultDto> {
+    const execution = { runtime: input.runtime, random: input.random, captures: reads }
     try {
       switch (await plannerRoute()) {
         case 'ACTION': {

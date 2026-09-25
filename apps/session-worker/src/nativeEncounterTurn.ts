@@ -14,7 +14,8 @@ import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -39,7 +40,14 @@ export async function planNativeLiveEncounterTurn(
   accessToken: string,
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: LiveTurnCommand,
-  execution: { runtime: RulesRuntimeService; random(maximum: number): number }
+  {
+    captures,
+    ...execution
+  }: {
+    runtime: RulesRuntimeService
+    random(maximum: number): number
+    captures?: LiveCaptureReads
+  }
 ) {
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
@@ -59,14 +67,16 @@ export async function planNativeLiveEncounterTurn(
     if (!read) {
       read = (async () => {
         const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
-        const response = await callLiveSessionRoute(
+        const captured = await captureEncounterRules(
           environment,
           accessToken,
-          'encounterRules',
-          input
+          input,
+          revisions,
+          captures
         )
+        const { response } = captured
         if (response.kind !== request.kind) throw new Error('Turn capture kind mismatch.')
-        revisions = mergeNativeRulesRevisions(revisions, response.revisions)
+        revisions = mergeNativeRulesRevisions(revisions, captured.revisions)
         dependencies.push({ request: input.request, readChecksum: response.readChecksum })
         return response
       })()
@@ -127,7 +137,8 @@ export async function planNativeLiveEncounterTurn(
         scope: initial,
         state,
         actor,
-        activeEffectsByActorId
+        activeEffectsByActorId,
+        captures
       })
       targetReads.set(actorId, read)
     }

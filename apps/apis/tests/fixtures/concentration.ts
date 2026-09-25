@@ -77,7 +77,14 @@ const creature = {
   )
 }
 
-export async function setupConcentration(rolls: FixtureRolls) {
+/** A Creature attacks the Character; `source` swaps in another Creature action by trigger. */
+export async function setupConcentration(
+  rolls: FixtureRolls,
+  source: { creature: { id: string; systemId: string; label: string }; triggerCode: string } = {
+    creature,
+    triggerCode: 'ACTIVATED'
+  }
+) {
   const base = await setupCharacterRun()
   // Each roll follows its actor's controller: the GM for Creatures, the player for the Character.
   for (const userId of [base.owner.userId, base.player.userId])
@@ -92,13 +99,15 @@ export async function setupConcentration(rolls: FixtureRolls) {
     })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
+    subjects: [
+      importedSubject({ ...source.creature, subjectKind: 'CREATURE', document: source.creature })
+    ]
   })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Concentration damage fixture',
     commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE', sourceId: creatureId }]
+    enemies: [{ kind: 'CREATURE', sourceId: source.creature.id }]
   })
   const run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,
@@ -150,7 +159,7 @@ export async function setupConcentration(rolls: FixtureRolls) {
         id: ability.id,
         code: ability.code
       }))
-    }).find((candidate) => candidate.mechanicFacts.invocation.triggerCode === 'ACTIVATED')
+    }).find((candidate) => candidate.mechanicFacts.invocation.triggerCode === source.triggerCode)
     if (!capability) throw new Error('Concentration damage action is unavailable.')
     return capability.actionId
   })

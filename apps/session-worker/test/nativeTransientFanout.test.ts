@@ -317,6 +317,63 @@ it('fans out synchronized token previews from room memory without per-sample bac
   expect(captureCalls).toBe(4)
 })
 it.each([
+  ['controls', true],
+  ['does not control', false]
+] as const)(
+  'checks a bound-token preview for a player who %s its actor with one reused authority capture',
+  async (_label, controlled) => {
+    const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
+    const stub = env.LIVE_SESSION_ROOMS.get(
+      env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
+    )
+    const captureModes: LiveSessionTransientCaptureInput['mode'][] = []
+    await runInDurableObject(stub, () =>
+      installFetch(members, (_call, capture, input) => {
+        captureModes.push(input.mode)
+        return {
+          ...capture,
+          sceneEncounterBound: true,
+          originBoundTokenControl: capture.origin.role === 'PLAYER' ? [{ tokenId, controlled }] : []
+        }
+      })
+    )
+    const [owner, player] = await Promise.all([
+      connect(stub, ownerId, 'OWNER'),
+      connect(stub, playerId, 'PLAYER')
+    ])
+    owner.socket.send(
+      JSON.stringify({
+        expectedPresentationVersion: 1,
+        sceneId,
+        type: 'SYNCHRONIZE_SCENE',
+        version: 1
+      })
+    )
+    await vi.waitFor(() => expect(captureModes).toHaveLength(4))
+    owner.messages.length = 0
+    player.messages.length = 0
+
+    for (const sequence of [1, 2, 3])
+      player.socket.send(
+        JSON.stringify({
+          type: 'TRANSIENT',
+          envelope: tokenPreview(sequence, { x: 10 + sequence * 5, y: 10 })
+        })
+      )
+    if (controlled)
+      await vi.waitFor(() => {
+        expect(transient(owner.messages)).toHaveLength(3)
+        expect(transient(player.messages)).toHaveLength(3)
+      })
+    else {
+      await noTransient(owner.messages)
+      await noTransient(player.messages)
+    }
+    // D25: the three previews share one short-lived authority capture instead of one each.
+    expect(captureModes.slice(4)).toEqual(['AUTHORITY'])
+  }
+)
+it.each([
   ['current authority', 'current', true],
   ['a stale Scene version', 'scene', false],
   ['a changed origin membership', 'origin', false],

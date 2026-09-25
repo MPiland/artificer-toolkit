@@ -11,6 +11,7 @@ import type {
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
+import type { LiveCaptureReads } from './nativeCaptureCache.js'
 import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 export async function readNativeLiveActorsAndEffects(input: {
@@ -96,23 +97,29 @@ export async function prepareNativeLiveMovementTarget(input: {
   state: EncounterRunState
   actor: EncounterRunActorState
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
+  captures?: LiveCaptureReads
 }) {
   const { actor, state, scope } = input
   const characterFacts =
     actor.kind === 'CHARACTER'
-      ? await prepareNativeLiveCharacterSheet(input.environment, input.accessToken, {
-          campaignId: scope.campaignId,
-          authorityEpoch: scope.authorityEpoch,
-          expectedUserId: scope.expectedUserId,
-          expectedRole: scope.expectedRole,
-          ...(scope.concentrationResponse
-            ? { concentrationResponse: scope.concentrationResponse }
-            : {}),
-          ...(scope.turnCommand ? { turnCommand: scope.turnCommand } : {}),
-          ...(scope.action ? { action: scope.action } : {}),
-          ...(scope.movement ? { movement: { ...scope.movement, actorId: actor.id } } : {}),
-          characterId: actor.sourceId
-        })
+      ? await prepareNativeLiveCharacterSheet(
+          input.environment,
+          input.accessToken,
+          {
+            campaignId: scope.campaignId,
+            authorityEpoch: scope.authorityEpoch,
+            expectedUserId: scope.expectedUserId,
+            expectedRole: scope.expectedRole,
+            ...(scope.concentrationResponse
+              ? { concentrationResponse: scope.concentrationResponse }
+              : {}),
+            ...(scope.turnCommand ? { turnCommand: scope.turnCommand } : {}),
+            ...(scope.action ? { action: scope.action } : {}),
+            ...(scope.movement ? { movement: { ...scope.movement, actorId: actor.id } } : {}),
+            characterId: actor.sourceId
+          },
+          input.captures
+        )
       : null
   const activeEffects = input.activeEffectsByActorId.get(actor.id)
   if (!activeEffects) throw new Error('Encounter actor effects are unavailable.')

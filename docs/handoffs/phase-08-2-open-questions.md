@@ -53,7 +53,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - Each pending prompt names its own actor and trigger.
 * **D24** Recharge and Legendary Action dice for a creature the GM granted to a player go to that player, consistent with D19. Done in S4-a.
   - A hidden creature's app rolls stay out of the table roll log.
-* **D25** A player's bound-token drag preview reuses the short-lived authority capture cache instead of one Convex capture per preview. Queued with S4's capture cache.
+* **D25** A player's bound-token drag preview reuses the short-lived authority capture cache instead of one Convex capture per preview. Done in S4-b.
+  - A Scene with Character vision still captures per drag preview, for the GM too, to recheck the Character revisions behind its vision.
 * **D26 (approved 2026-09-25)** While a movement decision is pending on the presented Scene (an opportunity attack, a passage choice, a save), the room holds other token moves and door changes on that Scene. Players see "Waiting on a movement decision". The GM can answer for anyone, or cancel the decision if a player is taking too long.
   - Canceling declines the option (the reaction isn't taken and the movement continues) and releases the hold.
   - The decision drawer and chat show the player "The GM skipped this decision".

@@ -11,7 +11,11 @@ export const ROOM_LIMITS = {
   maxPendingTransientsPerSocket: 32,
   /** A player's Encounter commands run one at a time across all of their sockets. */
   maxInFlightEncounterCommandsPerPlayer: 1,
-  authorityCaptureTtlMs: 2_000
+  authorityCaptureTtlMs: 2_000,
+  /** Rules captures reused across Encounter commands; see `nativeCaptureCache.ts`. */
+  captureCacheMaxEntries: 512,
+  captureCacheMaxBytes: 16 * 1024 * 1024,
+  captureCacheTtlMs: 60_000
 } as const
 
 type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'INVALID' | 'SYNC' | 'TRANSIENT'
