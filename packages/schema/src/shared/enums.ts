@@ -63,7 +63,8 @@ export const triggerCodeSchema = z.enum([
   'MELEE_WEAPON_ATTACK',
   'RANGED_WEAPON_ATTACK',
   'UNARMED_ATTACK',
-  'SPELL_ATTACK',
+  'MELEE_SPELL_ATTACK',
+  'RANGED_SPELL_ATTACK',
   'INCOMING_SAVING_THROW',
   'SAVING_THROW',
   'ENTER_AREA'
@@ -115,6 +116,7 @@ export const predicateCodeSchema = z.enum([
   'SAVING_THROW_DC',
   'EQUIPMENT_CATEGORY',
   'EQUIPMENT_PROPERTY',
+  'SOLE_WIELDED_WEAPON',
   'ARMOR_CLASS',
   'DAMAGE_TYPE',
   'CONDITION_TYPE',
@@ -229,6 +231,15 @@ export const chargeBonusKindSchema = z.enum([
   'SKILL_BONUS'
 ])
 export const attackDomainCodeSchema = z.enum(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
+/** An attack's kind: melee and ranged spell attacks both read SPELL modifiers. */
+export const attackKindSchema = z.enum([
+  'MELEE',
+  'RANGED',
+  'UNARMED',
+  'MELEE_SPELL',
+  'RANGED_SPELL'
+])
+export type AttackKind = z.infer<typeof attackKindSchema>
 
 export const savingThrowDcMethodSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC'])
 export const savingThrowDcBonusKindSchema = z.enum([

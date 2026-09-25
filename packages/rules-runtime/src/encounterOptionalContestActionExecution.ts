@@ -10,6 +10,12 @@ import {
 } from './systems/dnd5e/optionalCombatContestGraph.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import {
+  resolveEncounterD20Answer,
+  selectEncounterActionD20Natural,
+  type EncounterEvidenceAnswer
+} from './encounterEvidenceAnswer.js'
 
 export type OptionalContestD20Policy = {
   actorId: string
@@ -25,9 +31,8 @@ export type OptionalContestD20Policy = {
   modifier: number
 }
 
-export type OptionalContestResolution =
-  | { kind: 'ENTER_DICE'; requestId: string; rawFaces: readonly number[] }
-  | { kind: 'SYSTEM_ROLL'; requestId: string }
+/** Entered dice, the roller's app roll, or an auto-roll for a contest participant's d20. */
+export type OptionalContestResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
 export type EncounterOptionalContestActionExecution =
   | {
@@ -65,17 +70,6 @@ function requireRequest(
   throw new EncounterValidationError('Optional combat contest requested an unknown participant.')
 }
 
-function selectNatural(
-  mode: OptionalContestD20Policy['rollMode'],
-  faces: readonly number[]
-): number {
-  return mode === 'ADVANTAGE'
-    ? Math.max(...faces)
-    : mode === 'DISADVANTAGE'
-      ? Math.min(...faces)
-      : faces[0]!
-}
-
 function resolveFaces(input: {
   policy: OptionalContestD20Policy
   resolution: OptionalContestResolution
@@ -84,18 +78,15 @@ function resolveFaces(input: {
 }): readonly number[] {
   if (input.resolution.requestId !== input.requestId)
     throw new EncounterConflictError('Optional combat contest evidence request is stale.')
-  const count = input.policy.rollMode === 'NORMAL' ? 1 : 2
-  const faces =
-    input.resolution.kind === 'ENTER_DICE'
-      ? input.resolution.rawFaces
-      : Array.from({ length: count }, input.rollD20)
-  if (
-    faces.length !== count ||
-    faces.some((face) => !Number.isInteger(face) || face < 1 || face > 20)
-  ) {
-    throw new EncounterValidationError('Optional combat contest d20 evidence is invalid.')
-  }
-  return [...faces]
+  const { faces, rollMode } = resolveEncounterD20Answer({
+    derivedRollMode: input.policy.rollMode,
+    answer: input.resolution,
+    rollD20: input.rollD20
+  })
+  // Contest evidence records only faces, so a contest d20 keeps its rules-derived mode.
+  if (rollMode !== input.policy.rollMode)
+    throw new EncounterValidationError('A contest roll keeps its rules-derived roll mode.')
+  return faces
 }
 
 export function completeEncounterOptionalContestActionExecution(input: {
@@ -109,8 +100,8 @@ export function completeEncounterOptionalContestActionExecution(input: {
   if (!initiatorFaces || !defenderFaces) {
     throw new EncounterValidationError('Optional combat contest evidence is incomplete.')
   }
-  const initiatorNatural = selectNatural(input.initiator.rollMode, initiatorFaces)
-  const defenderNatural = selectNatural(input.defender.rollMode, defenderFaces)
+  const initiatorNatural = selectEncounterActionD20Natural(input.initiator.rollMode, initiatorFaces)
+  const defenderNatural = selectEncounterActionD20Natural(input.defender.rollMode, defenderFaces)
   if (
     input.execution.outputs.initiatorNaturalD20 !== initiatorNatural ||
     input.execution.outputs.targetNaturalD20 !== defenderNatural ||
@@ -139,7 +130,7 @@ export function completeEncounterOptionalContestActionExecution(input: {
 
 /** Executes the bounded two-d20 contest graph. Persistence and application stay with the Encounter coordinator. */
 export async function executeEncounterOptionalContestAction(input: {
-  autoRoll: boolean
+  autoRoll: EncounterAutoRollByActorId
   continuation?: ServerRuleExecutionContinuationDto
   graph: Dnd5eOptionalCombatContestGraph
   initiator: OptionalContestD20Policy
@@ -168,7 +159,7 @@ export async function executeEncounterOptionalContestAction(input: {
           rolls.set(participant, faces)
           return {
             requestId: input.continuation.request.requestId,
-            value: selectNatural(policy.rollMode, faces)
+            value: selectEncounterActionD20Natural(policy.rollMode, faces)
           }
         })()
       })
@@ -183,12 +174,14 @@ export async function executeEncounterOptionalContestAction(input: {
         },
         published: input.graph.published
       })
-  while (execution.status === 'PAUSED' && input.autoRoll) {
+  while (execution.status === 'PAUSED') {
     const participant = requireRequest(execution.continuation)
     const policy = participant === 'INITIATOR' ? input.initiator : input.defender
+    // Each contest d20 belongs to its participant; only an auto-rolling roller skips the prompt.
+    if (input.autoRoll[policy.actorId] !== true) break
     const faces = resolveFaces({
       policy,
-      resolution: { kind: 'SYSTEM_ROLL', requestId: execution.continuation.request.requestId },
+      resolution: { kind: 'AUTO_ROLL', requestId: execution.continuation.request.requestId },
       requestId: execution.continuation.request.requestId,
       rollD20: input.rollD20
     })
@@ -197,7 +190,7 @@ export async function executeEncounterOptionalContestAction(input: {
       continuation: execution.continuation,
       response: {
         requestId: execution.continuation.request.requestId,
-        value: selectNatural(policy.rollMode, faces)
+        value: selectEncounterActionD20Natural(policy.rollMode, faces)
       }
     })
   }

@@ -26,28 +26,21 @@ export function readNativeCleavingPending(occurrence: Doc<'encounterRuleOccurren
   return { snapshot, context: snapshot.applicationContext }
 }
 
-/** Projects targets only to the current controller or Campaign owner. */
+/** Projects the choice only to the source actor's controllers, with targets they can see. */
 export function projectNativeCleavingPending(
   occurrence: Doc<'encounterRuleOccurrences'>,
-  authority: {
+  viewer: {
     isOwner: boolean
-    assignedCharacterId: string | null
-    visibleActorIds?: ReadonlySet<string>
+    controlledActorIds: ReadonlySet<string>
+    visibleActorIds: ReadonlySet<string>
   }
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const pending = readNativeCleavingPending(occurrence)
   if (!pending) return null
   const { context } = pending
-  if (
-    !authority.isOwner &&
-    (context.sourceControllerCharacterId === null ||
-      authority.assignedCharacterId !== context.sourceControllerCharacterId)
-  )
-    return null
+  if (!viewer.controlledActorIds.has(context.sourceActorId)) return null
   const options = context.options
-    .filter(
-      (option) => authority.isOwner || authority.visibleActorIds?.has(option.targetActorId) === true
-    )
+    .filter((option) => viewer.isOwner || viewer.visibleActorIds.has(option.targetActorId))
     .map(({ optionId, targetActorId }) => ({ optionId, targetActorId }))
   if (!options.length) return null
   return {

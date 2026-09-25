@@ -424,15 +424,20 @@ describe('Encounter reads of live Character state', () => {
     expect(final.state.hitpoints.current).toBe(edited.state.hitpoints.current - 1)
     expect(final.state.spellSlots).toEqual(edited.state.spellSlots)
     expect(final.state.equipment.equipped).toContain(item.id)
-    for (const caller of [fixture.owner.caller, fixture.player.caller]) {
-      const projection = await caller.query(api.encounters.projectionReads.get, {
-        encounterId: fixture.run.id
-      })
-      const hero = projection.actors.find((actor) => actor.id === fixture.hero.id)
-      expect(hero?.healthBand).toBeDefined()
-      if (hero && 'currentHitPoints' in hero)
-        expect(hero.currentHitPoints).toBe(final.state.hitpoints.current)
-    }
+    const gmView = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
+      encounterId: fixture.run.id
+    })
+    const gmHero = gmView.actors.find((actor) => actor.id === fixture.hero.id)
+    expect(gmHero).toHaveProperty('healthBand')
+    if (gmHero && 'currentHitPoints' in gmHero)
+      expect(gmHero.currentHitPoints).toBe(final.state.hitpoints.current)
+    // Every actor's health stays GM-only in the player projection.
+    const playerView = await fixture.player.caller.query(api.encounters.projectionReads.get, {
+      encounterId: fixture.run.id
+    })
+    const playerViewHero = playerView.actors.find((actor) => actor.id === fixture.hero.id)
+    expect(playerViewHero).toBeDefined()
+    expect(playerViewHero).not.toHaveProperty('healthBand')
 
     // A later Sheet change shows in the live read without another Encounter command.
     await sheetCommand(fixture, (base) => ({
@@ -522,14 +527,18 @@ describe('Encounter reads of live Character state', () => {
       expect(adjusted.maxHitPoints).toBe(levelled.maxHitPoints + 30)
       expect(adjusted.healthBand).toBe(healthBand(adjusted.currentHitPoints, adjusted.maxHitPoints))
       expect(adjusted.healthBand).not.toBe('HEALTHY')
-      for (const caller of [fixture.owner.caller, fixture.player.caller]) {
-        const live = await caller.query(api.encounters.projectionReads.get, {
-          encounterId: fixture.run.id
-        })
-        const hero = live.actors.find((actor) => actor.id === fixture.hero.id)
-        expect(hero?.healthBand).toBe(adjusted.healthBand)
-        if (hero && 'maxHitPoints' in hero) expect(hero.maxHitPoints).toBe(adjusted.maxHitPoints)
-      }
+      const live = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
+        encounterId: fixture.run.id
+      })
+      const hero = live.actors.find((actor) => actor.id === fixture.hero.id)
+      expect(hero).toHaveProperty('healthBand', adjusted.healthBand)
+      if (hero && 'maxHitPoints' in hero) expect(hero.maxHitPoints).toBe(adjusted.maxHitPoints)
+      const playerLive = await fixture.player.caller.query(api.encounters.projectionReads.get, {
+        encounterId: fixture.run.id
+      })
+      const playerLiveHero = playerLive.actors.find((actor) => actor.id === fixture.hero.id)
+      expect(playerLiveHero).toBeDefined()
+      expect(playerLiveHero).not.toHaveProperty('healthBand')
     } finally {
       random.mockRestore()
     }

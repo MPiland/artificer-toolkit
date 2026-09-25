@@ -365,7 +365,8 @@ describe('native Scene movement passage', () => {
     const resumed = await respond(value, evidence, {
       kind: 'ENTER_DICE',
       requestId: evidence.request.requestId,
-      rawFaces: [1]
+      rawFaces: evidence.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: evidence.request.rollMode
     })
     const choice = resumed.result.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
@@ -445,7 +446,8 @@ describe('native Scene movement passage', () => {
     const defender = await respond(value, initiator, {
       kind: 'ENTER_DICE',
       requestId: initiator.request.requestId,
-      rawFaces: [20]
+      rawFaces: initiator.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+      rollMode: initiator.request.rollMode
     })
     const pending = defender.result.occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE')
@@ -453,7 +455,8 @@ describe('native Scene movement passage', () => {
     const response = await prepareResponse(value, pending, {
       kind: 'ENTER_DICE',
       requestId: pending.request.requestId,
-      rawFaces: [1]
+      rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: pending.request.rollMode
     })
     expect(response.prepared.outcome).toMatchObject({
       kind: 'PENDING',
@@ -501,7 +504,8 @@ describe('native Scene movement passage', () => {
     const defender = await respond(value, initiator, {
       kind: 'ENTER_DICE',
       requestId: initiator.request.requestId,
-      rawFaces: [20]
+      rawFaces: initiator.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+      rollMode: initiator.request.rollMode
     })
     expect(defender.request.perceptionEnvironments).toHaveLength(1)
     const pending = defender.result.occurrence?.pending
@@ -510,17 +514,31 @@ describe('native Scene movement passage', () => {
     const completed = await respond(value, pending, {
       kind: 'ENTER_DICE',
       requestId: pending.request.requestId,
-      rawFaces: [1]
+      rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: pending.request.rollMode
     })
     expect(completed.request.perceptionEnvironments).toHaveLength(1)
-    // The retained System-automatic reaction fires without a choice; its d20 pauses as evidence.
-    const reaction = completed.result.occurrence?.pending
+    // The retained authored automatic reaction is offered as Use/Decline; once used, its d20
+    // pauses as evidence.
+    const reactionChoice = completed.result.occurrence?.pending
+    if (
+      !reactionChoice ||
+      reactionChoice.kind !== 'MOVEMENT_REACTION' ||
+      !reactionChoice.choice.options[0]
+    )
+      throw new Error('Expected the retained automatic reaction choice after the assisted contest.')
+    const used = await respond(value, reactionChoice, {
+      kind: 'OPTION',
+      optionId: reactionChoice.choice.options[0].optionId
+    })
+    const reaction = used.result.occurrence?.pending
     if (!reaction || reaction.kind !== 'D20_EVIDENCE')
-      throw new Error('Expected the retained automatic reaction d20 after the assisted contest.')
+      throw new Error('Expected the used automatic reaction d20 after the assisted contest.')
     const terminal = await respond(value, reaction, {
       kind: 'ENTER_DICE',
       requestId: reaction.request.requestId,
-      rawFaces: [1]
+      rawFaces: reaction.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: reaction.request.rollMode
     })
     expect(terminal.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     const after = await value.base.t.run(async (ctx) =>
@@ -554,7 +572,8 @@ describe('native Scene movement passage', () => {
       const defender = await respond(value, initiator, {
         kind: 'ENTER_DICE',
         requestId: initiator.request.requestId,
-        rawFaces: [20]
+        rawFaces: initiator.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+        rollMode: initiator.request.rollMode
       })
       const pending = defender.result.occurrence?.pending
       if (!pending || pending.kind !== 'D20_EVIDENCE')
@@ -581,7 +600,8 @@ describe('native Scene movement passage', () => {
           resolution: {
             kind: 'ENTER_DICE',
             requestId: pending.request.requestId,
-            rawFaces: [1]
+            rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+            rollMode: pending.request.rollMode
           }
         }
         const prepared = await preparePrivateMovementResponse({
@@ -600,7 +620,8 @@ describe('native Scene movement passage', () => {
         response = await prepareResponse(value, pending, {
           kind: 'ENTER_DICE',
           requestId: pending.request.requestId,
-          rawFaces: [1]
+          rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+          rollMode: pending.request.rollMode
         })
         expect(response.prepared.outcome.kind).toBe('TERMINAL')
       }
@@ -718,7 +739,8 @@ describe('native Scene movement passage', () => {
       const defender = await respond(value, initiator, {
         kind: 'ENTER_DICE',
         requestId: initiator.request.requestId,
-        rawFaces: [...initiatorFaces]
+        rawFaces: [...initiatorFaces],
+        rollMode: 'NORMAL'
       })
       const pending = defender.result.occurrence?.pending
       if (!pending || pending.kind !== 'D20_EVIDENCE')
@@ -726,7 +748,8 @@ describe('native Scene movement passage', () => {
       const response = await respond(value, pending, {
         kind: 'ENTER_DICE',
         requestId: pending.request.requestId,
-        rawFaces: [...defenderFaces]
+        rawFaces: [...defenderFaces],
+        rollMode: 'NORMAL'
       })
       expect(response.prepared.outcome.kind).toBe('TERMINAL')
       if (response.prepared.outcome.kind === 'TERMINAL')
@@ -797,13 +820,19 @@ describe('native Scene movement passage', () => {
         occurrenceId: first.occurrenceId,
         expectedOccurrenceVersion: first.occurrenceVersion,
         correlationId: null,
-        resolution: { kind: 'ENTER_DICE', requestId: first.request.requestId, rawFaces: [20] }
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: first.request.requestId,
+          rawFaces: first.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+          rollMode: first.request.rollMode
+        }
       })
     ).rejects.toThrow('another controller')
     const defender = await respond(value, first, {
       kind: 'ENTER_DICE',
       requestId: first.request.requestId,
-      rawFaces: [20]
+      rawFaces: first.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+      rollMode: first.request.rollMode
     })
     const second = defender.result.occurrence?.pending
     if (!second || second.kind !== 'D20_EVIDENCE')
@@ -820,13 +849,19 @@ describe('native Scene movement passage', () => {
         occurrenceId: second.occurrenceId,
         expectedOccurrenceVersion: second.occurrenceVersion,
         correlationId: null,
-        resolution: { kind: 'ENTER_DICE', requestId: second.request.requestId, rawFaces: [1] }
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: second.request.requestId,
+          rawFaces: second.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+          rollMode: second.request.rollMode
+        }
       })
     ).rejects.toThrow('another controller')
     const completed = await respond(value, second, {
       kind: 'ENTER_DICE',
       requestId: second.request.requestId,
-      rawFaces: [1]
+      rawFaces: second.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: second.request.rollMode
     })
     expect(completed.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   }, 30_000)

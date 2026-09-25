@@ -14,6 +14,7 @@ import { requireCampaignAuthority } from './authority'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
+import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
 
 async function depart(
   ctx: MutationCtx,
@@ -107,6 +108,7 @@ async function depart(
     commandId,
     inputFingerprint
   })
+  await removeEncounterActorController(ctx, campaign, departing.userId)
   await ctx.db.patch(departing._id, { status: 'LEFT', leftAt: new Date().toISOString() })
   await scheduleLiveSessionUserEviction(ctx, {
     campaignId: campaign.id,

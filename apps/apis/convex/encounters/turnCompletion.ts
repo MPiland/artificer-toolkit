@@ -1,8 +1,8 @@
+import type { EncounterResponseAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
   encounterCommandResultDtoSchema,
   encounterGmProjectionDtoSchema,
-  type EncounterGmProjectionDto,
-  type ResolveRuleOccurrenceInputDto
+  type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterRunStateSchema,
@@ -30,6 +30,7 @@ import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encou
 import { startNativeConcentrationChecks } from './concentration'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { readAutoRollDice } from '../lib/rollPreferences'
+import { readEncounterAutoRollByActorId } from './actorController'
 
 type CompletionInput = Parameters<typeof completeNativeInitiativeOccurrence>[0]
 
@@ -58,6 +59,7 @@ export function settleNativeInitiativeTurn(
       commandFingerprint: input.rootCommandFingerprint,
       commandType: input.rootCommand.type,
       initiatorUserId: input.rootInitiatorUserId,
+      requestedByUserId: input.rootRequestedByUserId,
       correlationId: input.rootCorrelationId,
       expectedEncounterVersion: input.rootExpectedEncounterVersion,
       startSystemId:
@@ -90,7 +92,7 @@ export function resumeNativeTurn(input: {
   root: TurnCoordinatorRootDto
   pending: ServerRuleExecutionPendingSnapshotDto
   rawDie?: number
-  resolution?: ResolveRuleOccurrenceInputDto['resolution']
+  resolution?: EncounterResponseAnswer
   updatedAt: string
 }) {
   return completeTurn({ ...input, occurrenceId: input.occurrence.id })
@@ -108,7 +110,7 @@ async function completeTurn(input: {
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
   rawDie?: number
-  resolution?: ResolveRuleOccurrenceInputDto['resolution']
+  resolution?: EncounterResponseAnswer
   updatedAt: string
 }) {
   const { ctx, state, campaign, encounter } = input
@@ -122,12 +124,19 @@ async function completeTurn(input: {
     staged: initialStaged
   } = await readNativeTurnSettlement(input)
   let staged = initialStaged
+  // The GM initiates every turn: its own steps take the GM's preference, and each actor's saves
+  // (turn effects, Concentration) go to that actor's controllers.
+  const autoRollByActorId = await readEncounterAutoRollByActorId(ctx, {
+    campaign,
+    initiatorUserId: campaign.ownerUserId,
+    actors: await readRunActors(ctx, state)
+  })
   const prepared = await prepareNativeTurn({
     ctx,
     state,
     campaign,
-    // Turn-flow prompts go to the GM in this slice.
     autoRoll: await readAutoRollDice(ctx, campaign.ownerUserId),
+    autoRollByActorId,
     root,
     occurrenceId: input.occurrenceId,
     actors: durableActors,
@@ -264,6 +273,7 @@ async function completeTurn(input: {
       )
     ),
     userId: campaign.ownerUserId,
+    autoRollByActorId,
     occurredAt: input.updatedAt
   })
   const terminalActors = concentration.actors
@@ -284,6 +294,7 @@ async function completeTurn(input: {
     rootCommandId: root.rootCommandId,
     rootCommandFingerprint: root.commandFingerprint,
     rootInitiatorUserId: root.initiatorUserId,
+    rootRequestedByUserId: root.requestedByUserId,
     rootCorrelationId: root.correlationId,
     rootExpectedEncounterVersion: root.expectedEncounterVersion,
     initiative: root.initiative,

@@ -146,7 +146,7 @@ describe('subject schema parsing', () => {
       id: '00000000-0000-4000-8000-0000000000d2',
       order: 1,
       invocation: {
-        triggerCode: 'SPELL_ATTACK',
+        triggerCode: 'RANGED_SPELL_ATTACK',
         activation: {
           code: 'ACTION',
           amount: 1

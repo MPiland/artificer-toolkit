@@ -11,7 +11,6 @@ export const morningstarPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: morningstar.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(204), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

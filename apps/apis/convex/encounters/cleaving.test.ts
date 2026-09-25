@@ -669,7 +669,19 @@ async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
         expectedVersion: pending.encounterVersion,
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+        resolution:
+          pending.kind === 'D20_EVIDENCE'
+            ? {
+                kind: 'ENTER_DICE',
+                requestId: pending.request.requestId,
+                rawFaces: pending.request.rollMode === 'NORMAL' ? [19] : [19, 19],
+                rollMode: pending.request.rollMode
+              }
+            : {
+                kind: 'ENTER_INTEGER',
+                requestId: pending.request.requestId,
+                value: pending.request.min
+              }
       }
     }
     evidence.push(input)
@@ -950,7 +962,8 @@ describe('native Cleaving action settlement', () => {
           resolution: {
             kind: 'ENTER_DICE',
             requestId: pending.request.requestId,
-            rawFaces: [face]
+            rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+            rollMode: pending.request.rollMode
           }
         }
       }

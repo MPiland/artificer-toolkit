@@ -12,7 +12,6 @@ export const crossbowBoltsPlus3: EquipmentVariantAuthored = {
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   effects: [S.magicAmmunitionExpirationEffect(S.equipId(350))],
   rarityId: S.RARITY_VERY_RARE,
-  maxBonus: 3,
   modifiers: S.magicAmmoModifiers(S.equipId(350), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

@@ -38,10 +38,11 @@ import {
   type NativeLiveSessionEnvironment
 } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
-  advanceNativeActionGraphs,
-  type NativeActionEvidenceResolution
-} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+  withEncounterAppRoll,
+  type EncounterEvidenceAnswer
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
@@ -79,11 +80,14 @@ export async function planNativeLiveEncounterAction(
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
+  const request = responseCommand
+    ? { kind: 'ACTION_RESPONSE' as const, response: responseCommand }
+    : { kind: 'ACTION_COMMAND' as const, command: commandInput }
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
-    request: responseCommand
-      ? { kind: 'ACTION_RESPONSE', response: responseCommand }
-      : { kind: 'ACTION_COMMAND', command: commandInput }
+    // A player's admitted action scope lets its follow-up captures read the rules inputs.
+    ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
+    request
   })
   if (
     commandInput.encounterId.toLowerCase() !== initial.encounterId ||
@@ -108,11 +112,15 @@ export async function planNativeLiveEncounterAction(
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const command = admission.command
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
-  let evidenceResolution: NativeActionEvidenceResolution | null = null
+  let evidenceResolution: EncounterEvidenceAnswer | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
-    const resolution = responseCommand.resolution
+    // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+    const resolution = withEncounterAppRoll(
+      responseCommand.resolution,
+      admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
+    )
     if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
@@ -126,7 +134,6 @@ export async function planNativeLiveEncounterAction(
       snapshot.occurrenceId !== responseCommand.occurrenceId ||
       context.commandFingerprint !== admission.fingerprint ||
       checksumCanonicalJson(root) !== admission.fingerprint ||
-      context.initiatorUserId !== initial.expectedUserId ||
       snapshot.request.requestId !== resolution.requestId ||
       (context.d20Policy === null && resolution.kind === 'ENTER_DICE') ||
       (context.d20Policy !== null && resolution.kind === 'ENTER_INTEGER')
@@ -136,6 +143,12 @@ export async function planNativeLiveEncounterAction(
       throw new LivePlannerUnsupportedError(
         'contested, Cleaving or optional-combat action evidence'
       )
+  }
+  const { autoRollByActorId } = admission
+  const requireAutoRoll = (actorId: string) => {
+    const autoRoll = autoRollByActorId[actorId]
+    if (autoRoll === undefined) throw new Error('The roller preference is unavailable.')
+    return autoRoll
   }
   const inputs = await capture({ kind: 'INPUTS' })
   if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
@@ -247,8 +260,8 @@ export async function planNativeLiveEncounterAction(
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: prepared.ruleWarnings,
     target: {
-      actorId: prepared.actor.id,
-      targetActorId: prepared.target.id,
+      actor: prepared.actor,
+      target: prepared.target,
       targetPolicy: prepared.targetPolicy,
       sceneContext
     },
@@ -316,7 +329,10 @@ export async function planNativeLiveEncounterAction(
     adapter: prepared.adapter,
     plan: prepared.plan,
     occurrenceId,
-    autoRoll: admission.autoRollDice,
+    autoRoll: {
+      SOURCE: requireAutoRoll(prepared.actor.id),
+      TARGET: requireAutoRoll(prepared.target.id)
+    },
     binding: prepared.binding,
     ...(resume ? { resume } : {}),
     afterTest: async (test) => {
@@ -341,6 +357,11 @@ export async function planNativeLiveEncounterAction(
   const preflight = {
     command,
     response: responseCommand,
+    // A response continues the original initiator's action; the responder is authorized in Convex.
+    initiatorUserId:
+      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? snapshot.applicationContext.initiatorUserId
+        : initial.expectedUserId,
     fingerprint: admission.fingerprint,
     occurrenceId,
     occurrenceVersion,
@@ -410,7 +431,7 @@ export async function planNativeLiveEncounterAction(
   })
   const concentration = await planNativeLiveConcentration({
     state: nextState,
-    autoRoll: admission.autoRollDice,
+    autoRollByActorId,
     parentOccurrenceId: occurrenceId,
     parentCommandFingerprint: admission.fingerprint,
     applications: nativeConcentrationDamageApplications(
@@ -523,7 +544,9 @@ export async function commitNativeLiveEncounterActionPending(
         schemaVersion: 1,
         commandJson: JSON.stringify(plan.command),
         commandFingerprint: plan.fingerprint,
-        initiatorUserId: scope.expectedUserId,
+        initiatorUserId: plan.initiatorUserId,
+        rollerActorId:
+          plan.execution.roller === 'SOURCE' ? plan.prepared.actor.id : plan.prepared.target.id,
         currentnessChecksum: plan.currentnessChecksum,
         d20Policy: plan.execution.d20Policy,
         twoPhase: plan.execution.twoPhase

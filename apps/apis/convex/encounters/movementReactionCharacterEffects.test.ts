@@ -193,18 +193,33 @@ it('creates one Character reaction effect after the public choice and preserves 
   expect(await snapshot(value)).toEqual(afterSettlement)
 }, 30_000)
 
-it('projects the first automatic Character reaction into the second reaction ordinal', async () => {
+it('projects the first used automatic Character reaction into the second reaction ordinal', async () => {
   const value = await setupMovementReactionCharacterEffects(true)
   await value.owner.caller.mutation(observe, {
     saveId: value.request.saveId,
     characterRevisions: []
   })
+  await value.owner.caller.mutation(prepare, value.request)
+  // Assisted play offers the authored automatic reaction as Use/Decline; the GM uses it.
+  const automatic = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+  if (!automatic || automatic.kind !== 'MOVEMENT_REACTION' || !automatic.choice.options[0])
+    throw new Error('Expected the automatic reaction Use/Decline choice.')
+  const used = await value.owner.caller.mutation(
+    begin,
+    response(value.base.run.id, automatic, automatic.choice.options[0].optionId)
+  )
+  if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
+  const firstRequest = { ...value.request, saveId: used.saveId }
+  await value.owner.caller.mutation(observe, {
+    saveId: firstRequest.saveId,
+    characterRevisions: []
+  })
   const beforeRoot = await snapshot(value)
-  const preparedRoot = await value.owner.caller.mutation(prepare, value.request)
+  const preparedRoot = await value.owner.caller.mutation(prepare, firstRequest)
   expect(preparedRoot.outcome.kind).toBe('PENDING')
   expect(await snapshot(value)).toEqual(beforeRoot)
 
-  const pendingRoot = await value.owner.caller.mutation(finish, value.request)
+  const pendingRoot = await value.owner.caller.mutation(finish, firstRequest)
   const pending = pendingRoot.occurrence?.pending
   if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
     throw new Error('Expected second movement reaction choice.')
@@ -221,7 +236,7 @@ it('projects the first automatic Character reaction into the second reaction ord
   expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length + 1)
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(value.owner.caller.mutation(finish, firstRequest)).resolves.toEqual({
     ...pendingRoot,
     replayed: true
   })

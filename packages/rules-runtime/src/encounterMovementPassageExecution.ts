@@ -1,4 +1,3 @@
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
@@ -16,6 +15,8 @@ import { executeEncounterMovementPassageContest } from './encounterMovementPassa
 import type { prepareEncounterMovementPassageContest } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type PassageChoice = Extract<
   ServerRuleExecutionPendingSnapshotDto['applicationContext'],
@@ -156,9 +157,9 @@ export async function evaluateEncounterMovementPassageContest<
   input: {
     state: EncounterRunState
     /** The roller's auto-roll preference; the responding user rolls in this slice. */
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     snapshot: ServerRuleExecutionPendingSnapshotDto
-    resolution: ResolveRuleOccurrenceInputDto['resolution']
+    resolution: EncounterResponseAnswer
     responseCommand: ResolutionCommand
     targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     retained?: {
@@ -357,26 +358,12 @@ export async function evaluateEncounterMovementPassageContest<
         ? 'defender'
         : null
   if (!participant) throw new Error('Movement passage request is unavailable.')
-  const retainedFaces =
-    input.retained && input.resolution.kind === 'SYSTEM_ROLL'
-      ? input.retained.receipt
-        ? [...input.retained.receipt[participant].rawFaces]
-        : input.retained.snapshot?.applicationContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-          ? [
-              ...(input.retained.snapshot.applicationContext.rollEvidence[participant]?.rawFaces ??
-                [])
-            ]
-          : []
-      : []
+  // Entered dice and app rolls carry their faces, so a response never rolls here.
   const rollD20 = () => {
-    if (!input.retained) return callbacks.rollD20()
-    const face = retainedFaces.shift()
-    if (face === undefined)
-      throw new Error('Retained movement passage evidence is missing a d20 face.')
-    return face
+    throw new Error('A movement passage response carries its own d20 faces.')
   }
   const execution = await executeEncounterMovementPassageContest({
-    autoRoll: false,
+    autoRoll: {},
     continuation,
     occurrenceId: input.snapshot.occurrenceId,
     pending,
@@ -384,8 +371,6 @@ export async function evaluateEncounterMovementPassageContest<
     rollD20,
     runtime: await callbacks.runtime()
   })
-  if (retainedFaces.length)
-    throw new Error('Retained movement passage evidence contains unused d20 faces.')
   if (execution.kind === 'PENDING') {
     if (input.retained?.receipt)
       throw new Error('Retained movement passage completion evidence is stale.')

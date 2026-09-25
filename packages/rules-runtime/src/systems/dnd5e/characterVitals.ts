@@ -83,21 +83,29 @@ export function evaluateDnd5eCharacterVitals(
         )
         .map((contribution) => ({ modifierKind: group.modifierKind, contribution }))
     )
-  // "Your AC equals X" replaces the armor (or unarmored) value rather than adding to it; the
-  // authored restriction says when it applies. With several, the best one is used. A shield adds.
-  const replacement = applicable
-    .filter((entry) => entry.modifierKind === 'SET_VALUE')
-    .reduce<number | null>(
-      (best, entry) => Math.max(best ?? Number.NEGATIVE_INFINITY, entry.contribution.value),
-      null
-    )
+  // A creature uses one armor class calculation: worn armor (its base plus its own ability bonus,
+  // such as light armor's DEX), 10 + DEX unarmored, or an authored formula ("your AC equals
+  // 13 + DEX") whose restriction says when it applies. The best applicable one wins; they never
+  // stack. A shield and flat bonuses then add.
+  const isArmorFormulaPart = (entry: (typeof applicable)[number]) =>
+    armor !== undefined &&
+    (entry.modifierKind === 'ABILITY_MODIFIER_BONUS' ||
+      entry.modifierKind === 'OPTIONAL_ABILITY_MODIFIER_BONUS') &&
+    entry.contribution.source.kind === 'EQUIPMENT_INSTANCE' &&
+    entry.contribution.source.itemInstanceId === armor.itemInstanceId
+  const standardBase =
+    armor === undefined
+      ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
+      : applicable
+          .filter((entry) => isArmorFormulaPart(entry) && entry.contribution.state === 'APPLIED')
+          .reduce((sum, entry) => sum + entry.contribution.value, armor.armorClass ?? 10)
   const armorBase =
-    (replacement ??
-      (armor === undefined
-        ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
-        : (armor.armorClass ?? 10))) + (shield?.armorClass ?? 0)
+    applicable
+      .filter((entry) => entry.modifierKind === 'SET_VALUE')
+      .reduce((best, entry) => Math.max(best, entry.contribution.value), standardBase) +
+    (shield?.armorClass ?? 0)
   const additive = applicable
-    .filter((entry) => entry.modifierKind !== 'SET_VALUE')
+    .filter((entry) => entry.modifierKind !== 'SET_VALUE' && !isArmorFormulaPart(entry))
     .map(({ contribution }) => ({
       sourceId: contribution.sourceId,
       source: contribution.source,

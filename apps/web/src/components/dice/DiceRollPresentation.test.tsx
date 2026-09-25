@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import { CharacterSheetRollPresentation } from './CharacterSheetRollPresentation'
+import { DiceRollPresentation } from './DiceRollPresentation'
 
 const testState = vi.hoisted(() => ({
   animate3d: true,
@@ -121,7 +121,7 @@ function createLargeRoll() {
   return roll
 }
 
-describe('CharacterSheetRollPresentation', () => {
+describe('DiceRollPresentation', () => {
   beforeEach(() => {
     canvasMounts = 0
     canvasUnmounts = 0
@@ -140,7 +140,7 @@ describe('CharacterSheetRollPresentation', () => {
     testState.suspendCanvas = true
     const roll = createRoll('roll-loading')
 
-    render(<CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
 
     await vi.waitFor(() => expect(suspendedCanvasRenders).toBeGreaterThan(0))
     expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
@@ -153,17 +153,15 @@ describe('CharacterSheetRollPresentation', () => {
 
   it('keeps one 3D canvas mounted between clearing and rerolling', async () => {
     const { rerender } = render(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
+      <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
     )
     const canvas = await screen.findByTestId('dice-canvas')
 
-    rerender(<CharacterSheetRollPresentation onRollRevealed={rollRevealed} />)
+    rerender(<DiceRollPresentation onRollRevealed={rollRevealed} />)
     expect(screen.getByTestId('dice-canvas')).toBe(canvas)
     expect(canvas).toHaveTextContent('idle')
 
-    rerender(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-2')} />
-    )
+    rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-2')} />)
     expect(screen.getByTestId('dice-canvas')).toBe(canvas)
     expect(canvas).toHaveTextContent('roll-2')
     expect(canvasMounts).toBe(1)
@@ -177,21 +175,14 @@ describe('CharacterSheetRollPresentation', () => {
   ])('uses the static result before mounting a canvas when %s', async (_label, state) => {
     Object.assign(testState, state)
 
-    render(
-      <CharacterSheetRollPresentation
-        onRollRevealed={rollRevealed}
-        roll={createRoll('roll-static')}
-      />
-    )
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-static')} />)
 
     expect(await screen.findByText('Rolled 14')).toBeInTheDocument()
     expect(screen.queryByTestId('dice-canvas')).not.toBeInTheDocument()
   })
 
   it('uses the static result for more than 20 visual dice', async () => {
-    render(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={createLargeRoll()} />
-    )
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createLargeRoll()} />)
 
     expect(await screen.findByText('Rolled 210')).toBeInTheDocument()
     expect(screen.queryByTestId('dice-canvas')).not.toBeInTheDocument()
@@ -199,13 +190,11 @@ describe('CharacterSheetRollPresentation', () => {
 
   it('keeps an existing canvas idle when a later roll needs the static fallback', async () => {
     const { rerender } = render(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
+      <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
     )
     const canvas = await screen.findByTestId('dice-canvas')
 
-    rerender(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={createLargeRoll()} />
-    )
+    rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createLargeRoll()} />)
 
     expect(screen.getByTestId('dice-canvas')).toBe(canvas)
     expect(canvas).toHaveTextContent('idle')
@@ -217,7 +206,7 @@ describe('CharacterSheetRollPresentation', () => {
   it('reveals the 2D result and history only after the 3D dice settle', async () => {
     const roll = createRoll('roll-settled')
 
-    render(<CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
     const canvas = await screen.findByTestId('dice-canvas')
 
     expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()

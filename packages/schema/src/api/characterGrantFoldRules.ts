@@ -65,6 +65,8 @@ const restrictionConditionSchema = z.strictObject({
     'ITEM_IDENTITY',
     'ITEM_CATEGORY',
     'ITEM_PROPERTY',
+    /** The attacking item is the only weapon wielded: no other weapon is equipped. */
+    'ITEM_SOLE_WEAPON',
     'UNAVAILABLE',
     'UNSUPPORTED'
   ]),

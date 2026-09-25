@@ -9,6 +9,8 @@ export const ROOM_LIMITS = {
   maxPendingCommandsPerSocket: 8,
   maxPendingCommandsPerRoom: 64,
   maxPendingTransientsPerSocket: 32,
+  /** A player's Encounter commands run one at a time across all of their sockets. */
+  maxInFlightEncounterCommandsPerPlayer: 1,
   authorityCaptureTtlMs: 2_000
 } as const
 

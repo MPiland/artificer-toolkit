@@ -67,11 +67,14 @@ export async function readNativeEncounterCommandReplay(
   {
     input,
     row,
-    campaign
+    campaign,
+    userId
   }: {
     input: Exclude<EncounterCommandInputDto, { type: 'CREATE' }>
     row: Doc<'encounterRuns'>
     campaign: Doc<'campaigns'>
+    /** A replay by command ID returns only to the user who issued the command. */
+    userId: string
   }
 ): Promise<{ fingerprint: string; result: EncounterCommandResultDto | null }> {
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
@@ -87,7 +90,8 @@ export async function readNativeEncounterCommandReplay(
       prior.commandType === 'CREATE' ||
       prior.commandType !== input.type ||
       prior.encounterId !== row.id ||
-      prior.commandFingerprint !== commandFingerprint
+      prior.commandFingerprint !== commandFingerprint ||
+      prior.actorUserId !== userId
     )
       rejectDomain('COMMAND_ID_REUSED')
     const result = encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))

@@ -11,7 +11,6 @@ export const scimitarPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: scimitar.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(213), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

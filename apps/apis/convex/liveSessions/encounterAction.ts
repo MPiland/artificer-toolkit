@@ -10,6 +10,7 @@ import { nativeActionPendingResult } from '../encounters/actionPending'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readRunActors } from '../encounters/documents'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 
 /** Stores only the Worker-computed pending root; terminal mechanics remain a separate transaction. */
@@ -20,17 +21,24 @@ export const commitPending = internalMutation({
     const input = liveSessionEncounterActionPendingInputSchema.parse(args)
     const admission = await readLiveEncounterActionAdmission(ctx, input)
     const userId = input.expectedUserId
-    const { state, run, fingerprint, campaign } = admission
+    const { state, run, fingerprint, campaign, membership } = admission
     if (state.campaignId !== input.campaignId)
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response must return the stored outcome before checking inputs consumed by that write.
-    if (admission.kind === 'REPLAY') return admission.result
-    const { resume } = admission
+    if (admission.kind === 'REPLAY')
+      return presentEncounterResultForMember(ctx, {
+        campaign,
+        membership,
+        result: admission.result
+      })
+    const { resume, initiatorUserId } = admission
     const { snapshot } = input
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-      snapshot.applicationContext.initiatorUserId !== userId ||
+      snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
+      (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
+        snapshot.applicationContext.rollerActorId !== admission.input.targetActorId) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -62,7 +70,12 @@ export const commitPending = internalMutation({
       await readEncounterMaintenanceCapture(ctx, state, request)
       if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
     }
-    await readNativeActionSceneInputs(ctx, state, admission.input)
+    await readNativeActionSceneInputs(
+      ctx,
+      state,
+      admission.input,
+      membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+    )
     await assertLiveSessionRulesRevisions(ctx, input.revisions, {
       systemId: state.gameSystemId,
       campaignId: state.campaignId,
@@ -100,6 +113,7 @@ export const commitPending = internalMutation({
         rootCommand: admission.input,
         rootFingerprint: fingerprint,
         userId,
+        rootInitiatorUserId: initiatorUserId,
         result: {
           status: 'PAUSED',
           occurrenceId: occurrence.id,
@@ -115,6 +129,10 @@ export const commitPending = internalMutation({
             : {})
         }
       })
-    return nativeActionPendingResult(run, occurrence)
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: nativeActionPendingResult(run, occurrence)
+    })
   }
 })

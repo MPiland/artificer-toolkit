@@ -43,7 +43,7 @@ function StaticDiceResult({ roll }: { roll: RollResultDto }) {
   )
 }
 
-export function CharacterSheetRollPresentation({
+export function DiceRollPresentation({
   onRollRevealed,
   pending = false,
   roll

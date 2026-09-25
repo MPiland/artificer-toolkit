@@ -79,7 +79,7 @@ export const druid: CreatureAuthored = {
           id: S.actionId(89, 203),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(89, 1201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },

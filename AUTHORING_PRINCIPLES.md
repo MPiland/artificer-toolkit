@@ -129,7 +129,7 @@ This means:
 - temporary buffs/debuffs should be represented as applying typed grants through outcomes rather than inventing ad hoc subject-root fields
 - magic gear stays inside equipment: use `EQUIPMENT_PROPERTY_CODE.MAGIC` for enchanted items, and use `EquipmentVariantAuthored` with `parentEquipmentId` for upgrades like `+1` gear instead of inventing a separate magic-item subject or treating the variant as a base record
 - do not invent equipment prices when the source does not provide one; authored `cost` may be omitted for SRD magic gear that lacks a listed purchase price
-- when a magic variant grants a numeric bonus (`+1/+2/+3`), author the mechanical bonus as passive modifier grants; do not rely on `maxBonus` metadata alone as the complete mechanic
+- when a magic variant grants a numeric bonus (`+1/+2/+3`), author the mechanical bonus as passive modifier grants; Equipment has no separate bonus field
 - passive equipment such as holy symbols, druidic foci, and most tools should stay metadata-only unless they truly grant a persistent mechanic; do not add fake `RULE` capabilities just to acknowledge that a player may attempt an action with the item
 - bundle and container records should use `contains` when the SRD defines a concrete included-item bundle
 - composite inventory records should remain decomposable where useful: for example, a quiver bundle with arrows should be representable as the quiver item, the arrow item, and the bundled record that contains them

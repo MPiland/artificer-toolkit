@@ -36,6 +36,20 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **D20** "Waiting on the GM" survives a page reload (server signal), and bound-token drag previews follow actor control, the same rule as commits.
 - **D21** Contest rolls keep the rules-derived roll mode for now (contest evidence stores faces only); the roll-mode override applies to ordinary d20 rolls.
 - **D22** V07 (movement) is reopened for player agency: player token moves outside Encounters, bound-token moves that follow actor control, and remaining movement shown but not enforced. Every ADR 0034 item is attached to a ledger case, so no pre-beta scope sits outside the acceptance count.
+- **D23** Auto-roll applies to every roll: remaining sibling Concentration checks honor the roller's controller preference. Queued for the next Encounter slice.
+- **D24** Recharge and Legendary Action dice for a creature the GM granted to a player go to that player, consistent with D19. Queued.
+- **D25** A player's bound-token drag preview reuses the short-lived authority capture cache instead of one Convex capture per preview. Queued with S4's capture cache.
+- **D26 (please review)** While a movement decision is pending on the presented Scene (an opportunity attack, a passage choice, a save), the room holds other token moves and door changes on that Scene. Players see "Waiting on a movement decision". The GM can answer for anyone or void the decision to release the hold.
+  - **Why:** the pending decision is planned against that exact Scene. Any Scene change underneath it would make the decision unanswerable.
+  - **Tabletop parity:** this matches a real table, which pauses for a reaction. Foundry and Roll20 don't automate reactions, so they have no such hold.
+  - **Rejected:** re-planning the decision against a changed map. That silently changes what the player was asked.
+  - **Scope:** only that Scene is held. Chat, Sheets, other Scenes and GM tools keep working.
+- **D27** Bound-token movement through the room commits to Convex first. That commit also advances the room's authority sequence, so Convex itself enforces ordering.
+  - Before calling Convex, the room writes a write-ahead record. A new Worker-secret `resolve` route then settles any uncertain outcome (a timeout or crash) as COMMITTED or ABANDONED.
+  - This replaces "reload the Scene and verify its checksum". That check breaks as soon as a Sheet write changes Character vision.
+  - Movement responses also advance the room sequence.
+- **D28** Movement responses skip the session-sequence check, because the Scene version pin already fences them.
+- **D29** Movement decisions on a Scene that isn't presented keep the native Convex path. Nothing about that Scene is live-owned.
 
 ## Resolved
 

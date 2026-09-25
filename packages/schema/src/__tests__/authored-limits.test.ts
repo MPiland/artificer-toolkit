@@ -408,8 +408,8 @@ describe('authored nonnegative magnitudes', () => {
     ).toBe(true)
   })
 
-  it('rejects negative equipment maximum bonuses', () => {
-    const payload = (maxBonus: number) => ({
+  it('drops the retired equipment maximum bonus; magic bonuses are authored modifiers', () => {
+    const parsed = equipmentAuthoredDtoSchema.parse({
       kind: 'EQUIPMENT',
       id: 'equipment-1',
       label: 'Equipment',
@@ -420,10 +420,9 @@ describe('authored nonnegative magnitudes', () => {
       weight: { amount: 1, unit: 'POUNDS' },
       properties: [],
       category: 'ADVENTURING_GEAR',
-      maxBonus
+      maxBonus: 1
     })
-    expect(equipmentAuthoredDtoSchema.safeParse(payload(-1)).success).toBe(false)
-    expect(equipmentAuthoredDtoSchema.safeParse(payload(0)).success).toBe(true)
+    expect(parsed).not.toHaveProperty('maxBonus')
   })
 })
 

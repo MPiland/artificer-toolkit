@@ -173,56 +173,34 @@ export const movementReactionChoiceGroupDtoSchema = z
   )
 
 /**
- * Server-owned movement reaction timeline. Automatic actions never pass through
- * a controller choice; controller choices retain their existing bounded group.
+ * Server-owned movement reaction timeline. Every eligible reaction is a
+ * controller choice; Assisted play never uses a reaction on anyone's behalf.
  */
-export const movementReactionTimelineEntryDtoSchema = z.discriminatedUnion('kind', [
-  z
-    .strictObject({
-      kind: z.literal('AUTOMATIC_ACTION'),
-      option: movementReactionChoiceOptionDtoSchema
+export const movementReactionTimelineEntryDtoSchema = z
+  .strictObject({
+    kind: z.literal('CONTROLLER_CHOICE'),
+    group: movementReactionChoiceGroupDtoSchema
+  })
+  .check(
+    z.superRefine((entry, context) => {
+      const definitionId = entry.group.options[0]?.policy.choiceDefinitionId
+      if (
+        !definitionId ||
+        entry.group.options.some(
+          (option) =>
+            option.policy.selectionPolicy !== 'CHOICE' ||
+            option.policy.choiceDefinitionId !== definitionId
+        )
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['group'],
+          message:
+            'Controller reaction timeline entries require one exact choice policy definition.'
+        })
+      }
     })
-    .check(
-      z.superRefine((entry, context) => {
-        if (
-          entry.option.policy.selectionPolicy !== 'AUTOMATIC' ||
-          entry.option.policy.choiceDefinitionId !== null
-        ) {
-          context.addIssue({
-            code: 'custom',
-            path: ['option'],
-            message:
-              'Automatic reaction timeline entries require an automatic policy without a choice definition.'
-          })
-        }
-      })
-    ),
-  z
-    .strictObject({
-      kind: z.literal('CONTROLLER_CHOICE'),
-      group: movementReactionChoiceGroupDtoSchema
-    })
-    .check(
-      z.superRefine((entry, context) => {
-        const definitionId = entry.group.options[0]?.policy.choiceDefinitionId
-        if (
-          !definitionId ||
-          entry.group.options.some(
-            (option) =>
-              option.policy.selectionPolicy !== 'CHOICE' ||
-              option.policy.choiceDefinitionId !== definitionId
-          )
-        ) {
-          context.addIssue({
-            code: 'custom',
-            path: ['group'],
-            message:
-              'Controller reaction timeline entries require one exact choice policy definition.'
-          })
-        }
-      })
-    )
-])
+  )
 
 export const movementReactionTimelineDtoSchema = z
   .array(movementReactionTimelineEntryDtoSchema)
@@ -233,17 +211,15 @@ export const movementReactionTimelineDtoSchema = z
         pathDistance: number
         reactorActorId: string
         reactorTokenId: string
-        kindOrdinal: number
         actionId: string
         optionId: string
       } | null = null
       for (const [index, entry] of timeline.entries()) {
-        const option = entry.kind === 'AUTOMATIC_ACTION' ? entry.option : entry.group.options[0]!
+        const option = entry.group.options[0]!
         const current = {
           pathDistance: option.candidate.pathDistance,
           reactorActorId: option.candidate.reactorActorId,
           reactorTokenId: option.candidate.reactorTokenId,
-          kindOrdinal: entry.kind === 'AUTOMATIC_ACTION' ? 0 : 1,
           actionId: option.actionId,
           optionId: option.optionId
         }
@@ -255,11 +231,9 @@ export const movementReactionTimelineDtoSchema = z
                 (current.reactorActorId === prior.reactorActorId &&
                   (current.reactorTokenId < prior.reactorTokenId ||
                     (current.reactorTokenId === prior.reactorTokenId &&
-                      (current.kindOrdinal < prior.kindOrdinal ||
-                        (current.kindOrdinal === prior.kindOrdinal &&
-                          (current.actionId < prior.actionId ||
-                            (current.actionId === prior.actionId &&
-                              current.optionId <= prior.optionId))))))))))
+                      (current.actionId < prior.actionId ||
+                        (current.actionId === prior.actionId &&
+                          current.optionId <= prior.optionId))))))))
         ) {
           context.addIssue({
             code: 'custom',

@@ -49,6 +49,10 @@ import {
   turnEffectSelectionChecksum,
   type TurnEffectBoundary
 } from './encounterTurnEffectState.js'
+import {
+  resolveEncounterD20Answer,
+  type EncounterResponseAnswer
+} from './encounterEvidenceAnswer.js'
 
 type TurnExecution = StagedTurnEffectPlanDto['executions'][number]
 type TurnPending = Extract<
@@ -270,7 +274,7 @@ export async function evaluateEncounterTurnEffects(input: {
   }) => Promise<TargetBoundActiveRuleEffectExecutionInput['perception']>
   state: EncounterRunState
   userId: string
-  /** The roller's auto-roll preference; the initiator rolls turn-effect saves in this slice. */
+  /** The turn actor's roller preference; its controllers roll its turn-effect saves. */
   autoRoll: boolean
   occurrenceId: string
   actors: EncounterRunActorState[]
@@ -282,7 +286,7 @@ export async function evaluateEncounterTurnEffects(input: {
   selectionChecksum: string
   root?: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
-  resolution?: unknown
+  resolution?: EncounterResponseAnswer
   retainedPlan?: StagedTurnEffectPlanDto
 }) {
   const retained = input.pending ? requirePending(input.pending) : null
@@ -411,45 +415,36 @@ export async function evaluateEncounterTurnEffects(input: {
               expectedEvidencePolicy: pending.currentCandidate.d20Policy
             })
             const resolution = input.resolution
-            if (
-              !resolution ||
-              typeof resolution !== 'object' ||
-              !('requestId' in resolution) ||
-              typeof resolution.requestId !== 'string'
-            )
+            if (resolution?.kind !== 'ENTER_DICE' && resolution?.kind !== 'SYSTEM_ROLL')
               throw new Error('Turn effect d20 evidence is required.')
-            const systemRoll = 'kind' in resolution && resolution.kind === 'SYSTEM_ROLL'
             const policy = pending.currentCandidate.d20Policy
             if (resolution.requestId !== continuation.request.requestId || !policy)
               throw new Error('Turn effect d20 request is stale.')
-            const rawFaces = systemRoll
-              ? Array.from({ length: policy.rollMode === 'NORMAL' ? 1 : 2 }, input.rollD20)
-              : 'rawFaces' in resolution &&
-                  Array.isArray(resolution.rawFaces) &&
-                  resolution.rawFaces.every((face): face is number => typeof face === 'number')
-                ? resolution.rawFaces
-                : null
-            if (!rawFaces) throw new Error('Turn effect d20 evidence is required.')
+            const { faces, rollMode } = resolveEncounterD20Answer({
+              derivedRollMode: policy.rollMode,
+              answer: resolution,
+              rollD20: input.rollD20
+            })
             return resumeTargetBoundActiveRuleEffectWithPause({
               ...effectInput,
               continuation,
-              resolution: { requestId: resolution.requestId, rawFaces },
+              resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
               expectedEvidencePolicy: policy
             })
           })()
         : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
     if ('continuation' in result && input.autoRoll) {
       if (!result.evidencePolicy) throw new Error('Automatic turn effect has no d20 policy.')
+      const requestId = result.continuation.request.requestId
+      const { faces, rollMode } = resolveEncounterD20Answer({
+        derivedRollMode: result.evidencePolicy.rollMode,
+        answer: { kind: 'AUTO_ROLL', requestId },
+        rollD20: input.rollD20
+      })
       result = await resumeTargetBoundActiveRuleEffectWithPause({
         ...effectInput,
         continuation: result.continuation,
-        resolution: {
-          requestId: result.continuation.request.requestId,
-          rawFaces: Array.from(
-            { length: result.evidencePolicy.rollMode === 'NORMAL' ? 1 : 2 },
-            input.rollD20
-          )
-        },
+        resolution: { requestId, rawFaces: faces, rollMode },
         expectedEvidencePolicy: result.evidencePolicy
       })
       if ('continuation' in result) throw new Error('Automatic turn effect did not complete.')
@@ -580,7 +575,7 @@ export async function prepareEncounterTurnEffects<
   actors: EncounterRunActorState[]
   boundary: TurnEffectBoundary
   pending?: ServerRuleExecutionPendingSnapshotDto
-  resolution?: unknown
+  resolution?: EncounterResponseAnswer
   retainedPhase?: PendingCompletedTurnPhaseDto
   priorPlan?: PendingCompletedTurnPhaseDto
   movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>

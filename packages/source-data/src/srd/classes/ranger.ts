@@ -36,7 +36,8 @@ import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocab
 import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
-  closedRuleEffect
+  closedRuleEffect,
+  duelingRestriction
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -740,14 +741,7 @@ export const ranger: ClassAuthored = {
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
                 order: 0,
-                // One-handed melee weapon; "no other weapons" stays with the closed rule below.
-                restrictions: attackingItemPropertyRestriction(
-                  (entry) => classRowId(RA, 0x7a, 0x20 + entry),
-                  [
-                    { constraint: 'INCLUDE', properties: ['MELEE'] },
-                    { constraint: 'EXCLUDE', properties: ['TWO_HANDED'] }
-                  ]
-                )
+                restrictions: duelingRestriction((entry) => classRowId(RA, 0x7a, 0x20 + entry))
               }
             ]
           },
@@ -1027,7 +1021,7 @@ export const ranger: ClassAuthored = {
           pathCode: PATH_CODE.ON_ATTACK,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SPELL_ATTACK,
+            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
             range: { id: classRowId(RA, 0x69, 0x8a), rangeKind: RANGE_KIND.SPECIAL },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
@@ -1036,8 +1030,23 @@ export const ranger: ClassAuthored = {
           }
         }),
         closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x85),
+          id: classRowId(RA, 0x60, 0x8c),
           order: 4,
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x8c), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x85),
+          order: 5,
           ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
           invocation: {
             kind: 'PASSIVE',
@@ -1114,8 +1123,22 @@ export const ranger: ClassAuthored = {
           pathCode: PATH_CODE.ON_ATTACK,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SPELL_ATTACK,
+            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
             range: { id: classRowId(RA, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x8d),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x8d), rangeKind: RANGE_KIND.SPECIAL },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
@@ -1156,8 +1179,22 @@ export const ranger: ClassAuthored = {
           pathCode: PATH_CODE.ON_HIT,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SPELL_ATTACK,
+            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
             range: { id: classRowId(RA, 0x69, 0x88), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x8e),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x8e), rangeKind: RANGE_KIND.SPECIAL },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE

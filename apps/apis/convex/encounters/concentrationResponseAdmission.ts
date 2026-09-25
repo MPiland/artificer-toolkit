@@ -1,22 +1,23 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { QueryCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActors, readRunProjection, readRunState } from './documents'
+import { readEncounterControlledActorIds } from './actorController'
 import { readNativeConcentrationPending } from './concentrationPending'
 import { readNativeConcentrationParentDamage } from './concentrationParent'
 import { presentTimelineEntry } from './timelineEntries'
 import { isNativeConcentrationOccurrence } from './occurrenceOwner'
 import { rejectDomain } from '../lib/domainRejections'
+import { presentEncounterResultForMember } from './resultPresentation'
+import { readEncounterSettledAppRoll } from './evidenceRolls'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 
 /** Admits one concentration child response without preparing facts or writing state. */
 export async function readNativeConcentrationResponseAdmission(
@@ -40,18 +41,13 @@ export async function readNativeConcentrationResponseAdmission(
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('The concentration occurrence is unavailable.')
-  const assigned =
-    membership.role === 'PLAYER'
-      ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-      : null
   const actors = await readRunActors(ctx, state)
-  const authorized = (targetActorId: string) => {
-    const actor = actors.find((candidate) => candidate.id === targetActorId)
-    return (
-      actor?.kind === 'CHARACTER' &&
-      (membership.role === 'OWNER' || actor.sourceId === assigned?.id)
+  const controlled = await readEncounterControlledActorIds(ctx, { campaign, membership, actors })
+  const authorized = (targetActorId: string) =>
+    actors.some(
+      (actor) =>
+        actor.id === targetActorId && actor.kind === 'CHARACTER' && controlled.has(actor.id)
     )
-  }
   const fingerprint = checksumCanonicalJson(response)
   const prior = await ctx.db
     .query('encounterRunCommands')
@@ -113,15 +109,7 @@ export async function readNativeConcentrationResponseAdmission(
       throw new Error('The concentration occurrence is unavailable.')
     return {
       kind: 'REPLAY' as const,
-      result: encounterCommandResultDtoSchema.parse({
-        ...result,
-        projection:
-          membership.role === 'OWNER'
-            ? result.projection
-            : projectPlayerEncounterProjection(
-                encounterGmProjectionDtoSchema.parse(result.projection)
-              )
-      }),
+      result: await presentEncounterResultForMember(ctx, { campaign, membership, result }),
       state,
       run,
       campaign,
@@ -143,7 +131,8 @@ export async function readNativeConcentrationResponseAdmission(
     )
     .unique()
   if (reservedCommand) rejectDomain('COMMAND_ID_REUSED')
-  const resolution = response.resolution
+  const appRoll = await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
+  const resolution = withEncounterAppRoll(response.resolution, appRoll)
   if (
     state.automationMode === 'MANUAL' ||
     state.status !== 'ACTIVE' ||
@@ -182,6 +171,7 @@ export async function readNativeConcentrationResponseAdmission(
     pending,
     parentApplications,
     applicationIndex,
-    resolution
+    resolution,
+    appRoll
   }
 }

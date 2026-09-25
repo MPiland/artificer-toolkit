@@ -1,6 +1,6 @@
 import { RULE_GRAPH_LIMITS, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerKernelRuleExecutionPendingSnapshotDto
@@ -26,12 +26,10 @@ import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurr
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
 type DamageSource = { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number }
-type DiceResolution = Extract<
-  ResolveRuleOccurrenceInputDto['resolution'],
-  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
->
+type DiceResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
 /** Child receipts do not change the identity of the damage that caused them. */
 export function movementDamageEnvelope<
@@ -100,7 +98,7 @@ export async function prepareEncounterMovementConcentration<
     sourceCommandId: string
     userId: string
     /** The roller's auto-roll preference; the initiator rolls Concentration in this slice. */
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     occurredAt: string
     remainder: FrozenMovementReactionRemainder
     source: DamageSource
@@ -218,7 +216,7 @@ export async function prepareEncounterMovementConcentration<
         check.result.occurrenceId === occurrenceId &&
         check.sourceCommandId === input.sourceCommandId
     )
-    if (!input.autoRoll && !resume) {
+    if (input.autoRoll[context.application.targetActorId] !== true && !resume) {
       if (retained)
         throw new Error('Movement Concentration cannot consume unissued player evidence.')
       const { currentSpatialCandidate: _candidate, ...movement } = remainder
@@ -251,10 +249,11 @@ export async function prepareEncounterMovementConcentration<
       ? {
           kind: 'ENTER_DICE',
           requestId: started.continuation.request.requestId,
-          rawFaces: retained.result.applicationOutputs.d20.rawFaces
+          rawFaces: retained.result.applicationOutputs.d20.rawFaces,
+          rollMode: retained.result.applicationOutputs.d20.rollMode
         }
       : (resume?.resolution ?? {
-          kind: 'SYSTEM_ROLL',
+          kind: 'AUTO_ROLL',
           requestId: started.continuation.request.requestId
         })
     const evidence = await evaluateNativeConcentrationEvidence({

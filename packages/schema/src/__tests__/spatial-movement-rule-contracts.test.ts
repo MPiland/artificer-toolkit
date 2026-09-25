@@ -572,6 +572,7 @@ function movementReactionActionPendingContext(): MovementReactionActionPendingCo
     phase: {
       kind: 'ACTION_EVIDENCE' as const,
       selectedOptionId: option.optionId,
+      rollerActorId: option.candidate.reactorActorId,
       d20Policy: null
     },
     remainingSpatialCandidates: [],
@@ -593,6 +594,7 @@ function movementReactionLegendaryPendingContext() {
   const originalD20 = {
     requestId: 'movement-reaction-save',
     rollMode: 'NORMAL' as const,
+    derivedRollMode: 'NORMAL' as const,
     rawFaces: [5],
     selectedNatural: 5,
     contributors: [],

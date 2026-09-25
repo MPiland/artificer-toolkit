@@ -8,12 +8,16 @@ import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 
-/** The item an attack is made with: its identity then variant ancestry, and the grip used. */
+/**
+ * The item an attack is made with: its identity then variant ancestry, the grip used, and whether
+ * another weapon is equipped alongside it.
+ */
 export type Dnd5eAttackingItem = {
   readonly equipmentIds: readonly string[]
   readonly category: string | null
   readonly properties: readonly string[]
   readonly grip: 'ONE_HANDED' | 'TWO_HANDED' | null
+  readonly otherWeaponEquipped: boolean
 }
 
 /**
@@ -64,6 +68,8 @@ function itemConditionMatches(condition: ItemCondition, item: Dnd5eAttackingItem
         condition.requiredProperties.every((property) => properties.includes(property))
       )
     }
+    case 'ITEM_SOLE_WEAPON':
+      return !item.otherWeaponEquipped
     default:
       return false
   }
@@ -148,6 +154,7 @@ export function dnd5eAttackingItem(
     ],
     category: equipment.category ?? null,
     properties: equipment.properties ?? [],
-    grip: equipment.grip
+    grip: equipment.grip,
+    otherWeaponEquipped: equipment.otherWeaponEquipped
   }
 }

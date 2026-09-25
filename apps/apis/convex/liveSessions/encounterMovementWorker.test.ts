@@ -12,6 +12,9 @@ import type {
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -30,6 +33,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { refreshMovementSaveVision } from '../../tests/fixtures/automaticSceneMovement'
+import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { sourceImportBatches } from '../content/importBatches'
@@ -60,6 +65,17 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
+type SceneMovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+const prepareRoot = makeFunctionReference<
+  'mutation',
+  SceneMovementRequest,
+  SceneSpatialPreparation
+>('scenes/spatialPreparation:prepare')
+const finishRoot = makeFunctionReference<
+  'mutation',
+  SceneMovementRequest,
+  SceneGeometryCommandResult
+>('scenes/geometryCommands:finish')
 
 const concentrationAdvantageFeature = {
   id: '00000000-0000-4000-8000-000000000c30',
@@ -96,7 +112,7 @@ it.each([
   { withSuffix: true, asPlayer: false },
   { withSuffix: false, asPlayer: true }
 ])(
-  'prepares an automatic reaction and failed Concentration with spatial suffix $withSuffix as PLAYER $asPlayer',
+  'prepares a used automatic reaction and failed Concentration with spatial suffix $withSuffix as PLAYER $asPlayer',
   async ({ withSuffix, asPlayer }) => {
     const value = await setupAutomaticCharacterMovement(
       ['AUTOMATIC'],
@@ -106,40 +122,21 @@ it.each([
       },
       asPlayer
     )
+    // Assisted play offers the authored automatic reaction to its controller as Use/Decline; the
+    // controller (the GM, or a player the GM granted the reactor) answers it through the Worker.
     const initiator = asPlayer ? value.additionalPlayer : value.owner
     if (!initiator) throw new Error('Additional movement Player is unavailable.')
-    const setMoverControl = (controlledByUserIds: string[]) =>
-      value.base.t.run(async (ctx) => {
-        const scene = await ctx.db
-          .query('campaignScenes')
-          .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))
-          .unique()
-        if (!scene) throw new Error('Movement Scene is unavailable.')
-        const row = await ctx.db
-          .query('sceneDefinitionEntities')
-          .withIndex('by_saveId_collection_entityId', (q) =>
-            q
-              .eq('saveId', scene.definitionSaveId)
-              .eq('value.collection', 'tokens')
-              .eq('entityId', value.moverTokenId)
-          )
-          .unique()
-        if (!row || row.value.collection !== 'tokens')
-          throw new Error('Mover token definition is unavailable.')
-        const controlled = {
-          collection: 'tokens' as const,
-          entity: { ...row.value.entity, controlledByUserIds }
-        }
-        await ctx.db.patch(row._id, {
-          value: controlled,
-          checksum: checksumCanonicalJson(controlled)
+    const reactor = value.base.reactors[0]
+    if (!reactor) throw new Error('Movement reactor is unavailable.')
+    const setReactorControl = (controllerUserIds: string[]) =>
+      value.base.t.run((ctx) =>
+        grantFixtureActorControl(ctx, {
+          encounterId: value.base.run.id,
+          actorId: reactor.id,
+          controllerUserIds
         })
-        return controlled.entity
-      })
-    if (asPlayer) {
-      const token = await setMoverControl([initiator.userId])
-      expect(token.controlledByUserIds).toEqual([initiator.userId])
-    }
+      )
+    if (asPlayer) await setReactorControl([initiator.userId])
     for (const definitions of sourceImportBatches(SRD_CONCENTRATION_DEFINITIONS))
       await value.base.t.mutation(internal.content.import.importDefinitions, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -155,24 +152,41 @@ it.each([
     const oneShot = withSuffix
       ? await seedSpatialEffect({ ...value.base, sceneId: value.sceneId }, { x: 375, y: 50 }, 5)
       : null
-    const movementCommand = withSuffix
-      ? { ...value.rootInput, path: [value.rootInput.path[0]!, { x: 450, y: 50 }] }
-      : value.rootInput
     const epoch = crypto.randomUUID()
     await value.base.t.run(async (ctx) => {
-      const oldSave = await ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
-        .unique()
-      if (!oldSave) throw new Error('Fixture geometry save is unavailable.')
-      await ctx.db.delete(oldSave._id)
+      if (withSuffix) {
+        const rootSave = await ctx.db
+          .query('sceneGeometrySaves')
+          .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
+          .unique()
+        if (!rootSave) throw new Error('Fixture geometry save is unavailable.')
+        const input = { ...value.rootInput, path: [value.rootInput.path[0]!, { x: 450, y: 50 }] }
+        await ctx.db.patch(rootSave._id, { input, inputChecksum: checksumCanonicalJson(input) })
+      }
       await insertActiveLiveAuthority(ctx, {
         campaignId: value.base.campaign.id,
         epoch,
         createdAt: value.base.campaign.createdAt
       })
     })
-    const presentation = { expectedPresentationVersion: 0 }
+    await refreshMovementSaveVision(value)
+    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+    await value.owner.caller.mutation(prepareRoot, value.request)
+    const choice = (await value.owner.caller.mutation(finishRoot, value.request)).occurrence
+      ?.pending
+    if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+      throw new Error('Expected the Assisted Use/Decline reaction choice.')
+    const responseCommandId = crypto.randomUUID()
+    const useCommand: ResolveRuleOccurrenceInputDto = {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: responseCommandId,
+      encounterId: value.base.run.id,
+      expectedVersion: choice.encounterVersion,
+      occurrenceId: choice.occurrenceId,
+      expectedOccurrenceVersion: choice.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+    }
     const requests: string[] = []
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
     stubLiveSessionFetch((pathname, init) => {
@@ -211,8 +225,7 @@ it.each([
         authorityEpoch: epoch,
         expectedUserId: initiator.userId,
         expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
-        command: movementCommand,
-        presentation
+        command: useCommand
       }
     )
     if (staged.kind !== 'READY') throw new Error('Expected a private receiving geometry save.')
@@ -274,7 +287,7 @@ it.each([
       expectedUserId: initiator.userId,
       expectedRole: asPlayer ? 'PLAYER' : 'OWNER',
       encounterId: value.base.run.id,
-      expectedVersion: value.rootInput.expectedEncounterVersion!,
+      expectedVersion: choice.encounterVersion,
       movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
     }
     const runtime = createPlatformRulesRuntime({
@@ -354,7 +367,8 @@ it.each([
       }))
     const before = await records()
     let roll = 0
-    const occurrenceId = crypto.randomUUID()
+    // The Use response continues the paused movement occurrence.
+    const occurrenceId = choice.occurrenceId
     const occurredAt = '2026-09-24T00:00:00.000Z'
     const prepared = await prepareNativeLiveMovement({
       environment,
@@ -441,7 +455,7 @@ it.each([
     expect(before.spatialEffects.map((entry) => entry.id)).toEqual(oneShot ? [oneShot.id] : [])
     const preparation: SceneSpatialPreparation = {
       encounterId: value.base.run.id,
-      expectedEncounterVersion: value.rootInput.expectedEncounterVersion!,
+      expectedEncounterVersion: choice.encounterVersion,
       occurrenceId,
       occurredAt,
       outcome: prepared.outcome
@@ -576,7 +590,7 @@ it.each([
             actors,
             step: reactionStep,
             occurrenceId,
-            sourceCommandId: value.rootInput.commandId,
+            sourceCommandId: responseCommandId,
             occurredAt,
             authorizedCharacterIds
           })
@@ -585,7 +599,7 @@ it.each([
             actors: afterReaction,
             execution: changedConcentration,
             parentOccurrenceId: occurrenceId,
-            sourceCommandId: value.rootInput.commandId,
+            sourceCommandId: responseCommandId,
             userId: initiator.userId,
             authorizedCharacterIds,
             occurredAt
@@ -702,9 +716,8 @@ it.each([
     }
 
     if (asPlayer) {
-      expect((await setMoverControl([])).controlledByUserIds).toEqual([])
-      expect(await records()).toEqual(before)
-      expect(await geometrySave()).toEqual(observedSave)
+      await setReactorControl([])
+      const revoked = await records()
       await expect(
         callLiveSessionRoute(
           environment,
@@ -713,11 +726,9 @@ it.each([
           commitInput
         )
       ).rejects.toMatchObject({ status: 409 })
-      expect(await records()).toEqual(before)
+      expect(await records()).toEqual(revoked)
       expect(await geometrySave()).toEqual(observedSave)
-      expect((await setMoverControl([initiator.userId])).controlledByUserIds).toEqual([
-        initiator.userId
-      ])
+      await setReactorControl([initiator.userId])
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
     }
@@ -789,10 +800,8 @@ it.each([
     expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(child.resultJson))).toEqual(
       concentration.result
     )
-    const rootReceipt = committed.receipts.find(
-      (entry) => entry.commandId === value.rootInput.commandId
-    )
-    if (!rootReceipt) throw new Error('Published movement root receipt is unavailable.')
+    const rootReceipt = committed.receipts.find((entry) => entry.commandId === responseCommandId)
+    if (!rootReceipt) throw new Error('Published movement response receipt is unavailable.')
     expect(rootReceipt.actorUserId).toBe(initiator.userId)
     const rootResult = storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))
     expect(rootResult).toEqual(prepared.outcome.result)

@@ -35,8 +35,8 @@ import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
-  attackingItemPropertyRestriction,
-  closedRuleEffect
+  closedRuleEffect,
+  duelingRestriction
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -725,14 +725,7 @@ export const paladin: ClassAuthored = {
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
                 order: 0,
-                // One-handed melee weapon; "no other weapons" stays with the closed rule below.
-                restrictions: attackingItemPropertyRestriction(
-                  (entry) => classRowId(P, 0x7a, 0x20 + entry),
-                  [
-                    { constraint: 'INCLUDE', properties: ['MELEE'] },
-                    { constraint: 'EXCLUDE', properties: ['TWO_HANDED'] }
-                  ]
-                )
+                restrictions: duelingRestriction((entry) => classRowId(P, 0x7a, 0x20 + entry))
               }
             ]
           },

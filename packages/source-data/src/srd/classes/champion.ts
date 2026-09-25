@@ -17,7 +17,11 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { attackingItemPropertyRestriction, closedRuleEffect } from './mechanics.js'
+import {
+  attackingItemPropertyRestriction,
+  closedRuleEffect,
+  duelingRestriction
+} from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -196,14 +200,7 @@ export const championMartialArchetype: ClassAuthored = {
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
                 order: 0,
-                // One-handed melee weapon; "no other weapons" stays with the closed rule below.
-                restrictions: attackingItemPropertyRestriction(
-                  (entry) => classRowId(F, 0x7a, 0x38 + entry),
-                  [
-                    { constraint: 'INCLUDE', properties: ['MELEE'] },
-                    { constraint: 'EXCLUDE', properties: ['TWO_HANDED'] }
-                  ]
-                )
+                restrictions: duelingRestriction((entry) => classRowId(F, 0x7a, 0x38 + entry))
               }
             ]
           },

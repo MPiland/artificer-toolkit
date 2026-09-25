@@ -219,7 +219,7 @@ it('replays retained SYSTEM_ROLL spatial evidence without random generation', as
     occurrenceId,
     executionCommandId: commandId,
     occurredAt,
-    autoRoll: false
+    autoRoll: {}
   }
   const pending = await base.owner.caller.run((ctx) =>
     evaluateNativeSpatialMovement(ctx, movement, 'PREVIEW')
@@ -233,7 +233,13 @@ it('replays retained SYSTEM_ROLL spatial evidence without random generation', as
     sceneVersion: 1,
     currentPosition: pending.movementIntent!.position,
     executionCommandId: crypto.randomUUID(),
-    resolution: { requestId, kind: 'SYSTEM_ROLL' },
+    resolution: {
+      requestId,
+      kind: 'SYSTEM_ROLL',
+      rollId: crypto.randomUUID(),
+      faces: [1],
+      rollMode: 'NORMAL'
+    },
     resolutionCommand: {
       commandId: crypto.randomUUID(),
       commandFingerprint: checksumCanonicalJson({ requestId }),
@@ -264,40 +270,35 @@ it('replays retained SYSTEM_ROLL spatial evidence without random generation', as
     evaluateNativeSpatialMovement(ctx, { ...resume, retainedExecutions }, 'PREVIEW')
   )
   expect(replay).toEqual(prepared)
-  await expect(
-    base.owner.caller.run((ctx) =>
-      evaluateNativeSpatialMovement(
-        ctx,
-        { ...resume, retainedExecutions: [...retainedExecutions, ...retainedExecutions] },
-        'PREVIEW'
-      )
-    )
-  ).rejects.toThrow('unused d20 faces')
+  // The answered contact settles with the app roll's recorded faces, never a retained face.
   await expect(
     base.owner.caller.run((ctx) =>
       evaluateNativeSpatialMovement(ctx, { ...resume, retainedExecutions: [] }, 'PREVIEW')
     )
-  ).rejects.toThrow('missing a d20 face')
-  await expect(
-    base.owner.caller.run((ctx) =>
-      evaluateNativeSpatialMovement(ctx, { ...resume, retainedExecutions })
-    )
-  ).rejects.toThrow('allowed only during preparation preview')
+  ).resolves.toEqual(prepared)
   await expect(
     base.owner.caller.run((ctx) =>
       evaluateNativeSpatialMovement(
         ctx,
         {
           ...resume,
-          retainedExecutions: retainedExecutions.map((execution) => ({
-            ...execution,
-            d20: null
-          }))
+          retainedExecutions: [
+            ...retainedExecutions,
+            ...retainedExecutions.map((execution) => ({
+              ...execution,
+              ordinal: execution.ordinal + retainedExecutions.length
+            }))
+          ]
         },
         'PREVIEW'
       )
     )
-  ).rejects.toThrow('missing a d20 face')
+  ).rejects.toThrow('unused d20 faces')
+  await expect(
+    base.owner.caller.run((ctx) =>
+      evaluateNativeSpatialMovement(ctx, { ...resume, retainedExecutions })
+    )
+  ).rejects.toThrow('allowed only during preparation preview')
   const after = await base.owner.caller.run((ctx) =>
     ctx.db
       .query('encounterRuns')

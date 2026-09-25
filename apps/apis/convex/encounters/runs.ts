@@ -124,6 +124,8 @@ export const create = mutation({
           systemId: character.systemId,
           stableTieKey: crypto.randomUUID(),
           public: true,
+          controllerUserIds: [],
+          disposition: 'FRIENDLY',
           resources: {},
           gmNotes: null,
           initiative: null,
@@ -154,6 +156,8 @@ export const create = mutation({
           systemId: enemy.systemId,
           stableTieKey: crypto.randomUUID(),
           public: true,
+          controllerUserIds: [],
+          disposition: 'HOSTILE',
           currentHitPoints: enemy.maxHitPoints,
           maxHitPoints: enemy.maxHitPoints,
           tempHitPoints: 0,
@@ -187,13 +191,6 @@ export const create = mutation({
       sides: [
         { id: partySideId, label: 'Party', sortOrder: 0 },
         { id: oppositionSideId, label: 'Opposition', sortOrder: 1 }
-      ],
-      sideRelationships: [
-        {
-          firstSideId: partySideId < oppositionSideId ? partySideId : oppositionSideId,
-          secondSideId: partySideId < oppositionSideId ? oppositionSideId : partySideId,
-          relationshipKind: 'HOSTILE'
-        }
       ],
       createdAt: now,
       updatedAt: now

@@ -29,6 +29,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, components, internal } from '../_generated/api'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { resumeNativeConcentration } from '../encounters/concentrationResponses'
 import {
   insertActiveLiveAuthority,
@@ -186,6 +187,27 @@ it.each([
     const { fixture, seeded, staged, pending } = await pendingFixture()
     const actor = responder === 'OWNER' ? fixture.owner : fixture.player
     const token = responder === 'OWNER' ? 'fixture-owner-token' : 'fixture-player-token'
+    const random = await import('../lib/rollRandom')
+    vi.mocked(random.nextRollInt).mockReturnValueOnce(face - 1)
+    // App rolls post to the table chat, which needs a username.
+    await actor.caller.mutation(api.account.updateProfile, {
+      username: responder === 'OWNER' ? 'ConcentrationGm' : 'ConcentrationPlayer',
+      bio: null
+    })
+    const rolled = await actor.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'ROLL_RULE_EVIDENCE',
+        encounterId: fixture.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: pending.encounterVersion,
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        requestId: pending.request.requestId,
+        rollMode: pending.request.rollMode
+      }
+    })
+    if (!rolled.evidenceRoll) throw new Error('Expected the responder app roll.')
+    expect(rolled.evidenceRoll.faces).toEqual([face])
     const response: ResolveRuleOccurrenceInputDto = {
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: fixture.run.id,
@@ -194,7 +216,11 @@ it.each([
       occurrenceId: pending.occurrenceId,
       expectedOccurrenceVersion: pending.occurrenceVersion,
       correlationId: null,
-      resolution: { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+      resolution: {
+        kind: 'SYSTEM_ROLL',
+        requestId: pending.request.requestId,
+        rollId: rolled.evidenceRoll.rollId
+      }
     }
     const scope = {
       campaignId: fixture.campaign.id,
@@ -217,24 +243,19 @@ it.each([
       ).rejects.toThrow()
       expect(await concentrationRecords(fixture)).toEqual(beforeRefusal)
     }
-    let rolls = 0
     const plan = await planNativeLiveConcentrationResponse(environment, token, scope, response, {
       runtime: await runtime(),
       random: () => {
-        rolls++
-        return face - 1
+        throw new Error('An app-roll response settles its recorded faces without rerolling.')
       }
     })
     if (plan.kind !== 'PLANNED') throw new Error('Expected completed concentration response.')
-    expect(rolls).toBe(1)
     expect(plan.input.execution).toMatchObject({
       applicationOutputs: { kind: 'CONCENTRATION_CHECK', outcome }
     })
     expect(await concentrationRecords(fixture)).toEqual(staged)
 
     const native: { result?: Awaited<ReturnType<typeof resumeNativeConcentration>> } = {}
-    const random = await import('../lib/rollRandom')
-    vi.mocked(random.nextRollInt).mockReturnValueOnce(face - 1)
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(plan.input.occurredAt))
     try {
@@ -330,7 +351,6 @@ it.each([
       }
     })
     expect(retry).toEqual({ kind: 'REPLAY', result: committed })
-    expect(rolls).toBe(1)
     expect(await concentrationRecords(fixture)).toEqual(after)
   },
   60_000

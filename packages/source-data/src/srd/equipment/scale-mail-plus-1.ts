@@ -11,7 +11,6 @@ export const scaleMailPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: scaleMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.magicArmorModifiers(S.equipId(321), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

@@ -26,6 +26,29 @@ export const encounterStoredRunActorSchema = z.strictObject({
   stateChecksum: projectionChecksumSchema
 })
 
+/**
+ * One app roll for a pending evidence request ("Roll dice"). Rows are immutable: a settle by
+ * `rollId` reads these faces, and every attempt stays for the roll log and audit.
+ */
+export const encounterStoredEvidenceRollSchema = z.strictObject({
+  id: postgresUuidSchema,
+  campaignId: postgresUuidSchema,
+  encounterId: postgresUuidSchema,
+  occurrenceId: postgresUuidSchema,
+  occurrenceVersion: z.number().check(z.int()).check(z.nonnegative()),
+  requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+  userId: postgresUuidSchema,
+  commandId: postgresUuidSchema,
+  commandFingerprint: projectionChecksumSchema,
+  attempt: z.number().check(z.int()).check(z.positive()),
+  faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
+  value: z.number().check(z.int()),
+  rollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+  derivedRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+  createdAt: z.iso.datetime()
+})
+export type EncounterStoredEvidenceRoll = z.infer<typeof encounterStoredEvidenceRollSchema>
+
 export const encounterSceneBindingSchema = z.strictObject({
   encounterId: postgresUuidSchema,
   campaignId: postgresUuidSchema,

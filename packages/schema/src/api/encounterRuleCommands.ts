@@ -128,23 +128,47 @@ export const resolveEncounterActionInputDtoSchema = z.extend(commandBaseDtoSchem
   )
 })
 
+const requestIdSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
+
+/** A d20 row's roll mode. The rules-derived mode is recommended; the roller may change it. */
+export const encounterD20RollModeDtoSchema = z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+export type EncounterD20RollModeDto = z.infer<typeof encounterD20RollModeDtoSchema>
+
 export const resolveRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema, {
   type: z.literal('RESOLVE_RULE_OCCURRENCE'),
   correlationId: z._default(z.optional(serverRuleExecutionCorrelationIdDtoSchema), null),
   occurrenceId: uuidSchema,
   expectedOccurrenceVersion: versionSchema,
   resolution: z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ENTER_DICE'),
-      requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
-      rawFaces: z
-        .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
-        .check(z.minLength(1))
-        .check(z.maxLength(2))
-    }),
+    /** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
+    z
+      .strictObject({
+        kind: z.literal('ENTER_DICE'),
+        requestId: requestIdSchema,
+        rawFaces: z
+          .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+          .check(z.minLength(1))
+          .check(z.maxLength(2)),
+        rollMode: encounterD20RollModeDtoSchema
+      })
+      .check(
+        z.superRefine((value, context) => {
+          if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
+            context.addIssue({
+              code: 'custom',
+              path: ['rawFaces'],
+              message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
+            })
+        })
+      ),
+    /**
+     * Settles the request with the roller's latest app roll for it ("Rolled by the app"). The
+     * server reads the recorded faces; a client never supplies an app roll's values.
+     */
     z.strictObject({
       kind: z.literal('SYSTEM_ROLL'),
-      requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
+      requestId: requestIdSchema,
+      rollId: uuidSchema
     }),
     z.strictObject({
       kind: z.literal('ENTER_INTEGER'),
@@ -167,6 +191,18 @@ export const resolveRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema
     z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema })
   ])
 })
+/**
+ * "Roll dice" on one prompt row: the server rolls this request with secure randomness, records the
+ * roll and posts it to the table log without settling the request. Rerolls are further attempts.
+ */
+export const rollRuleEvidenceInputDtoSchema = z.extend(commandBaseDtoSchema, {
+  type: z.literal('ROLL_RULE_EVIDENCE'),
+  occurrenceId: uuidSchema,
+  expectedOccurrenceVersion: versionSchema,
+  requestId: requestIdSchema,
+  /** The chosen mode for a d20 row; null for any other roll. */
+  rollMode: z.nullable(encounterD20RollModeDtoSchema)
+})
 /** GM escape hatch for a stuck decision; the outcome depends on the pending decision's kind. */
 export const voidRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema, {
   type: z.literal('VOID_RULE_OCCURRENCE'),
@@ -180,6 +216,7 @@ export const revertLastEncounterActionInputDtoSchema = z.extend(commandBaseDtoSc
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
+export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >

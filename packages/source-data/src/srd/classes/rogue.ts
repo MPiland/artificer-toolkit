@@ -878,8 +878,22 @@ export const rogue: ClassAuthored = {
           pathCode: PATH_CODE.ON_MISS,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SPELL_ATTACK,
+            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
             range: { id: classRowId(R, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(R, 0x60, 0x85),
+          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK,
+          pathCode: PATH_CODE.ON_MISS,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
+            range: { id: classRowId(R, 0x69, 0x85), rangeKind: RANGE_KIND.SPECIAL },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE

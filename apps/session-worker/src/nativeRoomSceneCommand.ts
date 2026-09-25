@@ -15,9 +15,29 @@ import {
   sceneTokenMovementFailure,
   VTT_SCENE_LIMITS
 } from '@artificer-toolkit/shared/vtt'
+import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { z } from 'zod'
 
 import type { DurableCommandJournal } from './durableCommandJournal.js'
+
+/**
+ * Whether a member may drag-preview a token: the GM always; a player never for hidden tokens; an
+ * Encounter-bound token follows its bound actor's controllers (the same rule as the Convex commit
+ * and the web), and an unbound token its Scene `controlledByUserIds`.
+ */
+export function canPreviewSceneTokenDrag(input: {
+  token: CampaignSceneStateDto['tokens'][number]
+  role: 'OWNER' | 'PLAYER'
+  userId: string
+  originBoundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null
+}): boolean {
+  const { token } = input
+  if (token.locked) return false
+  if (input.role === 'OWNER') return true
+  if (token.hidden) return false
+  const bound = input.originBoundTokenControl?.find((entry) => entry.tokenId === token.id)
+  return bound ? bound.controlled : token.controlledByUserIds.includes(input.userId)
+}
 
 export const liveSessionSceneCommandInputSchema = z.union([
   sceneDoorStateCommandInputDtoSchema,

@@ -3,7 +3,8 @@ import {
   advanceNativeActionGraphs,
   executeNativeActionGraphs,
   prepareNativeActionTest,
-  continueNativeActionAfterTest
+  continueNativeActionAfterTest,
+  type EncounterActionAutoRoll
 } from './encounterActionExecution.js'
 import {
   resolveNativeMovementLegendaryResistance,
@@ -20,6 +21,7 @@ import type { PreparedEncounterMovementReactionAction } from './encounterMovemen
 import { bindMovementInterruption } from './encounterMovementReactionActionExecution.js'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
 type PreparedMovementReaction = Pick<
   Awaited<ReturnType<typeof prepareEncounterMovementReactionAction>>,
@@ -60,11 +62,22 @@ export function bindEncounterMovementReactionInterruption(
   }
 }
 
+/** The reactor rolls its attack; the mover rolls its saves (ADR 0034 decision 3). */
+function reactionAutoRoll(input: {
+  autoRoll: EncounterAutoRollByActorId
+  prepared: PreparedMovementReaction
+}): EncounterActionAutoRoll {
+  return {
+    SOURCE: input.autoRoll[input.prepared.option.candidate.reactorActorId] === true,
+    TARGET: input.autoRoll[input.prepared.prepared.binding.targetActorId] === true
+  }
+}
+
 /** Runs or resumes sealed action phases; the enclosing movement owns publication. */
 export async function executeEncounterMovementReactionAction(input: {
   runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
   occurrenceId: string
-  autoRoll: boolean
+  autoRoll: EncounterAutoRollByActorId
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   random: NonNullable<Parameters<typeof executeNativeActionGraphs>[0]['random']>
@@ -75,7 +88,7 @@ export async function executeEncounterMovementReactionAction(input: {
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    autoRoll: input.autoRoll,
+    autoRoll: reactionAutoRoll(input),
     ...(input.resume ? { resume: input.resume } : {}),
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
@@ -142,7 +155,7 @@ export async function executeEncounterMovementReactionAction(input: {
 export async function resumeEncounterMovementLegendaryResistance(input: {
   runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
   occurrenceId: string
-  autoRoll: boolean
+  autoRoll: EncounterAutoRollByActorId
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
@@ -202,6 +215,7 @@ export async function resumeEncounterMovementLegendaryResistance(input: {
   }
   const result = await continueNativeActionAfterTest({
     ...input,
+    autoRoll: reactionAutoRoll(input),
     adapter: input.prepared.prepared.adapter,
     binding: input.prepared.prepared.binding,
     plan: input.prepared.executionPlan,

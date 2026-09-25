@@ -9,8 +9,13 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  setupReactionMovementScene,
+  useMovementReactions
+} from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
+import { api } from '../_generated/api'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -146,16 +151,15 @@ it.each(['USE', 'DECLINE'] as const)(
   30_000
 )
 
-it('issues and settles Legendary Resistance for an automatic Scene reaction', async () => {
+it('issues and settles Legendary Resistance for a used automatic Scene reaction', async () => {
   const base = await setupCreatureReactionRun(null, false, false, 'AUTOMATIC', 'AUTOMATIC', true)
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
-  expect(prepared.outcome.kind).toBe('PENDING')
-  const issued = await value.owner.caller.mutation(finish, value.request)
+  const used = await useMovementReactions(value)
+  expect(used.prepared.outcome.kind).toBe('PENDING')
+  const issued = await value.owner.caller.mutation(finish, used.request)
   const pending = issued.occurrence?.pending
   if (!pending || pending.kind !== 'LEGENDARY_RESISTANCE_CHOICE' || !pending.options[0])
-    throw new Error('Expected an automatic Legendary Resistance choice.')
+    throw new Error('Expected a Legendary Resistance choice after the reaction Use.')
   const staged = await value.owner.caller.mutation(
     begin,
     command({
@@ -208,7 +212,8 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
       resolution: {
         kind: 'ENTER_DICE',
         requestId: evidence.request.requestId,
-        rawFaces: [evidence.request.min]
+        rawFaces: evidence.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: evidence.request.rollMode
       }
     })
   )
@@ -230,6 +235,11 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
   if (!declined || declined.kind !== 'READY')
     throw new Error('Expected resistance decline staging.')
   let replayRequest = { ...value.request, saveId: declined.saveId }
+  // App rolls post to the table roll log, which needs a username.
+  await value.owner.caller.mutation(api.account.updateProfile, {
+    username: 'MovementGm',
+    bio: null
+  })
   let outcomeRequests = 0
   for (let index = 0; ; index++) {
     expect(index).toBeLessThan(20)
@@ -251,12 +261,32 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
     if (!pending || pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
       throw new Error('Expected assisted OUTCOME evidence.')
     outcomeRequests++
+    // The server rolls the OUTCOME die ("Roll dice"); the response settles with that app roll.
+    const appRoll = await value.owner.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'ROLL_RULE_EVIDENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: pending.encounterVersion,
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        requestId: pending.request.requestId,
+        rollMode: null
+      }
+    })
+    if (!appRoll.evidenceRoll) throw new Error('Expected the recorded OUTCOME roll.')
+    expect(appRoll.evidenceRoll).toMatchObject({ faces: [pending.request.min], rollMode: null })
+    const rollId = appRoll.evidenceRoll.rollId
     const staged = await value.owner.caller.mutation(
       begin,
       command({
         encounterId: base.run.id,
         pending,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+        resolution: {
+          kind: 'SYSTEM_ROLL',
+          requestId: pending.request.requestId,
+          rollId
+        }
       })
     )
     if (!staged || staged.kind !== 'READY') throw new Error('Expected OUTCOME staging.')

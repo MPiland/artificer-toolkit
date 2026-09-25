@@ -197,11 +197,15 @@ const modifierGrantVariants = [
     z.optional(emptyDomainDtoSchema),
     modifierScalarValueDtoSchema
   ),
+  // An armor class formula: the amount plus each listed ability modifier ("10 + DEX + CON").
   buildModifierGrantVariant(
     'ARMOR_CLASS',
     'SET_VALUE',
     z.optional(emptyDomainDtoSchema),
-    z.object({ amount: z.number() })
+    z.object({
+      amount: z.number(),
+      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+    })
   ),
   buildModifierGrantVariant(
     'ARMOR_CLASS',
@@ -662,9 +666,36 @@ const [firstModifierDomain, ...otherModifierDomains] = [...modifierVariantsByDom
 )
 
 /**
- * Authorable modifiers that no System consumer applies yet (Phase 8.3). Publication and import
- * reject them rather than store a mechanic that silently does nothing.
+ * Authorable modifiers that no System consumer applies yet and the SRD does not use. Publication
+ * and import reject them rather than store a mechanic that silently does nothing.
+ * `REACTION_COUNT SET_VALUE` stays authorable: SRD Shocking Grasp applies it through a granted
+ * effect, which Phase 8.3 applies.
  */
+const UNSUPPORTED_MODIFIERS = new Set([
+  'SAVE_DC SET_VALUE',
+  'PROFICIENCY_BONUS BONUS',
+  'PROFICIENCY_BONUS SET_VALUE',
+  'CHARGE_LIMIT MODIFY_CHARGE_LIMIT',
+  'CHARGE_LIMIT SET_VALUE',
+  'RANGE SET_VALUE',
+  'RANGE REPLACE_RANGE_KIND',
+  'DURATION SET_VALUE',
+  'DURATION REPLACE_DURATION_KIND',
+  'SHAPE REPLACE_SHAPE_KIND',
+  'SPELL_SLOT_COUNT BONUS',
+  'SPELL_SLOT_COUNT SET_VALUE',
+  'SPELL_SLOT_LEVEL_MAX SET_VALUE',
+  'SPELLS_KNOWN BONUS',
+  'SPELLS_KNOWN SET_VALUE',
+  'SPELLS_PREPARED BONUS',
+  'SPELLS_PREPARED SET_VALUE',
+  'ACTION_COUNT BONUS',
+  'ACTION_COUNT SET_VALUE',
+  'BONUS_ACTION_COUNT BONUS',
+  'BONUS_ACTION_COUNT SET_VALUE',
+  'REACTION_COUNT BONUS'
+])
+
 function unsupportedModifierMessage(value: {
   valueDomainCode: string
   modifierKind: string
@@ -675,9 +706,10 @@ function unsupportedModifierMessage(value: {
     (value.valueDomainCode === 'HIT_POINTS_MAX' || value.valueDomainCode === 'SENSE_RANGE')
   )
     return `${label} modifiers are not supported yet; use a bonus or penalty.`
-  if (value.modifierKind === 'ADD_BONUS_DIE' || value.modifierKind === 'REPLACE_DAMAGE_TYPE')
-    return `${label} modifiers are not supported yet.`
   if (
+    UNSUPPORTED_MODIFIERS.has(label) ||
+    value.modifierKind === 'ADD_BONUS_DIE' ||
+    value.modifierKind === 'REPLACE_DAMAGE_TYPE' ||
     value.valueDomainCode === 'MOVEMENT_MODE' ||
     value.valueDomainCode === 'ATTRIBUTE' ||
     value.valueDomainCode === 'CONDITION'

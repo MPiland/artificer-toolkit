@@ -13,16 +13,16 @@ const diceCanvasMocks = vi.hoisted(() => ({
   onRollSettled: undefined as ((rollId: string) => void) | undefined,
   preloadDiceModels: vi.fn()
 }))
-vi.mock('../dice/dice.utils', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../dice/dice.utils')>()),
+vi.mock('#app/components/dice/dice.utils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('#app/components/dice/dice.utils')>()),
   supportsWebGL: () => true
 }))
 
-vi.mock('../dice/diceModelPreload', () => ({
+vi.mock('#app/components/dice/diceModelPreload', () => ({
   preloadDiceModels: diceCanvasMocks.preloadDiceModels
 }))
 
-vi.mock('../dice/DiceCanvas', () => ({
+vi.mock('#app/components/dice/DiceCanvas', () => ({
   default: ({
     roll,
     onRollSettled

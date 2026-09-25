@@ -31,10 +31,13 @@ export const liveSessionEncounterActionPendingInputSchema = z.extend(
   z.omit(liveSessionEncounterRulesInputSchema, {
     request: true,
     concentrationResponse: true,
+    turnCommand: true,
+    action: true,
     movement: true
   }),
   {
-    expectedRole: z.literal('OWNER'),
+    /** The GM, or a player acting for an actor they control (ADR 0034 decision 1). */
+    expectedRole: z.enum(['OWNER', 'PLAYER']),
     command: resolveEncounterActionInputDtoSchema,
     response: z.optional(z.nullable(resolveRuleOccurrenceInputDtoSchema)),
     revisions: liveSessionRulesRevisionsSchema,

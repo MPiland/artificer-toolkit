@@ -12,7 +12,6 @@ describe('dense equipment authoring route fixture', () => {
     expect(equipment).toMatchObject({
       category: 'VARIANT',
       label: 'Shortsword +1',
-      maxBonus: 1,
       properties: ['MAGIC']
     })
     expect(equipment.effects).toHaveLength(1)

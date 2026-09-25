@@ -26,7 +26,8 @@ const actions = [
     rangeLabel: '5 ft',
     attackBonus: 4,
     grip: null,
-    wieldConflict: null
+    wieldConflict: null,
+    warnings: []
   }
 ] satisfies EncounterActionChoiceDto[]
 const warnings = [
@@ -37,14 +38,24 @@ const resolved: EncounterCommandResultDto = {
   projection: tabletopGmEncounter,
   roll: null,
   resolution: null,
-  occurrence: null
+  occurrence: null,
+  evidenceRoll: null
 }
 
-function renderDrawer(onResolve: (command: ResolveEncounterActionInputDto) => Promise<unknown>) {
-  renderWithAppProviders(
+function renderDrawer(
+  onResolve: (command: ResolveEncounterActionInputDto) => Promise<unknown>,
+  {
+    choices = actions,
+    waitingOn = null
+  }: {
+    choices?: EncounterActionChoiceDto[]
+    waitingOn?: 'GM' | 'PLAYER' | null
+  } = {}
+) {
+  return renderWithAppProviders(
     <CampaignTabletopActionDrawer
       actionChoicesError={null}
-      actions={actions}
+      actions={choices}
       actionsLoading={false}
       actorIdByTokenId={new Map()}
       connected
@@ -53,6 +64,7 @@ function renderDrawer(onResolve: (command: ResolveEncounterActionInputDto) => Pr
       optionalRules={[]}
       pending={false}
       scene={tabletopLiveScene}
+      waitingOn={waitingOn}
       onClose={vi.fn()}
       onLoadOptionalChoices={vi.fn()}
       onOpen={vi.fn()}
@@ -128,5 +140,36 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
     expect(screen.queryByRole('button', { name: 'Do it anyway' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Resolve action' })).toBeEnabled()
     expect(onResolve).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('CampaignTabletopActionDrawer availability', () => {
+  it('shows why an action already breaks a rule before it is chosen', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), {
+      choices: [
+        {
+          ...actions[0]!,
+          warnings: [
+            { code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'No bonus action left this turn.' }
+          ]
+        }
+      ]
+    })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    expect(await screen.findByText('No bonus action left this turn.')).toBeInTheDocument()
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(screen.getByRole('listitem')).toHaveTextContent('No bonus action left this turn.')
+  })
+
+  it('waits on whoever the server says must answer the pending decision', async () => {
+    const { unmount } = renderDrawer(vi.fn(), { waitingOn: 'GM' })
+    expect(screen.getByText('Waiting on the GM')).toBeVisible()
+    expect(screen.getByRole('combobox', { name: 'Action' })).toBeDisabled()
+    unmount()
+
+    renderDrawer(vi.fn(), { waitingOn: 'PLAYER' })
+    expect(screen.getByText('Waiting on another player')).toBeVisible()
   })
 })

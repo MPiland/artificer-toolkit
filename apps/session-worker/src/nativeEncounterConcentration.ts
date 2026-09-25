@@ -1,3 +1,5 @@
+import type { EncounterSettledAppRollDto } from '@artificer-toolkit/schema/api/encounterData'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
@@ -56,12 +58,14 @@ export async function planNativeLiveConcentration(input: {
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
-  /** The roller's auto-roll preference; the initiator rolls Concentration in this slice. */
-  autoRoll: boolean
+  /** Each concentrating actor's roller preference (ADR 0034 decision 3). */
+  autoRollByActorId: Readonly<Record<string, boolean>>
   resume?: {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     context: NativeConcentrationContext
     response: ResolveRuleOccurrenceInputDto
+    /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
+    appRoll: EncounterSettledAppRollDto | null
     applicationIndex: number
   }
 }) {
@@ -197,7 +201,7 @@ export async function planNativeLiveConcentration(input: {
         })
     if (started && started.status !== 'PAUSED')
       throw new Error('Concentration did not request bounded d20 evidence.')
-    if (started && !input.autoRoll) {
+    if (started && !input.autoRollByActorId[context.application.targetActorId]) {
       pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...started.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
@@ -231,9 +235,13 @@ export async function planNativeLiveConcentration(input: {
       return started.continuation
     })()
     const resolution = resume
-      ? resume.response.resolution
-      : { kind: 'SYSTEM_ROLL' as const, requestId: continuation.request.requestId }
-    if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
+      ? withEncounterAppRoll(resume.response.resolution, resume.appRoll)
+      : { kind: 'AUTO_ROLL' as const, requestId: continuation.request.requestId }
+    if (
+      resolution.kind !== 'ENTER_DICE' &&
+      resolution.kind !== 'SYSTEM_ROLL' &&
+      resolution.kind !== 'AUTO_ROLL'
+    )
       throw new Error('The concentration evidence request is unavailable.')
     const evidence = await evaluateNativeConcentrationEvidence({
       context,

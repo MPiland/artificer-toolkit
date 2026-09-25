@@ -41,7 +41,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
@@ -486,6 +486,39 @@ it('settles a private round-wrap initiative tie through retained responses and o
   const responseCommands: ResolveRuleOccurrenceInputDto[] = []
   let evidenceCount = 0
   let orderCount = 0
+  let appRolls = 0
+  // App rolls post to the table chat, which needs a username.
+  await base.owner.caller.mutation(api.account.updateProfile, { username: 'TurnGm', bio: null })
+  // "Roll dice" records a Convex app roll of 9 (face 8 of 0..19 plus the minimum of 1).
+  const appRoll = async (
+    occurrence: NonNullable<EncounterCommandResultDto['occurrence']>,
+    requestId: string
+  ) => {
+    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
+      ;(values as Uint32Array)[0] = 8
+      return values
+    })
+    try {
+      const rolled = await base.owner.caller.mutation(execute, {
+        command: {
+          type: 'ROLL_RULE_EVIDENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.command.expectedVersion,
+          occurrenceId: occurrence.occurrenceId,
+          expectedOccurrenceVersion: occurrence.occurrenceVersion,
+          requestId,
+          rollMode: null
+        }
+      })
+      if (!rolled.evidenceRoll) throw new Error('Expected a recorded app roll.')
+      expect(rolled.evidenceRoll.value).toBe(9)
+      appRolls += 1
+      return rolled.evidenceRoll.rollId
+    } finally {
+      entropy.mockRestore()
+    }
+  }
   for (let step = 0; step < 6; step += 1) {
     const pending = current.occurrence?.pending
     if (!current.occurrence || !pending) throw new Error('Missing round-wrap response request.')
@@ -495,7 +528,11 @@ it('settles a private round-wrap initiative tie through retained responses and o
       resolution =
         evidenceCount === 1
           ? { kind: 'ENTER_INTEGER', requestId: pending.request.requestId, value: 9 }
-          : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+          : {
+              kind: 'SYSTEM_ROLL',
+              requestId: pending.request.requestId,
+              rollId: await appRoll(current.occurrence, pending.request.requestId)
+            }
     } else if (pending.kind === 'INITIATIVE_ORDER') {
       orderCount += 1
       resolution = {
@@ -650,7 +687,9 @@ it('settles a private round-wrap initiative tie through retained responses and o
   if (!terminal) throw new Error('Initiative tie did not settle.')
   expect(evidenceCount).toBe(4)
   expect(orderCount).toBe(1)
-  expect(rolls).toBe(3)
+  // App rolls settle with their recorded values; the Session DO never rolls initiative.
+  expect(rolls).toBe(0)
+  expect(appRolls).toBe(3)
   expect(requests).toContain(pendingPath)
   expect(requests.at(-1)).toBe(commitPath)
   expect(terminal.projection).toMatchObject({

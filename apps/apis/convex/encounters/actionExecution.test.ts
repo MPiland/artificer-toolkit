@@ -312,7 +312,7 @@ describe('native phased action execution', () => {
           }
         ]
       }),
-      autoRoll: false,
+      autoRoll: { SOURCE: false, TARGET: false },
       afterTest: async () => undefined
     }
     const test = await advanceNativeActionGraphs(input)
@@ -327,7 +327,7 @@ describe('native phased action execution', () => {
       ...input,
       resume: {
         pending: test,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: test.continuation.request.requestId }
+        resolution: { kind: 'AUTO_ROLL', requestId: test.continuation.request.requestId }
       },
       random: deterministic([14])
     })
@@ -340,7 +340,7 @@ describe('native phased action execution', () => {
       ...input,
       resume: {
         pending: outcome,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: outcome.continuation.request.requestId }
+        resolution: { kind: 'AUTO_ROLL', requestId: outcome.continuation.request.requestId }
       },
       random: deterministic([3])
     })
@@ -356,10 +356,10 @@ describe('native phased action execution', () => {
     await expect(
       advanceNativeActionGraphs({
         ...input,
-        autoRoll: true,
+        autoRoll: { SOURCE: true, TARGET: true },
         resume: {
           pending: outcome,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: outcome.continuation.request.requestId }
+          resolution: { kind: 'AUTO_ROLL', requestId: outcome.continuation.request.requestId }
         },
         random: deterministic([3])
       })
@@ -482,7 +482,7 @@ describe('native phased action execution', () => {
     })
     const assistedInput = {
       ...nestedInput,
-      autoRoll: false,
+      autoRoll: { SOURCE: false, TARGET: false },
       random: deterministic([14, 0, 0, 0])
     }
     let assisted = await advanceNativeActionGraphs(assistedInput)
@@ -494,7 +494,7 @@ describe('native phased action execution', () => {
         ...assistedInput,
         resume: {
           pending: assisted,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: assisted.continuation.request.requestId }
+          resolution: { kind: 'AUTO_ROLL', requestId: assisted.continuation.request.requestId }
         }
       })
     }

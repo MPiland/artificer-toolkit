@@ -5,7 +5,6 @@ import { capacityDtoSchema, containsDtoSchema, costDtoSchema, weightDtoSchema } 
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
-  authoredNonnegativeNumberSchema,
   authoredReferenceCollectionSchema,
   authoredRichTextSchema,
   authoredShortTextSchema
@@ -42,7 +41,6 @@ const baseEquipmentAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
   capacity: z.optional(capacityDtoSchema),
   modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
   maxStack: z.optional(z.number().check(z.int())),
-  maxBonus: z.optional(authoredNonnegativeNumberSchema.check(z.int())),
   armorClass: z.optional(z.number().check(z.int())),
   contains: z.optional(authoredNestedCollectionSchema(containsDtoSchema)),
   features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
@@ -65,7 +63,6 @@ const equipmentVariantAuthoredDtoSchemaBase = z.extend(equipmentBaseDtoSchema, {
   effects: z.optional(authoredNestedCollectionSchema(equipmentEffectDtoSchema)),
   charges: z.optional(chargeDtoSchema),
   modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
-  maxBonus: z.optional(authoredNonnegativeNumberSchema.check(z.int())),
   features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
   restrictions: z.optional(characterFacetDtoSchema),
   requiresAttunement: z.optional(z.boolean())

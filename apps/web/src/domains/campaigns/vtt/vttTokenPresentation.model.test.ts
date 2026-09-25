@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
+import {
+  tabletopGmEncounter,
+  tabletopLiveScene,
+  tabletopPlayerEncounter
+} from './CampaignTabletop.stories.fixtures'
 import { buildVttTokenPresentations, deterministicTokenColour } from './vttTokenPresentation.model'
 
 describe('VTT token presentation model', () => {
@@ -20,6 +24,7 @@ describe('VTT token presentation model', () => {
     }
     const scene = sceneForActor()
     const result = buildVttTokenPresentations({
+      boundTokenControl: new Map(),
       actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
       currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
       encounter,
@@ -44,6 +49,7 @@ describe('VTT token presentation model', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!
     const result = buildVttTokenPresentations({
+      boundTokenControl: new Map(),
       actorIdByTokenId: new Map([[token.id, actor.id]]),
       currentUserId: token.controlledByUserIds[0]!,
       encounter: { ...tabletopGmEncounter, currentActorId: null },
@@ -71,6 +77,41 @@ describe('VTT token presentation model', () => {
 
     expect(result.halo?.label).toBe('Reaction available')
     expect(result.statuses[0]).toMatchObject({ kind: 'REACTION', label: 'Reaction available' })
+  })
+
+  it('shows players no health for any actor', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const actor = tabletopPlayerEncounter.actors[1]!
+    const result = buildVttTokenPresentations({
+      boundTokenControl: new Map(),
+      actorIdByTokenId: new Map([[token.id, actor.id]]),
+      currentUserId: token.controlledByUserIds[0]!,
+      encounter: tabletopPlayerEncounter,
+      pending: null,
+      scene
+    })[token.id]!
+
+    expect(result.statuses.some((status) => status.kind === 'HEALTH')).toBe(false)
+    expect(result.fillColor).toBe(deterministicTokenColour(actor.id))
+  })
+
+  it('outlines bound tokens by actor control, not Scene token controllers', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const actor = tabletopGmEncounter.actors[1]!
+    const outline = (controlled: boolean) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: new Map([[token.id, actor.id]]),
+        boundTokenControl: new Map([[token.id, controlled]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: tabletopGmEncounter,
+        pending: null,
+        scene
+      })[token.id]!.outlineColor
+
+    expect(outline(false)).toBe(0xffffff)
+    expect(outline(true)).toBe(0x51cf66)
   })
 
   it('derives fallback colours deterministically', () => {

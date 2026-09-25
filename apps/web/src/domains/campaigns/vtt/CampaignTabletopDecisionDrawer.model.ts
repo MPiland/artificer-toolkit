@@ -1,5 +1,6 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>
@@ -15,6 +16,26 @@ export function adjudicationSelectionValues(
       values[field.key] ?? (field.kind === 'MULTI_SELECT' ? [] : null)
     ])
   )
+}
+
+export const rollModeLabels = {
+  NORMAL: 'Normal',
+  ADVANTAGE: 'Advantage',
+  DISADVANTAGE: 'Disadvantage'
+} as const satisfies Record<EncounterD20RollModeDto, string>
+
+/**
+ * The face a d20 row keeps, matching the server's selection: the higher on advantage, the lower on
+ * disadvantage (the first on a tie), otherwise the only face.
+ */
+export function keptFaceIndex(
+  rollMode: EncounterD20RollModeDto,
+  faces: readonly (number | string)[]
+): number | null {
+  if (rollMode === 'NORMAL') return 0
+  const [first, second] = faces
+  if (typeof first !== 'number' || typeof second !== 'number') return null
+  return (rollMode === 'ADVANTAGE' ? second > first : second < first) ? 1 : 0
 }
 
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {

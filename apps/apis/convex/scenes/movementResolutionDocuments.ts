@@ -11,7 +11,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterControlledActorIds } from '../encounters/actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActor, readRunState } from '../encounters/documents'
 import {
@@ -20,6 +20,8 @@ import {
   readMovementResolution
 } from './geometryDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
 
 export type Geometry = {
   sceneTokens: readonly SceneToken[]
@@ -110,18 +112,9 @@ export async function readMovementResponseAuthority(
     (snapshot.optionalCombatSnapshotChecksum ?? null) !== state.optionalCombatSnapshotChecksum
   )
     throw new Error('Stored movement response evidence is inconsistent.')
-  const assigned =
-    membership.role === 'PLAYER'
-      ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-      : null
+  let decisionActorIds: string[]
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE') {
-    if (
-      membership.role !== 'OWNER' &&
-      (!context.sourceControllerCharacterId ||
-        !assigned ||
-        assigned.id !== context.sourceControllerCharacterId)
-    )
-      throw new Error('The current movement decision belongs to another controller.')
+    decisionActorIds = [context.sourceActorId]
   } else if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') {
     if (!kernelSnapshot) throw new Error('Stored movement response evidence is inconsistent.')
     const participantActorId =
@@ -130,54 +123,37 @@ export async function readMovementResponseAuthority(
         : kernelSnapshot.request.nodeId === context.defender.requestNodeId
           ? context.targetActorId
           : null
-    const participantActor = participantActorId
-      ? await readRunActor(ctx, state, participantActorId)
-      : null
-    if (!participantActor) throw new Error('Movement passage participant is unavailable.')
-    const participant =
-      kernelSnapshot.request.nodeId === context.initiator.requestNodeId
-        ? context.initiatorControllerCharacterId
-        : participantActor.kind === 'CHARACTER'
-          ? participantActor.sourceId
-          : null
-    if (membership.role !== 'OWNER' && (!participant || !assigned || assigned.id !== participant))
-      throw new Error('The current movement decision belongs to another controller.')
-  } else if (membership.role !== 'OWNER') {
-    let characterId: string | null = null
-    if (context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') {
-      if (context.currentCandidate.target.kind === 'CHARACTER')
-        characterId = context.currentCandidate.target.characterId
-    } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
-      const targetActorId = context.phase.concentration.application.targetActorId
-      const actor = await readRunActor(ctx, state, targetActorId)
-      characterId = actor?.kind === 'CHARACTER' ? actor.sourceId : null
-    } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
-      if (context.phase.currentCandidate.target.kind === 'CHARACTER')
-        characterId = context.phase.currentCandidate.target.characterId
-    } else {
-      const entry = context.reactionTimeline[0]
-      const options =
-        entry?.kind === 'AUTOMATIC_ACTION' ? [entry.option] : (entry?.group.options ?? [])
-      const phase = context.phase
-      const current =
-        phase.kind === 'CHOICE'
-          ? options
-          : phase.kind === 'ACTION_EVIDENCE'
-            ? options.filter((option) => option.optionId === phase.selectedOptionId)
-            : []
-      if (
-        current.length &&
-        current.every(
-          (option) =>
-            option.authority.kind === 'CHARACTER_CONTROLLER' &&
-            option.authority.characterId === assigned?.id
-        )
-      )
-        characterId = assigned?.id ?? null
-    }
-    if (!assigned || characterId !== assigned.id)
-      throw new Error('The current movement decision belongs to another controller.')
+    if (!participantActorId) throw new Error('Movement passage participant is unavailable.')
+    decisionActorIds = [participantActorId]
+  } else if (context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') {
+    decisionActorIds = [context.currentCandidate.candidate.targetActorId]
+  } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
+    decisionActorIds = [context.phase.concentration.application.targetActorId]
+  } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
+    decisionActorIds = [context.phase.currentCandidate.candidate.targetActorId]
+  } else if (context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
+    decisionActorIds = [context.phase.resistance.targetActorId]
+  } else if (context.phase.kind === 'ACTION_EVIDENCE') {
+    decisionActorIds = [context.phase.rollerActorId]
+  } else {
+    const options = context.reactionTimeline[0]?.group.options ?? []
+    decisionActorIds = (context.phase.kind === 'CHOICE' ? options : []).map(
+      (option) => option.candidate.reactorActorId
+    )
   }
+  // The decision belongs to the controllers of the actor whose roll or choice it is.
+  const controlledActorIds = await readEncounterControlledActorIds(ctx, {
+    campaign,
+    membership,
+    actors: await Promise.all(
+      [...new Set(decisionActorIds)].map((actorId) => readRunActor(ctx, state, actorId))
+    )
+  })
+  if (
+    decisionActorIds.length === 0 ||
+    decisionActorIds.some((actorId) => !controlledActorIds.has(actorId))
+  )
+    throw new Error('The current movement decision belongs to another controller.')
   const binding = await ctx.db
     .query('encounterSceneBindings')
     .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
@@ -188,7 +164,6 @@ export async function readMovementResponseAuthority(
     userId,
     campaign,
     membership,
-    assigned,
     run,
     state,
     occurrence,
@@ -215,5 +190,16 @@ export async function assertMovementResolutionCurrent(
     save.sessionVision?.campaignId !== current.campaign.id
   )
     throw new Error('Movement decision changed before Scene publication.')
-  return { ...current, command: resolution.command }
+  const appRoll = await readEncounterSettledAppRoll(ctx, {
+    occurrence: current.occurrence,
+    response: resolution.command,
+    userId: current.userId
+  })
+  return {
+    ...current,
+    command: resolution.command,
+    appRoll,
+    /** The response as the rules consume it, with an app roll's recorded faces. */
+    answer: withEncounterAppRoll(resolution.command.resolution, appRoll)
+  }
 }

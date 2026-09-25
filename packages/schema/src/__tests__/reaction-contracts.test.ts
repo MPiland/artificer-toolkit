@@ -201,6 +201,7 @@ describe('movement reaction persisted choice contracts', () => {
         phase: {
           kind: 'ACTION_EVIDENCE',
           selectedOptionId: currentChoice.options[0]!.optionId,
+          rollerActorId: ACTOR_ID,
           d20Policy: {
             requestNodeId: 'choice',
             rollMode: 'NORMAL',
@@ -219,6 +220,7 @@ describe('movement reaction persisted choice contracts', () => {
         phase: {
           kind: 'ACTION_EVIDENCE',
           selectedOptionId: '6'.repeat(64),
+          rollerActorId: ACTOR_ID,
           d20Policy: {
             requestNodeId: 'choice',
             rollMode: 'NORMAL',

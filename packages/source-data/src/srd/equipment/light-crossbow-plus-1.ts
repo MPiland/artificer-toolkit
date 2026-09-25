@@ -11,7 +11,6 @@ export const lightCrossbowPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: lightCrossbow.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(291), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

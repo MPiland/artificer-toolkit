@@ -23,6 +23,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 export {
   retainedMovementSpatialExecutions,
   retainedMovementReactionExecutions
@@ -40,10 +41,6 @@ type SpatialEvaluation<TPlan> =
   | Exclude<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDARY' }>
   | Boundary
   | (Boundary & { preparedBoundary: Boundary; prefixSettlementPlan: TPlan })
-type ReactionChoice = Exclude<
-  FrozenMovementReactionRemainder['reactionTimeline'][number],
-  { kind: 'AUTOMATIC_ACTION' }
->
 
 export type MovementContinuationInput<
   TCharacterFacts extends ProjectableCharacterFacts,
@@ -51,8 +48,7 @@ export type MovementContinuationInput<
 > = {
   state: EncounterRunState
   userId: string
-  /** The roller's auto-roll preference; the moving initiator rolls in this slice. */
-  autoRoll: boolean
+  autoRoll: EncounterAutoRollByActorId
   root: SpatialMovementRuleRoot
   sceneVersion: number
   sceneTokens: readonly SceneToken[]
@@ -158,6 +154,7 @@ export async function prepareEncounterMovementContinuation<
       stageTerminalSettlement: (plan: TSpatialPlan) => void
     ): Promise<SpatialEvaluation<TSpatialPlan>>
     prepareConcentration(args: {
+      autoRoll: EncounterAutoRollByActorId
       remainder: FrozenMovementReactionRemainder
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
       projection?: TProjection
@@ -177,15 +174,8 @@ export async function prepareEncounterMovementContinuation<
       reactionTimeline: FrozenMovementReactionRemainder['reactionTimeline']
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     }): Promise<Outcome | null>
-    evaluateAutomatic(args: {
-      root: FrozenMovementReactionRemainder['root']
-      boundary: Boundary
-      reactionTimeline: FrozenMovementReactionRemainder['reactionTimeline']
-      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-      projection?: TProjection
-    }): Promise<{ outcome: Outcome; settlements: readonly TSettlement[] } | null>
     validateReactionOptions(args: {
-      next: ReactionChoice
+      next: FrozenMovementReactionRemainder['reactionTimeline'][number]
       root: SpatialMovementRuleRoot
       position: SceneToken['position']
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -242,10 +232,7 @@ export async function prepareEncounterMovementContinuation<
   for (;;) {
     const timeline = remainder?.reactionTimeline ?? input.reactionTimeline
     const next = timeline[0]
-    const reactionDistance =
-      next?.kind === 'AUTOMATIC_ACTION'
-        ? next.option.candidate.pathDistance
-        : next?.group.pathDistance
+    const reactionDistance = next?.group.pathDistance
     const distances = [
       reactionDistance,
       passage?.contact.pathDistance,
@@ -342,6 +329,7 @@ export async function prepareEncounterMovementContinuation<
     })
     if (boundary.damageExecutionOrdinal !== undefined) {
       const concentration = await callbacks.prepareConcentration({
+        autoRoll: input.autoRoll,
         remainder,
         targets,
         projection: maintenanceProjection,
@@ -408,20 +396,6 @@ export async function prepareEncounterMovementContinuation<
       Math.abs(boundary.boundaryDistance - reactionDistance) > 1e-8
     )
       continue
-    if (next.kind === 'AUTOMATIC_ACTION') {
-      const automatic = await callbacks.evaluateAutomatic({
-        root: remainder.root,
-        boundary,
-        reactionTimeline: timeline,
-        targets,
-        projection: maintenanceProjection
-      })
-      if (!automatic) throw new Error('Automatic Scene movement continuation is unavailable.')
-      return {
-        outcome: automatic.outcome,
-        settlements: [...settlements, ...automatic.settlements]
-      }
-    }
     await callbacks.validateReactionOptions({ next, root, position, targets })
     const definitionId = next.group.options[0]?.policy.choiceDefinitionId
     if (!definitionId) throw new Error('The next reaction choice definition is unavailable.')

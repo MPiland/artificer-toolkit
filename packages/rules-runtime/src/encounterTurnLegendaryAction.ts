@@ -9,7 +9,6 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -25,6 +24,7 @@ import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type LegendaryEvidence = NonNullable<TurnCoordinatorRootDto['completedLegendaryActions']>[number]
 type Choice = LegendaryEvidence['choice']
@@ -38,7 +38,7 @@ export type TurnLegendaryActionInput<
   occurrenceId: string
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
-  resolution?: ResolveRuleOccurrenceInputDto['resolution']
+  resolution?: EncounterResponseAnswer
   updatedAt: string
   refreshIncoming?: boolean
   actors: readonly EncounterRunActorState[]
@@ -136,13 +136,12 @@ export async function prepareTurnLegendaryActions<
         : null
     const retainedApplication =
       retained?.resolution.kind === 'EXECUTED' ? retained.resolution.application : null
-    const faces =
+    const retainedD20 =
       retainedApplication &&
       (retainedApplication.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
         retainedApplication.kind === 'CHARACTER_MECHANICS_BATCH')
-        ? [...(retainedApplication.d20?.rawFaces ?? [])]
-        : []
-    let faceIndex = 0
+        ? retainedApplication.d20
+        : null
     const continuation = kernel
       ? (() => {
           const {
@@ -173,8 +172,11 @@ export async function prepareTurnLegendaryActions<
     const execution = await executeEncounterMovementReactionAction({
       runtime: await (runtimePromise ??= input.createRuntime()),
       occurrenceId,
-      // Retained evidence replays its recorded dice through the automatic path.
+      // A retained replay never prompts: its recorded d20 replays with the mode it was rolled with.
       autoRoll: retained !== undefined || input.autoRoll,
+      ...(retainedD20
+        ? { retainedRoll: { rawFaces: retainedD20.rawFaces, rollMode: retainedD20.rollMode } }
+        : {}),
       prepared: {
         adapter: prepared.adapter,
         published,
@@ -204,10 +206,7 @@ export async function prepareTurnLegendaryActions<
         : {}),
       rollD20: retained
         ? () => {
-            const face = faces[faceIndex++]
-            if (face === undefined)
-              throw new Error('Retained Legendary Action dice are incomplete.')
-            return face
+            throw new Error('Retained Legendary Action dice are incomplete.')
           }
         : input.rollD20
     })
@@ -230,8 +229,6 @@ export async function prepareTurnLegendaryActions<
         })
       }
     }
-    if (retained && faceIndex !== faces.length)
-      throw new Error('Retained Legendary Action dice are inconsistent.')
     if (
       prepared.adapter.interpretSpatial?.({
         execution: execution.execution,

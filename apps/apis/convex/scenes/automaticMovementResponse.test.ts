@@ -8,7 +8,10 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  setupAutomaticSceneMovement,
+  useMovementReactions
+} from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -32,7 +35,7 @@ const observe = makeFunctionReference<
 >('scenes/geometryStaging:observe')
 
 it.each(['DECLINE', 'OPTION'] as const)(
-  'continues %s into an automatic reaction at the next contact and replays without writes',
+  'continues %s into a used automatic reaction at the next contact and replays without writes',
   async (selection) => {
     const value = await setupAutomaticSceneMovement({
       policies: ['CHOICE', 'AUTOMATIC'],
@@ -74,8 +77,9 @@ it.each(['DECLINE', 'OPTION'] as const)(
     }
     const started = await value.owner.caller.mutation(beginResponse, command)
     if (!started || started.kind !== 'READY') throw new Error('Expected response geometry staging.')
-    const request = { ...value.request, saveId: started.saveId }
-    await value.owner.caller.mutation(observe, { saveId: started.saveId, characterRevisions: [] })
+    // Assisted play offers the next authored automatic reaction as Use/Decline; the GM uses it.
+    const used = await useMovementReactions(value, { ...value.request, saveId: started.saveId })
+    const request = used.request
     const before = await snapshot()
     const prepared = await value.owner.caller.mutation(prepare, request)
     expect(await snapshot()).toEqual(before)
@@ -86,7 +90,11 @@ it.each(['DECLINE', 'OPTION'] as const)(
     expect(reactions.at(-1)?.option.candidate.reactorActorId).toBe(
       value.base.additionalReactorActor!.id
     )
-    expect(reactions.every((entry) => entry.sourceCommandId === command.commandId)).toBe(true)
+    expect(reactions.map((entry) => entry.sourceCommandId)).toEqual(
+      selection === 'DECLINE'
+        ? [used.responseCommandId]
+        : [command.commandId, used.responseCommandId]
+    )
     expect(prepared.outcome.result.terminalPosition).toEqual({ x: 450, y: 50 })
     const result = await value.owner.caller.mutation(finish, request)
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })

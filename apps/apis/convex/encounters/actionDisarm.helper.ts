@@ -6,7 +6,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   encounterPlayerProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -26,13 +25,18 @@ import {
   executeEncounterOptionalContestAction,
   type OptionalContestResolution
 } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { nextRollInt } from '../lib/rollRandom'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import { readEncounterAutoRollByActorId, requireEncounterActorControl } from './actorController'
+import { presentEncounterResultForMember } from './resultPresentation'
+import { readEncounterSettledAppRoll } from './evidenceRolls'
+import {
+  resolveEncounterD20Answer,
+  withEncounterAppRoll
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { createRulesRuntime } from '../rules/runtime'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt'
 import { projectNativeDisarmPendingForMember, readNativeDisarmPending } from './actionDisarmPending'
@@ -49,30 +53,6 @@ type DisarmResume = {
   occurrence: Doc<'encounterRuleOccurrences'>
   response: ResolveRuleOccurrenceInputDto
   resolution: OptionalContestResolution
-}
-
-async function projectDisarmResponse(
-  ctx: MutationCtx,
-  run: Doc<'encounterRuns'>,
-  campaign: Doc<'campaigns'>,
-  membership: Doc<'campaignMemberships'>,
-  occurrence: Doc<'encounterRuleOccurrences'>,
-  result: EncounterCommandResultDto
-): Promise<EncounterCommandResultDto> {
-  if (membership.role === 'OWNER') return result
-  return encounterCommandResultDtoSchema.parse({
-    ...result,
-    projection: projectPlayerEncounterProjection(
-      encounterGmProjectionDtoSchema.parse(result.projection)
-    ),
-    occurrence: result.occurrence && {
-      ...result.occurrence,
-      pending:
-        occurrence.state === 'PENDING'
-          ? await projectNativeDisarmPendingForMember(ctx, run, campaign, membership, occurrence)
-          : null
-    }
-  })
 }
 
 /** Keeps both participant rolls under the original action; settlement is one transaction. */
@@ -105,7 +85,6 @@ export async function executeNativeDisarm(
   const state = readRunState(run)
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  if (!resume && membership.role !== 'OWNER') throw new Error('Campaign not found.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
@@ -119,7 +98,20 @@ export async function executeNativeDisarm(
     .unique()
   if (rootReceipt) {
     if (resume || rootReceipt.actorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
-    return (await readNativeDisarmReplay(ctx, { run, command: input, receipt: rootReceipt })).result
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: (await readNativeDisarmReplay(ctx, { run, command: input, receipt: rootReceipt }))
+        .result
+    })
+  }
+  if (!resume) {
+    const [actor, target] = await Promise.all([
+      readRunActor(ctx, state, input.actorId),
+      readRunActor(ctx, state, input.targetActorId)
+    ])
+    await requireEncounterActorControl(ctx, { campaign, membership, actor })
+    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
   }
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.automationMode === 'MANUAL') throw new Error('Disarm requires an Assisted Encounter.')
@@ -136,7 +128,11 @@ export async function executeNativeDisarm(
   if (prior && prior.context.commandFingerprint !== fingerprint) rejectDomain('COMMAND_ID_REUSED')
   if (!resume && prior) {
     if (initiatorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
-    return nativeActionPendingResult(run, occurrence!)
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: nativeActionPendingResult(run, occurrence!)
+    })
   }
   if (resume) {
     if (
@@ -181,14 +177,12 @@ export async function executeNativeDisarm(
   let contest = preparation.contest
   let resolution = resume?.resolution
   if (resume && prior) {
-    const rawFaces =
-      resume.resolution.kind === 'ENTER_DICE'
-        ? [...resume.resolution.rawFaces]
-        : Array.from(
-            { length: prior.policy.rollMode === 'NORMAL' ? 1 : 2 },
-            () => nextRollInt(20) + 1
-          )
-    resolution = { kind: 'ENTER_DICE', requestId: resume.resolution.requestId, rawFaces }
+    const { faces: rawFaces, rollMode } = resolveEncounterD20Answer({
+      derivedRollMode: prior.policy.rollMode,
+      answer: resume.resolution,
+      rollD20: () => nextRollInt(20) + 1
+    })
+    resolution = { kind: 'ENTER_DICE', requestId: resume.resolution.requestId, rawFaces, rollMode }
     contest = {
       ...contest,
       rollEvidence: {
@@ -211,8 +205,8 @@ export async function executeNativeDisarm(
   const { checkDefinitionId: _checkDefinitionId, ...defender } = contest.defender
   const execution = await executeEncounterOptionalContestAction({
     runtime,
-    // The Disarm initiator rolls both sides of the contest in this slice, even when another user answers.
-    autoRoll: await readAutoRollDice(ctx, initiatorUserId),
+    // Each participant's d20 goes to that actor's controllers; the initiator rolls their own.
+    autoRoll: await readEncounterAutoRollByActorId(ctx, { campaign, initiatorUserId, actors }),
     graph: preparation.graph,
     initiator: { ...contest.initiator, requestNodeId: 'initiator_d20' },
     defender: { ...defender, requestNodeId: 'target_d20' },
@@ -233,6 +227,8 @@ export async function executeNativeDisarm(
         commandJson: JSON.stringify(input),
         commandFingerprint: fingerprint,
         initiatorUserId,
+        rollerActorId:
+          execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
         currentnessChecksum: checksumRuleDocument({
           actor,
           target,
@@ -262,14 +258,11 @@ export async function executeNativeDisarm(
     if (occurrence) await ctx.db.patch(id, value)
     const stored = await ctx.db.get(id)
     if (!stored) throw new Error('The pending Disarm was not stored.')
-    const result = await projectDisarmResponse(
-      ctx,
-      run,
+    const result = await presentEncounterResultForMember(ctx, {
       campaign,
       membership,
-      stored,
-      nativeActionPendingResult(run, stored)
-    )
+      result: nativeActionPendingResult(run, stored)
+    })
     if (resume)
       await insertActionEvidenceReceipt(ctx, {
         occurrence: stored,
@@ -437,14 +430,11 @@ export async function executeNativeDisarm(
   )
   const completedOccurrence = await ctx.db.get(completedId)
   if (!completedOccurrence) throw new Error('The completed Disarm was not stored.')
-  const responseResult = await projectDisarmResponse(
-    ctx,
-    run,
+  const responseResult = await presentEncounterResultForMember(ctx, {
     campaign,
     membership,
-    completedOccurrence,
     result
-  )
+  })
   if (resume)
     await insertActionEvidenceReceipt(ctx, {
       occurrence: completedOccurrence,
@@ -554,7 +544,10 @@ export async function resumeNativeDisarm(
       .unique()
   ])
   if (usedCommand || usedRoot) rejectDomain('COMMAND_ID_REUSED')
-  const resolution = response.resolution
+  const resolution = withEncounterAppRoll(
+    response.resolution,
+    await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
+  )
   if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
     throw new Error('Disarm requires d20 evidence.')
   return executeNativeDisarm(ctx, command, userId, { occurrence, response, resolution })

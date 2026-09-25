@@ -11,7 +11,6 @@ export const ringMailPlus2: EquipmentVariantAuthored = {
   parentEquipmentId: ringMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_RARE,
-  maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(331), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

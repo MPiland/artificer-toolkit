@@ -41,7 +41,7 @@ type MovementReactionResolutionCommand =
 function currentTimelineOptions(context: MovementReactionPendingContext) {
   const entry = context.reactionTimeline[0]
   if (!entry) throw new EncounterConflictError('A movement reaction timeline entry is unavailable.')
-  return entry.kind === 'AUTOMATIC_ACTION' ? [entry.option] : entry.group.options
+  return entry.group.options
 }
 
 /**
@@ -167,11 +167,7 @@ export async function startEncounterMovementReactionAtBoundary(input: {
   reactionTimeline: MovementReactionTimelineDto
 }): Promise<ServerKernelRuleExecutionPendingSnapshotDto> {
   const first = input.reactionTimeline[0]
-  const firstDistance =
-    first?.kind === 'AUTOMATIC_ACTION'
-      ? first.option.candidate.pathDistance
-      : first?.group.pathDistance
-  if (!first || Math.abs(firstDistance - input.boundary.boundaryDistance) > 1e-8) {
+  if (!first || Math.abs(first.group.pathDistance - input.boundary.boundaryDistance) > 1e-8) {
     throw new EncounterConflictError(
       'The movement reaction choice does not match the staged spatial boundary.'
     )
@@ -197,78 +193,10 @@ export async function startEncounterMovementReactionAtBoundary(input: {
       appliedSpatialPrefix: input.boundary.appliedPrefix,
       completedReactionExecutions: [...input.boundary.completedReactionExecutions],
       remainingSpatialCandidates: [...input.boundary.remainingCandidates],
-      reactionTimeline: input.reactionTimeline.map((entry) =>
-        entry.kind === 'AUTOMATIC_ACTION'
-          ? { ...entry }
-          : { ...entry, group: { ...entry.group, options: [...entry.group.options] } }
-      )
-    }
-  })
-}
-
-/**
- * Persists assisted d20 evidence for an automatic timeline action without
- * manufacturing a controller choice. The action itself remains the current
- * sealed timeline entry and resumes through the normal action coordinator.
- */
-export function startEncounterAutomaticMovementReactionEvidenceAtBoundary(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  root: SpatialMovementRuleRoot
-  currentSceneVersion: number
-  boundary: ReactionBoundary
-  reactionTimeline: MovementReactionTimelineDto
-  selectedOptionId: string
-  d20Policy: Extract<
-    MovementReactionPendingContext['phase'],
-    { kind: 'ACTION_EVIDENCE' }
-  >['d20Policy']
-  twoPhase?: Extract<
-    MovementReactionPendingContext['phase'],
-    { kind: 'ACTION_EVIDENCE' }
-  >['twoPhase']
-  phaseReceipts?: ServerKernelRuleExecutionPendingSnapshotDto['phaseReceipts']
-}): ServerKernelRuleExecutionPendingSnapshotDto {
-  const entry = input.reactionTimeline[0]
-  if (
-    !entry ||
-    entry.kind !== 'AUTOMATIC_ACTION' ||
-    entry.option.optionId !== input.selectedOptionId ||
-    Math.abs(entry.option.candidate.pathDistance - input.boundary.boundaryDistance) > 1e-8
-  ) {
-    throw new EncounterConflictError(
-      'The automatic movement reaction does not match its exact boundary.'
-    )
-  }
-  return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
-    snapshotKind: 'KERNEL_EVIDENCE',
-    ...input.continuation,
-    ...(input.phaseReceipts ? { phaseReceipts: input.phaseReceipts } : {}),
-    applicationContext: {
-      kind: 'ENCOUNTER_MOVEMENT_REACTION',
-      schemaVersion: 1,
-      root: {
-        ...input.root,
-        originalPath: input.root.originalPath.map((point) => ({ ...point })),
-        currentSceneVersion: input.currentSceneVersion,
-        pathChecksum: checksumRuleDocument(input.root.originalPath),
-        pathStartDistance: input.boundary.boundaryDistance,
-        currentPosition: input.boundary.boundaryPosition,
-        resolutionCommands: [...input.boundary.resolutionCommands]
-      },
-      spatialSelectionChecksum: input.boundary.selectionChecksum,
-      spatialCurrentnessChecksum: input.boundary.currentnessChecksum,
-      reactionSelectionChecksum: checksumRuleDocument(input.reactionTimeline),
-      completedSpatialExecutions: [...input.boundary.completedExecutions],
-      appliedSpatialPrefix: input.boundary.appliedPrefix,
-      completedReactionExecutions: [...input.boundary.completedReactionExecutions],
-      phase: {
-        kind: 'ACTION_EVIDENCE',
-        selectedOptionId: input.selectedOptionId,
-        d20Policy: input.d20Policy,
-        ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {})
-      },
-      remainingSpatialCandidates: [...input.boundary.remainingCandidates],
-      reactionTimeline: input.reactionTimeline
+      reactionTimeline: input.reactionTimeline.map((entry) => ({
+        ...entry,
+        group: { ...entry.group, options: [...entry.group.options] }
+      }))
     }
   })
 }
@@ -284,7 +212,7 @@ export async function startEncounterMovementReactionChoice(input: {
   >
 }): Promise<ServerKernelRuleExecutionPendingSnapshotDto> {
   const currentEntry = input.context.reactionTimeline[0]
-  if (!currentEntry || currentEntry.kind !== 'CONTROLLER_CHOICE') {
+  if (!currentEntry) {
     throw new EncounterConflictError('A movement reaction choice is unavailable.')
   }
   const currentChoice = currentEntry.group
@@ -351,7 +279,7 @@ export async function resolveEncounterMovementReactionChoice(input: {
   }
   const selection = movementReactionChoiceSelectionDtoSchema.parse(input.selection)
   const currentEntry = context.reactionTimeline[0]
-  if (!currentEntry || currentEntry.kind !== 'CONTROLLER_CHOICE') {
+  if (!currentEntry) {
     throw new EncounterConflictError(
       'The pending occurrence is not awaiting a movement reaction choice.'
     )
@@ -389,6 +317,7 @@ export function retainEncounterMovementReactionActionEvidence(input: {
   continuation: ServerRuleExecutionContinuationDto
   context: MovementReactionPendingContext
   selectedOptionId: string
+  rollerActorId: string
   d20Policy: Extract<
     MovementReactionPendingContext['phase'],
     { kind: 'ACTION_EVIDENCE' }
@@ -465,6 +394,7 @@ export function retainEncounterMovementReactionActionEvidence(input: {
       phase: {
         kind: 'ACTION_EVIDENCE',
         selectedOptionId: input.selectedOptionId,
+        rollerActorId: input.rollerActorId,
         d20Policy: input.d20Policy,
         ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {})
       }

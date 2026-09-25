@@ -84,9 +84,22 @@ it('rejects player, concentration-child, stale epoch, and stale Run scopes befor
     correlationId: null,
     occurrenceId: crypto.randomUUID(),
     expectedOccurrenceVersion: 0,
-    resolution: { kind: 'SYSTEM_ROLL' as const, requestId: 'turn-capture-scope' }
+    resolution: {
+      kind: 'SYSTEM_ROLL' as const,
+      requestId: 'turn-capture-scope',
+      rollId: crypto.randomUUID()
+    }
   }
   for (const request of requests) {
+    // A player reads turn inputs only under an admitted turn command of their own.
+    await expect(
+      base.owner.caller.query(capture, {
+        ...base.input,
+        expectedUserId: base.owner.userId,
+        expectedRole: 'PLAYER',
+        request
+      })
+    ).rejects.toThrow('Turn capture requires owner or admitted response scope.')
     await expect(
       base.owner.caller.query(capture, {
         ...base.input,

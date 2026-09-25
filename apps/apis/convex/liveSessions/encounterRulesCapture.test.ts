@@ -8,6 +8,7 @@ import type {
   LiveSessionCharacterRulesInput,
   LiveSessionCharacterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -20,6 +21,11 @@ import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDe
 import { internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  domainRejection,
+  playerControlFixture,
+  setActorControllers
+} from '../../tests/fixtures/playerControl'
 
 const capture = makeFunctionReference<
   'query',
@@ -133,6 +139,72 @@ it('requires current GM authority and exact Run identity and version without any
     state: { id: base.run.id }
   })
 })
+
+it('admits a player only with an admitted action for an actor they control', async () => {
+  const base = await playerControlFixture()
+  const epoch = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch,
+      createdAt: base.campaign.createdAt
+    })
+  )
+  const scopeFor = (command: ResolveEncounterActionInputDto) => ({
+    campaignId: base.campaign.id,
+    authorityEpoch: epoch,
+    expectedUserId: base.other.userId,
+    expectedRole: 'PLAYER' as const,
+    encounterId: base.run.id,
+    expectedVersion: command.expectedVersion,
+    action: { kind: 'ACTION_COMMAND' as const, command }
+  })
+  const uncontrolled = await base.bite(base.companion.id, base.enemy.id)
+  await expect(
+    domainRejection(
+      base.other.caller.query(capture, {
+        ...scopeFor(uncontrolled),
+        request: { kind: 'INPUTS' }
+      })
+    )
+  ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
+  const { action: _unadmitted, ...unscoped } = scopeFor(uncontrolled)
+  await expect(
+    base.other.caller.query(capture, { ...unscoped, request: { kind: 'INPUTS' } })
+  ).rejects.toThrow('role')
+
+  await setActorControllers(base, base.companion.id, [base.other.userId])
+  const command = await base.bite(base.companion.id, base.enemy.id)
+  await expect(
+    base.other.caller.query(capture, { ...scopeFor(command), request: { kind: 'INPUTS' } })
+  ).resolves.toMatchObject({ kind: 'INPUTS', state: { id: base.run.id } })
+  await expect(
+    base.other.caller.query(capture, {
+      ...scopeFor(command),
+      request: { kind: 'ACTION_COMMAND', command }
+    })
+  ).resolves.toMatchObject({ kind: 'ACTION_COMMAND', command })
+  await expect(
+    base.other.caller.query(capture, {
+      ...scopeFor(command),
+      request: { kind: 'ACTION_COMMAND', command: { ...command, commandId: crypto.randomUUID() } }
+    })
+  ).rejects.toThrow('action scope mismatch')
+  await expect(
+    base.other.caller.query(capture, {
+      ...scopeFor(command),
+      expectedRole: 'OWNER',
+      request: { kind: 'INPUTS' }
+    })
+  ).rejects.toThrow()
+  await expect(
+    base.player.caller.query(capture, {
+      ...scopeFor(command),
+      expectedUserId: base.player.userId,
+      request: { kind: 'INPUTS' }
+    })
+  ).rejects.toThrow()
+}, 30000)
 
 it('captures only current Run members and current assigned Character actors', async () => {
   const base = await setup()

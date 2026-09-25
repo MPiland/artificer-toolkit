@@ -22,7 +22,7 @@ import * as sharedStyles from '../../shared/builderShared.css'
 import { syncHitpointLevels } from './characterAbilities'
 import { CharacterAbilityAssignments } from './CharacterAbilityAssignments'
 import { CharacterHitpointProgression } from './CharacterHitpointProgression'
-import { CharacterSheetRollPresentation } from '../../../sheet/dice/CharacterSheetRollPresentation'
+import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 function preloadAbilityDice(configuration: string) {
@@ -32,7 +32,7 @@ function preloadAbilityDice(configuration: string) {
     return
   }
 
-  void import('../../../sheet/dice/diceModelPreload')
+  void import('#app/components/dice/diceModelPreload')
     .then(({ preloadDiceModels }) => preloadDiceModels(configuration))
     .catch(() => undefined)
 }
@@ -261,7 +261,7 @@ export const CharacterAbilitiesStep = withForm({
                       .catch(() => setActiveRollSlot(undefined))
                   }}
                 />
-                <CharacterSheetRollPresentation
+                <DiceRollPresentation
                   pending={executeConfiguration.isPending}
                   roll={presentedRoll}
                   onRollRevealed={(rollId) => {

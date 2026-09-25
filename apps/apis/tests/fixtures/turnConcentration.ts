@@ -120,6 +120,9 @@ export async function turnConcentrationFixture(rolls: FixtureRolls) {
     campaignId: base.campaign.id,
     characterId: target.character.id
   })
+  // Each Character's saves (turn effects, Concentration) follow its controller's preference.
+  for (const userId of [base.player.userId, targetIdentity.userId])
+    await setAutoRollDice(base.t, userId, rolls === 'AUTO_ROLL')
 
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }

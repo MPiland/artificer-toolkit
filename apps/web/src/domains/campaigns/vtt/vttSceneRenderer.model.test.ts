@@ -134,6 +134,7 @@ describe('VTT scene renderer model', () => {
     const current = movementScene()
     const token = current.tokens[0]!
     const update = {
+      boundTokenControl: new Map<string, boolean>(),
       currentUserId: 'user',
       mode: 'PLAY' as const,
       role: 'PLAYER' as const,

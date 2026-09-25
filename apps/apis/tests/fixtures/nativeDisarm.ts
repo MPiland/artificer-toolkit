@@ -62,7 +62,9 @@ export async function nativeDisarmFixture(
     throw new Error('Disarm fixture requires a Creature participant.')
   const weapon = createDisarmWeapon(characterSource ? club.id : undefined)
   const base = await setupCharacterRun({}, characterSource ? weapon : undefined)
-  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
+  // Each roll follows its actor's controller: the GM for Creatures, the player for the Character.
+  for (const userId of [base.owner.userId, base.player.userId])
+    await setAutoRollDice(base.t, userId, rolls === 'AUTO_ROLL')
   const sheet = await base.player.caller.query(api.characters.sheet.get, {
     id: base.character.id
   })

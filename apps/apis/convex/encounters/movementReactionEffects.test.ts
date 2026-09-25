@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
 import type {
   EncounterExecuteInput,
+  PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
@@ -79,6 +80,24 @@ function resolution(
   }
 }
 
+// Assisted play offers an authored automatic reaction to its controller (the GM) as Use/Decline.
+async function useAutomaticReaction(
+  scene: Awaited<ReturnType<typeof setupReactionMovementScene>>,
+  pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
+) {
+  if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+    throw new Error('Expected the Assisted Use/Decline reaction choice.')
+  const used = await scene.owner.caller.mutation(
+    begin,
+    resolution(scene.base.run.id, pending, {
+      kind: 'OPTION',
+      optionId: pending.choice.options[0].optionId
+    })
+  )
+  if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
+  return used
+}
+
 function moverConditionIds(stateJson: string) {
   const actor = encounterRunActorStateSchema.parse(JSON.parse(stateJson))
   if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character movement target.')
@@ -102,7 +121,8 @@ function diceResponse(encounterId: string, input: unknown, face: number): Encoun
       resolution: {
         kind: 'ENTER_DICE',
         requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+        rollMode: pending.request.rollMode
       }
     }
   }
@@ -112,7 +132,9 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
   const base = await setupCreatureReactionRun(null, true, false, 'AUTOMATIC')
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   const before = await reactionRecords(base.t, base.run.id)
-  const published = await publish(scene, scene.request)
+  const choice = await publish(scene, scene.request)
+  const used = await useAutomaticReaction(scene, choice.result.occurrence?.pending)
+  const published = await publish(scene, { ...scene.request, saveId: used.saveId })
 
   expect(published.prepared.outcome.kind).toBe('TERMINAL')
   expect(published.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -130,7 +152,7 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
   expect(before.actors).not.toEqual((await reactionRecords(base.t, base.run.id)).actors)
 }, 30_000)
 
-it('fires an automatic reaction without a choice and keeps it inert until entered dice, then replays one created effect', async () => {
+it('offers an automatic reaction as Use/Decline and keeps it inert until entered dice, then replays one created effect', async () => {
   const base = await setupCreatureReactionRun(null, true, false, 'AUTOMATIC')
   const frightened = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'FRIGHTENED'
@@ -148,15 +170,19 @@ it('fires an automatic reaction without a choice and keeps it inert until entere
   expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   expect(await effects(base)).toEqual([])
 
-  const attack = await scene.owner.caller.mutation(finish, scene.request)
-  const attackPending = attack.occurrence?.pending
+  const choice = await scene.owner.caller.mutation(finish, scene.request)
+  expect(await effects(base)).toEqual([])
+  const used = await useAutomaticReaction(scene, choice.occurrence?.pending)
+  const attack = await publish(scene, { ...scene.request, saveId: used.saveId })
+  const attackPending = attack.result.occurrence?.pending
   if (!attackPending || attackPending.kind !== 'D20_EVIDENCE')
-    throw new Error('Expected assisted reaction attack evidence without a reaction choice.')
+    throw new Error('Expected assisted reaction attack evidence after Use.')
   expect(await effects(base)).toEqual([])
   const stale = resolution(base.run.id, attackPending, {
     kind: 'ENTER_DICE',
     requestId: attackPending.request.requestId,
-    rawFaces: [20]
+    rawFaces: attackPending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+    rollMode: attackPending.request.rollMode
   })
   await expect(
     scene.owner.caller.mutation(begin, { ...stale, expectedVersion: stale.expectedVersion - 1 })
@@ -167,7 +193,8 @@ it('fires an automatic reaction without a choice and keeps it inert until entere
     resolution(base.run.id, attackPending, {
       kind: 'ENTER_DICE',
       requestId: attackPending.request.requestId,
-      rawFaces: [20]
+      rawFaces: attackPending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+      rollMode: attackPending.request.rollMode
     })
   )
   if (!attackStarted || attackStarted.kind !== 'READY')
@@ -180,8 +207,9 @@ it('fires an automatic reaction without a choice and keeps it inert until entere
   const outcomeStarted = await scene.owner.caller.mutation(
     begin,
     resolution(base.run.id, outcomePending, {
-      kind: 'SYSTEM_ROLL',
-      requestId: outcomePending.request.requestId
+      kind: 'ENTER_INTEGER',
+      requestId: outcomePending.request.requestId,
+      value: outcomePending.request.max
     })
   )
   if (!outcomeStarted || outcomeStarted.kind !== 'READY')
@@ -206,9 +234,14 @@ it('fires an automatic reaction without a choice and keeps it inert until entere
           ? {
               kind: 'ENTER_DICE',
               requestId: pending.request.requestId,
-              rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1]
+              rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+              rollMode: pending.request.rollMode
             }
-          : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+          : {
+              kind: 'ENTER_INTEGER',
+              requestId: pending.request.requestId,
+              value: pending.request.max
+            }
       )
     )
     if (!next || next.kind !== 'READY')

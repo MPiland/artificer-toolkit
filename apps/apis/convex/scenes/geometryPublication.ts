@@ -28,6 +28,7 @@ import { publishFogLayer } from './fogPublication'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readSpatialSceneGeometry } from './spatialGeometry'
 import { assertSceneVisionCharacters } from './visionFreshness'
+import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 type SceneGeometryFinishInput = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 type SceneGeometrySaveRead = Awaited<ReturnType<typeof readGeometrySave>>
@@ -245,12 +246,19 @@ export async function publishSceneGeometry(
         ? current.entity.initialState
         : null
   }
-  if (!save.movementResolution && save.input.type === 'MOVE_SCENE_TOKEN')
-    assertMoveTokenControl(
-      current?.collection === 'tokens' ? current.entity : null,
-      userId,
-      membership.role === 'OWNER'
-    )
+  if (!save.movementResolution && save.input.type === 'MOVE_SCENE_TOKEN') {
+    const movingToken = current?.collection === 'tokens' ? current.entity : null
+    if (bound && preparation) {
+      if (!movingToken || movingToken.locked)
+        throw new Error('Members may only move an unlocked token they control.')
+      await requireBoundTokenMoveControl(ctx, {
+        campaign,
+        membership,
+        encounterId: preparation.encounterId,
+        tokenId: movingToken.id
+      })
+    } else assertMoveTokenControl(movingToken, userId, membership.role === 'OWNER')
+  }
   const terminal = preparation?.outcome.kind === 'TERMINAL' ? preparation.outcome.result : null
   const pending = preparation?.outcome.kind === 'PENDING' ? preparation.outcome : null
   const delta = terminal

@@ -51,6 +51,7 @@ import {
   projectNativeLiveSessionState
 } from './nativeLiveSessionState.js'
 import {
+  canPreviewSceneTokenDrag,
   liveSessionSceneCommandInputSchema,
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
@@ -134,6 +135,7 @@ function cacheKey(capture: LiveSessionTransientCapture): string {
     origin: capture.origin,
     presentation: capture.presentation,
     sceneEncounterBound: capture.sceneEncounterBound,
+    originBoundTokenControl: capture.originBoundTokenControl,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness,
@@ -179,6 +181,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     ROOM_LIMITS.maxPendingCommandsPerSocket,
     ROOM_LIMITS.maxPendingCommandsPerRoom
   )
+  /** Players with an Encounter command queued or running; see `roomLimits.ts`. */
+  readonly #playerEncounterCommands = new Map<string, number>()
   readonly #pendingTransients = new PendingWork(
     ROOM_LIMITS.maxPendingTransientsPerSocket,
     ROOM_LIMITS.maxPendingTransientsPerSocket * ROOM_LIMITS.maxSocketsPerRoom
@@ -348,16 +352,45 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (parsed.data.type === 'COMMAND') {
       const work = { admission, message: parsed.data }
       const commandId = work.message.command.command.commandId
+      // A player may have one Encounter command in flight; the GM's are bounded per socket only.
+      const playerEncounter =
+        work.message.command.scope === 'ENCOUNTER' && admission.role === 'PLAYER'
+          ? admission.userId
+          : null
+      if (
+        playerEncounter !== null &&
+        (this.#playerEncounterCommands.get(playerEncounter) ?? 0) >=
+          ROOM_LIMITS.maxInFlightEncounterCommandsPerPlayer
+      ) {
+        this.#rejectCommand(
+          socket,
+          commandId,
+          'UNAVAILABLE',
+          'Your previous action is still resolving.'
+        )
+        return
+      }
       if (!this.#pendingCommands.tryAcquire(socket)) {
         this.#rejectCommand(socket, commandId, 'UNAVAILABLE', 'Too many pending table changes.')
         return
       }
+      if (playerEncounter !== null)
+        this.#playerEncounterCommands.set(
+          playerEncounter,
+          (this.#playerEncounterCommands.get(playerEncounter) ?? 0) + 1
+        )
       const next = this.#commandChain
         .then(() => this.#executeCommand(socket, work.admission, work.message))
         .catch(() =>
           this.#rejectCommand(socket, commandId, 'UNAVAILABLE', 'Live Session command unavailable.')
         )
-        .finally(() => this.#pendingCommands.release(socket))
+        .finally(() => {
+          this.#pendingCommands.release(socket)
+          if (playerEncounter === null) return
+          const count = (this.#playerEncounterCommands.get(playerEncounter) ?? 1) - 1
+          if (count > 0) this.#playerEncounterCommands.set(playerEncounter, count)
+          else this.#playerEncounterCommands.delete(playerEncounter)
+        })
       this.#commandChain = next
       await next
       return
@@ -1125,8 +1158,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
       if (this.#sceneSync) await this.#sceneSync
       const cached = this.#cache
+      // A player's preview on an Encounter-bound Scene needs their bound-actor control (capture).
       if (
         cached?.scene &&
+        (originAdmission.role === 'OWNER' || !cached.sceneEncounterBound) &&
         cached.synchronized &&
         cached.characterRevisions.length === 0 &&
         cached.scene.id === envelope.sceneId &&
@@ -1339,10 +1374,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (envelope.previewUserId && originAdmission.role !== 'OWNER') return
       const token = scene.tokens.find((candidate) => candidate.id === envelope.tokenId)
 
-      if (!token || token.locked) return
       if (
-        originAdmission.role !== 'OWNER' &&
-        (token.hidden || !token.controlledByUserIds.includes(originAdmission.userId))
+        !token ||
+        !canPreviewSceneTokenDrag({
+          token,
+          role: originAdmission.role,
+          userId: originAdmission.userId,
+          originBoundTokenControl: capture?.originBoundTokenControl ?? null
+        })
       )
         return
       const currentPath =

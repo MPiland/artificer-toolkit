@@ -16,10 +16,13 @@ import { useDisclosure } from '@mantine/hooks'
 import { CircleHelp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type {
+  EncounterD20RollModeDto,
+  EncounterEvidenceRollDto,
   EncounterGmProjectionDto,
   EncounterCommandResultDto,
   EncounterPlayerProjectionDto,
   ResolveRuleOccurrenceInputDto,
+  RollRuleEvidenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { initiativeDeclarationSelectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
@@ -29,11 +32,13 @@ import {
   decisionTitle,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
+import { CampaignTabletopEvidenceRollRow } from './CampaignTabletopEvidenceRollRow'
 
 export function CampaignTabletopDecisionDrawer({
   canVoid,
   connected,
   encounter,
+  latestRoll,
   pending,
   submitting,
   onResolve
@@ -42,17 +47,16 @@ export function CampaignTabletopDecisionDrawer({
   canVoid: boolean
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+  /** The viewer's latest "Roll dice" attempt for this decision's request, if any. */
+  latestRoll: EncounterEvidenceRollDto | null
   pending: PendingEncounterRuleOccurrenceSummaryDto
   submitting: boolean
   onResolve: (
-    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+    command: ResolveRuleOccurrenceInputDto | RollRuleEvidenceInputDto | VoidRuleOccurrenceInputDto
   ) => Promise<EncounterCommandResultDto>
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const [localPending, setLocalPending] = useState(false)
-  const [firstFace, setFirstFace] = useState<number | string>('')
-  const [secondFace, setSecondFace] = useState<number | string>('')
-  const [integerValue, setIntegerValue] = useState<number | string>('')
   const [primaryOptionId, setPrimaryOptionId] = useState<string | null>(null)
   const [bonusOptionId, setBonusOptionId] = useState<string | null>(null)
   const [adjudicationValues, setAdjudicationValues] =
@@ -62,15 +66,46 @@ export function CampaignTabletopDecisionDrawer({
   const disabled = !connected || submitting || localPending
 
   useEffect(() => {
-    setFirstFace('')
-    setSecondFace('')
-    setIntegerValue('')
     setPrimaryOptionId(null)
     setBonusOptionId(null)
     setAdjudicationValues({})
     setFeedback(null)
     setError(null)
   }, [pending.occurrenceId, pending.occurrenceVersion])
+
+  function commandTarget() {
+    return {
+      encounterId: encounter.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion
+    }
+  }
+
+  /** "Roll dice": records a server roll for one request without settling the decision. */
+  async function rollEvidence(
+    requestId: string,
+    rollMode: EncounterD20RollModeDto | null
+  ): Promise<EncounterCommandResultDto | null> {
+    if (disabled) return null
+    setLocalPending(true)
+    setFeedback(null)
+    setError(null)
+    try {
+      return await onResolve({
+        type: 'ROLL_RULE_EVIDENCE',
+        ...commandTarget(),
+        requestId,
+        rollMode
+      })
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The dice could not be rolled.')
+      return null
+    } finally {
+      setLocalPending(false)
+    }
+  }
 
   async function resolve(
     resolution: ResolveRuleOccurrenceInputDto['resolution'] | 'VOID'
@@ -79,13 +114,7 @@ export function CampaignTabletopDecisionDrawer({
     setLocalPending(true)
     setFeedback(null)
     setError(null)
-    const target = {
-      encounterId: encounter.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: pending.encounterVersion,
-      occurrenceId: pending.occurrenceId,
-      expectedOccurrenceVersion: pending.occurrenceVersion
-    }
+    const target = commandTarget()
     try {
       const result = await onResolve(
         resolution === 'VOID'
@@ -140,97 +169,26 @@ export function CampaignTabletopDecisionDrawer({
           {!connected ? (
             <Alert color='yellow'>Decision controls will return when live play reconnects.</Alert>
           ) : null}
-          {pending.kind === 'D20_EVIDENCE' ? (
+          {pending.kind === 'D20_EVIDENCE' ||
+          pending.kind === 'INITIATIVE_EVIDENCE' ||
+          pending.kind === 'RECHARGE_EVIDENCE' ||
+          pending.kind === 'ACTION_OUTCOME_EVIDENCE' ? (
             <>
-              <Text size='sm'>Roll mode: {pending.request.rollMode.toLowerCase()}</Text>
-              <Group grow>
-                <NumberInput
-                  disabled={disabled}
-                  label='Die 1'
-                  min={1}
-                  max={20}
-                  value={firstFace}
-                  onChange={setFirstFace}
-                />
-                {pending.request.rollMode === 'NORMAL' ? null : (
-                  <NumberInput
-                    disabled={disabled}
-                    label='Die 2'
-                    min={1}
-                    max={20}
-                    value={secondFace}
-                    onChange={setSecondFace}
-                  />
-                )}
-              </Group>
-              <Group>
-                <Button
-                  disabled={disabled}
-                  onClick={() =>
-                    void resolve({ kind: 'SYSTEM_ROLL', requestId: pending.request.requestId })
-                  }
-                >
-                  Roll in VTT
-                </Button>
-                <Button
-                  disabled={
-                    disabled ||
-                    typeof firstFace !== 'number' ||
-                    (pending.request.rollMode !== 'NORMAL' && typeof secondFace !== 'number')
-                  }
-                  variant='default'
-                  onClick={() =>
-                    typeof firstFace === 'number' &&
-                    void resolve({
-                      kind: 'ENTER_DICE',
-                      requestId: pending.request.requestId,
-                      rawFaces:
-                        pending.request.rollMode === 'NORMAL' || typeof secondFace !== 'number'
-                          ? [firstFace]
-                          : [firstFace, secondFace]
-                    })
-                  }
-                >
-                  Submit physical roll
-                </Button>
-              </Group>
-            </>
-          ) : pending.kind === 'INITIATIVE_EVIDENCE' ||
-            pending.kind === 'RECHARGE_EVIDENCE' ||
-            pending.kind === 'ACTION_OUTCOME_EVIDENCE' ? (
-            <>
-              <NumberInput
+              {'rollerActorId' in pending && pending.rollerActorId ? (
+                <Text size='sm'>
+                  Roll for{' '}
+                  {encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                    'a hidden combatant'}
+                </Text>
+              ) : null}
+              <CampaignTabletopEvidenceRollRow
                 disabled={disabled}
-                label='Result'
-                min={pending.request.min}
-                max={pending.request.max}
-                value={integerValue}
-                onChange={setIntegerValue}
+                key={`${pending.occurrenceId}:${pending.occurrenceVersion}:${pending.request.requestId}`}
+                latestRoll={latestRoll}
+                pending={pending}
+                onRoll={(rollMode) => rollEvidence(pending.request.requestId, rollMode)}
+                onSubmit={(resolution) => void resolve(resolution)}
               />
-              <Group>
-                <Button
-                  disabled={disabled}
-                  onClick={() =>
-                    void resolve({ kind: 'SYSTEM_ROLL', requestId: pending.request.requestId })
-                  }
-                >
-                  Roll in VTT
-                </Button>
-                <Button
-                  disabled={disabled || typeof integerValue !== 'number'}
-                  variant='default'
-                  onClick={() =>
-                    typeof integerValue === 'number' &&
-                    void resolve({
-                      kind: 'ENTER_INTEGER',
-                      requestId: pending.request.requestId,
-                      value: integerValue
-                    })
-                  }
-                >
-                  Submit result
-                </Button>
-              </Group>
             </>
           ) : pending.kind === 'MOVEMENT_REACTION' ? (
             <Stack gap='xs'>

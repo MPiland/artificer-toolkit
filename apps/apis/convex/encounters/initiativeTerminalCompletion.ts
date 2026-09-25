@@ -46,6 +46,7 @@ export async function completeNativeInitiativeOccurrence(input: {
   rootCommandId: string
   rootCommandFingerprint: string
   rootInitiatorUserId: string
+  rootRequestedByUserId: string
   rootCorrelationId: string | null
   rootExpectedEncounterVersion: number
   initiative: EncounterInitiativeSettlementDto | null
@@ -232,7 +233,7 @@ export async function completeNativeInitiativeOccurrence(input: {
       commandMetadataJson: JSON.stringify(commandMetadata),
       resultJson: JSON.stringify(ruleResult),
       resultChecksum,
-      actorUserId: input.rootInitiatorUserId,
+      actorUserId: input.rootRequestedByUserId,
       correlationId: input.rootCorrelationId,
       createdAt: input.updatedAt
     })
@@ -249,7 +250,7 @@ export async function completeNativeInitiativeOccurrence(input: {
       ruleResultChecksum: resultChecksum,
       optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
       commandFingerprint: input.rootCommandFingerprint,
-      actorUserId: input.rootInitiatorUserId,
+      actorUserId: input.rootRequestedByUserId,
       version: input.encounterVersion,
       commandJson: JSON.stringify(input.rootCommand),
       resultJson: JSON.stringify(result),

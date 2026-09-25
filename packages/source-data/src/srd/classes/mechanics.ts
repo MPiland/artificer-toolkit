@@ -17,6 +17,15 @@ import type {
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
 
+/** SRD equipment indexes of the artisan's tools (alchemist's supplies through woodcarver's tools). */
+export const ARTISAN_TOOL_EQUIPMENT_INDEXES = [
+  51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67
+] as const
+/** SRD equipment indexes of the musical instruments (bagpipes through viol). */
+export const MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES = [
+  68, 69, 70, 71, 72, 73, 74, 75, 76, 77
+] as const
+
 /**
  * Character-wide gate on worn equipment: with INCLUDE the character wears an item of every listed
  * category; with EXCLUDE they wear none. Uses ids `makeId(0..2 + categories.length)`.
@@ -85,6 +94,57 @@ export function attackingItemPropertyRestriction(
               authoringModeKind: 'SELECTED' as const,
               properties: [...properties]
             }))
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
+ * Dueling: "wielding a melee weapon in one hand and no other weapons". The attacking item is a
+ * melee weapon, not wielded two-handed, and no other weapon is equipped. Uses ids `makeId(0..5)`.
+ */
+export function duelingRestriction(makeId: (entry: number) => string): FacetAuthored {
+  return {
+    id: makeId(0),
+    groups: [
+      {
+        id: makeId(1),
+        order: 0,
+        contexts: [
+          {
+            id: makeId(2),
+            order: 0,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: makeId(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'EQUIPMENT_PROPERTY',
+                authoringModeKind: 'SELECTED',
+                properties: ['MELEE']
+              },
+              {
+                id: makeId(4),
+                order: 1,
+                kind: 'PREDICATE',
+                constraint: 'EXCLUDE',
+                predicateCode: 'EQUIPMENT_PROPERTY',
+                authoringModeKind: 'SELECTED',
+                properties: ['TWO_HANDED']
+              },
+              {
+                id: makeId(5),
+                order: 2,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'SOLE_WIELDED_WEAPON'
+              }
+            ]
           }
         ]
       }

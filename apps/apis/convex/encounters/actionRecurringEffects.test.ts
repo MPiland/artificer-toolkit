@@ -299,7 +299,8 @@ function diceResponse(encounterId: string, input: unknown) {
       resolution: {
         kind: 'ENTER_DICE' as const,
         requestId: pending.request.requestId,
-        rawFaces: [1]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: pending.request.rollMode
       }
     }
   } satisfies EncounterExecuteInput
@@ -422,7 +423,8 @@ it.each([
       resolution: {
         kind: 'ENTER_DICE',
         requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+        rollMode: pending.request.rollMode
       }
     }
   }

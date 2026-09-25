@@ -129,7 +129,7 @@ export const gynosphinx: CreatureAuthored = {
           id: S.actionId(157, 303),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: {
               id: S.actionId(157, 1303),
               rangeKind: S.RANGE_KIND.SELF
@@ -314,7 +314,7 @@ export const gynosphinx: CreatureAuthored = {
               order: 1,
               invocation: {
                 kind: 'ACTION',
-                triggerCode: 'SPELL_ATTACK',
+                triggerCode: 'ACTIVATED',
                 activation: { code: 'ACTION', amount: 3 },
                 range: { id: '00000000-0002-04be-0070-009d00000000', rangeKind: 'SPECIAL' },
                 resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 3 }
@@ -323,7 +323,7 @@ export const gynosphinx: CreatureAuthored = {
                 {
                   id: '37f3fd8f-3302-59c5-90b2-e91ff0998d73',
                   order: 1,
-                  pathCode: 'ON_HIT',
+                  pathCode: 'ON_USE',
                   groupType: 'SINGLE',
                   originKind: 'SOURCE',
                   selectionKind: 'FIXED',

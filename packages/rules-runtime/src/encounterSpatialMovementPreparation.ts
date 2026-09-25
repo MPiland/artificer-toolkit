@@ -63,15 +63,15 @@ function retainedSpatialReplayFaces(input: SpatialMovementPreparationInput): num
             (execution) => execution.ordinal
           ) ?? [])
   )
-  const pendingOrdinal =
-    input.resolution?.kind === 'ENTER_DICE'
-      ? pendingContext?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-        ? pendingContext.currentCandidate.ordinal
-        : pendingContext?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-            pendingContext.phase.kind === 'SPATIAL_EVIDENCE'
-          ? pendingContext.phase.currentCandidate.ordinal
-          : null
-      : null
+  // The answered candidate's faces come from its answer (entered dice or a recorded app roll).
+  const pendingOrdinal = input.resolution
+    ? pendingContext?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+      ? pendingContext.currentCandidate.ordinal
+      : pendingContext?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+          pendingContext.phase.kind === 'SPATIAL_EVIDENCE'
+        ? pendingContext.phase.currentCandidate.ordinal
+        : null
+    : null
   const boundary = input.interruptAfterPathDistance
   return input.retainedExecutions.flatMap((execution) => {
     if (

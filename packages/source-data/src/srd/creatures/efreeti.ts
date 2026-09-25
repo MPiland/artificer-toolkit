@@ -126,7 +126,7 @@ export const efreeti: CreatureAuthored = {
           id: S.actionId(95, 309),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(95, 1302), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
@@ -225,7 +225,7 @@ export const efreeti: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.RANGED_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(95, 1205),

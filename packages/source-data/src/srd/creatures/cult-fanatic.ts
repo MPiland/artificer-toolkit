@@ -92,7 +92,7 @@ export const cultFanatic: CreatureAuthored = {
           id: S.actionId(74, 303),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(74, 1301), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },

@@ -17,14 +17,12 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
-
-export type MovementReactionActionResolution =
-  | {
-      kind: 'ENTER_DICE'
-      requestId: string
-      rawFaces: readonly number[]
-    }
-  | { kind: 'SYSTEM_ROLL'; requestId: string }
+import {
+  resolveEncounterD20Answer,
+  selectEncounterActionD20Natural,
+  type EncounterD20RollMode,
+  type EncounterEvidenceAnswer
+} from './encounterEvidenceAnswer.js'
 
 export interface PreparedEncounterMovementReactionAction {
   adapter: CharacterRuleActionSystemAdapter
@@ -107,42 +105,6 @@ export function deriveEncounterActionD20Policy(input: {
   })
 }
 
-/** Validates entered or server-generated faces for one exact d20 request. */
-export function resolveEncounterActionD20Faces(input: {
-  policy: ServerRuleExecutionD20PolicyDto
-  resolution: MovementReactionActionResolution
-  rollD20?: () => number
-}): number[] {
-  const count = input.policy.rollMode === 'NORMAL' ? 1 : 2
-  if (input.resolution.kind === 'SYSTEM_ROLL' && !input.rollD20) {
-    throw new EncounterValidationError(
-      'The selected reaction action system d20 roller is required.'
-    )
-  }
-  const faces =
-    input.resolution.kind === 'ENTER_DICE'
-      ? [...input.resolution.rawFaces]
-      : Array.from({ length: count }, () => input.rollD20!())
-  if (
-    faces.length !== count ||
-    faces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
-  ) {
-    throw new EncounterValidationError('The selected reaction action d20 evidence is invalid.')
-  }
-  return faces
-}
-
-export function selectEncounterActionD20Natural(
-  mode: ServerRuleExecutionD20PolicyDto['rollMode'],
-  faces: readonly number[]
-): number {
-  return mode === 'ADVANTAGE'
-    ? Math.max(...faces)
-    : mode === 'DISADVANTAGE'
-      ? Math.min(...faces)
-      : faces[0]!
-}
-
 export function nestedOutcomeD20Policy(input: {
   published: ServerPublishedRuleDefinitionDto
   d20: {
@@ -196,14 +158,18 @@ function requireMatchingContinuation(input: {
   }
 }
 
-/** Binds raw d20 faces to the completed kernel trace without exposing client arithmetic. */
+/**
+ * Binds raw d20 faces to the completed kernel trace without exposing client arithmetic. `rollMode`
+ * is the mode the faces were rolled with; the policy keeps the rules-derived one.
+ */
 export function buildEncounterActionD20Evidence(input: {
   execution: ServerCompletedRuleExecutionDto
   policy: ServerRuleExecutionD20PolicyDto
   requestId: string
   faces: readonly number[]
+  rollMode: EncounterD20RollMode
 }): ServerRuleExecutionD20EvidenceDto {
-  const natural = selectEncounterActionD20Natural(input.policy.rollMode, input.faces)
+  const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
   const trace = input.execution.evidence.trace.find(
     (entry) => entry.evidence?.requestId === input.requestId && entry.evidence.value === natural
   )
@@ -213,7 +179,8 @@ export function buildEncounterActionD20Evidence(input: {
   }
   return serverRuleExecutionD20EvidenceDtoSchema.parse({
     requestId: input.requestId,
-    rollMode: input.policy.rollMode,
+    rollMode: input.rollMode,
+    derivedRollMode: input.policy.rollMode,
     rawFaces: input.faces,
     selectedNatural: natural,
     contributors: input.policy.contributors,
@@ -230,13 +197,15 @@ export function buildEncounterSaveD20Evidence(input: {
   policy: ServerRuleExecutionD20PolicyDto
   requestId: string
   faces: readonly number[]
+  rollMode: EncounterD20RollMode
 }): ServerRuleExecutionNestedD20EvidenceDto {
-  const natural = selectEncounterActionD20Natural(input.policy.rollMode, input.faces)
+  const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
   const total = natural + input.policy.modifier
   return serverRuleExecutionNestedD20EvidenceDtoSchema.parse({
     requestNodeId: input.policy.requestNodeId,
     requestId: input.requestId,
-    rollMode: input.policy.rollMode,
+    rollMode: input.rollMode,
+    derivedRollMode: input.policy.rollMode,
     rawFaces: input.faces,
     selectedNatural: natural,
     contributors: input.policy.contributors,
@@ -256,7 +225,7 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
 }): void {
   if (
     input.evidence.requestNodeId !== input.policy.requestNodeId ||
-    input.evidence.rollMode !== input.policy.rollMode ||
+    input.evidence.derivedRollMode !== input.policy.rollMode ||
     input.evidence.contributorChecksum !== input.policy.contributorChecksum ||
     checksumRuleDocument(input.evidence.contributors) !== input.policy.contributorChecksum ||
     input.evidence.modifier !== input.policy.modifier ||
@@ -292,8 +261,10 @@ export async function executeEncounterMovementReactionAction(input: {
   prepared: PreparedEncounterMovementReactionAction
   continuation?: ServerRuleExecutionContinuationDto
   expectedD20Policy?: ServerRuleExecutionD20PolicyDto
-  resolution?: MovementReactionActionResolution
-  rollD20?: () => number
+  resolution?: EncounterEvidenceAnswer
+  /** Recorded faces that replay this action's already settled d20. */
+  retainedRoll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+  rollD20: () => number
 }): Promise<EncounterMovementReactionActionExecution> {
   const target = input.prepared.target
   const bound = input.prepared.adapter.bindFacts({
@@ -333,17 +304,14 @@ export async function executeEncounterMovementReactionAction(input: {
     if (input.resolution.requestId !== input.continuation.request.requestId) {
       throw new EncounterConflictError('The selected reaction action evidence request is stale.')
     }
-    const faces = resolveEncounterActionD20Faces({
-      policy,
-      resolution: input.resolution,
-      ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
+    const { faces, rollMode, natural } = resolveEncounterD20Answer({
+      derivedRollMode: policy.rollMode,
+      answer: input.resolution,
+      rollD20: input.rollD20
     })
     execution = await input.runtime.resume({
       continuation: input.continuation,
-      response: {
-        requestId: input.resolution.requestId,
-        value: selectEncounterActionD20Natural(policy.rollMode, faces)
-      }
+      response: { requestId: input.resolution.requestId, value: natural }
     })
     if (execution.status === 'PAUSED') {
       throw new EncounterValidationError(
@@ -354,7 +322,8 @@ export async function executeEncounterMovementReactionAction(input: {
       execution,
       policy,
       requestId: input.resolution.requestId,
-      faces
+      faces,
+      rollMode
     })
   } else {
     if (input.expectedD20Policy) {
@@ -375,28 +344,32 @@ export async function executeEncounterMovementReactionAction(input: {
     })
     if (execution.status === 'PAUSED') {
       const policy = deriveEncounterActionD20Policy({ continuation: execution.continuation, bound })
-      if (!input.autoRoll) {
+      const requestId = execution.continuation.request.requestId
+      const answer: EncounterEvidenceAnswer | null = input.retainedRoll
+        ? {
+            kind: 'ENTER_DICE',
+            requestId,
+            ...input.retainedRoll,
+            rawFaces: [...input.retainedRoll.rawFaces]
+          }
+        : input.autoRoll
+          ? { kind: 'AUTO_ROLL', requestId }
+          : null
+      if (!answer) {
         return {
           kind: 'PENDING',
           continuation: execution.continuation,
           d20Policy: policy
         }
       }
-      const resolution = {
-        kind: 'SYSTEM_ROLL' as const,
-        requestId: execution.continuation.request.requestId
-      }
-      const faces = resolveEncounterActionD20Faces({
-        policy,
-        resolution,
-        ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
+      const { faces, rollMode, natural } = resolveEncounterD20Answer({
+        derivedRollMode: policy.rollMode,
+        answer,
+        rollD20: input.rollD20
       })
       execution = await input.runtime.resume({
         continuation: execution.continuation,
-        response: {
-          requestId: resolution.requestId,
-          value: selectEncounterActionD20Natural(policy.rollMode, faces)
-        }
+        response: { requestId, value: natural }
       })
       if (execution.status === 'PAUSED') {
         throw new EncounterValidationError(
@@ -406,8 +379,9 @@ export async function executeEncounterMovementReactionAction(input: {
       completedD20 = buildEncounterActionD20Evidence({
         execution,
         policy,
-        requestId: resolution.requestId,
-        faces
+        requestId,
+        faces,
+        rollMode
       })
     }
   }

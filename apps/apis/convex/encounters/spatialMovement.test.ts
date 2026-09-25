@@ -91,7 +91,7 @@ function input(base: Awaited<ReturnType<typeof fixture>>): NativeSpatialMovement
     occurrenceId: ids.occurrence,
     executionCommandId: ids.command,
     occurredAt: new Date().toISOString(),
-    autoRoll: true
+    autoRoll: { [base.run.actors[0]!.id]: true }
   }
 }
 

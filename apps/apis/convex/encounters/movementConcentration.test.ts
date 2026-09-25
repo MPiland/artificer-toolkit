@@ -126,6 +126,12 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
   })
   expect(await concentrationRecords(fixture)).toEqual(before)
 
+  const summary = await fixture.player.caller.query(
+    api.encounters.pendingReads.pendingRuleOccurrence,
+    { encounterId: state.id }
+  )
+  if (summary?.kind !== 'D20_EVIDENCE' || summary.request.requestId !== snapshot.request.requestId)
+    throw new Error('Expected the controller Concentration evidence.')
   const command = {
     type: 'RESOLVE_RULE_OCCURRENCE' as const,
     encounterId: state.id,
@@ -134,7 +140,12 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
     occurrenceId: pending.id,
     expectedOccurrenceVersion: pending.version,
     correlationId: null,
-    resolution: { kind: 'SYSTEM_ROLL' as const, requestId: snapshot.request.requestId }
+    resolution: {
+      kind: 'ENTER_DICE' as const,
+      requestId: summary.request.requestId,
+      rawFaces: summary.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: summary.request.rollMode
+    }
   }
   const result = await fixture.player.caller.mutation(internal.encounters.commands.execute, {
     command

@@ -1,3 +1,4 @@
+import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
@@ -69,15 +70,8 @@ export function buildEncounterMovementReactionFacts<
       const reactor = actors.find((actor) => actor.id === pair.reactorActorId)
       const moving = actors.find((actor) => actor.id === pair.movingActorId)
       if (!reactor || !moving) return null
-      if (reactor.sideId === moving.sideId) return 'ALLIED' as const
-      const sides = [reactor.sideId, moving.sideId].sort()
-      const relationships = state.sideRelationships.filter((relationship) =>
-        [relationship.firstSideId, relationship.secondSideId]
-          .sort()
-          .every((sideId, index) => sideId === sides[index])
-      )
-      if (relationships.length > 1) throw new Error('Encounter side relationship is ambiguous.')
-      return relationships[0]?.relationshipKind ?? null
+      // Disposition is the one source of hostility (ADR 0034, D13).
+      return encounterActorRelationship(reactor.disposition, moving.disposition)
     }
   }
 }

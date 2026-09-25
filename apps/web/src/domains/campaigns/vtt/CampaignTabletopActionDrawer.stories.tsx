@@ -29,7 +29,8 @@ const actions = [
     rangeLabel: '5 ft',
     attackBonus: 4,
     grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
-    wieldConflict: null
+    wieldConflict: null,
+    warnings: []
   }
 ] satisfies EncounterActionChoiceDto[]
 const shieldItemInstanceId = '77777777-7777-4777-8777-777777777721'
@@ -41,7 +42,8 @@ const greatswordActions = [
     rangeLabel: '5 ft',
     attackBonus: 5,
     grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
-    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 }
+    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
+    warnings: []
   }
 ] satisfies EncounterActionChoiceDto[]
 const longswordAttackKey = 'longsword-instance:MELEE_WEAPON_ATTACK'
@@ -54,7 +56,8 @@ const longswordActions = [
     attackBonus: 5,
     damageLabel: '1d8 Slashing',
     grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
-    wieldConflict: null
+    wieldConflict: null,
+    warnings: []
   },
   {
     id: 'equipment-longsword:two-hand',
@@ -64,7 +67,8 @@ const longswordActions = [
     attackBonus: 5,
     damageLabel: '1d10 Slashing',
     grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
-    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 }
+    wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
+    warnings: []
   }
 ] satisfies EncounterActionChoiceDto[]
 const optionalRules = [
@@ -117,13 +121,14 @@ async function resolveActionCommand(
       status: 'COMPLETE',
       outcome: null,
       pending: null
-    }
+    },
+    evidenceRoll: null
   }
 }
 
 const meta = {
   component: CampaignTabletopActionDrawer,
-  args: { opened: false, onOpen: fn(), onClose: fn() },
+  args: { opened: false, waitingOn: null, onOpen: fn(), onClose: fn() },
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
     return <CampaignTabletopActionDrawer {...args} opened={opened} onOpen={open} onClose={close} />
@@ -255,7 +260,8 @@ export const CreatureSource: Story = {
         rangeLabel: '5 ft',
         attackBonus: 5,
         grip: null,
-        wieldConflict: null
+        wieldConflict: null,
+        warnings: []
       }
     ],
     actionsLoading: false,
@@ -430,5 +436,35 @@ export const ChooseVersatileGrip: Story = {
         acceptedWieldConflict: null
       })
     )
+  }
+}
+
+/** An action a soft rule already warns about stays selectable, dimmed with its reason. */
+export const UnavailableAction: Story = {
+  args: {
+    ...ResolveTargetedAction.args,
+    actions: [
+      {
+        ...actions[0],
+        warnings: [
+          { code: 'ACTION_ECONOMY_UNAVAILABLE' as const, message: 'No action left this turn.' }
+        ]
+      }
+    ]
+  },
+  play: async ({ canvasElement }) => {
+    const { page, drawer } = await openActions(canvasElement)
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await expect(await page.findByText('No action left this turn.')).toBeVisible()
+  }
+}
+
+/** The GM owes an answer to a decision this player's action raised; controls wait for it. */
+export const WaitingOnGm: Story = {
+  args: { ...ResolveTargetedAction.args, waitingOn: 'GM' },
+  play: async ({ canvasElement }) => {
+    const { drawer } = await openActions(canvasElement)
+    await expect(drawer.getByText('Waiting on the GM')).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
   }
 }

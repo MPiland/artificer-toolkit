@@ -170,8 +170,22 @@ export const theFiend: ClassAuthored = {
           id: classRowId(W, 20, 7),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SPELL_ATTACK,
+            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
             range: { id: classRowId(W, 21, 7), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_HIT,
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
+        }),
+        closedRuleEffect({
+          id: classRowId(W, 20, 8),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
+            range: { id: classRowId(W, 21, 8), rangeKind: RANGE_KIND.SPECIAL },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: 'ANY'

@@ -73,6 +73,7 @@ export type PredicatePayloadByCode = {
     { properties: EquipmentPropertyCode[] },
     { category?: EquipmentCategoryCode }
   >
+  SOLE_WIELDED_WEAPON: EmptyObject
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -302,6 +303,15 @@ export const PREDICATE_REGISTRY = {
     tooltip: 'Narrows selection to property.',
     description:
       'Narrows selection to entities with specific properties, such as weapon properties (Finesse, Heavy, Light) or item-specific attributes.',
+    subjects: ['EQUIPMENT']
+  },
+
+  SOLE_WIELDED_WEAPON: {
+    code: 'SOLE_WIELDED_WEAPON',
+    label: 'Only Weapon Wielded',
+    tooltip: 'Requires the item to be the only weapon wielded.',
+    description:
+      'Narrows to an attack whose item is the only weapon the character wields: no other weapon is equipped. A shield is not a weapon.',
     subjects: ['EQUIPMENT']
   },
 

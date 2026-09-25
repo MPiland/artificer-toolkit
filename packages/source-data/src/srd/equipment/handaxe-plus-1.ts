@@ -11,7 +11,6 @@ export const handaxePlus1: EquipmentVariantAuthored = {
   parentEquipmentId: handaxe.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(273), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

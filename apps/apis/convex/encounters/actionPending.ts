@@ -5,7 +5,13 @@ import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/p
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
-import { readRunProjection } from './documents'
+import type { QueryCtx } from '../_generated/server'
+import { readEncounterActorControl } from './actorController'
+import {
+  noEncounterRollModeReasons,
+  type EncounterRollModeReasons
+} from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { readRunActor, readRunProjection, readRunState } from './documents'
 
 /** Reads the sealed action root without exposing executable facts to recipients. */
 export function readNativeActionPending(occurrence: Doc<'encounterRuleOccurrences'>) {
@@ -43,14 +49,35 @@ export function readNativeActionPending(occurrence: Doc<'encounterRuleOccurrence
   return { snapshot, context, command, continuation }
 }
 
+/**
+ * Paused action evidence belongs to the controllers of the actor whose roll it is, and the GM may
+ * answer any of it. The initiator therefore answers only rolls of actors they control.
+ */
+export async function canAnswerNativeActionEvidence(
+  ctx: QueryCtx,
+  input: {
+    run: Doc<'encounterRuns'>
+    campaign: Doc<'campaigns'>
+    membership: Doc<'campaignMemberships'>
+    occurrence: Doc<'encounterRuleOccurrences'>
+  }
+): Promise<boolean> {
+  if (input.membership.role === 'OWNER') return true
+  const { context } = readNativeActionPending(input.occurrence)
+  const actor = await readRunActor(ctx, readRunState(input.run), context.rollerActorId)
+  return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
+}
+
 export function projectNativeActionPending(
-  occurrence: Doc<'encounterRuleOccurrences'>
+  occurrence: Doc<'encounterRuleOccurrences'>,
+  reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto {
   const { snapshot, context } = readNativeActionPending(occurrence)
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
-    encounterVersion: occurrence.expectedEncounterVersion
+    encounterVersion: occurrence.expectedEncounterVersion,
+    rollerActorId: context.rollerActorId
   }
   const d20Policy = context.contest
     ? snapshot.request.nodeId === 'initiator_d20'
@@ -69,7 +96,11 @@ export function projectNativeActionPending(
           requestId: snapshot.request.requestId,
           min: 1,
           max: 20,
-          rollMode: d20Policy.rollMode
+          rollMode: d20Policy.rollMode,
+          derivedRollModeReasons: reasons({
+            rollMode: d20Policy.rollMode,
+            contributors: d20Policy.contributors
+          })
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
       }

@@ -50,6 +50,7 @@ const capture: LiveSessionTransientCapture = {
   presentation: null,
   recipients: [],
   sceneEncounterBound: false,
+  originBoundTokenControl: [],
   sceneHeader: null,
   systemId: '00000000-0000-4000-8000-000000000104',
   visionFreshness: null

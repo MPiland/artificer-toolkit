@@ -276,22 +276,19 @@ export async function setupAutomaticCharacterMovement(
       round: 1,
       currentActorId: reactors[0]!.id
     })
+    const projection = encounterGmProjectionDtoSchema.parse({
+      ...JSON.parse(row.projectionJson),
+      status: 'ACTIVE',
+      automationMode: 'ASSISTED',
+      round: 1,
+      currentActorId: reactors[0]!.id
+    })
     await ctx.db.patch(row._id, {
       status: 'ACTIVE',
       stateJson: JSON.stringify(active),
       stateChecksum: checksumCanonicalJson(active),
-      projectionJson: JSON.stringify(
-        encounterGmProjectionDtoSchema.parse({
-          ...JSON.parse(row.projectionJson),
-          status: 'ACTIVE'
-        })
-      ),
-      projectionChecksum: checksumCanonicalJson(
-        encounterGmProjectionDtoSchema.parse({
-          ...JSON.parse(row.projectionJson),
-          status: 'ACTIVE'
-        })
-      )
+      projectionJson: JSON.stringify(projection),
+      projectionChecksum: checksumCanonicalJson(projection)
     })
   })
   const scene = await setupReactionMovementScene(

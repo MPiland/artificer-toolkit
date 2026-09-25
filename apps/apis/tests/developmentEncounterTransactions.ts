@@ -243,7 +243,7 @@ export async function verifyEncounterTransactions({
     )
     assert.deepEqual(current.actors, beforeTransferActors)
     projection = current
-    await assert.rejects(owner.mutation(executeEncounterCommand, advance()), /Campaign not found/)
+    await assert.rejects(owner.mutation(executeEncounterCommand, advance()), /NOT_ACTOR_CONTROLLER/)
   } finally {
     const current: CampaignDetailDto = await player.query(api.campaigns.queries.get, {
       id: campaignId

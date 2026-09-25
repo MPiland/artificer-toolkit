@@ -3,6 +3,7 @@ import type { MutationCtx } from '../_generated/server'
 import { removeAccountCharacterActors } from '../encounters/actorRemovalCommand'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
+import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
 
@@ -114,6 +115,7 @@ export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId:
         })
       })
     if (membership.status === 'ACTIVE') {
+      await removeEncounterActorController(ctx, freshCampaign, userId)
       await ctx.db.patch(membership._id, { status: 'LEFT', leftAt: new Date().toISOString() })
       await scheduleLiveSessionUserEviction(ctx, {
         campaignId: freshCampaign.id,

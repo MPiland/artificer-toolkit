@@ -20,6 +20,11 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { createNativeLiveTurnStages } from './nativeEncounterTurnPreparation.js'
+import {
+  resolveEncounterIntegerAnswer,
+  withEncounterAppRoll,
+  type EncounterResponseAnswer
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { prepareNativeLiveTurnCompletion } from './nativeEncounterTurnCompletion.js'
 import { liveSessionEncounterTurnCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 
@@ -38,8 +43,9 @@ export async function planNativeLiveEncounterTurn(
 ) {
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
-    ...(scope.expectedRole === 'PLAYER' && command.type === 'RESOLVE_RULE_OCCURRENCE'
-      ? { turnResponse: command }
+    // A player's turn command (ending their actor's turn or a declaration) admits later captures.
+    ...(scope.expectedRole === 'PLAYER' && command.type !== 'START'
+      ? { turnCommand: command }
       : {}),
     request: { kind: 'TURN_COMMAND', command }
   })
@@ -170,9 +176,7 @@ export async function planNativeLiveEncounterTurn(
   let root: TurnCoordinatorRootDto
   let occurrenceId: string
   let pending: typeof admission.snapshot | undefined
-  let resolution:
-    | Extract<LiveTurnCommand, { type: 'RESOLVE_RULE_OCCURRENCE' }>['resolution']
-    | undefined
+  let resolution: EncounterResponseAnswer | undefined
   let rawDie: number | undefined
   let initiativeResume: Parameters<typeof stages.initiative>[0]['resume']
   let initiativeActors = actors
@@ -183,6 +187,7 @@ export async function planNativeLiveEncounterTurn(
       commandFingerprint: admission.fingerprint,
       commandType: 'START',
       initiatorUserId: initial.expectedUserId,
+      requestedByUserId: initial.expectedUserId,
       correlationId: null,
       expectedEncounterVersion: state.version,
       startSystemId: admission.command.systemId ?? null,
@@ -218,7 +223,9 @@ export async function planNativeLiveEncounterTurn(
       rootCommandId: admission.command.commandId,
       commandFingerprint: admission.fingerprint,
       commandType: 'ADVANCE_TURN',
-      initiatorUserId: initial.expectedUserId,
+      // The GM answers every turn decision; the receipt records who ended the turn.
+      initiatorUserId: admission.campaignOwnerUserId,
+      requestedByUserId: initial.expectedUserId,
       correlationId: null,
       expectedEncounterVersion: state.version,
       startSystemId: null,
@@ -254,6 +261,7 @@ export async function planNativeLiveEncounterTurn(
       command: admission.command,
       userId: initial.expectedUserId,
       ownerUserId: campaign.ownerUserId,
+      responderControlledActorIds: new Set(admission.responderControlledActorIds),
       occurrence: {
         id: snapshot.occurrenceId,
         rootCommandId: pendingContext.root.rootCommandId,
@@ -282,12 +290,16 @@ export async function planNativeLiveEncounterTurn(
       })
       initiativeActors = restored.actors
       initiativeTargets = restored.movementTargets
-      initiativeResume = { pending: response.pending, resolution: admission.command.resolution }
+      initiativeResume = {
+        pending: response.pending,
+        resolution: withEncounterAppRoll(admission.command.resolution, admission.appRoll)
+      }
       root = {
         rootCommandId: retained.rootCommandId,
         commandFingerprint: retained.commandFingerprint,
         commandType: retained.commandType,
         initiatorUserId: retained.initiatorUserId,
+        requestedByUserId: retained.requestedByUserId,
         correlationId: retained.correlationId,
         expectedEncounterVersion: retained.expectedEncounterVersion,
         startSystemId: retained.startSystemId,
@@ -310,11 +322,15 @@ export async function planNativeLiveEncounterTurn(
     } else {
       root = response.root
       pending = response.pending
-      resolution = admission.command.resolution
-      if (pendingContext.kind === 'ENCOUNTER_TURN_RECHARGE') {
-        if (resolution.kind === 'ENTER_INTEGER') rawDie = resolution.value
-        else if (resolution.kind === 'SYSTEM_ROLL') rawDie = execution.random(6) + 1
-      }
+      // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+      resolution = withEncounterAppRoll(admission.command.resolution, admission.appRoll)
+      if (pendingContext.kind === 'ENCOUNTER_TURN_RECHARGE')
+        rawDie = resolveEncounterIntegerAnswer({
+          min: 1,
+          max: 6,
+          answer: resolution,
+          random: execution.random
+        })
     }
   }
   if (admission.command.type === 'START' || initiativeResume) {
@@ -348,6 +364,7 @@ export async function planNativeLiveEncounterTurn(
       state,
       campaign,
       autoRoll: admission.autoRollDice,
+      autoRollByActorId: admission.autoRollByActorId,
       root,
       occurrenceId,
       actors,
@@ -363,7 +380,7 @@ export async function planNativeLiveEncounterTurn(
       ? await prepareNativeLiveTurnCompletion({
           state,
           prepared,
-          autoRoll: admission.autoRollDice,
+          autoRollByActorId: admission.autoRollByActorId,
           occurrenceId,
           occurredAt,
           activeEffectsByActorId,

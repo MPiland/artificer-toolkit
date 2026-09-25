@@ -2,6 +2,7 @@ import type {
   EncounterCommandInputDto,
   EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { LiveSessionEncounterRoute } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -46,81 +47,96 @@ export async function executeLiveEncounterCommand(input: {
   }
   const forward = () =>
     callLiveSessionRoute(environment, accessToken, 'encounterCommand', { ...actor, command })
+  const result = await route()
+  // Backstop: every result for a player is the redacted player projection (ADR 0034 decision 1).
+  if (
+    actor.expectedRole === 'PLAYER' &&
+    !encounterPlayerProjectionDtoSchema.safeParse(result.projection).success
+  )
+    throw new Error('An Encounter result for a player was not redacted.')
+  return result
 
-  try {
-    switch (await plannerRoute()) {
-      case 'ACTION': {
-        if (command.type !== 'RESOLVE_ACTION' && command.type !== 'RESOLVE_RULE_OCCURRENCE')
-          throw new Error('Action planning received a non-action command.')
-        const plan = await planNativeLiveEncounterAction(
-          environment,
-          accessToken,
-          scope,
-          command,
-          execution
-        )
-        if (plan.kind === 'REPLAY') return plan.result
-        return plan.kind === 'PENDING'
-          ? commitNativeLiveEncounterActionPending(environment, accessToken, scope, plan)
-          : commitNativeLiveEncounterAction(environment, accessToken, scope, plan)
-      }
-      case 'TURN': {
-        if (
-          command.type !== 'START' &&
-          command.type !== 'ADVANCE_TURN' &&
-          command.type !== 'RESOLVE_RULE_OCCURRENCE'
-        )
-          throw new Error('Turn planning received a non-turn command.')
-        const plan = await planNativeLiveEncounterTurn(
-          environment,
-          accessToken,
-          scope,
-          command,
-          execution
-        )
-        if (plan.kind === 'REPLAY') return plan.result
-        if (plan.prepared.kind === 'PENDING')
+  async function route(): Promise<EncounterCommandResultDto> {
+    try {
+      switch (await plannerRoute()) {
+        case 'ACTION': {
+          if (command.type !== 'RESOLVE_ACTION' && command.type !== 'RESOLVE_RULE_OCCURRENCE')
+            throw new Error('Action planning received a non-action command.')
+          const plan = await planNativeLiveEncounterAction(
+            environment,
+            accessToken,
+            scope,
+            command,
+            execution
+          )
+          if (plan.kind === 'REPLAY') return plan.result
+          return plan.kind === 'PENDING'
+            ? commitNativeLiveEncounterActionPending(environment, accessToken, scope, plan)
+            : commitNativeLiveEncounterAction(environment, accessToken, scope, plan)
+        }
+        case 'TURN': {
+          if (
+            command.type !== 'START' &&
+            command.type !== 'ADVANCE_TURN' &&
+            command.type !== 'RESOLVE_RULE_OCCURRENCE'
+          )
+            throw new Error('Turn planning received a non-turn command.')
+          const plan = await planNativeLiveEncounterTurn(
+            environment,
+            accessToken,
+            scope,
+            command,
+            execution
+          )
+          if (plan.kind === 'REPLAY') return plan.result
+          if (plan.prepared.kind === 'PENDING')
+            return callLiveSessionRoute(
+              environment,
+              accessToken,
+              'encounterTurnPending',
+              liveSessionEncounterTurnPendingInputSchema.parse({
+                ...scope,
+                command,
+                revisions: plan.revisions,
+                scenes: plan.scenes,
+                snapshot: plan.prepared.snapshot
+              })
+            )
+          if (!plan.terminal) throw new Error('Completed turn plan has no commit input.')
           return callLiveSessionRoute(
             environment,
             accessToken,
-            'encounterTurnPending',
-            liveSessionEncounterTurnPendingInputSchema.parse({
-              ...scope,
-              command,
-              revisions: plan.revisions,
-              scenes: plan.scenes,
-              snapshot: plan.prepared.snapshot
-            })
+            'encounterTurnCommit',
+            plan.terminal
           )
-        if (!plan.terminal) throw new Error('Completed turn plan has no commit input.')
-        return callLiveSessionRoute(environment, accessToken, 'encounterTurnCommit', plan.terminal)
+        }
+        case 'CONCENTRATION': {
+          if (command.type !== 'RESOLVE_RULE_OCCURRENCE')
+            throw new Error('Concentration planning received a non-response command.')
+          const plan = await planNativeLiveConcentrationResponse(
+            environment,
+            accessToken,
+            scope,
+            command,
+            execution
+          )
+          if (plan.kind === 'REPLAY') return plan.result
+          return callLiveSessionRoute(
+            environment,
+            accessToken,
+            'encounterConcentrationCommit',
+            plan.input
+          )
+        }
+        // Encounter-bound movement responses keep their Convex path until the room owns bound moves.
+        case 'MOVEMENT':
+        case 'NATIVE':
+          return forward()
       }
-      case 'CONCENTRATION': {
-        if (command.type !== 'RESOLVE_RULE_OCCURRENCE')
-          throw new Error('Concentration planning received a non-response command.')
-        const plan = await planNativeLiveConcentrationResponse(
-          environment,
-          accessToken,
-          scope,
-          command,
-          execution
-        )
-        if (plan.kind === 'REPLAY') return plan.result
-        return callLiveSessionRoute(
-          environment,
-          accessToken,
-          'encounterConcentrationCommit',
-          plan.input
-        )
-      }
-      // Encounter-bound movement responses keep their Convex path until the room owns bound moves.
-      case 'MOVEMENT':
-      case 'NATIVE':
-        return forward()
+    } catch (error) {
+      if (error instanceof LivePlannerUnsupportedError) return forward()
+      throw error
     }
-  } catch (error) {
-    if (error instanceof LivePlannerUnsupportedError) return forward()
-    throw error
   }
 
   async function plannerRoute(): Promise<LiveSessionEncounterRoute> {

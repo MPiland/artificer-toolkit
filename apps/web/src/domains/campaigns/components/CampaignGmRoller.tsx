@@ -8,7 +8,7 @@ import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { CharacterSheetManualRoll } from '#domains/characters/sheet/dice/CharacterSheetManualRoll'
-import { CharacterSheetRollPresentation } from '#domains/characters/sheet/dice/CharacterSheetRollPresentation'
+import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import type {
   CharacterSheetRollController,
   CharacterSheetRollDestination,
@@ -82,7 +82,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       executeRoll: async (request) => {
         try {
           if (preferences.animate3d && !reducedMotion) {
-            void import('#domains/characters/sheet/dice/diceModelPreload')
+            void import('#app/components/dice/diceModelPreload')
               .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
               .catch(() => undefined)
           }
@@ -112,7 +112,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
 
   return (
     <CharacterSheetRollContext.Provider value={controller}>
-      <CharacterSheetRollPresentation
+      <DiceRollPresentation
         pending={controller.pending}
         roll={controller.presentedRoll}
         onRollRevealed={() => undefined}

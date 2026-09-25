@@ -64,7 +64,7 @@ function createAttackBehavior(
     order: activation === 'FREE' ? 1 : 2,
     invocation: {
       kind: 'ACTION',
-      triggerCode: TRIGGER.SPELL_ATTACK,
+      triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
       activation:
         activation === 'FREE'
           ? { code: ACTIVATION_CODE.FREE }

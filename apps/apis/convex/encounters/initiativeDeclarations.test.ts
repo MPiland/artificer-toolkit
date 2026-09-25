@@ -35,6 +35,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -729,9 +730,7 @@ describe('native initiative declarations', () => {
         commandId: crypto.randomUUID(),
         expectedVersion: run.version
       }
-      let current = await base.owner.caller.mutation(internal.encounters.commands.execute, {
-        command: start
-      })
+      let current = await base.owner.caller.mutation(executeEncounterCommand, { command: start })
       if (current.occurrence?.pending?.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected the first native declaration request.')
       expect(current.occurrence.pending.actorId === characterActor.id).toBe(firstRole === 'PLAYER')
@@ -791,7 +790,12 @@ describe('native initiative declarations', () => {
       let ownerDeclarations = 0
       let finalResponderUserId: string | null = null
       for (let step = 0; step < 4; step += 1) {
-        const pending = current.occurrence?.pending
+        // A player's result hides the GM's declaration, so the GM reads it for the next step.
+        const pending =
+          current.occurrence?.pending ??
+          (await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: run.id
+          }))
         if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
           throw new Error('Expected an issued declaration.')
         const role = pending.actorId === characterActor.id ? 'PLAYER' : 'OWNER'
@@ -817,7 +821,7 @@ describe('native initiative declarations', () => {
             body: JSON.stringify({
               ...scope('OWNER'),
               request: { kind: 'TURN_COMMAND', command },
-              turnResponse: command
+              turnCommand: command
             })
           })
           expect(forged.status).toBe(409)
@@ -971,6 +975,10 @@ describe('native initiative declarations', () => {
               input
             )
           ).toEqual(current)
+          if (role === 'PLAYER') {
+            expect(current.occurrence?.pending).toBeNull()
+            expect(JSON.stringify(current.projection)).not.toContain('healthBand')
+          }
           const retained = (await storedInitiative(base)).occurrences.find(
             (entry) => entry.encounterId === run.id
           )

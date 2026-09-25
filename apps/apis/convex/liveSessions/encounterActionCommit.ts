@@ -41,6 +41,7 @@ import {
   persistLiveEncounterActionEffects
 } from './encounterActionEffectsCommit'
 import { persistLiveEncounterActionChildren } from './encounterActionChildrenCommit'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 
 /** The DO computes rules; this transaction validates current authority and applies bounded outcomes. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -50,12 +51,17 @@ export const commit = internalMutation({
     const input = liveSessionEncounterActionCommitInputSchema.parse(args)
     const admission = await readLiveEncounterActionAdmission(ctx, input)
     const userId = input.expectedUserId
-    const { state, run, fingerprint } = admission
+    const { state, run, fingerprint, campaign, membership } = admission
     if (state.campaignId !== input.campaignId)
       throw new Error('Live Session Encounter scope mismatch.')
     // A lost response replays before checking revisions consumed by the successful transaction.
-    if (admission.kind === 'REPLAY') return admission.result
-    const { resume } = admission
+    if (admission.kind === 'REPLAY')
+      return presentEncounterResultForMember(ctx, {
+        campaign,
+        membership,
+        result: admission.result
+      })
+    const { resume, initiatorUserId } = admission
     const occurrenceVersion = resume ? resume.occurrence.version + 1 : 0
     const command = admission.input
     const execution = input.execution
@@ -123,7 +129,12 @@ export const commit = internalMutation({
       await readEncounterMaintenanceCapture(ctx, state, request)
       if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
     }
-    await readNativeActionSceneInputs(ctx, state, command)
+    await readNativeActionSceneInputs(
+      ctx,
+      state,
+      command,
+      membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+    )
     await assertLiveSessionRulesRevisions(ctx, input.revisions, {
       systemId: state.gameSystemId,
       campaignId: state.campaignId,
@@ -367,7 +378,7 @@ export const commit = internalMutation({
         ),
         resultJson: JSON.stringify(execution),
         resultChecksum: ruleResultChecksum,
-        actorUserId: userId,
+        actorUserId: initiatorUserId,
         correlationId: null,
         createdAt: input.occurredAt
       })
@@ -385,7 +396,7 @@ export const commit = internalMutation({
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
         ruleOverrides: input.ruleOverrides,
         commandFingerprint: fingerprint,
-        actorUserId: userId,
+        actorUserId: initiatorUserId,
         version: nextState.version,
         commandJson: JSON.stringify(command),
         resultJson: JSON.stringify(result),
@@ -400,8 +411,9 @@ export const commit = internalMutation({
         rootCommand: command,
         rootFingerprint: fingerprint,
         userId,
+        rootInitiatorUserId: initiatorUserId,
         result: execution
       })
-    return result
+    return presentEncounterResultForMember(ctx, { campaign, membership, result })
   }
 })

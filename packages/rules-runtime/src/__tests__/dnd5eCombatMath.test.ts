@@ -12,7 +12,11 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from '../systems/dnd5e/attackDamageDefenses.js'
-import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from '../systems/dnd5e/attackKind.js'
+import {
+  dnd5eAttackKind,
+  dnd5eAttackModifierDomain,
+  isDnd5eMeleeAttackKind
+} from '../systems/dnd5e/attackKind.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
@@ -85,6 +89,26 @@ describe('D&D 5e weapon attacks', () => {
     ).toBe(5)
   })
 
+  it('Dueling needs no other weapon wielded; a shield is not a weapon', () => {
+    const longsword = (items: { label: string; equipped: boolean }[]) =>
+      damageExpression(
+        itemAction(
+          evaluateSrdCharacter({
+            abilities: { STRENGTH: 16 },
+            classes: [fighter()],
+            features: [fightingStyle('Dueling')],
+            items: [{ label: 'Longsword', equipped: true }, ...items]
+          }),
+          'Longsword',
+          { attackKind: 'MELEE', grip: 'ONE_HANDED' }
+        ).decision
+      )
+    expect(longsword([{ label: 'Shield', equipped: true }])).toBe('1d8 + 5')
+    // A carried, unequipped dagger is not wielded; an equipped one is.
+    expect(longsword([{ label: 'Dagger', equipped: false }])).toBe('1d8 + 5')
+    expect(longsword([{ label: 'Dagger', equipped: true }])).toBe('1d8 + 3')
+  })
+
   it('Archery adds +2 to ranged weapons but not to a thrown dagger', () => {
     const character = evaluateSrdCharacter({
       abilities: { DEXTERITY: 16 },
@@ -154,7 +178,21 @@ describe('D&D 5e weapon attacks', () => {
     expect(isDnd5eMeleeAttackKind('MELEE')).toBe(true)
     expect(isDnd5eMeleeAttackKind('UNARMED')).toBe(true)
     expect(isDnd5eMeleeAttackKind('RANGED')).toBe(false)
-    expect(isDnd5eMeleeAttackKind('SPELL')).toBe(false)
+  })
+
+  it('a melee spell attack is melee (flanking, Cleaving) and reads spell modifiers', () => {
+    expect(dnd5eAttackKind('MELEE_SPELL_ATTACK')).toBe('MELEE_SPELL')
+    expect(dnd5eAttackKind('RANGED_SPELL_ATTACK')).toBe('RANGED_SPELL')
+    expect(isDnd5eMeleeAttackKind('MELEE_SPELL')).toBe(true)
+    expect(isDnd5eMeleeAttackKind('RANGED_SPELL')).toBe(false)
+    expect(dnd5eAttackModifierDomain('MELEE_SPELL')).toBe('SPELL')
+    expect(dnd5eAttackModifierDomain('RANGED_SPELL')).toBe('SPELL')
+    // SRD: Shocking Grasp and Inflict Wounds are melee spell attacks; Fire Bolt is ranged.
+    const trigger = (label: string) =>
+      srdByLabel(SRD.spells, label).effects?.[0]?.invocation.triggerCode
+    expect(trigger('Shocking Grasp')).toBe('MELEE_SPELL_ATTACK')
+    expect(trigger('Inflict Wounds')).toBe('MELEE_SPELL_ATTACK')
+    expect(trigger('Fire Bolt')).toBe('RANGED_SPELL_ATTACK')
   })
 
   it('a High Elf is proficient with a Longsword +1 through Elf Weapon Training', () => {
@@ -249,6 +287,43 @@ describe('D&D 5e armor class', () => {
     expect(evaluate([])).toBe(15)
     expect(evaluate([{ label: 'Shield', equipped: true }])).toBe(15)
     expect(evaluate([{ label: 'Leather Armor', equipped: true }])).toBe(14)
+  })
+
+  it('a Barbarian / Draconic Sorcerer uses the better unarmored formula; they never stack', () => {
+    // PHB: with several ways to calculate armor class you use only one.
+    const features = [
+      srdFeature({
+        owner: 'CLASS',
+        classLabel: 'Barbarian',
+        featureLabel: 'Unarmored Defense',
+        level: 1
+      }),
+      srdFeature({
+        owner: 'SUBCLASS',
+        classLabel: 'Sorcerer',
+        subclassLabel: 'Draconic Bloodline',
+        featureLabel: 'Draconic Resilience',
+        level: 1
+      })
+    ]
+    const evaluate = (constitution: number, items: { label: string; equipped: boolean }[] = []) =>
+      evaluateSrdCharacter({
+        abilities: { STRENGTH: 13, DEXTERITY: 14, CONSTITUTION: constitution, CHARISMA: 13 },
+        classes: [
+          { label: 'Barbarian', level: 1 },
+          { label: 'Sorcerer', level: 1, subclass: 'Draconic Bloodline' }
+        ],
+        features,
+        items
+      }).output.derivedStats.armorClass
+    // CON 12: 13 + DEX (15) beats 10 + DEX + CON (13).
+    expect(evaluate(12).effective).toBe(15)
+    // CON 18: 10 + DEX + CON (16) beats 13 + DEX (15); stacking would give 19.
+    expect(evaluate(18).effective).toBe(16)
+    expect(evaluate(18, [{ label: 'Shield', equipped: true }]).effective).toBe(18)
+    // Armor ends both formulas: studded leather is 12 + DEX.
+    expect(evaluate(18, [{ label: 'Studded Leather Armor', equipped: true }]).effective).toBe(14)
+    expect(evaluate(18).contributions).toEqual([])
   })
 
   it('Fighter Defense adds +1 only while wearing armor', () => {
@@ -350,6 +425,29 @@ describe('D&D 5e movement', () => {
     expect(walk('Human', 11)).toBe(20)
     expect(walk('Human', 12)).toBe(30)
     expect(walk('Dwarf', 10, 'Hill Dwarf')).toBe(25)
+  })
+
+  it('Monk Unarmored Movement follows the Monk table without armor or a shield', () => {
+    const walk = (level: number, items: { label: string; equipped: boolean }[] = []) =>
+      evaluateSrdCharacter({
+        race: 'Human',
+        classes: [{ label: 'Monk', level }],
+        features: [
+          srdFeature({
+            owner: 'CLASS',
+            classLabel: 'Monk',
+            featureLabel: 'Unarmored Movement',
+            level: 2
+          })
+        ],
+        items
+      }).output.movement.speeds[0]!.amount
+    // Monk table: +10 ft. at 2nd level, +15 at 6th, +20 at 10th, +25 at 14th, +30 at 18th.
+    expect([2, 5, 6, 10, 14, 18, 20].map((level) => walk(level))).toEqual([
+      40, 40, 45, 50, 55, 60, 60
+    ])
+    expect(walk(6, [{ label: 'Shield', equipped: true }])).toBe(30)
+    expect(walk(6, [{ label: 'Leather Armor', equipped: true }])).toBe(30)
   })
 })
 
@@ -465,7 +563,8 @@ describe('D&D 5e modifier scope', () => {
     equipmentIds: ['longsword'],
     category: 'WEAPON',
     properties: ['MELEE', 'VERSATILE'],
-    grip: 'ONE_HANDED' as const
+    grip: 'ONE_HANDED' as const,
+    otherWeaponEquipped: false
   }
 
   it('GLOBAL applies Character-wide; SOURCE applies only while its source is evaluated', () => {
@@ -619,6 +718,56 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     expect(group!.conditions.map((condition) => condition.kind)).toEqual(['ITEM_PROPERTY'])
   })
 
+  it('"only weapon wielded" becomes an attacking-item condition on the other equipped weapons', () => {
+    const [group] = normalizeCharacterGrantRestrictions({
+      id: 'facet',
+      groups: [
+        {
+          id: 'group',
+          order: 0,
+          contexts: [
+            {
+              id: 'context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                {
+                  id: 'sole',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'SOLE_WIELDED_WEAPON'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    const modifier = {
+      sourceId: 'dueling',
+      scope: 'GLOBAL' as const,
+      itemRequirements: [group!],
+      scopeSpellIds: []
+    }
+    const item = {
+      equipmentIds: ['longsword'],
+      category: 'WEAPON',
+      properties: ['MELEE'],
+      grip: 'ONE_HANDED' as const
+    }
+    const target = (otherWeaponEquipped: boolean) => ({
+      sourceIds: [],
+      item: { ...item, otherWeaponEquipped },
+      spellId: null
+    })
+    expect(group!.conditions.map((condition) => condition.kind)).toEqual(['ITEM_SOLE_WEAPON'])
+    expect(dnd5eModifierApplies(modifier, target(false))).toBe(true)
+    expect(dnd5eModifierApplies(modifier, target(true))).toBe(false)
+    expect(dnd5eModifierApplies(modifier, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+  })
+
   it('a spell-scoped damage modifier (Agonizing Blast) adds only to that spell', () => {
     const effect = (spellId: string) => ({
       spellId,
@@ -627,7 +776,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
           effectId: spellId === 'eldritch-blast' ? EB_EFFECT : FB_EFFECT,
           mechanicFacts: {
             invocation: {
-              triggerCode: 'SPELL_ATTACK',
+              triggerCode: 'RANGED_SPELL_ATTACK',
               activation: null,
               range: { rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
               savingThrow: null,
@@ -698,5 +847,9 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       })
     expect(damage('eldritch-blast')).toBe('1d10 + 3')
     expect(damage('fire-bolt')).toBe('1d10')
+    expect(
+      output.spellReferenceMechanics.find((entry) => entry.spellId === 'eldritch-blast')!
+        .mechanics[0]!.attackKind
+    ).toBe('RANGED_SPELL')
   })
 })

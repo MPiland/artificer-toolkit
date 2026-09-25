@@ -308,14 +308,6 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         )
       )
       .set(
-        'maxBonus',
-        number(['maxBonus'], 'Max Bonus', {
-          section: EQUIPMENT_SECTIONS.properties,
-          order: 80,
-          constraints: { minimum: 0 }
-        })
-      )
-      .set(
         'armorClass',
         number(['armorClass'], 'Armor Class', {
           section: EQUIPMENT_SECTIONS.properties,

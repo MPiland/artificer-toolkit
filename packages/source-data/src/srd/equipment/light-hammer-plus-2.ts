@@ -11,7 +11,6 @@ export const lightHammerPlus2: EquipmentVariantAuthored = {
   parentEquipmentId: lightHammer.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_RARE,
-  maxBonus: 2,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(280), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

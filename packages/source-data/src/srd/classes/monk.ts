@@ -29,14 +29,23 @@ import {
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
-import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_CURRENCIES,
+  SRD_SKILLS,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
+  ARTISAN_TOOL_EQUIPMENT_INDEXES,
   closedRuleEffect,
-  equippedCategoryRestriction
+  equippedCategoryRestriction,
+  MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -90,6 +99,74 @@ function selfClassRuleEffect(
   })
 }
 
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId) throw new Error('SRD walk speed required.')
+
+/**
+ * Unarmored Movement: the Monk table's walking speed bonus for each band of monk levels, while
+ * wearing no armor and wielding no shield. Grants use bucket 0x7b; each band's restriction uses
+ * bucket 0x7c + band.
+ */
+const unarmoredMovementModifiers: ModifierGrantAuthored[] = [
+  { amount: 10, min: 2, max: 5 },
+  { amount: 15, min: 6, max: 9 },
+  { amount: 20, min: 10, max: 13 },
+  { amount: 25, min: 14, max: 17 },
+  { amount: 30, min: 18 }
+].map(({ amount, min, max }, band) => {
+  const restrictionId = (entry: number) => classRowId(M, 0x7c + band, entry)
+  return {
+    id: classRowId(M, 0x7b, band + 1),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+    domain: { speedId: walkSpeedId },
+    modifierKind: MODIFIER_KIND.BONUS,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { valueKind: 'FIXED', amount },
+    order: band,
+    restrictions: {
+      id: restrictionId(0),
+      groups: [
+        {
+          id: restrictionId(1),
+          order: 0,
+          contexts: [
+            {
+              id: restrictionId(2),
+              order: 0,
+              subject: 'CHARACTER',
+              conditions: [
+                ...[EQUIPMENT_CATEGORY_CODE.ARMOR, EQUIPMENT_CATEGORY_CODE.SHIELD].map(
+                  (category, index) => ({
+                    id: restrictionId(3 + index),
+                    order: index,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'EXCLUDE' as const,
+                    predicateCode: 'EQUIPMENT_EQUIPPED' as const,
+                    authoringModeKind: 'ALL' as const,
+                    category
+                  })
+                ),
+                {
+                  id: restrictionId(5),
+                  order: 2,
+                  kind: 'PREDICATE' as const,
+                  constraint: 'INCLUDE' as const,
+                  predicateCode: 'CLASS_LEVEL' as const,
+                  classIds: [CLASS_IDS.MONK],
+                  min,
+                  ...(max === undefined ? {} : { max })
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+})
+
 // Ki resource charge — resets on short or long rest
 const kiCharge = {
   id: classRowId(M, 1, 1),
@@ -131,7 +208,34 @@ export const monk: ClassAuthored = {
           ]
         }
       ]
-    }
+    },
+    proficiencies: [
+      // Simple weapons
+      {
+        id: classRowId(M, 99, 5),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.NONE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        properties: ['SIMPLE'],
+        category: 'WEAPON',
+        order: 0
+      },
+      // Shortswords
+      {
+        id: classRowId(M, 99, 6),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.NONE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        equipmentIds: [equipmentId(28)],
+        order: 1
+      }
+    ]
   },
 
   startingEquipment: {
@@ -286,6 +390,35 @@ export const monk: ClassAuthored = {
         skillId('STEALTH')
       ],
       order: 2
+    },
+    // Weapons: shortswords
+    {
+      id: classRowId(M, 2, 4),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [equipmentId(28)],
+      order: 3
+    },
+    // Tools: one type of artisan's tools or one musical instrument
+    {
+      id: classRowId(M, 2, 5),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      scalingKind: SCALING.NONE,
+      count: 1,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [
+        ...ARTISAN_TOOL_EQUIPMENT_INDEXES,
+        ...MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
+      ].map(equipmentId),
+      order: 4
     }
   ],
 
@@ -313,12 +446,12 @@ export const monk: ClassAuthored = {
             grantKind: GRANT_KIND.MODIFIER_GRANT,
             valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
             domain: {},
-            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            modifierKind: MODIFIER_KIND.SET_VALUE,
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { ability: ABILITY_CODE.WISDOM },
+            payload: { amount: 10, abilities: [ABILITY_CODE.DEXTERITY, ABILITY_CODE.WISDOM] },
             order: 0,
-            // Adds to the unarmored 10 + DEX base; unlike the barbarian's, a shield ends it.
+            // An alternative armor class formula; unlike the barbarian's, a shield ends it.
             restrictions: equippedCategoryRestriction(
               (entry) => classRowId(M, 0x7a, 0x10 + entry),
               'EXCLUDE',
@@ -402,7 +535,8 @@ export const monk: ClassAuthored = {
         'Starting at 2nd level, your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus increases when you reach certain monk levels, as shown in the Monk table.',
       availableAtLevel: 2,
       order: 3,
-      effects: [selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT)]
+      effects: [selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT)],
+      grants: { modifiers: unarmoredMovementModifiers }
     },
     {
       id: classRowId(M, 3, 5),

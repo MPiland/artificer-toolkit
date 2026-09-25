@@ -37,6 +37,7 @@ import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
   closedRuleEffect,
+  duelingRestriction,
   equippedCategoryRestriction
 } from './mechanics.js'
 function skillId(code: string): string {
@@ -493,14 +494,7 @@ export const fighter: ClassAuthored = {
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 2 },
                 order: 0,
-                // One-handed melee weapon; "no other weapons" stays with the closed rule below.
-                restrictions: attackingItemPropertyRestriction(
-                  (entry) => classRowId(F, 0x7a, 0x20 + entry),
-                  [
-                    { constraint: 'INCLUDE', properties: ['MELEE'] },
-                    { constraint: 'EXCLUDE', properties: ['TWO_HANDED'] }
-                  ]
-                )
+                restrictions: duelingRestriction((entry) => classRowId(F, 0x7a, 0x20 + entry))
               }
             ]
           },

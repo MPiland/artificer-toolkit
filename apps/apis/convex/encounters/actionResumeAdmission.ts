@@ -11,11 +11,21 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readNativeEncounterActionAdmission } from './actionAdmission'
-import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
+import {
+  canAnswerNativeActionEvidence,
+  nativeActionPendingResult,
+  readNativeActionPending
+} from './actionPending'
+import { requireCampaignAuthority } from '../campaigns/authority'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { readEncounterSettledAppRoll } from './evidenceRolls'
 import { isNativeActionOccurrence } from './occurrenceOwner'
 import { rejectDomain } from '../lib/domainRejections'
 
-/** Returns null only for occurrences owned by another native coordinator. */
+/**
+ * Returns null only for occurrences owned by another native coordinator. The responder must be
+ * able to answer the evidence (its roller's controller or the GM); the root keeps its initiator.
+ */
 export async function readNativeEncounterActionResponseAdmission(
   ctx: QueryCtx,
   response: ResolveRuleOccurrenceInputDto,
@@ -60,7 +70,12 @@ export async function readNativeEncounterActionResponseAdmission(
     parsed = root
   }
   const initiator = pending?.context.initiatorUserId ?? rootReceipt!.actorUserId
-  if (initiator !== userId) throw new Error('The pending action initiator changed.')
+  const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
+  if (
+    pending &&
+    !(await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
+  )
+    rejectDomain('NOT_ACTOR_CONTROLLER')
   const fingerprint = checksumCanonicalJson(response)
   const receipt = await ctx.db
     .query('encounterRuleReceipts')
@@ -101,7 +116,10 @@ export async function readNativeEncounterActionResponseAdmission(
         response.expectedVersion + (payload.status === 'COMPLETE' ? 1 : 0)
     )
       throw new Error('Stored Encounter action evidence receipt mismatch.')
-    const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, { occurrence })
+    const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
+      occurrence,
+      initiatorUserId: initiator
+    })
     if (pending) {
       if (admission.kind !== 'READY')
         throw new Error('Stored Encounter action evidence receipt mismatch.')
@@ -137,15 +155,19 @@ export async function readNativeEncounterActionResponseAdmission(
     )
     .unique()
   if (root) rejectDomain('COMMAND_ID_REUSED')
-  const resolution = response.resolution
+  const appRoll = await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
+  const resolution = withEncounterAppRoll(response.resolution, appRoll)
   if (
     resolution.kind !== 'ENTER_DICE' &&
     resolution.kind !== 'ENTER_INTEGER' &&
     resolution.kind !== 'SYSTEM_ROLL'
   )
     throw new Error('The action requires dice or integer evidence.')
-  const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, { occurrence })
+  const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
+    occurrence,
+    initiatorUserId: initiator
+  })
   if (admission.kind !== 'READY')
     rejectDomain('VERSION_STALE', 'The action occurrence is no longer pending.')
-  return { kind: 'READY' as const, admission, occurrence, pending, resolution }
+  return { kind: 'READY' as const, admission, occurrence, pending, resolution, appRoll }
 }

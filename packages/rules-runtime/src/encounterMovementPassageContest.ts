@@ -10,6 +10,7 @@ import {
   type OptionalContestResolution
 } from './encounterOptionalContestActionExecution.js'
 import { EncounterConflictError } from './encounterErrors.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
 /**
  * Runs only the sealed Overrun/Tumble evidence stage. The caller owns the
@@ -17,7 +18,7 @@ import { EncounterConflictError } from './encounterErrors.js'
  * exactly once at terminal settlement.
  */
 export async function executeEncounterMovementPassageContest(input: {
-  readonly autoRoll: boolean
+  readonly autoRoll: EncounterAutoRollByActorId
   readonly continuation?: ServerRuleExecutionContinuationDto
   readonly pending: ServerOptionalCombatContestPendingApplicationContextDto
   readonly occurrenceId: string
@@ -107,7 +108,9 @@ export async function executeEncounterMovementPassageContest(input: {
             rawFaces:
               input.resolution.kind === 'ENTER_DICE'
                 ? [...input.resolution.rawFaces]
-                : [...generatedFaces]
+                : input.resolution.kind === 'SYSTEM_ROLL'
+                  ? [...input.resolution.faces]
+                  : [...generatedFaces]
           }
         : null
     return { kind: 'PENDING', continuation: result.continuation, submittedEvidence }

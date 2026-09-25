@@ -1,7 +1,6 @@
 import {
   advanceNativeActionGraphs,
   continueNativeActionAfterTest,
-  type NativeActionEvidenceResolution,
   type PendingNativeActionGraphs
 } from './encounterActionExecution.js'
 import {
@@ -17,7 +16,10 @@ import {
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import type { prepareEncounterMovementReactionAction } from './encounterMovementReactionPreparation.js'
 import { createEncounterLegendaryResistancePhase } from './encounterMovementReactionContinuation.js'
-import { selectEncounterActionD20Natural } from './encounterMovementReactionActionExecution.js'
+import {
+  selectEncounterActionD20Natural,
+  type EncounterEvidenceAnswer
+} from './encounterEvidenceAnswer.js'
 import {
   requireEncounterMovementMaintenanceCurrentness,
   bindEncounterMovementMaintenancePending
@@ -41,7 +43,7 @@ type MovementReactionActionExecutionDto = z.infer<typeof movementReactionActionE
 type ReplayResult = Awaited<ReturnType<typeof advanceNativeActionGraphs>>
 type RetainedD20Evidence = Pick<
   ServerRuleExecutionD20EvidenceDto,
-  'requestId' | 'rollMode' | 'rawFaces' | 'selectedNatural'
+  'requestId' | 'rollMode' | 'derivedRollMode' | 'rawFaces' | 'selectedNatural'
 >
 
 function same(left: unknown, right: unknown) {
@@ -103,6 +105,7 @@ function retainedD20Evidence(input: {
             requestId: pending.testRollEvidence.requestId,
             rawFaces: pending.testRollEvidence.rawFaces,
             rollMode: pending.testRollEvidence.rollMode,
+            derivedRollMode: pending.testRollEvidence.derivedRollMode,
             selectedNatural: pending.testRollEvidence.selectedNatural
           }
         ]
@@ -139,7 +142,7 @@ function resolutionForRetainedEvidence(input: {
   integers: ReadonlyMap<string, number>
   d20: ReadonlyMap<string, RetainedD20Evidence>
   used: Set<string>
-}): NativeActionEvidenceResolution {
+}): EncounterEvidenceAnswer {
   const { request } = input.pending.continuation
   if (request.kind !== 'INTEGER_RANGE')
     throw new Error('The action requested unsupported evidence.')
@@ -147,7 +150,7 @@ function resolutionForRetainedEvidence(input: {
     const evidence = input.d20.get(request.requestId)
     if (
       !evidence ||
-      evidence.rollMode !== input.pending.d20Policy.rollMode ||
+      evidence.derivedRollMode !== input.pending.d20Policy.rollMode ||
       selectEncounterActionD20Natural(evidence.rollMode, evidence.rawFaces) !==
         evidence.selectedNatural
     )
@@ -156,7 +159,8 @@ function resolutionForRetainedEvidence(input: {
     return {
       kind: 'ENTER_DICE',
       requestId: request.requestId,
-      rawFaces: evidence.rawFaces
+      rawFaces: evidence.rawFaces,
+      rollMode: evidence.rollMode
     }
   }
   const value = input.integers.get(request.requestId)
@@ -267,7 +271,7 @@ export async function replayEncounterMovementReactionAction(input: {
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    autoRoll: false,
+    autoRoll: { SOURCE: false, TARGET: false },
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined
   })
@@ -302,7 +306,7 @@ export async function replayEncounterMovementReactionAction(input: {
       adapter: input.prepared.prepared.adapter,
       plan: input.prepared.executionPlan,
       occurrenceId: input.occurrenceId,
-      autoRoll: false,
+      autoRoll: { SOURCE: false, TARGET: false },
       binding: input.prepared.prepared.binding,
       afterTest: async () => undefined,
       resume: { pending: result, resolution }
@@ -384,6 +388,8 @@ async function replayResistanceAction(
         phase: {
           kind: 'ACTION_EVIDENCE',
           selectedOptionId: input.prepared.option.optionId,
+          // A Legendary Resistance follows the mover's failed save.
+          rollerActorId: input.prepared.option.candidate.movingActorId,
           d20Policy: boundary.d20Policy,
           twoPhase: boundary.twoPhase
         }
@@ -438,7 +444,7 @@ async function replayResistanceAction(
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
-    autoRoll: false,
+    autoRoll: { SOURCE: false, TARGET: false },
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
     boundary,

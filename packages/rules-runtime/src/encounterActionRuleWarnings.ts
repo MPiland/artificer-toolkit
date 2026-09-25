@@ -23,26 +23,32 @@ export function evaluateEncounterActionRuleWarnings(input: {
   | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
   const targetWarnings = evaluateEncounterActionTargetPolicy(input.target)
   if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
-  const economy = input.actionEconomy
-  const allowance = input.activationCode.toLowerCase().replaceAll('_', ' ')
   const warnings = [
-    ...(economy && !economy.available
-      ? [
-          {
-            code: 'ACTION_ECONOMY_UNAVAILABLE' as const,
-            message:
-              economy.consumption.beforeUsed >= economy.consumption.maximum
-                ? `No ${allowance} left this turn.`
-                : `This actor can't take a ${allowance} right now.`
-          }
-        ]
-      : []),
+    ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
     ...input.preparedWarnings,
     ...targetWarnings
   ]
   return warnings.every((warning) => input.acknowledged.includes(warning.code))
     ? { kind: 'ACCEPTED', overrides: warnings }
     : { kind: 'UNACKNOWLEDGED', warnings }
+}
+
+/** The overridable warning for an allowance the actor can't use now, if any. */
+export function encounterActionEconomyWarnings(
+  economy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>,
+  activationCode: string
+): EncounterRuleWarningDto[] {
+  if (!economy || economy.available) return []
+  const allowance = activationCode.toLowerCase().replaceAll('_', ' ')
+  return [
+    {
+      code: 'ACTION_ECONOMY_UNAVAILABLE',
+      message:
+        economy.consumption.beforeUsed >= economy.consumption.maximum
+          ? `No ${allowance} left this turn.`
+          : `This actor can't take a ${allowance} right now.`
+    }
+  ]
 }
 
 /** Whether the recorded overrides let this action use an allowance past its maximum. */

@@ -12,6 +12,11 @@ export const encounterActionPendingContextDtoSchema = z
     commandJson: z.string(),
     commandFingerprint: ruleExecutionChecksumSchema,
     initiatorUserId: ruleExecutionUuidSchema,
+    /**
+     * The actor whose roll the pending request is. Its controllers (and the GM) see and answer it;
+     * the initiator answers only for actors they control (ADR 0034 decision 3).
+     */
+    rollerActorId: ruleExecutionUuidSchema,
     currentnessChecksum: ruleExecutionChecksumSchema,
     d20Policy: z.nullable(serverRuleExecutionD20PolicyDtoSchema),
     twoPhase: z.nullable(directActionTwoPhaseDtoSchema),

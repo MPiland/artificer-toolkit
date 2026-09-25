@@ -26,7 +26,11 @@ import type {
   SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { CampaignVttTool } from './vttSceneRenderer'
-import { resolveSceneTokenMove } from './vttSceneRenderer.model'
+import {
+  canControlSceneToken,
+  resolveSceneTokenMove,
+  type VttSceneTokenDragUpdate
+} from './vttSceneRenderer.model'
 
 export interface CampaignVttToolDefinition {
   icon: ComponentType<{ 'aria-hidden'?: boolean; size?: number }>
@@ -70,10 +74,9 @@ export function findPresentedScene(
 
 export function canMoveSceneToken(
   token: CampaignSceneStateDto['tokens'][number],
-  currentUserId: string,
-  role: 'OWNER' | 'PLAYER'
+  viewer: Pick<VttSceneTokenDragUpdate, 'boundTokenControl' | 'currentUserId' | 'role'>
 ): boolean {
-  return !token.locked && (role === 'OWNER' || token.controlledByUserIds.includes(currentUserId))
+  return !token.locked && canControlSceneToken(token, viewer)
 }
 
 export function nudgeSceneToken(

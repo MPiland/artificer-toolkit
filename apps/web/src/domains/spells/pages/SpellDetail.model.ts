@@ -182,18 +182,18 @@ function formatSpellAttackSave(
     return abilityLabel ? `${abilityLabel} save` : 'Saving throw'
   }
 
-  if (invocation.triggerCode === 'SPELL_ATTACK') {
-    return invocation.range.rangeKind === 'TOUCH' ? 'Melee' : 'Ranged'
-  }
-
   if (
     invocation.triggerCode === 'MELEE_WEAPON_ATTACK' ||
-    invocation.triggerCode === 'UNARMED_ATTACK'
+    invocation.triggerCode === 'UNARMED_ATTACK' ||
+    invocation.triggerCode === 'MELEE_SPELL_ATTACK'
   ) {
     return 'Melee'
   }
 
-  if (invocation.triggerCode === 'RANGED_WEAPON_ATTACK') {
+  if (
+    invocation.triggerCode === 'RANGED_WEAPON_ATTACK' ||
+    invocation.triggerCode === 'RANGED_SPELL_ATTACK'
+  ) {
     return 'Ranged'
   }
 

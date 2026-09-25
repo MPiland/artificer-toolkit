@@ -371,7 +371,8 @@ describe('native movement response publication', () => {
               ? {
                   kind: 'ENTER_DICE',
                   requestId: pending.request.requestId,
-                  rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20]
+                  rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+                  rollMode: pending.request.rollMode
                 }
               : {
                   kind: 'ENTER_INTEGER',

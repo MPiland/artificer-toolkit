@@ -1,6 +1,6 @@
+import type { EncounterResponseAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 
@@ -21,7 +21,7 @@ type Input = {
   occurrenceId: string
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
-  resolution?: ResolveRuleOccurrenceInputDto['resolution']
+  resolution?: EncounterResponseAnswer
   updatedAt: string
   refreshIncoming?: boolean
   actors?: Readonly<Awaited<ReturnType<typeof readRunActors>>>

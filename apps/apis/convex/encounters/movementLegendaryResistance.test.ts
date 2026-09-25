@@ -97,7 +97,7 @@ it.each([false, true])(
         plan: prepared.executionPlan,
         occurrenceId: occurrence.id,
         binding: prepared.prepared.binding,
-        autoRoll: true,
+        autoRoll: { SOURCE: true, TARGET: true },
         afterTest: async () => undefined,
         random: () => 0
       }
@@ -215,7 +215,7 @@ it.each([false, true])(
       if (!use) {
         const pending = await continueNativeActionAfterTest({
           ...action,
-          autoRoll: false,
+          autoRoll: { SOURCE: false, TARGET: false },
           boundary,
           legendaryResistance: resolved.audit
         })
@@ -226,7 +226,7 @@ it.each([false, true])(
           prepared,
           occurrenceId: occurrence.id,
           snapshot: retained,
-          autoRoll: false,
+          autoRoll: {},
           retainedExecution: pending
         }
         await expect(
@@ -243,7 +243,7 @@ it.each([false, true])(
         ).rejects.toThrow('does not match the issued response')
         const secondDie = await continueNativeActionAfterTest({
           ...action,
-          autoRoll: false,
+          autoRoll: { SOURCE: false, TARGET: false },
           boundary,
           legendaryResistance: resolved.audit,
           resume: {
@@ -260,6 +260,10 @@ it.each([false, true])(
           continuation: secondDie.continuation,
           context,
           selectedOptionId: option.optionId,
+          rollerActorId:
+            secondDie.roller === 'SOURCE'
+              ? option.candidate.reactorActorId
+              : option.candidate.movingActorId,
           d20Policy: secondDie.d20Policy,
           ...(secondDie.twoPhase ? { twoPhase: secondDie.twoPhase } : {}),
           ...(secondDie.phaseReceipts ? { phaseReceipts: secondDie.phaseReceipts } : {})
@@ -337,7 +341,10 @@ it.each([false, true])(
         prepared,
         occurrenceId: occurrence.id,
         snapshot: retained,
-        autoRoll: true,
+        autoRoll: {
+          [prepared.option.candidate.reactorActorId]: true,
+          [prepared.prepared.binding.targetActorId]: true
+        },
         retainedExecution: replayed
       }
       const selection = use

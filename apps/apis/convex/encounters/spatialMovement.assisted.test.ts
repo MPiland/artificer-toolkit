@@ -226,7 +226,7 @@ it.each(['PROMPT', 'AUTO_ROLL', 'AUTO_ROLL_PREPARED', 'PROMPT_PREFIX'] as const)
       occurrenceId,
       executionCommandId: commandId,
       occurredAt,
-      autoRoll
+      autoRoll: autoRoll ? { [base.actor.id]: true } : {}
     }
     const current = () =>
       base.owner.caller.run(async (ctx) => {
@@ -341,7 +341,7 @@ it.each(['PROMPT', 'AUTO_ROLL', 'AUTO_ROLL_PREPARED', 'PROMPT_PREFIX'] as const)
       sceneVersion: 1,
       currentPosition: pending.movementIntent.position,
       executionCommandId: resolutionId,
-      resolution: { requestId, kind: 'ENTER_DICE', rawFaces: [1] },
+      resolution: { requestId, kind: 'ENTER_DICE', rawFaces: [1], rollMode: 'NORMAL' },
       resolutionCommand: {
         commandId: resolutionId,
         commandFingerprint: checksumCanonicalJson({ resolutionId }),
@@ -431,7 +431,12 @@ it.each(['PROMPT', 'AUTO_ROLL', 'AUTO_ROLL_PREPARED', 'PROMPT_PREFIX'] as const)
         executionCommandId: secondCommandId,
         interruptAfterPathDistance: 9,
         pendingSnapshot: next.pendingSnapshot,
-        resolution: { requestId: secondRequestId, kind: 'ENTER_DICE', rawFaces: [1] },
+        resolution: {
+          requestId: secondRequestId,
+          kind: 'ENTER_DICE',
+          rawFaces: [1],
+          rollMode: 'NORMAL'
+        },
         resolutionCommand: {
           commandId: secondCommandId,
           commandFingerprint: checksumCanonicalJson({ secondCommandId }),

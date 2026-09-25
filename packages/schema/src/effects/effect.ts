@@ -49,7 +49,8 @@ const nonSavingThrowTriggerDtoSchema = z.enum([
   triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
   triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
   triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
-  triggerCodeSchema._zod.def.entries.SPELL_ATTACK,
+  triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
+  triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
   triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
   triggerCodeSchema._zod.def.entries.ENTER_AREA
 ])
@@ -72,7 +73,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = z.un
       triggerCodeSchema._zod.def.entries.MELEE_WEAPON_ATTACK,
       triggerCodeSchema._zod.def.entries.RANGED_WEAPON_ATTACK,
       triggerCodeSchema._zod.def.entries.UNARMED_ATTACK,
-      triggerCodeSchema._zod.def.entries.SPELL_ATTACK,
+      triggerCodeSchema._zod.def.entries.MELEE_SPELL_ATTACK,
+      triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
       triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
       triggerCodeSchema._zod.def.entries.ENTER_AREA
     ]),

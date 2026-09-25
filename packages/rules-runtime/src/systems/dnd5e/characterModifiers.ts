@@ -153,8 +153,24 @@ export function evaluateDnd5eCharacterModifiers(
                 : 0
           return { ...contribution, resolvedValue }
         })
-      : (scalarGroups.find((candidate) => candidate.domainKey === group.domainKey)?.contributions ??
-        [])
+      : (
+          scalarGroups.find((candidate) => candidate.domainKey === group.domainKey)
+            ?.contributions ?? []
+        ).map((contribution): Contribution => {
+          // An armor class formula ("10 + DEX + CON") adds each listed ability modifier.
+          const abilities = characterPolicyRecord(
+            characterPolicyRecord(contribution.grant).payload
+          ).abilities
+          return group.modifierKind === 'SET_VALUE' && Array.isArray(abilities)
+            ? {
+                ...contribution,
+                resolvedValue: abilities.reduce<number>(
+                  (sum, ability) => sum + abilityModifier(ability),
+                  contribution.resolvedValue
+                )
+              }
+            : contribution
+        })
     const stacking = [
       'SET_VALUE',
       'REPLACE_DAMAGE_TYPE',

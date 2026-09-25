@@ -107,6 +107,7 @@ export async function restoreEncounterInitiativeTurnActors<
     commandFingerprint: root.commandFingerprint,
     commandType: root.commandType,
     initiatorUserId: root.initiatorUserId,
+    requestedByUserId: root.requestedByUserId,
     correlationId: root.correlationId,
     expectedEncounterVersion: root.expectedEncounterVersion,
     startSystemId: root.startSystemId,

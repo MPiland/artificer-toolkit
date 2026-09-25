@@ -22,8 +22,7 @@ export async function assertNextMovementReactionCurrent(
   const context = outcome.pendingSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' || context.phase.kind !== 'CHOICE') return
   const next = context.reactionTimeline[0]
-  if (!next || next.kind !== 'CONTROLLER_CHOICE')
-    throw new Error('The next movement reaction choice is stale.')
+  if (!next) throw new Error('The next movement reaction choice is stale.')
   await revalidateSceneMovementReactionChoice(
     ctx,
     request,

@@ -476,12 +476,15 @@ export const barbarian: ClassAuthored = {
             grantKind: GRANT_KIND.MODIFIER_GRANT,
             valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
             domain: {},
-            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            modifierKind: MODIFIER_KIND.SET_VALUE,
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { ability: ABILITY_CODE.CONSTITUTION },
+            payload: {
+              amount: 10,
+              abilities: [ABILITY_CODE.DEXTERITY, ABILITY_CODE.CONSTITUTION]
+            },
             order: 0,
-            // Adds to the unarmored 10 + DEX base; a shield is allowed.
+            // An alternative armor class formula without armor; a shield still adds.
             restrictions: equippedCategoryRestriction(
               (entry) => classRowId(B, 0x7a, 0x10 + entry),
               'EXCLUDE',

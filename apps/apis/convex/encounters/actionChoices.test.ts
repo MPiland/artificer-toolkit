@@ -10,6 +10,7 @@ import {
   getNativeOptionalActionChoices,
   nativeDisarmFixture
 } from '../../tests/fixtures/nativeDisarm'
+import { domainRejection, executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { internal } from '../_generated/api'
 
 function inputs(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
@@ -94,16 +95,42 @@ describe('native public Encounter action choices', () => {
     30000
   )
 
-  it('denies a current PLAYER and an authenticated outsider both discovery reads without writes', async () => {
-    const base = await nativeDisarmFixture('PROMPT', false, true)
-    const input = inputs(base)
+  it('lets only a controlling player and never an outsider read discovery choices, without writes', async () => {
+    const base = await nativeDisarmFixture('PROMPT')
+    const uncontrolled = inputs(base)
+    const beforeRefusal = await disarmRecords(base)
+    await expect(
+      domainRejection(base.player.caller.query(getNativeActionChoices, uncontrolled.catalogue))
+    ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
+    await expect(
+      domainRejection(
+        base.player.caller.query(getNativeOptionalActionChoices, uncontrolled.optional)
+      )
+    ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
+    expect(await disarmRecords(base)).toEqual(beforeRefusal)
+
+    const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.command.expectedVersion,
+        actorId: base.actor.id,
+        controllerUserIds: [base.player.userId]
+      }
+    })
+    const catalogueInput = {
+      ...uncontrolled.catalogue,
+      expectedVersion: granted.projection.version
+    }
+    const optionalInput = { ...uncontrolled.optional, expectedVersion: granted.projection.version }
     const before = await disarmRecords(base)
+    await expect(base.player.caller.query(getNativeActionChoices, catalogueInput)).resolves.toEqual(
+      await base.owner.caller.query(getNativeActionChoices, catalogueInput)
+    )
     await expect(
-      base.player.caller.query(getNativeActionChoices, input.catalogue)
-    ).rejects.toThrow()
-    await expect(
-      base.player.caller.query(getNativeOptionalActionChoices, input.optional)
-    ).rejects.toThrow()
+      base.player.caller.query(getNativeOptionalActionChoices, optionalInput)
+    ).resolves.toEqual(await base.owner.caller.query(getNativeOptionalActionChoices, optionalInput))
     expect(await disarmRecords(base)).toEqual(before)
     await expect(
       base.player.caller.run(async (ctx) => {
@@ -115,8 +142,8 @@ describe('native public Encounter action choices', () => {
           .unique()
         if (!membership) throw new Error('Missing fixture membership.')
         await ctx.db.delete(membership._id)
-        await expect(ctx.runQuery(getNativeActionChoices, input.catalogue)).rejects.toThrow()
-        await expect(ctx.runQuery(getNativeOptionalActionChoices, input.optional)).rejects.toThrow()
+        await expect(ctx.runQuery(getNativeActionChoices, catalogueInput)).rejects.toThrow()
+        await expect(ctx.runQuery(getNativeOptionalActionChoices, optionalInput)).rejects.toThrow()
         throw new Error('restore discovery outsider fixture')
       })
     ).rejects.toThrow('restore discovery outsider fixture')

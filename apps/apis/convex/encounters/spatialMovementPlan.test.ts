@@ -69,7 +69,7 @@ async function completedExecution() {
     occurrenceId,
     executionCommandId: commandId,
     occurredAt: '2026-09-14T00:00:00.000Z',
-    autoRoll: true
+    autoRoll: { [base.run.actors[0]!.id]: true }
   }
   const evaluated = await base.other.caller.run((ctx) =>
     evaluateNativeSpatialMovement(ctx, input, 'PREVIEW')

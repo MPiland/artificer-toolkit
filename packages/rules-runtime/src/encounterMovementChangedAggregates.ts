@@ -16,8 +16,6 @@ type CharacterVersionTransition = {
 }
 
 type MovementReactionCharacterExecution = {
-  ordinal?: number
-  option?: { candidate: { pathDistance: number } }
   characterTransitions: readonly CharacterVersionTransition[]
   concentrationChecks?: readonly {
     result: {
@@ -81,8 +79,7 @@ function characterVersions(
     characterId: string
     beforeStreamVersion: number
     afterStreamVersion: number
-  }[] = [],
-  spatialFirst = false
+  }[] = []
 ): MovementChangedAggregate[] {
   const versions = new Map<string, { beforeVersion: number; version: number }>()
   const append = (transition: {
@@ -98,22 +95,14 @@ function characterVersions(
       version: transition.afterStreamVersion
     })
   }
-  const appendReactions = () => {
-    for (const execution of reactionExecutions) {
-      for (const transition of execution.characterTransitions) append(transition)
-      for (const check of execution.concentrationChecks ?? [])
-        for (const transition of check.result.applicationOutputs.cleanup
-          ?.characterOwnerTransitions ?? [])
-          append(transition)
-    }
+  for (const execution of reactionExecutions) {
+    for (const transition of execution.characterTransitions) append(transition)
+    for (const check of execution.concentrationChecks ?? [])
+      for (const transition of check.result.applicationOutputs.cleanup?.characterOwnerTransitions ??
+        [])
+        append(transition)
   }
-  if (spatialFirst) {
-    for (const transition of spatialTransitions) append(transition)
-    appendReactions()
-  } else {
-    appendReactions()
-    for (const transition of spatialTransitions) append(transition)
-  }
+  for (const transition of spatialTransitions) append(transition)
   return [...versions]
     .map(([aggregateId, transition]) => ({
       aggregateKind: 'CHARACTER' as const,
@@ -129,23 +118,16 @@ export function movementReactionCharacterAggregateVersions(
   return characterVersions(reactionExecutions)
 }
 
-/** Exact Character stream transitions already committed before a movement pause. */
-export function movementPendingCharacterAggregateVersions(input: {
-  reactionExecutions: readonly MovementReactionCharacterExecution[]
+/**
+ * Exact Character stream transitions an initial movement's spatial prefix committed before it
+ * paused. No reaction runs before its controller's choice, so none precede the first pause.
+ */
+export function movementPendingCharacterAggregateVersions(
   appliedSpatialPrefix: MovementPendingSpatialPrefix | null
-}): MovementChangedAggregate[] {
-  const executions = input.appliedSpatialPrefix?.executions
-  if (
-    executions === undefined ||
-    input.reactionExecutions.some(
-      (execution) => execution.ordinal === undefined || execution.option === undefined
-    )
-  )
-    return characterVersions(
-      input.reactionExecutions,
-      input.appliedSpatialPrefix?.characterTransitions ?? [],
-      true
-    )
+): MovementChangedAggregate[] {
+  const executions = appliedSpatialPrefix?.executions
+  if (executions === undefined)
+    return characterVersions([], appliedSpatialPrefix?.characterTransitions ?? [])
 
   const versions = new Map<string, { beforeVersion: number; version: number }>()
   const append = (transition: CharacterVersionTransition) => {
@@ -168,62 +150,32 @@ export function movementPendingCharacterAggregateVersions(input: {
         })
     spatialGroups.clear()
   }
-  const timeline: Array<
-    | { kind: 'SPATIAL'; ordinal: number; distance: number; value: MovementPendingSpatialExecution }
-    | {
-        kind: 'REACTION'
-        ordinal: number
-        distance: number
-        value: MovementReactionCharacterExecution
-      }
-  > = [
-    ...executions.map((execution) => ({
-      kind: 'SPATIAL' as const,
-      ordinal: execution.ordinal,
-      distance: execution.candidate.candidate.pathDistance,
-      value: execution
-    })),
-    ...input.reactionExecutions.map((execution) => ({
-      kind: 'REACTION' as const,
-      ordinal: execution.ordinal!,
-      distance: execution.option!.candidate.pathDistance,
-      value: execution
-    }))
-  ].sort(
+  const ordered = [...executions].sort(
     (left, right) =>
-      left.distance - right.distance ||
-      (left.kind === right.kind ? left.ordinal - right.ordinal : left.kind === 'SPATIAL' ? -1 : 1)
+      left.candidate.candidate.pathDistance - right.candidate.candidate.pathDistance ||
+      left.ordinal - right.ordinal
   )
-  for (const event of timeline) {
-    if (event.kind === 'REACTION') {
-      finishSpatialGroups()
-      for (const transition of event.value.characterTransitions) append(transition)
-      for (const check of event.value.concentrationChecks ?? [])
-        for (const transition of check.result.applicationOutputs.cleanup
-          ?.characterOwnerTransitions ?? [])
-          append(transition)
-      continue
-    }
-    const target = event.value.candidate.target
+  for (const execution of ordered) {
+    const target = execution.candidate.target
     if (target.kind !== 'CHARACTER') continue
     const group = spatialGroups.get(target.characterId)
     if (
       group &&
       (group.version !== target.streamVersion ||
-        JSON.stringify(group.after) !== JSON.stringify(event.value.targetTransition.before))
+        JSON.stringify(group.after) !== JSON.stringify(execution.targetTransition.before))
     )
       finishSpatialGroups()
     const current = spatialGroups.get(target.characterId)
-    if (current) current.after = event.value.targetTransition.after
+    if (current) current.after = execution.targetTransition.after
     else
       spatialGroups.set(target.characterId, {
         version: target.streamVersion,
-        before: event.value.targetTransition.before,
-        after: event.value.targetTransition.after
+        before: execution.targetTransition.before,
+        after: execution.targetTransition.after
       })
-    if (event.value.concentrationChecks !== undefined) {
+    if (execution.concentrationChecks !== undefined) {
       finishSpatialGroups()
-      for (const check of event.value.concentrationChecks)
+      for (const check of execution.concentrationChecks)
         for (const transition of check.result.applicationOutputs.cleanup
           ?.characterOwnerTransitions ?? [])
           append(transition)

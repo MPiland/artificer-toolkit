@@ -225,7 +225,7 @@ describe('character sheet command contracts', () => {
               mechanics: [
                 {
                   effectId: 'effect-fire-bolt',
-                  trigger: 'SPELL_ATTACK',
+                  trigger: 'RANGED_SPELL_ATTACK',
                   activation: { kind: 'ACTION', amount: 1 },
                   rangeLabel: '120 ft',
                   attackBonus: 5,

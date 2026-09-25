@@ -9,10 +9,7 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import {
-  projectCurrentEncounterGm,
-  projectPlayerEncounterProjection
-} from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { internalMutation } from '../lib/mutations'
@@ -31,6 +28,7 @@ import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 
 /** Commits one admitted child, its cleanup, receipt and next decision in the same transaction. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -386,10 +384,10 @@ export const commit = internalMutation({
         await insertNativeCleavingChoice(ctx, nextState, cleaving, input.occurredAt)
       }
     }
-    return encounterCommandResultDtoSchema.parse({
-      ...result,
-      projection:
-        membership.role === 'OWNER' ? projection : projectPlayerEncounterProjection(projection)
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: encounterCommandResultDtoSchema.parse({ ...result, projection })
     })
   }
 })

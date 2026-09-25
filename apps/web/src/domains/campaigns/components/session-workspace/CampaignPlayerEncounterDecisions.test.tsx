@@ -56,9 +56,9 @@ vi.mock('convex/react', async (importOriginal) => ({
   useConvex: () => ({ action: vi.fn() })
 }))
 
-import { CampaignSessionPlayerEncounters } from './CampaignSessionPlayerEncounters'
+import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecisions'
 
-describe('CampaignSessionPlayerEncounters', () => {
+describe('CampaignPlayerEncounterDecisions', () => {
   let listed: EncounterPlayerProjectionDto[]
   let pendingPrepared: EncounterPlayerProjectionDto[]
 
@@ -83,7 +83,7 @@ describe('CampaignSessionPlayerEncounters', () => {
   it('shows the eligible prepared decision and retains a newer active projection', async () => {
     const user = userEvent.setup()
     const view = renderWithAppProviders(
-      <CampaignSessionPlayerEncounters campaign={createTabletopCampaign('PLAYER')} />
+      <CampaignPlayerEncounterDecisions campaign={createTabletopCampaign('PLAYER')} />
     )
 
     expect(screen.getByText('Vault confrontation')).toBeVisible()
@@ -91,7 +91,7 @@ describe('CampaignSessionPlayerEncounters', () => {
     expect(await screen.findByRole('combobox', { name: 'Primary action' })).toBeVisible()
 
     listed = [tabletopPlayerEncounter]
-    view.rerender(<CampaignSessionPlayerEncounters campaign={createTabletopCampaign('PLAYER')} />)
+    view.rerender(<CampaignPlayerEncounterDecisions campaign={createTabletopCampaign('PLAYER')} />)
 
     expect(screen.getByText('In progress')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Open pending decision' })).not.toBeInTheDocument()
@@ -100,7 +100,7 @@ describe('CampaignSessionPlayerEncounters', () => {
   it('renders the prepared decision readonly when the Campaign is archived', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
-      <CampaignSessionPlayerEncounters
+      <CampaignPlayerEncounterDecisions
         campaign={{ ...createTabletopCampaign('PLAYER'), status: 'ARCHIVED' }}
       />
     )

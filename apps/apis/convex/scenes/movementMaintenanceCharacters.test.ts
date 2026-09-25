@@ -36,7 +36,10 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  setupReactionMovementScene,
+  useMovementReactions
+} from '../../tests/fixtures/automaticSceneMovement'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { api, internal } from '../_generated/api'
@@ -312,15 +315,14 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-it('settles present and detached Character maintenance once per automatic contact', async () => {
+it('settles present and detached Character maintenance once per used automatic contact', async () => {
   const value = await setup()
   const firstScene = await setupReactionMovementScene(
     value,
     [value.reactors[0], value.mover, value.reactors[1]],
     [50, 1000]
   )
-  await value.owner.caller.mutation(prepare, firstScene.request)
-  await value.owner.caller.mutation(finish, firstScene.request)
+  await value.owner.caller.mutation(finish, (await useMovementReactions(firstScene)).request)
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')!
   const poisoned = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'POISONED'
@@ -404,10 +406,14 @@ it('settles present and detached Character maintenance once per automatic contac
       { x: 700, y: 50 }
     ]
   )
+  const origin = await snapshot(value)
+  const presentBefore = origin.characters.find((row) => row.id === value.character.id)!
+  const detachedBefore = origin.characters.find((row) => row.id === value.detached.id)!
+  // Assisted play offers both authored automatic reactions as Use/Decline. The GM uses them, so the
+  // first reaction publishes at the second choice and the totals below span both publications.
+  const used = await useMovementReactions(next)
   const before = await snapshot(value)
-  const presentBefore = before.characters.find((row) => row.id === value.character.id)!
-  const detachedBefore = before.characters.find((row) => row.id === value.detached.id)!
-  const prepared = await value.owner.caller.mutation(prepare, next.request)
+  const prepared = await value.owner.caller.mutation(prepare, used.request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal preparation.')
   expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
@@ -422,12 +428,12 @@ it('settles present and detached Character maintenance once per automatic contac
   expect(await snapshot(value)).toEqual(before)
   await expect(
     value.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(finish, next.request)
+      await ctx.runMutation(finish, used.request)
       throw new Error('rollback Character movement maintenance')
     })
   ).rejects.toThrow('rollback Character movement maintenance')
   expect(await snapshot(value)).toEqual(before)
-  const published = await value.owner.caller.mutation(finish, next.request)
+  const published = await value.owner.caller.mutation(finish, used.request)
   const after = await snapshot(value)
   const presentAfter = after.characters.find((row) => row.id === value.character.id)!
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
@@ -483,10 +489,10 @@ it('settles present and detached Character maintenance once per automatic contac
   const actorState = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
   expect(actorState).toMatchObject({ kind: 'CHARACTER', sourceId: value.character.id })
   expect(actorState).not.toHaveProperty('conditions')
-  const receipt = after.receipts.find((row) => row.commandId === next.rootInput.commandId)
+  const receipt = after.receipts.find((row) => row.commandId === used.responseCommandId)
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(after.characterReceipts.length - before.characterReceipts.length).toBe(2)
-  expect(await value.owner.caller.mutation(finish, next.request)).toEqual({
+  expect(after.characterReceipts.length - origin.characterReceipts.length).toBe(2)
+  expect(await value.owner.caller.mutation(finish, used.request)).toEqual({
     ...published,
     replayed: true
   })

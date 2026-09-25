@@ -1,4 +1,3 @@
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -6,7 +5,6 @@ import type {
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { readAutoRollDice } from '../lib/rollPreferences'
 import { createRulesRuntime } from '../rules/runtime'
 import { nextRollInt } from '../lib/rollRandom'
 import {
@@ -15,6 +13,7 @@ import {
   evaluateNativeConcentrationEvidence,
   type NativeConcentrationContext
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
   concentrationCommandId,
   concentrationOccurrenceId
@@ -34,17 +33,14 @@ export async function executeNativeConcentrationCheck(
     current: NonNullable<Awaited<ReturnType<typeof loadNativeConcentrationState>>>
     context: NativeConcentrationContext
     continuation: ServerRuleExecutionContinuationDto
-    resolution: Extract<
-      ResolveRuleOccurrenceInputDto['resolution'],
-      { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
-    >
+    resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
     occurrenceVersion: number
     userId: string
     occurredAt: string
   }
 ) {
   const { context, continuation, resolution } = input
-  const { execution, rawFaces, selectedNatural, failed } =
+  const { execution, rawFaces, rollMode, selectedNatural, failed } =
     await evaluateNativeConcentrationEvidence({
       context,
       continuation,
@@ -70,6 +66,7 @@ export async function executeNativeConcentrationCheck(
     continuation,
     execution,
     rawFaces,
+    rollMode,
     selectedNatural,
     failed,
     cleanup: ended?.cleanup ?? null,
@@ -89,7 +86,10 @@ export async function startNativeConcentrationChecks(
     parentOccurrenceId: string
     parentCommandFingerprint: string
     applications: readonly NativeConcentrationContext['application'][]
+    /** Reads definitions; Encounter rules read as the Campaign owner. */
     userId: string
+    /** Each concentrating actor's roller preference (ADR 0034 decision 3). */
+    autoRollByActorId: Readonly<Record<string, boolean>>
     occurredAt: string
   }
 ) {
@@ -110,8 +110,6 @@ export async function startNativeConcentrationChecks(
   let correlationId = input.parentOccurrenceId
   const envelope = checksumRuleDocument(applications)
   const runtime = await createRulesRuntime(ctx, input.userId)
-  // The initiator rolls Concentration saves in this slice.
-  const autoRoll = await readAutoRollDice(ctx, input.userId)
   while (remaining.length) {
     const { maintainedStateId, ...application } = remaining[0]!
     remaining = remaining.slice(1)
@@ -136,7 +134,7 @@ export async function startNativeConcentrationChecks(
     })
     if (execution.status !== 'PAUSED')
       throw new Error('Concentration did not request bounded d20 evidence.')
-    if (!autoRoll) {
+    if (!input.autoRollByActorId[application.targetActorId]) {
       await persistNativeConcentrationPending(ctx, {
         state: input.state,
         context,
@@ -152,7 +150,7 @@ export async function startNativeConcentrationChecks(
       context,
       continuation: execution.continuation,
       occurrenceVersion: 1,
-      resolution: { kind: 'SYSTEM_ROLL', requestId: execution.continuation.request.requestId }
+      resolution: { kind: 'AUTO_ROLL', requestId: execution.continuation.request.requestId }
     })
     await persistNativeConcentrationResult(ctx, {
       ...input,

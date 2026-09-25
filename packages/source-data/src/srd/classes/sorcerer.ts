@@ -594,17 +594,16 @@ export const sorcerer: ClassAuthored = {
   },
 
   proficiencies: [
-    // Simple weapons
+    // Weapons: daggers, darts, slings, quarterstaffs, light crossbows
     {
       id: classRowId(S, 3, 1),
       grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
       level: SCALING_AMOUNT_KIND.FULL,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
       scalingKind: SCALING.NONE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-      properties: ['SIMPLE'],
-      category: 'WEAPON',
+      equipmentIds: [2, 12, 14, 8, 11].map(equipmentId),
       order: 0
     },
     // Saving throws: CON, CHA

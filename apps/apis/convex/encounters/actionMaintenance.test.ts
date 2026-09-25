@@ -365,7 +365,8 @@ function diceResponse(input: unknown, face = 1): EncounterExecuteInput {
       resolution: {
         kind: 'ENTER_DICE',
         requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+        rollMode: pending.request.rollMode
       }
     }
   }

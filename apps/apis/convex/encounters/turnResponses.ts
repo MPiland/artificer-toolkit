@@ -7,14 +7,21 @@ import { prepareEncounterTurnResponse } from '@artificer-toolkit/rules-runtime/e
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { nextRollInt } from '../lib/rollRandom'
-import { readRunState, readRunProjection } from './documents'
+import { readRunActors, readRunState, readRunProjection } from './documents'
+import { readEncounterControlledActorIds } from './actorController'
 import { requireUnusedEvidenceCommandId } from './timelineEntries'
 import { resumeNativeTurn } from './turnCompletion'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
+import {
+  resolveEncounterIntegerAnswer,
+  withEncounterAppRoll
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { readEncounterSettledAppRoll } from './evidenceRolls'
 
 export async function resolveNativeTurnResponse(input: {
   ctx: MutationCtx
   campaign: Doc<'campaigns'>
+  membership: Doc<'campaignMemberships'>
   encounter: Doc<'encounterRuns'>
   occurrence: Doc<'encounterRuleOccurrences'>
   pending: ServerRuleExecutionPendingSnapshotDto
@@ -22,12 +29,17 @@ export async function resolveNativeTurnResponse(input: {
   userId: string
   updatedAt: string
 }) {
-  const { ctx, campaign, encounter, occurrence, pending, command, userId } = input
+  const { ctx, campaign, membership, encounter, occurrence, pending, command, userId } = input
   const prepared = prepareEncounterTurnResponse({
     pending,
     command,
     userId,
     ownerUserId: campaign.ownerUserId,
+    responderControlledActorIds: await readEncounterControlledActorIds(ctx, {
+      campaign,
+      membership,
+      actors: await readRunActors(ctx, readRunState(encounter))
+    }),
     occurrence: {
       id: occurrence.id,
       rootCommandId: occurrence.rootCommandId,
@@ -57,6 +69,10 @@ export async function resolveNativeTurnResponse(input: {
   }
   if (prepared.kind !== 'READY') throw new Error('Encounter turn response is unavailable.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, command.commandId)
+  const resolution = withEncounterAppRoll(
+    command.resolution,
+    await readEncounterSettledAppRoll(ctx, { occurrence, response: command, userId })
+  )
   return resumeNativeTurn({
     ctx,
     encounter,
@@ -67,13 +83,15 @@ export async function resolveNativeTurnResponse(input: {
     projection: readRunProjection(encounter),
     root: prepared.root,
     pending: prepared.pending,
-    resolution: command.resolution,
+    resolution,
     ...(pending.applicationContext.kind === 'ENCOUNTER_TURN_RECHARGE'
       ? {
-          rawDie:
-            command.resolution.kind === 'ENTER_INTEGER'
-              ? command.resolution.value
-              : nextRollInt(6) + 1
+          rawDie: resolveEncounterIntegerAnswer({
+            min: 1,
+            max: 6,
+            answer: resolution,
+            random: nextRollInt
+          })
         }
       : {}),
     updatedAt: input.updatedAt

@@ -195,7 +195,7 @@ export const lich: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(2794, 2),
@@ -262,7 +262,7 @@ export const lich: CreatureAuthored = {
           order: 2,
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(183, 604),

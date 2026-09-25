@@ -45304,6 +45304,16 @@ export declare const api: {
             label: string;
             rangeLabel?: string;
             sourceLabel?: string;
+            warnings: Array<{
+              code:
+                | "ACTION_ECONOMY_UNAVAILABLE"
+                | "RESOURCE_UNAVAILABLE"
+                | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DISPOSITION"
+                | "TARGET_OUT_OF_RANGE"
+                | "TARGET_RANGE_UNCHECKED";
+              message: string;
+            }>;
             wieldConflict: {
               armorClassDelta: number;
               kind: "STOW_SHIELD";
@@ -45363,7 +45373,9 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
                     description: string;
@@ -45440,6 +45452,11 @@ export declare const api: {
                     damageImmunities: Array<string>;
                     damageResistances: Array<string>;
                     damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
                     senses: Array<string>;
                     speeds: Array<any>;
                   } | null;
@@ -45518,13 +45535,9 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -45590,11 +45603,13 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: {
+                  derivedRollModeReasons: Array<string>;
                   max: 20;
                   min: 1;
                   requestId: string;
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                 };
+                rollerActorId: string | null;
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -45603,6 +45618,7 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: { max: number; min: number; requestId: string };
+                rollerActorId: string | null;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -45746,6 +45762,7 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          waitingOn: "GM" | "PLAYER" | null;
         }
       >;
     };
@@ -45774,6 +45791,17 @@ export declare const api: {
               };
         },
         {
+          evidenceRoll?: {
+            attempt: number;
+            derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            faces: Array<number>;
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollId: string;
+            rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            value: number;
+          } | null;
           occurrence?: {
             occurrenceId: string;
             occurrenceVersion: number;
@@ -45786,11 +45814,13 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -45799,6 +45829,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -45955,7 +45986,9 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
                     description: string;
@@ -46032,6 +46065,11 @@ export declare const api: {
                     damageImmunities: Array<string>;
                     damageResistances: Array<string>;
                     damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
                     senses: Array<string>;
                     speeds: Array<any>;
                   } | null;
@@ -46110,13 +46148,9 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -47687,7 +47721,9 @@ export declare const api: {
                           | null
                           | Array<any>
                           | Record<string, any>;
+                        controllerUserIds?: Array<string>;
                         currentHitPoints?: number;
+                        disposition?: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                         encounterId: string;
                         expectedVersion: number;
                         gmNotes?: string | null;
@@ -47905,8 +47941,13 @@ export declare const api: {
                               kind: "ENTER_DICE";
                               rawFaces: Array<number>;
                               requestId: string;
+                              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             }
-                          | { kind: "SYSTEM_ROLL"; requestId: string }
+                          | {
+                              kind: "SYSTEM_ROLL";
+                              requestId: string;
+                              rollId: string;
+                            }
                           | {
                               kind: "ENTER_INTEGER";
                               requestId: string;
@@ -48001,6 +48042,17 @@ export declare const api: {
                         encounterId: string;
                         expectedVersion: number;
                         type: "REVERT_LAST_ACTION";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedOccurrenceVersion: number;
+                        expectedVersion: number;
+                        occurrenceId: string;
+                        requestId: string;
+                        rollMode:
+                          "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+                        type: "ROLL_RULE_EVIDENCE";
                       };
                 };
                 kind: "COMMAND";
@@ -48039,6 +48091,24 @@ export declare const api: {
         { rolledBack: true }
       >;
     };
+    evidenceRolls: {
+      latest: FunctionReference<
+        "query",
+        "public",
+        { encounterId: string },
+        Array<{
+          attempt: number;
+          derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+          faces: Array<number>;
+          occurrenceId: string;
+          occurrenceVersion: number;
+          requestId: string;
+          rollId: string;
+          rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+          value: number;
+        }>
+      >;
+    };
     pendingReads: {
       pendingRuleOccurrence: FunctionReference<
         "query",
@@ -48051,11 +48121,13 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: {
+              derivedRollModeReasons: Array<string>;
               max: 20;
               min: 1;
               requestId: string;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
             };
+            rollerActorId: string | null;
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -48064,6 +48136,7 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: { max: number; min: number; requestId: string };
+            rollerActorId: string | null;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -48223,7 +48296,9 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              controllerUserIds: Array<string>;
               currentHitPoints: number;
+              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               features?: Array<{
                 description: string;
@@ -48292,6 +48367,11 @@ export declare const api: {
                 damageImmunities: Array<string>;
                 damageResistances: Array<string>;
                 damageVulnerabilities: Array<string>;
+                qualifiedDamageDefenses: Array<{
+                  bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                  damageTypeIds: Array<string>;
+                  kind: "RESISTANCE" | "IMMUNITY";
+                }>;
                 senses: Array<string>;
                 speeds: Array<any>;
               } | null;
@@ -48370,9 +48450,9 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              controllerUserIds: Array<string>;
+              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
-              healthBand:
-                "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48455,7 +48535,9 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              controllerUserIds: Array<string>;
               currentHitPoints: number;
+              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
               features?: Array<{
                 description: string;
@@ -48524,6 +48606,11 @@ export declare const api: {
                 damageImmunities: Array<string>;
                 damageResistances: Array<string>;
                 damageVulnerabilities: Array<string>;
+                qualifiedDamageDefenses: Array<{
+                  bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                  damageTypeIds: Array<string>;
+                  kind: "RESISTANCE" | "IMMUNITY";
+                }>;
                 senses: Array<string>;
                 speeds: Array<any>;
               } | null;
@@ -48602,9 +48689,9 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              controllerUserIds: Array<string>;
+              disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
-              healthBand:
-                "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48676,7 +48763,9 @@ export declare const api: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds: Array<string>;
                 currentHitPoints: number;
+                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 features?: Array<{
                   description: string;
@@ -48749,6 +48838,11 @@ export declare const api: {
                   damageImmunities: Array<string>;
                   damageResistances: Array<string>;
                   damageVulnerabilities: Array<string>;
+                  qualifiedDamageDefenses: Array<{
+                    bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                    damageTypeIds: Array<string>;
+                    kind: "RESISTANCE" | "IMMUNITY";
+                  }>;
                   senses: Array<string>;
                   speeds: Array<any>;
                 } | null;
@@ -48827,9 +48921,9 @@ export declare const api: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds: Array<string>;
+                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
-                healthBand:
-                  "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48902,7 +48996,9 @@ export declare const api: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds: Array<string>;
                 currentHitPoints: number;
+                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 features?: Array<{
                   description: string;
@@ -48975,6 +49071,11 @@ export declare const api: {
                   damageImmunities: Array<string>;
                   damageResistances: Array<string>;
                   damageVulnerabilities: Array<string>;
+                  qualifiedDamageDefenses: Array<{
+                    bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                    damageTypeIds: Array<string>;
+                    kind: "RESISTANCE" | "IMMUNITY";
+                  }>;
                   senses: Array<string>;
                   speeds: Array<any>;
                 } | null;
@@ -49053,9 +49154,9 @@ export declare const api: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds: Array<string>;
+                disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
-                healthBand:
-                  "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -49129,7 +49230,9 @@ export declare const api: {
               | null
               | Array<any>
               | Record<string, any>;
+            controllerUserIds: Array<string>;
             currentHitPoints: number;
+            disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
             encounterId: string;
             features?: Array<{
               description: string;
@@ -49198,6 +49301,11 @@ export declare const api: {
               damageImmunities: Array<string>;
               damageResistances: Array<string>;
               damageVulnerabilities: Array<string>;
+              qualifiedDamageDefenses: Array<{
+                bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                damageTypeIds: Array<string>;
+                kind: "RESISTANCE" | "IMMUNITY";
+              }>;
               senses: Array<string>;
               speeds: Array<any>;
             } | null;
@@ -51151,11 +51259,13 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -51164,6 +51274,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -52537,11 +52648,13 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -52550,6 +52663,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -53227,11 +53341,13 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -53240,6 +53356,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -53833,11 +53950,13 @@ export declare const api: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: {
+                      derivedRollModeReasons: Array<string>;
                       max: 20;
                       min: 1;
                       requestId: string;
                       rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     };
+                    rollerActorId: string | null;
                   }
                 | {
                     allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -53846,6 +53965,7 @@ export declare const api: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: { max: number; min: number; requestId: string };
+                    rollerActorId: string | null;
                   }
                 | {
                     allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -59566,7 +59686,13 @@ export declare const internal: {
               mechanic: {
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
-                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
+                attackKind:
+                  | "MELEE"
+                  | "RANGED"
+                  | "UNARMED"
+                  | "MELEE_SPELL"
+                  | "RANGED_SPELL"
+                  | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<
@@ -61168,6 +61294,7 @@ export declare const internal: {
                       | "ITEM_IDENTITY"
                       | "ITEM_CATEGORY"
                       | "ITEM_PROPERTY"
+                      | "ITEM_SOLE_WEAPON"
                       | "UNAVAILABLE"
                       | "UNSUPPORTED";
                     max: number | null;
@@ -63127,7 +63254,13 @@ export declare const internal: {
               mechanics: Array<{
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
-                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
+                attackKind:
+                  | "MELEE"
+                  | "RANGED"
+                  | "UNARMED"
+                  | "MELEE_SPELL"
+                  | "RANGED_SPELL"
+                  | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<
@@ -63468,7 +63601,13 @@ export declare const internal: {
               mechanics: Array<{
                 activation: { amount: number; kind: string } | null;
                 attackBonus: number | null;
-                attackKind: "MELEE" | "RANGED" | "SPELL" | "UNARMED" | null;
+                attackKind:
+                  | "MELEE"
+                  | "RANGED"
+                  | "UNARMED"
+                  | "MELEE_SPELL"
+                  | "RANGED_SPELL"
+                  | null;
                 attackRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 effectId: string;
                 outcomes: Array<
@@ -65675,7 +65814,9 @@ export declare const internal: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds?: Array<string>;
                 currentHitPoints?: number;
+                disposition?: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 expectedVersion: number;
                 gmNotes?: string | null;
@@ -65889,8 +66030,9 @@ export declare const internal: {
                       kind: "ENTER_DICE";
                       rawFaces: Array<number>;
                       requestId: string;
+                      rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     }
-                  | { kind: "SYSTEM_ROLL"; requestId: string }
+                  | { kind: "SYSTEM_ROLL"; requestId: string; rollId: string }
                   | { kind: "ENTER_INTEGER"; requestId: string; value: number }
                   | {
                       entityId: string;
@@ -65981,9 +66123,30 @@ export declare const internal: {
                 encounterId: string;
                 expectedVersion: number;
                 type: "REVERT_LAST_ACTION";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                requestId: string;
+                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+                type: "ROLL_RULE_EVIDENCE";
               };
         },
         {
+          evidenceRoll?: {
+            attempt: number;
+            derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            faces: Array<number>;
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollId: string;
+            rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            value: number;
+          } | null;
           occurrence?: {
             occurrenceId: string;
             occurrenceVersion: number;
@@ -65996,11 +66159,13 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -66009,6 +66174,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -66165,7 +66331,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
                     description: string;
@@ -66242,6 +66410,11 @@ export declare const internal: {
                     damageImmunities: Array<string>;
                     damageResistances: Array<string>;
                     damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
                     senses: Array<string>;
                     speeds: Array<any>;
                   } | null;
@@ -66320,13 +66493,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -67718,7 +67887,9 @@ export declare const internal: {
                   | null
                   | Array<any>
                   | Record<string, any>;
+                controllerUserIds?: Array<string>;
                 currentHitPoints?: number;
+                disposition?: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
                 expectedVersion: number;
                 gmNotes?: string | null;
@@ -67932,8 +68103,9 @@ export declare const internal: {
                       kind: "ENTER_DICE";
                       rawFaces: Array<number>;
                       requestId: string;
+                      rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     }
-                  | { kind: "SYSTEM_ROLL"; requestId: string }
+                  | { kind: "SYSTEM_ROLL"; requestId: string; rollId: string }
                   | { kind: "ENTER_INTEGER"; requestId: string; value: number }
                   | {
                       entityId: string;
@@ -68024,9 +68196,30 @@ export declare const internal: {
                 encounterId: string;
                 expectedVersion: number;
                 type: "REVERT_LAST_ACTION";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedOccurrenceVersion: number;
+                expectedVersion: number;
+                occurrenceId: string;
+                requestId: string;
+                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+                type: "ROLL_RULE_EVIDENCE";
               };
         },
         {
+          evidenceRoll?: {
+            attempt: number;
+            derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            faces: Array<number>;
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollId: string;
+            rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            value: number;
+          } | null;
           occurrence?: {
             occurrenceId: string;
             occurrenceVersion: number;
@@ -68039,11 +68232,13 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -68052,6 +68247,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -68208,7 +68404,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
                     description: string;
@@ -68285,6 +68483,11 @@ export declare const internal: {
                     damageImmunities: Array<string>;
                     damageResistances: Array<string>;
                     damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
                     senses: Array<string>;
                     speeds: Array<any>;
                   } | null;
@@ -68363,13 +68566,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -69827,7 +70026,9 @@ export declare const internal: {
                           | null
                           | Array<any>
                           | Record<string, any>;
+                        controllerUserIds?: Array<string>;
                         currentHitPoints?: number;
+                        disposition?: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                         encounterId: string;
                         expectedVersion: number;
                         gmNotes?: string | null;
@@ -70045,8 +70246,13 @@ export declare const internal: {
                               kind: "ENTER_DICE";
                               rawFaces: Array<number>;
                               requestId: string;
+                              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             }
-                          | { kind: "SYSTEM_ROLL"; requestId: string }
+                          | {
+                              kind: "SYSTEM_ROLL";
+                              requestId: string;
+                              rollId: string;
+                            }
                           | {
                               kind: "ENTER_INTEGER";
                               requestId: string;
@@ -70141,6 +70347,17 @@ export declare const internal: {
                         encounterId: string;
                         expectedVersion: number;
                         type: "REVERT_LAST_ACTION";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedOccurrenceVersion: number;
+                        expectedVersion: number;
+                        occurrenceId: string;
+                        requestId: string;
+                        rollMode:
+                          "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+                        type: "ROLL_RULE_EVIDENCE";
                       };
                 };
                 kind: "COMMAND";
@@ -70227,11 +70444,13 @@ export declare const internal: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: {
+              derivedRollModeReasons: Array<string>;
               max: 20;
               min: 1;
               requestId: string;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
             };
+            rollerActorId: string | null;
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -70240,6 +70459,7 @@ export declare const internal: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: { max: number; min: number; requestId: string };
+            rollerActorId: string | null;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -71651,11 +71871,13 @@ export declare const internal: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: {
+                      derivedRollModeReasons: Array<string>;
                       max: 20;
                       min: 1;
                       requestId: string;
                       rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     };
+                    rollerActorId: string | null;
                   }
                 | {
                     allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -71664,6 +71886,7 @@ export declare const internal: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: { max: number; min: number; requestId: string };
+                    rollerActorId: string | null;
                   }
                 | {
                     allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -71844,6 +72067,10 @@ export declare const internal: {
             role: "OWNER" | "PLAYER";
             userId: string;
           };
+          originBoundTokenControl: Array<{
+            controlled: boolean;
+            tokenId: string;
+          }>;
           presentation: {
             campaignId: string;
             sceneId: string | null;
@@ -73998,11 +74225,13 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -74011,6 +74240,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -74795,11 +75025,13 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: {
+                        derivedRollModeReasons: Array<string>;
                         max: 20;
                         min: 1;
                         requestId: string;
                         rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                       };
+                      rollerActorId: string | null;
                     }
                   | {
                       allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -74808,6 +75040,7 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: { max: number; min: number; requestId: string };
+                      rollerActorId: string | null;
                     }
                   | {
                       allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -76336,6 +76569,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -76432,6 +76667,8 @@ export declare const internal: {
                             sourceId: string;
                           }>;
                           defenseOrDc: number;
+                          derivedRollMode:
+                            "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                           modifier: number;
                           rawFaces: Array<number>;
                           requestId: string;
@@ -76672,6 +76909,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -76854,6 +77093,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -76952,6 +77193,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -77078,6 +77321,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -77341,6 +77586,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -77418,6 +77665,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -77594,6 +77843,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -77791,6 +78042,8 @@ export declare const internal: {
                               sourceId: string;
                             }>;
                             defenseOrDc: number;
+                            derivedRollMode:
+                              "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             modifier: number;
                             rawFaces: Array<number>;
                             requestId: string;
@@ -78154,6 +78407,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -78336,6 +78591,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -78434,6 +78691,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -78560,6 +78819,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -78823,6 +79084,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -78900,6 +79163,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -79076,6 +79341,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -79273,6 +79540,8 @@ export declare const internal: {
                               sourceId: string;
                             }>;
                             defenseOrDc: number;
+                            derivedRollMode:
+                              "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             modifier: number;
                             rawFaces: Array<number>;
                             requestId: string;
@@ -79660,6 +79929,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -79762,6 +80033,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -80235,6 +80508,7 @@ export declare const internal: {
                                           occurrenceId: string;
                                           occurrenceVersion: number;
                                           request: {
+                                            derivedRollModeReasons: Array<string>;
                                             max: 20;
                                             min: 1;
                                             requestId: string;
@@ -80243,6 +80517,7 @@ export declare const internal: {
                                               | "ADVANTAGE"
                                               | "DISADVANTAGE";
                                           };
+                                          rollerActorId: string | null;
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -80257,6 +80532,7 @@ export declare const internal: {
                                             min: number;
                                             requestId: string;
                                           };
+                                          rollerActorId: string | null;
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -80620,6 +80896,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -80810,6 +81090,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -80911,6 +81195,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -81040,6 +81328,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -81320,6 +81612,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -81400,6 +81696,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -81716,6 +82016,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -81906,6 +82210,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -82007,6 +82315,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -82136,6 +82448,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -82416,6 +82732,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -82496,6 +82816,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -83864,6 +84188,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -84070,6 +84398,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -84180,6 +84512,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -84318,6 +84654,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -84615,6 +84955,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -84696,6 +85040,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -85179,6 +85527,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -85965,6 +86317,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -86171,6 +86527,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -86281,6 +86641,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -86419,6 +86783,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -86716,6 +87084,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -86797,6 +87169,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -87185,6 +87561,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -87629,6 +88009,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -87820,6 +88204,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -87921,6 +88309,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -88050,6 +88442,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -88331,6 +88727,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -88411,6 +88811,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -88601,6 +89005,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -88830,6 +89238,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -89951,6 +90363,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -90056,6 +90472,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -90329,6 +90747,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -90520,6 +90942,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -90621,6 +91047,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -90750,6 +91180,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -91031,6 +91465,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -91111,6 +91549,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -91301,6 +91743,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -91530,6 +91976,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -91909,6 +92359,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -92681,6 +93133,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -92887,6 +93343,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -92997,6 +93457,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -93135,6 +93599,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -93432,6 +93900,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -93513,6 +93985,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -93973,6 +94449,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -94157,6 +94635,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -94256,6 +94736,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -94384,6 +94868,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -94652,6 +95138,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -94729,6 +95217,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -94908,6 +95398,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -95131,6 +95623,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -95511,6 +96005,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -95613,6 +96109,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -95838,6 +96336,7 @@ export declare const internal: {
                                   } | null;
                                   kind: "ACTION_EVIDENCE";
                                   maintenanceCurrentnessChecksum?: string;
+                                  rollerActorId: string;
                                   selectedOptionId: string;
                                   twoPhase?:
                                     | {
@@ -95970,6 +96469,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -96041,6 +96544,10 @@ export declare const internal: {
                                         };
                                         testExecutionChecksum: string;
                                         testRollEvidence: {
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           rawFaces: Array<number>;
                                           requestId: string;
                                           rollMode:
@@ -96065,6 +96572,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -96151,148 +96660,76 @@ export declare const internal: {
                                   targetStateChecksum: string;
                                 };
                             reactionSelectionChecksum: string;
-                            reactionTimeline: Array<
-                              | {
-                                  kind: "AUTOMATIC_ACTION";
-                                  option: {
-                                    actionId: string;
-                                    actionSourceCurrentnessChecksum: string;
-                                    actionSourceKind:
-                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                    authority:
-                                      | {
-                                          characterId: string;
-                                          kind: "CHARACTER_CONTROLLER";
-                                        }
-                                      | { kind: "GM" };
-                                    binding: {
-                                      eligibilityDefinitionId: string;
-                                      kind: "MOVEMENT";
-                                      movementInterruption?: null | {
-                                        kind: "STOP";
-                                        whenResultPath:
-                                          | "PASSIVE"
-                                          | "ON_USE"
-                                          | "ON_CAST"
-                                          | "ON_ATTACK"
-                                          | "ON_HIT"
-                                          | "ON_MISS"
-                                          | "ON_CRIT"
-                                          | "ON_SAVE_FAIL"
-                                          | "ON_SAVE_SUCCESS"
-                                          | "START_OF_TURN"
-                                          | "END_OF_TURN"
-                                          | "ON_MOVE"
-                                          | "ON_HP_ZERO";
-                                      };
-                                      perceptionRequirement:
-                                        | "DETECT"
-                                        | "LOCATE"
-                                        | "PRECISE"
-                                        | "SEE"
-                                        | null;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                            reactionTimeline: Array<{
+                              group: {
+                                options: Array<{
+                                  actionId: string;
+                                  actionSourceCurrentnessChecksum: string;
+                                  actionSourceKind:
+                                    "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                  authority:
+                                    | {
+                                        characterId: string;
+                                        kind: "CHARACTER_CONTROLLER";
+                                      }
+                                    | { kind: "GM" };
+                                  binding: {
+                                    eligibilityDefinitionId: string;
+                                    kind: "MOVEMENT";
+                                    movementInterruption?: null | {
+                                      kind: "STOP";
+                                      whenResultPath:
+                                        | "PASSIVE"
+                                        | "ON_USE"
+                                        | "ON_CAST"
+                                        | "ON_ATTACK"
+                                        | "ON_HIT"
+                                        | "ON_MISS"
+                                        | "ON_CRIT"
+                                        | "ON_SAVE_FAIL"
+                                        | "ON_SAVE_SUCCESS"
+                                        | "START_OF_TURN"
+                                        | "END_OF_TURN"
+                                        | "ON_MOVE"
+                                        | "ON_HP_ZERO";
                                     };
-                                    candidate: {
-                                      contact: { x: number; y: number };
-                                      movingActorId: string;
-                                      pathDistance: number;
-                                      reactorActorId: string;
-                                      reactorTokenId: string;
-                                      sourceId: string;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    contactSourceId: string;
-                                    eligibilityEvidenceChecksum: string;
-                                    optionId: string;
-                                    policy: {
-                                      allowanceDefinitionId: string;
-                                      allowanceMaximum: number;
-                                      allowanceRefreshBoundary: "START_OF_TURN";
-                                      choiceDefinitionId: string | null;
-                                      eligible: boolean;
-                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                      targetPolicy: "MOVER";
-                                    };
-                                    visibility: "CONTROLLER" | "GM_ONLY";
+                                    perceptionRequirement:
+                                      | "DETECT"
+                                      | "LOCATE"
+                                      | "PRECISE"
+                                      | "SEE"
+                                      | null;
+                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   };
-                                }
-                              | {
-                                  group: {
-                                    options: Array<{
-                                      actionId: string;
-                                      actionSourceCurrentnessChecksum: string;
-                                      actionSourceKind:
-                                        | "CHARACTER_ACTION"
-                                        | "ENCOUNTER_FEATURE";
-                                      authority:
-                                        | {
-                                            characterId: string;
-                                            kind: "CHARACTER_CONTROLLER";
-                                          }
-                                        | { kind: "GM" };
-                                      binding: {
-                                        eligibilityDefinitionId: string;
-                                        kind: "MOVEMENT";
-                                        movementInterruption?: null | {
-                                          kind: "STOP";
-                                          whenResultPath:
-                                            | "PASSIVE"
-                                            | "ON_USE"
-                                            | "ON_CAST"
-                                            | "ON_ATTACK"
-                                            | "ON_HIT"
-                                            | "ON_MISS"
-                                            | "ON_CRIT"
-                                            | "ON_SAVE_FAIL"
-                                            | "ON_SAVE_SUCCESS"
-                                            | "START_OF_TURN"
-                                            | "END_OF_TURN"
-                                            | "ON_MOVE"
-                                            | "ON_HP_ZERO";
-                                        };
-                                        perceptionRequirement:
-                                          | "DETECT"
-                                          | "LOCATE"
-                                          | "PRECISE"
-                                          | "SEE"
-                                          | null;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      candidate: {
-                                        contact: { x: number; y: number };
-                                        movingActorId: string;
-                                        pathDistance: number;
-                                        reactorActorId: string;
-                                        reactorTokenId: string;
-                                        sourceId: string;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      contactSourceId: string;
-                                      eligibilityEvidenceChecksum: string;
-                                      optionId: string;
-                                      policy: {
-                                        allowanceDefinitionId: string;
-                                        allowanceMaximum: number;
-                                        allowanceRefreshBoundary: "START_OF_TURN";
-                                        choiceDefinitionId: string | null;
-                                        eligible: boolean;
-                                        selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                        targetPolicy: "MOVER";
-                                      };
-                                      visibility: "CONTROLLER" | "GM_ONLY";
-                                    }>;
+                                  candidate: {
+                                    contact: { x: number; y: number };
+                                    movingActorId: string;
                                     pathDistance: number;
                                     reactorActorId: string;
                                     reactorTokenId: string;
+                                    sourceId: string;
+                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   };
-                                  kind: "CONTROLLER_CHOICE";
-                                }
-                            >;
+                                  contactSourceId: string;
+                                  eligibilityEvidenceChecksum: string;
+                                  optionId: string;
+                                  policy: {
+                                    allowanceDefinitionId: string;
+                                    allowanceMaximum: number;
+                                    allowanceRefreshBoundary: "START_OF_TURN";
+                                    choiceDefinitionId: string | null;
+                                    eligible: boolean;
+                                    selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                    targetPolicy: "MOVER";
+                                  };
+                                  visibility: "CONTROLLER" | "GM_ONLY";
+                                }>;
+                                pathDistance: number;
+                                reactorActorId: string;
+                                reactorTokenId: string;
+                              };
+                              kind: "CONTROLLER_CHOICE";
+                            }>;
                             remainingSpatialCandidates: Array<{
                               candidate: {
                                 contact: { x: number; y: number };
@@ -96675,6 +97112,7 @@ export declare const internal: {
                                             occurrenceId: string;
                                             occurrenceVersion: number;
                                             request: {
+                                              derivedRollModeReasons: Array<string>;
                                               max: 20;
                                               min: 1;
                                               requestId: string;
@@ -96683,6 +97121,7 @@ export declare const internal: {
                                                 | "ADVANTAGE"
                                                 | "DISADVANTAGE";
                                             };
+                                            rollerActorId: string | null;
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -96697,6 +97136,7 @@ export declare const internal: {
                                               min: number;
                                               requestId: string;
                                             };
+                                            rollerActorId: string | null;
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -97063,6 +97503,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -97254,6 +97698,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -97355,6 +97803,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -97484,6 +97936,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -97765,6 +98221,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -97845,6 +98305,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -98161,6 +98625,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -98352,6 +98820,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -98453,6 +98925,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -98582,6 +99058,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -98863,6 +99343,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -98943,6 +99427,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -100321,6 +100809,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -100529,6 +101021,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -100642,6 +101138,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -100782,6 +101282,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -101080,6 +101584,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -101161,6 +101669,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -101644,6 +102156,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -102436,6 +102952,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -102644,6 +103164,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -102757,6 +103281,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -102897,6 +103425,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -103195,6 +103727,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -103276,6 +103812,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -103664,6 +104204,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -104109,6 +104653,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -104300,6 +104848,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -104402,6 +104954,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -104531,6 +105087,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -104812,6 +105372,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -104892,6 +105456,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -105088,6 +105656,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -105317,6 +105889,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -106458,6 +107034,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -106564,6 +107144,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -106840,6 +107424,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -107031,6 +107619,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -107133,6 +107725,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -107262,6 +107858,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -107543,6 +108143,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -107623,6 +108227,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -107819,6 +108427,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -108048,6 +108660,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -108432,6 +109048,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -109212,6 +109832,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -109420,6 +110044,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -109533,6 +110161,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -109673,6 +110305,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -109971,6 +110607,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -110052,6 +110692,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -110526,6 +111170,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -110714,6 +111362,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -110815,6 +111467,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -110944,6 +111600,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -111217,6 +111877,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -111297,6 +111961,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -111481,6 +112149,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -111708,6 +112380,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -112089,6 +112763,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -112193,6 +112871,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -112285,152 +112965,78 @@ export declare const internal: {
                                 contact: { x: number; y: number };
                                 pathDistance: number;
                               } | null;
-                              reactionTimeline: Array<
-                                | {
-                                    kind: "AUTOMATIC_ACTION";
-                                    option: {
-                                      actionId: string;
-                                      actionSourceCurrentnessChecksum: string;
-                                      actionSourceKind:
-                                        | "CHARACTER_ACTION"
-                                        | "ENCOUNTER_FEATURE";
-                                      authority:
-                                        | {
-                                            characterId: string;
-                                            kind: "CHARACTER_CONTROLLER";
-                                          }
-                                        | { kind: "GM" };
-                                      binding: {
-                                        eligibilityDefinitionId: string;
-                                        kind: "MOVEMENT";
-                                        movementInterruption?: null | {
-                                          kind: "STOP";
-                                          whenResultPath:
-                                            | "PASSIVE"
-                                            | "ON_USE"
-                                            | "ON_CAST"
-                                            | "ON_ATTACK"
-                                            | "ON_HIT"
-                                            | "ON_MISS"
-                                            | "ON_CRIT"
-                                            | "ON_SAVE_FAIL"
-                                            | "ON_SAVE_SUCCESS"
-                                            | "START_OF_TURN"
-                                            | "END_OF_TURN"
-                                            | "ON_MOVE"
-                                            | "ON_HP_ZERO";
-                                        };
-                                        perceptionRequirement:
-                                          | "DETECT"
-                                          | "LOCATE"
-                                          | "PRECISE"
-                                          | "SEE"
-                                          | null;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              reactionTimeline: Array<{
+                                group: {
+                                  options: Array<{
+                                    actionId: string;
+                                    actionSourceCurrentnessChecksum: string;
+                                    actionSourceKind:
+                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                    authority:
+                                      | {
+                                          characterId: string;
+                                          kind: "CHARACTER_CONTROLLER";
+                                        }
+                                      | { kind: "GM" };
+                                    binding: {
+                                      eligibilityDefinitionId: string;
+                                      kind: "MOVEMENT";
+                                      movementInterruption?: null | {
+                                        kind: "STOP";
+                                        whenResultPath:
+                                          | "PASSIVE"
+                                          | "ON_USE"
+                                          | "ON_CAST"
+                                          | "ON_ATTACK"
+                                          | "ON_HIT"
+                                          | "ON_MISS"
+                                          | "ON_CRIT"
+                                          | "ON_SAVE_FAIL"
+                                          | "ON_SAVE_SUCCESS"
+                                          | "START_OF_TURN"
+                                          | "END_OF_TURN"
+                                          | "ON_MOVE"
+                                          | "ON_HP_ZERO";
                                       };
-                                      candidate: {
-                                        contact: { x: number; y: number };
-                                        movingActorId: string;
-                                        pathDistance: number;
-                                        reactorActorId: string;
-                                        reactorTokenId: string;
-                                        sourceId: string;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      contactSourceId: string;
-                                      eligibilityEvidenceChecksum: string;
-                                      optionId: string;
-                                      policy: {
-                                        allowanceDefinitionId: string;
-                                        allowanceMaximum: number;
-                                        allowanceRefreshBoundary: "START_OF_TURN";
-                                        choiceDefinitionId: string | null;
-                                        eligible: boolean;
-                                        selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                        targetPolicy: "MOVER";
-                                      };
-                                      visibility: "CONTROLLER" | "GM_ONLY";
+                                      perceptionRequirement:
+                                        | "DETECT"
+                                        | "LOCATE"
+                                        | "PRECISE"
+                                        | "SEE"
+                                        | null;
+                                      stage:
+                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     };
-                                  }
-                                | {
-                                    group: {
-                                      options: Array<{
-                                        actionId: string;
-                                        actionSourceCurrentnessChecksum: string;
-                                        actionSourceKind:
-                                          | "CHARACTER_ACTION"
-                                          | "ENCOUNTER_FEATURE";
-                                        authority:
-                                          | {
-                                              characterId: string;
-                                              kind: "CHARACTER_CONTROLLER";
-                                            }
-                                          | { kind: "GM" };
-                                        binding: {
-                                          eligibilityDefinitionId: string;
-                                          kind: "MOVEMENT";
-                                          movementInterruption?: null | {
-                                            kind: "STOP";
-                                            whenResultPath:
-                                              | "PASSIVE"
-                                              | "ON_USE"
-                                              | "ON_CAST"
-                                              | "ON_ATTACK"
-                                              | "ON_HIT"
-                                              | "ON_MISS"
-                                              | "ON_CRIT"
-                                              | "ON_SAVE_FAIL"
-                                              | "ON_SAVE_SUCCESS"
-                                              | "START_OF_TURN"
-                                              | "END_OF_TURN"
-                                              | "ON_MOVE"
-                                              | "ON_HP_ZERO";
-                                          };
-                                          perceptionRequirement:
-                                            | "DETECT"
-                                            | "LOCATE"
-                                            | "PRECISE"
-                                            | "SEE"
-                                            | null;
-                                          stage:
-                                            | "BEFORE_LEAVE_REACH"
-                                            | "ENTER_REACH";
-                                        };
-                                        candidate: {
-                                          contact: { x: number; y: number };
-                                          movingActorId: string;
-                                          pathDistance: number;
-                                          reactorActorId: string;
-                                          reactorTokenId: string;
-                                          sourceId: string;
-                                          stage:
-                                            | "BEFORE_LEAVE_REACH"
-                                            | "ENTER_REACH";
-                                        };
-                                        contactSourceId: string;
-                                        eligibilityEvidenceChecksum: string;
-                                        optionId: string;
-                                        policy: {
-                                          allowanceDefinitionId: string;
-                                          allowanceMaximum: number;
-                                          allowanceRefreshBoundary: "START_OF_TURN";
-                                          choiceDefinitionId: string | null;
-                                          eligible: boolean;
-                                          selectionPolicy:
-                                            "AUTOMATIC" | "CHOICE";
-                                          targetPolicy: "MOVER";
-                                        };
-                                        visibility: "CONTROLLER" | "GM_ONLY";
-                                      }>;
+                                    candidate: {
+                                      contact: { x: number; y: number };
+                                      movingActorId: string;
                                       pathDistance: number;
                                       reactorActorId: string;
                                       reactorTokenId: string;
+                                      sourceId: string;
+                                      stage:
+                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     };
-                                    kind: "CONTROLLER_CHOICE";
-                                  }
-                              >;
+                                    contactSourceId: string;
+                                    eligibilityEvidenceChecksum: string;
+                                    optionId: string;
+                                    policy: {
+                                      allowanceDefinitionId: string;
+                                      allowanceMaximum: number;
+                                      allowanceRefreshBoundary: "START_OF_TURN";
+                                      choiceDefinitionId: string | null;
+                                      eligible: boolean;
+                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                      targetPolicy: "MOVER";
+                                    };
+                                    visibility: "CONTROLLER" | "GM_ONLY";
+                                  }>;
+                                  pathDistance: number;
+                                  reactorActorId: string;
+                                  reactorTokenId: string;
+                                };
+                                kind: "CONTROLLER_CHOICE";
+                              }>;
                               remainingSpatialCandidates: Array<{
                                 candidate: {
                                   contact: { x: number; y: number };
@@ -113079,6 +113685,7 @@ export declare const internal: {
                                         occurrenceId: string;
                                         occurrenceVersion: number;
                                         request: {
+                                          derivedRollModeReasons: Array<string>;
                                           max: 20;
                                           min: 1;
                                           requestId: string;
@@ -113087,6 +113694,7 @@ export declare const internal: {
                                             | "ADVANTAGE"
                                             | "DISADVANTAGE";
                                         };
+                                        rollerActorId: string | null;
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -113101,6 +113709,7 @@ export declare const internal: {
                                           min: number;
                                           requestId: string;
                                         };
+                                        rollerActorId: string | null;
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -113458,6 +114067,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -113646,6 +114259,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -113747,6 +114364,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -113876,6 +114497,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -114149,6 +114774,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -114229,6 +114858,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -114533,6 +115166,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -114721,6 +115358,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -114822,6 +115463,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -114951,6 +115596,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -115224,6 +115873,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -115304,6 +115957,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -116656,6 +117313,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -116848,6 +117509,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -116954,6 +117619,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -117088,6 +117757,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -117371,6 +118044,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -117452,6 +118129,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -117921,6 +118602,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -118702,6 +119387,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -118894,6 +119583,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -119000,6 +119693,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -119134,6 +119831,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -119417,6 +120118,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -119498,6 +120203,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -119872,6 +120581,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -120315,6 +121028,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -120505,6 +121222,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -120606,6 +121327,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -120735,6 +121460,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -121015,6 +121744,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -121095,6 +121828,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -121285,6 +122022,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -121513,6 +122254,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -122618,6 +123361,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -122723,6 +123470,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -122996,6 +123745,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -123186,6 +123939,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -123287,6 +124044,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -123416,6 +124177,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -123696,6 +124461,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -123776,6 +124545,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -123966,6 +124739,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -124194,6 +124971,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -124570,6 +125349,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -125335,6 +126116,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -125527,6 +126312,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -125633,6 +126422,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -125767,6 +126560,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -126050,6 +126847,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -126131,6 +126932,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -126593,6 +127398,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -126775,6 +127582,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -126873,6 +127682,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -126999,6 +127810,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -127265,6 +128078,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -127342,6 +128157,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -127521,6 +128338,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -127742,6 +128561,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -128120,6 +128941,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -128222,6 +129045,8 @@ export declare const internal: {
                                 sourceId: string;
                               }>;
                               defenseOrDc: number;
+                              derivedRollMode:
+                                "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                               modifier: number;
                               rawFaces: Array<number>;
                               requestId: string;
@@ -128311,145 +129136,76 @@ export declare const internal: {
                             contact: { x: number; y: number };
                             pathDistance: number;
                           } | null;
-                          reactionTimeline: Array<
-                            | {
-                                kind: "AUTOMATIC_ACTION";
-                                option: {
-                                  actionId: string;
-                                  actionSourceCurrentnessChecksum: string;
-                                  actionSourceKind:
-                                    "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                  authority:
-                                    | {
-                                        characterId: string;
-                                        kind: "CHARACTER_CONTROLLER";
-                                      }
-                                    | { kind: "GM" };
-                                  binding: {
-                                    eligibilityDefinitionId: string;
-                                    kind: "MOVEMENT";
-                                    movementInterruption?: null | {
-                                      kind: "STOP";
-                                      whenResultPath:
-                                        | "PASSIVE"
-                                        | "ON_USE"
-                                        | "ON_CAST"
-                                        | "ON_ATTACK"
-                                        | "ON_HIT"
-                                        | "ON_MISS"
-                                        | "ON_CRIT"
-                                        | "ON_SAVE_FAIL"
-                                        | "ON_SAVE_SUCCESS"
-                                        | "START_OF_TURN"
-                                        | "END_OF_TURN"
-                                        | "ON_MOVE"
-                                        | "ON_HP_ZERO";
-                                    };
-                                    perceptionRequirement:
-                                      | "DETECT"
-                                      | "LOCATE"
-                                      | "PRECISE"
-                                      | "SEE"
-                                      | null;
-                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                          reactionTimeline: Array<{
+                            group: {
+                              options: Array<{
+                                actionId: string;
+                                actionSourceCurrentnessChecksum: string;
+                                actionSourceKind:
+                                  "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                authority:
+                                  | {
+                                      characterId: string;
+                                      kind: "CHARACTER_CONTROLLER";
+                                    }
+                                  | { kind: "GM" };
+                                binding: {
+                                  eligibilityDefinitionId: string;
+                                  kind: "MOVEMENT";
+                                  movementInterruption?: null | {
+                                    kind: "STOP";
+                                    whenResultPath:
+                                      | "PASSIVE"
+                                      | "ON_USE"
+                                      | "ON_CAST"
+                                      | "ON_ATTACK"
+                                      | "ON_HIT"
+                                      | "ON_MISS"
+                                      | "ON_CRIT"
+                                      | "ON_SAVE_FAIL"
+                                      | "ON_SAVE_SUCCESS"
+                                      | "START_OF_TURN"
+                                      | "END_OF_TURN"
+                                      | "ON_MOVE"
+                                      | "ON_HP_ZERO";
                                   };
-                                  candidate: {
-                                    contact: { x: number; y: number };
-                                    movingActorId: string;
-                                    pathDistance: number;
-                                    reactorActorId: string;
-                                    reactorTokenId: string;
-                                    sourceId: string;
-                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                  };
-                                  contactSourceId: string;
-                                  eligibilityEvidenceChecksum: string;
-                                  optionId: string;
-                                  policy: {
-                                    allowanceDefinitionId: string;
-                                    allowanceMaximum: number;
-                                    allowanceRefreshBoundary: "START_OF_TURN";
-                                    choiceDefinitionId: string | null;
-                                    eligible: boolean;
-                                    selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                    targetPolicy: "MOVER";
-                                  };
-                                  visibility: "CONTROLLER" | "GM_ONLY";
+                                  perceptionRequirement:
+                                    | "DETECT"
+                                    | "LOCATE"
+                                    | "PRECISE"
+                                    | "SEE"
+                                    | null;
+                                  stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                 };
-                              }
-                            | {
-                                group: {
-                                  options: Array<{
-                                    actionId: string;
-                                    actionSourceCurrentnessChecksum: string;
-                                    actionSourceKind:
-                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                    authority:
-                                      | {
-                                          characterId: string;
-                                          kind: "CHARACTER_CONTROLLER";
-                                        }
-                                      | { kind: "GM" };
-                                    binding: {
-                                      eligibilityDefinitionId: string;
-                                      kind: "MOVEMENT";
-                                      movementInterruption?: null | {
-                                        kind: "STOP";
-                                        whenResultPath:
-                                          | "PASSIVE"
-                                          | "ON_USE"
-                                          | "ON_CAST"
-                                          | "ON_ATTACK"
-                                          | "ON_HIT"
-                                          | "ON_MISS"
-                                          | "ON_CRIT"
-                                          | "ON_SAVE_FAIL"
-                                          | "ON_SAVE_SUCCESS"
-                                          | "START_OF_TURN"
-                                          | "END_OF_TURN"
-                                          | "ON_MOVE"
-                                          | "ON_HP_ZERO";
-                                      };
-                                      perceptionRequirement:
-                                        | "DETECT"
-                                        | "LOCATE"
-                                        | "PRECISE"
-                                        | "SEE"
-                                        | null;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    candidate: {
-                                      contact: { x: number; y: number };
-                                      movingActorId: string;
-                                      pathDistance: number;
-                                      reactorActorId: string;
-                                      reactorTokenId: string;
-                                      sourceId: string;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    contactSourceId: string;
-                                    eligibilityEvidenceChecksum: string;
-                                    optionId: string;
-                                    policy: {
-                                      allowanceDefinitionId: string;
-                                      allowanceMaximum: number;
-                                      allowanceRefreshBoundary: "START_OF_TURN";
-                                      choiceDefinitionId: string | null;
-                                      eligible: boolean;
-                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                      targetPolicy: "MOVER";
-                                    };
-                                    visibility: "CONTROLLER" | "GM_ONLY";
-                                  }>;
+                                candidate: {
+                                  contact: { x: number; y: number };
+                                  movingActorId: string;
                                   pathDistance: number;
                                   reactorActorId: string;
                                   reactorTokenId: string;
+                                  sourceId: string;
+                                  stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                 };
-                                kind: "CONTROLLER_CHOICE";
-                              }
-                          >;
+                                contactSourceId: string;
+                                eligibilityEvidenceChecksum: string;
+                                optionId: string;
+                                policy: {
+                                  allowanceDefinitionId: string;
+                                  allowanceMaximum: number;
+                                  allowanceRefreshBoundary: "START_OF_TURN";
+                                  choiceDefinitionId: string | null;
+                                  eligible: boolean;
+                                  selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                  targetPolicy: "MOVER";
+                                };
+                                visibility: "CONTROLLER" | "GM_ONLY";
+                              }>;
+                              pathDistance: number;
+                              reactorActorId: string;
+                              reactorTokenId: string;
+                            };
+                            kind: "CONTROLLER_CHOICE";
+                          }>;
                           remainingSpatialCandidates: Array<{
                             candidate: {
                               contact: { x: number; y: number };
@@ -128752,8 +129508,13 @@ export declare const internal: {
           expectedVersion: number;
           occurrenceId: string;
           resolution:
-            | { kind: "ENTER_DICE"; rawFaces: Array<number>; requestId: string }
-            | { kind: "SYSTEM_ROLL"; requestId: string }
+            | {
+                kind: "ENTER_DICE";
+                rawFaces: Array<number>;
+                requestId: string;
+                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              }
+            | { kind: "SYSTEM_ROLL"; requestId: string; rollId: string }
             | { kind: "ENTER_INTEGER"; requestId: string; value: number }
             | { entityId: string; kind: "INITIATIVE_ENTITY"; requestId: string }
             | {
@@ -128828,6 +129589,17 @@ export declare const internal: {
           type: "RESOLVE_RULE_OCCURRENCE";
         },
         {
+          evidenceRoll?: {
+            attempt: number;
+            derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            faces: Array<number>;
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollId: string;
+            rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            value: number;
+          } | null;
           occurrence?: {
             occurrenceId: string;
             occurrenceVersion: number;
@@ -128840,11 +129612,13 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    derivedRollModeReasons: Array<string>;
                     max: 20;
                     min: 1;
                     requestId: string;
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -128853,6 +129627,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: number; min: number; requestId: string };
+                  rollerActorId: string | null;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -129009,7 +129784,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
                   currentHitPoints: number;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
                   features?: Array<{
                     description: string;
@@ -129086,6 +129863,11 @@ export declare const internal: {
                     damageImmunities: Array<string>;
                     damageResistances: Array<string>;
                     damageVulnerabilities: Array<string>;
+                    qualifiedDamageDefenses: Array<{
+                      bypassedBy: Array<"MAGICAL" | "SILVERED" | "ADAMANTINE">;
+                      damageTypeIds: Array<string>;
+                      kind: "RESISTANCE" | "IMMUNITY";
+                    }>;
                     senses: Array<string>;
                     speeds: Array<any>;
                   } | null;
@@ -129164,13 +129946,9 @@ export declare const internal: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  controllerUserIds: Array<string>;
+                  disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
-                  healthBand:
-                    | "HEALTHY"
-                    | "WOUNDED"
-                    | "BLOODIED"
-                    | "CRITICAL"
-                    | "DEFEATED";
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -129467,8 +130245,13 @@ export declare const internal: {
           expectedVersion: number;
           occurrenceId: string;
           resolution:
-            | { kind: "ENTER_DICE"; rawFaces: Array<number>; requestId: string }
-            | { kind: "SYSTEM_ROLL"; requestId: string }
+            | {
+                kind: "ENTER_DICE";
+                rawFaces: Array<number>;
+                requestId: string;
+                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              }
+            | { kind: "SYSTEM_ROLL"; requestId: string; rollId: string }
             | { kind: "ENTER_INTEGER"; requestId: string; value: number }
             | { entityId: string; kind: "INITIATIVE_ENTITY"; requestId: string }
             | {
@@ -129963,11 +130746,13 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: {
+                        derivedRollModeReasons: Array<string>;
                         max: 20;
                         min: 1;
                         requestId: string;
                         rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                       };
+                      rollerActorId: string | null;
                     }
                   | {
                       allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -129976,6 +130761,7 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: { max: number; min: number; requestId: string };
+                      rollerActorId: string | null;
                     }
                   | {
                       allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -131813,6 +132599,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -131909,6 +132697,8 @@ export declare const internal: {
                             sourceId: string;
                           }>;
                           defenseOrDc: number;
+                          derivedRollMode:
+                            "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                           modifier: number;
                           rawFaces: Array<number>;
                           requestId: string;
@@ -132149,6 +132939,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -132331,6 +133123,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -132429,6 +133223,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -132555,6 +133351,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -132818,6 +133616,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -132895,6 +133695,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -133071,6 +133873,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -133268,6 +134072,8 @@ export declare const internal: {
                               sourceId: string;
                             }>;
                             defenseOrDc: number;
+                            derivedRollMode:
+                              "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             modifier: number;
                             rawFaces: Array<number>;
                             requestId: string;
@@ -133631,6 +134437,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -133813,6 +134621,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -133911,6 +134721,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -134037,6 +134849,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -134300,6 +135114,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -134377,6 +135193,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -134553,6 +135371,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 dc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -134750,6 +135570,8 @@ export declare const internal: {
                               sourceId: string;
                             }>;
                             defenseOrDc: number;
+                            derivedRollMode:
+                              "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                             modifier: number;
                             rawFaces: Array<number>;
                             requestId: string;
@@ -135137,6 +135959,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -135239,6 +136063,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -135712,6 +136538,7 @@ export declare const internal: {
                                           occurrenceId: string;
                                           occurrenceVersion: number;
                                           request: {
+                                            derivedRollModeReasons: Array<string>;
                                             max: 20;
                                             min: 1;
                                             requestId: string;
@@ -135720,6 +136547,7 @@ export declare const internal: {
                                               | "ADVANTAGE"
                                               | "DISADVANTAGE";
                                           };
+                                          rollerActorId: string | null;
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -135734,6 +136562,7 @@ export declare const internal: {
                                             min: number;
                                             requestId: string;
                                           };
+                                          rollerActorId: string | null;
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -136097,6 +136926,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -136287,6 +137120,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -136388,6 +137225,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -136517,6 +137358,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -136797,6 +137642,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -136877,6 +137726,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -137193,6 +138046,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -137383,6 +138240,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -137484,6 +138345,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -137613,6 +138478,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -137893,6 +138762,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -137973,6 +138846,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -139341,6 +140218,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -139547,6 +140428,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -139657,6 +140542,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -139795,6 +140684,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -140092,6 +140985,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -140173,6 +141070,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -140656,6 +141557,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -141442,6 +142347,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -141648,6 +142557,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -141758,6 +142671,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -141896,6 +142813,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -142193,6 +143114,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -142274,6 +143199,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -142662,6 +143591,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -143106,6 +144039,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -143297,6 +144234,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -143398,6 +144339,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -143527,6 +144472,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -143808,6 +144757,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -143888,6 +144841,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -144078,6 +145035,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -144307,6 +145268,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -145428,6 +146393,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -145533,6 +146502,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -145806,6 +146777,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -145997,6 +146972,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -146098,6 +147077,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -146227,6 +147210,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -146508,6 +147495,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -146588,6 +147579,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -146778,6 +147773,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -147007,6 +148006,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -147386,6 +148389,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -148158,6 +149163,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   dc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -148364,6 +149373,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -148474,6 +149487,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -148612,6 +149629,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -148909,6 +149930,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -148990,6 +150015,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -149450,6 +150479,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -149634,6 +150665,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -149733,6 +150766,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -149861,6 +150898,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -150129,6 +151168,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -150206,6 +151247,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -150385,6 +151428,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -150608,6 +151653,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -150988,6 +152035,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       dc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -151090,6 +152139,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -151315,6 +152366,7 @@ export declare const internal: {
                                   } | null;
                                   kind: "ACTION_EVIDENCE";
                                   maintenanceCurrentnessChecksum?: string;
+                                  rollerActorId: string;
                                   selectedOptionId: string;
                                   twoPhase?:
                                     | {
@@ -151447,6 +152499,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -151518,6 +152574,10 @@ export declare const internal: {
                                         };
                                         testExecutionChecksum: string;
                                         testRollEvidence: {
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           rawFaces: Array<number>;
                                           requestId: string;
                                           rollMode:
@@ -151542,6 +152602,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -151628,148 +152690,76 @@ export declare const internal: {
                                   targetStateChecksum: string;
                                 };
                             reactionSelectionChecksum: string;
-                            reactionTimeline: Array<
-                              | {
-                                  kind: "AUTOMATIC_ACTION";
-                                  option: {
-                                    actionId: string;
-                                    actionSourceCurrentnessChecksum: string;
-                                    actionSourceKind:
-                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                    authority:
-                                      | {
-                                          characterId: string;
-                                          kind: "CHARACTER_CONTROLLER";
-                                        }
-                                      | { kind: "GM" };
-                                    binding: {
-                                      eligibilityDefinitionId: string;
-                                      kind: "MOVEMENT";
-                                      movementInterruption?: null | {
-                                        kind: "STOP";
-                                        whenResultPath:
-                                          | "PASSIVE"
-                                          | "ON_USE"
-                                          | "ON_CAST"
-                                          | "ON_ATTACK"
-                                          | "ON_HIT"
-                                          | "ON_MISS"
-                                          | "ON_CRIT"
-                                          | "ON_SAVE_FAIL"
-                                          | "ON_SAVE_SUCCESS"
-                                          | "START_OF_TURN"
-                                          | "END_OF_TURN"
-                                          | "ON_MOVE"
-                                          | "ON_HP_ZERO";
-                                      };
-                                      perceptionRequirement:
-                                        | "DETECT"
-                                        | "LOCATE"
-                                        | "PRECISE"
-                                        | "SEE"
-                                        | null;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                            reactionTimeline: Array<{
+                              group: {
+                                options: Array<{
+                                  actionId: string;
+                                  actionSourceCurrentnessChecksum: string;
+                                  actionSourceKind:
+                                    "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                  authority:
+                                    | {
+                                        characterId: string;
+                                        kind: "CHARACTER_CONTROLLER";
+                                      }
+                                    | { kind: "GM" };
+                                  binding: {
+                                    eligibilityDefinitionId: string;
+                                    kind: "MOVEMENT";
+                                    movementInterruption?: null | {
+                                      kind: "STOP";
+                                      whenResultPath:
+                                        | "PASSIVE"
+                                        | "ON_USE"
+                                        | "ON_CAST"
+                                        | "ON_ATTACK"
+                                        | "ON_HIT"
+                                        | "ON_MISS"
+                                        | "ON_CRIT"
+                                        | "ON_SAVE_FAIL"
+                                        | "ON_SAVE_SUCCESS"
+                                        | "START_OF_TURN"
+                                        | "END_OF_TURN"
+                                        | "ON_MOVE"
+                                        | "ON_HP_ZERO";
                                     };
-                                    candidate: {
-                                      contact: { x: number; y: number };
-                                      movingActorId: string;
-                                      pathDistance: number;
-                                      reactorActorId: string;
-                                      reactorTokenId: string;
-                                      sourceId: string;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    contactSourceId: string;
-                                    eligibilityEvidenceChecksum: string;
-                                    optionId: string;
-                                    policy: {
-                                      allowanceDefinitionId: string;
-                                      allowanceMaximum: number;
-                                      allowanceRefreshBoundary: "START_OF_TURN";
-                                      choiceDefinitionId: string | null;
-                                      eligible: boolean;
-                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                      targetPolicy: "MOVER";
-                                    };
-                                    visibility: "CONTROLLER" | "GM_ONLY";
+                                    perceptionRequirement:
+                                      | "DETECT"
+                                      | "LOCATE"
+                                      | "PRECISE"
+                                      | "SEE"
+                                      | null;
+                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   };
-                                }
-                              | {
-                                  group: {
-                                    options: Array<{
-                                      actionId: string;
-                                      actionSourceCurrentnessChecksum: string;
-                                      actionSourceKind:
-                                        | "CHARACTER_ACTION"
-                                        | "ENCOUNTER_FEATURE";
-                                      authority:
-                                        | {
-                                            characterId: string;
-                                            kind: "CHARACTER_CONTROLLER";
-                                          }
-                                        | { kind: "GM" };
-                                      binding: {
-                                        eligibilityDefinitionId: string;
-                                        kind: "MOVEMENT";
-                                        movementInterruption?: null | {
-                                          kind: "STOP";
-                                          whenResultPath:
-                                            | "PASSIVE"
-                                            | "ON_USE"
-                                            | "ON_CAST"
-                                            | "ON_ATTACK"
-                                            | "ON_HIT"
-                                            | "ON_MISS"
-                                            | "ON_CRIT"
-                                            | "ON_SAVE_FAIL"
-                                            | "ON_SAVE_SUCCESS"
-                                            | "START_OF_TURN"
-                                            | "END_OF_TURN"
-                                            | "ON_MOVE"
-                                            | "ON_HP_ZERO";
-                                        };
-                                        perceptionRequirement:
-                                          | "DETECT"
-                                          | "LOCATE"
-                                          | "PRECISE"
-                                          | "SEE"
-                                          | null;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      candidate: {
-                                        contact: { x: number; y: number };
-                                        movingActorId: string;
-                                        pathDistance: number;
-                                        reactorActorId: string;
-                                        reactorTokenId: string;
-                                        sourceId: string;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      contactSourceId: string;
-                                      eligibilityEvidenceChecksum: string;
-                                      optionId: string;
-                                      policy: {
-                                        allowanceDefinitionId: string;
-                                        allowanceMaximum: number;
-                                        allowanceRefreshBoundary: "START_OF_TURN";
-                                        choiceDefinitionId: string | null;
-                                        eligible: boolean;
-                                        selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                        targetPolicy: "MOVER";
-                                      };
-                                      visibility: "CONTROLLER" | "GM_ONLY";
-                                    }>;
+                                  candidate: {
+                                    contact: { x: number; y: number };
+                                    movingActorId: string;
                                     pathDistance: number;
                                     reactorActorId: string;
                                     reactorTokenId: string;
+                                    sourceId: string;
+                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   };
-                                  kind: "CONTROLLER_CHOICE";
-                                }
-                            >;
+                                  contactSourceId: string;
+                                  eligibilityEvidenceChecksum: string;
+                                  optionId: string;
+                                  policy: {
+                                    allowanceDefinitionId: string;
+                                    allowanceMaximum: number;
+                                    allowanceRefreshBoundary: "START_OF_TURN";
+                                    choiceDefinitionId: string | null;
+                                    eligible: boolean;
+                                    selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                    targetPolicy: "MOVER";
+                                  };
+                                  visibility: "CONTROLLER" | "GM_ONLY";
+                                }>;
+                                pathDistance: number;
+                                reactorActorId: string;
+                                reactorTokenId: string;
+                              };
+                              kind: "CONTROLLER_CHOICE";
+                            }>;
                             remainingSpatialCandidates: Array<{
                               candidate: {
                                 contact: { x: number; y: number };
@@ -152152,6 +153142,7 @@ export declare const internal: {
                                             occurrenceId: string;
                                             occurrenceVersion: number;
                                             request: {
+                                              derivedRollModeReasons: Array<string>;
                                               max: 20;
                                               min: 1;
                                               requestId: string;
@@ -152160,6 +153151,7 @@ export declare const internal: {
                                                 | "ADVANTAGE"
                                                 | "DISADVANTAGE";
                                             };
+                                            rollerActorId: string | null;
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -152174,6 +153166,7 @@ export declare const internal: {
                                               min: number;
                                               requestId: string;
                                             };
+                                            rollerActorId: string | null;
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -152540,6 +153533,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -152731,6 +153728,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -152832,6 +153833,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -152961,6 +153966,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -153242,6 +154251,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -153322,6 +154335,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -153638,6 +154655,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             dc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -153829,6 +154850,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -153930,6 +154955,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -154059,6 +155088,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -154340,6 +155373,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -154420,6 +155457,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -155798,6 +156839,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -156006,6 +157051,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -156119,6 +157168,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -156259,6 +157312,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -156557,6 +157614,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -156638,6 +157699,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -157121,6 +158186,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -157913,6 +158982,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -158121,6 +159194,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -158234,6 +159311,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -158374,6 +159455,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -158672,6 +159757,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -158753,6 +159842,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -159141,6 +160234,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -159586,6 +160683,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -159777,6 +160878,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -159879,6 +160984,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -160008,6 +161117,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -160289,6 +161402,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -160369,6 +161486,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -160565,6 +161686,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -160794,6 +161919,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -161935,6 +163064,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -162041,6 +163174,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -162317,6 +163454,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -162508,6 +163649,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -162610,6 +163755,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -162739,6 +163888,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -163020,6 +164173,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -163100,6 +164257,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               defenseOrDc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -163296,6 +164457,10 @@ export declare const internal: {
                                                 sourceId: string;
                                               }>;
                                               dc: number;
+                                              derivedRollMode:
+                                                | "NORMAL"
+                                                | "ADVANTAGE"
+                                                | "DISADVANTAGE";
                                               modifier: number;
                                               rawFaces: Array<number>;
                                               requestId: string;
@@ -163525,6 +164690,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -163909,6 +165078,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -164689,6 +165862,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     dc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -164897,6 +166074,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -165010,6 +166191,10 @@ export declare const internal: {
                                                         sourceId: string;
                                                       }>;
                                                       defenseOrDc: number;
+                                                      derivedRollMode:
+                                                        | "NORMAL"
+                                                        | "ADVANTAGE"
+                                                        | "DISADVANTAGE";
                                                       modifier: number;
                                                       rawFaces: Array<number>;
                                                       requestId: string;
@@ -165150,6 +166335,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -165448,6 +166637,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -165529,6 +166722,10 @@ export declare const internal: {
                                                       sourceId: string;
                                                     }>;
                                                     defenseOrDc: number;
+                                                    derivedRollMode:
+                                                      | "NORMAL"
+                                                      | "ADVANTAGE"
+                                                      | "DISADVANTAGE";
                                                     modifier: number;
                                                     rawFaces: Array<number>;
                                                     requestId: string;
@@ -166003,6 +167200,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -166191,6 +167392,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -166292,6 +167497,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -166421,6 +167630,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -166694,6 +167907,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -166774,6 +167991,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -166958,6 +168179,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -167185,6 +168410,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -167566,6 +168793,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -167670,6 +168901,8 @@ export declare const internal: {
                                     sourceId: string;
                                   }>;
                                   defenseOrDc: number;
+                                  derivedRollMode:
+                                    "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                   modifier: number;
                                   rawFaces: Array<number>;
                                   requestId: string;
@@ -167762,152 +168995,78 @@ export declare const internal: {
                                 contact: { x: number; y: number };
                                 pathDistance: number;
                               } | null;
-                              reactionTimeline: Array<
-                                | {
-                                    kind: "AUTOMATIC_ACTION";
-                                    option: {
-                                      actionId: string;
-                                      actionSourceCurrentnessChecksum: string;
-                                      actionSourceKind:
-                                        | "CHARACTER_ACTION"
-                                        | "ENCOUNTER_FEATURE";
-                                      authority:
-                                        | {
-                                            characterId: string;
-                                            kind: "CHARACTER_CONTROLLER";
-                                          }
-                                        | { kind: "GM" };
-                                      binding: {
-                                        eligibilityDefinitionId: string;
-                                        kind: "MOVEMENT";
-                                        movementInterruption?: null | {
-                                          kind: "STOP";
-                                          whenResultPath:
-                                            | "PASSIVE"
-                                            | "ON_USE"
-                                            | "ON_CAST"
-                                            | "ON_ATTACK"
-                                            | "ON_HIT"
-                                            | "ON_MISS"
-                                            | "ON_CRIT"
-                                            | "ON_SAVE_FAIL"
-                                            | "ON_SAVE_SUCCESS"
-                                            | "START_OF_TURN"
-                                            | "END_OF_TURN"
-                                            | "ON_MOVE"
-                                            | "ON_HP_ZERO";
-                                        };
-                                        perceptionRequirement:
-                                          | "DETECT"
-                                          | "LOCATE"
-                                          | "PRECISE"
-                                          | "SEE"
-                                          | null;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                              reactionTimeline: Array<{
+                                group: {
+                                  options: Array<{
+                                    actionId: string;
+                                    actionSourceCurrentnessChecksum: string;
+                                    actionSourceKind:
+                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                    authority:
+                                      | {
+                                          characterId: string;
+                                          kind: "CHARACTER_CONTROLLER";
+                                        }
+                                      | { kind: "GM" };
+                                    binding: {
+                                      eligibilityDefinitionId: string;
+                                      kind: "MOVEMENT";
+                                      movementInterruption?: null | {
+                                        kind: "STOP";
+                                        whenResultPath:
+                                          | "PASSIVE"
+                                          | "ON_USE"
+                                          | "ON_CAST"
+                                          | "ON_ATTACK"
+                                          | "ON_HIT"
+                                          | "ON_MISS"
+                                          | "ON_CRIT"
+                                          | "ON_SAVE_FAIL"
+                                          | "ON_SAVE_SUCCESS"
+                                          | "START_OF_TURN"
+                                          | "END_OF_TURN"
+                                          | "ON_MOVE"
+                                          | "ON_HP_ZERO";
                                       };
-                                      candidate: {
-                                        contact: { x: number; y: number };
-                                        movingActorId: string;
-                                        pathDistance: number;
-                                        reactorActorId: string;
-                                        reactorTokenId: string;
-                                        sourceId: string;
-                                        stage:
-                                          "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                      };
-                                      contactSourceId: string;
-                                      eligibilityEvidenceChecksum: string;
-                                      optionId: string;
-                                      policy: {
-                                        allowanceDefinitionId: string;
-                                        allowanceMaximum: number;
-                                        allowanceRefreshBoundary: "START_OF_TURN";
-                                        choiceDefinitionId: string | null;
-                                        eligible: boolean;
-                                        selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                        targetPolicy: "MOVER";
-                                      };
-                                      visibility: "CONTROLLER" | "GM_ONLY";
+                                      perceptionRequirement:
+                                        | "DETECT"
+                                        | "LOCATE"
+                                        | "PRECISE"
+                                        | "SEE"
+                                        | null;
+                                      stage:
+                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     };
-                                  }
-                                | {
-                                    group: {
-                                      options: Array<{
-                                        actionId: string;
-                                        actionSourceCurrentnessChecksum: string;
-                                        actionSourceKind:
-                                          | "CHARACTER_ACTION"
-                                          | "ENCOUNTER_FEATURE";
-                                        authority:
-                                          | {
-                                              characterId: string;
-                                              kind: "CHARACTER_CONTROLLER";
-                                            }
-                                          | { kind: "GM" };
-                                        binding: {
-                                          eligibilityDefinitionId: string;
-                                          kind: "MOVEMENT";
-                                          movementInterruption?: null | {
-                                            kind: "STOP";
-                                            whenResultPath:
-                                              | "PASSIVE"
-                                              | "ON_USE"
-                                              | "ON_CAST"
-                                              | "ON_ATTACK"
-                                              | "ON_HIT"
-                                              | "ON_MISS"
-                                              | "ON_CRIT"
-                                              | "ON_SAVE_FAIL"
-                                              | "ON_SAVE_SUCCESS"
-                                              | "START_OF_TURN"
-                                              | "END_OF_TURN"
-                                              | "ON_MOVE"
-                                              | "ON_HP_ZERO";
-                                          };
-                                          perceptionRequirement:
-                                            | "DETECT"
-                                            | "LOCATE"
-                                            | "PRECISE"
-                                            | "SEE"
-                                            | null;
-                                          stage:
-                                            | "BEFORE_LEAVE_REACH"
-                                            | "ENTER_REACH";
-                                        };
-                                        candidate: {
-                                          contact: { x: number; y: number };
-                                          movingActorId: string;
-                                          pathDistance: number;
-                                          reactorActorId: string;
-                                          reactorTokenId: string;
-                                          sourceId: string;
-                                          stage:
-                                            | "BEFORE_LEAVE_REACH"
-                                            | "ENTER_REACH";
-                                        };
-                                        contactSourceId: string;
-                                        eligibilityEvidenceChecksum: string;
-                                        optionId: string;
-                                        policy: {
-                                          allowanceDefinitionId: string;
-                                          allowanceMaximum: number;
-                                          allowanceRefreshBoundary: "START_OF_TURN";
-                                          choiceDefinitionId: string | null;
-                                          eligible: boolean;
-                                          selectionPolicy:
-                                            "AUTOMATIC" | "CHOICE";
-                                          targetPolicy: "MOVER";
-                                        };
-                                        visibility: "CONTROLLER" | "GM_ONLY";
-                                      }>;
+                                    candidate: {
+                                      contact: { x: number; y: number };
+                                      movingActorId: string;
                                       pathDistance: number;
                                       reactorActorId: string;
                                       reactorTokenId: string;
+                                      sourceId: string;
+                                      stage:
+                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     };
-                                    kind: "CONTROLLER_CHOICE";
-                                  }
-                              >;
+                                    contactSourceId: string;
+                                    eligibilityEvidenceChecksum: string;
+                                    optionId: string;
+                                    policy: {
+                                      allowanceDefinitionId: string;
+                                      allowanceMaximum: number;
+                                      allowanceRefreshBoundary: "START_OF_TURN";
+                                      choiceDefinitionId: string | null;
+                                      eligible: boolean;
+                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                      targetPolicy: "MOVER";
+                                    };
+                                    visibility: "CONTROLLER" | "GM_ONLY";
+                                  }>;
+                                  pathDistance: number;
+                                  reactorActorId: string;
+                                  reactorTokenId: string;
+                                };
+                                kind: "CONTROLLER_CHOICE";
+                              }>;
                               remainingSpatialCandidates: Array<{
                                 candidate: {
                                   contact: { x: number; y: number };
@@ -168556,6 +169715,7 @@ export declare const internal: {
                                         occurrenceId: string;
                                         occurrenceVersion: number;
                                         request: {
+                                          derivedRollModeReasons: Array<string>;
                                           max: 20;
                                           min: 1;
                                           requestId: string;
@@ -168564,6 +169724,7 @@ export declare const internal: {
                                             | "ADVANTAGE"
                                             | "DISADVANTAGE";
                                         };
+                                        rollerActorId: string | null;
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -168578,6 +169739,7 @@ export declare const internal: {
                                           min: number;
                                           requestId: string;
                                         };
+                                        rollerActorId: string | null;
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -168935,6 +170097,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -169123,6 +170289,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -169224,6 +170394,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -169353,6 +170527,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -169626,6 +170804,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -169706,6 +170888,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -170010,6 +171196,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         dc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -170198,6 +171388,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -170299,6 +171493,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -170428,6 +171626,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -170701,6 +171903,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -170781,6 +171987,10 @@ export declare const internal: {
                                           sourceId: string;
                                         }>;
                                         defenseOrDc: number;
+                                        derivedRollMode:
+                                          | "NORMAL"
+                                          | "ADVANTAGE"
+                                          | "DISADVANTAGE";
                                         modifier: number;
                                         rawFaces: Array<number>;
                                         requestId: string;
@@ -172133,6 +173343,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -172325,6 +173539,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -172431,6 +173649,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -172565,6 +173787,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -172848,6 +174074,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -172929,6 +174159,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -173398,6 +174632,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -174179,6 +175417,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -174371,6 +175613,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -174477,6 +175723,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -174611,6 +175861,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -174894,6 +176148,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -174975,6 +176233,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -175349,6 +176611,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -175792,6 +177058,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -175982,6 +177252,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -176083,6 +177357,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -176212,6 +177490,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -176492,6 +177774,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -176572,6 +177858,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -176762,6 +178052,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -176990,6 +178284,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -178095,6 +179391,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -178200,6 +179500,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -178473,6 +179775,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -178663,6 +179969,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -178764,6 +180074,10 @@ export declare const internal: {
                                               sourceId: string;
                                             }>;
                                             defenseOrDc: number;
+                                            derivedRollMode:
+                                              | "NORMAL"
+                                              | "ADVANTAGE"
+                                              | "DISADVANTAGE";
                                             modifier: number;
                                             rawFaces: Array<number>;
                                             requestId: string;
@@ -178893,6 +180207,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -179173,6 +180491,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -179253,6 +180575,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           defenseOrDc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -179443,6 +180769,10 @@ export declare const internal: {
                                             sourceId: string;
                                           }>;
                                           dc: number;
+                                          derivedRollMode:
+                                            | "NORMAL"
+                                            | "ADVANTAGE"
+                                            | "DISADVANTAGE";
                                           modifier: number;
                                           rawFaces: Array<number>;
                                           requestId: string;
@@ -179671,6 +181001,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -180047,6 +181379,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -180812,6 +182146,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 dc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -181004,6 +182342,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -181110,6 +182452,10 @@ export declare const internal: {
                                                     sourceId: string;
                                                   }>;
                                                   defenseOrDc: number;
+                                                  derivedRollMode:
+                                                    | "NORMAL"
+                                                    | "ADVANTAGE"
+                                                    | "DISADVANTAGE";
                                                   modifier: number;
                                                   rawFaces: Array<number>;
                                                   requestId: string;
@@ -181244,6 +182590,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -181527,6 +182877,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -181608,6 +182962,10 @@ export declare const internal: {
                                                   sourceId: string;
                                                 }>;
                                                 defenseOrDc: number;
+                                                derivedRollMode:
+                                                  | "NORMAL"
+                                                  | "ADVANTAGE"
+                                                  | "DISADVANTAGE";
                                                 modifier: number;
                                                 rawFaces: Array<number>;
                                                 requestId: string;
@@ -182070,6 +183428,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -182252,6 +183612,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -182350,6 +183712,8 @@ export declare const internal: {
                                         sourceId: string;
                                       }>;
                                       defenseOrDc: number;
+                                      derivedRollMode:
+                                        "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                       modifier: number;
                                       rawFaces: Array<number>;
                                       requestId: string;
@@ -182476,6 +183840,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -182742,6 +184108,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -182819,6 +184187,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     defenseOrDc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -182998,6 +184368,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -183219,6 +184591,8 @@ export declare const internal: {
                                   sourceId: string;
                                 }>;
                                 defenseOrDc: number;
+                                derivedRollMode:
+                                  "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                 modifier: number;
                                 rawFaces: Array<number>;
                                 requestId: string;
@@ -183597,6 +184971,8 @@ export declare const internal: {
                                       sourceId: string;
                                     }>;
                                     dc: number;
+                                    derivedRollMode:
+                                      "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                                     modifier: number;
                                     rawFaces: Array<number>;
                                     requestId: string;
@@ -183699,6 +185075,8 @@ export declare const internal: {
                                 sourceId: string;
                               }>;
                               defenseOrDc: number;
+                              derivedRollMode:
+                                "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                               modifier: number;
                               rawFaces: Array<number>;
                               requestId: string;
@@ -183788,145 +185166,76 @@ export declare const internal: {
                             contact: { x: number; y: number };
                             pathDistance: number;
                           } | null;
-                          reactionTimeline: Array<
-                            | {
-                                kind: "AUTOMATIC_ACTION";
-                                option: {
-                                  actionId: string;
-                                  actionSourceCurrentnessChecksum: string;
-                                  actionSourceKind:
-                                    "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                  authority:
-                                    | {
-                                        characterId: string;
-                                        kind: "CHARACTER_CONTROLLER";
-                                      }
-                                    | { kind: "GM" };
-                                  binding: {
-                                    eligibilityDefinitionId: string;
-                                    kind: "MOVEMENT";
-                                    movementInterruption?: null | {
-                                      kind: "STOP";
-                                      whenResultPath:
-                                        | "PASSIVE"
-                                        | "ON_USE"
-                                        | "ON_CAST"
-                                        | "ON_ATTACK"
-                                        | "ON_HIT"
-                                        | "ON_MISS"
-                                        | "ON_CRIT"
-                                        | "ON_SAVE_FAIL"
-                                        | "ON_SAVE_SUCCESS"
-                                        | "START_OF_TURN"
-                                        | "END_OF_TURN"
-                                        | "ON_MOVE"
-                                        | "ON_HP_ZERO";
-                                    };
-                                    perceptionRequirement:
-                                      | "DETECT"
-                                      | "LOCATE"
-                                      | "PRECISE"
-                                      | "SEE"
-                                      | null;
-                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
+                          reactionTimeline: Array<{
+                            group: {
+                              options: Array<{
+                                actionId: string;
+                                actionSourceCurrentnessChecksum: string;
+                                actionSourceKind:
+                                  "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
+                                authority:
+                                  | {
+                                      characterId: string;
+                                      kind: "CHARACTER_CONTROLLER";
+                                    }
+                                  | { kind: "GM" };
+                                binding: {
+                                  eligibilityDefinitionId: string;
+                                  kind: "MOVEMENT";
+                                  movementInterruption?: null | {
+                                    kind: "STOP";
+                                    whenResultPath:
+                                      | "PASSIVE"
+                                      | "ON_USE"
+                                      | "ON_CAST"
+                                      | "ON_ATTACK"
+                                      | "ON_HIT"
+                                      | "ON_MISS"
+                                      | "ON_CRIT"
+                                      | "ON_SAVE_FAIL"
+                                      | "ON_SAVE_SUCCESS"
+                                      | "START_OF_TURN"
+                                      | "END_OF_TURN"
+                                      | "ON_MOVE"
+                                      | "ON_HP_ZERO";
                                   };
-                                  candidate: {
-                                    contact: { x: number; y: number };
-                                    movingActorId: string;
-                                    pathDistance: number;
-                                    reactorActorId: string;
-                                    reactorTokenId: string;
-                                    sourceId: string;
-                                    stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                  };
-                                  contactSourceId: string;
-                                  eligibilityEvidenceChecksum: string;
-                                  optionId: string;
-                                  policy: {
-                                    allowanceDefinitionId: string;
-                                    allowanceMaximum: number;
-                                    allowanceRefreshBoundary: "START_OF_TURN";
-                                    choiceDefinitionId: string | null;
-                                    eligible: boolean;
-                                    selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                    targetPolicy: "MOVER";
-                                  };
-                                  visibility: "CONTROLLER" | "GM_ONLY";
+                                  perceptionRequirement:
+                                    | "DETECT"
+                                    | "LOCATE"
+                                    | "PRECISE"
+                                    | "SEE"
+                                    | null;
+                                  stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                 };
-                              }
-                            | {
-                                group: {
-                                  options: Array<{
-                                    actionId: string;
-                                    actionSourceCurrentnessChecksum: string;
-                                    actionSourceKind:
-                                      "CHARACTER_ACTION" | "ENCOUNTER_FEATURE";
-                                    authority:
-                                      | {
-                                          characterId: string;
-                                          kind: "CHARACTER_CONTROLLER";
-                                        }
-                                      | { kind: "GM" };
-                                    binding: {
-                                      eligibilityDefinitionId: string;
-                                      kind: "MOVEMENT";
-                                      movementInterruption?: null | {
-                                        kind: "STOP";
-                                        whenResultPath:
-                                          | "PASSIVE"
-                                          | "ON_USE"
-                                          | "ON_CAST"
-                                          | "ON_ATTACK"
-                                          | "ON_HIT"
-                                          | "ON_MISS"
-                                          | "ON_CRIT"
-                                          | "ON_SAVE_FAIL"
-                                          | "ON_SAVE_SUCCESS"
-                                          | "START_OF_TURN"
-                                          | "END_OF_TURN"
-                                          | "ON_MOVE"
-                                          | "ON_HP_ZERO";
-                                      };
-                                      perceptionRequirement:
-                                        | "DETECT"
-                                        | "LOCATE"
-                                        | "PRECISE"
-                                        | "SEE"
-                                        | null;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    candidate: {
-                                      contact: { x: number; y: number };
-                                      movingActorId: string;
-                                      pathDistance: number;
-                                      reactorActorId: string;
-                                      reactorTokenId: string;
-                                      sourceId: string;
-                                      stage:
-                                        "BEFORE_LEAVE_REACH" | "ENTER_REACH";
-                                    };
-                                    contactSourceId: string;
-                                    eligibilityEvidenceChecksum: string;
-                                    optionId: string;
-                                    policy: {
-                                      allowanceDefinitionId: string;
-                                      allowanceMaximum: number;
-                                      allowanceRefreshBoundary: "START_OF_TURN";
-                                      choiceDefinitionId: string | null;
-                                      eligible: boolean;
-                                      selectionPolicy: "AUTOMATIC" | "CHOICE";
-                                      targetPolicy: "MOVER";
-                                    };
-                                    visibility: "CONTROLLER" | "GM_ONLY";
-                                  }>;
+                                candidate: {
+                                  contact: { x: number; y: number };
+                                  movingActorId: string;
                                   pathDistance: number;
                                   reactorActorId: string;
                                   reactorTokenId: string;
+                                  sourceId: string;
+                                  stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                 };
-                                kind: "CONTROLLER_CHOICE";
-                              }
-                          >;
+                                contactSourceId: string;
+                                eligibilityEvidenceChecksum: string;
+                                optionId: string;
+                                policy: {
+                                  allowanceDefinitionId: string;
+                                  allowanceMaximum: number;
+                                  allowanceRefreshBoundary: "START_OF_TURN";
+                                  choiceDefinitionId: string | null;
+                                  eligible: boolean;
+                                  selectionPolicy: "AUTOMATIC" | "CHOICE";
+                                  targetPolicy: "MOVER";
+                                };
+                                visibility: "CONTROLLER" | "GM_ONLY";
+                              }>;
+                              pathDistance: number;
+                              reactorActorId: string;
+                              reactorTokenId: string;
+                            };
+                            kind: "CONTROLLER_CHOICE";
+                          }>;
                           remainingSpatialCandidates: Array<{
                             candidate: {
                               contact: { x: number; y: number };

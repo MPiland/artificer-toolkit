@@ -1,4 +1,8 @@
 import { z } from '../zod.js'
+import {
+  liveSessionActionCaptureScopeSchema,
+  liveSessionTurnCaptureScopeSchema
+} from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinitions.js'
 import {
@@ -25,7 +29,11 @@ import {
   serverRuleExecutionPendingSnapshotDtoSchema
 } from '../shared/ruleExecutionPendingSnapshots.js'
 import { advanceEncounterTurnInputDtoSchema, startEncounterInputDtoSchema } from './encounters.js'
-import { encounterCommandResultDtoSchema, encounterGmProjectionDtoSchema } from './encounterData.js'
+import {
+  encounterCommandResultDtoSchema,
+  encounterGmProjectionDtoSchema,
+  encounterSettledAppRollDtoSchema
+} from './encounterData.js'
 import {
   concentrationDamageApplicationDtoSchema,
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS
@@ -142,10 +150,19 @@ export const liveSessionEncounterRulesRequestSchema = z.discriminatedUnion('kind
   z.strictObject({ kind: z.literal('DEFINITION'), definitionId: postgresUuidSchema })
 ])
 
+/**
+ * Each actor's roller preference for the admitted command: the initiator's for actors they
+ * control, the actor's primary controller's otherwise (ADR 0034 decision 3).
+ */
+const encounterAutoRollByActorIdSchema = z
+  .record(postgresUuidSchema, z.boolean())
+  .check(z.refine((value) => Object.keys(value).length <= MAX_ENCOUNTER_ACTORS))
+
 export const liveSessionEncounterRulesInputSchema = z.extend(liveSessionBootstrapInputSchema, {
   expectedRole: z.enum(['OWNER', 'PLAYER']),
   concentrationResponse: z.optional(resolveRuleOccurrenceInputDtoSchema),
-  turnResponse: z.optional(resolveRuleOccurrenceInputDtoSchema),
+  turnCommand: z.optional(liveSessionTurnCaptureScopeSchema),
+  action: z.optional(liveSessionActionCaptureScopeSchema),
   movement: z.optional(liveSessionMovementCaptureScopeSchema),
   encounterId: postgresUuidSchema,
   expectedVersion: z.number().check(z.int()).check(z.nonnegative()),
@@ -158,7 +175,9 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     campaignOwnerUserId: postgresUuidSchema,
-    autoRollDice: z.boolean(),
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
+    /** The app roll a movement response settles with; null for any other answer. */
+    appRoll: z.nullable(encounterSettledAppRollDtoSchema),
     save: sceneStoredGeometrySaveSchema,
     header: sceneLiveStateHeaderSchema,
     bindings: z
@@ -170,7 +189,15 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     campaignOwnerUserId: postgresUuidSchema,
+    /** The GM's preference for the GM's turn steps: initiative, Legendary Actions, Recharge. */
     autoRollDice: z.boolean(),
+    /** Each actor's roller preference for its own saves (turn effects, Concentration). */
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
+    /** Actors the issuing member controls; a turn-effect save is answered by its controllers. */
+    responderControlledActorIds: z
+      .array(postgresUuidSchema)
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    appRoll: z.nullable(encounterSettledAppRollDtoSchema),
     command: liveSessionEncounterTurnCommandSchema,
     fingerprint: projectionChecksumSchema,
     occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
@@ -182,6 +209,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     fingerprint: projectionChecksumSchema,
+    appRoll: z.nullable(encounterSettledAppRollDtoSchema),
     state: encounterRunStateSchema,
     projection: encounterGmProjectionDtoSchema,
     snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
@@ -289,7 +317,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     kind: z.literal('ACTION_COMMAND'),
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
-    autoRollDice: z.boolean(),
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
     command: resolveEncounterActionInputDtoSchema,
     fingerprint: projectionChecksumSchema,
     result: z.nullable(encounterCommandResultDtoSchema)
@@ -298,7 +326,8 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     kind: z.literal('ACTION_RESPONSE'),
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
-    autoRollDice: z.boolean(),
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
+    appRoll: z.nullable(encounterSettledAppRollDtoSchema),
     command: resolveEncounterActionInputDtoSchema,
     fingerprint: projectionChecksumSchema,
     result: z.nullable(encounterCommandResultDtoSchema),

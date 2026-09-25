@@ -4,6 +4,7 @@ import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
 import { equipmentGripSchema } from '../shared/enums.js'
+import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
 const labelSchema = z.string().check(z.trim()).check(z.minLength(1))
@@ -32,7 +33,13 @@ export const encounterActionChoiceDtoSchema = z.strictObject({
     z.extend(encounterAcceptedWieldConflictDtoSchema, {
       armorClassDelta: z.number().check(z.int()).check(z.lte(0))
     })
-  )
+  ),
+  /**
+   * Soft-rule warnings that already apply before a target is chosen (no allowance left, item not
+   * equipped, not enough uses). The drawer shows the action dimmed with these reasons; resolving it
+   * still asks "Do it anyway".
+   */
+  warnings: encounterRuleWarningsDtoSchema
 })
 
 export const encounterActionChoicesDtoSchema = z.strictObject({

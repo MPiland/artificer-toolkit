@@ -14,6 +14,7 @@ import { readRunActors } from '../encounters/documents'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { internalMutation } from '../lib/mutations'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readLiveEncounterTurnAdmission, assertLiveTurnRevisions } from './encounterTurnAdmission'
 
 /** Stores one DO-prepared pending turn without advancing the Run or Character state. */
@@ -23,8 +24,13 @@ export const commitPending = internalMutation({
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterTurnPendingInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
-    if (admission.kind !== 'READY') return admission.result
-    const { state, row, campaign, fingerprint, projection, resume } = admission
+    if (admission.kind !== 'READY')
+      return presentEncounterResultForMember(ctx, {
+        campaign: admission.campaign,
+        membership: admission.membership,
+        result: admission.result
+      })
+    const { state, row, campaign, membership, fingerprint, projection, resume } = admission
     const occurrenceVersion = admission.pending ? admission.pending.occurrence.version + 1 : 0
     const { snapshot } = input
     const context = snapshot.applicationContext
@@ -43,6 +49,7 @@ export const commitPending = internalMutation({
       root.rootCommandId !== (resume?.root.rootCommandId ?? admission.input.commandId) ||
       root.commandFingerprint !== (resume?.root.commandFingerprint ?? fingerprint) ||
       root.initiatorUserId !== campaign.ownerUserId ||
+      root.requestedByUserId !== (resume?.root.requestedByUserId ?? input.expectedUserId) ||
       root.expectedEncounterVersion !== state.version ||
       root.startSystemId !==
         (resume?.root.startSystemId ??
@@ -169,7 +176,7 @@ export const commitPending = internalMutation({
       context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
       context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
       context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
-    return encounterCommandResultDtoSchema.parse({
+    const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
       resolution: null,
@@ -192,5 +199,6 @@ export const commitPending = internalMutation({
             })
       }
     })
+    return presentEncounterResultForMember(ctx, { campaign, membership, result })
   }
 })

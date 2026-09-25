@@ -13,6 +13,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, internal } from '../_generated/api'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
@@ -26,8 +27,7 @@ function response(
     occurrenceVersion: number
     request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
   },
-  face: number,
-  kind: 'ENTER_DICE' | 'SYSTEM_ROLL' = 'ENTER_DICE'
+  answer: number | { rollId: string }
 ) {
   return {
     command: {
@@ -39,12 +39,17 @@ function response(
       expectedOccurrenceVersion: pending.occurrenceVersion,
       correlationId: null,
       resolution:
-        kind === 'SYSTEM_ROLL'
-          ? { kind, requestId: pending.request.requestId }
-          : {
-              kind,
+        typeof answer === 'number'
+          ? {
+              kind: 'ENTER_DICE' as const,
               requestId: pending.request.requestId,
-              rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+              rawFaces: pending.request.rollMode === 'NORMAL' ? [answer] : [answer, answer],
+              rollMode: pending.request.rollMode
+            }
+          : {
+              kind: 'SYSTEM_ROLL' as const,
+              requestId: pending.request.requestId,
+              rollId: answer.rollId
             }
     }
   } satisfies EncounterExecuteInput
@@ -90,7 +95,25 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   })
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected discoverable concentration child.')
-  const command = response(fixture.run.id, pending, 20, 'SYSTEM_ROLL')
+  // App rolls post to the table chat, which needs a username.
+  await fixture.owner.caller.mutation(api.account.updateProfile, {
+    username: 'ConcentrationGm',
+    bio: null
+  })
+  const rolled = await fixture.owner.caller.mutation(executeEncounterCommand, {
+    command: {
+      type: 'ROLL_RULE_EVIDENCE',
+      encounterId: fixture.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      requestId: pending.request.requestId,
+      rollMode: pending.request.rollMode
+    }
+  })
+  expect(rolled.evidenceRoll).toMatchObject({ faces: [20], value: 20 })
+  const command = response(fixture.run.id, pending, { rollId: rolled.evidenceRoll!.rollId })
   const pendingRow = staged.pending[0]
   if (!pendingRow) throw new Error('Expected stored concentration child.')
   const colliding = {

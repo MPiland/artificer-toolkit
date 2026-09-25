@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import {
+  createTabletopCampaign,
   tabletopGmEncounter,
   tabletopLiveScene,
   tabletopPlayerEncounter
@@ -25,7 +26,9 @@ export const Gm: Story = {
   args: {
     actorIdByTokenId: new Map(),
     connected: true,
+    currentActorMine: true,
     encounter: tabletopGmEncounter,
+    memberships: createTabletopCampaign('OWNER').memberships,
     pending: false,
     role: 'OWNER',
     scene: tabletopLiveScene,
@@ -57,11 +60,21 @@ export const Player: Story = {
   args: {
     actorIdByTokenId: new Map(),
     connected: true,
+    currentActorMine: false,
     encounter: tabletopPlayerEncounter,
+    memberships: createTabletopCampaign('PLAYER').memberships,
     pending: false,
     role: 'PLAYER',
     scene: tabletopLiveScene,
     onCommand: () => undefined
+  }
+}
+
+/** The current actor is the player's own Character, so they can end the turn. */
+export const PlayerTurn: Story = {
+  args: {
+    ...Player.args,
+    currentActorMine: true
   }
 }
 

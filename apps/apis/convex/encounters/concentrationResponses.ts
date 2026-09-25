@@ -8,7 +8,6 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
@@ -26,6 +25,7 @@ import {
 import { readNativeConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { insertRunCommand } from './timelineEntries'
 import { rebuildNativeDeferredCleaving } from './cleaving'
+import { presentEncounterResultForMember } from './resultPresentation'
 
 export async function resumeNativeConcentration(
   ctx: MutationCtx,
@@ -233,11 +233,9 @@ export async function resumeNativeConcentration(
     })
     if (deferred) await insertNativeCleavingChoice(ctx, nextState, deferred, now)
   }
-  return encounterCommandResultDtoSchema.parse({
-    ...result,
-    projection:
-      membership.role === 'OWNER'
-        ? nextProjection
-        : projectPlayerEncounterProjection(nextProjection)
+  return presentEncounterResultForMember(ctx, {
+    campaign,
+    membership,
+    result: encounterCommandResultDtoSchema.parse({ ...result, projection: nextProjection })
   })
 }

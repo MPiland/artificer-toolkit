@@ -1,0 +1,100 @@
+import { screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
+import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { tabletopGmEncounter } from '../vtt/CampaignTabletop.stories.fixtures'
+
+const ids = {
+  radiant: '00000000-0000-4000-8000-00000000d001',
+  bludgeoning: '00000000-0000-4000-8000-00000000d002',
+  piercing: '00000000-0000-4000-8000-00000000d003',
+  slashing: '00000000-0000-4000-8000-00000000d004',
+  psychic: '00000000-0000-4000-8000-00000000d005',
+  charmed: '00000000-0000-4000-8000-00000000c001'
+}
+
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useQuery: () => ({
+    damageTypes: [
+      { id: ids.radiant, code: 'RADIANT', label: 'Radiant' },
+      { id: ids.bludgeoning, code: 'BLUDGEONING', label: 'Bludgeoning' },
+      { id: ids.piercing, code: 'PIERCING', label: 'Piercing' },
+      { id: ids.slashing, code: 'SLASHING', label: 'Slashing' },
+      { id: ids.psychic, code: 'PSYCHIC', label: 'Psychic' }
+    ],
+    conditionTypes: [{ id: ids.charmed, code: 'CHARMED', label: 'Charmed' }]
+  })
+}))
+
+import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
+
+const enemy = tabletopGmEncounter.actors.find((actor) => actor.kind === 'CREATURE')!
+
+function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock']>>) {
+  return {
+    ...enemy,
+    systemId: '00000000-0000-4000-8000-000000000001',
+    statBlock: {
+      armorClass: 19,
+      abilityScores: null,
+      speeds: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: [],
+      ...statBlock
+    }
+  } satisfies EncounterGmActorDto
+}
+
+describe('EncounterEnemyStatBlock defenses', () => {
+  it('names damage types and shows "from nonmagical attacks" defenses (SRD Couatl)', () => {
+    renderWithAppProviders(
+      <EncounterEnemyStatBlock
+        actor={actorWith({
+          damageResistances: [ids.radiant],
+          damageImmunities: [ids.psychic],
+          qualifiedDamageDefenses: [
+            {
+              kind: 'IMMUNITY',
+              damageTypeIds: [ids.bludgeoning, ids.piercing, ids.slashing],
+              bypassedBy: ['MAGICAL']
+            }
+          ],
+          conditionImmunities: [ids.charmed]
+        })}
+      />
+    )
+    expect(screen.getByText('Radiant')).toBeInTheDocument()
+    expect(
+      screen.getByText('Psychic; Bludgeoning, piercing, and slashing from nonmagical attacks')
+    ).toBeInTheDocument()
+    expect(screen.getByText('Charmed')).toBeInTheDocument()
+  })
+
+  it('shows a qualified resistance alone, with a material that bypasses it', () => {
+    renderWithAppProviders(
+      <EncounterEnemyStatBlock
+        actor={actorWith({
+          qualifiedDamageDefenses: [
+            {
+              kind: 'RESISTANCE',
+              damageTypeIds: [ids.bludgeoning, ids.piercing, ids.slashing],
+              bypassedBy: ['MAGICAL', 'SILVERED']
+            }
+          ]
+        })}
+      />
+    )
+    expect(screen.getByText('Resistant')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Bludgeoning, piercing, and slashing from nonmagical attacks that aren't silvered"
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Immune')).not.toBeInTheDocument()
+  })
+})

@@ -208,7 +208,10 @@ export function validateSpellMechanicCustomization(
   const valid =
     command.category === 'TO_HIT'
       ? mechanics.some(
-          (mechanic) => mechanic.trigger === 'SPELL_ATTACK' || mechanic.attackBonus !== undefined
+          (mechanic) =>
+            mechanic.trigger === 'MELEE_SPELL_ATTACK' ||
+            mechanic.trigger === 'RANGED_SPELL_ATTACK' ||
+            mechanic.attackBonus !== undefined
         )
       : command.category === 'SAVE_DC'
         ? mechanics.some((mechanic) => mechanic.save !== undefined)

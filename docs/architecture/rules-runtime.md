@@ -77,7 +77,19 @@ the Convex fallback (`encounters/actionCommands.ts`):
   (`ACTION_ECONOMY_UNAVAILABLE`);
 - `evaluateEncounterActionTargetPolicy` reports range (`TARGET_OUT_OF_RANGE`, or
   `TARGET_RANGE_UNCHECKED` without both tokens) and target disposition (`TARGET_DISPOSITION`).
-  Unsupported policy shapes, excluded creature types and missing targets stay hard.
+  Disposition compares the two actors' GM-set dispositions through `encounterActorRelationship`
+  (neutral is neutral to everyone, equal dispositions are allied, friendly and hostile are hostile):
+  a willing-target action warns only against a hostile target and a hostile-target action only
+  against an ally. Unsupported policy shapes, excluded creature types and missing targets stay hard.
+  Disposition is the one source of hostility (D13): movement reaction eligibility
+  (`encounterMovementReactionFacts.ts`) and passage blockers (`encounterMovementPassageBoundary.ts`)
+  use the same `encounterActorRelationship`, and Run state no longer stores side relationships.
+  Actor sides remain only for initiative grouping and ordering, actor reorder, reinforcement and
+  removal, and the workspace's side labels.
+
+Encounter action choices (`encounters/actionChoices.ts`) carry the warnings that already apply before
+a target is chosen (allowance via `encounterActionEconomyWarnings`, unequipped source, exhausted
+resource), so the drawer can show those actions dimmed with their reasons.
 
 The command proceeds only when `acknowledgedWarnings` (part of its fingerprint) covers every current
 code; otherwise it is refused with `RULE_WARNINGS`. An override spends only what remains (the
@@ -555,10 +567,13 @@ initiative, spellcasting, defenses, speed) never meets an item or spell requirem
 conditions the fold cannot evaluate fail closed, whatever their constraint; ability-score facets see
 the fixed score modifiers accepted from earlier sources (race before class and equipment).
 
-`systems/dnd5e/attackKind` is the one classifier from trigger code to `MELEE | RANGED | SPELL |
-UNARMED`; melee and unarmed attacks are melee for flanking and Cleaving. Character action mechanics
+`systems/dnd5e/attackKind` is the one classifier from trigger code to `MELEE | RANGED | UNARMED |
+MELEE_SPELL | RANGED_SPELL` (S6g); melee, unarmed and melee spell attacks are melee for flanking and
+Cleaving, and both spell kinds read `SPELL` modifier groups (`dnd5eAttackModifierDomain`), so
+Character-wide roll-mode evidence stays keyed by modifier domain. Character action mechanics
 carry `attackKind`; their attack bonus, damage and roll mode read the attack kind's modifier groups
-through the scope predicate. Damage adds the attacking source's damage modifiers (ability, magic +N,
+through the scope predicate. Action candidates carry `equipment.otherWeaponEquipped` (another
+weapon is equipped), which the `ITEM_SOLE_WEAPON` item condition reads for Dueling. Damage adds the attacking source's damage modifiers (ability, magic +N,
 Dueling) and the item's manual damage adjustment to the first damage roll, so the Sheet and the
 Encounter resolve the same expression. `rollContributorEvidence.attacks` holds Character-wide
 contributors only; `dnd5eAttackRollContributors` adds a given action's own and item-faceted
@@ -566,8 +581,11 @@ contributors, and Encounter preparation and Disarm read it. Proficiency matches 
 ancestry (`parentEquipmentIds`) and `*`. The fold input carries the Character's `size` for Size
 facets. Penalties are negated once when modifiers resolve.
 
-Armor class `SET_VALUE` replaces the armor or unarmored base (the best applicable one wins; a shield
-still adds) instead of adding to it, and the armor class counts only its worn armor's and active
+Armor class uses one calculation (S6g, PHB "you can use only one"): the worn armor's base plus its
+own ability bonus (light and medium armor DEX), 10 + DEX unarmored, or an authored armor class
+formula (`SET_VALUE` `amount` plus its listed ability modifiers, such as Barbarian 10 + DEX + CON,
+Monk 10 + DEX + WIS and Draconic Resilience 13 + DEX). The best applicable one wins and they never
+stack; a shield and flat bonuses then add. The armor class counts only its worn armor's and active
 shield's own Source-scoped modifiers. A save definition may carry `conditionTypeId`: when an action
 imposes that condition, the Encounter save merges that condition's scoped grants (Steel Will).
 Creature "from nonmagical attacks" defenses are typed `qualifiedDamageDefenses` (with the attack
@@ -577,8 +595,14 @@ weapon attacks are treated as nonmagical (Magic Weapons traits are not modeled y
 
 Modifier kinds without a consumer (`SET_VALUE` for maximum hit points and sense range, bonus dice,
 damage-type replacement, movement mode/attribute/condition options, and spell-scoped modifiers outside
-spell attack and damage) are rejected when a modifier grant is validated. Speed `SET_VALUE` replaces
-the base speed (Fly).
+spell attack and damage) are rejected when a modifier grant is validated. S6g adds the kinds the SRD
+does not use: save DC `SET_VALUE`, proficiency bonus, charge limit, range/duration/shape, spell slot,
+known and prepared counts, action and bonus action counts and reaction count `BONUS` (see
+[authoring schema](authoring-schema.md)). Reaction count `SET_VALUE` has no consumer yet but stays
+authorable: SRD Shocking Grasp grants it through `APPLY_GRANT`, which Phase 8.3 applies. Speed
+`SET_VALUE` replaces the base speed (Fly). The GM stat block carries a Creature's
+`qualifiedDamageDefenses` and shows them after its plain defenses ("Psychic; bludgeoning, piercing,
+and slashing from nonmagical attacks").
 
 **Weapon grips.** Every authored Equipment effect has a required, nullable `grip`
 (`ONE_HANDED`/`TWO_HANDED`): it is set exactly on non-passive melee and ranged weapon attack effects
@@ -906,12 +930,24 @@ there are two automation modes, Assisted and Manual. In Assisted mode, a rules s
 asks the roller's "Roll my dice automatically" preference (`userProfiles.autoRollDice`, default on):
 when it is on the server rolls immediately and records the same app-roll evidence a `SYSTEM_ROLL`
 records; when it is off the step pauses for system or physical input as before. Rules-runtime
-functions take the preference as an explicit `autoRoll` input, and lifecycle functions take an
-`EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`, see `encounterEvidenceMode.ts`). The roller in
-this slice is the action, move or response initiator, and the Campaign owner for turn-flow steps
-(initiative, Recharge, turn-effect saves, Legendary Actions); Convex reads the preference in the
-transaction that would create the prompt, and the Session room receives it in the `ACTION_*`,
-`TURN_COMMAND`, `CONCENTRATION_RESPONSE` and `MOVEMENT_INPUTS` captures. A resumed action prompt keeps
+functions take the preference per roller (`EncounterAutoRollByActorId`, and `{ SOURCE, TARGET }`
+inside a native action graph), and lifecycle functions take an `EncounterEvidenceMode`
+(`AUTO_ROLL | PROMPT | MANUAL`, see `encounterEvidenceMode.ts`). The roller is the actor whose roll it
+is (S6b): its controllers answer, using the preference of its assigned player, else its first granted
+controller, else the GM (`readEncounterAutoRollByActorId`); a turn-effect save is the turn actor's
+roll (`prepareEncounterTurn` takes `autoRollByActorId` for it). The Campaign owner stays the roller
+for the other turn-flow steps (initiative scoring, Recharge, Legendary Actions). Convex reads the preferences in the
+transaction that would create the prompt, and the Session room receives them in the `ACTION_*`,
+`TURN_COMMAND`, `CONCENTRATION_RESPONSE` and `MOVEMENT_INPUTS` captures. Answers reach the rules as
+`EncounterEvidenceAnswer` (`encounterEvidenceAnswer.ts`): entered dice (with the chosen `rollMode`),
+an entered integer, an app roll bound to its recorded faces by `withEncounterAppRoll`, or `AUTO_ROLL`.
+`resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` are the only places that turn an answer
+into faces; d20 evidence records both the chosen and the rules-derived roll mode. A D20 pending summary
+names why the rules derived its mode (`request.derivedRollModeReasons`, D13): the pure summary
+builders report the contributors behind the mode (`encounterRollModeReasons.ts`), and
+`encounters/rollModeReasons.ts` labels them from their sources (authored content, rule definitions
+such as Flanking, System conditions, or an active effect's authored effect) where `pendingReads`
+builds the summary, so the web can show "Advantage: Flanking". A resumed action prompt keeps
 prompting until that action settles; other flows apply the current preference at each new roll.
 Manual mode applies no mechanical outcomes while optional sanitized reminders remain policy
 controlled. Automation mode never changes whether authored mechanics are structurally complete.
@@ -1385,7 +1421,7 @@ optionally bind `MOVEMENT` at `BEFORE_LEAVE_REACH` or `ENTER_REACH`, name a null
 Perception requirement, and reference one canonical UUID-backed eligibility definition. The binding is
 valid only for an action invocation whose activation is `REACTION`; passive and ordinary action
 invocations reject it. Unbound reactions remain valid authored content but normalize to an explicit
-`null` binding and are unavailable to automatic movement-reaction discovery. Reach, movement-kind
+`null` binding and are unavailable to movement-reaction discovery. Reach, movement-kind
 eligibility, suppression, allegiance, targeting, usage, and resource policy remain outputs/facts of the
 referenced System graph rather than fields added to the authored binding. Character mechanics facts
 retain the exact binding while the server-only compiled entry point retains the exact Effect graph;
@@ -1414,10 +1450,10 @@ application applies the existing generic bounded-usage primitive and resets only
 authoritative lifecycle boundary. Separately authored feature/item charges remain owned by their
 existing Character or Encounter-actor aggregate.
 
-Assisted mode resolves System-authorized automatic reactions without a choice and persists the
-controller/GM choice for choice reactions; their dice follow the roller's auto-roll preference (the
-old Assisted override that turned automatic reactions into choices is removed with the Automatic
-mode). Manual mode performs no reaction mechanics or usage mutation. Reconnect returns the same compact authorized choice from the pending
+Assisted mode never uses a reaction on anyone's behalf: every eligible reaction, including one whose
+System policy selects `AUTOMATIC`, is sealed into the timeline as a controller/GM Use/Decline choice
+(`CONTROLLER_CHOICE`; there is no automatic timeline entry). A used reaction's dice follow the
+roller's auto-roll preference. Manual mode performs no reaction mechanics or usage mutation. Reconnect returns the same compact authorized choice from the pending
 occurrence. Other players receive no candidate-count, source, controller, or hidden-trigger side
 channel.
 

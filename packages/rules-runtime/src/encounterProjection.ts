@@ -13,6 +13,7 @@ import type {
   EncounterProjectionCharacterStates,
   EncounterProjectionInput
 } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
+import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 
 import { snapshotFeatures, stableActors } from './encounterActorState.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
@@ -83,6 +84,12 @@ export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
     damageVulnerabilities: stringValues(payload.damageVulnerabilities),
     damageResistances: stringValues(payload.damageResistances),
     damageImmunities: stringValues(payload.damageImmunities),
+    qualifiedDamageDefenses: Array.isArray(payload.qualifiedDamageDefenses)
+      ? payload.qualifiedDamageDefenses.flatMap((entry) => {
+          const parsed = creatureQualifiedDamageDefenseDtoSchema.safeParse(entry)
+          return parsed.success ? [parsed.data] : []
+        })
+      : [],
     conditionImmunities: stringValues(payload.conditionImmunities)
   }
 }
@@ -169,6 +176,8 @@ export function projectGm(
         systemId: actor.systemId,
         stableTieKey: actor.stableTieKey,
         public: actor.public,
+        controllerUserIds: actor.controllerUserIds,
+        disposition: actor.disposition,
         currentHitPoints: current.current,
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,

@@ -8,12 +8,11 @@ import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { internalQuery } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readRunActors, readRunProjection, readRunState } from '../encounters/documents'
+import { readRunProjection, readRunState } from '../encounters/documents'
 
 /** Return current-role projections after publication; never return the private preparation. */
 export const result = internalQuery({
@@ -66,34 +65,24 @@ export const result = internalQuery({
       occurrence.pendingSnapshotChecksum
     )
       throw new Error('Movement response occurrence checksum is inconsistent.')
-    const assigned =
-      membership.role === 'PLAYER'
-        ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-        : null
-    const projection = readRunProjection(run)
-    return encounterCommandResultDtoSchema.parse({
-      projection:
-        membership.role === 'OWNER' ? projection : projectPlayerEncounterProjection(projection),
-      roll: null,
-      resolution: null,
-      occurrence: projectEncounterSpatialOccurrenceSummary(
-        {
-          id: occurrence.id,
-          version: occurrence.version,
-          state: occurrence.state,
-          pendingSnapshot
-        },
-        run.version,
-        {
-          membershipRole: membership.role,
-          assignedCharacterId: assigned?.id ?? null,
-          assignedActorId: assigned
-            ? ((await readRunActors(ctx, readRunState(run))).find(
-                (actor) => actor.kind === 'CHARACTER' && actor.sourceId === assigned.id
-              )?.id ?? null)
-            : null
-        }
-      )
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: encounterCommandResultDtoSchema.parse({
+        projection: readRunProjection(run),
+        roll: null,
+        resolution: null,
+        occurrence: projectEncounterSpatialOccurrenceSummary(
+          {
+            id: occurrence.id,
+            version: occurrence.version,
+            state: occurrence.state,
+            pendingSnapshot
+          },
+          run.version,
+          { controlledActorIds: new Set(readRunState(run).actorIds) }
+        )
+      })
     })
   }
 })

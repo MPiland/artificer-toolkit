@@ -114,7 +114,7 @@ export const guardianNaga: CreatureAuthored = {
           id: S.actionId(156, 303),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: {
               id: S.actionId(156, 1303),
               rangeKind: S.RANGE_KIND.SELF

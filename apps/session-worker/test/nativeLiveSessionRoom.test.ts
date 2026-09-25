@@ -208,6 +208,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       ? [{ membershipEpoch: new Date().toISOString(), role: 'PLAYER', userId: playerId }]
       : [],
     sceneEncounterBound: false,
+    originBoundTokenControl: [],
     sceneHeader: scene
       ? {
           ambientIllumination: scene.ambientIllumination,
@@ -2274,6 +2275,108 @@ it('forwards an unplanned Encounter command in room order and acknowledges only 
   expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
 })
 
+it('lets a player have one Encounter command in flight', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const player = await connectPlayer(base)
+  const encounterId = crypto.randomUUID()
+  const [firstId, secondId, thirdId] = [
+    crypto.randomUUID(),
+    crypto.randomUUID(),
+    crypto.randomUUID()
+  ]
+  let release = () => {}
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let forwarded = 0
+  await routeEncounterRequests(base, async (pathname) => {
+    if (pathname !== '/live-sessions/encounter-command') return undefined
+    forwarded += 1
+    if (forwarded === 1) await held
+    return Response.json(encounterResult(base.capture.campaignId, encounterId))
+  })
+  const send = (commandId: string) =>
+    player.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+        }
+      })
+    )
+  send(firstId)
+  await vi.waitFor(() => expect(forwarded).toBe(1))
+  send(secondId)
+  await vi.waitFor(() =>
+    expect(
+      player.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === secondId
+      )
+    ).toMatchObject({ code: 'UNAVAILABLE', message: 'Your previous action is still resolving.' })
+  )
+  release()
+  await vi.waitFor(() =>
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === firstId
+      )
+    ).toBe(true)
+  )
+  // The slot frees once the first command settles.
+  send(thirdId)
+  await vi.waitFor(() =>
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === thirdId
+      )
+    ).toBe(true)
+  )
+  expect(forwarded).toBe(2)
+})
+
+it('never hands a player an unredacted GM projection', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const player = await connectPlayer(base)
+  const encounterId = crypto.randomUUID()
+  const commandId = crypto.randomUUID()
+  await routeEncounterRequests(base, (pathname) => {
+    if (pathname !== '/live-sessions/encounter-command') return undefined
+    const result = encounterResult(base.capture.campaignId, encounterId)
+    return Response.json({
+      ...result,
+      projection: { ...result.projection, manualReminderMode: 'SUBTLE' }
+    })
+  })
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: { type: 'SET_ROUND', encounterId, commandId, expectedVersion: 3, round: 2 }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      player.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+    ).toMatchObject({ code: 'UNAVAILABLE' })
+  )
+  expect(JSON.stringify(player.messages)).not.toContain('manualReminderMode')
+})
+
 it('asks Convex which planner owns a decision and follows a NATIVE route', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
@@ -2310,7 +2413,7 @@ it('asks Convex which planner owns a decision and follows a NATIVE route', async
           occurrenceId,
           expectedOccurrenceVersion: 1,
           correlationId: null,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: 'roll-1' }
+          resolution: { kind: 'SYSTEM_ROLL', requestId: 'roll-1', rollId: crypto.randomUUID() }
         }
       }
     })

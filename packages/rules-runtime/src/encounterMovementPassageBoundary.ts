@@ -1,3 +1,4 @@
+import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -21,7 +22,7 @@ type Boundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDAR
 /** The complete original path determines hostile footprint contacts, including its endpoint. */
 export function discoverEncounterMovementPassage(input: {
   state: EncounterRunState
-  actors: readonly Pick<EncounterRunActorState, 'id' | 'sideId'>[]
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'disposition'>[]
   root: SpatialMovementRuleRoot
   sceneTokens: readonly SceneToken[]
   actorIdByTokenId: ReadonlyMap<string, string>
@@ -40,16 +41,11 @@ export function discoverEncounterMovementPassage(input: {
     ),
     isHostile: ({ blockerActorId }) => {
       const blocker = actors.find((actor) => actor.id === blockerActorId)
-      if (!blocker || blocker.sideId === source.sideId) return false
-      const relationships = input.state.sideRelationships.filter(
-        (relationship) =>
-          (relationship.firstSideId === source.sideId &&
-            relationship.secondSideId === blocker.sideId) ||
-          (relationship.secondSideId === source.sideId &&
-            relationship.firstSideId === blocker.sideId)
+      // Disposition is the one source of hostility (ADR 0034, D13).
+      return (
+        !!blocker &&
+        encounterActorRelationship(source.disposition, blocker.disposition) === 'HOSTILE'
       )
-      if (relationships.length > 1) throw new Error('Encounter side relationship is ambiguous.')
-      return relationships[0]?.relationshipKind === 'HOSTILE'
     }
   })
   if (discovery.kind === 'ENDPOINT_OCCUPIED')

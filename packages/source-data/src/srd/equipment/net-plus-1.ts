@@ -11,7 +11,6 @@ export const netPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: net.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(243), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

@@ -47,6 +47,8 @@ export function prepareEncounterTurnResponse(input: {
   command: ResolveRuleOccurrenceInputDto
   userId: string
   ownerUserId: string
+  /** Actors the responder controls; a turn-effect save is answered by its actor's controllers. */
+  responderControlledActorIds: ReadonlySet<string>
   occurrence: {
     id: string
     rootCommandId: string
@@ -89,8 +91,8 @@ export function prepareEncounterTurnResponse(input: {
   const fingerprint = checksumCanonicalJson(command)
   const history = root.resolutionCommands.find((entry) => entry.commandId === command.commandId)
   if (history) {
+    // A retained response replays only to the user who gave it.
     if (
-      (history.kind !== 'INITIATIVE_DECLARATION' && userId !== ownerUserId) ||
       !matchesNativeTurnResponse(history, command.resolution) ||
       history.commandFingerprint !== fingerprint ||
       history.actorUserId !== userId ||
@@ -143,7 +145,15 @@ export function prepareEncounterTurnResponse(input: {
       })
     }
   }
-  if (userId !== ownerUserId) throw new Error('Rule occurrence is unavailable.')
+  // Turn-effect saves go to the turn actor's controllers; every other turn step is the GM's.
+  if (
+    userId !== ownerUserId &&
+    !(
+      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
+      input.responderControlledActorIds.has(context.currentCandidate.targetActorId)
+    )
+  )
+    throw new Error('Rule occurrence is unavailable.')
   if (context.kind === 'ENCOUNTER_INITIATIVE') {
     const scorePhase =
       context.phase.kind === 'PRIMARY_SCORE' || context.phase.kind === 'TIE_RESOLUTION'

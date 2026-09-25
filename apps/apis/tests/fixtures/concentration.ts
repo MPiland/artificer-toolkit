@@ -79,7 +79,9 @@ const creature = {
 
 export async function setupConcentration(rolls: FixtureRolls) {
   const base = await setupCharacterRun()
-  await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
+  // Each roll follows its actor's controller: the GM for Creatures, the player for the Character.
+  for (const userId of [base.owner.userId, base.player.userId])
+    await setAutoRollDice(base.t, userId, rolls === 'AUTO_ROLL')
   for (const definitions of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     ...SRD_CONCENTRATION_DEFINITIONS

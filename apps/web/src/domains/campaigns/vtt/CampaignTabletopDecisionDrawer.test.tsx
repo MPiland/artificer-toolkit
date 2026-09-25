@@ -1,7 +1,10 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterCommandResultDto,
+  EncounterEvidenceRollDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -88,6 +91,7 @@ const actionOutcomePending = {
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
+  rollerActorId: null,
   request: { requestId: 'action-outcome', min: 0, max: 10 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
@@ -110,7 +114,14 @@ const d20Pending = {
   occurrenceId,
   occurrenceVersion: 3,
   encounterVersion: tabletopGmEncounter.version,
-  request: { requestId: 'attack-roll', min: 1, max: 20, rollMode: 'NORMAL' as const },
+  rollerActorId: null,
+  request: {
+    requestId: 'attack-roll',
+    min: 1,
+    max: 20,
+    rollMode: 'NORMAL' as const,
+    derivedRollModeReasons: []
+  },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
@@ -152,7 +163,8 @@ function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
       status: 'COMPLETE' as const,
       outcome: null,
       pending: null
-    }
+    },
+    evidenceRoll: null
   }
 }
 
@@ -165,6 +177,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={pending}
         submitting={false}
         onResolve={onResolve}
@@ -198,6 +211,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={adjudicatedPending}
         submitting={false}
         onResolve={onResolve}
@@ -235,6 +249,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={adjudicatedPending}
         submitting={false}
         onResolve={onResolve}
@@ -253,6 +268,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={actionOutcomePending}
         submitting={false}
         onResolve={onResolve}
@@ -262,7 +278,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(screen.getByText('Action outcome required')).toBeVisible()
     await user.type(screen.getByLabelText('Result'), '7')
-    await user.click(screen.getByRole('button', { name: 'Submit result' }))
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
 
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -276,26 +292,28 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={actionOutcomePending}
         submitting={false}
         onResolve={onResolve}
       />
     )
-    expect(screen.getByRole('button', { name: 'Submit result' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDisabled()
 
     rerender(
       <CampaignTabletopDecisionDrawer
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={actionOutcomePending}
         submitting
         onResolve={onResolve}
       />
     )
-    expect(screen.getByRole('button', { name: 'Submit result' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDisabled()
   })
 })
 
@@ -308,6 +326,7 @@ describe('CampaignTabletopDecisionDrawer void', () => {
         canVoid
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={actionOutcomePending}
         submitting={false}
         onResolve={onResolve}
@@ -332,6 +351,7 @@ describe('CampaignTabletopDecisionDrawer void', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={actionOutcomePending}
         submitting={false}
         onResolve={onResolve}
@@ -350,6 +370,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={passagePending}
         submitting={false}
         onResolve={onResolve}
@@ -377,6 +398,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={passagePending}
         submitting={false}
         onResolve={onResolve}
@@ -392,6 +414,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={passagePending}
         submitting
         onResolve={onResolve}
@@ -404,13 +427,14 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={d20Pending}
         submitting={false}
         onResolve={onResolve}
       />
     )
-    expect(screen.getByRole('button', { name: 'Roll in VTT' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Submit physical roll' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
   })
 })
 
@@ -423,6 +447,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={legendaryPending}
         submitting={false}
         onResolve={onResolve}
@@ -440,6 +465,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={cleavingPending}
         submitting={false}
         onResolve={onResolve}
@@ -454,11 +480,140 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
+        latestRoll={null}
         pending={cleavingPending}
         submitting
         onResolve={onResolve}
       />
     )
     expect(screen.getByRole('button', { name: /^Cleave / })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer roll rows', () => {
+  const advantagePending = {
+    ...d20Pending,
+    rollerActorId: tabletopGmEncounter.actors[1]!.id,
+    request: {
+      ...d20Pending.request,
+      rollMode: 'ADVANTAGE' as const,
+      derivedRollModeReasons: ['Flanking', 'Reckless Attack']
+    }
+  } satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+  function appRoll(attempt: number, faces: number[]): EncounterEvidenceRollDto {
+    return {
+      rollId: `77777777-7777-4777-8777-77777777780${attempt}`,
+      occurrenceId,
+      occurrenceVersion: advantagePending.occurrenceVersion,
+      requestId: advantagePending.request.requestId,
+      attempt,
+      faces,
+      value: Math.max(...faces),
+      rollMode: 'ADVANTAGE',
+      derivedRollMode: 'ADVANTAGE'
+    }
+  }
+
+  function rollingResolver(rolls: EncounterEvidenceRollDto[]) {
+    return vi.fn(async (command: { type: string }): Promise<EncounterCommandResultDto> => {
+      if (command.type !== 'ROLL_RULE_EVIDENCE') return resolved()
+      return { ...resolved(), occurrence: null, evidenceRoll: rolls.shift() ?? null }
+    })
+  }
+
+  it('recommends the derived mode, rolls without settling and settles by the latest roll id', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([appRoll(1, [4, 17]), appRoll(2, [12, 9])])
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={advantagePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Roll for Vault Warden')).toBeVisible()
+    expect(screen.getByRole('radio', { name: 'Advantage' })).toBeChecked()
+    expect(screen.getByText('Recommended: Advantage: Flanking, Reckless Attack')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Roll dice' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ROLL_RULE_EVIDENCE',
+        occurrenceId,
+        requestId: 'attack-roll',
+        rollMode: 'ADVANTAGE'
+      })
+    )
+    expect(await screen.findByText('Rolled by the app · attempt 1')).toBeVisible()
+    expect(screen.getByLabelText('Die 2')).toHaveValue('17')
+    expect(screen.getByText('Kept')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Roll dice' }))
+    expect(await screen.findByText('Rolled by the app · attempt 2')).toBeVisible()
+    expect(screen.getByLabelText('Die 1')).toHaveValue('12')
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'attack-roll', rollId: appRoll(2, []).rollId }
+      })
+    )
+  })
+
+  it('switches to entered faces once the roller edits the row or changes its mode', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([])
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={appRoll(3, [6, 15])}
+        pending={advantagePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Rolled by the app · attempt 3')).toBeVisible()
+    await user.clear(screen.getByLabelText('Die 1'))
+    await user.type(screen.getByLabelText('Die 1'), '19')
+    expect(screen.getByText('Your entered values replace the app roll.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [19, 15],
+          rollMode: 'ADVANTAGE'
+        }
+      })
+    )
+
+    await user.click(screen.getByRole('radio', { name: 'Normal' }))
+    expect(screen.getByText('Changed from Advantage, the recommended mode')).toBeVisible()
+    expect(screen.queryByLabelText('Die 2')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [19],
+          rollMode: 'NORMAL'
+        }
+      })
+    )
   })
 })

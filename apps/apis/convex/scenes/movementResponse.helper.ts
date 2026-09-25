@@ -8,7 +8,8 @@ import {
   readSceneMovementReactionPerception,
   discoverSceneMovementReactions
 } from './movementPerceptionValidation'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import { readEncounterAutoRollByActorId } from '../encounters/actorController'
+import { readRunActors } from '../encounters/documents'
 
 /** Dispatches the issued movement phase through the same read-only coordinator at prepare and finish. */
 export async function evaluateSceneMovementResponse(
@@ -27,7 +28,7 @@ export async function evaluateSceneMovementResponse(
     current.context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
   )
     return evaluateSceneMovementPassageResponse(ctx, input)
-  const resolution = current.command.resolution
+  const resolution = current.answer
   if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
     throw new Error('Movement response does not match the issued spatial evidence.')
   const reactions = await discoverSceneMovementReactions(
@@ -49,8 +50,12 @@ export async function evaluateSceneMovementResponse(
     request,
     state: current.state,
     userId: current.userId,
-    // The responding user rolls in this slice.
-    autoRoll: await readAutoRollDice(ctx, current.userId),
+    // Rolls go to each actor's controllers; the mover stays the command's initiator.
+    autoRoll: await readEncounterAutoRollByActorId(ctx, {
+      campaign: current.campaign,
+      initiatorUserId: root.initiatorUserId,
+      actors: await readRunActors(ctx, current.state)
+    }),
     root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: perception.geometry.sceneTokens,

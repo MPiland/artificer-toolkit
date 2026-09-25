@@ -381,7 +381,7 @@ function renderWindow(
     queryFn: async () => [encounter]
   })
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
-    queryFn: async () => ({ encounter, pending: null })
+    queryFn: async () => ({ encounter, pending: null, waitingOn: null })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
   const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
@@ -395,7 +395,11 @@ function renderWindow(
   queryClient.setQueryData(headerQuery.queryKey, header)
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   queryClient.setQueryData(encountersQuery.queryKey, [encounter])
-  queryClient.setQueryData(activeEncounterQuery.queryKey, { encounter, pending: null })
+  queryClient.setQueryData(activeEncounterQuery.queryKey, {
+    encounter,
+    pending: null,
+    waitingOn: null
+  })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, { autoRollDice: true })
   const convex = new ConvexReactClient('https://story-fixture.convex.cloud', {
@@ -406,7 +410,7 @@ function renderWindow(
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.projectionReads.list)) return [encounter]
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
-        return { encounter, pending: null }
+        return { encounter, pending: null, waitingOn: null }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.presentations.get)) return presentation
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header

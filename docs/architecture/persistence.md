@@ -584,7 +584,7 @@ existing reaction-owned SPATIAL_EVIDENCE snapshot. Empty timelines retain standa
 pending behavior; later choices become current only after the spatial evidence resolves.
 
 This local response slice covers declined choices and spatial evidence without applied reaction
-mechanics. Selected or Automatic reactions, applied prefixes and passage handling still require
+mechanics. Used reactions, applied prefixes and passage handling still require
 the complete parent coordinator. Native spatial-first journeys retain their combined acceptance
 proof. Unsupported paths fail before gameplay publication. V07, V11, V13 and V14 remain open
 pending their full required proofs.
@@ -615,13 +615,12 @@ a pure evidence pause keeps the Run version. Terminal movement advances once mor
 STOP preserves the issued contact and original path. The TEST template emits the authored path's
 boolean STOP authorization; native binding reads the verified TEST receipt while preserving the
 terminal OUTCOME execution and both phase receipts. Receipt replay uses its recorded Run transition
-and projects the current occurrence for the recipient without writing. Native Automatic Run mode
-also executes authored automatic reaction entries across distinct contacts, including initial and
-response commands, later controller choices and STOP. Spatial prefixes and passages still
+and projects the current occurrence for the recipient without writing. Every eligible reaction is a
+controller Use/Decline choice; no reaction executes without that choice. Spatial prefixes and passages still
 require the complete coordinator; this local implementation does not constitute
 acceptance of the frozen movement cases.
 The local Scene coordinator now pauses a failed SAVE at the real Legendary Resistance choice,
-before OUTCOME. Selected and automatic reactions retain the original sealed TEST and recorded
+before OUTCOME. Used reactions retain the original sealed TEST and recorded
 d20; USE changes only the effective outcome path and proposes one target charge, while DECLINE
 keeps the failed path. Authored STOP follows that verified effective path. Assisted OUTCOME uses
 the kernel's actual integer requests. Preparation and publication reconstruct current TEST policy,
@@ -646,8 +645,8 @@ to the preparation mutation. The mutation reloads sources, capability usage, rel
 and Character sense definitions, and matches each environment against the current Scene version,
 effective System grid and exact footprints. Full Scene geometry never enters the mutation payload;
 the public movement command cannot supply perception evidence. Controller-choice boundaries retain
-their sealed timeline and contact position without consuming reaction resources. Automatic action
-execution, continuation and clipped fog still require the complete parent coordinator.
+their sealed timeline and contact position without consuming reaction resources. Clipped fog still
+requires the complete parent coordinator.
 
 Native pending-occurrence queries reuse the neutral movement summary presenter. The current
 Campaign owner sees movement decisions; a player sees only choices assigned to their current

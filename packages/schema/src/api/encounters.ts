@@ -1,6 +1,10 @@
 import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { encounterBlueprintEnemyInputDtoSchema } from './encounterData.js'
+import {
+  encounterActorControllerUserIdsDtoSchema,
+  encounterActorDispositionDtoSchema,
+  encounterBlueprintEnemyInputDtoSchema
+} from './encounterData.js'
 
 import { characterSheetCommandInputDtoSchema } from './characterSheetCommandInputs.js'
 import {
@@ -8,10 +12,13 @@ import {
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
+  rollRuleEvidenceInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
 export {
+  encounterD20RollModeDtoSchema,
+  rollRuleEvidenceInputDtoSchema,
   initiativeDeclarationSelectionDtoSchema,
   optionalCombatActionIntentDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -20,6 +27,8 @@ export {
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
+  EncounterD20RollModeDto,
+  RollRuleEvidenceInputDto,
   InitiativeDeclarationSelectionDto,
   OptionalCombatActionIntentDto,
   ResolveEncounterActionInputDto,
@@ -33,6 +42,9 @@ export {
   encounterManualReminderModeDtoSchema,
   encounterStatusDtoSchema,
   encounterActorKindDtoSchema,
+  encounterActorDispositionDtoSchema,
+  encounterActorControllerUserIdsDtoSchema,
+  MAX_ENCOUNTER_ACTOR_CONTROLLERS,
   MAX_ENCOUNTER_ACTORS,
   encounterHealthBandDtoSchema,
   encounterPlayerActorDtoSchema,
@@ -43,6 +55,7 @@ export {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   encounterCommandResultDtoSchema,
+  encounterEvidenceRollDtoSchema,
   encounterTimelineResolutionSummaryDtoSchema,
   encounterTimelineEntryDtoSchema,
   encounterTimelineDtoSchema,
@@ -60,10 +73,12 @@ export {
   encounterProjectionListDtoSchema
 } from './encounterData.js'
 export type {
+  EncounterActorDispositionDto,
   EncounterPlayerProjectionDto,
   EncounterGmProjectionDto,
   EncounterGmActorDto,
   EncounterCommandResultDto,
+  EncounterEvidenceRollDto,
   EncounterRuleOccurrenceSummaryDto,
   PendingEncounterRuleOccurrenceSummaryDto,
   EncounterTimelineDto,
@@ -85,6 +100,9 @@ export const updateEncounterActorInputDtoSchema = z.extend(commandBaseDtoSchema,
   conditions: z.optional(jsonSchema),
   gmNotes: z.optional(z.nullable(z.string().check(z.maxLength(4000)))),
   public: z.optional(z.boolean()),
+  /** GM-only: the players who may act for this actor besides the assigned Character's player. */
+  controllerUserIds: z.optional(encounterActorControllerUserIdsDtoSchema),
+  disposition: z.optional(encounterActorDispositionDtoSchema),
   characterCommand: z.optional(characterSheetCommandInputDtoSchema)
 })
 
@@ -228,7 +246,8 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema,
-  revertLastEncounterActionInputDtoSchema
+  revertLastEncounterActionInputDtoSchema,
+  rollRuleEvidenceInputDtoSchema
 ])
 
 export const encounterExecuteInputSchema = z.strictObject({

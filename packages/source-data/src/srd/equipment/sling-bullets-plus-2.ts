@@ -12,7 +12,6 @@ export const slingBulletsPlus2: EquipmentVariantAuthored = {
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   effects: [S.magicAmmunitionExpirationEffect(S.equipId(352))],
   rarityId: S.RARITY_RARE,
-  maxBonus: 2,
   modifiers: S.magicAmmoModifiers(S.equipId(352), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

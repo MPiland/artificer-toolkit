@@ -39,7 +39,7 @@ export const shockingGrasp: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.SPELL_ATTACK,
+        triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1

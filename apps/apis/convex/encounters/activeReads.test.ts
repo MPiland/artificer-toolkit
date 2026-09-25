@@ -123,7 +123,8 @@ it('reads the active projection and pending decision together with existing visi
   const input = { campaignId: campaign.id }
   expect(await base.owner.caller.query(activeState, input)).toEqual({
     encounter: null,
-    pending: null
+    pending: null,
+    waitingOn: null
   })
   await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
   await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
@@ -210,14 +211,17 @@ it('reads the active projection and pending decision together with existing visi
   const ownerState = await base.owner.caller.query(activeState, input)
   expect(ownerState).toEqual({
     encounter: await base.owner.caller.query(active, { campaignId: campaign.id }),
-    pending: await base.owner.caller.query(pending, { encounterId: run.id })
+    pending: await base.owner.caller.query(pending, { encounterId: run.id }),
+    waitingOn: null
   })
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
   expect(ownerState.pending).not.toBeNull()
   const playerState = await base.other.caller.query(activeState, input)
   expect(playerState).toEqual({
     encounter: await base.other.caller.query(active, { campaignId: campaign.id }),
-    pending: await base.other.caller.query(pending, { encounterId: run.id })
+    pending: await base.other.caller.query(pending, { encounterId: run.id }),
+    // The player can't answer the GM's pending turn step, and the signal survives a reload.
+    waitingOn: 'GM'
   })
   expect(playerState.pending).toBeNull()
   expect(playerState.encounter?.actors).toHaveLength(1)

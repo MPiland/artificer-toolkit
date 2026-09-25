@@ -11,6 +11,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
   EncounterCommandInputDto,
   EncounterGmProjectionDto,
@@ -20,6 +21,7 @@ import type {
   CampaignSceneStateDto,
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
 
 type LiveEncounterCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
@@ -27,7 +29,9 @@ type LiveEncounterCommand = EncounterCommandInputDto | EncounterActorTokenBindin
 export function CampaignTabletopEncounterDrawer({
   actorIdByTokenId,
   connected,
+  currentActorMine,
   encounter,
+  memberships,
   pending,
   role,
   scene,
@@ -35,7 +39,10 @@ export function CampaignTabletopEncounterDrawer({
 }: {
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
+  /** The viewer controls the actor whose turn it is (always true for the GM). */
+  currentActorMine: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+  memberships: CampaignDetailDto['memberships']
   pending: boolean
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto | null
@@ -140,19 +147,22 @@ export function CampaignTabletopEncounterDrawer({
                       {current ? 'Current turn' : actor.kind.toLowerCase()}
                     </Text>
                   </div>
-                  <Badge
-                    color={
-                      actor.healthBand === 'DEFEATED'
-                        ? 'red'
-                        : actor.healthBand === 'CRITICAL'
-                          ? 'orange'
-                          : 'gray'
-                    }
-                    size='xs'
-                    variant='light'
-                  >
-                    {actor.healthBand.toLowerCase()}
-                  </Badge>
+                  {/* Only the GM projection carries health; players see none by default. */}
+                  {'healthBand' in actor ? (
+                    <Badge
+                      color={
+                        actor.healthBand === 'DEFEATED'
+                          ? 'red'
+                          : actor.healthBand === 'CRITICAL'
+                            ? 'orange'
+                            : 'gray'
+                      }
+                      size='xs'
+                      variant='light'
+                    >
+                      {actor.healthBand.toLowerCase()}
+                    </Badge>
+                  ) : null}
                 </div>
               )
             })}
@@ -221,11 +231,42 @@ export function CampaignTabletopEncounterDrawer({
                   </Text>
                 )}
               </div>
+              <div className={styles.bindingControls}>
+                <Text fw={650} size='sm'>
+                  Player control
+                </Text>
+                {encounter.actors.map((actor) => (
+                  <div key={actor.id}>
+                    <Text size='sm'>{actor.label}</Text>
+                    <EncounterActorControlFields
+                      actor={actor}
+                      disabled={controlsDisabled}
+                      memberships={memberships}
+                      onChange={(update) =>
+                        onCommand({
+                          ...update,
+                          actorId: actor.id,
+                          commandId: crypto.randomUUID(),
+                          encounterId: encounter.id,
+                          expectedVersion: encounter.version,
+                          type: 'UPDATE_ACTOR'
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
               {pending ? (
                 <Text aria-live='polite' c='dimmed' size='xs'>
                   Applying the turn update…
                 </Text>
               ) : null}
+            </div>
+          ) : currentActorMine ? (
+            <div className={styles.controls}>
+              <Button disabled={controlsDisabled} onClick={() => command({ type: 'ADVANCE_TURN' })}>
+                End turn
+              </Button>
             </div>
           ) : null}
         </div>

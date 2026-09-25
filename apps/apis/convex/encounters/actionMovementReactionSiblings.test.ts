@@ -412,17 +412,17 @@ async function setupMixedResourceSiblings() {
       .unique()
     if (!row) throw new Error('Mixed sibling Run is unavailable.')
     const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-    const party = state.sides.find((side) => side.label === 'Party')
     const sourceRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) =>
         q.eq('encounterId', run.id).eq('id', creatureReactor.id)
       )
       .unique()
-    if (!party || !sourceRow) throw new Error('Mixed sibling source side is unavailable.')
+    if (!sourceRow) throw new Error('Mixed sibling source actor is unavailable.')
+    // Disposition, not side, makes the Creature reactor hostile to the moving Creature (D17).
     const source = encounterRunActorStateSchema.parse({
       ...JSON.parse(sourceRow.stateJson),
-      sideId: party.id
+      disposition: 'FRIENDLY'
     })
     await ctx.db.patch(sourceRow._id, {
       stateJson: JSON.stringify(source),
@@ -526,7 +526,10 @@ async function settleSiblings(
     const execution = await executeNativeMovementReactionAction(ctx, {
       runtime: await createRulesRuntime(ctx, base.owner.userId),
       occurrenceId,
-      autoRoll: true,
+      autoRoll: {
+        [prepared.option.candidate.reactorActorId]: true,
+        [prepared.prepared.binding.targetActorId]: true
+      },
       prepared,
       random: (maximum) => maximum - 1
     })
@@ -647,7 +650,10 @@ describe('native sibling movement reaction receipts', () => {
           const execution = await executeNativeMovementReactionAction(ctx, {
             runtime: await createRulesRuntime(ctx, base.owner.userId),
             occurrenceId,
-            autoRoll: true,
+            autoRoll: {
+              [prepared.option.candidate.reactorActorId]: true,
+              [prepared.prepared.binding.targetActorId]: true
+            },
             prepared,
             random: (maximum) =>
               prepared.prepared.source.kind === 'CHARACTER_ACTION' ? 0 : maximum - 1
@@ -836,7 +842,10 @@ describe('native sibling movement reaction receipts', () => {
         const execution = await executeNativeMovementReactionAction(ctx, {
           runtime: await createRulesRuntime(ctx, base.owner.userId),
           occurrenceId,
-          autoRoll: true,
+          autoRoll: {
+            [prepared.option.candidate.reactorActorId]: true,
+            [prepared.prepared.binding.targetActorId]: true
+          },
           prepared,
           random: (maximum) =>
             prepared.prepared.source.kind === 'CHARACTER_ACTION' ? 0 : maximum - 1

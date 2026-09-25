@@ -8,6 +8,7 @@ import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation } from '../lib/mutations'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors } from '../encounters/documents'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
@@ -26,8 +27,13 @@ export const commit = internalMutation({
   handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
     const input = liveSessionEncounterTurnCommitInputSchema.parse(args)
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)
-    if (admission.kind !== 'READY') return admission.result
-    const { state, row: encounter, campaign, resume } = admission
+    if (admission.kind !== 'READY')
+      return presentEncounterResultForMember(ctx, {
+        campaign: admission.campaign,
+        membership: admission.membership,
+        result: admission.result
+      })
+    const { state, row: encounter, campaign, membership, resume } = admission
     const { root } = input
     const fingerprint = root.commandFingerprint
     const occurrenceVersion = admission.pending ? admission.pending.occurrence.version + 1 : 0
@@ -36,6 +42,7 @@ export const commit = internalMutation({
       root.rootCommandId !== (resume?.root.rootCommandId ?? admission.input.commandId) ||
       root.commandFingerprint !== (resume?.root.commandFingerprint ?? admission.fingerprint) ||
       root.initiatorUserId !== campaign.ownerUserId ||
+      root.requestedByUserId !== (resume?.root.requestedByUserId ?? input.expectedUserId) ||
       root.startSystemId !==
         (resume?.root.startSystemId ??
           (admission.input.type === 'START' ? (admission.input.systemId ?? null) : null)) ||
@@ -196,7 +203,7 @@ export const commit = internalMutation({
       ))
     const occurrence = await ctx.db.get(occurrenceId)
     if (!occurrence) throw new Error('Encounter turn occurrence was not retained.')
-    return completeNativeInitiativeOccurrence({
+    const result = await completeNativeInitiativeOccurrence({
       ctx,
       encounter,
       occurrence,
@@ -207,6 +214,7 @@ export const commit = internalMutation({
       rootCommandId: root.rootCommandId,
       rootCommandFingerprint: root.commandFingerprint,
       rootInitiatorUserId: root.initiatorUserId,
+      rootRequestedByUserId: root.requestedByUserId,
       rootCorrelationId: root.correlationId,
       rootExpectedEncounterVersion: root.expectedEncounterVersion,
       initiative: root.initiative,
@@ -233,5 +241,6 @@ export const commit = internalMutation({
       encounterVersion: nextState.version,
       updatedAt: input.occurredAt
     })
+    return presentEncounterResultForMember(ctx, { campaign, membership, result })
   }
 })

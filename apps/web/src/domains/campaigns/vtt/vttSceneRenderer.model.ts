@@ -44,6 +44,11 @@ export interface VttSceneTokenDragState {
 }
 
 export interface VttSceneTokenDragUpdate {
+  /**
+   * Token id to whether the viewer controls the Encounter actor bound to it. Bound tokens follow the
+   * actor's controllers; only unbound tokens use the Scene token's own controllers.
+   */
+  boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mode: 'EDIT' | 'PLAY'
   role: 'OWNER' | 'PLAYER'
@@ -345,11 +350,15 @@ function offsetBefore(sizes: ReadonlyMap<number, number>, index: number): number
   return offset
 }
 
-function canControlSceneToken(
+export function canControlSceneToken(
   token: CampaignSceneStateDto['tokens'][number],
-  update: Pick<VttSceneTokenDragUpdate, 'currentUserId' | 'role'>
+  viewer: Pick<VttSceneTokenDragUpdate, 'boundTokenControl' | 'currentUserId' | 'role'>
 ): boolean {
-  return update.role === 'OWNER' || token.controlledByUserIds.includes(update.currentUserId)
+  return (
+    viewer.role === 'OWNER' ||
+    (viewer.boundTokenControl.get(token.id) ??
+      token.controlledByUserIds.includes(viewer.currentUserId))
+  )
 }
 
 function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {

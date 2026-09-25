@@ -1,3 +1,7 @@
+import {
+  noEncounterRollModeReasons,
+  type EncounterRollModeReasons
+} from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -40,18 +44,27 @@ export function readNativeConcentrationPending(occurrence: Doc<'encounterRuleOcc
   return { snapshot, context, continuation }
 }
 
-export function projectNativeConcentrationPending(occurrence: Doc<'encounterRuleOccurrences'>) {
+export function projectNativeConcentrationPending(
+  occurrence: Doc<'encounterRuleOccurrences'>,
+  reasons: EncounterRollModeReasons = noEncounterRollModeReasons
+) {
   const { snapshot, context } = readNativeConcentrationPending(occurrence)
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
+    // The concentrating actor makes the save; its controllers and the GM answer it.
+    rollerActorId: context.application.targetActorId,
     request: {
       requestId: snapshot.request.requestId,
       min: 1,
       max: 20,
-      rollMode: context.save.rollMode
+      rollMode: context.save.rollMode,
+      derivedRollModeReasons: reasons({
+        rollMode: context.save.rollMode,
+        contributors: context.save.contributors
+      })
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })

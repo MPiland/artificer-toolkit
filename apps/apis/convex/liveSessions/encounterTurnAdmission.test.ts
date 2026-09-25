@@ -262,7 +262,7 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-it('admits only the current owner, epoch, and Run', async () => {
+it('admits the owner or the current actor controller, epoch, and Run', async () => {
   const base = await setup()
   const command = {
     type: 'ADVANCE_TURN' as const,
@@ -286,7 +286,7 @@ it('admits only the current owner, epoch, and Run', async () => {
       expectedUserId: base.other.userId,
       expectedRole: 'PLAYER'
     })
-  ).rejects.toThrow('scope mismatch')
+  ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
   await expect(
     base.owner.caller.query(capture, { ...input, expectedUserId: base.other.userId })
   ).rejects.toThrow('scope mismatch')
@@ -305,6 +305,37 @@ it('admits only the current owner, epoch, and Run', async () => {
       encounterId: crypto.randomUUID()
     })
   ).rejects.toThrow('scope mismatch')
+  const currentActorId = base.started.projection.currentActorId
+  if (!currentActorId) throw new Error('Expected a current actor.')
+  const granted = await base.owner.caller.mutation(execute, {
+    command: {
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: command.expectedVersion,
+      actorId: currentActorId,
+      controllerUserIds: [base.other.userId]
+    }
+  })
+  const playerCommand = {
+    ...command,
+    commandId: crypto.randomUUID(),
+    expectedVersion: granted.projection.version
+  }
+  await expect(
+    base.other.caller.query(capture, {
+      ...input,
+      expectedUserId: base.other.userId,
+      expectedRole: 'PLAYER',
+      expectedVersion: playerCommand.expectedVersion,
+      request: { kind: 'TURN_COMMAND', command: playerCommand }
+    })
+  ).resolves.toMatchObject({
+    kind: 'TURN_COMMAND',
+    command: playerCommand,
+    snapshot: null,
+    result: null
+  })
 }, 60_000)
 
 it('returns exact native pending and terminal turn replays while blocking unrelated roots', async () => {

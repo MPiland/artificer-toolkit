@@ -9,7 +9,7 @@ import { characterResourcesSchema } from './characterResourceRules.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 import {
   abilityCodeSchema,
-  attackDomainCodeSchema,
+  attackKindSchema,
   equipmentGripSchema,
   modifierScopeKindSchema
 } from '../shared/enums.js'
@@ -84,7 +84,9 @@ const actionEquipmentStateSchema = z.strictObject({
   requiresEquipped: booleanSchema,
   requiresAttuned: booleanSchema,
   /** The grip this action's effect is wielded with; null for non-attack and item-feature actions. */
-  grip: z.nullable(equipmentGripSchema)
+  grip: z.nullable(equipmentGripSchema),
+  /** Another weapon is equipped: attacking with this item is not wielding it alone (Dueling). */
+  otherWeaponEquipped: booleanSchema
 })
 
 const actionResourceUseSchema = z.strictObject({
@@ -319,7 +321,7 @@ export const characterResolvedActionMechanicSchema = z.strictObject({
   rangeLabel: z.nullable(
     stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
   ),
-  attackKind: z.nullable(attackDomainCodeSchema),
+  attackKind: z.nullable(attackKindSchema),
   attackBonus: z.nullable(integerSchema),
   attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
   save: z.nullable(

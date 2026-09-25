@@ -27,7 +27,7 @@ import { movementPendingCharacterAggregateVersions } from '@artificer-toolkit/ru
 import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementCurrentness'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterControlledActorIds } from '../encounters/actorController'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors, readRunState } from '../encounters/documents'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
@@ -140,7 +140,7 @@ export async function publishSpatialPending<TSettlement>(
     throw new Error('Spatial pending publication is unavailable.')
   const tokenId = save.input.tokenId
   const prepared = preparation.outcome
-  const { context, root } = readEncounterMovementPendingContext(prepared.pendingSnapshot)
+  const { context } = readEncounterMovementPendingContext(prepared.pendingSnapshot)
   const sceneVersion =
     save.snapshotVersion + (prepared.movementIntent || save.fogSaves.length ? 1 : 0)
   let pendingSnapshot = prepared.pendingSnapshot
@@ -173,15 +173,12 @@ export async function publishSpatialPending<TSettlement>(
       checksumCanonicalJson(initialEvaluation.outcome) !== checksumCanonicalJson(prepared))
   )
     throw new Error('Initial movement evaluation does not match retained preparation.')
-  const assigned =
-    membership.role === 'PLAYER'
-      ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-      : null
-  const assignedActorId = assigned
-    ? ((await readRunActors(ctx, state)).find(
-        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === assigned.id
-      )?.id ?? null)
-    : null
+  const memberActorIds = await readEncounterControlledActorIds(ctx, {
+    campaign,
+    membership,
+    actors: await readRunActors(ctx, state)
+  })
+  const ownerActorIds = new Set(state.actorIds)
   const projected = (
     occurrence: {
       id: string
@@ -190,21 +187,12 @@ export async function publishSpatialPending<TSettlement>(
       pendingSnapshot: ReturnType<typeof serverRuleExecutionPendingSnapshotDtoSchema.parse> | null
     },
     encounterVersion: number,
-    role: 'OWNER' | 'PLAYER',
-    characterId: string | null
+    viewer: 'MEMBER' | 'OWNER'
   ) =>
     projectEncounterSpatialOccurrenceSummary(occurrence, encounterVersion, {
-      membershipRole: role,
-      assignedCharacterId: characterId,
-      assignedActorId: role === 'PLAYER' ? assignedActorId : null
+      controlledActorIds: viewer === 'OWNER' ? ownerActorIds : memberActorIds
     })
   const initialMovement = movementHistory(context)
-  const sealedInitialReactionExecutions =
-    initialMovement && root.resolutionCommands.length === 0
-      ? initialMovement.completedReactionExecutions.filter(
-          (execution) => execution.sourceCommandId === save.commandId
-        )
-      : []
   const initialAppliedSpatialPrefix = initialMovement?.appliedSpatialPrefix ?? null
   if (
     initialAppliedSpatialPrefix &&
@@ -212,12 +200,12 @@ export async function publishSpatialPending<TSettlement>(
       initialAppliedSpatialPrefix.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
   )
     throw new Error('Initial movement spatial history is unavailable.')
+  // Only spatial effects apply before the first pause; every reaction waits for its controller.
   const initialAutomaticMechanicsChanged = initialEvaluation
     ? initialEvaluation.settlements.length > 0
-    : sealedInitialReactionExecutions.length > 0 ||
-      (initialAppliedSpatialPrefix?.status === 'BATCH_COMPLETE' &&
-        initialAppliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT' &&
-        initialAppliedSpatialPrefix.executions.length > 0)
+    : initialAppliedSpatialPrefix?.status === 'BATCH_COMPLETE' &&
+      initialAppliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT' &&
+      initialAppliedSpatialPrefix.executions.length > 0
   const expectedPublicationVersion =
     preparation.expectedEncounterVersion + (initialAutomaticMechanicsChanged ? 1 : 0)
   if (initialMovement && initialAutomaticMechanicsChanged)
@@ -260,16 +248,10 @@ export async function publishSpatialPending<TSettlement>(
     state: 'PENDING' as const,
     pendingSnapshot
   }
-  let occurrence = projected(
-    preparedOccurrence,
-    expectedPublicationVersion,
-    membership.role,
-    assigned?.id ?? null
-  )
-  const characterTransitions = movementPendingCharacterAggregateVersions({
-    reactionExecutions: sealedInitialReactionExecutions,
-    appliedSpatialPrefix: initialAppliedSpatialPrefix
-  }).map(
+  let occurrence = projected(preparedOccurrence, expectedPublicationVersion, 'MEMBER')
+  const characterTransitions = movementPendingCharacterAggregateVersions(
+    initialAppliedSpatialPrefix
+  ).map(
     ({
       aggregateId: characterId,
       beforeVersion: beforeStreamVersion,
@@ -280,7 +262,7 @@ export async function publishSpatialPending<TSettlement>(
       afterStreamVersion
     })
   )
-  let ownerOccurrence = projected(preparedOccurrence, expectedPublicationVersion, 'OWNER', null)
+  let ownerOccurrence = projected(preparedOccurrence, expectedPublicationVersion, 'OWNER')
   const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
     schemaVersion: 1,
     transition: 'SPATIAL_MOVEMENT',
@@ -314,10 +296,7 @@ export async function publishSpatialPending<TSettlement>(
             }
           ]
         : []),
-      ...movementPendingCharacterAggregateVersions({
-        reactionExecutions: sealedInitialReactionExecutions,
-        appliedSpatialPrefix: initialAppliedSpatialPrefix
-      }),
+      ...movementPendingCharacterAggregateVersions(initialAppliedSpatialPrefix),
       ...(sceneVersion === save.snapshotVersion
         ? []
         : [
@@ -443,8 +422,7 @@ export async function publishSpatialPending<TSettlement>(
           pendingSnapshot: currentPendingSnapshot
         },
         state.version,
-        membership.role,
-        assigned?.id ?? null
+        'MEMBER'
       ),
       retainedOccurrence: occurrence
     }
@@ -501,14 +479,12 @@ export async function publishSpatialPending<TSettlement>(
       occurrence = projected(
         { id: preparation.occurrenceId, version: 0, state: 'PENDING', pendingSnapshot },
         publishedState.version,
-        membership.role,
-        assigned?.id ?? null
+        'MEMBER'
       )
       ownerOccurrence = projected(
         { id: preparation.occurrenceId, version: 0, state: 'PENDING', pendingSnapshot },
         publishedState.version,
-        'OWNER',
-        null
+        'OWNER'
       )
     }
   }

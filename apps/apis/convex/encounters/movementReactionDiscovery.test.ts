@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -166,18 +163,22 @@ describe('native movement reaction discovery', () => {
     const option = entry.group.options[0]
     if (!option) throw new Error('Missing reaction option.')
     await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', base.run.id))
-        .unique()
-      if (!row) throw new Error('Missing reaction run.')
-      const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
-      const changed = encounterRunStateSchema.parse({
-        ...state,
-        sideRelationships: state.sideRelationships.map((relationship) => ({
-          ...relationship,
-          relationshipKind: 'ALLIED' as const
-        }))
+      // The GM makes the reactor friendly to the mover, so the pair is no longer hostile.
+      const rows = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (query) => query.eq('encounterId', base.run.id))
+        .collect()
+      const actors = rows.map((row) => ({
+        row,
+        actor: encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      }))
+      const mover = actors.find(({ actor }) => actor.id === base.mover.id)
+      const reactor = actors.find(({ actor }) => actor.id === base.reactor.id)
+      if (!mover || !reactor) throw new Error('Missing reaction actors.')
+      const row = reactor.row
+      const changed = encounterRunActorStateSchema.parse({
+        ...reactor.actor,
+        disposition: mover.actor.disposition
       })
       await ctx.db.patch(row._id, {
         stateJson: JSON.stringify(changed),

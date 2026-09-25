@@ -1,18 +1,21 @@
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
+import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
+import { encounterStatBlockDefenses } from './encounterStatBlock.utils'
 
 export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto }) {
+  // Defenses are vocabulary ids; the System names them.
+  const system = useQuery(
+    convexApi.content.systems.get,
+    actor.systemId ? { id: actor.systemId } : 'skip'
+  )
   const statBlock = actor.statBlock
   if (!statBlock) return null
   const abilityScores = Object.entries(statBlock.abilityScores ?? {}).sort(
     ([left], [right]) => abilitySortIndex(left) - abilitySortIndex(right)
   )
-  const defenses = [
-    ['Vulnerable', statBlock.damageVulnerabilities],
-    ['Resistant', statBlock.damageResistances],
-    ['Immune', statBlock.damageImmunities],
-    ['Condition immune', statBlock.conditionImmunities]
-  ] as const
+  const defenses = encounterStatBlockDefenses(statBlock, system)
 
   return (
     <section
@@ -52,18 +55,14 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
           ))}
         </dl>
       ) : null}
-      {defenses.some(([, values]) => values.length > 0) ? (
+      {defenses.length > 0 ? (
         <dl className={encounterStyles.encounterDefenseList}>
-          {defenses.flatMap(([label, values]) =>
-            values.length
-              ? [
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{values.join(', ')}</dd>
-                  </div>
-                ]
-              : []
-          )}
+          {defenses.map(({ label, value }) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
         </dl>
       ) : null}
     </section>

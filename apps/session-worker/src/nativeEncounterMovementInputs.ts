@@ -12,6 +12,7 @@ import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
@@ -103,14 +104,8 @@ export async function readNativeLiveMovementInputs(input: {
       throw new Error('Movement Scene settings changed.')
   const command = save.input
   const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
-  if (
-    !token ||
-    token.locked ||
-    (scope.expectedRole !== 'OWNER' &&
-      !save.movementResolution &&
-      !token.controlledByUserIds.includes(scope.expectedUserId))
-  )
-    throw new Error('Movement token authority is unavailable.')
+  // The movement capture already admitted the mover as a controller of the bound actor.
+  if (!token || token.locked) throw new Error('Movement token authority is unavailable.')
   const actorIdByTokenId = new Map(
     movement.bindings.map((binding) => [binding.tokenId, binding.actorId])
   )
@@ -173,7 +168,9 @@ export async function readNativeLiveMovementInputs(input: {
         })
         if (root.resolutionCommands.some((entry) => entry.commandId === responseCommand.commandId))
           throw new Error('Movement response command was already used.')
-        return { command, snapshot, context, root, responseCommand }
+        // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+        const answer = withEncounterAppRoll(command.resolution, movement.appRoll)
+        return { command, answer, snapshot, context, root, responseCommand }
       })()
     : null
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
@@ -301,7 +298,7 @@ export async function readNativeLiveMovementInputs(input: {
     save,
     response,
     header,
-    autoRollDice: movement.autoRollDice,
+    autoRollByActorId: movement.autoRollByActorId,
     state,
     system,
     actors,

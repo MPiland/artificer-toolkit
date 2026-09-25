@@ -120,7 +120,7 @@ describe('manifest schema parsing', () => {
                     id: '00000000-0000-4000-8000-0000000000f2',
                     order: 1,
                     invocation: {
-                      triggerCode: 'SPELL_ATTACK',
+                      triggerCode: 'RANGED_SPELL_ATTACK',
                       activation: {
                         code: 'BONUS_ACTION',
                         amount: 1

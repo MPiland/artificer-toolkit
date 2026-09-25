@@ -15,9 +15,11 @@ const defaultMessages: Record<PlainReason, string> = {
   DECISION_NOT_PENDING: 'This decision is already settled.',
   DECISION_REQUIRES_ANSWER: 'This decision must be answered before play can continue.',
   ENCOUNTER_NOT_ACTIVE: 'Completed Encounters are read-only.',
+  NOT_ACTOR_CONTROLLER: "You don't control this actor.",
   NOT_CURRENT_ACTOR: 'The selected actor does not have the turn.',
   PENDING_DECISION: 'An Encounter rule occurrence is awaiting resolution.',
   REVERT_UNAVAILABLE: "The last action can't be undone; adjust manually.",
+  ROLL_UNAVAILABLE: 'That roll no longer applies to this decision; roll again.',
   TARGET_UNAVAILABLE: 'The target is unavailable.',
   VERSION_STALE: 'Encounter version is stale.'
 }

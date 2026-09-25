@@ -22,6 +22,10 @@ import {
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  selectEncounterActionD20Natural,
+  type EncounterD20RollMode
+} from './encounterEvidenceAnswer.js'
 
 /**
  * Thrown when a sealed target-bound active effect cannot be evaluated against
@@ -380,11 +384,11 @@ function d20EvidenceForCompletion(input: {
   policy: ServerRuleExecutionD20PolicyDto | null
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   occurrenceId: string
-  rawFaces?: readonly number[]
+  roll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
 }): ServerRuleExecutionD20EvidenceDto | null {
-  const { policy, execution, occurrenceId, rawFaces } = input
-  if (!policy && rawFaces === undefined) return null
-  if (!policy || rawFaces === undefined)
+  const { policy, execution, occurrenceId, roll } = input
+  if (!policy && roll === undefined) return null
+  if (!policy || roll === undefined)
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 policy and raw evidence must either both be present or both be absent.'
     )
@@ -409,20 +413,15 @@ function d20EvidenceForCompletion(input: {
       'The active-effect completion does not bind its exact d20 evidence request.'
     )
   }
-  const expectedFaceCount = policy.rollMode === 'NORMAL' ? 1 : 2
+  const { rawFaces, rollMode } = roll
   if (
-    rawFaces.length !== expectedFaceCount ||
+    rawFaces.length !== (rollMode === 'NORMAL' ? 1 : 2) ||
     rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 raw faces are invalid.'
     )
-  const selectedNatural =
-    policy.rollMode === 'ADVANTAGE'
-      ? Math.max(...rawFaces)
-      : policy.rollMode === 'DISADVANTAGE'
-        ? Math.min(...rawFaces)
-        : rawFaces[0]!
+  const selectedNatural = selectEncounterActionD20Natural(rollMode, rawFaces)
   if (
     selectedNatural !== entry.evidence.value ||
     execution.outputs.total !== selectedNatural + policy.modifier
@@ -433,7 +432,8 @@ function d20EvidenceForCompletion(input: {
   }
   return {
     requestId: entry.evidence.requestId,
-    rollMode: policy.rollMode,
+    rollMode,
+    derivedRollMode: policy.rollMode,
     rawFaces: [...rawFaces],
     selectedNatural,
     contributors: [...policy.contributors],
@@ -449,7 +449,7 @@ function complete(input: {
   prepared: ReturnType<typeof prepare>
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   graph: CompiledRuleGraph
-  rawFaces?: readonly number[]
+  roll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
 }): TargetBoundActiveRuleEffectExecutionResult {
   const { prepared, execution, graph } = input
   requireTraceBinding({ execution, definition: prepared.definition })
@@ -482,7 +482,7 @@ function complete(input: {
       policy: prepared.evidencePolicy,
       execution,
       occurrenceId: prepared.occurrenceId,
-      rawFaces: input.rawFaces
+      ...(input.roll ? { roll: input.roll } : {})
     })
   }
 }
@@ -552,7 +552,11 @@ export function reconstructTargetBoundActiveRuleEffectCompletion(input: {
     prepared,
     execution: input.execution,
     graph: prepared.definition.frozenGraph,
-    rawFaces: input.d20Evidence?.rawFaces
+    ...(input.d20Evidence
+      ? {
+          roll: { rawFaces: input.d20Evidence.rawFaces, rollMode: input.d20Evidence.rollMode }
+        }
+      : {})
   })
 }
 
@@ -584,14 +588,15 @@ export async function executeTargetBoundActiveRuleEffectWithPause(
 export async function resumeTargetBoundActiveRuleEffectWithPause(
   input: TargetBoundActiveRuleEffectExecutionInput & {
     continuation: ServerRuleExecutionContinuationDto
-    resolution: { requestId: string; rawFaces: readonly number[] }
+    /** The d20 faces and the mode the roller rolled them with. */
+    resolution: { requestId: string; rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
     expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
   }
 ): Promise<
   TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
 > {
   const prepared = prepare(input)
-  const policy = validatePreparedContinuation({
+  validatePreparedContinuation({
     prepared,
     continuation: input.continuation,
     expectedEvidencePolicy: input.expectedEvidencePolicy
@@ -601,21 +606,16 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
       'The Rules runtime cannot resume an active-effect graph with its frozen source.'
     )
   const rawFaces = [...input.resolution.rawFaces]
-  const expectedFaceCount = policy.rollMode === 'NORMAL' ? 1 : 2
+  const { rollMode } = input.resolution
   if (
     input.resolution.requestId !== input.continuation.request.requestId ||
-    rawFaces.length !== expectedFaceCount ||
+    rawFaces.length !== (rollMode === 'NORMAL' ? 1 : 2) ||
     rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 resolution is invalid.'
     )
-  const selectedNatural =
-    policy.rollMode === 'ADVANTAGE'
-      ? Math.max(...rawFaces)
-      : policy.rollMode === 'DISADVANTAGE'
-        ? Math.min(...rawFaces)
-        : rawFaces[0]!
+  const selectedNatural = selectEncounterActionD20Natural(rollMode, rawFaces)
   const resumed = await input.runtime.resumeWithGraph({
     continuation: input.continuation,
     response: serverRuleEvidenceResponseDtoSchema.parse({
@@ -631,5 +631,10 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     return { continuation: resumed.result.continuation, evidencePolicy: prepared.evidencePolicy }
   }
   requireFrozenGraphMatch({ graph: resumed.graph, definition: prepared.definition })
-  return complete({ prepared, execution: resumed.result, graph: resumed.graph, rawFaces })
+  return complete({
+    prepared,
+    execution: resumed.result,
+    graph: resumed.graph,
+    roll: { rawFaces, rollMode }
+  })
 }

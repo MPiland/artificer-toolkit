@@ -3,7 +3,7 @@ import type {
   CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
-import { dnd5eAttackKind } from './attackKind.js'
+import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAttackingItem,
@@ -189,6 +189,7 @@ export function resolveDnd5eActionMechanic(
   const { invocation, outcomes } = candidate.mechanicFacts
   const equipment = 'equipment' in candidate ? candidate.equipment : null
   const attackKind = dnd5eAttackKind(invocation.triggerCode)
+  const attackDomain = attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
   const item = dnd5eAttackingItem(equipment)
   const target: Dnd5eModifierTarget =
     'sourceId' in candidate
@@ -206,12 +207,13 @@ export function resolveDnd5eActionMechanic(
     applies: (contribution: ModifierContribution) => boolean = (contribution) =>
       dnd5eModifierApplies(contribution, target)
   ): ModifierContribution[] =>
-    attackKind === null
+    attackDomain === null
       ? []
       : input.modifierGroups
           .filter((group) =>
             modifierKinds.some(
-              (kind) => group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackKind}`
+              (kind) =>
+                group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackDomain}`
             )
           )
           .flatMap((group) => group.contributions)
@@ -223,7 +225,7 @@ export function resolveDnd5eActionMechanic(
   const numericKinds = ['BONUS', 'PENALTY', ...ABILITY_MODIFIER_KINDS]
   const resolveAttackBonus = (): number | null => {
     if (attackKind === null) return null
-    if (attackKind === 'SPELL') {
+    if (isDnd5eSpellAttackKind(attackKind)) {
       if (context.spellcasting?.attackBonus == null) return null
       // Spellcasting already counts Character-wide spell attack modifiers; add the spell's own.
       return (

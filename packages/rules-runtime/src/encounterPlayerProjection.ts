@@ -14,7 +14,8 @@ export function healthBand(current: number, maximum: number) {
 /**
  * Derive the player-safe view from a validated committed projection. This
  * keeps gameplay reads on the same projection for GMs and players while
- * retaining the intentionally smaller player contract.
+ * retaining the intentionally smaller player contract: hidden actors, GM notes,
+ * stat blocks, resources and every actor's health stay GM-only.
  */
 export function projectPlayerEncounterProjection(
   encounter: EncounterGmProjectionDto
@@ -49,10 +50,11 @@ export function projectPlayerEncounterProjection(
         sourceId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
         sourceRevision: null,
         public: actor.public,
+        controllerUserIds: actor.controllerUserIds,
+        disposition: actor.disposition,
         initiative: actor.initiative,
         manualOrder: actor.manualOrder,
-        conditions: actor.conditions,
-        healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
+        conditions: actor.conditions
       })),
     createdAt: encounter.createdAt,
     updatedAt: encounter.updatedAt

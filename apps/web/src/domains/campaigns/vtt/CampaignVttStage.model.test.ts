@@ -79,10 +79,40 @@ describe('Campaign VTT accessible scene controls', () => {
   it('uses the same token-control rule for a player and the GM', () => {
     const token = scene().tokens[0]!
 
-    expect(canMoveSceneToken(token, currentUserId, 'PLAYER')).toBe(true)
-    expect(canMoveSceneToken(token, crypto.randomUUID(), 'PLAYER')).toBe(false)
-    expect(canMoveSceneToken(token, crypto.randomUUID(), 'OWNER')).toBe(true)
-    expect(canMoveSceneToken({ ...token, locked: true }, currentUserId, 'OWNER')).toBe(false)
+    const unbound = new Map<string, boolean>()
+    const player = { boundTokenControl: unbound, currentUserId, role: 'PLAYER' as const }
+
+    expect(canMoveSceneToken(token, player)).toBe(true)
+    expect(canMoveSceneToken(token, { ...player, currentUserId: crypto.randomUUID() })).toBe(false)
+    expect(
+      canMoveSceneToken(token, { ...player, currentUserId: crypto.randomUUID(), role: 'OWNER' })
+    ).toBe(true)
+    expect(canMoveSceneToken({ ...token, locked: true }, { ...player, role: 'OWNER' })).toBe(false)
+  })
+
+  it('moves Encounter-bound tokens by actor control instead of Scene token controllers', () => {
+    const token = scene().tokens[0]!
+    const otherUserId = crypto.randomUUID()
+    const player = { currentUserId: otherUserId, role: 'PLAYER' as const }
+
+    // A bound token granted to the player through its actor is draggable.
+    expect(
+      canMoveSceneToken(token, { ...player, boundTokenControl: new Map([[token.id, true]]) })
+    ).toBe(true)
+    // Another player's bound Character stays refused even though the token lists this viewer.
+    expect(
+      canMoveSceneToken(token, {
+        boundTokenControl: new Map([[token.id, false]]),
+        currentUserId,
+        role: 'PLAYER'
+      })
+    ).toBe(false)
+    expect(
+      canMoveSceneToken(
+        { ...token, locked: true },
+        { ...player, boundTokenControl: new Map([[token.id, true]]) }
+      )
+    ).toBe(false)
   })
 
   it('nudges one grid step and keeps the token inside the map', () => {

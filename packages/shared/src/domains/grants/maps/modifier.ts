@@ -358,7 +358,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             options: ABILITY_OPTIONS
           },
           {
-            showIf: parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+            // An armor class formula adds each listed ability modifier to its amount.
+            showIf: or([
+              parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
+              and([
+                parent.field(['valueDomainCode']).eq('ARMOR_CLASS'),
+                parent.field(['modifierKind']).eq('SET_VALUE')
+              ])
+            ])
           }
         )
       )

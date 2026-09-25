@@ -447,6 +447,12 @@ export function buildCharacterActionRuleFacts(params: {
       equipped: Boolean(item.equippedState),
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
+      otherWeaponEquipped: snapshot.equipmentItems.some(
+        (other) =>
+          other.instanceId !== item.instanceId &&
+          Boolean(other.equippedState) &&
+          other.compiledItem.category === 'WEAPON'
+      ),
       ...rootRequirements
     }
     const rootSource = {

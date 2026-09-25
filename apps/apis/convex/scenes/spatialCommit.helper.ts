@@ -4,10 +4,14 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { MutationCtx } from '../_generated/server'
 import { evaluateNativeSpatialMovement } from '../encounters/spatialMovement'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
+import { readRunActors, readRunState } from '../encounters/documents'
 import { settleSceneMovementSettlements } from './movementSettlements'
 import { evaluateInitialSceneMovement } from './spatialPreparation'
 import { persistSpatialPreparation } from './spatialPreparationPersistence'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import {
+  readEncounterAutoRollByActorId,
+  requireBoundTokenMoveControl
+} from '../encounters/actorController'
 
 type Geometry = {
   sceneTokens: readonly SceneToken[]
@@ -15,7 +19,7 @@ type Geometry = {
 }
 
 async function readSpatialCommit(ctx: MutationCtx, saveId: string, geometry: Geometry) {
-  const { save, campaign, membership, userId } = await readGeometrySave(ctx, saveId)
+  const { save, campaign, membership } = await readGeometrySave(ctx, saveId)
   const preparation = readSpatialPreparation(save)
   if (!preparation || preparation.outcome.kind === 'PENDING')
     throw new Error('Completed spatial preparation is unavailable.')
@@ -27,12 +31,14 @@ async function readSpatialCommit(ctx: MutationCtx, saveId: string, geometry: Geo
 
   const tokenId = save.input.tokenId
   const movingToken = geometry.sceneTokens.find((token) => token.id === tokenId)
-  if (
-    !movingToken ||
-    movingToken.locked ||
-    (membership.role !== 'OWNER' && !movingToken.controlledByUserIds.includes(userId))
-  )
+  if (!movingToken || movingToken.locked)
     throw new Error('Members may only move an unlocked token they control.')
+  await requireBoundTokenMoveControl(ctx, {
+    campaign,
+    membership,
+    encounterId: preparation.encounterId,
+    tokenId: movingToken.id
+  })
   if (!geometry.actorIdByTokenId.get(movingToken.id))
     throw new Error('Spatial terminal moving actor is unavailable.')
 
@@ -65,7 +71,7 @@ async function readSpatialCommit(ctx: MutationCtx, saveId: string, geometry: Geo
     .take(2)
   if (pendingOccurrences.length > 0) throw new Error('Encounter has a pending rule occurrence.')
 
-  return { save, preparation, root, movingToken }
+  return { save, campaign, preparation, root, movingToken }
 }
 
 /** Parent supplies authoritative geometry at the saved Scene version and atomically publishes the root receipt. */
@@ -75,7 +81,11 @@ export async function commitPreparedSpatialTerminal(
   geometry: Geometry,
   request?: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 ) {
-  const { save, preparation, root, movingToken } = await readSpatialCommit(ctx, saveId, geometry)
+  const { save, campaign, preparation, root, movingToken } = await readSpatialCommit(
+    ctx,
+    saveId,
+    geometry
+  )
   if (preparation.outcome.kind !== 'TERMINAL')
     throw new Error('Spatial terminal preparation is unavailable.')
   const result = preparation.outcome.result
@@ -95,9 +105,11 @@ export async function commitPreparedSpatialTerminal(
     return { kind: 'TERMINAL' as const, result, ...settled }
   }
 
-  if (result.reactionExecutions.length !== 0)
-    throw new Error('Automatic movement reaction source hints are unavailable.')
-
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', preparation.encounterId))
+    .unique()
+  if (!run) throw new Error('Spatial Encounter is unavailable.')
   const actual = await evaluateNativeSpatialMovement(
     ctx,
     {
@@ -113,7 +125,11 @@ export async function commitPreparedSpatialTerminal(
       occurrenceVersion: result.occurrenceVersion,
       executionCommandId: save.commandId,
       occurredAt: preparation.occurredAt,
-      autoRoll: await readAutoRollDice(ctx, root.initiatorUserId),
+      autoRoll: await readEncounterAutoRollByActorId(ctx, {
+        campaign,
+        initiatorUserId: root.initiatorUserId,
+        actors: await readRunActors(ctx, readRunState(run))
+      }),
       frozenTerminal: preparation.outcome
     },
     'COMMIT'

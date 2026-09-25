@@ -440,7 +440,10 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
   K extends 'BONUS' | 'PENALTY'
     ? ModifierScalarValueAuthored
     : K extends 'SET_VALUE'
-      ? { amount: number } // consider NumericExpr later
+      ? V extends 'ARMOR_CLASS'
+        ? // An armor class formula: the amount plus each listed ability modifier.
+          { amount: number; abilities: AbilityCode[] }
+        : { amount: number }
       : K extends 'ABILITY_MODIFIER_BONUS'
         ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
         : K extends 'MODIFY_CHARGE_LIMIT'

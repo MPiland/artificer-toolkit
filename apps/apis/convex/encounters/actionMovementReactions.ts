@@ -38,6 +38,7 @@ import {
   executeNativeActionGraphs
 } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import type { resolveNativeMovementLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
+import type { EncounterAutoRollByActorId } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
 
 type CompletedNativeReaction = Awaited<ReturnType<typeof executeNativeActionGraphs>> & {
   kind: 'COMPLETE'
@@ -69,7 +70,7 @@ export async function executeNativeMovementReactionAction(
   input: {
     runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
     occurrenceId: string
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
     random?: Parameters<typeof executeNativeActionGraphs>[0]['random']
     resume?: Parameters<typeof advanceNativeActionGraphs>[0]['resume']
@@ -87,7 +88,7 @@ export async function resumeNativeMovementLegendaryResistance(
   input: {
     runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
     occurrenceId: string
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     selection: Parameters<typeof resolveNativeMovementLegendaryResistance>[0]['selection']

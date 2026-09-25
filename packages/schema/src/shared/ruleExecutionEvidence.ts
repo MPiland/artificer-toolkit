@@ -96,7 +96,10 @@ export const serverRuleExecutionD20PolicyDtoSchema = z
 
 const serverRuleExecutionD20EvidenceShape = z.strictObject({
   requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+  /** The mode the faces were rolled with: the roller may change the recommended mode. */
   rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+  /** The rules-derived mode the roll prompt recommended. */
+  derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
   rawFaces: z.array(receiptD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
   selectedNatural: receiptD20FaceSchema,
   contributors: z.array(receiptD20ContributorSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -173,10 +176,10 @@ export const serverRuleExecutionNestedD20EvidenceDtoSchema = z
             ? 'ADVANTAGE'
             : 'DISADVANTAGE'
           : 'NORMAL'
-      if (value.rollMode !== expectedRollMode)
+      if (value.derivedRollMode !== expectedRollMode)
         context.addIssue({
           code: 'custom',
-          path: ['rollMode'],
+          path: ['derivedRollMode'],
           message: 'Nested d20 evidence roll mode must match its contributors.'
         })
     })

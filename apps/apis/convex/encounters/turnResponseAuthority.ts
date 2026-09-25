@@ -5,11 +5,15 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { readRunActor } from './documents'
+import { requireEncounterActorControl } from './actorController'
 
-/** A declaration and its replay belong to the Character's current Campaign controller. */
-export async function requireInitiativeDeclarationController(
+/**
+ * A player answers only the turn decisions that belong to an actor they control: its initiative
+ * declaration and its turn-effect saves. A replay returns only to the user who answered, and a
+ * declaration replay also requires current control. Every other turn step is the GM's.
+ */
+export async function requireTurnResponseController(
   ctx: QueryCtx,
   input: {
     campaign: Doc<'campaigns'>
@@ -23,7 +27,6 @@ export async function requireInitiativeDeclarationController(
 ) {
   const { campaign, membership, state, occurrence, receipt, command, fingerprint } = input
   if (membership.role === 'OWNER') return
-  if (command.resolution.kind !== 'INITIATIVE_DECLARATION') throw new Error('Campaign not found.')
   const snapshot = occurrence.pendingSnapshotJson
     ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
     : null
@@ -48,18 +51,25 @@ export async function requireInitiativeDeclarationController(
     root?.resolutionCommands ??
     (metadata?.transition === 'TURN_EFFECTS' ? metadata.resolutionCommands : [])
   ).find((entry) => entry.commandId === command.commandId)
-  const actorId =
-    history?.kind === 'INITIATIVE_DECLARATION' &&
-    history.actorUserId === membership.userId &&
-    history.commandFingerprint === fingerprint
-      ? history.initiativeActorId
-      : !history &&
-          context?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' &&
-          context.request.requestId === command.resolution.requestId
-        ? context.request.actorId
+  if (history) {
+    if (history.actorUserId !== membership.userId || history.commandFingerprint !== fingerprint)
+      throw new Error('Campaign not found.')
+    if (history.kind !== 'INITIATIVE_DECLARATION') return
+  }
+  const resolution = command.resolution
+  const actorId = history
+    ? history.initiativeActorId
+    : context?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' &&
+        resolution.kind === 'INITIATIVE_DECLARATION' &&
+        context.request.requestId === resolution.requestId
+      ? context.request.actorId
+      : context?.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
+          snapshot?.snapshotKind === 'KERNEL_EVIDENCE' &&
+          (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
+          snapshot.request.requestId === resolution.requestId
+        ? context.currentCandidate.targetActorId
         : null
-  const assigned = await readCampaignAssignedCharacter(ctx, campaign, membership)
   const actor = actorId ? await readRunActor(ctx, state, actorId) : null
-  if (!assigned || actor?.kind !== 'CHARACTER' || actor.sourceId !== assigned.id)
-    throw new Error('Campaign not found.')
+  if (!actor) throw new Error('Campaign not found.')
+  await requireEncounterActorControl(ctx, { campaign, membership, actor })
 }

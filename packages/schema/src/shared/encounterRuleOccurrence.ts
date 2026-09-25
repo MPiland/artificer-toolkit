@@ -92,11 +92,21 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
       occurrenceId: uuidSchema,
       occurrenceVersion: versionSchema,
       encounterVersion: versionSchema,
+      /** The actor whose roll this is; its controllers and the GM answer it. */
+      rollerActorId: z.nullable(uuidSchema),
       request: z.strictObject({
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
         min: z.literal(1),
         max: z.literal(20),
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        /**
+         * Why the rules derived `rollMode`: the labels of the contributors that produced it (for
+         * example "Flanking" or a feature, item or condition name). Empty for Normal or when the
+         * sources have no label.
+         */
+        derivedRollModeReasons: z
+          .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
+          .check(z.maxLength(32))
       }),
       allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
     }),
@@ -105,6 +115,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
       occurrenceId: uuidSchema,
       occurrenceVersion: versionSchema,
       encounterVersion: versionSchema,
+      rollerActorId: z.nullable(uuidSchema),
       request: z.strictObject({
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
         min: z.number().check(z.int()),

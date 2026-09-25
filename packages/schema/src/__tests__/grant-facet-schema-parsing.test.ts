@@ -97,7 +97,45 @@ describe('grant and facet schema parsing', () => {
         modifierKind: 'REPLACE_DAMAGE_TYPE',
         domain: { attackDomain: 'MELEE' },
         payload: { damageTypeId: 'fire' }
-      }
+      },
+      // Kinds with no consumer that the SRD does not use.
+      ...(
+        [
+          ['SAVE_DC', 'SET_VALUE', {}, { amount: 15 }],
+          ['PROFICIENCY_BONUS', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
+          ['PROFICIENCY_BONUS', 'SET_VALUE', {}, { amount: 3 }],
+          ['CHARGE_LIMIT', 'SET_VALUE', {}, { amount: 3 }],
+          [
+            'CHARGE_LIMIT',
+            'MODIFY_CHARGE_LIMIT',
+            {},
+            { limitKind: 'FIXED_AMOUNT', scalingKind: 'NONE', amount: 2 }
+          ],
+          ['RANGE', 'SET_VALUE', {}, { rangeKind: 'TOUCH' }],
+          ['RANGE', 'REPLACE_RANGE_KIND', {}, { rangeKind: 'TOUCH' }],
+          ['DURATION', 'SET_VALUE', {}, { durationKind: 'MINUTE', amount: 10 }],
+          ['DURATION', 'REPLACE_DURATION_KIND', {}, { durationKind: 'HOUR' }],
+          ['SHAPE', 'REPLACE_SHAPE_KIND', {}, { shapeKind: 'CONE' }],
+          ['SPELL_SLOT_COUNT', 'BONUS', { spellLevel: 1 }, { valueKind: 'FIXED', amount: 1 }],
+          ['SPELL_SLOT_COUNT', 'SET_VALUE', { spellLevel: 1 }, { amount: 2 }],
+          ['SPELL_SLOT_LEVEL_MAX', 'SET_VALUE', {}, { amount: 5 }],
+          ['SPELLS_KNOWN', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
+          ['SPELLS_KNOWN', 'SET_VALUE', {}, { amount: 4 }],
+          ['SPELLS_PREPARED', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
+          ['SPELLS_PREPARED', 'SET_VALUE', {}, { amount: 4 }],
+          ['ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
+          ['ACTION_COUNT', 'SET_VALUE', {}, { amount: 2 }],
+          ['BONUS_ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
+          ['BONUS_ACTION_COUNT', 'SET_VALUE', {}, { amount: 0 }],
+          ['REACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }]
+        ] as const
+      ).map(([valueDomainCode, modifierKind, domain, payload]) => ({
+        ...base,
+        valueDomainCode,
+        modifierKind,
+        domain,
+        payload
+      }))
     ]
     for (const grant of unsupported) {
       const parsed = modifierGrantDtoSchema.safeParse(grant)
@@ -142,6 +180,27 @@ describe('grant and facet schema parsing', () => {
         payload: { amount: 60 }
       }).success
     ).toBe(true)
+    // SRD Shocking Grasp: the target can't take reactions (applied by a granted effect).
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode: 'REACTION_COUNT',
+        modifierKind: 'SET_VALUE',
+        domain: {},
+        payload: { amount: 0 }
+      }).success
+    ).toBe(true)
+    // An armor class formula names the ability modifiers it adds (Unarmored Defense).
+    const armorClassFormula = (payload: unknown) =>
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode: 'ARMOR_CLASS',
+        modifierKind: 'SET_VALUE',
+        domain: {},
+        payload
+      }).success
+    expect(armorClassFormula({ amount: 10, abilities: ['DEXTERITY', 'CONSTITUTION'] })).toBe(true)
+    expect(armorClassFormula({ amount: 13 })).toBe(false)
   })
 
   it('parses features with nested grant groups and options', () => {

@@ -4,7 +4,7 @@ import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { useExecuteDiceConfigurationMutation } from '#app/data/rolls'
 import { AppSelect } from '#ui/primitives/Select'
 import type { CharacterStartingEquipmentDecision } from '../../core/characterBuilder.types'
-import { CharacterSheetRollPresentation } from '../../../sheet/dice/CharacterSheetRollPresentation'
+import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import { createStartingEquipmentDecision } from './startingEquipment'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterEquipment.css'
@@ -277,7 +277,7 @@ function StartingEquipmentGoldField({
           }}
         />
       </div>
-      <CharacterSheetRollPresentation
+      <DiceRollPresentation
         pending={executeConfiguration.isPending}
         roll={presentedRoll}
         onRollRevealed={(rollId) => {

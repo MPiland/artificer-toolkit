@@ -5,6 +5,7 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 import { api } from '../_generated/api'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
@@ -16,11 +17,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 it('moves a Character whose Sheet changed after Run creation and damages its current hit points', async () => {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
@@ -57,9 +53,9 @@ it('moves a Character whose Sheet changed after Run creation and damages its cur
     hitPoints: created.hitPoints - 2
   })
 
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  await value.owner.caller.mutation(prepare, value.request)
-  await value.owner.caller.mutation(finish, value.request)
+  const { request } = await useMovementReactions(value)
+  expect((await value.owner.caller.mutation(prepare, request)).outcome.kind).toBe('TERMINAL')
+  await value.owner.caller.mutation(finish, request)
 
   const moved = await readCharacter()
   expect(moved.hitPoints).toBe(edited.hitPoints - 1)

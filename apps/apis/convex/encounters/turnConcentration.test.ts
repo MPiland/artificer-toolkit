@@ -6,6 +6,7 @@ import type {
   EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   createPlatformRulesRuntime,
@@ -15,7 +16,6 @@ import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { turnConcentrationFixture } from '../../tests/fixtures/turnConcentration'
-import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
 import {
   commitNativeLiveConcentrationResponse,
@@ -83,10 +83,10 @@ function response(
     encounterVersion: number
     occurrenceId: string
     occurrenceVersion: number
-    request: { requestId: string }
+    request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
   },
   face: number,
-  system = false
+  appRollId?: string
 ): EncounterExecuteInput {
   return {
     command: {
@@ -97,9 +97,14 @@ function response(
       occurrenceId: pending.occurrenceId,
       expectedOccurrenceVersion: pending.occurrenceVersion,
       correlationId: null,
-      resolution: system
-        ? { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
-        : { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [face] }
+      resolution: appRollId
+        ? { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId, rollId: appRollId }
+        : {
+            kind: 'ENTER_DICE',
+            requestId: pending.request.requestId,
+            rawFaces: [face],
+            rollMode: pending.request.rollMode
+          }
     }
   }
 }
@@ -129,7 +134,12 @@ async function start(base: Fixture, preferredActorId?: string) {
       pending.kind === 'INITIATIVE_EVIDENCE'
         ? { kind: 'ENTER_INTEGER' as const, requestId: pending.request.requestId, value: 10 }
         : pending.kind === 'D20_EVIDENCE'
-          ? { kind: 'ENTER_DICE' as const, requestId: pending.request.requestId, rawFaces: [10] }
+          ? {
+              kind: 'ENTER_DICE' as const,
+              requestId: pending.request.requestId,
+              rawFaces: [10],
+              rollMode: pending.request.rollMode
+            }
           : {
               kind: 'INITIATIVE_ENTITY' as const,
               requestId: pending.requestId,
@@ -305,6 +315,40 @@ describe('turn damage concentration ordering', () => {
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 
+  it("routes a Character's turn-effect save to that Character's controller", async () => {
+    const base = await turnConcentrationFixture('PROMPT')
+    const prepared = await prepareTurn(base)
+    const paused = await base.owner.caller.mutation(
+      internal.encounters.commands.execute,
+      prepared.advance
+    )
+    const pending = paused.occurrence?.pending
+    if (paused.occurrence?.status !== 'PENDING' || pending?.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the outgoing turn-effect save.')
+    expect(pending.rollerActorId).toBe(prepared.a.id)
+    const read = (caller: typeof base.owner.caller) =>
+      caller.query(api.encounters.pendingReads.pendingRuleOccurrence, { encounterId: base.run.id })
+    await expect(read(prepared.bOwner.controller.caller)).resolves.toBeNull()
+    await expect(read(prepared.aOwner.controller.caller)).resolves.toMatchObject({
+      occurrenceId: pending.occurrenceId,
+      rollerActorId: prepared.a.id
+    })
+    const answer = response(base.run.id, pending, 1)
+    const before = await records(base)
+    await expect(
+      prepared.bOwner.controller.caller.action(internal.encounters.commandActions.execute, answer)
+    ).rejects.toThrow()
+    expect(await records(base)).toEqual(before)
+    const answered = await prepared.aOwner.controller.caller.action(
+      internal.encounters.commandActions.execute,
+      answer
+    )
+    expect(encounterPlayerProjectionDtoSchema.safeParse(answered.projection).success).toBe(true)
+    await expect(
+      prepared.aOwner.controller.caller.action(internal.encounters.commandActions.execute, answer)
+    ).resolves.toEqual(answered)
+  }, 60_000)
+
   it('settles Automatic Concentration after a positive incoming START damage batch', async () => {
     const base = await turnConcentrationFixture('AUTO_ROLL')
     const seeded = await seedConcentration({
@@ -438,7 +482,7 @@ describe('turn damage concentration ordering', () => {
         encounterId: base.run.id
       })
     ).resolves.toBeNull()
-    const unauthorized = response(base.run.id, first, 1, true)
+    const unauthorized = response(base.run.id, first, 1, crypto.randomUUID())
     const random = vi.spyOn(rollRandom, 'nextRollInt')
     try {
       await expect(
@@ -535,9 +579,6 @@ describe('turn damage concentration ordering', () => {
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     try {
       const base = await turnConcentrationFixture('PROMPT')
-      // Each concentration response rolls later siblings with the responder's preference.
-      for (const controller of [base.player, base.targetController])
-        await setAutoRollDice(base.t, controller.userId, false)
       const prepared = await prepareTurn(base)
       const { result: parent, responses } = await finishTurnEffects(base, prepared.advance)
       expect(parent.occurrence?.status).toBe('COMPLETE')
@@ -572,7 +613,7 @@ describe('turn damage concentration ordering', () => {
           encounterVersion: number
           occurrenceId: string
           occurrenceVersion: number
-          request: { requestId: string }
+          request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
         },
         face: number
       ) => {

@@ -6,6 +6,7 @@ import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { executeNativeEncounterAction } from './actionCommands'
 import { readNativeEncounterActionResponseAdmission } from './actionResumeAdmission'
+import { presentEncounterResultForMember } from './resultPresentation'
 /** Called only for occurrences `readNativeEncounterOccurrenceOwner` assigns to ordinary actions. */
 export async function resumeNativeEncounterAction(
   ctx: MutationCtx,
@@ -15,7 +16,12 @@ export async function resumeNativeEncounterAction(
 ): Promise<EncounterCommandResultDto> {
   const admission = await readNativeEncounterActionResponseAdmission(ctx, response, run, userId)
   if (!admission) throw new Error('The action occurrence is unavailable.')
-  if (admission.kind === 'REPLAY') return admission.result
+  if (admission.kind === 'REPLAY')
+    return presentEncounterResultForMember(ctx, {
+      campaign: admission.admission.campaign,
+      membership: admission.admission.membership,
+      result: admission.result
+    })
   return executeNativeEncounterAction(ctx, admission.admission.input, userId, {
     occurrence: admission.occurrence,
     response,

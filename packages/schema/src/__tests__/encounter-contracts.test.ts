@@ -220,6 +220,7 @@ describe('encounter contracts', () => {
         commandFingerprint: 'a'.repeat(64),
         commandType: 'START' as const,
         initiatorUserId: secondEntityId,
+        requestedByUserId: commandId,
         correlationId: null,
         expectedEncounterVersion: 8,
         round: 1,
@@ -331,11 +332,13 @@ describe('encounter contracts', () => {
         occurrenceId: encounterId,
         occurrenceVersion: 2,
         encounterVersion: 3,
+        rollerActorId: encounterId,
         request: {
           requestId: 'd20',
           min: 1 as const,
           max: 20 as const,
-          rollMode: 'NORMAL' as const
+          rollMode: 'NORMAL' as const,
+          derivedRollModeReasons: []
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
       }
@@ -364,7 +367,7 @@ describe('encounter contracts', () => {
         expectedVersion: 3,
         expectedOccurrenceVersion: 2,
         occurrenceId: encounterId,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: 'd20' },
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'd20', rollId: commandId },
         type: 'RESOLVE_RULE_OCCURRENCE'
       }).correlationId
     ).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
@@ -564,10 +567,11 @@ describe('encounter contracts', () => {
           sourceId: null,
           sourceRevision: null,
           public: true,
+          controllerUserIds: [],
+          disposition: 'HOSTILE' as const,
           initiative: 12,
           manualOrder: null,
-          conditions: [],
-          healthBand: 'WOUNDED' as const
+          conditions: []
         }
       ],
       createdAt: '2026-08-07T00:00:00.000Z',
@@ -577,12 +581,19 @@ describe('encounter contracts', () => {
       'currentHitPoints'
     )
     expect(
+      encounterPlayerProjectionDtoSchema.safeParse({
+        ...base,
+        actors: [{ ...base.actors[0], healthBand: 'WOUNDED' }]
+      }).success
+    ).toBe(false)
+    expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
         manualReminderMode: 'OFF',
         actors: [
           {
             ...base.actors[0],
+            healthBand: 'WOUNDED',
             systemId: null,
             stableTieKey: commandId,
             currentHitPoints: 4,
@@ -618,6 +629,7 @@ describe('encounter contracts', () => {
         actors: [
           {
             ...base.actors[0],
+            healthBand: 'WOUNDED',
             systemId: null,
             stableTieKey: commandId,
             currentHitPoints: 4,
@@ -823,7 +835,8 @@ describe('encounter contracts', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: 'concentration-d20',
-          rawFaces: [4, 17]
+          rawFaces: [4, 17],
+          rollMode: 'ADVANTAGE'
         }
       })
     ).toMatchObject({
@@ -831,9 +844,37 @@ describe('encounter contracts', () => {
       resolution: {
         kind: 'ENTER_DICE',
         requestId: 'concentration-d20',
-        rawFaces: [4, 17]
+        rawFaces: [4, 17],
+        rollMode: 'ADVANTAGE'
       }
     })
+    const enterDice = (rawFaces: number[], rollMode: string) =>
+      encounterCommandInputDtoSchema.safeParse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: { kind: 'ENTER_DICE', requestId: 'concentration-d20', rawFaces, rollMode }
+      }).success
+    expect(enterDice([17], 'NORMAL')).toBe(true)
+    expect(enterDice([4, 17], 'DISADVANTAGE')).toBe(true)
+    expect(enterDice([4, 17], 'NORMAL')).toBe(false)
+    expect(enterDice([17], 'ADVANTAGE')).toBe(false)
+    expect(enterDice([17], 'DISADVANTAGE')).toBe(false)
+    expect(enterDice([17], 'SUPER_ADVANTAGE')).toBe(false)
+    expect(
+      encounterCommandInputDtoSchema.safeParse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: { kind: 'ENTER_DICE', requestId: 'concentration-d20', rawFaces: [17] }
+      }).success
+    ).toBe(false)
     expect(() =>
       encounterCommandInputDtoSchema.parse({
         encounterId,
@@ -845,7 +886,8 @@ describe('encounter contracts', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: 'concentration-d20',
-          rawFaces: [4, 17, 20]
+          rawFaces: [4, 17, 20],
+          rollMode: 'ADVANTAGE'
         }
       })
     ).toThrow()
@@ -864,6 +906,46 @@ describe('encounter contracts', () => {
         }
       })
     ).toThrow()
+  })
+
+  it('records app rolls by request and settles SYSTEM_ROLL only by a recorded roll id', () => {
+    const rollInput = {
+      encounterId,
+      commandId,
+      expectedVersion: 2,
+      type: 'ROLL_RULE_EVIDENCE',
+      occurrenceId: encounterId,
+      expectedOccurrenceVersion: 0,
+      requestId: 'attack-d20'
+    }
+    expect(encounterCommandInputDtoSchema.parse({ ...rollInput, rollMode: 'ADVANTAGE' })).toEqual({
+      ...rollInput,
+      rollMode: 'ADVANTAGE'
+    })
+    expect(encounterCommandInputDtoSchema.parse({ ...rollInput, rollMode: null })).toMatchObject({
+      type: 'ROLL_RULE_EVIDENCE',
+      rollMode: null
+    })
+    expect(encounterCommandInputDtoSchema.safeParse(rollInput).success).toBe(false)
+    expect(
+      encounterCommandInputDtoSchema.safeParse({ ...rollInput, rollMode: 'NORMAL', faces: [20] })
+        .success
+    ).toBe(false)
+
+    const systemRoll = (resolution: Record<string, unknown>) =>
+      encounterCommandInputDtoSchema.safeParse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'attack-d20', ...resolution }
+      }).success
+    expect(systemRoll({ rollId: commandId })).toBe(true)
+    expect(systemRoll({})).toBe(false)
+    expect(systemRoll({ rollId: 'not-a-roll' })).toBe(false)
+    expect(systemRoll({ rollId: commandId, faces: [20] })).toBe(false)
   })
 
   it('accepts only closed GM-adjudicated Speed Factor selections', () => {
@@ -947,18 +1029,24 @@ describe('encounter contracts', () => {
           occurrenceId: encounterId,
           occurrenceVersion: 0,
           encounterVersion: 2,
+          rollerActorId: null,
           request: {
             requestId: 'issued-d20',
             min: 1,
             max: 20,
-            rollMode: 'ADVANTAGE'
+            rollMode: 'ADVANTAGE',
+            derivedRollModeReasons: ['Flanking']
           },
           allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
         }
       }
     })
     expect(parsed.occurrence?.pending).toMatchObject({
-      request: { requestId: 'issued-d20', rollMode: 'ADVANTAGE' }
+      request: {
+        requestId: 'issued-d20',
+        rollMode: 'ADVANTAGE',
+        derivedRollModeReasons: ['Flanking']
+      }
     })
     expect(() =>
       encounterCommandResultDtoSchema.parse({
@@ -975,11 +1063,13 @@ describe('encounter contracts', () => {
             occurrenceId: encounterId,
             occurrenceVersion: 0,
             encounterVersion: 2,
+            rollerActorId: null,
             request: {
               requestId: 'issued-d20',
               min: 1,
               max: 20,
-              rollMode: 'NORMAL'
+              rollMode: 'NORMAL',
+              derivedRollModeReasons: []
             },
             allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],
             contextChecksum: 'a'.repeat(64)

@@ -65,7 +65,7 @@ export const couatl: CreatureAuthored = {
           id: S.actionId(71, 302),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(71, 1301), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },

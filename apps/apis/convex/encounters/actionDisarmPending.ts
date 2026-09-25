@@ -1,8 +1,9 @@
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterActorControl } from './actorController'
 import { readRunActors, readRunState } from './documents'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending'
+import { withEncounterRollModeReasons } from './rollModeReasons'
 
 /** Identifies the sealed participant, independently of the user who started the action. */
 export function readNativeDisarmPending(occurrence: Doc<'encounterRuleOccurrences'>) {
@@ -45,13 +46,7 @@ export function readNativeDisarmPending(occurrence: Doc<'encounterRuleOccurrence
   )
     throw new Error('Stored Disarm participant evidence is invalid.')
   const policy = participant === 'INITIATOR' ? contest.initiator : contest.defender
-  const controllerCharacterId =
-    participant === 'INITIATOR'
-      ? contest.initiatorControllerCharacterId
-      : contest.target.kind === 'CHARACTER'
-        ? contest.target.characterId
-        : null
-  return { ...pending, contest, participant, policy, controllerCharacterId }
+  return { ...pending, contest, participant, policy }
 }
 
 /** Shared by the pending query and the response guard so their audience cannot diverge. */
@@ -63,15 +58,15 @@ export async function projectNativeDisarmPendingForMember(
   occurrence: Doc<'encounterRuleOccurrences'>
 ) {
   const pending = readNativeDisarmPending(occurrence)
-  if (membership.role === 'OWNER') return projectNativeActionPending(occurrence)
-  const assigned = await readCampaignAssignedCharacter(ctx, campaign, membership)
+  const project = () =>
+    withEncounterRollModeReasons(ctx, run.gameSystemId, (reasons) =>
+      projectNativeActionPending(occurrence, reasons)
+    )
+  if (membership.role === 'OWNER') return project()
   const actor = (await readRunActors(ctx, readRunState(run))).find(
     (entry) => entry.id === pending.policy.actorId
   )
-  return assigned &&
-    assigned.id === pending.controllerCharacterId &&
-    actor?.kind === 'CHARACTER' &&
-    actor.sourceId === assigned.id
-    ? projectNativeActionPending(occurrence)
+  return actor && (await readEncounterActorControl(ctx, { campaign, membership, actor }))
+    ? project()
     : null
 }

@@ -70,7 +70,10 @@ describe('native movement reaction action planning', () => {
       const execution = await executeNativeMovementReactionAction(ctx, {
         runtime: await createRulesRuntime(ctx, base.owner.userId),
         occurrenceId: input.occurrenceId,
-        autoRoll: true,
+        autoRoll: {
+          [prepared.option.candidate.reactorActorId]: true,
+          [prepared.prepared.binding.targetActorId]: true
+        },
         prepared,
         random: (maximum) => maximum - 1
       })

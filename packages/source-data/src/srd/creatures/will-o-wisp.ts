@@ -211,7 +211,7 @@ export const willOWisp: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1

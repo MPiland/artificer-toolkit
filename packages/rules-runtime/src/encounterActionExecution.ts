@@ -10,10 +10,14 @@ import {
   buildEncounterSaveD20Evidence,
   deriveEncounterActionD20Policy,
   nestedOutcomeD20Policy,
-  requireEncounterSaveD20EvidenceTrace,
-  resolveEncounterActionD20Faces,
-  selectEncounterActionD20Natural
+  requireEncounterSaveD20EvidenceTrace
 } from './encounterMovementReactionActionExecution.js'
+import {
+  resolveEncounterD20Answer,
+  resolveEncounterIntegerAnswer,
+  type EncounterD20RollMode,
+  type EncounterEvidenceAnswer
+} from './encounterEvidenceAnswer.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
@@ -78,6 +82,7 @@ export async function executeNativeActionGraphs(input: {
       policy: ReturnType<typeof deriveEncounterActionD20Policy>
       requestId: string
       faces: number[]
+      rollMode: EncounterD20RollMode
     } | null = null
     const requests = new Set<string>()
     while (result.status === 'PAUSED') {
@@ -96,18 +101,23 @@ export async function executeNativeActionGraphs(input: {
         const policy = !isNestedSave
           ? deriveEncounterActionD20Policy({ continuation, bound })
           : nestedPolicy!
-        const faces = resolveEncounterActionD20Faces({
-          policy,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: request.requestId },
+        const { faces, rollMode, natural } = resolveEncounterD20Answer({
+          derivedRollMode: policy.rollMode,
+          answer: { kind: 'AUTO_ROLL', requestId: request.requestId },
           rollD20: () => random(20) + 1
         })
-        value = selectEncounterActionD20Natural(policy.rollMode, faces)
+        value = natural
         if (!isNestedSave) {
           if (testEvidence) throw new Error('The action TEST requested more than one d20 stage.')
-          testEvidence = { policy, requestId: request.requestId, faces }
+          testEvidence = { policy, requestId: request.requestId, faces, rollMode }
         } else {
           if (nestedD20) throw new Error('The action OUTCOME requested more than one nested save.')
-          nestedD20 = buildEncounterSaveD20Evidence({ policy, requestId: request.requestId, faces })
+          nestedD20 = buildEncounterSaveD20Evidence({
+            policy,
+            requestId: request.requestId,
+            faces,
+            rollMode
+          })
         }
       } else {
         const width = request.max - request.min + 1
@@ -196,16 +206,22 @@ export async function executeNativeActionGraphs(input: {
 type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
 type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 
-export type NativeActionEvidenceResolution =
-  | { kind: 'ENTER_DICE'; requestId: string; rawFaces: readonly number[] }
-  | { kind: 'ENTER_INTEGER'; requestId: string; value: number }
-  | { kind: 'SYSTEM_ROLL'; requestId: string }
+/** A paused request resumed by its answer; whose roll it was no longer matters. */
+export type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
+
+/** Whose roll a paused action request is: the acting source's or its target's (a save). */
+export type EncounterActionRoller = 'SOURCE' | 'TARGET'
+
+/** Each roller's "Auto-roll my dice" preference; a roller who auto-rolls is never prompted. */
+export type EncounterActionAutoRoll = Readonly<Record<EncounterActionRoller, boolean>>
 
 export type PendingNativeActionGraphs = {
   kind: 'PENDING'
   continuation: ServerRuleExecutionContinuationDto
   d20Policy: ServerRuleExecutionD20PolicyDto | null
   twoPhase: NativeTwoPhase | null
+  /** The actor whose controllers answer this request (ADR 0034 decision 3). */
+  roller: EncounterActionRoller
   phaseReceipts?: NativePhaseReceipts
 }
 
@@ -306,34 +322,46 @@ function actionD20Policy(input: {
   return null
 }
 
+function actionRequestRoller(input: {
+  continuation: ServerRuleExecutionContinuationDto
+  policy: ServerRuleExecutionD20PolicyDto | null
+  bound: ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>
+  twoPhase: NativeTwoPhase | null
+}): EncounterActionRoller {
+  if (input.policy === null) return 'SOURCE'
+  const nested = input.twoPhase?.phase === 'OUTCOME' ? input.twoPhase.nestedOutcomeD20 : null
+  if (nested?.requestNodeId === input.continuation.request.nodeId) return 'TARGET'
+  if (!input.bound.d20Roller) throw new Error('The action d20 roller is unavailable.')
+  return input.bound.d20Roller
+}
+
 function actionResponse(input: {
   continuation: ServerRuleExecutionContinuationDto
   policy: ServerRuleExecutionD20PolicyDto | null
-  resolution: NativeActionEvidenceResolution
+  resolution: EncounterEvidenceAnswer
   random: (maximum: number) => number
 }) {
   if (input.resolution.requestId !== input.continuation.request.requestId)
     throw new Error('The action evidence request is stale.')
   if (input.policy !== null) {
-    if (input.resolution.kind === 'ENTER_INTEGER')
-      throw new Error('The action d20 evidence is invalid.')
-    const faces = resolveEncounterActionD20Faces({
-      policy: input.policy,
-      resolution: input.resolution,
+    const d20 = resolveEncounterD20Answer({
+      derivedRollMode: input.policy.rollMode,
+      answer: input.resolution,
       rollD20: () => input.random(20) + 1
     })
-    return { value: selectEncounterActionD20Natural(input.policy.rollMode, faces), faces }
+    return { value: d20.natural, faces: d20.faces, rollMode: d20.rollMode }
   }
   const { request } = input.continuation
-  if (input.resolution.kind === 'ENTER_DICE')
-    throw new Error('The action outcome evidence is invalid.')
-  const value =
-    input.resolution.kind === 'ENTER_INTEGER'
-      ? input.resolution.value
-      : request.min + input.random(request.max - request.min + 1)
-  if (!Number.isSafeInteger(value) || value < request.min || value > request.max)
-    throw new Error('The action outcome evidence is invalid.')
-  return { value, faces: null }
+  return {
+    value: resolveEncounterIntegerAnswer({
+      min: request.min,
+      max: request.max,
+      answer: input.resolution,
+      random: input.random
+    }),
+    faces: null,
+    rollMode: null
+  }
 }
 
 type NativeActionBaseInput = {
@@ -341,8 +369,7 @@ type NativeActionBaseInput = {
   adapter: CharacterRuleActionSystemAdapter
   plan: CharacterRuleActionExecutionPlan
   occurrenceId: string
-  /** The roller's preference: roll immediately instead of pausing for evidence. */
-  autoRoll: boolean
+  autoRoll: EncounterActionAutoRoll
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(
     execution: ServerCompletedRuleExecutionDto,
@@ -412,7 +439,8 @@ async function requireNativeTestBoundary(input: {
     execution: boundary.execution,
     policy: boundary.d20Policy,
     requestId: boundary.d20.requestId,
-    faces: boundary.d20.rawFaces
+    faces: boundary.d20.rawFaces,
+    rollMode: boundary.d20.rollMode
   })
   if (checksumRuleDocument(evidence) !== checksumRuleDocument(boundary.d20))
     throw new Error('The native action TEST evidence is stale.')
@@ -431,13 +459,14 @@ async function requireNativeTestBoundary(input: {
 /** Seals only the TEST phase so a server-owned interstitial can choose its legal OUTCOME. */
 export async function prepareNativeActionTest(
   input: NativeActionBaseInput & {
-    resume?: { pending: PendingNativeActionGraphs; resolution: NativeActionEvidenceResolution }
+    resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
   const random = input.random ?? nextRollInt
   let continuation: ServerRuleExecutionContinuationDto | null = null
   let faces: number[] | null = null
+  let rollMode: EncounterD20RollMode | null = null
   let policy: ServerRuleExecutionD20PolicyDto | null = null
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
 
@@ -483,6 +512,7 @@ export async function prepareNativeActionTest(
     })
     continuation = pending.continuation
     faces = response.faces
+    rollMode = response.rollMode
     result = await input.runtime.resume({
       continuation: pending.continuation,
       response: { requestId: pending.continuation.request.requestId, value: response.value }
@@ -501,11 +531,19 @@ export async function prepareNativeActionTest(
         boundFactsChecksum: current.factsChecksum
       }
     })
-    if (!input.autoRoll)
+    if (!pendingPolicy) throw new Error('The native action TEST requested unsupported evidence.')
+    const roller = actionRequestRoller({
+      continuation: result.continuation,
+      policy: pendingPolicy,
+      bound: current.bound,
+      twoPhase: null
+    })
+    if (!input.autoRoll[roller])
       return {
         kind: 'PENDING',
         continuation: result.continuation,
         d20Policy: pendingPolicy,
+        roller,
         twoPhase: {
           phase: 'TEST',
           compilerSourceChecksum: current.plan.compilerSource.compilerSourceChecksum,
@@ -513,28 +551,29 @@ export async function prepareNativeActionTest(
           boundFactsChecksum: current.factsChecksum
         }
       }
-    if (!pendingPolicy) throw new Error('The native action TEST requested unsupported evidence.')
     const automatic = actionResponse({
       continuation: result.continuation,
       policy: pendingPolicy,
-      resolution: { kind: 'SYSTEM_ROLL', requestId: result.continuation.request.requestId },
+      resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
     continuation = result.continuation
     faces = automatic.faces
+    rollMode = automatic.rollMode
     policy = pendingPolicy
     result = await input.runtime.resume({
       continuation: result.continuation,
       response: { requestId: result.continuation.request.requestId, value: automatic.value }
     })
   }
-  if (result.status !== 'COMPLETE' || !continuation || !faces || !policy)
+  if (result.status !== 'COMPLETE' || !continuation || !faces || !rollMode || !policy)
     throw new Error('The native action TEST requires exactly one sealed d20 response.')
   const d20 = buildEncounterActionD20Evidence({
     execution: result,
     policy,
     requestId: continuation.request.requestId,
-    faces
+    faces,
+    rollMode
   })
   const boundary: NativeActionTestBoundary = {
     kind: 'TEST_BOUNDARY',
@@ -575,7 +614,7 @@ export async function continueNativeActionAfterTest(
     boundary: NativeActionTestBoundary
     effectivePath?: string
     legendaryResistance?: NativeActionLegendaryResistanceAudit | null
-    resume?: { pending: PendingNativeActionGraphs; resolution: NativeActionEvidenceResolution }
+    resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
   const current = await requireNativeTestBoundary({ source: input, boundary: input.boundary })
@@ -644,6 +683,7 @@ export async function continueNativeActionAfterTest(
     testRollEvidence: {
       requestId: input.boundary.d20.requestId,
       rollMode: input.boundary.d20.rollMode,
+      derivedRollMode: input.boundary.d20.derivedRollMode,
       rawFaces: input.boundary.d20.rawFaces,
       selectedNatural: input.boundary.d20.selectedNatural
     }
@@ -699,13 +739,14 @@ export async function continueNativeActionAfterTest(
       continuation: pending.continuation,
       response: { requestId: pending.continuation.request.requestId, value: response.value }
     })
-    if (policy && response.faces) {
+    if (policy && response.faces && response.rollMode) {
       if (nestedD20)
         throw new Error('The native action OUTCOME requested more than one nested save.')
       nestedD20 = buildEncounterSaveD20Evidence({
         policy,
         requestId: pending.continuation.request.requestId,
-        faces: response.faces
+        faces: response.faces,
+        rollMode: response.rollMode
       })
       twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
     }
@@ -718,27 +759,35 @@ export async function continueNativeActionAfterTest(
       bound,
       twoPhase
     })
-    if (!input.autoRoll)
+    const roller = actionRequestRoller({
+      continuation: result.continuation,
+      policy,
+      bound,
+      twoPhase
+    })
+    if (!input.autoRoll[roller])
       return {
         kind: 'PENDING',
         continuation: result.continuation,
         d20Policy: policy,
+        roller,
         twoPhase,
         phaseReceipts: input.boundary.phaseReceipts
       }
     const response = actionResponse({
       continuation: result.continuation,
       policy,
-      resolution: { kind: 'SYSTEM_ROLL', requestId: result.continuation.request.requestId },
+      resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
-    if (policy && response.faces) {
+    if (policy && response.faces && response.rollMode) {
       if (nestedD20)
         throw new Error('The native action OUTCOME requested more than one nested save.')
       nestedD20 = buildEncounterSaveD20Evidence({
         policy,
         requestId: result.continuation.request.requestId,
-        faces: response.faces
+        faces: response.faces,
+        rollMode: response.rollMode
       })
       twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
     }
@@ -779,25 +828,21 @@ export async function continueNativeActionAfterTest(
   })
 }
 
-/** Advances an Assisted action from exactly one sealed evidence request. */
+/**
+ * Advances an Assisted action, optionally from one sealed evidence response. Each further request
+ * rolls immediately when its roller auto-rolls and otherwise pauses for that roller.
+ */
 export async function advanceNativeActionGraphs(input: {
   runtime: RulesRuntimeService
   adapter: CharacterRuleActionSystemAdapter
   plan: CharacterRuleActionExecutionPlan
   occurrenceId: string
-  /** The roller's preference: roll immediately instead of pausing for evidence. */
-  autoRoll: boolean
+  autoRoll: EncounterActionAutoRoll
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(execution: ServerCompletedRuleExecutionDto): Promise<void>
-  resume?: { pending: PendingNativeActionGraphs; resolution: NativeActionEvidenceResolution }
+  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   random?: (maximum: number) => number
 }): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
-  // A resumed prompt keeps prompting until this action settles; auto-roll applies when it starts.
-  if (input.autoRoll && !input.resume)
-    return {
-      kind: 'COMPLETE',
-      ...(await executeNativeActionGraphs(input))
-    }
   const random = input.random ?? nextRollInt
   const initialPublished =
     input.plan.kind === 'SINGLE_GRAPH' ? input.plan.published : input.plan.test.published
@@ -819,10 +864,68 @@ export async function advanceNativeActionGraphs(input: {
       : null
   let testD20: ServerRuleExecutionD20EvidenceDto | null = null
   let nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null = null
-  let pausedContinuation: ServerRuleExecutionContinuationDto | null = null
-  let pausedFaces: number[] | null = null
-  let resumedPolicy: ServerRuleExecutionD20PolicyDto | null = null
+  /** The TEST or single-stage d20 answered during this call; set by `answer`. */
+  const stage: {
+    d20: {
+      continuation: ServerRuleExecutionContinuationDto
+      policy: ServerRuleExecutionD20PolicyDto
+      faces: number[]
+      rollMode: EncounterD20RollMode
+    } | null
+  } = { d20: null }
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
+
+  /** Resumes one request and records its d20 as the stage roll or the OUTCOME nested save. */
+  async function answer(
+    continuation: ServerRuleExecutionContinuationDto,
+    policy: ServerRuleExecutionD20PolicyDto | null,
+    resolution: EncounterEvidenceAnswer
+  ) {
+    const response = actionResponse({ continuation, policy, resolution, random })
+    const resumed = await input.runtime.resume({
+      continuation,
+      response: { requestId: continuation.request.requestId, value: response.value }
+    })
+    if (policy && response.faces && response.rollMode) {
+      if (phase === 'OUTCOME' && twoPhase?.phase === 'OUTCOME') {
+        if (nestedD20) throw new Error('The action OUTCOME requested more than one nested save.')
+        nestedD20 = buildEncounterSaveD20Evidence({
+          policy,
+          requestId: continuation.request.requestId,
+          faces: response.faces,
+          rollMode: response.rollMode
+        })
+        twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
+      } else {
+        if (stage.d20) throw new Error('The action requested more than one d20 stage.')
+        stage.d20 = { continuation, policy, faces: response.faces, rollMode: response.rollMode }
+      }
+    }
+    return resumed
+  }
+
+  /** Rolls each request whose roller auto-rolls and returns the first one to prompt for. */
+  async function rollUntilPrompt(): Promise<PendingNativeActionGraphs | null> {
+    while (result.status === 'PAUSED') {
+      const { continuation } = result
+      const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
+      const roller = actionRequestRoller({ continuation, policy, bound, twoPhase })
+      if (!input.autoRoll[roller])
+        return {
+          kind: 'PENDING',
+          continuation,
+          d20Policy: policy,
+          twoPhase,
+          roller,
+          ...(phaseReceipts.length ? { phaseReceipts } : {})
+        }
+      result = await answer(continuation, policy, {
+        kind: 'AUTO_ROLL',
+        requestId: continuation.request.requestId
+      })
+    }
+    return null
+  }
 
   if (!input.resume) {
     result = await input.runtime.executeResolved({
@@ -891,20 +994,21 @@ export async function advanceNativeActionGraphs(input: {
       twoPhase = pending.twoPhase
       const audit = initialBound.d20Audit
       const roll = twoPhase.testRollEvidence
-      if (!audit || initialBound.d20RollMode !== roll.rollMode)
+      if (!audit || initialBound.d20RollMode !== roll.derivedRollMode)
         throw new Error('The action TEST roll policy is stale.')
       testD20 = buildEncounterActionD20Evidence({
         execution: twoPhase.testExecution,
         policy: {
           requestNodeId: roll.requestId,
-          rollMode: roll.rollMode,
+          rollMode: roll.derivedRollMode,
           contributors: [...audit.contributors],
           contributorChecksum: audit.contributorChecksum,
           modifier: audit.modifier,
           dc: audit.defenseOrDc
         },
         requestId: roll.requestId,
-        faces: roll.rawFaces
+        faces: roll.rawFaces,
+        rollMode: roll.rollMode
       })
       const nestedPolicy = nestedOutcomeD20Policy({
         published,
@@ -926,40 +1030,12 @@ export async function advanceNativeActionGraphs(input: {
     const policy = actionD20Policy({ phase, continuation: pending.continuation, bound, twoPhase })
     if (checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
       throw new Error('The action evidence policy is stale.')
-    const response = actionResponse({
-      continuation: pending.continuation,
-      policy,
-      resolution: input.resume.resolution,
-      random
-    })
-    resumedPolicy = policy
-    pausedContinuation = pending.continuation
-    pausedFaces = response.faces
-    result = await input.runtime.resume({
-      continuation: pending.continuation,
-      response: { requestId: pending.continuation.request.requestId, value: response.value }
-    })
-    if (phase === 'OUTCOME' && twoPhase?.phase === 'OUTCOME' && policy && response.faces) {
-      if (nestedD20) throw new Error('The action OUTCOME requested more than one nested save.')
-      nestedD20 = buildEncounterSaveD20Evidence({
-        policy,
-        requestId: pending.continuation.request.requestId,
-        faces: response.faces
-      })
-      twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
-    }
+    result = await answer(pending.continuation, policy, input.resume.resolution)
   }
 
-  if (result.status === 'PAUSED') {
-    const policy = actionD20Policy({ phase, continuation: result.continuation, bound, twoPhase })
-    return {
-      kind: 'PENDING',
-      continuation: result.continuation,
-      d20Policy: policy,
-      twoPhase,
-      ...(phaseReceipts.length ? { phaseReceipts } : {})
-    }
-  }
+  const prompt = await rollUntilPrompt()
+  if (prompt) return prompt
+  if (result.status !== 'COMPLETE') throw new Error('The action did not settle.')
 
   if (phase === 'SINGLE')
     return actionComplete({
@@ -971,30 +1047,30 @@ export async function advanceNativeActionGraphs(input: {
       initialPublished,
       initialFactsChecksum,
       phaseReceipts,
-      d20:
-        pausedContinuation && pausedFaces && resumedPolicy
-          ? buildEncounterActionD20Evidence({
-              execution: result,
-              policy: resumedPolicy,
-              requestId: pausedContinuation.request.requestId,
-              faces: pausedFaces
-            })
-          : null,
+      d20: stage.d20
+        ? buildEncounterActionD20Evidence({
+            execution: result,
+            policy: stage.d20.policy,
+            requestId: stage.d20.continuation.request.requestId,
+            faces: stage.d20.faces,
+            rollMode: stage.d20.rollMode
+          })
+        : null,
       nestedD20: null
     })
 
   if (phase === 'TEST') {
-    if (!pausedContinuation || !pausedFaces || input.plan.kind !== 'TEST_OUTCOME')
+    if (!stage.d20 || input.plan.kind !== 'TEST_OUTCOME')
       throw new Error('The action TEST requires exactly one sealed d20 response.')
-    const policy = deriveEncounterActionD20Policy({
-      continuation: pausedContinuation,
-      bound: initialBound
-    })
     testD20 = buildEncounterActionD20Evidence({
       execution: result,
-      policy,
-      requestId: pausedContinuation.request.requestId,
-      faces: pausedFaces
+      policy: deriveEncounterActionD20Policy({
+        continuation: stage.d20.continuation,
+        bound: initialBound
+      }),
+      requestId: stage.d20.continuation.request.requestId,
+      faces: stage.d20.faces,
+      rollMode: stage.d20.rollMode
     })
     phaseReceipts = [
       {
@@ -1053,6 +1129,7 @@ export async function advanceNativeActionGraphs(input: {
       testRollEvidence: {
         requestId: testD20.requestId,
         rollMode: testD20.rollMode,
+        derivedRollMode: testD20.derivedRollMode,
         rawFaces: testD20.rawFaces,
         selectedNatural: testD20.selectedNatural
       }
@@ -1061,14 +1138,8 @@ export async function advanceNativeActionGraphs(input: {
       command: { definitionId: published.id, occurrenceId: input.occurrenceId, facts: bound.facts },
       published
     })
-    if (result.status === 'PAUSED')
-      return {
-        kind: 'PENDING',
-        continuation: result.continuation,
-        d20Policy: actionD20Policy({ phase, continuation: result.continuation, bound, twoPhase }),
-        twoPhase,
-        phaseReceipts
-      }
+    const outcomePrompt = await rollUntilPrompt()
+    if (outcomePrompt) return outcomePrompt
   }
 
   if (result.status !== 'COMPLETE') throw new Error('The action outcome did not settle.')

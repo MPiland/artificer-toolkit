@@ -14,11 +14,12 @@ import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-da
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 
 function evidence(
   base: Awaited<ReturnType<typeof nativeDisarmFixture>>,
   result: unknown,
-  face: number | 'SYSTEM_ROLL'
+  face: number
 ): ResolveRuleOccurrenceInputDto {
   const occurrence = encounterCommandResultDtoSchema.parse(result).occurrence
   const pending = occurrence?.pending
@@ -32,14 +33,12 @@ function evidence(
     correlationId: null,
     occurrenceId: occurrence.occurrenceId,
     expectedOccurrenceVersion: occurrence.occurrenceVersion,
-    resolution:
-      face === 'SYSTEM_ROLL'
-        ? { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
-        : {
-            kind: 'ENTER_DICE',
-            requestId: pending.request.requestId,
-            rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
-          }
+    resolution: {
+      kind: 'ENTER_DICE',
+      requestId: pending.request.requestId,
+      rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+      rollMode: pending.request.rollMode
+    }
   }
 }
 
@@ -65,10 +64,6 @@ describe('native public Disarm commands', () => {
   it('lets the assigned Character initiator answer before handing the Creature defender request to the owner', async () => {
     const base = await nativeDisarmFixture('PROMPT', false, true)
     const before = await disarmRecords(base)
-    await expect(
-      base.player.caller.mutation(internal.encounters.commands.execute, { command: base.command })
-    ).rejects.toThrow()
-    expect(await disarmRecords(base)).toEqual(before)
     const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: base.command
     })
@@ -129,7 +124,8 @@ describe('native public Disarm commands', () => {
       resolution: {
         kind: 'ENTER_DICE',
         requestId: defenderPending.request.requestId,
-        rawFaces: defenderPending.request.rollMode === 'NORMAL' ? [1] : [1, 1]
+        rawFaces: defenderPending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: defenderPending.request.rollMode
       }
     }
     const staged = await disarmRecords(base)
@@ -363,10 +359,14 @@ describe('native public Disarm commands', () => {
         })
       ).rejects.toThrow()
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        base.owner.caller.mutation(executeEncounterCommand, {
           command: {
             ...first,
-            resolution: { kind: 'SYSTEM_ROLL', requestId: 'stale-request' }
+            resolution: {
+              kind: 'SYSTEM_ROLL',
+              requestId: 'stale-request',
+              rollId: crypto.randomUUID()
+            }
           }
         })
       ).rejects.toThrow()
@@ -376,7 +376,7 @@ describe('native public Disarm commands', () => {
         command: first
       })
       expect(next.occurrence?.occurrenceId).toBe(started.occurrence?.occurrenceId)
-      const second = evidence(base, next, characterTarget ? 1 : 'SYSTEM_ROLL')
+      const second = evidence(base, next, 1)
       const staged = await disarmRecords(base)
       expect(staged.run).toEqual(before.run)
       expect(staged.actors).toEqual(before.actors)
@@ -430,58 +430,50 @@ describe('native public Disarm commands', () => {
         ).rejects.toThrow('restore Character assignment')
         expect(await disarmRecords(base)).toEqual(staged)
       }
-      const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(0)
-      try {
-        await expect(
-          responder.caller.run(async (ctx) => {
-            await ctx.runMutation(internal.encounters.commands.execute, {
-              command: second
-            })
-            throw new Error('rollback terminal Disarm')
-          })
-        ).rejects.toThrow('rollback terminal Disarm')
-        expect(await disarmRecords(base)).toEqual(staged)
-        const result = await responder.caller.mutation(internal.encounters.commands.execute, {
-          command: second
-        })
-        expect(result.occurrence).toMatchObject({
-          status: 'COMPLETE',
-          outcome: null
-        })
-        const after = await disarmRecords(base)
-        expect(contestedOutput(after)).toMatchObject({
-          outcome: 'SOURCE_WIN',
-          sourceRoll: { requestNodeId: 'initiator_d20', selectedNatural: 20 },
-          targetRoll: { requestNodeId: 'target_d20', selectedNatural: 1 }
-        })
-        expect(
-          encounterRuleUsageUsed(
-            actorState(after, base.actor.id),
-            SRD_ACTION_ALLOWANCE_DEFINITION_ID
-          )
-        ).toBe(1)
-        await expect(
-          responder.caller.mutation(internal.encounters.commands.execute, {
+      await expect(
+        responder.caller.run(async (ctx) => {
+          await ctx.runMutation(internal.encounters.commands.execute, {
             command: second
           })
-        ).resolves.toEqual(result)
-        await expect(
-          base.owner.caller.mutation(internal.encounters.commands.execute, {
-            command: first
-          })
-        ).resolves.toEqual(next)
-        const root = after.commands.find((command) => command.commandId === base.command.commandId)
-        if (root?.commandType !== 'RESOLVE_ACTION')
-          throw new Error('Missing terminal Disarm root receipt.')
-        await expect(
-          base.owner.caller.mutation(internal.encounters.commands.execute, {
-            command: base.command
-          })
-        ).resolves.toEqual(encounterCommandResultDtoSchema.parse(JSON.parse(root.resultJson)))
-        expect(await disarmRecords(base)).toEqual(after)
-      } finally {
-        random.mockRestore()
-      }
+          throw new Error('rollback terminal Disarm')
+        })
+      ).rejects.toThrow('rollback terminal Disarm')
+      expect(await disarmRecords(base)).toEqual(staged)
+      const result = await responder.caller.mutation(internal.encounters.commands.execute, {
+        command: second
+      })
+      expect(result.occurrence).toMatchObject({
+        status: 'COMPLETE',
+        outcome: null
+      })
+      const after = await disarmRecords(base)
+      expect(contestedOutput(after)).toMatchObject({
+        outcome: 'SOURCE_WIN',
+        sourceRoll: { requestNodeId: 'initiator_d20', selectedNatural: 20 },
+        targetRoll: { requestNodeId: 'target_d20', selectedNatural: 1 }
+      })
+      expect(
+        encounterRuleUsageUsed(actorState(after, base.actor.id), SRD_ACTION_ALLOWANCE_DEFINITION_ID)
+      ).toBe(1)
+      await expect(
+        responder.caller.mutation(internal.encounters.commands.execute, {
+          command: second
+        })
+      ).resolves.toEqual(result)
+      await expect(
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
+          command: first
+        })
+      ).resolves.toEqual(next)
+      const root = after.commands.find((command) => command.commandId === base.command.commandId)
+      if (root?.commandType !== 'RESOLVE_ACTION')
+        throw new Error('Missing terminal Disarm root receipt.')
+      await expect(
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
+          command: base.command
+        })
+      ).resolves.toEqual(encounterCommandResultDtoSchema.parse(JSON.parse(root.resultJson)))
+      expect(await disarmRecords(base)).toEqual(after)
     },
     30000
   )

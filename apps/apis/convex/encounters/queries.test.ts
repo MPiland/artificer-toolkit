@@ -256,8 +256,12 @@ describe('native Encounter reads', () => {
       initiative: null,
       manualOrder: null,
       conditions: ownerCreature!.conditions,
-      healthBand: 'WOUNDED'
+      controllerUserIds: [],
+      disposition: 'HOSTILE'
     })
+    // Players read no health band for any actor; the GM projection keeps it.
+    expect(ownerCreature).toHaveProperty('healthBand')
+    expect(playerProjection.actors[0]).not.toHaveProperty('healthBand')
     expect(playerProjection.actors[0]).not.toHaveProperty('currentHitPoints')
     expect(playerProjection.actors[0]).not.toHaveProperty('tempHitPoints')
     expect(playerProjection.actors[0]).not.toHaveProperty('gmNotes')

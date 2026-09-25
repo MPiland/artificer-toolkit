@@ -5,7 +5,7 @@ import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/pro
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { QueryCtx } from '../_generated/server'
-import { readRunState } from '../encounters/documents'
+import { readRunActor, readRunState } from '../encounters/documents'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { requireIdentity } from '../lib/identity'
 import { assertGeometryReceiving, readGeometrySave } from '../scenes/geometryDocuments'
@@ -14,6 +14,7 @@ import { parseLiveEntity } from '../scenes/liveDocuments'
 import { assertMovementResolutionCurrent } from '../scenes/movementResolutionDocuments'
 import { readSessionVisionScope } from '../scenes/sessionVisionDocuments'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
+import { requireEncounterActorControl } from '../encounters/actorController'
 
 /** Authorize raw movement reads against the staged Scene command and current Encounter. */
 export async function readLiveMovementAdmission(
@@ -167,16 +168,18 @@ export async function readLiveMovementAdmission(
     if (value.collection !== 'tokens') throw new Error('Spatial token source is unavailable.')
     token = value.entity
   }
-  if (
-    !token ||
-    token.locked ||
-    (!resolution && membership.role === 'PLAYER' && !token.controlledByUserIds.includes(userId))
-  )
+  if (!token || token.locked)
     throw new Error('Members may only move an unlocked token they control.')
+  if (!resolution)
+    await requireEncounterActorControl(ctx, {
+      campaign,
+      membership,
+      actor: await readRunActor(ctx, state, tokenBinding.actorId)
+    })
   if (
     checksumCanonicalJson(token.position) !==
     checksumCanonicalJson(resolution ? resolution.root.currentPosition : save.input.path[0])
   )
     throw new Error('Movement token position is stale.')
-  return { ...current, state }
+  return { ...current, state, appRoll: resolution?.appRoll ?? null }
 }

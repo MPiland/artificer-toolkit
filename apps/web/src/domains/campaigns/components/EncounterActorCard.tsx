@@ -23,6 +23,7 @@ import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterShee
 import { CharacterSheetResourceStepper } from '#domains/characters/sheet/shared/CharacterSheetResourceStepper'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
+import { EncounterActorControlFields } from './EncounterActorControlFields'
 import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
@@ -170,6 +171,14 @@ export function EncounterActorCard({
           </Button>
         ) : null}
       </Group>
+      {campaign.role === 'OWNER' ? (
+        <EncounterActorControlFields
+          actor={actor}
+          disabled={disabled}
+          memberships={campaign.memberships}
+          onChange={(update) => onCommand({ ...update, type: 'UPDATE_ACTOR', actorId: actor.id })}
+        />
+      ) : null}
       {actor.kind !== 'CHARACTER' ? (
         <>
           {actor.statBlock ? <EncounterEnemyStatBlock actor={actor} /> : null}

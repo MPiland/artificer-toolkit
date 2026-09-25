@@ -87,8 +87,8 @@ export async function readNativeDisarmSelection(
   const sceneContext = await readNativeActionSceneContext(ctx, state, command, 'MEMBER')
   // Disarm has no "Do it anyway": any targeting warning refuses it.
   const targetWarnings = evaluateEncounterActionTargetPolicy({
-    actorId: actor.id,
-    targetActorId: target.id,
+    actor,
+    target,
     targetPolicy: prepared.targetPolicy,
     sceneContext
   })

@@ -15,6 +15,7 @@ import { withSceneVisionTracking } from '../lib/mutations'
 import { loadNativeMovementReactionSources } from '../encounters/movementReactionFacts'
 import { readGeometrySave, assertGeometryReceiving } from './geometryDocuments'
 import { readSpatialSceneGeometry } from './spatialGeometry'
+import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 type Request = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type Footprint = SceneMovementPerceptionCapture['requests'][number]['observer']
@@ -63,12 +64,15 @@ export async function readMovement(
     (await readSpatialSceneGeometry(ctx, request.saveId, request.tokenOrdinals, currentSave))
   const token = geometry.sceneTokens.find((value) => value.id === movement.tokenId)
   const response = save.movementResolution ? await assertMovementResolutionCurrent(ctx, save) : null
-  if (
-    !token ||
-    token.locked ||
-    (!response && membership.role !== 'OWNER' && !token.controlledByUserIds.includes(userId))
-  )
+  if (!token || token.locked)
     throw new Error('Members may only move an unlocked token they control.')
+  if (!response)
+    await requireBoundTokenMoveControl(ctx, {
+      campaign: currentSave.campaign,
+      membership,
+      encounterId: geometry.encounter.id,
+      tokenId: token.id
+    })
   if (
     checksumRuleDocument(token.position) !==
     checksumRuleDocument(response?.root.currentPosition ?? movement.path[0])
@@ -109,12 +113,10 @@ export const capture = internalMutation({
             : undefined
     const contacts = timeline
       ? timeline.flatMap((entry) =>
-          (entry.kind === 'AUTOMATIC_ACTION' ? [entry.option] : entry.group.options).map(
-            (option) => ({
-              candidate: option.candidate,
-              perceptionRequirement: option.binding.perceptionRequirement
-            })
-          )
+          entry.group.options.map((option) => ({
+            candidate: option.candidate,
+            perceptionRequirement: option.binding.perceptionRequirement
+          }))
         )
       : collectEncounterMovementReactionContacts({
           grid: scope.grid,

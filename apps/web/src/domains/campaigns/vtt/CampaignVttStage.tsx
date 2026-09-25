@@ -57,6 +57,7 @@ import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
 import {
   getCampaignEncounterActionChoices,
+  getEncounterLatestEvidenceRoll,
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
@@ -113,6 +114,7 @@ import {
 } from './vttSceneRenderer'
 import { formatSceneMeasurement } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
   campaign,
@@ -135,18 +137,22 @@ export function CampaignVttStage({
   const currentActor = activeEncounter?.actors.find(
     (actor) => actor.id === activeEncounter.currentActorId
   )
+  // The GM acts for every actor; a player only on the turn of an actor they control.
+  const currentActorMine = currentActor
+    ? isEncounterActorMine(campaign, currentUserId, currentActor)
+    : false
   useEffect(() => {
     if (
-      campaign.role !== 'OWNER' ||
+      !currentActorMine ||
       !activeEncounter?.id ||
       !currentActor?.id ||
       activeEncounter?.automationMode === 'MANUAL'
     )
       setActionsOpened(false)
-  }, [activeEncounter?.automationMode, activeEncounter?.id, campaign.role, currentActor?.id])
+  }, [activeEncounter?.automationMode, activeEncounter?.id, currentActor?.id, currentActorMine])
   const actionChoiceScope =
     actionsOpened &&
-    campaign.role === 'OWNER' &&
+    currentActorMine &&
     activeEncounter &&
     currentActor &&
     activeEncounter.automationMode !== 'MANUAL'
@@ -157,6 +163,9 @@ export function CampaignVttStage({
         }
       : null
   const actionChoices = useQuery(getCampaignEncounterActionChoices(actionChoiceScope))
+  const latestEvidenceRoll = useQuery(
+    getEncounterLatestEvidenceRoll(pendingOccurrence && activeEncounter ? activeEncounter.id : null)
+  )
   const currentActionChoices =
     actionChoiceScope &&
     actionChoices.data?.encounterId === actionChoiceScope.encounterId &&
@@ -290,6 +299,24 @@ export function CampaignVttStage({
       ),
     [activeEncounterSceneBinding, actorTokenBindings.data, actorTokenBindings.error]
   )
+  const viewerUserId = gmPreviewUserId ?? currentUserId
+  // Bound tokens move for their actor's controllers (a GM preview checks as the previewed player).
+  const boundTokenControl = useMemo(() => {
+    const viewer = gmPreviewUserId
+      ? {
+          role: 'PLAYER' as const,
+          assignedCharacter:
+            campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
+              ?.assignedCharacter ?? null
+        }
+      : campaign
+    return new Map(
+      [...actorIdByTokenId].map(([tokenId, actorId]) => {
+        const actor = activeEncounter?.actors.find((candidate) => candidate.id === actorId)
+        return [tokenId, actor ? isEncounterActorMine(viewer, viewerUserId, actor) : false]
+      })
+    )
+  }, [activeEncounter?.actors, actorIdByTokenId, campaign, gmPreviewUserId, viewerUserId])
   const scenePresentationControl =
     campaign.role === 'OWNER' ? (
       <Select
@@ -389,7 +416,8 @@ export function CampaignVttStage({
         ? buildVttTokenPresentations({
             actorIdByTokenId,
             artUrls: tokenArtUrls,
-            currentUserId: gmPreviewUserId ?? currentUserId,
+            boundTokenControl,
+            currentUserId: viewerUserId,
             encounter: activeEncounter,
             pending: pendingOccurrence ?? null,
             scene: renderedScene
@@ -398,16 +426,17 @@ export function CampaignVttStage({
     [
       activeEncounter,
       actorIdByTokenId,
-      currentUserId,
-      gmPreviewUserId,
+      boundTokenControl,
       pendingOccurrence,
       renderedScene,
-      tokenArtUrls
+      tokenArtUrls,
+      viewerUserId
     ]
   )
   rendererUpdateRef.current = renderedScene
     ? {
-        currentUserId: gmPreviewUserId ?? currentUserId,
+        boundTokenControl,
+        currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
         role: gmPreviewUserId ? 'PLAYER' : campaign.role,
@@ -720,6 +749,7 @@ export function CampaignVttStage({
     const latestUpdate = rendererUpdateRef.current
     if (latestUpdate) renderer.current?.update(latestUpdate)
   }, [
+    boundTokenControl,
     campaign.role,
     currentUserId,
     effectiveMode,
@@ -1072,7 +1102,9 @@ export function CampaignVttStage({
             <CampaignTabletopEncounterDrawer
               actorIdByTokenId={actorIdByTokenId}
               connected={live.status === 'CONNECTED'}
+              currentActorMine={currentActorMine}
               encounter={activeEncounter}
+              memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
                 sceneBinding.isPending ||
@@ -1083,7 +1115,7 @@ export function CampaignVttStage({
               onCommand={(command) => encounterCommand.mutate(command)}
             />
           ) : null}
-          {campaign.role === 'OWNER' &&
+          {currentActorMine &&
           activeEncounter &&
           currentActor &&
           activeEncounter.automationMode !== 'MANUAL' ? (
@@ -1101,6 +1133,7 @@ export function CampaignVttStage({
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={scene}
+              waitingOn={encounterSessionState.data?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
@@ -1111,6 +1144,7 @@ export function CampaignVttStage({
               canVoid={campaign.role === 'OWNER'}
               connected
               encounter={activeEncounter}
+              latestRoll={latestEvidenceRoll.data ?? null}
               pending={pendingOccurrence}
               submitting={encounterCommand.isPending}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
@@ -1143,6 +1177,7 @@ export function CampaignVttStage({
             />
           ) : null}
           <SceneObjectMenu
+            boundTokenControl={boundTokenControl}
             currentUserId={currentUserId}
             memberships={campaign.memberships}
             role={campaign.role}
@@ -1307,6 +1342,7 @@ function VttToolButton({
 }
 
 function SceneObjectMenu({
+  boundTokenControl,
   currentUserId,
   memberships,
   onDoorState,
@@ -1318,6 +1354,7 @@ function SceneObjectMenu({
   role,
   scene
 }: {
+  boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   memberships: CampaignDetailDto['memberships']
   onDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN') => void
@@ -1371,7 +1408,7 @@ function SceneObjectMenu({
                 <Menu.Item onClick={() => renderer.current?.focusPoint(token.position)}>
                   Focus {token.label}
                 </Menu.Item>
-                {canMoveSceneToken(token, currentUserId, role)
+                {canMoveSceneToken(token, { boundTokenControl, currentUserId, role })
                   ? (
                       [
                         ['UP', 'up'],

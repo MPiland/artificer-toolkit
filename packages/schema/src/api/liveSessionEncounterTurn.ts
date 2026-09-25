@@ -27,6 +27,7 @@ export const liveSessionEncounterTurnPendingInputSchema = z.extend(
   z.omit(liveSessionEncounterRulesInputSchema, {
     request: true,
     concentrationResponse: true,
+    action: true,
     movement: true
   }),
   {

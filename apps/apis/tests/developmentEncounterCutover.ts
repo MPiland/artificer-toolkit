@@ -897,7 +897,8 @@ async function executeCutoverWorkloadReaction(
             rawFaces:
               continuation.request.rollMode === 'NORMAL'
                 ? [continuation.request.max]
-                : [continuation.request.max, continuation.request.max]
+                : [continuation.request.max, continuation.request.max],
+            rollMode: continuation.request.rollMode
           }
         : continuation.kind === 'ACTION_OUTCOME_EVIDENCE'
           ? {

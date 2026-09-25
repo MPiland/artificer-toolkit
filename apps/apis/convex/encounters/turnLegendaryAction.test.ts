@@ -583,7 +583,8 @@ describe('native Encounter turn Legendary Actions', () => {
       const dice = response(base.run.id, result, {
         kind: 'ENTER_DICE',
         requestId: dicePending.request.requestId,
-        rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
+        rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+        rollMode: dicePending.request.rollMode
       })
       result = await base.owner.caller
         .action(internal.encounters.commandActions.execute, dice)
@@ -831,7 +832,8 @@ describe('native Encounter turn Legendary Actions', () => {
     const dice = response(base.run.id, result, {
       kind: 'ENTER_DICE',
       requestId: dicePending.request.requestId,
-      rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
+      rawFaces: dicePending.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+      rollMode: dicePending.request.rollMode
     })
     result = await base.owner.caller
       .action(internal.encounters.commandActions.execute, dice)
@@ -847,17 +849,19 @@ describe('native Encounter turn Legendary Actions', () => {
       base.owner.caller.action(internal.encounters.commandActions.execute, dice)
     ).resolves.toEqual(result)
     const afterDice = await stored(base.t, base.run.id)
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, {
-        command: {
-          ...dice.command,
-          resolution: {
-            kind: 'ENTER_DICE',
-            requestId: dicePending.request.requestId,
-            rawFaces: [1]
-          }
+    const differentDice: EncounterExecuteInput = {
+      command: {
+        ...dice.command,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: dicePending.request.requestId,
+          rawFaces: [1],
+          rollMode: 'NORMAL'
         }
-      })
+      }
+    }
+    await expect(
+      base.owner.caller.action(internal.encounters.commandActions.execute, differentDice)
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(afterDice)
     const decline = response(base.run.id, result, { kind: 'DECLINE' })
@@ -1229,7 +1233,8 @@ describe('private DO turn Legendary Action response', () => {
     const diceCommand = response(base.run.id, evidenceResult, {
       kind: 'ENTER_DICE',
       requestId: evidence.request.requestId,
-      rawFaces: evidence.request.rollMode === 'NORMAL' ? [15] : [15, 15]
+      rawFaces: evidence.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+      rollMode: evidence.request.rollMode
     }).command
     const finished = await planNativeLiveEncounterTurn(
       environment,

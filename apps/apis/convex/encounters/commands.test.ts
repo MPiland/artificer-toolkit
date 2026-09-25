@@ -1408,12 +1408,20 @@ describe('native Encounter Run commands', () => {
         expectedVersion: 1
       }
     }
+    // A player ends only a turn they control; the GM's actors stay the GM's.
+    await expect(other.caller.mutation(execute, firstAdvanceInput)).rejects.toThrow(
+      'NOT_ACTOR_CONTROLLER'
+    )
     const progressed = await owner.caller.mutation(execute, firstAdvanceInput)
     expect(progressed.projection).toMatchObject({
       status: 'ACTIVE',
       version: 2,
       round: 1
     })
+    // A replay by command ID returns only to the user who issued it.
+    await expect(other.caller.mutation(execute, firstAdvanceInput)).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
     expect(progressed.projection.currentActorId).not.toBe(settled.projection.currentActorId)
     const advancedStored = await t.run(async (ctx) => ({
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
@@ -1513,6 +1521,57 @@ describe('native Encounter Run commands', () => {
     await expect(
       other.caller.query(getTimeline, { encounterId: run.id, limit: 50 })
     ).resolves.toEqual({ entries: [], nextCursor: null })
+    const currentActorId = wrapped.projection.currentActorId
+    if (!currentActorId) throw new Error('Expected a current actor.')
+    const granted = await owner.caller.mutation(execute, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: wrapped.projection.version,
+        actorId: currentActorId,
+        controllerUserIds: [other.userId]
+      }
+    })
+    const playerAdvanceInput: EncounterExecuteInput = {
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: granted.projection.version
+      }
+    }
+    const playerAdvanced = await other.caller.mutation(execute, playerAdvanceInput)
+    expect(playerAdvanced.projection).toMatchObject({
+      status: 'ACTIVE',
+      version: granted.projection.version + 1,
+      currentActorId: progressed.projection.currentActorId
+    })
+    expect(playerAdvanced.projection).toEqual(
+      projectPlayerEncounterProjection(
+        encounterGmProjectionDtoSchema.parse(
+          await owner.caller.query(getEncounter, { encounterId: run.id })
+        )
+      )
+    )
+    const playerAdvanceRow = await t.run((ctx) =>
+      ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_campaignId_commandId', (q) =>
+          q.eq('campaignId', run.campaignId).eq('commandId', playerAdvanceInput.command.commandId)
+        )
+        .unique()
+    )
+    expect(playerAdvanceRow).toMatchObject({
+      commandType: 'ADVANCE_TURN',
+      actorUserId: other.userId
+    })
+    await expect(other.caller.mutation(execute, playerAdvanceInput)).resolves.toEqual(
+      playerAdvanced
+    )
+    await expect(owner.caller.mutation(execute, playerAdvanceInput)).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
   }, 30000)
 
   it('starts an Automatic Run through native sources, rules, and normalized initiative', async () => {

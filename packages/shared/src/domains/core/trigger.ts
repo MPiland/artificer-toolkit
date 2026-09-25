@@ -6,7 +6,8 @@ export const TRIGGER = {
   MELEE_WEAPON_ATTACK: 'MELEE_WEAPON_ATTACK',
   RANGED_WEAPON_ATTACK: 'RANGED_WEAPON_ATTACK',
   UNARMED_ATTACK: 'UNARMED_ATTACK',
-  SPELL_ATTACK: 'SPELL_ATTACK',
+  MELEE_SPELL_ATTACK: 'MELEE_SPELL_ATTACK',
+  RANGED_SPELL_ATTACK: 'RANGED_SPELL_ATTACK',
   INCOMING_SAVING_THROW: 'INCOMING_SAVING_THROW',
   SAVING_THROW: 'SAVING_THROW',
   ENTER_AREA: 'ENTER_AREA'
@@ -46,11 +47,18 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     tooltip: 'Unarmed attack.'
   },
 
-  SPELL_ATTACK: {
-    code: TRIGGER.SPELL_ATTACK,
-    label: 'Spell Attack',
-    description: 'Indicates a spell attack roll made against a target.',
-    tooltip: 'Spell attack roll.'
+  MELEE_SPELL_ATTACK: {
+    code: TRIGGER.MELEE_SPELL_ATTACK,
+    label: 'Melee Spell Attack',
+    description: 'Indicates a melee spell attack roll made against a target within reach.',
+    tooltip: 'Melee spell attack roll.'
+  },
+
+  RANGED_SPELL_ATTACK: {
+    code: TRIGGER.RANGED_SPELL_ATTACK,
+    label: 'Ranged Spell Attack',
+    description: 'Indicates a ranged spell attack roll made against a target.',
+    tooltip: 'Ranged spell attack roll.'
   },
 
   INCOMING_SAVING_THROW: {

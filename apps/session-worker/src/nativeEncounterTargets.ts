@@ -108,7 +108,8 @@ export async function prepareNativeLiveMovementTarget(input: {
           ...(scope.concentrationResponse
             ? { concentrationResponse: scope.concentrationResponse }
             : {}),
-          ...(scope.turnResponse ? { turnResponse: scope.turnResponse } : {}),
+          ...(scope.turnCommand ? { turnCommand: scope.turnCommand } : {}),
+          ...(scope.action ? { action: scope.action } : {}),
           ...(scope.movement ? { movement: { ...scope.movement, actorId: actor.id } } : {}),
           characterId: actor.sourceId
         })

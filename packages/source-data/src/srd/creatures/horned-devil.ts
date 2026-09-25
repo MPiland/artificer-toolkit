@@ -240,7 +240,7 @@ export const hornedDevil: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.RANGED_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(167, 1207),

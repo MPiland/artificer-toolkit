@@ -12,7 +12,7 @@ import { loadCharacterState } from '../characters/stateDocuments'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { requireSystem } from '../content/systemDocuments'
 import { readSystemVocabularySnapshot } from '../content/systemVocabulary'
-import { readRunActor, readRunState } from '../encounters/documents'
+import { readRunActor, readRunActors, readRunState } from '../encounters/documents'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readEncounterCleavingBindings } from '../encounters/cleavingSceneInputs'
 import { readNativeEncounterActionAdmission } from '../encounters/actionAdmission'
@@ -29,6 +29,15 @@ import { readLiveConcentrationResponseAdmission } from './concentrationResponseA
 import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
 import { rejectDomain } from '../lib/domainRejections'
+import {
+  readEncounterAutoRollByActorId,
+  readEncounterControlledActorIds
+} from '../encounters/actorController'
+import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { presentEncounterResultForMember } from '../encounters/resultPresentation'
+import { readLiveEncounterActionScope } from './encounterActionAdmission'
+import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
 
 type SemanticResponse = {
   [K in LiveSessionEncounterRulesResponse['kind']]: Omit<
@@ -44,23 +53,51 @@ export async function readEncounterRulesCapture(
 ): Promise<LiveSessionEncounterRulesResponse> {
   const input = liveSessionEncounterRulesInputSchema.parse(args)
   if (
-    (input.movement && input.concentrationResponse) ||
-    (input.turnResponse && (input.movement || input.concentrationResponse))
+    [input.movement, input.concentrationResponse, input.turnCommand, input.action].filter(
+      (scope) => scope !== undefined
+    ).length > 1
   )
     throw new Error('Live Session capture scopes cannot be combined.')
   if (input.request.kind === 'TURN_COMMAND') {
     if (input.movement) throw new Error('Turn commands cannot use movement capture scope.')
     const admission = await readLiveEncounterTurnAdmission(ctx, input, input.request.command)
+    const actors = await readRunActors(ctx, admission.state)
     const response = {
       kind: 'TURN_COMMAND' as const,
       campaignOwnerUserId: admission.campaign.ownerUserId,
-      // Turn-flow prompts (Recharge, Legendary Actions, turn saves, initiative) go to the GM.
       autoRollDice: await readAutoRollDice(ctx, admission.campaign.ownerUserId),
+      // The GM initiates every turn, so each actor's saves go to its controllers.
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign: admission.campaign,
+        initiatorUserId: admission.campaign.ownerUserId,
+        actors
+      }),
+      responderControlledActorIds: [
+        ...(await readEncounterControlledActorIds(ctx, {
+          campaign: admission.campaign,
+          membership: admission.membership,
+          actors
+        }))
+      ].sort(),
+      appRoll:
+        admission.resume && admission.input.type === 'RESOLVE_RULE_OCCURRENCE'
+          ? await readEncounterSettledAppRoll(ctx, {
+              occurrence: admission.pending.occurrence,
+              response: admission.input,
+              userId: input.expectedUserId
+            })
+          : null,
       command: admission.input,
       fingerprint: admission.fingerprint,
       occurrenceVersion: admission.pending?.occurrence.version ?? null,
       snapshot: admission.pending?.snapshot ?? null,
-      result: admission.result
+      result:
+        admission.result &&
+        (await presentEncounterResultForMember(ctx, {
+          campaign: admission.campaign,
+          membership: admission.membership,
+          result: admission.result
+        }))
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
@@ -79,13 +116,13 @@ export async function readEncounterRulesCapture(
   if (
     turnRequest &&
     !input.movement &&
-    ((input.expectedRole !== 'OWNER' && !input.turnResponse) || input.concentrationResponse)
+    ((input.expectedRole !== 'OWNER' && !input.turnCommand) || input.concentrationResponse)
   )
     throw new Error('Turn capture requires owner or admitted response scope.')
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   if (
-    (input.concentrationResponse || input.movement || input.turnResponse) &&
+    (input.concentrationResponse || input.movement || input.turnCommand) &&
     (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE')
   )
     throw new Error('Ordinary action capture cannot use another command scope.')
@@ -104,8 +141,8 @@ export async function readEncounterRulesCapture(
         concentrationResponse: input.concentrationResponse
       })
     : null
-  const turnAdmission = input.turnResponse
-    ? await readLiveEncounterTurnAdmission(ctx, input, input.turnResponse)
+  const turnAdmission = input.turnCommand
+    ? await readLiveEncounterTurnAdmission(ctx, input, input.turnCommand)
     : null
   if (
     turnAdmission &&
@@ -119,6 +156,7 @@ export async function readEncounterRulesCapture(
     const response: SemanticResponse = {
       kind: 'CONCENTRATION_RESPONSE',
       fingerprint: concentrationAdmission.fingerprint,
+      appRoll: concentrationAdmission.kind === 'READY' ? concentrationAdmission.appRoll : null,
       state: concentrationAdmission.state,
       projection: concentrationAdmission.projection,
       snapshot:
@@ -139,7 +177,12 @@ export async function readEncounterRulesCapture(
   if (concentrationAdmission?.kind === 'REPLAY')
     throw new Error('Completed concentration response cannot capture rules inputs.')
   if (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE') {
-    if (input.expectedRole !== 'OWNER') throw new Error('Live Session role mismatch.')
+    // A player's planner carries its admitted action so the follow-up captures pass.
+    if (
+      input.expectedRole !== 'OWNER' &&
+      checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
+    )
+      throw new Error('Live Session action scope mismatch.')
     const command =
       input.request.kind === 'ACTION_COMMAND' ? input.request.command : input.request.response
     if (
@@ -173,24 +216,43 @@ export async function readEncounterRulesCapture(
         ? await readNativeEncounterActionAdmission(ctx, input.request.command, userId)
         : null)
     if (!admission) throw new Error('Action response admission is unavailable.')
-    if (admission.state.campaignId !== input.campaignId)
+    if (
+      admission.state.campaignId !== input.campaignId ||
+      admission.membership.role !== input.expectedRole
+    )
       throw new Error('Live Session Encounter scope or version mismatch.')
+    const replay =
+      responseAdmission?.kind === 'REPLAY'
+        ? responseAdmission.result
+        : admission.kind === 'REPLAY'
+          ? admission.result
+          : null
     const response = {
       ...(responseAdmission
         ? {
             kind: 'ACTION_RESPONSE' as const,
-            snapshot: responseAdmission.kind === 'READY' ? responseAdmission.pending.snapshot : null
+            snapshot:
+              responseAdmission.kind === 'READY' ? responseAdmission.pending.snapshot : null,
+            appRoll: responseAdmission.kind === 'READY' ? responseAdmission.appRoll : null
           }
         : { kind: 'ACTION_COMMAND' as const }),
-      autoRollDice: await readAutoRollDice(ctx, userId),
+      autoRollByActorId:
+        admission.kind === 'READY'
+          ? await readEncounterAutoRollByActorId(ctx, {
+              campaign: admission.campaign,
+              initiatorUserId: admission.initiatorUserId,
+              actors: await readRunActors(ctx, admission.state)
+            })
+          : {},
       command: admission.input,
       fingerprint: admission.fingerprint,
       result:
-        responseAdmission?.kind === 'REPLAY'
-          ? responseAdmission.result
-          : admission.kind === 'REPLAY'
-            ? admission.result
-            : null
+        replay &&
+        (await presentEncounterResultForMember(ctx, {
+          campaign: admission.campaign,
+          membership: admission.membership,
+          result: replay
+        }))
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
@@ -201,12 +263,13 @@ export async function readEncounterRulesCapture(
       readChecksum: checksumCanonicalJson({ input, userId, response })
     })
   }
+  const actionAdmission = input.action
+    ? await readLiveEncounterActionScope(ctx, { ...input, action: input.action })
+    : null
   const { campaign, membership } =
     movementAdmission ?? (await requireCampaignAuthority(ctx, input.campaignId, userId))
-  if (
-    membership.role !== input.expectedRole ||
-    (!concentrationAdmission && !movementAdmission && !turnAdmission && membership.role !== 'OWNER')
-  )
+  const admitted = concentrationAdmission || movementAdmission || turnAdmission || actionAdmission
+  if (membership.role !== input.expectedRole || (!admitted && membership.role !== 'OWNER'))
     throw new Error('Live Session role mismatch.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (!movementAdmission) {
@@ -239,7 +302,19 @@ export async function readEncounterRulesCapture(
     response = {
       kind: 'MOVEMENT_INPUTS',
       campaignOwnerUserId: campaign.ownerUserId,
-      autoRollDice: await readAutoRollDice(ctx, userId),
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign,
+        // A response continues the mover's command; its rolls keep the mover as initiator.
+        initiatorUserId: movementAdmission.save.movementResolution
+          ? readEncounterMovementPendingContext(
+              serverRuleExecutionPendingSnapshotDtoSchema.parse(
+                JSON.parse(movementAdmission.save.movementResolution.pendingSnapshotJson)
+              )
+            ).root.initiatorUserId
+          : movementAdmission.save.actorUserId,
+        actors: await readRunActors(ctx, state)
+      }),
+      appRoll: movementAdmission.appRoll,
       save: movementAdmission.save,
       header: movementAdmission.header,
       bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)
@@ -309,7 +384,8 @@ export async function readEncounterRulesCapture(
   ) {
     response = await readEncounterTurnCapture(ctx, state, input.request)
   } else if (input.request.kind === 'DEFINITION') {
-    const root = await readDefinitionRoot(ctx, input.request.definitionId, userId)
+    // Encounter rules resolve the Campaign's definitions as its owner, for players too.
+    const root = await readDefinitionRoot(ctx, input.request.definitionId, campaign.ownerUserId)
     if (root && root.gameSystemId !== state.gameSystemId)
       throw new Error('Reusable definition System mismatch.')
     response = { kind: 'DEFINITION', definition: root?.current ?? null }
@@ -321,7 +397,7 @@ export async function readEncounterRulesCapture(
         ctx,
         campaign.id,
         actor.sourceId,
-        concentrationAdmission || movementAdmission || turnAdmission ? campaign.ownerUserId : userId
+        admitted ? campaign.ownerUserId : userId
       )
       const { active, draft } = await loadCharacterState(ctx, actor.sourceId)
       if (

@@ -12,7 +12,7 @@ import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
 import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
 import { CharacterSheetRollHistory } from '../dice/CharacterSheetRollHistory'
-import { CharacterSheetRollPresentation } from '../dice/CharacterSheetRollPresentation'
+import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import { CharacterSheetRollContext } from '../dice/rollContext'
 import { useCharacterSheetRollController } from '../dice/useCharacterSheetRollController'
 import { CharacterSheetMobilePager } from '../mobile/CharacterSheetMobilePager'
@@ -177,7 +177,7 @@ export function CharacterSheetView({
   return (
     <CharacterSheetRollContext.Provider value={rollController}>
       <div className={coreStyles.shell} onClickCapture={dismissPresentedRoll}>
-        <CharacterSheetRollPresentation
+        <DiceRollPresentation
           onRollRevealed={(rollId) => {
             if (rollController.presentedRoll?.id !== rollId) return
             rollController.revealRoll(rollId)

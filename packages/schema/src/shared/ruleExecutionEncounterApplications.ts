@@ -73,7 +73,9 @@ export const concentrationCheckApplicationOutputDtoSchema = z
     d20: z
       .strictObject({
         requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+        /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
         rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
         rawFaces: z
           .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
           .check(z.minLength(1))
@@ -620,10 +622,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
         (value.d20?.contributors ?? []).map((contributor) => contributor.influence)
       )
       const expectedRollMode = influences.size === 1 ? [...influences][0] : 'NORMAL'
-      if (value.d20 && value.d20.rollMode !== expectedRollMode)
+      if (value.d20 && value.d20.derivedRollMode !== expectedRollMode)
         context.addIssue({
           code: 'custom',
-          path: ['d20', 'rollMode'],
+          path: ['d20', 'derivedRollMode'],
           message: 'd20 contributor mode is invalid.'
         })
     })

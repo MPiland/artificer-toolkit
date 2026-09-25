@@ -261,7 +261,7 @@ export const lamia: CreatureAuthored = {
           id: S.actionId(181, 504),
           invocation: {
             kind: 'ACTION',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(181, 604),

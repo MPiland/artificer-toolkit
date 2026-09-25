@@ -6,7 +6,9 @@ import {
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { Doc } from '../_generated/dataModel'
-import { internalQuery } from '../_generated/server'
+import { internalQuery, type QueryCtx } from '../_generated/server'
+import { readEncounterControlledActorIds } from '../encounters/actorController'
+import { readRunActors, readRunState } from '../encounters/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { readLiveScene } from '../scenes/liveDocuments'
@@ -27,6 +29,35 @@ function activeMember(
     role: membership.role,
     userId: membership.userId
   }
+}
+
+/** Each Encounter-bound token and whether this player controls its bound actor. */
+async function readBoundTokenControl(
+  ctx: QueryCtx,
+  input: {
+    campaign: Doc<'campaigns'>
+    membership: Doc<'campaignMemberships'>
+    sceneBinding: Doc<'encounterSceneBindings'>
+  }
+) {
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.sceneBinding.encounterId))
+    .unique()
+  if (!run || run.campaignId !== input.campaign.id)
+    throw new Error('The Scene Encounter binding is stale.')
+  const [bindings, actors] = await Promise.all([
+    ctx.db
+      .query('encounterActorTokenBindings')
+      .withIndex('by_encounterId_tokenId', (q) => q.eq('encounterId', run.id))
+      .collect(),
+    readRunActors(ctx, readRunState(run))
+  ])
+  const controlled = await readEncounterControlledActorIds(ctx, { ...input, actors })
+  return bindings.map((binding) => ({
+    tokenId: binding.tokenId,
+    controlled: controlled.has(binding.actorId)
+  }))
 }
 
 export const capture = internalQuery({
@@ -53,12 +84,13 @@ export const capture = internalQuery({
         : await readLiveScene(ctx, presentation.sceneId, 'MEMBER')
     if (scene && scene.campaign.id !== campaign.id)
       throw new Error('Live Session presentation Scene belongs to another Campaign.')
-    const sceneEncounterBound =
-      scene !== null &&
-      (await ctx.db
-        .query('encounterSceneBindings')
-        .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.header.id))
-        .first()) !== null
+    const sceneBinding = scene
+      ? await ctx.db
+          .query('encounterSceneBindings')
+          .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.header.id))
+          .first()
+      : null
+    const sceneEncounterBound = sceneBinding !== null
     const origin = activeMember(membership, campaign.ownerUserId)
     if (!origin) throw new Error('Stored Campaign membership authority mismatch.')
     const recipients = await Promise.all(
@@ -100,6 +132,10 @@ export const capture = internalQuery({
         (recipient): recipient is LiveSessionTransientMember => recipient !== null
       ),
       sceneEncounterBound,
+      originBoundTokenControl:
+        sceneBinding && membership.role === 'PLAYER'
+          ? await readBoundTokenControl(ctx, { campaign, membership, sceneBinding })
+          : [],
       sceneHeader: scene?.header ?? null,
       ...(sceneSnapshot === undefined ? {} : { sceneSnapshot }),
       visionFreshness:

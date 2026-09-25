@@ -52,6 +52,7 @@ function MovementFixture() {
       }
       renderer.current = nextRenderer
       nextRenderer.update({
+        boundTokenControl: new Map(),
         currentUserId: tabletopCurrentUserId,
         mapDelivery: null,
         mode: 'PLAY',
@@ -71,6 +72,7 @@ function MovementFixture() {
   useEffect(() => {
     if (!renderer.current) return
     renderer.current.update({
+      boundTokenControl: new Map(),
       currentUserId: tabletopCurrentUserId,
       mapDelivery: null,
       mode: 'PLAY',

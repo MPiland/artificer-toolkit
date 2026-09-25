@@ -19,24 +19,32 @@ const fallbackColours = [0x1971c2, 0x2f9e44, 0x6741d9, 0x0b7285, 0x9c36b5, 0xc22
 export function buildVttTokenPresentations(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   artUrls?: Readonly<Record<string, string>>
+  boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
   scene: CampaignSceneStateDto
 }): Record<string, VttTokenPresentation> {
   const actors = new Map(input.encounter.actors.map((actor) => [actor.id, actor]))
+  // Only the GM projection carries health; players see none by default.
+  const healthBands = new Map(
+    input.encounter.actors.flatMap((actor) =>
+      'healthBand' in actor ? [[actor.id, actor.healthBand] as const] : []
+    )
+  )
   const presentations: Record<string, VttTokenPresentation> = {}
 
   for (const token of input.scene.tokens) {
     const actorId = input.actorIdByTokenId.get(token.id)
     const actor = actorId ? actors.get(actorId) : undefined
     const statuses = actor ? actorConditionStatuses(actor.conditions) : []
-    if (actor && actor.healthBand !== 'HEALTHY') {
+    const healthBand = actor ? healthBands.get(actor.id) : undefined
+    if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push({
-        id: `health:${actor.healthBand}`,
+        id: `health:${healthBand}`,
         kind: 'HEALTH',
-        label: titleCase(actor.healthBand),
-        shortLabel: actor.healthBand === 'DEFEATED' ? '×' : '!'
+        label: titleCase(healthBand),
+        shortLabel: healthBand === 'DEFEATED' ? '×' : '!'
       })
     }
     const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
@@ -51,9 +59,11 @@ export function buildVttTokenPresentations(input: {
     }
     statuses.sort(compareStatuses)
 
-    const healthColour = actor ? healthColours[actor.healthBand] : null
+    const healthColour = healthBand ? healthColours[healthBand] : null
     const isCurrent = actor?.id === input.encounter.currentActorId
-    const controlled = token.controlledByUserIds.includes(input.currentUserId)
+    const controlled =
+      input.boundTokenControl.get(token.id) ??
+      token.controlledByUserIds.includes(input.currentUserId)
     const statusDescription = statuses.map((status) => status.label).join(', ')
     presentations[token.id] = {
       accessibleDescription: [

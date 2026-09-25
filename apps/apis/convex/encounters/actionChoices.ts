@@ -24,6 +24,11 @@ import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import { readRunActor, readRunActors, readRunProjection, readRunState } from './documents'
 import { loadMovementTargets } from './movementTargets'
 import { readNativeDisarmSelection } from './actionDisarmSelection'
+import { requireEncounterActorControl } from './actorController'
+import { evaluateNativeActionEconomy } from './actionEconomy'
+import { encounterActionEconomyWarnings } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { rejectDomain } from '../lib/domainRejections'
 
 const choicesValidator: Validator<EncounterActionChoicesResponseDto, 'required', string> =
   zodToConvex<z.core.$ZodType<EncounterActionChoicesResponseDto>>(
@@ -44,7 +49,6 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
   const state = readRunState(run)
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign is stale.')
   if (
@@ -55,7 +59,9 @@ async function readActionChoicesRun(ctx: QueryCtx, input: GetEncounterActionChoi
   )
     return null
   const actor = await readRunActor(ctx, state, input.actorId)
-  return { state, actor, campaign }
+  // A player sees the choices of an actor they control; creature actions included only then.
+  await requireEncounterActorControl(ctx, { campaign, membership, actor })
+  return { state, actor, campaign, membership }
 }
 
 export const get = query({
@@ -65,43 +71,65 @@ export const get = query({
     const input = getEncounterActionChoicesInputDtoSchema.parse(args)
     const current = await readActionChoicesRun(ctx, input)
     if (!current) return null
-    const { state, actor } = current
+    const { state, actor, campaign } = current
+    const actorTarget =
+      actor.kind === 'CHARACTER'
+        ? (
+            await loadMovementTargets(ctx, {
+              encounterId: state.id,
+              expectedEncounterVersion: state.version,
+              targetActorIds: [actor.id],
+              includeReactionSources: true
+            })
+          ).get(actor.id)
+        : undefined
+    // One allowance read per activation; Encounter rules read as the Campaign owner.
+    const economyWarnings = new Map<string, Promise<EncounterRuleWarningDto[]>>()
+    const readEconomyWarnings = (activation: { code: string; amount: number | null } | null) => {
+      if (!activation || activation.amount === null) return Promise.resolve([])
+      const key = `${activation.code}:${activation.amount}`
+      const known = economyWarnings.get(key)
+      if (known) return known
+      const read = evaluateNativeActionEconomy(ctx, {
+        actor,
+        state,
+        userId: campaign.ownerUserId,
+        activation: { code: activation.code, amount: activation.amount },
+        target: actorTarget
+      }).then((economy) => encounterActionEconomyWarnings(economy, activation.code))
+      economyWarnings.set(key, read)
+      return read
+    }
     let actions: EncounterActionChoiceDto[] = []
     if (actor.kind === 'CHARACTER') {
-      const target = (
-        await loadMovementTargets(ctx, {
-          encounterId: state.id,
-          expectedEncounterVersion: state.version,
-          targetActorIds: [actor.id],
-          includeReactionSources: true
-        })
-      ).get(actor.id)
-      const facts = target?.characterFacts
-      const mechanics = target?.characterReactionSource?.mechanics
-      const policyOutput = target?.effectiveRulePolicyOutput
+      const facts = actorTarget?.characterFacts
+      const mechanics = actorTarget?.characterReactionSource?.mechanics
+      const policyOutput = actorTarget?.effectiveRulePolicyOutput
       if (!facts || !mechanics || !policyOutput)
         throw new Error('Encounter Character actions are unavailable.')
       const sheet = projectCharacterSheetFacts({
         ...facts,
         ruleEvaluation: { ...facts.ruleEvaluation, output: policyOutput }
       }).sheet
-      actions = sheet.actions.items
-        .filter(
-          (action) =>
-            // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
-            (action.availability.status === 'AVAILABLE' ||
-              action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
-              action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
-            action.rollable &&
-            action.mechanic &&
-            mechanics.compiledActionEntryPoints.some(
-              (entry) =>
-                entry.kind === 'CHARACTER_ACTION' &&
-                entry.actionId === action.id &&
-                entry.compilation.kind === 'COMPILED'
-            )
-        )
-        .map((action) => {
+      const available = sheet.actions.items.filter(
+        (action) =>
+          // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
+          (action.availability.status === 'AVAILABLE' ||
+            action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
+            action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
+          action.rollable &&
+          action.mechanic &&
+          mechanics.compiledActionEntryPoints.some(
+            (entry) =>
+              entry.kind === 'CHARACTER_ACTION' &&
+              entry.actionId === action.id &&
+              entry.compilation.kind === 'COMPILED'
+          )
+      )
+      actions = await Promise.all(
+        available.map(async (action) => {
+          const reasonCode =
+            action.availability.status === 'UNAVAILABLE' ? action.availability.reasonCode : null
           const candidate = mechanics.rulePolicyInput.actionCandidates.find(
             (value) => value.actionId === action.id
           )
@@ -132,23 +160,42 @@ export const get = query({
                   attackKey: `${candidate.equipment.itemInstanceId}:${candidate.mechanicFacts.invocation.triggerCode}`
                 }
               : null,
-            wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
+            wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
+            warnings: [
+              ...(await readEconomyWarnings(
+                candidate?.mechanicFacts.invocation.activation ?? null
+              )),
+              ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
+                ? [
+                    {
+                      code: 'SOURCE_NOT_EQUIPPED' as const,
+                      message: "The item this action uses isn't equipped."
+                    }
+                  ]
+                : reasonCode === 'INSUFFICIENT_RESOURCE'
+                  ? [{ code: 'RESOURCE_UNAVAILABLE' as const, message: 'Not enough uses left.' }]
+                  : [])
+            ]
           }
         })
+      )
     } else if (actor.kind === 'CREATURE') {
       const system = await requireSystem(ctx, state.gameSystemId)
-      actions = discoverEncounterFeatureActionCapabilities({
-        actor,
-        conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-        abilityDefinitions:
-          'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
-      }).map((action) => ({
-        id: action.actionId,
-        label: action.label,
-        ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
-        grip: null,
-        wieldConflict: null
-      }))
+      actions = await Promise.all(
+        discoverEncounterFeatureActionCapabilities({
+          actor,
+          conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+          abilityDefinitions:
+            'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
+        }).map(async (action) => ({
+          id: action.actionId,
+          label: action.label,
+          ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+          grip: null,
+          wieldConflict: null,
+          warnings: await readEconomyWarnings(action.mechanicFacts.invocation.activation)
+        }))
+      )
     }
     return encounterActionChoicesDtoSchema.parse({
       encounterId: state.id,
@@ -182,11 +229,12 @@ export const optional = query({
       }
     const current = await readActionChoicesRun(ctx, input)
     if (!current) throw new Error('Encounter action choices are stale or unavailable.')
-    const { state, actor, campaign } = current
+    const { state, actor, campaign, membership } = current
     const [actors, target] = await Promise.all([
       readRunActors(ctx, state),
       readRunActor(ctx, state, input.targetActorId)
     ])
+    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
     const { descriptor, definition, defenderFacts } = await readNativeDisarmSelection(ctx, {
       state,
       actors,

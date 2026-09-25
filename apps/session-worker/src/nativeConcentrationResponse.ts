@@ -138,7 +138,7 @@ export async function planNativeLiveConcentrationResponse(
   const planned = await planNativeLiveConcentration({
     state,
     // A resumed Concentration sequence keeps prompting until it settles, like the native path.
-    autoRoll: false,
+    autoRollByActorId: {},
     parentOccurrenceId: context.parentOccurrenceId,
     parentCommandFingerprint: context.parentCommandFingerprint,
     applications: parentApplications,
@@ -147,7 +147,7 @@ export async function planNativeLiveConcentrationResponse(
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
-    resume: { snapshot, context, response, applicationIndex }
+    resume: { snapshot, context, response, appRoll: admission.appRoll, applicationIndex }
   })
   if (!planned.resumed) throw new Error('Concentration response did not complete.')
   const nextFacts = planned.resumed.failed

@@ -640,7 +640,10 @@ function buildActiveSpellGroups(params: {
           .map((mechanic) => mechanic.rangeLabel?.trim())
           .find((candidate): candidate is string => Boolean(candidate))
         const hasAttack = projectedMechanics.some(
-          (mechanic) => mechanic.trigger === 'SPELL_ATTACK' || mechanic.attackBonus !== undefined
+          (mechanic) =>
+            mechanic.trigger === 'MELEE_SPELL_ATTACK' ||
+            mechanic.trigger === 'RANGED_SPELL_ATTACK' ||
+            mechanic.attackBonus !== undefined
         )
         const authoredAttackBonus = projectedMechanics.find(
           (mechanic) => mechanic.attackBonus !== undefined

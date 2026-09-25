@@ -217,8 +217,9 @@ export const tabletopMapDelivery = {
 const playerActors = [
   {
     conditions: [],
+    controllerUserIds: [],
+    disposition: 'FRIENDLY',
     encounterId: tabletopEncounterId,
-    healthBand: 'HEALTHY',
     id: '99999999-9999-4999-8999-999999999901',
     initiative: 18,
     kind: 'CHARACTER',
@@ -230,8 +231,9 @@ const playerActors = [
   },
   {
     conditions: [],
+    controllerUserIds: [],
+    disposition: 'HOSTILE',
     encounterId: tabletopEncounterId,
-    healthBand: 'WOUNDED',
     id: '99999999-9999-4999-8999-999999999902',
     initiative: 14,
     kind: 'CREATURE',
@@ -276,6 +278,7 @@ export const tabletopGmEncounter = {
     currentHitPoints: index === 0 ? 36 : 47,
     features: [],
     gmNotes: null,
+    healthBand: index === 0 ? ('HEALTHY' as const) : ('WOUNDED' as const),
     maxHitPoints: index === 0 ? 36 : 64,
     resources: {},
     stableTieKey: actor.id,

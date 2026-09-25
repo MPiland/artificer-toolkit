@@ -3,7 +3,6 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterInitiativeSettlementDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionInitiative'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -34,6 +33,10 @@ import {
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
+import {
+  resolveEncounterIntegerAnswer,
+  type EncounterResponseAnswer
+} from './encounterEvidenceAnswer.js'
 
 type InitiativeRoot = Parameters<typeof createEncounterInitiativePendingSnapshot>[0]['root']
 
@@ -54,7 +57,7 @@ export async function prepareEncounterTurnInitiative(input: {
   createRequestId(): string
   resume?: {
     pending: ServerRuleExecutionPendingSnapshotDto
-    resolution: ResolveRuleOccurrenceInputDto['resolution']
+    resolution: EncounterResponseAnswer
   }
 }): Promise<
   | { kind: 'PENDING'; snapshot: ServerRuleExecutionPendingSnapshotDto }
@@ -212,6 +215,7 @@ export async function prepareEncounterTurnInitiative(input: {
         commandFingerprint: root.commandFingerprint,
         commandType: root.commandType,
         initiatorUserId: root.initiatorUserId,
+        requestedByUserId: root.requestedByUserId,
         correlationId: root.correlationId,
         expectedEncounterVersion: root.expectedEncounterVersion,
         round,
@@ -356,9 +360,12 @@ export async function prepareEncounterTurnInitiative(input: {
     const value =
       resolution.kind === 'INITIATIVE_ENTITY'
         ? { selectedEntityId: resolution.entityId }
-        : resolution.kind === 'ENTER_INTEGER'
-          ? resolution.value
-          : input.integerSource({ min: request.min, max: request.max })
+        : resolveEncounterIntegerAnswer({
+            min: request.min,
+            max: request.max,
+            answer: resolution,
+            random: (maxExclusive) => input.integerSource({ min: 0, max: maxExclusive - 1 })
+          })
     result = await resumeEncounterInitiativeLifecycle({
       repository: staged.repository,
       runtime: await input.createRuntime(),

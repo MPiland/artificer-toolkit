@@ -14,7 +14,7 @@ import { CampaignEncounterDecision } from '../CampaignEncounterDecision'
 import { useCampaignLiveSession } from '../../vtt/useCampaignLiveSession'
 import * as styles from '../../campaignSessions.css'
 
-export function CampaignSessionPlayerEncounters({ campaign }: { campaign: CampaignDetailDto }) {
+export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: CampaignDetailDto }) {
   const convex = useConvex()
   const encounters = useQuery(getCampaignEncounters(campaign.id, convex))
   const pendingPrepared = useQuery({

@@ -149,6 +149,8 @@ const movementReactionPendingPhaseDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('ACTION_EVIDENCE'),
     selectedOptionId: checksumSchema,
+    /** The actor whose roll this is: the reactor's attack or the mover's save. */
+    rollerActorId: uuidSchema,
     maintenanceCurrentnessChecksum: z.optional(checksumSchema),
     d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
     twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema)))
@@ -225,18 +227,8 @@ export const movementReactionPendingContextDtoSchema = z
         })
         return
       }
-      const currentOption =
-        currentEntry?.kind === 'AUTOMATIC_ACTION'
-          ? currentEntry.option
-          : currentEntry?.kind === 'CONTROLLER_CHOICE'
-            ? currentEntry.group.options[0]!
-            : null
-      const currentOptions =
-        currentEntry?.kind === 'AUTOMATIC_ACTION'
-          ? [currentEntry.option]
-          : currentEntry?.kind === 'CONTROLLER_CHOICE'
-            ? currentEntry.group.options
-            : []
+      const currentOption = currentEntry ? currentEntry.group.options[0]! : null
+      const currentOptions = currentEntry?.group.options ?? []
       const phaseDistance =
         (value.phase.kind === 'SPATIAL_EVIDENCE'
           ? value.phase.currentCandidate.candidate.pathDistance
@@ -265,13 +257,6 @@ export const movementReactionPendingContextDtoSchema = z
           path: ['phase', 'currentCandidate'],
           message: 'Pending spatial evidence may not follow the next frozen reaction contact.'
         })
-      if (value.phase.kind === 'CHOICE' && currentEntry!.kind !== 'CONTROLLER_CHOICE') {
-        context.addIssue({
-          code: 'custom',
-          path: ['phase'],
-          message: 'Only a controller-choice timeline entry may open a movement reaction choice.'
-        })
-      }
       if (
         value.phase.kind === 'ACTION_EVIDENCE' ||
         value.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'

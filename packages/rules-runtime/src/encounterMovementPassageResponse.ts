@@ -5,7 +5,6 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -17,6 +16,8 @@ import { stopSceneMovementResult } from './encounterMovementContinuation.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type ResolutionCommand = ReturnType<typeof movementRuleResolutionCommandDtoSchema.parse>
@@ -33,12 +34,12 @@ export async function evaluateEncounterMovementPassageResponse<
   input: {
     state: EncounterRunState
     snapshot: ServerRuleExecutionPendingSnapshotDto
-    resolution: ResolveRuleOccurrenceInputDto['resolution']
+    resolution: EncounterResponseAnswer
     occurrenceId: string
     occurrenceVersion: number
     userId: string
     /** The roller's auto-roll preference; the responding user rolls in this slice. */
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     responseCommand: ResolutionCommand
     occurredAt: string
     retained?: Outcome
@@ -56,7 +57,7 @@ export async function evaluateEncounterMovementPassageResponse<
     continueMovement: (input: {
       state: EncounterRunState
       userId: string
-      autoRoll: boolean
+      autoRoll: EncounterAutoRollByActorId
       root: FrozenMovementReactionRemainder['root']
       sceneVersion: number
       sceneTokens: readonly SceneToken[]

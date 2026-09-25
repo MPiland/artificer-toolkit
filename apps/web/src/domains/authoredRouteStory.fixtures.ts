@@ -424,7 +424,6 @@ export const seedShortswordPlusOneEquipment = {
   category: 'VARIANT',
   parentEquipmentId: '00000000-0000-0000-0060-001600000000',
   properties: ['MAGIC'],
-  maxBonus: 1,
   modifiers: [
     createMeleeWeaponModifier({
       id: 'shortsword-plus-one-attack-modifier',
@@ -655,7 +654,6 @@ export const seedAstralTearAwakenedEquipment = {
       valueDomainCode: 'DAMAGE'
     })
   ],
-  maxBonus: 1,
   features: [
     {
       id: 'astral-tear-warping-strike',

@@ -62,7 +62,10 @@ export const encounterInitiativePendingContextDtoSchema = z
       rootCommandId: uuidSchema,
       commandFingerprint: checksumSchema,
       commandType: z.enum(['START', 'ADVANCE_TURN']),
+      /** Who answers initiative decisions: always the Campaign owner. */
       initiatorUserId: uuidSchema,
+      /** Who issued START or ADVANCE_TURN; receipts and replays belong to them. */
+      requestedByUserId: uuidSchema,
       correlationId: z.nullable(uuidSchema),
       expectedEncounterVersion: integerSchema.check(z.gte(0)),
       round: positiveIntegerSchema,

@@ -55,7 +55,10 @@ async function settle(
     const faces = [sourceFace, targetFace][Symbol.iterator]()
     const occurrenceId = crypto.randomUUID()
     const execution = await executeEncounterOptionalContestAction({
-      autoRoll: true,
+      autoRoll: {
+        [preparation.contest.initiator.actorId]: true,
+        [preparation.contest.defender.actorId]: true
+      },
       graph: preparation.graph,
       initiator: { ...preparation.contest.initiator, requestNodeId: 'initiator_d20' },
       defender: { ...defender, requestNodeId: 'target_d20' },

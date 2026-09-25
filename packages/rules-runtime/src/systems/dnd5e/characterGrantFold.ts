@@ -55,7 +55,8 @@ function totalClassLevel(input: CharacterGrantFoldInput): number {
 const ITEM_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
   'ITEM_IDENTITY',
   'ITEM_CATEGORY',
-  'ITEM_PROPERTY'
+  'ITEM_PROPERTY',
+  'ITEM_SOLE_WEAPON'
 ])
 
 /**
@@ -225,6 +226,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_IDENTITY':
       case 'ITEM_CATEGORY':
       case 'ITEM_PROPERTY':
+      case 'ITEM_SOLE_WEAPON':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false

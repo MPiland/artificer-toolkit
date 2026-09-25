@@ -1,4 +1,8 @@
 import {
+  noEncounterRollModeReasons,
+  type EncounterRollModeReasons
+} from './encounterRollModeReasons.js'
+import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -56,6 +60,7 @@ export function projectNativeLegendaryPending(input: {
   occurrenceId: string
   occurrenceVersion: number
   encounterVersion: number
+  reasons?: EncounterRollModeReasons
 }) {
   const context = input.snapshot.applicationContext
   const identity = {
@@ -88,18 +93,24 @@ export function projectNativeLegendaryPending(input: {
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     ...identity,
     kind: 'D20_EVIDENCE',
+    // Turn-flow rolls belong to the GM, who initiates every turn.
+    rollerActorId: null,
     request: {
       requestId: input.snapshot.request.requestId,
       min: 1,
       max: 20,
-      rollMode: context.d20Policy.rollMode
+      rollMode: context.d20Policy.rollMode,
+      derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
+        rollMode: context.d20Policy.rollMode,
+        contributors: context.d20Policy.contributors
+      })
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })
 }
 
 export function projectNativeTurnPending(
-  input: Parameters<typeof projectNativeRechargePending>[0]
+  input: Parameters<typeof projectNativeLegendaryPending>[0]
 ) {
   const context = input.snapshot.applicationContext
   if (context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS') {
@@ -114,11 +125,17 @@ export function projectNativeTurnPending(
       occurrenceId: input.occurrenceId,
       occurrenceVersion: input.occurrenceVersion,
       encounterVersion: input.encounterVersion,
+      // A turn-effect save belongs to the actor making it, so its controllers answer it.
+      rollerActorId: context.currentCandidate.targetActorId,
       request: {
         requestId: input.snapshot.request.requestId,
         min: 1,
         max: 20,
-        rollMode: context.currentCandidate.d20Policy.rollMode
+        rollMode: context.currentCandidate.d20Policy.rollMode,
+        derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
+          rollMode: context.currentCandidate.d20Policy.rollMode,
+          contributors: context.currentCandidate.d20Policy.contributors
+        })
       },
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     })

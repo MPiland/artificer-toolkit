@@ -39,9 +39,7 @@ import {
   planEncounterMovementReactionAction,
   type MovementReactionSettlementInput
 } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPlan'
-import { retainNativeMovementLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
-import { evaluateEncounterAutomaticMovementActions } from '@artificer-toolkit/rules-runtime/encounterAutomaticMovementActions'
 import { evaluateEncounterMovementActionResponse } from '@artificer-toolkit/rules-runtime/encounterMovementActionResponse'
 import { evaluateEncounterMovementPassageResponse } from '@artificer-toolkit/rules-runtime/encounterMovementPassageResponse'
 import { evaluateEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassageExecution'
@@ -101,8 +99,8 @@ export async function prepareNativeLiveMovement(
     throw new Error('Movement requires an Encounter move.')
   const { runtime, random, scene } = input
   const userId = input.scope.expectedUserId
-  // The moving user rolls in this slice; the player-control slice routes rolls to controllers.
-  const autoRoll = captured.autoRollDice
+  // Each roll goes to its actor's controllers; the mover rolls for the actors they control.
+  const autoRoll = captured.autoRollByActorId
   const finalActors = new Map(captured.actors.map((actor) => [actor.id, actor]))
   const reactionSettlements = new Map<
     MovementReactionSettlementInput<CharacterFacts, CharacterRow>,
@@ -358,49 +356,6 @@ export async function prepareNativeLiveMovement(
             resolvePerception: perception.resolvePerception
           })
       },
-      evaluateAutomatic: async ({ root, boundary, reactionTimeline, targets, projection }) => {
-        const perception = await perceptionFor(targets)
-        return evaluateEncounterAutomaticMovementActions(
-          {
-            ...step,
-            root,
-            boundary,
-            reactionTimeline,
-            projectedTargets: targets,
-            maintenanceProjection: projection,
-            runtime,
-            ...perception,
-            encounterId: state.id,
-            expectedEncounterVersion: state.version,
-            sceneId: scene.id,
-            passage: root.terminalPassageStop
-              ? null
-              : discoverEncounterMovementPassage({ ...step, root, actors: captured.actors })
-          },
-          {
-            prepareReaction,
-            executeReaction: (args) =>
-              executeEncounterMovementReactionAction({ ...args, discoverResistance, random }),
-            replayReaction: (args) =>
-              replayEncounterMovementReactionAction({ ...args, discoverResistance }),
-            planReaction,
-            retainLegendary: retainNativeMovementLegendaryResistance,
-            prepareConcentration: async (args) => {
-              const result = await prepareNativeLiveMovementConcentration({
-                ...args,
-                autoRoll,
-                capture,
-                runtime,
-                random
-              })
-              for (const target of result.targets.values())
-                finalActors.set(target.actor.id, target.actor)
-              return result
-            },
-            continueMovement
-          }
-        )
-      },
       runtime: async () => runtime
     })
   }
@@ -445,7 +400,7 @@ export async function prepareNativeLiveMovement(
         state,
         snapshot: response.snapshot,
         context: response.context,
-        resolution: response.command.resolution,
+        resolution: response.answer,
         occurrenceId: input.occurrenceId,
         occurrenceVersion: response.command.expectedOccurrenceVersion,
         userId,
@@ -498,7 +453,7 @@ export async function prepareNativeLiveMovement(
       {
         state,
         snapshot: response.snapshot,
-        resolution: response.command.resolution,
+        resolution: response.answer,
         occurrenceId: input.occurrenceId,
         occurrenceVersion: response.command.expectedOccurrenceVersion,
         userId,
@@ -566,7 +521,7 @@ export async function prepareNativeLiveMovement(
       settlements: evaluated.settlements
     }
   } else {
-    const resolution = response.command.resolution
+    const resolution = response.answer
     if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
       throw new Error('Movement response does not match the issued spatial evidence.')
     if (captured.reactions.firstBoundaryDistance !== null)

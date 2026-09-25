@@ -17,12 +17,15 @@ export async function readNativeTurnCommandPending(
     input,
     row,
     campaign,
+    userId,
     commandFingerprint,
     projection
   }: {
     input: Exclude<EncounterCommandInputDto, { type: 'CREATE' }>
     row: Doc<'encounterRuns'>
     campaign: Doc<'campaigns'>
+    /** A retry returns the pending root only to the user who issued it. */
+    userId: string
     commandFingerprint: string
     projection: EncounterCommandResultDto['projection']
   }
@@ -58,6 +61,7 @@ export async function readNativeTurnCommandPending(
       pendingContext.root.rootCommandId !== input.commandId ||
       pendingContext.root.commandFingerprint !== commandFingerprint ||
       pendingContext.root.commandType !== input.type ||
+      pendingContext.root.requestedByUserId !== userId ||
       pendingContext.root.expectedEncounterVersion !== row.version ||
       input.expectedVersion !== row.version
     )

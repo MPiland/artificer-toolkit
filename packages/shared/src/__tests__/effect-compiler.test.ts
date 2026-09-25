@@ -301,7 +301,7 @@ describe('effect compiler', () => {
       id: 'shield-effect',
       order: 1,
       invocation: {
-        triggerCode: TRIGGER.SPELL_ATTACK,
+        triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
         activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
         range: {
           id: 'shield-self',
@@ -492,7 +492,7 @@ describe('effect compiler', () => {
       id: 'choice-copy-effect',
       order: 1,
       invocation: {
-        triggerCode: TRIGGER.SPELL_ATTACK,
+        triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1

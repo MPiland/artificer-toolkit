@@ -1,6 +1,5 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementRuleService'
@@ -15,7 +14,8 @@ export {
 import type { MutationCtx } from '../_generated/server'
 import { createRulesRuntime } from '../rules/runtime'
 import { nextRollInt } from '../lib/rollRandom'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import type { EncounterAutoRollByActorId } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
+import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { NativeMaintenanceProjection } from './actionMaintenance'
 import { createNativeConcentrationContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
@@ -27,10 +27,7 @@ import { projectNativeMovementConcentrationEnd } from './movementMaintenance'
 import type { MovementTarget } from './movementTargets'
 
 type DamageSource = { kind: 'SPATIAL' | 'REACTION'; executionOrdinal: number }
-type DiceResolution = Extract<
-  ResolveRuleOccurrenceInputDto['resolution'],
-  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
->
+type DiceResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
 export type NativeMovementConcentrationSettlement = MovementConcentrationSettlement
 
@@ -42,6 +39,7 @@ export async function prepareNativeMovementConcentration(
     occurrenceId: string
     sourceCommandId: string
     userId: string
+    autoRoll: EncounterAutoRollByActorId
     occurredAt: string
     remainder: FrozenMovementReactionRemainder
     source: DamageSource
@@ -51,38 +49,33 @@ export async function prepareNativeMovementConcentration(
     resume?: { snapshot: ServerKernelRuleExecutionPendingSnapshotDto; resolution: DiceResolution }
   }
 ) {
-  // The moving initiator rolls Concentration saves in this slice.
-  const autoRoll = await readAutoRollDice(ctx, input.userId)
-  return prepareEncounterMovementConcentration(
-    { ...input, autoRoll },
-    {
-      loadState: (targetActorId, targets, projection) =>
-        loadNativeConcentrationState(ctx, {
+  return prepareEncounterMovementConcentration(input, {
+    loadState: (targetActorId, targets, projection) =>
+      loadNativeConcentrationState(ctx, {
+        state: input.state,
+        readVersion: input.state.version,
+        targetActorId,
+        userId: input.userId,
+        targets,
+        projection
+      }),
+    runtime: () => createRulesRuntime(ctx, input.userId),
+    random: nextRollInt,
+    projectEnd: async (context, targets, projection) =>
+      projectNativeMovementConcentrationEnd({
+        maintenance: await prepareNativeConcentrationEnd(ctx, {
           state: input.state,
-          readVersion: input.state.version,
-          targetActorId,
-          userId: input.userId,
+          context,
           targets,
           projection
         }),
-      runtime: () => createRulesRuntime(ctx, input.userId),
-      random: nextRollInt,
-      projectEnd: async (context, targets, projection) =>
-        projectNativeMovementConcentrationEnd({
-          maintenance: await prepareNativeConcentrationEnd(ctx, {
-            state: input.state,
-            context,
-            targets,
-            projection
-          }),
-          targets,
-          projection,
-          campaignId: input.state.campaignId,
-          gameSystemId: input.state.gameSystemId,
-          occurredAt: input.occurredAt
-        })
-    }
-  )
+        targets,
+        projection,
+        campaignId: input.state.campaignId,
+        gameSystemId: input.state.gameSystemId,
+        occurredAt: input.occurredAt
+      })
+  })
 }
 
 /** Replays recorded dice and verifies the forecast inside the enclosing Scene transaction. */
@@ -112,7 +105,8 @@ export async function settleNativeMovementConcentration(
     resolution: {
       kind: 'ENTER_DICE',
       requestId: input.continuation.request.requestId,
-      rawFaces: input.execution.result.applicationOutputs.d20.rawFaces
+      rawFaces: input.execution.result.applicationOutputs.d20.rawFaces,
+      rollMode: input.execution.result.applicationOutputs.d20.rollMode
     }
   })
   if (checksumRuleDocument(completed.result) !== checksumRuleDocument(input.execution.result))

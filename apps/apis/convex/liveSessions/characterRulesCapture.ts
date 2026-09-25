@@ -36,6 +36,7 @@ import { readLiveConcentrationResponseAdmission } from './concentrationResponseA
 import { readLiveMovementAdmission } from './encounterMovementAdmission'
 import { readRunActor, readRunActors } from '../encounters/documents'
 import { readLiveEncounterTurnAdmission } from './encounterTurnAdmission'
+import { readLiveEncounterActionScope } from './encounterActionAdmission'
 
 /** Raw stored inputs only; the Session DO owns Character rule preparation and evaluation. */
 export async function readCharacterRulesCapture(
@@ -46,8 +47,9 @@ export async function readCharacterRulesCapture(
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   if (
-    (input.movement && input.concentrationResponse) ||
-    (input.turnResponse && (input.movement || input.concentrationResponse))
+    [input.movement, input.concentrationResponse, input.turnCommand, input.action].filter(
+      (scope) => scope !== undefined
+    ).length > 1
   )
     throw new Error('Live Session capture scopes cannot be combined.')
   const movementAdmission = input.movement
@@ -77,34 +79,50 @@ export async function readCharacterRulesCapture(
       ))
   )
     throw new Error('Concentration Character is unavailable.')
-  const turnAdmission = input.turnResponse
+  const turnAdmission = input.turnCommand
     ? await readLiveEncounterTurnAdmission(
         ctx,
         {
           ...input,
-          encounterId: input.turnResponse.encounterId.toLowerCase(),
-          expectedVersion: input.turnResponse.expectedVersion
+          encounterId: input.turnCommand.encounterId.toLowerCase(),
+          expectedVersion: input.turnCommand.expectedVersion
         },
-        input.turnResponse
+        input.turnCommand
       )
     : null
-  if (turnAdmission && input.turnResponse) {
+  if (turnAdmission && input.turnCommand) {
     if (
       turnAdmission.kind !== 'READY' ||
-      turnAdmission.state.id !== input.turnResponse.encounterId.toLowerCase() ||
-      turnAdmission.state.version !== input.turnResponse.expectedVersion ||
+      turnAdmission.state.id !== input.turnCommand.encounterId.toLowerCase() ||
+      turnAdmission.state.version !== input.turnCommand.expectedVersion ||
       !(await readRunActors(ctx, turnAdmission.state)).some(
         (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
       )
     )
       throw new Error('Turn Character source is unavailable.')
   }
+  const actionCommand =
+    input.action?.kind === 'ACTION_COMMAND' ? input.action.command : input.action?.response
+  const actionAdmission =
+    input.action && actionCommand
+      ? await readLiveEncounterActionScope(ctx, {
+          ...input,
+          encounterId: actionCommand.encounterId.toLowerCase(),
+          expectedVersion: actionCommand.expectedVersion,
+          action: input.action
+        })
+      : null
+  if (
+    actionAdmission &&
+    !(await readRunActors(ctx, actionAdmission.state)).some(
+      (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
+    )
+  )
+    throw new Error('Action Character source is unavailable.')
   const { campaign, membership } =
     movementAdmission ?? (await requireCampaignAuthority(ctx, input.campaignId, userId))
-  if (
-    membership.role !== input.expectedRole ||
-    (!concentrationAdmission && !movementAdmission && !turnAdmission && membership.role !== 'OWNER')
-  )
+  const admitted = concentrationAdmission || movementAdmission || turnAdmission || actionAdmission
+  if (membership.role !== input.expectedRole || (!admitted && membership.role !== 'OWNER'))
     throw new Error('Live Session role mismatch.')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   if (!movementAdmission) {
@@ -117,7 +135,7 @@ export async function readCharacterRulesCapture(
     ctx,
     campaign.id,
     input.characterId,
-    concentrationAdmission || movementAdmission || turnAdmission ? campaign.ownerUserId : userId
+    admitted ? campaign.ownerUserId : userId
   )
   const { active, draft } = await loadCharacterState(ctx, input.characterId)
   if (!active || active.userId !== assignment.userId)

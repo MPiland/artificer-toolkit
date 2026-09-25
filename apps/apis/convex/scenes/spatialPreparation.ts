@@ -19,7 +19,9 @@ import {
 } from './geometryDocuments'
 import { discoverSceneMovementReactions } from './movementPerceptionValidation'
 import { persistSpatialPreparation } from './spatialPreparationPersistence'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import { requireBoundTokenMoveControl } from '../encounters/actorController'
+import { readEncounterAutoRollByActorId } from '../encounters/actorController'
+import { readRunActors } from '../encounters/documents'
 
 /** The geometry action validates the complete path before requesting sealed rule evidence. */
 export const prepare = internalMutation({
@@ -49,14 +51,16 @@ export const prepare = internalMutation({
       currentSave
     )
     const token = geometry.sceneTokens.find((entry) => entry.id === tokenId)
-    if (
-      !token ||
-      token.locked ||
-      (membership.role !== 'OWNER' && !token.controlledByUserIds.includes(userId))
-    )
+    if (!token || token.locked)
       throw new Error('Members may only move an unlocked token they control.')
     if (!geometry.actorIdByTokenId.has(token.id))
       throw new Error('Spatial moving actor is unavailable.')
+    await requireBoundTokenMoveControl(ctx, {
+      campaign: currentSave.campaign,
+      membership,
+      encounterId: geometry.encounter.id,
+      tokenId: token.id
+    })
     if (checksumCanonicalJson(token.position) !== checksumCanonicalJson(save.input.path[0]))
       throw new Error('Movement path does not begin at the current token position.')
     const prior = readSpatialPreparation(save)
@@ -121,11 +125,16 @@ export async function evaluateInitialSceneMovement(
   if (
     !token ||
     token.locked ||
-    (membership.role !== 'OWNER' && !token.controlledByUserIds.includes(userId)) ||
     !geometry.actorIdByTokenId.has(token.id) ||
     checksumCanonicalJson(token.position) !== checksumCanonicalJson(save.input.path[0])
   )
     throw new Error('Initial movement token authority or position is stale.')
+  await requireBoundTokenMoveControl(ctx, {
+    campaign: currentSave.campaign,
+    membership,
+    encounterId: geometry.encounter.id,
+    tokenId: token.id
+  })
   const reactions = await discoverSceneMovementReactions(
     ctx,
     request,
@@ -137,8 +146,12 @@ export async function evaluateInitialSceneMovement(
     request,
     state: geometry.encounter,
     userId,
-    // The moving user rolls in this slice.
-    autoRoll: await readAutoRollDice(ctx, userId),
+    // The mover rolls for the actors they control; other rolls go to those actors' controllers.
+    autoRoll: await readEncounterAutoRollByActorId(ctx, {
+      campaign: currentSave.campaign,
+      initiatorUserId: userId,
+      actors: await readRunActors(ctx, geometry.encounter)
+    }),
     root: {
       commandId: save.commandId,
       commandFingerprint: save.inputChecksum,

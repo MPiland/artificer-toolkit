@@ -245,6 +245,9 @@ const predicatePayloadSchema = z.union([
       })
     )
   ),
+  z.object({
+    predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOLE_WIELDED_WEAPON)
+  }),
   z.intersection(
     z.object({
       predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)

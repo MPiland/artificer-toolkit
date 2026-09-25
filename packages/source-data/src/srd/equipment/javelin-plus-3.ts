@@ -11,7 +11,6 @@ export const javelinPlus3: EquipmentVariantAuthored = {
   parentEquipmentId: javelin.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_VERY_RARE,
-  maxBonus: 3,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(278), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

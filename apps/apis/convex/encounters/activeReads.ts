@@ -9,7 +9,7 @@ import {
 import { query } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readPendingRunDecision } from './pendingReads'
+import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads'
 import { presentRun, readActiveRun } from './projectionReads'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
@@ -25,11 +25,13 @@ export const active = query({
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     const row = await readActiveRun(ctx, campaign.id)
-    if (!row) return { encounter: null, pending: null }
+    if (!row) return { encounter: null, pending: null, waitingOn: null }
     const encounter = await presentRun(ctx, row, campaign, membership.role)
+    const pending = await readPendingRunDecision(ctx, row, campaign, membership)
     return encounterSessionStateDtoSchema.parse({
       encounter,
-      pending: await readPendingRunDecision(ctx, row, campaign, membership)
+      pending,
+      waitingOn: pending ? null : await readEncounterWaitingOn(ctx, row, campaign)
     })
   }
 })

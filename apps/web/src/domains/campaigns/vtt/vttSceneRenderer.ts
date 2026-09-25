@@ -23,6 +23,7 @@ import type {
 } from 'pixi.js'
 import {
   buildVttFogMask,
+  canControlSceneToken,
   canPreserveSceneTokenDrag,
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
@@ -80,6 +81,7 @@ export interface VttSceneRendererCallbacks {
 export type VttMapLoadStatus = 'ERROR' | 'LOADING' | 'READY'
 
 export interface VttSceneRendererUpdate {
+  boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
@@ -837,11 +839,7 @@ export async function createVttSceneRenderer(
   }
 
   function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
-    return Boolean(
-      current &&
-      !token.locked &&
-      (current.role === 'OWNER' || token.controlledByUserIds.includes(current.currentUserId))
-    )
+    return Boolean(current && !token.locked && canControlSceneToken(token, current))
   }
 
   function movementIndexFor(scene: CampaignSceneStateDto): SceneBarrierIndex {

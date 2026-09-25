@@ -357,6 +357,11 @@ export interface CharacterRuleActionSystemAdapter {
     facts: Readonly<Record<string, RuleValue>>
     /** The System-selected d20 evidence policy for a paused one-stage test. */
     d20RollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    /**
+     * Whose d20 it is, present whenever `d20RollMode` is: the source rolls an attack, the target a
+     * saving throw. The roll goes to that actor's controllers (ADR 0034 decision 3).
+     */
+    d20Roller?: 'SOURCE' | 'TARGET'
     d20Audit?: {
       contributors: readonly {
         sourceId: string

@@ -1,4 +1,3 @@
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type {
@@ -47,6 +46,8 @@ import {
   stopSceneMovementResult,
   type MovementContinuationInput
 } from './encounterMovementContinuation.js'
+import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type ReactionContext = Extract<
@@ -116,12 +117,12 @@ export async function evaluateEncounterMovementActionResponse<
     state: EncounterRunState
     snapshot: ServerRuleExecutionPendingSnapshotDto
     context: ServerRuleExecutionPendingApplicationContextDto
-    resolution: ResolveRuleOccurrenceInputDto['resolution']
+    resolution: EncounterResponseAnswer
     occurrenceId: string
     occurrenceVersion: number
     userId: string
     /** The roller's auto-roll preference; the responding user rolls in this slice. */
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     responseCommand: ReactionContext['root']['resolutionCommands'][number]
     occurredAt: string
     runtime: RulesRuntimeService
@@ -164,11 +165,11 @@ export async function evaluateEncounterMovementActionResponse<
       runtime: RulesRuntimeService
       occurrenceId: string
       prepared: TPrepared
-      autoRoll: boolean
+      autoRoll: EncounterAutoRollByActorId
       resume?: {
         pending: Extract<ReactionExecution, { kind: 'PENDING' }>
         resolution: Extract<
-          ResolveRuleOccurrenceInputDto['resolution'],
+          EncounterResponseAnswer,
           { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
         >
       }
@@ -177,16 +178,14 @@ export async function evaluateEncounterMovementActionResponse<
       runtime: RulesRuntimeService
       occurrenceId: string
       prepared: TPrepared
-      autoRoll: boolean
+      autoRoll: EncounterAutoRollByActorId
       snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-      selection: Extract<
-        ResolveRuleOccurrenceInputDto['resolution'],
-        { kind: 'OPTION' | 'DECLINE' }
-      >
+      selection: Extract<EncounterResponseAnswer, { kind: 'OPTION' | 'DECLINE' }>
       retainedExecution?: ReactionExecution
     }): Promise<Exclude<ReactionExecution, { kind: 'LEGENDARY_RESISTANCE' }>>
     planReaction(input: ReactionSettlement<TPrepared>, userId: string): TPlan
     prepareConcentration(input: {
+      autoRoll: EncounterAutoRollByActorId
       state: EncounterRunState
       occurrenceId: string
       sourceCommandId: string
@@ -199,10 +198,7 @@ export async function evaluateEncounterMovementActionResponse<
       retainedChecks?: readonly MovementConcentrationExecutionDto[]
       resume?: {
         snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-        resolution: Extract<
-          ResolveRuleOccurrenceInputDto['resolution'],
-          { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
-        >
+        resolution: Extract<EncounterResponseAnswer, { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }>
       }
     }): Promise<{
       remainder: FrozenMovementReactionRemainder
@@ -362,9 +358,7 @@ export async function evaluateEncounterMovementActionResponse<
 
   if (selectedOptionId !== null) {
     const entry = context.reactionTimeline[0]
-    const option = (
-      entry?.kind === 'AUTOMATIC_ACTION' ? [entry.option] : (entry?.group.options ?? [])
-    ).find((value) => value.optionId === selectedOptionId)
+    const option = entry?.group.options.find((value) => value.optionId === selectedOptionId)
     if (!option) throw new Error('The selected movement reaction was not issued.')
     const prepared = await callbacks.prepareReaction({
       encounterId: input.state.id,
@@ -479,6 +473,10 @@ export async function evaluateEncounterMovementActionResponse<
           continuation: execution.continuation,
           context: actionContext,
           selectedOptionId,
+          rollerActorId:
+            execution.roller === 'SOURCE'
+              ? option.candidate.reactorActorId
+              : option.candidate.movingActorId,
           d20Policy: execution.d20Policy,
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
@@ -543,6 +541,7 @@ export async function evaluateEncounterMovementActionResponse<
         ).find((entry) => entry.ordinal === concentrationSource.executionOrdinal)
       : undefined
     const concentration = await callbacks.prepareConcentration({
+      autoRoll: input.autoRoll,
       state: input.state,
       occurrenceId: input.occurrenceId,
       sourceCommandId: responseCommand.commandId,

@@ -271,6 +271,7 @@ function planWith(
     d20: {
       requestId: ids.command,
       rollMode: 'NORMAL',
+      derivedRollMode: 'NORMAL',
       rawFaces: [10],
       selectedNatural: 10,
       contributors: [],

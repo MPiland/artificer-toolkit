@@ -6,6 +6,7 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopGmEncounter } from '../vtt/CampaignTabletop.stories.fixtures'
 
@@ -34,7 +35,8 @@ const result: EncounterCommandResultDto = {
   projection: tabletopGmEncounter,
   roll: null,
   resolution: null,
-  occurrence: null
+  occurrence: null,
+  evidenceRoll: null
 }
 
 const mocks = vi.hoisted(() => ({
@@ -62,8 +64,12 @@ describe('CampaignEncounterDecision', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     currentPending = pending
-    mocks.convexQuery.mockReturnValue({ queryKey: ['pending-rule-occurrence'] })
-    mocks.useQuery.mockImplementation(() => ({ data: currentPending }))
+    mocks.convexQuery.mockImplementation((reference: FunctionReference<'query'>) => ({
+      queryKey: [getFunctionName(reference)]
+    }))
+    mocks.useQuery.mockImplementation((options: { queryKey: string[] }) => ({
+      data: options.queryKey[0] === 'encounters/evidenceRolls:latest' ? null : currentPending
+    }))
     mocks.useMutation.mockImplementation((options) => ({
       isPending: false,
       mutateAsync: async (command: ResolveRuleOccurrenceInputDto) => {

@@ -133,7 +133,7 @@ export const djinni: CreatureAuthored = {
           id: S.actionId(82, 311),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(82, 1302), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },

@@ -89,7 +89,10 @@ export interface TurnCoordinatorRootDto {
   rootCommandId: string
   commandFingerprint: string
   commandType: 'START' | 'ADVANCE_TURN'
+  /** Who answers the turn's decisions: always the Campaign owner. */
   initiatorUserId: string
+  /** Who issued START or ADVANCE_TURN: the GM or a player ending their actor's turn. */
+  requestedByUserId: string
   correlationId: string | null
   expectedEncounterVersion: number
   startSystemId: string | null
@@ -125,6 +128,7 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
   commandFingerprint: checksumSchema,
   commandType: z.enum(['START', 'ADVANCE_TURN']),
   initiatorUserId: uuidSchema,
+  requestedByUserId: uuidSchema,
   correlationId: z.nullable(uuidSchema),
   expectedEncounterVersion: integerSchema.check(z.gte(0)),
   /** Exact original START payload identity; never rules authority. */

@@ -488,15 +488,30 @@ export async function setupCreatureReactionRun(
         )
         .unique()
       if (!row) throw new Error('Missing native movement reaction actor.')
+      // Reactions follow hostility, which dispositions decide: FRIENDLY reactors, HOSTILE mover.
       const state = encounterRunActorStateSchema.parse({
         ...JSON.parse(row.stateJson),
-        sideId: party.id
+        sideId: party.id,
+        disposition: 'FRIENDLY'
       })
       await ctx.db.patch(row._id, {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
       })
     }
+    const reactorIds = new Set(
+      [reactor, additionalReactorActor].flatMap((actor) => (actor ? [actor.id] : []))
+    )
+    const friendly = encounterGmProjectionDtoSchema.parse({
+      ...projection,
+      actors: projection.actors.map((actor) =>
+        reactorIds.has(actor.id) ? { ...actor, disposition: 'FRIENDLY' } : actor
+      )
+    })
+    await ctx.db.patch(runRow._id, {
+      projectionJson: JSON.stringify(friendly),
+      projectionChecksum: checksumCanonicalJson(friendly)
+    })
   })
   return {
     ...base,

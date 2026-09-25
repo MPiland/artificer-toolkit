@@ -491,12 +491,13 @@ export async function verifyEncounterEffects({
         resolution: {
           kind: 'ENTER_DICE',
           requestId: pending.request.requestId,
-          rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+          rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+          rollMode: pending.request.rollMode
         }
       }
       await assert.rejects(
         () => player.mutation(executeEncounterCommand, { command: response }),
-        /owner|permission|authorized|not found/i
+        /NOT_ACTOR_CONTROLLER/
       )
       const browserResponse = await controls?.resolveEvidence(response)
       if (browserResponse) {

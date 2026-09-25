@@ -3,6 +3,7 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto,
+  RollRuleEvidenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -11,13 +12,21 @@ import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
 const resolveDecision = fn()
+const appRollId = '77777777-7777-4777-8777-777777777795'
 
 const d20Pending = {
   kind: 'D20_EVIDENCE',
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
-  request: { requestId: 'attack-roll', min: 1, max: 20, rollMode: 'ADVANTAGE' },
+  rollerActorId: tabletopGmEncounter.actors[1]!.id,
+  request: {
+    requestId: 'attack-roll',
+    min: 1,
+    max: 20,
+    rollMode: 'ADVANTAGE',
+    derivedRollModeReasons: ['Flanking']
+  },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
@@ -68,6 +77,7 @@ const actionOutcomePending = {
   occurrenceId,
   occurrenceVersion: 2,
   encounterVersion: tabletopGmEncounter.version,
+  rollerActorId: null,
   request: { requestId: 'action-outcome', min: 0, max: 10 },
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
@@ -100,9 +110,27 @@ const declarationPending = {
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
 async function resolveDecisionCommand(
-  command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto
+  command: ResolveRuleOccurrenceInputDto | RollRuleEvidenceInputDto | VoidRuleOccurrenceInputDto
 ): Promise<EncounterCommandResultDto> {
   resolveDecision(command)
+  if (command.type === 'ROLL_RULE_EVIDENCE')
+    return {
+      projection: tabletopGmEncounter,
+      roll: null,
+      resolution: null,
+      occurrence: null,
+      evidenceRoll: {
+        rollId: appRollId,
+        occurrenceId: command.occurrenceId,
+        occurrenceVersion: command.expectedOccurrenceVersion,
+        requestId: command.requestId,
+        attempt: 1,
+        faces: [14],
+        value: 14,
+        rollMode: command.rollMode,
+        derivedRollMode: command.rollMode
+      }
+    }
   return {
     projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
     roll: null,
@@ -113,7 +141,8 @@ async function resolveDecisionCommand(
       status: 'COMPLETE',
       outcome: null,
       pending: null
-    }
+    },
+    evidenceRoll: null
   }
 }
 
@@ -123,6 +152,7 @@ const meta = {
     canVoid: true,
     connected: true,
     encounter: tabletopGmEncounter,
+    latestRoll: null,
     pending: d20Pending,
     submitting: false,
     onResolve: resolveDecisionCommand
@@ -141,7 +171,7 @@ export const PhysicalD20: Story = {
     const drawer = await openDecision(page)
     await userEvent.type(drawer.getByLabelText('Die 1'), '18')
     await userEvent.type(drawer.getByLabelText('Die 2'), '7')
-    await userEvent.click(drawer.getByRole('button', { name: 'Submit physical roll' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Submit roll' }))
 
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(await drawer.findByText('Decision resolved.')).toBeVisible()
@@ -150,7 +180,12 @@ export const PhysicalD20: Story = {
         type: 'RESOLVE_RULE_OCCURRENCE',
         occurrenceId,
         expectedOccurrenceVersion: 2,
-        resolution: { kind: 'ENTER_DICE', requestId: 'attack-roll', rawFaces: [18, 7] }
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [18, 7],
+          rollMode: 'ADVANTAGE'
+        }
       })
     )
   }
@@ -188,17 +223,27 @@ export const PassageChoice: Story = {
   }
 }
 
-export const InitiativeSystemRoll: Story = {
+export const InitiativeAppRoll: Story = {
   args: { pending: initiativePending },
   play: async ({ canvasElement }) => {
     resolveDecision.mockClear()
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
-    await userEvent.click(drawer.getByRole('button', { name: 'Roll in VTT' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Roll dice' }))
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({
-        resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll' }
+        type: 'ROLL_RULE_EVIDENCE',
+        requestId: 'initiative-roll',
+        rollMode: null
+      })
+    )
+    await expect(await drawer.findByText('Rolled by the app · attempt 1')).toBeVisible()
+    await userEvent.click(drawer.getByRole('button', { name: 'Submit roll' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(2))
+    await expect(resolveDecision).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll', rollId: appRollId }
       })
     )
   }
@@ -211,7 +256,7 @@ export const ActionOutcome: Story = {
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
     await userEvent.type(drawer.getByLabelText('Result'), '7')
-    await userEvent.click(drawer.getByRole('button', { name: 'Submit result' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Submit roll' }))
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -252,7 +297,7 @@ export const Reconnecting: Story = {
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
     await expect(drawer.getByText(/controls will return when live play reconnects/i)).toBeVisible()
-    await expect(drawer.getByRole('button', { name: 'Roll in VTT' })).toBeDisabled()
+    await expect(drawer.getByRole('button', { name: 'Roll dice' })).toBeDisabled()
   }
 }
 
@@ -273,7 +318,7 @@ export const KeyboardConflict: Story = {
     await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe('1'))
     await waitFor(() => expect(dialog.getAnimations()).toHaveLength(0))
     const drawer = within(dialog)
-    await userEvent.click(drawer.getByRole('button', { name: 'Roll in VTT' }))
+    await userEvent.click(drawer.getByRole('button', { name: 'Roll dice' }))
     await expect(
       await drawer.findByText('This decision changed before it could be resolved.')
     ).toBeVisible()

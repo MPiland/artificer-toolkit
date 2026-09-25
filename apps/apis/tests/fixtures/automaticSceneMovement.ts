@@ -1,7 +1,20 @@
 import { makeFunctionReference } from 'convex/server'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
-import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterGmProjectionDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type {
+  SceneGeometryBeginResult,
+  SceneGeometryCommandResult
+} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
+import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type {
+  SceneSessionVisionCaptureInput,
+  SceneSessionVisionScope
+} from '@artificer-toolkit/schema/api/sceneSessionVision'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -267,4 +280,116 @@ export async function setupReactionMovementScene<
       actorIdByTokenId: new Map(tokens.map((token, index) => [token.id, actors[index]!.id]))
     }
   }
+}
+
+type SceneMovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+const prepareMovement = makeFunctionReference<
+  'mutation',
+  SceneMovementRequest,
+  SceneSpatialPreparation
+>('scenes/spatialPreparation:prepare')
+const finishMovement = makeFunctionReference<
+  'mutation',
+  SceneMovementRequest,
+  SceneGeometryCommandResult
+>('scenes/geometryCommands:finish')
+const observeMovement = makeFunctionReference<
+  'mutation',
+  { saveId: string; characterRevisions: [] },
+  { saveId: string }
+>('scenes/geometryStaging:observe')
+const beginMovementResponse = makeFunctionReference<
+  'mutation',
+  ResolveRuleOccurrenceInputDto,
+  SceneGeometryBeginResult | null
+>('scenes/movementResolutionStaging:begin')
+
+/**
+ * Assisted play offers every authored reaction, "automatic" ones included, to its controller as a
+ * Use/Decline choice. Drives the movement from `request` (default: the root movement) through each
+ * reaction choice, answering Use with the first option as the GM (the fixture reactors are
+ * Creatures). Stops after `maxUses` Uses or at the first preparation that is not a reaction choice,
+ * and returns that request and preparation; `prepare` is idempotent per save, so callers may prepare
+ * that request again.
+ */
+export async function useMovementReactions(
+  value: Pick<
+    Awaited<ReturnType<typeof setupReactionMovementScene>>,
+    'base' | 'owner' | 'request' | 'geometry' | 'moverTokenId'
+  >,
+  request: SceneMovementRequest = value.request,
+  maxUses = 10
+): Promise<{
+  request: SceneMovementRequest
+  prepared: SceneSpatialPreparation
+  /** The last Use response command, which sources the continued movement's mechanics. */
+  responseCommandId: string | null
+  /** The Scene geometry with the mover where the published choices left it. */
+  geometry: typeof value.geometry
+}> {
+  const { owner } = value
+  let current = request
+  let geometry = value.geometry
+  let responseCommandId: string | null = null
+  for (let uses = 0; ; uses++) {
+    await owner.caller.mutation(observeMovement, { saveId: current.saveId, characterRevisions: [] })
+    const prepared = await owner.caller.mutation(prepareMovement, current)
+    const context =
+      prepared.outcome.kind === 'PENDING'
+        ? prepared.outcome.pendingSnapshot.applicationContext
+        : null
+    if (
+      uses === maxUses ||
+      context?.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
+      context.phase.kind !== 'CHOICE'
+    )
+      return { request: current, prepared, responseCommandId, geometry }
+    const published = await owner.caller.mutation(finishMovement, current)
+    const delta = published.delta
+    if (delta?.kind === 'TOKEN_MOVED' && delta.tokenId === value.moverTokenId)
+      geometry = {
+        ...geometry,
+        sceneTokens: geometry.sceneTokens.map((token) =>
+          token.id === value.moverTokenId ? { ...token, position: delta.position } : token
+        )
+      }
+    const pending = published.occurrence?.pending
+    if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
+      throw new Error('Expected the Assisted Use/Decline reaction choice.')
+    responseCommandId = crypto.randomUUID()
+    const used = await owner.caller.mutation(beginMovementResponse, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: responseCommandId,
+      encounterId: value.base.run.id,
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
+    })
+    if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
+    current = { ...request, saveId: used.saveId }
+  }
+}
+
+const captureSessionVision = makeFunctionReference<
+  'query',
+  SceneSessionVisionCaptureInput,
+  SceneSessionVisionScope
+>('scenes/sessionVision:capture')
+
+/** Recaptures the root save's session vision after a test changed its Scene vision inputs. */
+export async function refreshMovementSaveVision(
+  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'saveId'>
+) {
+  const save = await value.base.t.run((ctx) =>
+    ctx.db
+      .query('sceneGeometrySaves')
+      .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
+      .unique()
+  )
+  if (!save?.sessionVision) throw new Error('Movement vision snapshot is unavailable.')
+  const { freshness: _freshness, ...input } = save.sessionVision
+  const vision = await value.owner.caller.query(captureSessionVision, input)
+  await value.base.t.run((ctx) => ctx.db.patch(save._id, { sessionVision: vision }))
 }

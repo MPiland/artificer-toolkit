@@ -4,6 +4,8 @@ import {
   sceneStoredDefinitionSaveSchema,
   sceneStoredInitialStateSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
 import { readRunProjection, readRunState } from '../../convex/encounters/documents'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
@@ -131,4 +133,44 @@ export async function createSpatialPreparationFixture() {
     )
   })
   return { base, input, saveId, tokenId }
+}
+
+/**
+ * The GM's UPDATE_ACTOR `controllerUserIds` grant, written in place so the fixture's sealed
+ * Encounter version stays current. Encounter-bound tokens move for their actor's controllers.
+ */
+export async function grantFixtureActorControl(
+  ctx: MutationCtx,
+  input: { encounterId: string; actorId: string; controllerUserIds: string[] }
+) {
+  const actorRow = await ctx.db
+    .query('encounterRunActors')
+    .withIndex('by_encounterId_id', (q) =>
+      q.eq('encounterId', input.encounterId).eq('id', input.actorId)
+    )
+    .unique()
+  const runRow = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!actorRow || !runRow) throw new Error('Fixture Run actor missing')
+  const actor = encounterRunActorStateSchema.parse({
+    ...JSON.parse(actorRow.stateJson),
+    controllerUserIds: input.controllerUserIds
+  })
+  await ctx.db.patch(actorRow._id, {
+    stateJson: JSON.stringify(actor),
+    stateChecksum: checksumCanonicalJson(actor)
+  })
+  const projection = readRunProjection(runRow)
+  const granted = {
+    ...projection,
+    actors: projection.actors.map((entry) =>
+      entry.id === input.actorId ? { ...entry, controllerUserIds: input.controllerUserIds } : entry
+    )
+  }
+  await ctx.db.patch(runRow._id, {
+    projectionJson: JSON.stringify(granted),
+    projectionChecksum: checksumCanonicalJson(granted)
+  })
 }

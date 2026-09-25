@@ -141,7 +141,7 @@ it('rejects a retained USE preparation forged over an actual DECLINE response wi
     })
     const evaluated = await evaluateSceneMovementActionResponse(ctx, {
       request,
-      current: { ...current, command: alternate },
+      current: { ...current, command: alternate, answer: alternate.resolution },
       responseCommand,
       occurredAt: originalPreparation.occurredAt
     })

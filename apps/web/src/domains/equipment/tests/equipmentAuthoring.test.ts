@@ -68,6 +68,7 @@ describe('equipment authoring helpers', () => {
       requiresAttunement: true
     })
     expect(normalized).not.toHaveProperty('userId')
+    expect(normalized).not.toHaveProperty('maxBonus')
   })
 
   it('normalizes a variant with its selected parent', () => {
@@ -82,6 +83,8 @@ describe('equipment authoring helpers', () => {
       properties: []
     })
     expect(normalized).not.toHaveProperty('weight')
+    // Magic bonuses are authored +N modifiers; the retired maximum-bonus field is never submitted.
+    expect(normalized).not.toHaveProperty('maxBonus')
   })
 
   it('uses only real system list data when creating equipment', () => {

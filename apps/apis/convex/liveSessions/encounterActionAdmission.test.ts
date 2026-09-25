@@ -60,6 +60,7 @@ import {
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
+import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -646,7 +647,8 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
           ? {
               kind: 'ENTER_DICE',
               requestId: pending.request.requestId,
-              rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20]
+              rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+              rollMode: pending.request.rollMode
             }
           : {
               kind: 'ENTER_INTEGER',
@@ -797,7 +799,11 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
         base.scope,
         {
           ...response,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: 'altered-request' }
+          resolution: {
+            kind: 'SYSTEM_ROLL',
+            requestId: 'altered-request',
+            rollId: crypto.randomUUID()
+          }
         },
         options
       )
@@ -1022,3 +1028,41 @@ it('returns an expected rejection as structured data and keeps other failures re
     message: 'Encounter version is stale.'
   })
 })
+it('admits a controlling player action capture and refuses a player who does not control the actor', async () => {
+  const base = await playerControlFixture()
+  const authorityEpoch = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: authorityEpoch,
+      createdAt: base.campaign.createdAt
+    })
+  )
+  vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
+  const post = (command: ResolveEncounterActionInputDto) =>
+    base.other.caller.fetch(path, {
+      method: 'POST',
+      headers: { 'x-artificer-live-session-secret': secret },
+      body: JSON.stringify({
+        campaignId: base.campaign.id,
+        authorityEpoch,
+        expectedUserId: base.other.userId,
+        expectedRole: 'PLAYER',
+        encounterId: base.run.id,
+        expectedVersion: command.expectedVersion,
+        action: { kind: 'ACTION_COMMAND', command },
+        request: { kind: 'ACTION_COMMAND', command }
+      })
+    })
+  const refused = await post(await base.bite(base.companion.id, base.enemy.id))
+  expect(refused.status).toBe(422)
+  expect(await refused.json()).toMatchObject({
+    code: 'DOMAIN_REJECTED',
+    reason: 'NOT_ACTOR_CONTROLLER'
+  })
+  await setActorControllers(base, base.companion.id, [base.other.userId])
+  const command = await base.bite(base.companion.id, base.enemy.id)
+  const admitted = await post(command)
+  expect(admitted.status).toBe(200)
+  expect(await admitted.json()).toMatchObject({ kind: 'ACTION_COMMAND', command })
+}, 30000)

@@ -447,13 +447,11 @@ describe('native Character action sources', () => {
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
         correlationId: null,
-        resolution: self
-          ? {
-              kind: 'ENTER_INTEGER',
-              requestId: pending.request.requestId,
-              value: pending.request.max
-            }
-          : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+        resolution: {
+          kind: 'ENTER_INTEGER',
+          requestId: pending.request.requestId,
+          value: self ? pending.request.max : pending.request.min
+        }
       }
       await expect(
         fixture.owner.caller.run(async (ctx) => {
@@ -839,8 +837,9 @@ describe('native Character action sources', () => {
       expectedOccurrenceVersion: firstPending.occurrenceVersion,
       correlationId: null,
       resolution: {
-        kind: 'SYSTEM_ROLL',
-        requestId: firstPending.request.requestId
+        kind: 'ENTER_INTEGER',
+        requestId: firstPending.request.requestId,
+        value: firstPending.request.min
       }
     }
     const firstSettled = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
@@ -945,8 +944,9 @@ describe('native Character action sources', () => {
       expectedOccurrenceVersion: replacementPending.occurrenceVersion,
       correlationId: null,
       resolution: {
-        kind: 'SYSTEM_ROLL',
-        requestId: replacementPending.request.requestId
+        kind: 'ENTER_INTEGER',
+        requestId: replacementPending.request.requestId,
+        value: replacementPending.request.min
       }
     }
 

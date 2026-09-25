@@ -620,6 +620,30 @@ export const druid: ClassAuthored = {
         skillId('SURVIVAL')
       ],
       order: 4
+    },
+    // Weapons: clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears
+    {
+      id: classRowId(D, 2, 6),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [1, 2, 12, 5, 7, 8, 27, 9, 14, 10].map(equipmentId),
+      order: 5
+    },
+    // Tools: herbalism kit
+    {
+      id: classRowId(D, 2, 7),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [equipmentId(82)],
+      order: 6
     }
   ],
 

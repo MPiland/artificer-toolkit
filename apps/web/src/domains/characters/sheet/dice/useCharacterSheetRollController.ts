@@ -163,7 +163,7 @@ export function useCharacterSheetRollController(
         void (async () => {
           try {
             if (preferences.animate3d && !reducedMotion) {
-              void import('./diceModelPreload')
+              void import('#app/components/dice/diceModelPreload')
                 .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
                 .catch(() => undefined)
             }

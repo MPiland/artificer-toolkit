@@ -204,6 +204,8 @@ function normalizeItemContext(
           requiredProperties:
             condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : []
         }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
+        return baseCondition(condition, 'ITEM_SOLE_WEAPON')
       return baseCondition(condition, 'UNSUPPORTED')
     })
   ]

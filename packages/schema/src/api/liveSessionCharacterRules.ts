@@ -1,4 +1,8 @@
 import { z } from '../zod.js'
+import {
+  liveSessionActionCaptureScopeSchema,
+  liveSessionTurnCaptureScopeSchema
+} from './liveSessionCommandScopes.js'
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterSheetStateSchema } from '../projections/characterSheetState.js'
 import { characterStoredRowSchema } from '../projections/characterPersistence.js'
@@ -40,7 +44,8 @@ export const liveSessionCharacterRulesRequestSchema = z.discriminatedUnion('kind
 export const liveSessionCharacterRulesInputSchema = z.extend(liveSessionBootstrapInputSchema, {
   expectedRole: z.enum(['OWNER', 'PLAYER']),
   concentrationResponse: z.optional(resolveRuleOccurrenceInputDtoSchema),
-  turnResponse: z.optional(resolveRuleOccurrenceInputDtoSchema),
+  turnCommand: z.optional(liveSessionTurnCaptureScopeSchema),
+  action: z.optional(liveSessionActionCaptureScopeSchema),
   movement: z.optional(
     z.extend(liveSessionMovementCaptureScopeSchema, { actorId: postgresUuidSchema })
   ),

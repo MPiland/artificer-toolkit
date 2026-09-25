@@ -344,8 +344,6 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
       .unique()
     if (!runRow || !reactorRow) throw new Error('Missing V15 movement rows.')
     const state = encounterRunStateSchema.parse(JSON.parse(runRow.stateJson))
-    const party = state.sides.find((side) => side.label === 'Party')
-    if (!party) throw new Error('Missing V15 Party side.')
     const active = encounterRunStateSchema.parse({
       ...state,
       status: 'ACTIVE',
@@ -357,9 +355,10 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
       ...JSON.parse(runRow.projectionJson),
       status: 'ACTIVE'
     })
+    // Disposition, not side, makes the reactor hostile to the moving Creature (D17).
     const reactorState = encounterRunActorStateSchema.parse({
       ...JSON.parse(reactorRow.stateJson),
-      sideId: party.id
+      disposition: 'FRIENDLY'
     })
     await ctx.db.patch(runRow._id, {
       status: 'ACTIVE',

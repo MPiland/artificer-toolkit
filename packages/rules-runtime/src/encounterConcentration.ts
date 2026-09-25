@@ -1,4 +1,3 @@
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
@@ -10,7 +9,10 @@ import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-t
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { selectEncounterActionD20Natural } from './encounterMovementReactionActionExecution.js'
+import {
+  resolveEncounterD20Answer,
+  type EncounterEvidenceAnswer
+} from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -189,10 +191,7 @@ export async function evaluateNativeConcentrationEvidence(input: {
   random: (maximum: number) => number
   context: NativeConcentrationContext
   continuation: ServerRuleExecutionContinuationDto
-  resolution: Extract<
-    ResolveRuleOccurrenceInputDto['resolution'],
-    { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
-  >
+  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
   expectedOccurrenceId: string
 }) {
   const { context, continuation, resolution } = input
@@ -204,17 +203,15 @@ export async function evaluateNativeConcentrationEvidence(input: {
     continuation.occurrenceId !== input.expectedOccurrenceId
   )
     throw new Error('The concentration evidence request is unavailable.')
-  const count = context.save.rollMode === 'NORMAL' ? 1 : 2
-  const rawFaces =
-    resolution.kind === 'ENTER_DICE'
-      ? [...resolution.rawFaces]
-      : Array.from({ length: count }, () => input.random(20) + 1)
-  if (
-    rawFaces.length !== count ||
-    rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
-  )
-    throw new Error('The concentration dice do not match the frozen roll mode.')
-  const selectedNatural = selectEncounterActionD20Natural(context.save.rollMode, rawFaces)
+  const {
+    faces: rawFaces,
+    rollMode,
+    natural: selectedNatural
+  } = resolveEncounterD20Answer({
+    derivedRollMode: context.save.rollMode,
+    answer: resolution,
+    rollD20: () => input.random(20) + 1
+  })
   const execution = await input.runtime.resume({
     continuation,
     response: { requestId: resolution.requestId, value: selectedNatural }
@@ -235,6 +232,7 @@ export async function evaluateNativeConcentrationEvidence(input: {
   return {
     execution,
     rawFaces,
+    rollMode,
     selectedNatural,
     failed: execution.outputs.resultPath === 'ON_SAVE_FAIL'
   }
@@ -247,13 +245,14 @@ export function completeNativeConcentrationResult(input: {
   continuation: ServerRuleExecutionContinuationDto
   execution: NativeConcentrationEvidence['execution']
   rawFaces: NativeConcentrationEvidence['rawFaces']
+  rollMode: NativeConcentrationEvidence['rollMode']
   selectedNatural: NativeConcentrationEvidence['selectedNatural']
   failed: NativeConcentrationEvidence['failed']
   cleanup: ReturnType<typeof concentrationCheckApplicationOutputDtoSchema.parse>['cleanup']
   occurrenceVersion: number
   initialFactsChecksum: string
 }) {
-  const { context, continuation, execution, rawFaces, selectedNatural, failed } = input
+  const { context, continuation, execution, rawFaces, rollMode, selectedNatural, failed } = input
   const nextApplication = context.remaining.find(
     (entry) => !failed || entry.maintainedStateId !== context.maintainedState.id
   )
@@ -270,7 +269,8 @@ export function completeNativeConcentrationResult(input: {
     outcome: failed ? 'SAVE_FAILURE' : 'SAVE_SUCCESS',
     d20: {
       requestId: continuation.request.requestId,
-      rollMode: context.save.rollMode,
+      rollMode,
+      derivedRollMode: context.save.rollMode,
       rawFaces,
       selectedNatural,
       modifier: context.save.modifier,

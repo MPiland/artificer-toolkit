@@ -25,6 +25,7 @@ import type {
   EncounterPlayerProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
@@ -44,6 +45,7 @@ export function CampaignTabletopActionDrawer({
   onClose,
   pending,
   scene,
+  waitingOn,
   onResolve,
   onLoadOptionalChoices
 }: {
@@ -59,6 +61,8 @@ export function CampaignTabletopActionDrawer({
   onClose: () => void
   pending: boolean
   scene: CampaignSceneStateDto
+  /** Who must answer a pending decision the viewer can't; derived by the server. */
+  waitingOn: EncounterSessionStateDto['waitingOn']
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
@@ -156,7 +160,12 @@ export function CampaignTabletopActionDrawer({
       : null
   const choiceRequestSequence = useRef(0)
   const selectionControlsDisabled =
-    !connected || pending || submitting || actionsLoading || actionChoicesError !== null
+    !connected ||
+    pending ||
+    submitting ||
+    waitingOn !== null ||
+    actionsLoading ||
+    actionChoicesError !== null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
   const wieldConflict = optionalRuleId === null ? (selectedAction?.wieldConflict ?? null) : null
   const confirmingStow =
@@ -345,6 +354,16 @@ export function CampaignTabletopActionDrawer({
           {!connected ? (
             <Alert color='yellow'>Actions will return when live play reconnects.</Alert>
           ) : null}
+          {waitingOn ? (
+            <Alert
+              aria-live='polite'
+              color='blue'
+              title={waitingOn === 'GM' ? 'Waiting on the GM' : 'Waiting on another player'}
+            >
+              {waitingOn === 'GM' ? 'The GM' : 'Another player'} is answering a decision. You can
+              act again once it settles.
+            </Alert>
+          ) : null}
           {actionChoicesError ? (
             <Alert aria-live='assertive' color='red'>
               {actionChoicesError}
@@ -361,6 +380,21 @@ export function CampaignTabletopActionDrawer({
                 }))}
                 disabled={selectionControlsDisabled}
                 label='Action'
+                renderOption={({ option }) => {
+                  const warnings = actionGroups.get(option.value)?.lead.warnings ?? []
+                  return warnings.length ? (
+                    <div>
+                      <Text c='dimmed' size='sm'>
+                        {option.label}
+                      </Text>
+                      <Text c='dimmed' size='xs'>
+                        {warnings.map((warning) => warning.message).join(' ')}
+                      </Text>
+                    </div>
+                  ) : (
+                    option.label
+                  )
+                }}
                 searchable
                 value={selectedAttackKey}
                 onChange={(key) =>
@@ -396,6 +430,13 @@ export function CampaignTabletopActionDrawer({
                     ? ''
                     : ` · ${selectedAction.attackBonus >= 0 ? '+' : ''}${selectedAction.attackBonus} to hit`}
                 </Text>
+              ) : null}
+              {selectedAction?.warnings.length ? (
+                <List c='dimmed' size='sm'>
+                  {selectedAction.warnings.map((warning) => (
+                    <List.Item key={warning.code}>{warning.message}</List.Item>
+                  ))}
+                </List>
               ) : null}
               {optionalRules.length ? (
                 <Select

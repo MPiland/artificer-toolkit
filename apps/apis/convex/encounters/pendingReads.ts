@@ -11,7 +11,7 @@ import {
   serverRuleExecutionPendingOccurrenceId,
   serverRuleExecutionPendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { projectNativeActionPending } from './actionPending'
+import { canAnswerNativeActionEvidence, projectNativeActionPending } from './actionPending'
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
@@ -24,10 +24,14 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending'
 import { projectNativeConcentrationPending } from './concentrationPending'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import {
+  readEncounterActorPrimaryController,
+  readEncounterControlledActorIds
+} from './actorController'
+import { withEncounterRollModeReasons } from './rollModeReasons'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readRunActors, readRunState, readValidatedRunProjection } from './documents'
+import { readRunActor, readRunActors, readRunState, readValidatedRunProjection } from './documents'
 const pendingRuleOccurrenceDefinition = {
   args: zodToConvexFields(getPendingEncounterRuleOccurrenceInputDtoSchema.shape),
   get returns(): Validator<PendingEncounterRuleOccurrenceSummaryDto | null, 'required', string> {
@@ -58,6 +62,41 @@ const pendingRuleOccurrenceDefinition = {
 
 export const pendingRuleOccurrence = query(pendingRuleOccurrenceDefinition)
 export const forPrepared = internalQuery(pendingRuleOccurrenceDefinition)
+
+/**
+ * Whom a member waits on when a decision is pending that they can't answer (it survives a reload):
+ * the player who controls the actor the decision belongs to, else the GM.
+ */
+export async function readEncounterWaitingOn(
+  ctx: QueryCtx,
+  row: Doc<'encounterRuns'>,
+  campaign: Doc<'campaigns'>
+): Promise<'GM' | 'PLAYER' | null> {
+  const ownerMembership = await ctx.db
+    .query('campaignMemberships')
+    .withIndex('by_campaignId_userId', (q) =>
+      q.eq('campaignId', campaign.id).eq('userId', campaign.ownerUserId)
+    )
+    .unique()
+  if (!ownerMembership) throw new Error('The Campaign owner membership is unavailable.')
+  const decision = await readPendingRunDecision(ctx, row, campaign, ownerMembership)
+  if (!decision) return null
+  const actorId =
+    decision.kind === 'D20_EVIDENCE' || decision.kind === 'ACTION_OUTCOME_EVIDENCE'
+      ? decision.rollerActorId
+      : decision.kind === 'INITIATIVE_DECLARATION'
+        ? decision.actorId
+        : decision.kind === 'MOVEMENT_REACTION'
+          ? decision.choice.reactorActorId
+          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE'
+            ? decision.sourceActorId
+            : null
+  if (!actorId) return 'GM'
+  const actor = await readRunActor(ctx, readRunState(row), actorId)
+  return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
+    ? 'GM'
+    : 'PLAYER'
+}
 
 export async function readPendingRunDecision(
   ctx: QueryCtx,
@@ -90,20 +129,19 @@ export async function readPendingRunDecision(
   const context = pendingSnapshot.applicationContext
   if (context.kind === 'ENCOUNTER_ACTION' && context.contest)
     return projectNativeDisarmPendingForMember(ctx, row, campaign, membership, occurrence)
+  const actors = await readRunActors(ctx, readRunState(row))
+  const controlledActorIds = await readEncounterControlledActorIds(ctx, {
+    campaign,
+    membership,
+    actors
+  })
   if (context.kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK') {
-    const assigned =
-      membership.role === 'PLAYER'
-        ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-        : null
-    const actor = (await readRunActors(ctx, readRunState(row))).find(
-      (entry) => entry.id === context.application.targetActorId
-    )
-    if (
-      actor?.kind !== 'CHARACTER' ||
-      (membership.role !== 'OWNER' && actor.sourceId !== assigned?.id)
-    )
-      return null
-    return projectNativeConcentrationPending(occurrence)
+    const actor = actors.find((entry) => entry.id === context.application.targetActorId)
+    return actor && controlledActorIds.has(actor.id)
+      ? withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+          projectNativeConcentrationPending(occurrence, reasons)
+        )
+      : null
   }
   if (
     context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
@@ -117,26 +155,22 @@ export async function readPendingRunDecision(
     )
       throw new Error('Stored Encounter turn root is invalid.')
     if (membership.role !== 'OWNER') return null
-    return projectNativeLegendaryPending({
-      snapshot: pendingSnapshot,
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: row.version
-    })
-  }
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING') {
-    const assigned = await readCampaignAssignedCharacter(ctx, campaign, membership)
-    const visibleActorIds = new Set(
-      readValidatedRunProjection(row, campaign)
-        .actors.filter((actor) => actor.public)
-        .map((actor) => actor.id)
+    return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+      projectNativeLegendaryPending({
+        snapshot: pendingSnapshot,
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: row.version,
+        reasons
+      })
     )
+  }
+  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING')
     return projectNativeCleavingPending(occurrence, {
       isOwner: membership.role === 'OWNER',
-      assignedCharacterId: assigned?.id ?? null,
-      visibleActorIds
+      controlledActorIds,
+      visibleActorIds: new Set(actors.filter((actor) => actor.public).map((actor) => actor.id))
     })
-  }
   if (
     context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
@@ -151,28 +185,22 @@ export async function readPendingRunDecision(
           : context.root
     if (!root || root.encounterId !== row.id || root.commandId !== occurrence.rootCommandId)
       throw new Error('Stored Encounter occurrence root is invalid.')
-    const assigned =
-      membership.role === 'PLAYER'
-        ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-        : null
-    return projectEncounterSpatialOccurrenceSummary(
-      {
-        id: occurrence.id,
-        version: occurrence.version,
-        state: occurrence.state,
-        pendingSnapshot
-      },
-      row.version,
-      {
-        membershipRole: membership.role,
-        assignedCharacterId: assigned?.id ?? null,
-        assignedActorId: assigned
-          ? ((await readRunActors(ctx, readRunState(row))).find(
-              (actor) => actor.kind === 'CHARACTER' && actor.sourceId === assigned.id
-            )?.id ?? null)
-          : null
-      }
-    ).pending
+    return withEncounterRollModeReasons(
+      ctx,
+      row.gameSystemId,
+      (reasons) =>
+        projectEncounterSpatialOccurrenceSummary(
+          {
+            id: occurrence.id,
+            version: occurrence.version,
+            state: occurrence.state,
+            pendingSnapshot
+          },
+          row.version,
+          { controlledActorIds },
+          reasons
+        ).pending
+    )
   }
   if (
     context.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' ||
@@ -191,35 +219,48 @@ export async function readPendingRunDecision(
     })
     if (pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Stored initiative declaration is invalid.')
-    if (membership.role === 'OWNER') return pending
-    const assigned = await readCampaignAssignedCharacter(ctx, campaign, membership)
-    const actor = (await readRunActors(ctx, readRunState(row))).find(
-      (candidate) => candidate.id === pending.actorId
-    )
-    return assigned && actor?.kind === 'CHARACTER' && actor.sourceId === assigned.id
-      ? pending
-      : null
+    return controlledActorIds.has(pending.actorId) ? pending : null
   }
-  // Action evidence and initiative scoring/order belong to the GM.
-  if (membership.role !== 'OWNER') return null
-  if (context.kind === 'ENCOUNTER_ACTION') return projectNativeActionPending(occurrence)
+  if (context.kind === 'ENCOUNTER_ACTION')
+    return (await canAnswerNativeActionEvidence(ctx, {
+      run: row,
+      campaign,
+      membership,
+      occurrence
+    }))
+      ? withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+          projectNativeActionPending(occurrence, reasons)
+        )
+      : null
   if (
     context.kind === 'ENCOUNTER_TURN_RECHARGE' ||
     context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
   ) {
+    // A turn-effect save goes to its actor's controllers; Recharge is the GM's.
+    if (
+      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
+        ? !controlledActorIds.has(context.currentCandidate.targetActorId)
+        : membership.role !== 'OWNER'
+    )
+      return null
     if (
       context.root.rootCommandId !== occurrence.rootCommandId ||
       context.root.expectedEncounterVersion !== row.version ||
       context.root.initiatorUserId !== campaign.ownerUserId
     )
       throw new Error('Stored Encounter turn root is invalid.')
-    return projectNativeTurnPending({
-      snapshot: pendingSnapshot,
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: row.version
-    })
+    return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
+      projectNativeTurnPending({
+        snapshot: pendingSnapshot,
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: row.version,
+        reasons
+      })
+    )
   }
+  // Initiative scoring and order belong to the GM.
+  if (membership.role !== 'OWNER') return null
   return projectEncounterInitiativePendingSummary({
     pendingSnapshot,
     occurrenceVersion: occurrence.version,

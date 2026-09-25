@@ -59,6 +59,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
@@ -960,7 +961,8 @@ describe('native encounter actions', () => {
             ? {
                 kind: 'ENTER_DICE',
                 requestId: pending.request.requestId,
-                rawFaces: pending.request.rollMode === 'NORMAL' ? [15] : [15, 15]
+                rawFaces: pending.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+                rollMode: pending.request.rollMode
               }
             : {
                 kind: 'ENTER_INTEGER',
@@ -988,16 +990,23 @@ describe('native encounter actions', () => {
           expect(await records(base.t, base.run.id)).toEqual(staged)
         }
       }
+      // A player who does not control the roller cannot answer its evidence.
+      expect(
+        await rejection(
+          base.other.caller.mutation(internal.encounters.commands.execute, {
+            command: response
+          })
+        )
+      ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
       await expect(
-        base.other.caller.mutation(internal.encounters.commands.execute, {
-          command: response
-        })
-      ).rejects.toThrow('Campaign not found')
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        base.owner.caller.mutation(executeEncounterCommand, {
           command: {
             ...response,
-            resolution: { kind: 'SYSTEM_ROLL', requestId: 'stale-request' }
+            resolution: {
+              kind: 'SYSTEM_ROLL',
+              requestId: 'stale-request',
+              rollId: crypto.randomUUID()
+            }
           }
         })
       ).rejects.toThrow()
@@ -1097,6 +1106,62 @@ describe('native encounter actions', () => {
       ).rejects.toThrow('Command ID was already used with different input.')
       expect(await records(base.t, run.id)).toEqual(beforeCollision)
     }
+  }, 30000)
+
+  it('lets a player resolve only an actor the GM granted them and binds its replay to that player', async () => {
+    const base = await setup()
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: base.campaign.id,
+        userId: base.other.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: base.campaign.createdAt,
+        joinedAt: base.campaign.createdAt,
+        leftAt: null
+      })
+    )
+    const before = await records(base.t, base.run.id)
+    const uncontrolled = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    expect(
+      await rejection(
+        base.other.caller.mutation(executeEncounterCommand, { command: uncontrolled })
+      )
+    ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
+    expect(await records(base.t, base.run.id)).toEqual(before)
+    const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 0,
+        actorId: base.actor.id,
+        controllerUserIds: [base.other.userId]
+      }
+    })
+    const input = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      expectedVersion: granted.projection.version
+    })
+    const result = await base.other.caller.mutation(executeEncounterCommand, { command: input })
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect(result.projection.version).toBe(granted.projection.version + 1)
+    const settled = await records(base.t, base.run.id)
+    await expect(
+      base.other.caller.mutation(executeEncounterCommand, { command: input })
+    ).resolves.toEqual(result)
+    expect(
+      await rejection(base.owner.caller.mutation(executeEncounterCommand, { command: input }))
+    ).toMatchObject({ reason: 'COMMAND_ID_REUSED' })
+    expect(await records(base.t, base.run.id)).toEqual(settled)
   }, 30000)
 
   it('settles an allowed Creature action once, replays it exactly, and rejects stale or unauthorized commands', async () => {
@@ -1390,7 +1455,7 @@ describe('native encounter actions', () => {
       throw new Error('Expected Assisted distance evidence.')
     await advanceSceneVersion(base.t, base.sceneId)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      base.owner.caller.mutation(executeEncounterCommand, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: base.run.id,
@@ -1401,7 +1466,12 @@ describe('native encounter actions', () => {
           expectedOccurrenceVersion: result.occurrence!.occurrenceVersion,
           resolution:
             pending.kind === 'D20_EVIDENCE'
-              ? { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [15] }
+              ? {
+                  kind: 'ENTER_DICE',
+                  requestId: pending.request.requestId,
+                  rawFaces: pending.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+                  rollMode: pending.request.rollMode
+                }
               : {
                   kind: 'ENTER_INTEGER',
                   requestId: pending.request.requestId,
@@ -1436,57 +1506,57 @@ describe('native encounter actions', () => {
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: input
     })
-    const random = vi.spyOn(rollRandom, 'nextRollInt').mockImplementation((maximum) => maximum - 1)
-    try {
-      for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
-        expect(step).toBeLessThan(4)
-        const pending = result.occurrence.pending
-        if (
-          !pending ||
-          (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
-        )
-          throw new Error('Unexpected Assisted distance decision.')
-        const retained = await records(base.t, base.run.id)
-        expect(retained.run).toEqual(before.run)
-        expect(retained.actors).toEqual(before.actors)
-        expect(retained.commands).toEqual(before.commands)
-        const response: ResolveRuleOccurrenceInputDto = {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          encounterId: base.run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: base.run.version,
-          correlationId: null,
-          occurrenceId: result.occurrence.occurrenceId,
-          expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
-          resolution:
-            pending.kind === 'D20_EVIDENCE'
-              ? {
-                  kind: 'ENTER_DICE',
-                  requestId: pending.request.requestId,
-                  rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20]
-                }
-              : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
-        }
-        if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
-          await expect(
-            base.owner.caller.run(async (ctx) => {
-              await ctx.runMutation(internal.encounters.commands.execute, { command: response })
-              throw new Error('abort contextual outcome')
-            })
-          ).rejects.toThrow('abort contextual outcome')
-          expect(await records(base.t, base.run.id)).toEqual(retained)
-        }
-        result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
-          command: response
-        })
-        const after = await records(base.t, base.run.id)
-        await expect(
-          base.owner.caller.mutation(internal.encounters.commands.execute, { command: response })
-        ).resolves.toEqual(result)
-        expect(await records(base.t, base.run.id)).toEqual(after)
+    for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
+      expect(step).toBeLessThan(4)
+      const pending = result.occurrence.pending
+      if (
+        !pending ||
+        (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+      )
+        throw new Error('Unexpected Assisted distance decision.')
+      const retained = await records(base.t, base.run.id)
+      expect(retained.run).toEqual(before.run)
+      expect(retained.actors).toEqual(before.actors)
+      expect(retained.commands).toEqual(before.commands)
+      const response: ResolveRuleOccurrenceInputDto = {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        correlationId: null,
+        occurrenceId: result.occurrence.occurrenceId,
+        expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
+        resolution:
+          pending.kind === 'D20_EVIDENCE'
+            ? {
+                kind: 'ENTER_DICE',
+                requestId: pending.request.requestId,
+                rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+                rollMode: pending.request.rollMode
+              }
+            : {
+                kind: 'ENTER_INTEGER',
+                requestId: pending.request.requestId,
+                value: pending.request.max
+              }
       }
-    } finally {
-      random.mockRestore()
+      if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
+        await expect(
+          base.owner.caller.run(async (ctx) => {
+            await ctx.runMutation(internal.encounters.commands.execute, { command: response })
+            throw new Error('abort contextual outcome')
+          })
+        ).rejects.toThrow('abort contextual outcome')
+        expect(await records(base.t, base.run.id)).toEqual(retained)
+      }
+      result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: response
+      })
+      const after = await records(base.t, base.run.id)
+      await expect(
+        base.owner.caller.mutation(internal.encounters.commands.execute, { command: response })
+      ).resolves.toEqual(result)
+      expect(await records(base.t, base.run.id)).toEqual(after)
     }
     expect(result.occurrence?.status).toBe('COMPLETE')
     const settled = await records(base.t, base.run.id)
@@ -1851,7 +1921,8 @@ describe('native encounter actions', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: request.request.requestId,
-          rawFaces: request.request.rollMode === 'NORMAL' ? [face] : [face, face]
+          rawFaces: request.request.rollMode === 'NORMAL' ? [face] : [face, face],
+          rollMode: request.request.rollMode
         }
       }
       const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
@@ -1897,7 +1968,7 @@ describe('native encounter actions', () => {
     const request = pending.occurrence?.pending
     if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
       throw new Error('Expected initial save evidence.')
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await base.owner.caller.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -1909,7 +1980,8 @@ describe('native encounter actions', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: request.request.requestId,
-          rawFaces: request.request.rollMode === 'NORMAL' ? [1] : [1, 1]
+          rawFaces: request.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+          rollMode: request.request.rollMode
         }
       }
     })

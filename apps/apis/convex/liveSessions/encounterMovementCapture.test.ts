@@ -18,7 +18,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { readNativeLiveMovementInputs } from '../../../session-worker/src/nativeEncounterMovementInputs'
-import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
+import {
+  createSpatialPreparationFixture,
+  grantFixtureActorControl
+} from '../../tests/fixtures/spatialPreparation'
 import { readRunProjection, readRunState } from '../encounters/documents'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
@@ -268,6 +271,12 @@ it('allows a controlling player to stage and capture movement, while rejecting a
       entity: { ...row.value.entity, controlledByUserIds: [base.owner.userId] }
     }
     await ctx.db.patch(row._id, { value, checksum: checksumCanonicalJson(value) })
+    // A bound token moves for its actor's controllers; grant the player the first actor.
+    await grantFixtureActorControl(ctx, {
+      encounterId: base.run.id,
+      actorId: base.actorIds[0]!,
+      controllerUserIds: [base.owner.userId]
+    })
   })
   const playerBegin: LiveSessionMovementBeginInput = {
     ...base.ownerBegin,
@@ -461,7 +470,11 @@ it('rejects unbound movement and mixed concentration or turn command scopes', as
     correlationId: null,
     occurrenceId: crypto.randomUUID(),
     expectedOccurrenceVersion: 0,
-    resolution: { kind: 'SYSTEM_ROLL' as const, requestId: 'movement-scope' }
+    resolution: {
+      kind: 'SYSTEM_ROLL' as const,
+      requestId: 'movement-scope',
+      rollId: crypto.randomUUID()
+    }
   }
   await expect(
     base.other.caller.query(capture, { ...base.ownerCapture, concentrationResponse })

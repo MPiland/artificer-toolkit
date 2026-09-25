@@ -90,6 +90,8 @@ export function CampaignSceneEditor({
   const previewUserId =
     draft.tokens.flatMap((token) => token.controlledByUserIds)[0] ?? currentUserId
   rendererUpdateRef.current = {
+    // Scene preparation has no Encounter, so no token is bound to an actor.
+    boundTokenControl: new Map(),
     currentUserId,
     mapDelivery: mapDelivery.data ?? null,
     mode: playerPreview ? 'PLAY' : 'EDIT',

@@ -80,12 +80,24 @@ async function storedCharacter(ctx: MutationCtx, characterId: string) {
   return { streamVersion: row.streamVersion, hitPoints: { current, temporary, maximum } }
 }
 
+/** A recorded app roll's answer as the server hands it to the rules. */
+function appRoll(requestId: string) {
+  return {
+    kind: 'SYSTEM_ROLL' as const,
+    requestId,
+    rollId: crypto.randomUUID(),
+    faces: [1],
+    rollMode: 'NORMAL' as const
+  }
+}
+
 function root(state: EncounterRunState, userId: string, actorId: string): TurnCoordinatorRootDto {
   return {
     rootCommandId: crypto.randomUUID(),
     commandFingerprint: checksumCanonicalJson('turn'),
     commandType: state.status === 'PREPARED' ? 'START' : 'ADVANCE_TURN',
     initiatorUserId: userId,
+    requestedByUserId: userId,
     correlationId: null,
     expectedEncounterVersion: state.version,
     startSystemId: null,
@@ -637,7 +649,8 @@ describe('native turn effect planning and terminal transactions', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: pending.snapshot.request.requestId,
-          rawFaces: [1]
+          rawFaces: [1],
+          rollMode: 'NORMAL'
         }
       })
       if (completed.kind !== 'COMPLETE' || !completed.plan)
@@ -768,7 +781,8 @@ describe('native turn effect planning and terminal transactions', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: first.snapshot.request.requestId,
-          rawFaces: [1]
+          rawFaces: [1],
+          rollMode: 'NORMAL'
         }
       })
       if (second.kind !== 'PENDING' || second.snapshot.snapshotKind !== 'KERNEL_EVIDENCE')
@@ -776,16 +790,17 @@ describe('native turn effect planning and terminal transactions', () => {
       expect(second.snapshot.applicationContext.kind).toBe('ENCOUNTER_TURN_ACTIVE_EFFECTS')
       if (second.snapshot.applicationContext.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS')
         expect(second.snapshot.applicationContext.completedExecutions).toHaveLength(2)
-      const roll = vi.spyOn(random, 'nextRollInt').mockReturnValue(0)
+      const roll = vi.spyOn(random, 'nextRollInt')
+      // An app roll settles with its recorded faces; the server never rolls again.
       const completed = await prepareNativeTurnEffects({
         ctx,
         ...base.input,
         pending: second.snapshot,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: second.snapshot.request.requestId }
+        resolution: appRoll(second.snapshot.request.requestId)
       })
       if (completed.kind !== 'COMPLETE' || !completed.plan)
         throw new Error('Expected completed saves.')
-      expect(roll).toHaveBeenCalledTimes(1)
+      expect(roll).not.toHaveBeenCalled()
       const restored = await prepareNativeTurnEffects({
         ctx,
         ...base.input,
@@ -799,7 +814,7 @@ describe('native turn effect planning and terminal transactions', () => {
         occurredAt,
         plan: completed.plan
       })
-      expect(roll).toHaveBeenCalledTimes(1)
+      expect(roll).not.toHaveBeenCalled()
     })
   }, 30000)
 
@@ -853,7 +868,7 @@ describe('native turn effect planning and terminal transactions', () => {
             ...base.input,
             ...(await current(ctx, base.run.id)),
             pending: prepared.snapshot,
-            resolution: { kind: 'SYSTEM_ROLL', requestId: prepared.snapshot.request.requestId }
+            resolution: appRoll(prepared.snapshot.request.requestId)
           })
         ).rejects.toThrow()
         expect(roll).not.toHaveBeenCalled()

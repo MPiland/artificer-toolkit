@@ -2,6 +2,8 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
+import { isDnd5eSpellAttackKind } from './attackKind.js'
+
 type DamageDefense = { kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'; damageTypeId: string }
 
 /** A defense such as "bludgeoning, piercing, and slashing from nonmagical attacks". */
@@ -57,7 +59,8 @@ export function dnd5eCharacterAttackTraits(input: {
       ? undefined
       : input.itemMechanics.find((entry) => entry.itemInstanceId === equipment.itemInstanceId)
   return {
-    magical: input.attackKind === 'SPELL' || (equipment?.properties ?? []).includes('MAGIC'),
+    magical:
+      isDnd5eSpellAttackKind(input.attackKind) || (equipment?.properties ?? []).includes('MAGIC'),
     silvered: item?.properties.silvered === true,
     adamantine: item?.properties.adamantine === true
   }

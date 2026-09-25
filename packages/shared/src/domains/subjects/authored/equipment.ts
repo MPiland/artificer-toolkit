@@ -60,7 +60,6 @@ export type BaseEquipmentAuthored = {
   modifiers?: ModifierGrantAuthored[]
   maxStack?: number
   rarityId: string
-  maxBonus?: number
   armorClass?: number
   contains?: ContainsAuthored[]
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
@@ -83,7 +82,6 @@ export type VariantEquipmentAuthored = {
   charges?: ChargeAuthored
   modifiers?: ModifierGrantAuthored[]
   rarityId: string
-  maxBonus?: number
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
   restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'CHARACTER'>>
   requiresAttunement?: boolean

@@ -42,6 +42,7 @@ import {
   createPlatformRulesRuntime,
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   automaticChargedBiteFeatureId,
@@ -51,6 +52,7 @@ import {
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, components, internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -541,6 +543,143 @@ describe('native Encounter turn Recharge', () => {
         expect.objectContaining({ [automaticChargedBiteFeatureId]: 0 })
       ])
     )
+  }, 30000)
+
+  it('lets a controller end their actor turn while the GM answers the entering Recharge', async () => {
+    const base = await setup('PROMPT', 2)
+    let result = await base.owner.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    while (
+      result.occurrence?.pending?.kind === 'INITIATIVE_EVIDENCE' ||
+      result.occurrence?.pending?.kind === 'INITIATIVE_ORDER'
+    ) {
+      const pending = result.occurrence.pending
+      result = await base.owner.caller.mutation(executeEncounterCommand, {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.run.version,
+          occurrenceId: result.occurrence.occurrenceId,
+          expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
+          correlationId: null,
+          resolution:
+            pending.kind === 'INITIATIVE_EVIDENCE'
+              ? { kind: 'ENTER_INTEGER', requestId: pending.request.requestId, value: 20 }
+              : {
+                  kind: 'INITIATIVE_ENTITY',
+                  requestId: pending.requestId,
+                  entityId: pending.optionIds[0]!
+                }
+        }
+      })
+    }
+    if (!result.occurrence?.pending || result.occurrence.pending.kind !== 'RECHARGE_EVIDENCE')
+      throw new Error('Expected Recharge evidence for the first Creature.')
+    const started = await base.owner.caller.action(
+      internal.encounters.commandActions.execute,
+      rechargeResolution({ encounterId: base.run.id, pending: result.occurrence.pending, value: 5 })
+    )
+    const currentActorId = started.projection.currentActorId
+    if (started.projection.status !== 'ACTIVE' || !currentActorId)
+      throw new Error('Expected an active Run with a current Creature.')
+    const advanceBy = (expectedVersion: number): EncounterExecuteInput => ({
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion
+      }
+    })
+    const beforeRefusal = await stored(base.t, base.run.id)
+    await expect(
+      base.other.caller.mutation(executeEncounterCommand, advanceBy(started.projection.version))
+    ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
+    expect(await stored(base.t, base.run.id)).toEqual(beforeRefusal)
+    const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version,
+        actorId: currentActorId,
+        controllerUserIds: [base.other.userId]
+      }
+    })
+    const advance = advanceBy(granted.projection.version)
+    const paused = await base.other.caller.mutation(executeEncounterCommand, advance)
+    // The player sees the pause but not the GM's Recharge decision or GM-only actor data.
+    expect(paused.occurrence).toMatchObject({ status: 'PENDING', pending: null })
+    expect(JSON.stringify(paused.projection)).not.toContain('healthBand')
+    expect(
+      await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: base.run.id
+      })
+    ).toBeNull()
+    const pending = await base.owner.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    if (!pending || pending.kind !== 'RECHARGE_EVIDENCE')
+      throw new Error('Expected the GM to answer the entering Recharge.')
+    const pausedRoot = (await stored(base.t, base.run.id)).occurrences.find(
+      (row) => row.state === 'PENDING'
+    )
+    expect(JSON.parse(pausedRoot?.pendingSnapshotJson ?? 'null')).toMatchObject({
+      applicationContext: {
+        root: {
+          rootCommandId: advance.command.commandId,
+          initiatorUserId: base.owner.userId,
+          requestedByUserId: base.other.userId
+        }
+      }
+    })
+    const answer = rechargeResolution({ encounterId: base.run.id, pending, value: 5 })
+    const beforeAnswer = await stored(base.t, base.run.id)
+    await expect(
+      base.other.caller.action(internal.encounters.commandActions.execute, answer)
+    ).rejects.toThrow()
+    expect(await stored(base.t, base.run.id)).toEqual(beforeAnswer)
+    const settled = await base.owner.caller.action(
+      internal.encounters.commandActions.execute,
+      answer
+    )
+    expect(settled).toMatchObject({
+      projection: { status: 'ACTIVE', version: granted.projection.version + 1 },
+      occurrence: { status: 'COMPLETE', pending: null }
+    })
+    expect(settled.projection.currentActorId).not.toBe(currentActorId)
+    const terminal = await stored(base.t, base.run.id)
+    expect(
+      terminal.commands.find((row) => row.commandId === advance.command.commandId)
+    ).toMatchObject({ commandType: 'ADVANCE_TURN', actorUserId: base.other.userId })
+    expect(
+      terminal.receipts.find((row) => row.commandId === advance.command.commandId)
+    ).toMatchObject({ actorUserId: base.other.userId })
+    // A replay returns only to the player who ended the turn, as the player projection.
+    const replay = await base.other.caller.mutation(executeEncounterCommand, advance)
+    expect(replay).toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
+    expect(replay.projection).toEqual(
+      projectPlayerEncounterProjection(
+        encounterGmProjectionDtoSchema.parse(
+          await base.owner.caller.query(api.encounters.projectionReads.get, {
+            encounterId: base.run.id
+          })
+        )
+      )
+    )
+    for (const hidden of ['healthBand', 'gmNotes', 'statBlock'])
+      expect(JSON.stringify(replay)).not.toContain(hidden)
+    await expect(base.owner.caller.mutation(executeEncounterCommand, advance)).rejects.toThrow(
+      'COMMAND_ID_REUSED'
+    )
+    expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
   it('rejects wrong evidence, authority, and stale Feature source without changing a pending Recharge', async () => {

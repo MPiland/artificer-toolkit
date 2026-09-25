@@ -9,16 +9,21 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
-import { readRunProjection, readRunState } from './documents'
+import { readRunActor, readRunProjection, readRunState } from './documents'
+import { requireEncounterActorControl } from './actorController'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
 import { rejectDomain } from '../lib/domainRejections'
 
-/** Authorizes one action and verifies sealed replay before any fresh execution. */
+/**
+ * Authorizes one action and verifies sealed replay before any fresh execution. A fresh action needs
+ * the caller to control the acting actor and, for players, a target they can see. A resume passes
+ * the original initiator: its responder is authorized by the evidence's roller instead.
+ */
 export async function readNativeEncounterActionAdmission(
   ctx: QueryCtx,
   command: ResolveEncounterActionInputDto,
   userId: string,
-  resume?: { occurrence: Doc<'encounterRuleOccurrences'> }
+  resume?: { occurrence: Doc<'encounterRuleOccurrences'>; initiatorUserId: string }
 ) {
   const input = {
     ...command,
@@ -43,7 +48,7 @@ export async function readNativeEncounterActionAdmission(
   const state = readRunState(run)
   readRunProjection(run)
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  const initiatorUserId = resume?.initiatorUserId ?? userId
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
@@ -60,7 +65,7 @@ export async function readNativeEncounterActionAdmission(
     if (
       replay.commandType !== 'RESOLVE_ACTION' ||
       replay.encounterId !== run.id ||
-      replay.actorUserId !== userId ||
+      replay.actorUserId !== initiatorUserId ||
       replay.version !== input.expectedVersion + 1 ||
       replay.version > state.version ||
       replay.commandFingerprint !== fingerprint
@@ -127,7 +132,7 @@ export async function readNativeEncounterActionAdmission(
       receipt.commandType !== 'RESOLVE_ACTION' ||
       receipt.commandFingerprint !== fingerprint ||
       receipt.encounterVersion !== replay.version ||
-      receipt.actorUserId !== userId ||
+      receipt.actorUserId !== initiatorUserId ||
       receipt.correlationId !== null ||
       receipt.resultChecksum !== checksumRuleDocument(payload) ||
       receipt.resultChecksum !== replay.ruleResultChecksum ||
@@ -170,7 +175,16 @@ export async function readNativeEncounterActionAdmission(
             sourceProjectionActor.sourceId !== characterBatch.sourceCharacterId))
     )
       throw new Error('Stored Encounter Character action receipt mismatch.')
-    return { kind: 'REPLAY' as const, input, run, state, campaign, fingerprint, result }
+    return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
+  }
+  if (!resume) {
+    const [actor, target] = await Promise.all([
+      readRunActor(ctx, state, input.actorId),
+      readRunActor(ctx, state, input.targetActorId)
+    ])
+    await requireEncounterActorControl(ctx, { campaign, membership, actor })
+    // Players target only actors in their projection; a hidden actor reads as unavailable.
+    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
   }
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
@@ -189,7 +203,7 @@ export async function readNativeEncounterActionAdmission(
     const occurrence = pending[0]!
     if (occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
     const { context } = readNativeActionPending(occurrence)
-    if (context.commandFingerprint !== fingerprint || context.initiatorUserId !== userId)
+    if (context.commandFingerprint !== fingerprint || context.initiatorUserId !== initiatorUserId)
       rejectDomain('COMMAND_ID_REUSED')
     if (!resume)
       return {
@@ -198,6 +212,7 @@ export async function readNativeEncounterActionAdmission(
         run,
         state,
         campaign,
+        membership,
         fingerprint,
         result: nativeActionPendingResult(run, occurrence)
       }
@@ -221,6 +236,8 @@ export async function readNativeEncounterActionAdmission(
     run,
     state: { ...state, automationMode: state.automationMode },
     campaign,
+    membership,
+    initiatorUserId,
     fingerprint
   }
 }

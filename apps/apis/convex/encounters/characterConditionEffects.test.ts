@@ -154,7 +154,8 @@ async function settleStart(
 
 async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
   const base = await setupCharacterRun()
-  await setAutoRollDice(base.t, base.owner.userId, false)
+  for (const userId of [base.owner.userId, base.player.userId])
+    await setAutoRollDice(base.t, userId, false)
   const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
@@ -360,7 +361,8 @@ function diceResponse(encounterId: string, input: unknown, face: number) {
       resolution: {
         kind: 'ENTER_DICE' as const,
         requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+        rollMode: pending.request.rollMode
       }
     }
   } satisfies EncounterExecuteInput

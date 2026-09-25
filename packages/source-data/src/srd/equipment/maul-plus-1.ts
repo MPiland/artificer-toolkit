@@ -11,7 +11,6 @@ export const maulPlus1: EquipmentVariantAuthored = {
   parentEquipmentId: maul.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_UNCOMMON,
-  maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(201), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

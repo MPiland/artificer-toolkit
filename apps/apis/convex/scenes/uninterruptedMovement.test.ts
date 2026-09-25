@@ -4,7 +4,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneGeometryBeginResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
+import {
+  createSpatialPreparationFixture,
+  grantFixtureActorControl
+} from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api, internal } from '../_generated/api'
 import { readRunState } from '../encounters/documents'
@@ -50,6 +53,12 @@ async function setup(
       actorId: base.run.actors[0]!.id,
       sceneId: base.sceneId,
       tokenId
+    })
+    // The moving player controls the bound actor; its Scene token control no longer applies.
+    await grantFixtureActorControl(ctx, {
+      encounterId: base.run.id,
+      actorId: base.run.actors[0]!.id,
+      controllerUserIds: [base.owner.userId]
     })
     for (const [ordinal, token] of base.tokens.entries()) {
       const row = await ctx.db

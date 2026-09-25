@@ -44,7 +44,8 @@ pending-response and complete contextual coordination remain unfinished.
 
 Ordinary action preparation starts with `ACTION_COMMAND` on the private Encounter capture route.
 It shares the native command's admission and complete receipt verification, including Character
-concentration cleanup. Current GM access and the live epoch remain mandatory. An exact
+concentration cleanup. Current access (the GM, or a PLAYER who controls the acting actor; see
+Player-controlled actors below) and the live epoch remain mandatory. An exact
 completed or pending retry returns its stored result before checking the latest Run version or
 loading Character inputs. A fresh command must pass the existing version, turn and pending-occurrence
 checks before preparation starts. Admission returns its normalized command and fingerprint, reads no
@@ -190,12 +191,14 @@ round and inserts the next round once. The initiative declaration patch uses tha
 (its focused private tests pass locally; see the
 [declaration checkpoint](../validation/phase-08-2/initiative-declarations.md#resolution)): the DO
 rechecks the issued options against captured sources, records the selected declaration, and either
-issues the next actor's request or continues initiative scoring. The private `turnResponse` scope
-admits the currently assigned PLAYER for their Character's declaration and permits the command's
-bounded Run and Character captures. Each capture and write rechecks membership, assignment and the
-issued occurrence; it cannot combine with movement or Concentration scope. START, ADVANCE_TURN,
-score/order responses and other turn decisions remain OWNER-only. The root receipt identifies the
-GM who initiated the turn; declaration response history identifies the actual responder. Current
+issues the next actor's request or continues initiative scoring. The private `turnCommand` scope
+admits a PLAYER for their controlled actor's declaration, or for `ADVANCE_TURN` when the current
+actor is theirs, and permits the command's bounded Run and Character captures. Each capture and
+write rechecks membership, control and the issued occurrence; it cannot combine with movement,
+Concentration or `action` scope. START, score/order responses and other turn decisions remain
+OWNER-only. The root `initiatorUserId` stays the Campaign owner (who answers turn decisions); the
+root's `requestedByUserId` records who asked, and becomes the turn receipt's actor; declaration
+response history identifies the actual responder. Current
 assignment is required even for a completed response retry. The actual room caller remains unfinished;
 native routing remains current. Focused parity and rollback tests are implementation evidence, not
 release or frozen V15 acceptance.
@@ -254,11 +257,14 @@ separate transactions, which Convex fences only by `DO_ACTIVE` authority. Curren
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
 
-**Auto-roll and GM void (CURRENT, ADR 0034).** The `ACTION_COMMAND`, `ACTION_RESPONSE`,
-`TURN_COMMAND`, `CONCENTRATION_RESPONSE` and `MOVEMENT_INPUTS` captures carry the roller's
-`autoRollDice` preference, read in the capture transaction and covered by its read checksum (the
-requesting user; the Campaign owner for `TURN_COMMAND`), so DO planners decide between a server roll
-and a pending prompt without a separate call. `VOID_RULE_OCCURRENCE` always routes `NATIVE`:
+**Auto-roll and GM void (CURRENT, ADR 0034).** The `ACTION_COMMAND`, `ACTION_RESPONSE` and
+`MOVEMENT_INPUTS` captures carry `autoRollByActorId`: for each Run actor, the "Auto-roll my dice"
+preference of the user its rolls are routed to (see roll routing below). `TURN_COMMAND` carries the
+Campaign owner's `autoRollDice` for the GM's turn steps, the same `autoRollByActorId` (with the owner
+as initiator) for each actor's turn-effect and Concentration saves, and the issuing member's
+`responderControlledActorIds`, so the planner can admit a player's turn-effect answer. All are read in the capture
+transaction and covered by its read checksum, so DO planners decide between a server roll and a
+pending prompt without a separate call. `VOID_RULE_OCCURRENCE` always routes `NATIVE`:
 `encounters/commandActions.ts` asks `encounters/occurrenceVoid:prepare` (GM only) to cancel a paused
 action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE` receipt, one Run version) or
 returns a decline that runs through the same path as a GM answer, including movement staging;
@@ -267,6 +273,65 @@ pauses again, the Run version cannot advance without breaking that flow's fences
 has exactly one receipt), so the void returns the next decision and adds no timeline entry. Steps
 play cannot continue without (initiative, Concentration saves, Recharge, turn-effect saves,
 Legendary Action dice and dice during a move) are refused with `DECISION_REQUIRES_ANSWER`.
+
+**Player-controlled actors (CURRENT, S6b).** Control belongs to the Run actor (Foundry ownership).
+Each actor stores GM-set `controllerUserIds` (current Campaign players only, sorted, at most 8; set by
+the GM through `UPDATE_ACTOR`) and a `disposition` (`FRIENDLY` default for Characters, `HOSTILE` for
+creatures and custom enemies). A CHARACTER actor's Campaign-assigned player is always a controller,
+derived and never stored. `encounters/actorController.ts` is the one predicate (`GM` for the owner,
+`CONTROLLER`, or none) used by action admission, action choices, Disarm, turn admission, declarations,
+pending reads, Concentration and Cleaving responses, and movement decisions. A member's departure
+removes them from every PREPARED or ACTIVE Run's controller lists in the same transaction.
+
+- A PLAYER may `RESOLVE_ACTION` for an actor they control (public targets only, else
+  `TARGET_UNAVAILABLE`), end the current actor's turn when it is theirs, and answer decisions routed
+  to them. Every other Encounter command stays GM-only. Admitted actions read Character, definition
+  and Scene inputs as the Campaign owner (Scene scope `MEMBER` for players); the player `action`
+  capture scope carries the admitted command so later captures in the same plan pass.
+- Encounter-bound token movement follows the bound actor's controllers plus the GM
+  (`requireBoundTokenMoveControl`); unbound tokens keep the Scene token's `controlledByUserIds`.
+  The room applies the same rule to drag previews: a player's transient capture carries
+  `originBoundTokenControl` (each bound token and whether they control its actor), and the room
+  skips its shared Scene-cache fast path for a player on an Encounter-bound Scene.
+- `encounters.activeReads.active` returns `waitingOn` (`GM`, `PLAYER` or null), so a player's view
+  shows who a pending decision they can't answer is waiting on, also after a reload.
+- Every result or replay returned to a non-owner goes through
+  `encounters/resultPresentation.ts` `presentEncounterResultForMember` (player projection, with the
+  pending decision re-read for that member). The room's `nativeRoomEncounterCommand.ts` refuses to hand
+  a PLAYER anything that does not parse as a player projection. A replay by command ID returns only to
+  the user who issued it.
+- The player projection carries no health for any actor (ADR 0034 decision 5 default "Hidden");
+  the per-Character and per-Encounter display levels are recorded for 8.3.
+- Room flood control: a PLAYER has at most one Encounter command in flight
+  (`ROOM_LIMITS.maxInFlightEncounterCommandsPerPlayer`); a second is refused `UNAVAILABLE` "Your
+  previous action is still resolving."
+
+**Roll routing (CURRENT, S6b).** A roll belongs to the actor who makes it: pending evidence carries
+`rollerActorId` (the attacker for an attack, the target for a save, the reactor or mover during a
+move), and only that actor's controllers and the GM see and answer it. A player initiator answers only
+rolls of actors they control; every other roll goes to the actor's controllers, even when the GM
+initiates (Foundry baseline: the GM casts Fireball, each player rolls their own Character's save).
+Rolls of actors no player controls stay with the GM, and the GM may answer any prompt as an
+override. Turn-effect saves follow the same rule: the save belongs to the turn actor, so its pending
+summary names it as `rollerActorId`, its controllers see and answer it (`pendingReads`,
+`encounters/turnResponseAuthority.ts`, `prepareEncounterTurnResponse`), and its primary controller's
+preference decides auto-roll; Concentration checks raised by turn damage do the same. The other
+turn-flow steps (initiative scoring and order, Recharge, Legendary Actions) remain GM decisions;
+initiative declarations go to the declaring actor's controllers. In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller;
+auto-roll fills in dice only. Each prompt row is answered one of three ways:
+
+- `ROLL_RULE_EVIDENCE` ("Roll dice") rolls the request with secure randomness in Convex
+  (`encounters/evidenceRolls.ts`), records the attempt (`encounterEvidenceRolls`), posts it to the
+  table roll log ("Rolled by the app, attempt N", plus "Advantage, changed from Normal" when the roller
+  overrides the rules-derived mode) unless the roller is hidden, and settles nothing. Rerolls add
+  attempts. It always routes `NATIVE`.
+- `SYSTEM_ROLL {requestId, rollId}` settles with the recorded faces of the responder's latest attempt
+  for that request; anything else is refused `ROLL_UNAVAILABLE`. Captures return the verified
+  `appRoll`, so the DO planner never sees a client-supplied app-roll value.
+- `ENTER_DICE {rawFaces, rollMode}` or `ENTER_INTEGER` settle with entered values.
+
+d20 evidence stores the chosen `rollMode` and the rules-derived `derivedRollMode`. Contest d20s keep
+the derived mode. AUTOMATIC mode and auto-roll keep server rolls (`AUTO_ROLL` internally).
 
 Real-backend HTTP development drivers (`apps/apis/tests/development*.ts`) therefore send Encounter
 commands through the room like the browser: `DevelopmentHttpClient` (`developmentHttpClient.ts`)

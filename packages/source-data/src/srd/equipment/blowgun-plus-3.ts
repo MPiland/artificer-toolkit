@@ -11,7 +11,6 @@ export const blowgunPlus3: EquipmentVariantAuthored = {
   parentEquipmentId: blowgun.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   rarityId: S.RARITY_VERY_RARE,
-  maxBonus: 3,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(233), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

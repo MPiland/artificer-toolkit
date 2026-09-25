@@ -33,7 +33,8 @@ export async function prepareNativeLiveTurnCompletion(input: {
   capture(request: LiveSessionEncounterRulesRequest): Promise<LiveSessionEncounterRulesResponse>
   runtime: RulesRuntimeService
   random(maximum: number): number
-  autoRoll: boolean
+  /** Each actor's roller preference; a Concentration check goes to its actor's controllers. */
+  autoRollByActorId: Readonly<Record<string, boolean>>
 }) {
   const { prepared, state } = input
   const executions = [prepared.outgoing?.plan, prepared.incoming.plan].flatMap(
@@ -114,7 +115,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
   })
   const concentration = await planNativeLiveConcentration({
     state: nextState,
-    autoRoll: input.autoRoll,
+    autoRollByActorId: input.autoRollByActorId,
     parentOccurrenceId: input.occurrenceId,
     parentCommandFingerprint: prepared.root.commandFingerprint,
     applications: nativeConcentrationDamageApplications(executions),

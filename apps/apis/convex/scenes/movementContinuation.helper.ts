@@ -14,13 +14,13 @@ import type { MovementTarget } from '../encounters/movementTargets'
 import type { NativeMaintenanceProjection } from '../encounters/actionMaintenance'
 import { prepareNativeMovementConcentration } from '../encounters/movementConcentration'
 import { createRulesRuntime } from '../rules/runtime'
-import { evaluateAutomaticMovementActions } from './movementInitialActions.helper'
 import { readSceneMovementReactionPerception } from './movementPerceptionValidation'
 import {
   discoverSceneMovementPassage,
   prepareSceneMovementPassageBoundary
 } from './movementPassageBoundary'
 import type { SceneMovementSettlement } from './movementSettlements'
+import type { EncounterAutoRollByActorId } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
 
 type NativeInput = Parameters<typeof evaluateNativeSpatialMovement>[1]
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
@@ -32,7 +32,7 @@ export async function evaluateSceneMovementContinuation(
     request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
     state: EncounterRunState
     userId: string
-    autoRoll: boolean
+    autoRoll: EncounterAutoRollByActorId
     root: NativeInput['root']
     sceneVersion: number
     sceneTokens: readonly SceneToken[]
@@ -59,6 +59,7 @@ export async function evaluateSceneMovementContinuation(
     evaluateSpatial: (step, targets, stageTerminalSettlement) =>
       evaluateNativeSpatialMovement(ctx, step, 'PREVIEW', targets, stageTerminalSettlement),
     prepareConcentration: async ({
+      autoRoll,
       remainder,
       targets,
       projection,
@@ -70,6 +71,7 @@ export async function evaluateSceneMovementContinuation(
         occurrenceId: input.occurrenceId,
         sourceCommandId: input.executionCommandId,
         userId: input.userId,
+        autoRoll,
         occurredAt: input.occurredAt,
         remainder,
         targets,
@@ -94,20 +96,6 @@ export async function evaluateSceneMovementContinuation(
         reactionTimeline,
         origin: input.currentPosition,
         targets
-      }),
-    evaluateAutomatic: ({ root, boundary, reactionTimeline, targets, projection }) =>
-      evaluateAutomaticMovementActions({
-        ctx,
-        ...input,
-        root,
-        boundary,
-        reactionTimeline,
-        encounterId: input.state.id,
-        expectedEncounterVersion: input.state.version,
-        sceneId: root.sceneId,
-        projectedTargets: targets,
-        maintenanceProjection: projection,
-        ...(input.retained ? { retained: input.retained } : {})
       }),
     validateReactionOptions: async ({ next, root, position, targets }) => {
       const projected = await readSceneMovementReactionPerception(

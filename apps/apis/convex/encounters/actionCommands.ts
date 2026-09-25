@@ -32,7 +32,8 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import { readEncounterAutoRollByActorId } from './actorController'
+import { presentEncounterResultForMember } from './resultPresentation'
 import { createRulesRuntime } from '../rules/runtime'
 import { readRunActor, readRunActors } from './documents'
 import { projectNativeGm } from './nativeProjection'
@@ -56,16 +57,14 @@ import { rejectRuleWarnings } from '../lib/domainRejections'
 import { readNativeEncounterActionAdmission } from './actionAdmission'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt'
-import {
-  advanceNativeActionGraphs,
-  type NativeActionEvidenceResolution
-} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 
 type ActionResume = {
   occurrence: Doc<'encounterRuleOccurrences'>
   response: ResolveRuleOccurrenceInputDto
-  resolution: NativeActionEvidenceResolution
+  resolution: EncounterEvidenceAnswer
 }
 
 /** Executes or resumes one sealed action; only its terminal transaction spends resources. */
@@ -75,9 +74,21 @@ export async function executeNativeEncounterAction(
   userId: string,
   resume?: ActionResume
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readNativeEncounterActionAdmission(ctx, command, userId, resume)
-  if (admission.kind === 'REPLAY') return admission.result
-  const { input, run, state, campaign, fingerprint } = admission
+  const admission = await readNativeEncounterActionAdmission(
+    ctx,
+    command,
+    userId,
+    resume && {
+      occurrence: resume.occurrence,
+      initiatorUserId: readNativeActionPending(resume.occurrence).context.initiatorUserId
+    }
+  )
+  const { campaign, membership } = admission
+  if (admission.kind === 'REPLAY')
+    return presentEncounterResultForMember(ctx, { campaign, membership, result: admission.result })
+  const { input, run, state, fingerprint, initiatorUserId } = admission
+  // Rules read as the Campaign owner, so GM homebrew resolves for a player's action too.
+  const readerUserId = campaign.ownerUserId
   const [actor, target, actors] = await Promise.all([
     readRunActor(ctx, state, input.actorId),
     readRunActor(ctx, state, input.targetActorId),
@@ -94,7 +105,12 @@ export async function executeNativeEncounterAction(
     campaignOwnerUserId: campaign.ownerUserId
   })
   const { source, adapter, targetPolicy: policy, plan, actorRules, binding } = prepared
-  const sceneContext = await readNativeActionSceneContext(ctx, state, input)
+  const sceneContext = await readNativeActionSceneContext(
+    ctx,
+    state,
+    input,
+    membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+  )
   if (input.optionalCombatIntent != null)
     throw new Error('Native action execution requires the complete contextual action coordinator.')
   const activation =
@@ -106,13 +122,13 @@ export async function executeNativeEncounterAction(
   const economy = await evaluateNativeActionEconomy(ctx, {
     actor,
     state,
-    userId,
+    userId: readerUserId,
     activation: { code: activation.code, amount: activation.amount },
     target: prepared.movementTargets.get(actor.id)
   })
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: prepared.ruleWarnings,
-    target: { actorId: actor.id, targetActorId: target.id, targetPolicy: policy, sceneContext },
+    target: { actor, target, targetPolicy: policy, sceneContext },
     actionEconomy: economy,
     activationCode: activation.code,
     acknowledged: input.acknowledgedWarnings
@@ -122,7 +138,7 @@ export async function executeNativeEncounterAction(
   if (ruleWarnings.kind === 'UNACKNOWLEDGED') rejectRuleWarnings(ruleWarnings.warnings)
   const actionEconomy = economy?.consumption ?? null
 
-  const maintenance = await prepareNativeActionMaintenance(ctx, prepared, userId)
+  const maintenance = await prepareNativeActionMaintenance(ctx, prepared, readerUserId)
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
     actionEconomy,
@@ -134,15 +150,22 @@ export async function executeNativeEncounterAction(
     throw new Error('The pending action source or target changed.')
   const occurrenceId = resume?.occurrence.id ?? crypto.randomUUID()
   const occurrenceVersion = resume ? resume.occurrence.version + 1 : 0
-  const runtime = await createRulesRuntime(ctx, userId)
+  const runtime = await createRulesRuntime(ctx, readerUserId)
+  const autoRollByActorId = await readEncounterAutoRollByActorId(ctx, {
+    campaign,
+    initiatorUserId,
+    actors
+  })
   const execution = await advanceNativeActionGraphs({
     runtime,
     random: nextRollInt,
     adapter,
     plan,
     occurrenceId,
-    // The initiator rolls the action's dice in this slice.
-    autoRoll: await readAutoRollDice(ctx, userId),
+    autoRoll: {
+      SOURCE: autoRollByActorId[actor.id] ?? false,
+      TARGET: autoRollByActorId[target.id] ?? false
+    },
     binding,
     ...(resume && priorPending
       ? {
@@ -168,7 +191,7 @@ export async function executeNativeEncounterAction(
         actorRules,
         definitions: {
           requireCurrent: async (definitionId) => {
-            const root = await readDefinitionRoot(ctx, definitionId, userId)
+            const root = await readDefinitionRoot(ctx, definitionId, readerUserId)
             if (!root?.current) throw new Error('Legendary Resistance definition is unavailable.')
             return root.current
           }
@@ -188,7 +211,8 @@ export async function executeNativeEncounterAction(
         schemaVersion: 1,
         commandJson: JSON.stringify(input),
         commandFingerprint: fingerprint,
-        initiatorUserId: userId,
+        initiatorUserId,
+        rollerActorId: execution.roller === 'SOURCE' ? actor.id : target.id,
         currentnessChecksum,
         d20Policy: execution.d20Policy,
         twoPhase: execution.twoPhase
@@ -220,6 +244,7 @@ export async function executeNativeEncounterAction(
         rootCommand: input,
         rootFingerprint: fingerprint,
         userId,
+        rootInitiatorUserId: initiatorUserId,
         result: storedRuleExecutionResultDtoSchema.parse({
           status: 'PAUSED',
           occurrenceId,
@@ -235,7 +260,11 @@ export async function executeNativeEncounterAction(
             : {})
         })
       })
-    return nativeActionPendingResult(run, occurrence)
+    return presentEncounterResultForMember(ctx, {
+      campaign,
+      membership,
+      result: nativeActionPendingResult(run, occurrence)
+    })
   }
   const preparedEffects = await prepareNativeActionEffects(ctx, {
     prepared,
@@ -333,7 +362,8 @@ export async function executeNativeEncounterAction(
       [{ targetActorId: target.id, applications: mechanics.receiptApplications }],
       true
     ),
-    userId,
+    userId: readerUserId,
+    autoRollByActorId,
     occurredAt: updatedAt
   })
   nextActors = concentration.actors
@@ -419,7 +449,7 @@ export async function executeNativeEncounterAction(
       ),
       resultJson: JSON.stringify(storedExecution),
       resultChecksum: ruleResultChecksum,
-      actorUserId: userId,
+      actorUserId: initiatorUserId,
       correlationId: null,
       createdAt: updatedAt
     })
@@ -437,7 +467,7 @@ export async function executeNativeEncounterAction(
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
       ruleOverrides: ruleWarnings.overrides,
       commandFingerprint: fingerprint,
-      actorUserId: userId,
+      actorUserId: initiatorUserId,
       version: nextState.version,
       commandJson: JSON.stringify(input),
       resultJson: JSON.stringify(result),
@@ -452,6 +482,7 @@ export async function executeNativeEncounterAction(
       rootCommand: input,
       rootFingerprint: fingerprint,
       userId,
+      rootInitiatorUserId: initiatorUserId,
       result: storedExecution
     })
   const cleavingRange = rangeDtoSchema.safeParse(policy.range)
@@ -483,5 +514,5 @@ export async function executeNativeEncounterAction(
       },
       occurredAt: updatedAt
     })
-  return result
+  return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

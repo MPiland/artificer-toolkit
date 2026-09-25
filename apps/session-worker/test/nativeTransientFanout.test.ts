@@ -117,6 +117,7 @@ function captureFor(
     presentation: { campaignId, sceneId, version: 1 },
     recipients: [...recipients],
     sceneEncounterBound: false,
+    originBoundTokenControl: [],
     sceneHeader: header(),
     visionFreshness: { campaign: null, play: null, system: null }
   }

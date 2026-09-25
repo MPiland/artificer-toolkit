@@ -55,7 +55,6 @@ export type EquipmentFormValues = {
   weight?: WeightDto
   capacity?: CapacityDto
   maxStack?: number
-  maxBonus?: number
   armorClass?: number
   contains?: ContainsDto[]
   effects?: EquipmentAuthoredDto['effects']
@@ -236,7 +235,6 @@ export function normalizeEquipmentForSubmit(
     effects: (equipment.effects ?? []).map((effect) => ({ ...effect, grip: effect.grip ?? null })),
     charges: equipment.charges,
     modifiers: equipment.modifiers ?? [],
-    maxBonus: equipment.maxBonus,
     features: equipment.features ?? [],
     restrictions: equipment.restrictions,
     requiresAttunement: equipment.requiresAttunement

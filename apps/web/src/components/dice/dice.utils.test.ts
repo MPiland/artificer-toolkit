@@ -1,6 +1,6 @@
 import { InterleavedBuffer, InterleavedBufferAttribute } from 'three'
 import type { RollRecordDto, RollResultDto } from '@artificer-toolkit/schema/api/rolls'
-import { buildManualExpression, formatRollEvidence, getMechanicRollTargets } from './dice.utils'
+import { formatRollEvidence } from './dice.utils'
 import {
   getScaledColliderVertices,
   getTargetQuaternion,
@@ -9,7 +9,7 @@ import {
   isDieNearlyStill
 } from './dice3d.utils'
 
-describe('character sheet dice utilities', () => {
+describe('dice presentation utilities', () => {
   it('builds scaled collider vertices from interleaved model positions', () => {
     const data = new InterleavedBuffer(new Float32Array([1, 2, 3, 9, -1, -2, -3, 9]), 4)
     const position = new InterleavedBufferAttribute(data, 3, 0)
@@ -21,61 +21,6 @@ describe('character sheet dice utilities', () => {
     expect(isDieNearlyStill({ x: 0.2, y: 0.1, z: 0.1 }, { x: 0.3, y: 0.2, z: 0.1 })).toBe(true)
     expect(isDieNearlyStill({ x: 0.7, y: 0, z: 0 }, { x: 0, y: 0, z: 0 })).toBe(false)
     expect(isDieNearlyStill({ x: 0, y: 0, z: 0 }, { x: 1.1, y: 0, z: 0 })).toBe(false)
-  })
-
-  it('builds manual expressions and derives authoritative mechanic roll targets', () => {
-    expect(
-      buildManualExpression([
-        { id: 'd6', count: 2, die: 6, modifier: 3 },
-        { id: 'd4', count: 1, die: 4, modifier: 1 }
-      ])
-    ).toBe('2d6 + 3 + 1d4 + 1')
-
-    expect(
-      getMechanicRollTargets(
-        [
-          {
-            effectId: 'effect-1',
-            trigger: 'ON_USE',
-            attackBonus: 5,
-            attackRollMode: 'ADVANTAGE',
-            outcomes: [
-              {
-                kind: 'DAMAGE',
-                pathCode: 'damage',
-                expression: '1d8 + 3',
-                damageTypeId: 'slashing',
-                damageTypeLabel: 'Slashing'
-              },
-              {
-                kind: 'HEAL',
-                pathCode: 'healing',
-                expression: '1d4 + 2',
-                temporary: false
-              }
-            ]
-          }
-        ],
-        'Astral Blade'
-      )
-    ).toEqual([
-      {
-        expression: '1d20 + 5',
-        rollMode: 'ADVANTAGE',
-        source: { kind: 'ATTACK', label: 'Astral Blade attack' },
-        text: '+5'
-      },
-      {
-        expression: '1d8 + 3',
-        source: { kind: 'DAMAGE', label: 'Astral Blade damage' },
-        text: '1d8 + 3'
-      },
-      {
-        expression: '1d4 + 2',
-        source: { kind: 'HEALING', label: 'Astral Blade healing' },
-        text: '1d4 + 2'
-      }
-    ])
   })
 
   it('renders a d100 result as percentile and ones dice with valid target faces', () => {

@@ -232,7 +232,6 @@ function rootDescriptor(
         field('capacity', value.capacity),
         field('maxStack', value.maxStack),
         field('rarityId', value.rarityId),
-        field('maxBonus', value.maxBonus),
         field('armorClass', value.armorClass),
         field('contains', value.contains)
       )

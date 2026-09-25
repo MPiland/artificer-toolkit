@@ -56,7 +56,7 @@ describe('native movement reaction replay', () => {
         const issued = await executeNativeMovementReactionAction(ctx, {
           runtime,
           occurrenceId: input.occurrenceId,
-          autoRoll: false,
+          autoRoll: {},
           prepared
         })
         if (issued.kind !== 'PENDING') throw new Error('Expected issued pending action.')
@@ -68,7 +68,7 @@ describe('native movement reaction replay', () => {
             adapter: prepared.prepared.adapter,
             plan: prepared.executionPlan,
             occurrenceId: input.occurrenceId,
-            autoRoll: false,
+            autoRoll: { SOURCE: false, TARGET: false },
             binding: prepared.prepared.binding,
             afterTest: async () => undefined,
             resume: {
@@ -77,7 +77,8 @@ describe('native movement reaction replay', () => {
                 ? {
                     kind: 'ENTER_DICE',
                     requestId: execution.continuation.request.requestId,
-                    rawFaces: [20]
+                    rawFaces: execution.d20Policy.rollMode === 'NORMAL' ? [20] : [20, 20],
+                    rollMode: execution.d20Policy.rollMode
                   }
                 : {
                     kind: 'ENTER_INTEGER',
@@ -125,6 +126,10 @@ describe('native movement reaction replay', () => {
           continuation: execution.continuation,
           context,
           selectedOptionId: option.optionId,
+          rollerActorId:
+            execution.roller === 'SOURCE'
+              ? option.candidate.reactorActorId
+              : option.candidate.movingActorId,
           d20Policy: execution.d20Policy,
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
@@ -133,6 +138,10 @@ describe('native movement reaction replay', () => {
           continuation: issued.continuation,
           context,
           selectedOptionId: option.optionId,
+          rollerActorId:
+            issued.roller === 'SOURCE'
+              ? option.candidate.reactorActorId
+              : option.candidate.movingActorId,
           d20Policy: issued.d20Policy,
           ...(issued.twoPhase ? { twoPhase: issued.twoPhase } : {}),
           ...(issued.phaseReceipts ? { phaseReceipts: issued.phaseReceipts } : {})
@@ -188,7 +197,10 @@ describe('native movement reaction replay', () => {
         const completed = await executeNativeMovementReactionAction(ctx, {
           runtime,
           occurrenceId: input.occurrenceId,
-          autoRoll: true,
+          autoRoll: {
+            [prepared.option.candidate.reactorActorId]: true,
+            [prepared.prepared.binding.targetActorId]: true
+          },
           prepared,
           random: (maximum) => (maximum === 20 ? maximum - 1 : 0)
         })
@@ -264,7 +276,10 @@ describe('native movement reaction replay', () => {
       const execution = await executeNativeMovementReactionAction(ctx, {
         runtime: await createRulesRuntime(ctx, base.owner.userId),
         occurrenceId: input.occurrenceId,
-        autoRoll: true,
+        autoRoll: {
+          [prepared.option.candidate.reactorActorId]: true,
+          [prepared.prepared.binding.targetActorId]: true
+        },
         prepared,
         random: (maximum) => maximum - 1
       })

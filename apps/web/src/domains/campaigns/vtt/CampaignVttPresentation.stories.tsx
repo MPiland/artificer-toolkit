@@ -163,6 +163,7 @@ function PresentationFixture({ lowZoom = false }: { lowZoom?: boolean }) {
       }
       renderer.current = nextRenderer
       nextRenderer.update({
+        boundTokenControl: new Map(),
         currentUserId: tabletopCurrentUserId,
         mapDelivery: null,
         mode: 'PLAY',

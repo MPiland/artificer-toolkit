@@ -739,9 +739,14 @@ describe('native Character movement-decision authority', () => {
               ? {
                   kind: 'ENTER_DICE',
                   requestId: pending.request.requestId,
-                  rawFaces: pending.request.rollMode === 'NORMAL' ? [natural] : [natural, natural]
+                  rawFaces: pending.request.rollMode === 'NORMAL' ? [natural] : [natural, natural],
+                  rollMode: pending.request.rollMode
                 }
-              : { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+              : {
+                  kind: 'ENTER_INTEGER',
+                  requestId: pending.request.requestId,
+                  value: pending.request.min
+                }
         }
         const next = await value.player.caller.mutation(beginResponse, response)
         if (!next || next.kind !== 'READY')
@@ -834,7 +839,12 @@ describe('native Character movement-decision authority', () => {
       occurrenceId: pending.occurrenceId,
       expectedOccurrenceVersion: pending.occurrenceVersion,
       correlationId: null,
-      resolution: { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [20] }
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+        rollMode: pending.request.rollMode
+      }
     })
     if (!test || test.kind !== 'READY') throw new Error('Expected Character TEST response save.')
     request = { ...request, saveId: test.saveId }
@@ -852,7 +862,11 @@ describe('native Character movement-decision authority', () => {
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
         correlationId: null,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
+        resolution: {
+          kind: 'ENTER_INTEGER',
+          requestId: pending.request.requestId,
+          value: pending.request.min
+        }
       })
       if (!outcome || outcome.kind !== 'READY')
         throw new Error('Expected Character OUTCOME response save.')

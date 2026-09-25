@@ -484,11 +484,13 @@ describe('VTT scene contracts', () => {
         occurrenceId: ids.map,
         occurrenceVersion: 2,
         encounterVersion: 5,
+        rollerActorId: null,
         request: {
           requestId: 'd20',
           min: 1 as const,
           max: 20 as const,
-          rollMode: 'NORMAL' as const
+          rollMode: 'NORMAL' as const,
+          derivedRollModeReasons: []
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
       }

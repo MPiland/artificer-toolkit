@@ -899,7 +899,7 @@ export const warlock: ClassAuthored = {
               pathCode: PATH_CODE.ON_HIT,
               invocation: {
                 kind: 'PASSIVE',
-                triggerCode: TRIGGER.SPELL_ATTACK,
+                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
                 range: { id: classRowId(W, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
                 targeting: {
                   selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
@@ -1173,7 +1173,7 @@ export const warlock: ClassAuthored = {
               pathCode: PATH_CODE.ON_ATTACK,
               invocation: {
                 kind: 'PASSIVE',
-                triggerCode: TRIGGER.SPELL_ATTACK,
+                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
                 range: {
                   id: classRowId(W, 0x69, 14),
                   rangeKind: RANGE_KIND.DISTANCE,

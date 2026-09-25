@@ -583,7 +583,7 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'PREVIOUS_TURN') return 'Turn moved back'
   if (commandType === 'SET_CURRENT_ACTOR') return 'Current turn corrected'
   if (commandType === 'SET_ROUND') return 'Round corrected'
-  if (commandType === 'UPDATE_ACTOR') return 'Enemy updated'
+  if (commandType === 'UPDATE_ACTOR') return 'Combatant updated'
   if (commandType === 'REMOVE_ACTOR') return 'Enemy removed'
   if (commandType === 'REORDER') return 'Turn order updated'
   if (commandType === 'REINFORCE') return 'Enemy added'

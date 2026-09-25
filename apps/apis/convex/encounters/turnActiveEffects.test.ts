@@ -38,6 +38,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {
@@ -167,22 +168,50 @@ function response(
   } satisfies EncounterExecuteInput
 }
 
-function diceResponse(encounterId: string, input: unknown, system = false) {
+function d20Pending(input: unknown) {
   const result = encounterCommandResultDtoSchema.parse(input)
   const pending = result.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected turn-effect d20 evidence.')
-  return response(
-    encounterId,
-    result,
-    system
-      ? { kind: 'SYSTEM_ROLL', requestId: pending.request.requestId }
-      : {
-          kind: 'ENTER_DICE',
-          requestId: pending.request.requestId,
-          rawFaces: [1]
-        }
-  )
+  return { result, pending }
+}
+
+function diceResponse(encounterId: string, input: unknown) {
+  const { result, pending } = d20Pending(input)
+  return response(encounterId, result, {
+    kind: 'ENTER_DICE',
+    requestId: pending.request.requestId,
+    rawFaces: [1],
+    rollMode: pending.request.rollMode
+  })
+}
+
+/** "Roll dice" as the GM, then answer with that app roll. */
+async function appRollResponse(
+  base: Awaited<ReturnType<typeof turnActiveEffectFixture>>,
+  input: unknown
+) {
+  const { result, pending } = d20Pending(input)
+  // App rolls post to the table chat, which needs a username.
+  await base.owner.caller.mutation(api.account.updateProfile, { username: 'TurnGm', bio: null })
+  const rolled = await base.owner.caller.mutation(executeEncounterCommand, {
+    command: {
+      type: 'ROLL_RULE_EVIDENCE',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: result.projection.version,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      requestId: pending.request.requestId,
+      rollMode: pending.request.rollMode
+    }
+  })
+  if (!rolled.evidenceRoll) throw new Error('Expected a recorded app roll.')
+  return response(base.run.id, result, {
+    kind: 'SYSTEM_ROLL',
+    requestId: pending.request.requestId,
+    rollId: rolled.evidenceRoll.rollId
+  })
 }
 
 async function resolveInitiative(
@@ -454,7 +483,8 @@ describe('private DO turn active-effect terminal', () => {
       resolution: {
         kind: 'ENTER_DICE' as const,
         requestId: evidence.request.requestId,
-        rawFaces: [1]
+        rawFaces: [1],
+        rollMode: evidence.request.rollMode
       }
     }
     const resumed = await planNativeLiveEncounterTurn(
@@ -536,7 +566,10 @@ async function liveCharacterTurn(
   cadence: 'EACH_ROUND' | 'ENCOUNTER_START' = 'EACH_ROUND'
 ) {
   const fixture = await turnCharacterEffectFixture()
-  if (mode === 'PROMPT') await setAutoRollDice(fixture.t, fixture.owner.userId, false)
+  // The GM rolls turn steps; the Character's player rolls its turn-effect saves.
+  if (mode === 'PROMPT')
+    for (const userId of [fixture.owner.userId, fixture.player.userId])
+      await setAutoRollDice(fixture.t, userId, false)
   const initiative = createEncounterInitiativeDefinitions([{ procedure: 'ACTOR_ROLL', cadence }])
   await fixture.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -662,7 +695,8 @@ async function planLiveTurn(turn: Awaited<ReturnType<typeof liveCharacterTurn>>)
 describe('native public turn active-effect journeys', () => {
   it('uses staged Character damage facts for EACH_ROUND initiative while the turn remains pending', async () => {
     const fixture = await turnCharacterEffectFixture()
-    await setAutoRollDice(fixture.t, fixture.owner.userId, false)
+    for (const userId of [fixture.owner.userId, fixture.player.userId])
+      await setAutoRollDice(fixture.t, userId, false)
     const initiative = createEncounterInitiativeDefinitions([
       { procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' }
     ])
@@ -753,9 +787,10 @@ describe('native public turn active-effect journeys', () => {
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
-  it('redacts accepted Character declaration replay while incoming turn-effect dice remain GM-only', async () => {
+  it('redacts accepted Character declaration replay while its controller sees the incoming turn-effect save', async () => {
     const base = await turnCharacterEffectFixture()
-    await setAutoRollDice(base.t, base.owner.userId, false)
+    for (const userId of [base.owner.userId, base.player.userId])
+      await setAutoRollDice(base.t, userId, false)
     expect(base.run.actors).toHaveLength(1)
     const actor = base.run.actors[0]!
     expect(actor.kind).toBe('CHARACTER')
@@ -798,11 +833,16 @@ describe('native public turn active-effect journeys', () => {
     const pendingIncoming = await resolveInitiative(base, gmInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    expect(
-      await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: base.run.id
-      })
-    ).toBeNull()
+    // The save belongs to the player's Character, so its controller sees and may answer it.
+    const playerPending = await base.player.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    expect(playerPending).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      rollerActorId: actor.id,
+      occurrenceId: pendingIncoming.occurrence?.occurrenceId
+    })
     expect(
       await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
         campaignId: base.campaign.id
@@ -816,7 +856,10 @@ describe('native public turn active-effect journeys', () => {
     const expectedReplay = {
       ...pendingIncoming,
       projection: playerProjection,
-      occurrence: pendingIncoming.occurrence && { ...pendingIncoming.occurrence, pending: null }
+      occurrence: pendingIncoming.occurrence && {
+        ...pendingIncoming.occurrence,
+        pending: playerPending
+      }
     }
     const replay = await base.player.caller.action(
       internal.encounters.commandActions.execute,
@@ -828,10 +871,8 @@ describe('native public turn active-effect journeys', () => {
       base.player.caller.mutation(internal.encounters.commands.execute, declarationCommand)
     ).resolves.toEqual(expectedReplay)
     const dice = diceResponse(base.run.id, pendingIncoming)
-    await expect(
-      base.player.caller.action(internal.encounters.commandActions.execute, dice)
-    ).rejects.toThrow()
     expect(await stored(base)).toEqual(paused)
+    // The GM may answer any prompt, including the player's save.
     const settled = await base.owner.caller.action(internal.encounters.commandActions.execute, dice)
     expect(settled.occurrence?.status).toBe('COMPLETE')
     const terminal = await stored(base)
@@ -1188,12 +1229,12 @@ describe('native public turn active-effect journeys', () => {
         encounterId: base.run.id
       })
     ).toEqual(pendingIncoming.occurrence!.pending)
-    const terminalResponse = diceResponse(base.run.id, pendingIncoming, true)
     const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
       ;(values as Uint32Array)[0] = 0
       return values
     })
     try {
+      const terminalResponse = await appRollResponse(base, pendingIncoming)
       const result = await base.owner.caller.action(
         internal.encounters.commandActions.execute,
         terminalResponse
@@ -1287,7 +1328,7 @@ describe('native public turn active-effect journeys', () => {
       })
     )
     const stale = await stored(base)
-    const final = diceResponse(base.run.id, pendingSecond, true)
+    const final = await appRollResponse(base, pendingSecond)
     const entropy = vi.spyOn(crypto, 'getRandomValues')
     try {
       await expect(
@@ -1345,18 +1386,20 @@ describe('native public turn active-effect journeys', () => {
     await expect(
       base.other.caller.action(internal.encounters.commandActions.execute, final)
     ).rejects.toThrow()
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, {
-        command: {
-          ...final.command,
-          commandId: crypto.randomUUID(),
-          resolution: {
-            kind: 'ENTER_DICE',
-            requestId: crypto.randomUUID(),
-            rawFaces: [1]
-          }
+    const wrongRequest: EncounterExecuteInput = {
+      command: {
+        ...final.command,
+        commandId: crypto.randomUUID(),
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: crypto.randomUUID(),
+          rawFaces: [1],
+          rollMode: 'NORMAL'
         }
-      })
+      }
+    }
+    await expect(
+      base.owner.caller.action(internal.encounters.commandActions.execute, wrongRequest)
     ).rejects.toThrow()
     expect(await stored(base)).toEqual(before)
     const actorRow = before.actors[0]!

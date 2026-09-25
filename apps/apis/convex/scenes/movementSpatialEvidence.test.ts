@@ -8,10 +8,15 @@ import type {
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  setupAutomaticSceneMovement,
+  useMovementReactions
+} from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
+import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
+import { api } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
 import { readResponse } from './movementResolutionDocuments'
@@ -133,7 +138,8 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   request = await stage(value, pending, {
     kind: 'ENTER_DICE',
     requestId: pending.request.requestId,
-    rawFaces: [1]
+    rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+    rollMode: pending.request.rollMode
   })
   published = await publish(value, request)
   pending = published.result.occurrence?.pending
@@ -142,7 +148,8 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   request = await stage(value, pending, {
     kind: 'ENTER_DICE',
     requestId: pending.request.requestId,
-    rawFaces: [1]
+    rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+    rollMode: pending.request.rollMode
   })
   published = await publish(value, request)
   pending = published.result.occurrence?.pending
@@ -210,7 +217,8 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   request = await stage(value, pending, {
     kind: 'ENTER_DICE',
     requestId: pending.request.requestId,
-    rawFaces: [1]
+    rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+    rollMode: pending.request.rollMode
   })
   published = await publish(value, request)
   pending = published.result.occurrence?.pending
@@ -242,17 +250,43 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   pending = published.result.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected suffix SPATIAL_EVIDENCE after the reaction boundary.')
+  // App rolls post to the table roll log, which needs a username.
+  await value.owner.caller.mutation(api.account.updateProfile, {
+    username: 'MovementGm',
+    bio: null
+  })
   const beforeSystemRoll = random.mock.calls.length
+  // "Roll dice" rolls the save once on the server; the response only settles with that app roll.
+  const appRoll = await value.owner.caller.mutation(executeEncounterCommand, {
+    command: {
+      type: 'ROLL_RULE_EVIDENCE',
+      encounterId: value.base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      requestId: pending.request.requestId,
+      rollMode: null
+    }
+  })
+  if (!appRoll.evidenceRoll) throw new Error('Expected the recorded suffix save roll.')
+  expect(appRoll.evidenceRoll).toMatchObject({
+    rollMode: pending.request.rollMode,
+    derivedRollMode: pending.request.rollMode
+  })
+  const rolled = beforeSystemRoll + appRoll.evidenceRoll.faces.length
+  expect(random).toHaveBeenCalledTimes(rolled)
   request = await stage(value, pending, {
     kind: 'SYSTEM_ROLL',
-    requestId: pending.request.requestId
+    requestId: pending.request.requestId,
+    rollId: appRoll.evidenceRoll.rollId
   })
-  expect(random).toHaveBeenCalledTimes(beforeSystemRoll)
+  expect(random).toHaveBeenCalledTimes(rolled)
   await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
   const beforePrepare = await mechanics(value)
   const beforeEffects = await effects(value)
   const prepared = await value.owner.caller.mutation(prepare, request)
-  expect(random).toHaveBeenCalledTimes(beforeSystemRoll + 1)
+  expect(random).toHaveBeenCalledTimes(rolled)
   expect(await mechanics(value)).toEqual(beforePrepare)
   expect(await effects(value)).toEqual(beforeEffects)
   const rollbackGeometry = {
@@ -271,12 +305,12 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
       throw new Error('Rollback prepared movement response.')
     })
   ).rejects.toThrow('Rollback prepared movement response.')
-  expect(random).toHaveBeenCalledTimes(beforeSystemRoll + 1)
+  expect(random).toHaveBeenCalledTimes(rolled)
   expect(await mechanics(value)).toEqual(beforePrepare)
   expect(await effects(value)).toEqual(beforeEffects)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   const completed = await value.owner.caller.mutation(finish, request)
-  expect(random).toHaveBeenCalledTimes(beforeSystemRoll + 1)
+  expect(random).toHaveBeenCalledTimes(rolled)
   expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(prefix.id)
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(suffix.id)
@@ -295,7 +329,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   expect(await mechanics(value)).toEqual(complete)
 }, 30_000)
 
-it('retains automatic spatial executions across reactions before one suffix save roll', async () => {
+it('retains spatial executions across used automatic reactions before one suffix save roll', async () => {
   const value = await setupAutomaticSceneMovement({
     reactorPositions: [150, 150],
     path: [
@@ -314,9 +348,11 @@ it('retains automatic spatial executions across reactions before one suffix save
     targetActorId: value.base.mover.id
   })
   const random = vi.spyOn(rollRandom, 'nextRollInt')
+  // Assisted play offers both authored automatic reactions as Use/Decline; the GM uses each.
+  const { request } = await useMovementReactions(value)
   const before = await mechanics(value)
   const beforeEffects = await effects(value)
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await value.owner.caller.mutation(prepare, request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL' || prepared.outcome.result.status !== 'BATCH_COMPLETE')
     throw new Error('Expected retained automatic spatial terminal.')
@@ -333,12 +369,12 @@ it('retains automatic spatial executions across reactions before one suffix save
   expect(preparedRolls).toBeGreaterThan(0)
   expect(await mechanics(value)).toEqual(before)
   expect(await effects(value)).toEqual(beforeEffects)
-  const first = await value.owner.caller.mutation(finish, value.request)
+  const first = await value.owner.caller.mutation(finish, request)
   expect(random).toHaveBeenCalledTimes(preparedRolls)
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(prefix.id)
   expect((await effects(value)).map((entry) => entry.id)).not.toContain(suffix.id)
   const complete = await mechanics(value)
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
     ...first,
     replayed: true
   })

@@ -157,9 +157,6 @@ describe('native Encounter Run creation', () => {
       expect(checksumCanonicalJson(state)).toBe(row.stateChecksum)
       expect(checksumCanonicalJson(result)).toBe(row.projectionChecksum)
       expect(state.sides).toHaveLength(2)
-      expect(state.sideRelationships[0]?.relationshipKind).toBe('HOSTILE')
-      const relationship = state.sideRelationships[0]!
-      expect(relationship.firstSideId < relationship.secondSideId).toBe(true)
       const actors = await ctx.db
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', result.id))

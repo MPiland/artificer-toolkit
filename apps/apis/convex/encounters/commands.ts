@@ -69,15 +69,17 @@ import {
   serializeStagedInitiativeRoundState
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { healthBand } from '@artificer-toolkit/rules-runtime/encounterProjection'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { planEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { matchesNativeTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { dnd5eInitiativeFactAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import type { Doc } from '../_generated/dataModel'
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
-import { requireInitiativeDeclarationController } from './initiativeDeclarationAuthority'
+import { requireTurnResponseController } from './turnResponseAuthority'
+import {
+  requireEncounterActorControl,
+  requireEncounterActorControllerCandidates
+} from './actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
@@ -121,6 +123,12 @@ import {
   compileEncounterInitiativeDeclaration
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationCompiler'
 import { rejectDomain } from '../lib/domainRejections'
+import { presentEncounterResultForMember } from './resultPresentation'
+import { readEncounterSettledAppRoll, rollEncounterRuleEvidence } from './evidenceRolls'
+import {
+  resolveEncounterIntegerAnswer,
+  withEncounterAppRoll
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 
 const executeEncounterCharacterCommand = makeFunctionReference<
   'mutation',
@@ -150,37 +158,6 @@ function requireFeatureChargeLedger(resources: unknown): void {
     )
   )
     throw new Error('Encounter feature resource state is invalid.')
-}
-
-async function redactDeclarationCommandResult(input: {
-  ctx: Parameters<typeof readCampaignAssignedCharacter>[0]
-  campaign: Parameters<typeof readCampaignAssignedCharacter>[1]
-  membership: Parameters<typeof readCampaignAssignedCharacter>[2]
-  state: Parameters<typeof readRunActor>[1]
-  result: EncounterCommandResultDto
-}): Promise<EncounterCommandResultDto> {
-  if (input.membership.role === 'OWNER') return input.result
-  const assigned = await readCampaignAssignedCharacter(input.ctx, input.campaign, input.membership)
-  const pending = input.result.occurrence?.pending
-  const actor =
-    pending?.kind === 'INITIATIVE_DECLARATION'
-      ? await readRunActor(input.ctx, input.state, pending.actorId)
-      : null
-  return encounterCommandResultDtoSchema.parse({
-    ...input.result,
-    projection: projectPlayerEncounterProjection(
-      encounterGmProjectionDtoSchema.parse(input.result.projection)
-    ),
-    occurrence: input.result.occurrence && {
-      ...input.result.occurrence,
-      pending:
-        pending?.kind === 'INITIATIVE_DECLARATION' &&
-        actor?.kind === 'CHARACTER' &&
-        actor.sourceId === assigned?.id
-          ? pending
-          : null
-    }
-  })
 }
 
 export const execute = internalMutation({
@@ -221,6 +198,8 @@ export const execute = internalMutation({
       }
       return executeNativeEncounterAction(ctx, command, userId)
     }
+    if (command.type === 'ROLL_RULE_EVIDENCE')
+      return rollEncounterRuleEvidence(ctx, command, userId)
     if (command.type === 'REMOVE_ACTOR') return removeEncounterActor(ctx, command, userId)
     if (command.type === 'REORDER') return reorderEncounterActors(ctx, command, userId)
     if (command.type === 'REINFORCE') return reinforceEncounterActors(ctx, command, userId)
@@ -323,7 +302,14 @@ export const execute = internalMutation({
                         : {}),
                       ...(!('sideId' in command) || command.sideId === undefined
                         ? {}
-                        : { sideId: command.sideId.toLowerCase() })
+                        : { sideId: command.sideId.toLowerCase() }),
+                      ...(command.type === 'UPDATE_ACTOR' && command.controllerUserIds
+                        ? {
+                            controllerUserIds: command.controllerUserIds
+                              .map((userId) => userId.toLowerCase())
+                              .sort()
+                          }
+                        : {})
                     }
     const row = await ctx.db
       .query('encounterRuns')
@@ -340,26 +326,33 @@ export const execute = internalMutation({
       if (occurrenceOwner === 'CONCENTRATION') return resumeNativeConcentration(ctx, input, userId)
       if (occurrenceOwner === 'CLEAVING') return resumeNativeCleaving(ctx, input, userId)
     }
-    if (membership.role !== 'OWNER') {
-      if (
-        input.type !== 'RESOLVE_RULE_OCCURRENCE' ||
-        input.resolution.kind !== 'INITIATIVE_DECLARATION'
-      )
-        throw new Error('Campaign not found.')
+    // Action evidence resumes authorize the member against the evidence's roller themselves.
+    if (input.type === 'RESOLVE_RULE_OCCURRENCE' && occurrenceOwner === 'ACTION') {
+      if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
+      return resumeNativeEncounterAction(ctx, input, row, userId)
     }
+    // Players may end their own actor's turn and answer its turn decisions (initiative
+    // declaration, turn-effect saves; a completed occurrence classifies as OTHER), checked by
+    // `requireTurnResponseController` below; the rest is the GM's.
+    if (
+      membership.role !== 'OWNER' &&
+      input.type !== 'ADVANCE_TURN' &&
+      (input.type !== 'RESOLVE_RULE_OCCURRENCE' || occurrenceOwner === 'MOVEMENT')
+    )
+      throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     if (row.gameSystemId !== campaign.gameSystemId)
       throw new Error('Encounter does not match the Campaign Game System.')
-    if (input.type === 'RESOLVE_RULE_OCCURRENCE' && occurrenceOwner === 'ACTION')
-      return resumeNativeEncounterAction(ctx, input, row, userId)
     const { fingerprint: commandFingerprint, result: replayResult } =
-      await readNativeEncounterCommandReplay(ctx, { input, row, campaign })
-    if (replayResult) return replayResult
+      await readNativeEncounterCommandReplay(ctx, { input, row, campaign, userId })
+    if (replayResult)
+      return presentEncounterResultForMember(ctx, { campaign, membership, result: replayResult })
     const { state, projection, actorIds } = readNativeEncounterCommandState(row)
     const pendingRoot = await readNativeTurnCommandPending(ctx, {
       input,
       row,
       campaign,
+      userId,
       commandFingerprint,
       projection
     })
@@ -377,7 +370,11 @@ export const execute = internalMutation({
           occurrenceId: pendingRoot.occurrence.id,
           updatedAt: new Date().toISOString()
         })
-      return pendingRoot.result
+      return presentEncounterResultForMember(ctx, {
+        campaign,
+        membership,
+        result: pendingRoot.result
+      })
     }
     const pendingOccurrences = await ctx.db
       .query('encounterRuleOccurrences')
@@ -407,7 +404,7 @@ export const execute = internalMutation({
               )
               .unique()
           : null
-      await requireInitiativeDeclarationController(ctx, {
+      await requireTurnResponseController(ctx, {
         campaign,
         membership,
         state,
@@ -426,15 +423,11 @@ export const execute = internalMutation({
         receipt: completedReceipt
       })
       if (completedReplay)
-        return input.resolution.kind === 'INITIATIVE_DECLARATION'
-          ? redactDeclarationCommandResult({
-              ctx,
-              campaign,
-              membership,
-              state,
-              result: completedReplay
-            })
-          : completedReplay
+        return presentEncounterResultForMember(ctx, {
+          campaign,
+          membership,
+          result: completedReplay
+        })
       // A non-replayed answer to an occurrence that is no longer pending is stale.
       if (pendingOccurrence?._id !== resolvedOccurrence._id)
         rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
@@ -536,6 +529,7 @@ export const execute = internalMutation({
             commandFingerprint,
             commandType: 'START',
             initiatorUserId: userId,
+            requestedByUserId: userId,
             correlationId: null,
             expectedEncounterVersion: row.version,
             round: 1,
@@ -607,6 +601,7 @@ export const execute = internalMutation({
             commandFingerprint,
             commandType: 'START',
             initiatorUserId: userId,
+            requestedByUserId: userId,
             correlationId: null,
             expectedEncounterVersion: row.version,
             round: 1,
@@ -693,6 +688,7 @@ export const execute = internalMutation({
         rootCommandId: input.commandId,
         rootCommandFingerprint: commandFingerprint,
         rootInitiatorUserId: userId,
+        rootRequestedByUserId: userId,
         rootCorrelationId: null,
         rootExpectedEncounterVersion: row.version,
         initiative: initiativeSettlement,
@@ -773,6 +769,11 @@ export const execute = internalMutation({
           'ENCOUNTER_NOT_ACTIVE',
           'Only active Encounters with a current actor can advance.'
         )
+      await requireEncounterActorControl(ctx, {
+        campaign,
+        membership,
+        actor: await readRunActor(ctx, state, state.currentActorId)
+      })
       const initiative = createEncounterInitiativeStore(ctx)
       const normalized = await initiative.lockInitiativeRound({
         encounterId: row.id,
@@ -808,33 +809,39 @@ export const execute = internalMutation({
         version,
         updatedAt
       })
-      return settleNativeInitiativeTurn({
-        ctx,
-        encounter: row,
-        occurrenceId,
+      return presentEncounterResultForMember(ctx, {
         campaign,
-        state,
-        nextState,
-        nextProjection: encounterGmProjectionDtoSchema.parse({
-          ...projection,
-          status: nextState.status,
-          round,
-          currentActorId,
-          version,
+        membership,
+        result: await settleNativeInitiativeTurn({
+          ctx,
+          encounter: row,
+          occurrenceId,
+          campaign,
+          state,
+          nextState,
+          nextProjection: encounterGmProjectionDtoSchema.parse({
+            ...projection,
+            status: nextState.status,
+            round,
+            currentActorId,
+            version,
+            updatedAt
+          }),
+          rootCommand: input,
+          rootCommandId: input.commandId,
+          rootCommandFingerprint: commandFingerprint,
+          // Turn decisions go to the GM; the receipt records the player who ended the turn.
+          rootInitiatorUserId: campaign.ownerUserId,
+          rootRequestedByUserId: userId,
+          rootCorrelationId: null,
+          rootExpectedEncounterVersion: row.version,
+          initiative: null,
+          initiativeAdvance,
+          resolutionCommands: [],
+          occurrenceVersion: 0,
+          encounterVersion: version,
           updatedAt
-        }),
-        rootCommand: input,
-        rootCommandId: input.commandId,
-        rootCommandFingerprint: commandFingerprint,
-        rootInitiatorUserId: userId,
-        rootCorrelationId: null,
-        rootExpectedEncounterVersion: row.version,
-        initiative: null,
-        initiativeAdvance,
-        resolutionCommands: [],
-        occurrenceVersion: 0,
-        encounterVersion: version,
-        updatedAt
+        })
       })
     } else if (input.type === 'RESOLVE_RULE_OCCURRENCE') {
       if (
@@ -872,7 +879,6 @@ export const execute = internalMutation({
             history.kind === 'SYSTEM_ROLL')
         ) {
           if (
-            userId !== campaign.ownerUserId ||
             !matchesNativeTurnResponse(history, input.resolution) ||
             history.commandFingerprint !== commandFingerprint ||
             history.actorUserId !== userId ||
@@ -889,21 +895,25 @@ export const execute = internalMutation({
             occurrenceId: resolvedOccurrence.id,
             updatedAt
           })
-          return encounterCommandResultDtoSchema.parse({
-            projection,
-            roll: null,
-            resolution: null,
-            occurrence: {
-              occurrenceId: resolvedOccurrence.id,
-              occurrenceVersion: resolvedOccurrence.version,
-              status: 'PENDING',
-              outcome: null,
-              pending: projectEncounterInitiativePendingSummary({
-                pendingSnapshot: storedPendingSnapshot,
+          return presentEncounterResultForMember(ctx, {
+            campaign,
+            membership,
+            result: encounterCommandResultDtoSchema.parse({
+              projection,
+              roll: null,
+              resolution: null,
+              occurrence: {
+                occurrenceId: resolvedOccurrence.id,
                 occurrenceVersion: resolvedOccurrence.version,
-                encounterVersion: row.version
-              })
-            }
+                status: 'PENDING',
+                outcome: null,
+                pending: projectEncounterInitiativePendingSummary({
+                  pendingSnapshot: storedPendingSnapshot,
+                  occurrenceVersion: resolvedOccurrence.version,
+                  encounterVersion: row.version
+                })
+              }
+            })
           })
         }
       }
@@ -914,15 +924,20 @@ export const execute = internalMutation({
           pendingContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE') &&
         input.resolution.kind !== 'INITIATIVE_DECLARATION'
       ) {
-        return resolveNativeTurnResponse({
-          ctx,
+        return presentEncounterResultForMember(ctx, {
           campaign,
-          encounter: row,
-          occurrence: resolvedOccurrence,
-          pending: storedPendingSnapshot,
-          command: input,
-          userId,
-          updatedAt
+          membership,
+          result: await resolveNativeTurnResponse({
+            ctx,
+            campaign,
+            membership,
+            encounter: row,
+            occurrence: resolvedOccurrence,
+            pending: storedPendingSnapshot,
+            command: input,
+            userId,
+            updatedAt
+          })
         })
       }
       if (
@@ -967,11 +982,9 @@ export const execute = internalMutation({
               occurrenceId: resolvedOccurrence.id,
               updatedAt
             })
-          return redactDeclarationCommandResult({
-            ctx,
+          return presentEncounterResultForMember(ctx, {
             campaign,
             membership,
-            state,
             result: encounterCommandResultDtoSchema.parse({
               projection,
               roll: null,
@@ -1212,11 +1225,9 @@ export const execute = internalMutation({
             pendingSnapshotChecksum: checksumCanonicalJson(nextSnapshot),
             updatedAt
           })
-          return redactDeclarationCommandResult({
-            ctx,
+          return presentEncounterResultForMember(ctx, {
             campaign,
             membership,
-            state,
             result: encounterCommandResultDtoSchema.parse({
               projection,
               roll: null,
@@ -1345,11 +1356,9 @@ export const execute = internalMutation({
             version,
             updatedAt
           })
-          return redactDeclarationCommandResult({
-            ctx,
+          return presentEncounterResultForMember(ctx, {
             campaign,
             membership,
-            state,
             result: await settleNativeInitiativeTurn({
               priorTurn: {
                 outgoingTurn: root.outgoingTurn,
@@ -1371,6 +1380,7 @@ export const execute = internalMutation({
               rootCommandId: root.rootCommandId,
               rootCommandFingerprint: root.commandFingerprint,
               rootInitiatorUserId: root.initiatorUserId,
+              rootRequestedByUserId: root.requestedByUserId,
               rootCorrelationId: root.correlationId,
               rootExpectedEncounterVersion: root.expectedEncounterVersion,
               initiative: initiativeSettlement,
@@ -1409,11 +1419,9 @@ export const execute = internalMutation({
           pendingSnapshotChecksum: checksumCanonicalJson(nextSnapshot),
           updatedAt
         })
-        return redactDeclarationCommandResult({
-          ctx,
+        return presentEncounterResultForMember(ctx, {
           campaign,
           membership,
-          state,
           result: encounterCommandResultDtoSchema.parse({
             projection,
             roll: null,
@@ -1607,9 +1615,19 @@ export const execute = internalMutation({
       const value =
         resolution.kind === 'INITIATIVE_ENTITY'
           ? { selectedEntityId: resolution.entityId }
-          : resolution.kind === 'ENTER_INTEGER'
-            ? resolution.value
-            : request.min + nextRollInt(request.max - request.min + 1)
+          : resolveEncounterIntegerAnswer({
+              min: request.min,
+              max: request.max,
+              answer: withEncounterAppRoll(
+                resolution,
+                await readEncounterSettledAppRoll(ctx, {
+                  occurrence: resolvedOccurrence,
+                  response: input,
+                  userId
+                })
+              ),
+              random: nextRollInt
+            })
       const initiativeResult = await resumeEncounterInitiativeLifecycle({
         repository: staged.repository,
         runtime,
@@ -1731,6 +1749,7 @@ export const execute = internalMutation({
         rootCommandId: root.rootCommandId,
         rootCommandFingerprint: root.commandFingerprint,
         rootInitiatorUserId: root.initiatorUserId,
+        rootRequestedByUserId: root.requestedByUserId,
         rootCorrelationId: root.correlationId,
         rootExpectedEncounterVersion: root.expectedEncounterVersion,
         initiative: initiativeSettlement,
@@ -1774,6 +1793,8 @@ export const execute = internalMutation({
         throw new Error('Stored Encounter actor mismatch.')
       if (input.sideId !== undefined && !state.sides.some((side) => side.id === input.sideId))
         throw new Error('Encounter side was not found.')
+      if (input.type === 'UPDATE_ACTOR' && input.controllerUserIds !== undefined)
+        await requireEncounterActorControllerCandidates(ctx, campaign, input.controllerUserIds)
       if (
         input.type === 'UPDATE_ACTOR' &&
         actor.kind === 'CHARACTER' &&
@@ -1854,6 +1875,10 @@ export const execute = internalMutation({
               ...(input.conditions === undefined ? {} : { conditions: input.conditions }),
               ...(input.gmNotes === undefined ? {} : { gmNotes: input.gmNotes }),
               ...(input.public === undefined ? {} : { public: input.public }),
+              ...(input.controllerUserIds === undefined
+                ? {}
+                : { controllerUserIds: input.controllerUserIds }),
+              ...(input.disposition === undefined ? {} : { disposition: input.disposition }),
               ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
               updatedAt
             }

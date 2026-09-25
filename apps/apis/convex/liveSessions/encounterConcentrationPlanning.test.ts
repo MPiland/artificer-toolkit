@@ -227,6 +227,7 @@ it.each([
         parentCommandFingerprint: planned.fingerprint,
         applications,
         userId: fixture.owner.userId,
+        autoRollByActorId: { [target.id]: rolls === 'AUTO_ROLL' },
         occurredAt: planned.occurredAt
       })
       expect(native.pending).toBe(outcome === 'PENDING')

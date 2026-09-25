@@ -14,11 +14,12 @@ import { replayNativeMovementReactionAction } from '../encounters/movementReacti
 import { prepareNativeMovementConcentration } from '../encounters/movementConcentration'
 import type { MovementTarget } from '../encounters/movementTargets'
 import { createRulesRuntime } from '../rules/runtime'
-import { readAutoRollDice } from '../lib/rollPreferences'
 import type { assertMovementResolutionCurrent } from './movementResolutionDocuments'
 import { readSceneMovementReactionPerception } from './movementPerceptionValidation'
 import { evaluateSceneMovementContinuation } from './movementContinuation.helper'
 import type { SceneMovementSettlement } from './movementSettlements'
+import { readEncounterAutoRollByActorId } from '../encounters/actorController'
+import { readRunActors } from '../encounters/documents'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type Current = Awaited<ReturnType<typeof assertMovementResolutionCurrent>>
@@ -62,12 +63,16 @@ export async function evaluateSceneMovementActionResponse(
       state: current.state,
       snapshot,
       context: current.context,
-      resolution: current.command.resolution,
+      resolution: current.answer,
       occurrenceId: current.occurrence.id,
       occurrenceVersion: current.occurrence.version,
       userId: current.userId,
-      // The responding user rolls in this slice.
-      autoRoll: await readAutoRollDice(ctx, current.userId),
+      // Rolls go to each actor's controllers; the mover stays the command's initiator.
+      autoRoll: await readEncounterAutoRollByActorId(ctx, {
+        campaign: current.campaign,
+        initiatorUserId: current.root.initiatorUserId,
+        actors: await readRunActors(ctx, current.state)
+      }),
       responseCommand: input.responseCommand,
       occurredAt: input.occurredAt,
       runtime,

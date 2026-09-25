@@ -1,4 +1,3 @@
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -12,19 +11,26 @@ import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction
 import type { prepareEncounterTurnRecharge } from './encounterTurnRecharge.js'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 /** Stages the complete turn in rules order. Every pause leaves aggregate state untouched. */
 export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCharacterFacts>(
   input: {
     state: EncounterRunState
     campaign: { id: string; ownerUserId: string }
-    /** The turn-flow roller's auto-roll preference; the GM rolls every turn step in this slice. */
+    /** The GM's auto-roll preference for the GM's turn steps: initiative, Legendary Actions, Recharge. */
     autoRoll: boolean
+    /**
+     * Each actor's roller preference for its own turn-effect saves, which go to the actor's
+     * controllers (ADR 0034 decision 3).
+     */
+    autoRollByActorId: Readonly<Record<string, boolean>>
     root: TurnCoordinatorRootDto
     occurrenceId: string
     actors: EncounterRunActorState[]
     pending?: ServerRuleExecutionPendingSnapshotDto
-    resolution?: ResolveRuleOccurrenceInputDto['resolution']
+    /** The response, with an app roll's recorded faces. */
+    resolution?: EncounterResponseAnswer
     rawDie?: number
     updatedAt: string
   },
@@ -81,6 +87,9 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   }
 ) {
   const { state, campaign, autoRoll, occurrenceId, pending } = input
+  // A missing preference prompts rather than rolling for someone.
+  const effectAutoRoll = (actorId: string | null) =>
+    actorId !== null && input.autoRollByActorId[actorId] === true
   let root = input.root
   const effectContext =
     pending?.applicationContext.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
@@ -92,7 +101,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       ? await stages.effects({
           state,
           userId: campaign.ownerUserId,
-          autoRoll,
+          autoRoll: effectAutoRoll(state.currentActorId),
           root,
           occurrenceId,
           actors: input.actors,
@@ -184,7 +193,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   const incoming = await stages.effects({
     state,
     userId: campaign.ownerUserId,
-    autoRoll,
+    autoRoll: effectAutoRoll(root.proposedTerminalTransition.currentActorId),
     root,
     occurrenceId,
     actors: recharge.actors,

@@ -7,7 +7,8 @@ import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campai
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import { CharacterSheetRollReveal } from '#app/domains/characters/sheet/dice/CharacterSheetRollReveal'
-import { blindRollLabel, formatRollEvidence } from '#app/domains/characters/sheet/dice/dice.utils'
+import { formatRollEvidence } from '#app/components/dice/dice.utils'
+import { blindRollLabel } from '#app/domains/characters/sheet/dice/dice.utils'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
 

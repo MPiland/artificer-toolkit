@@ -14,7 +14,10 @@ import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/pro
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
+import {
+  createSpatialPreparationFixture,
+  grantFixtureActorControl
+} from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { internal } from '../_generated/api'
 import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
@@ -76,6 +79,12 @@ async function setup(
       sceneId: base.sceneId,
       tokenId
     })
+    // The moving player controls the bound actor; its Scene token control no longer applies.
+    await grantFixtureActorControl(ctx, {
+      encounterId: base.run.id,
+      actorId: base.run.actors[0]!.id,
+      controllerUserIds: [base.owner.userId]
+    })
     for (const token of sceneTokens) {
       const row = await ctx.db
         .query('sceneDefinitionEntities')
@@ -113,7 +122,7 @@ async function setup(
     executionCommandId: input.commandId,
     occurredAt: new Date().toISOString(),
     // The initiating owner keeps the default auto-roll preference.
-    autoRoll: true,
+    autoRoll: { [base.run.actors[0]!.id]: true },
     root: {
       commandId: input.commandId,
       commandFingerprint: checksumCanonicalJson(input),

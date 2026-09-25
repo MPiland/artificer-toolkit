@@ -58,7 +58,7 @@ function testInput(input: PreparedSaveAction, autoRoll: boolean) {
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
     binding: input.prepared.prepared.binding,
-    autoRoll,
+    autoRoll: { SOURCE: autoRoll, TARGET: autoRoll },
     afterTest: async () => undefined
   }
 }
@@ -129,7 +129,7 @@ it('pauses and resumes only OUTCOME evidence after an assisted TEST boundary', a
       ...input,
       resume: {
         pending,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: pending.continuation.request.requestId }
+        resolution: { kind: 'AUTO_ROLL', requestId: pending.continuation.request.requestId }
       },
       random: () => 0
     })

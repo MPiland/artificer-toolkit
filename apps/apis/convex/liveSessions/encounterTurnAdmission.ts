@@ -31,8 +31,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { readNativeTurnResponseReplay } from '../encounters/turnResponseReplay'
 import { requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
-import { requireInitiativeDeclarationController } from '../encounters/initiativeDeclarationAuthority'
+import { requireTurnResponseController } from '../encounters/turnResponseAuthority'
 import { rejectDomain } from '../lib/domainRejections'
+import {
+  readEncounterControlledActorIds,
+  requireEncounterActorControl
+} from '../encounters/actorController'
+import { readRunActor, readRunActors } from '../encounters/documents'
 
 /** Raw authorization and replay proof; turn rules are evaluated by the Session DO. */
 export async function readLiveEncounterTurnAdmission(
@@ -51,13 +56,13 @@ export async function readLiveEncounterTurnAdmission(
   const { userId } = await requireIdentity(ctx)
   if (
     userId !== scope.expectedUserId ||
-    (scope.expectedRole !== 'OWNER' &&
-      (input.type !== 'RESOLVE_RULE_OCCURRENCE' ||
-        input.resolution.kind !== 'INITIATIVE_DECLARATION')) ||
+    // Players end their own actor's turn and answer its turn decisions, checked below.
+    (scope.expectedRole !== 'OWNER' && input.type === 'START') ||
     scope.concentrationResponse ||
     scope.movement ||
-    (scope.turnResponse &&
-      checksumCanonicalJson(scope.turnResponse) !== checksumCanonicalJson(input)) ||
+    scope.action ||
+    (scope.turnCommand &&
+      checksumCanonicalJson(scope.turnCommand) !== checksumCanonicalJson(input)) ||
     input.encounterId !== scope.encounterId ||
     input.expectedVersion !== scope.expectedVersion
   )
@@ -80,7 +85,8 @@ export async function readLiveEncounterTurnAdmission(
   const { fingerprint, result } = await readNativeEncounterCommandReplay(ctx, {
     input,
     row,
-    campaign
+    campaign,
+    userId
   })
   const { state, projection } = readNativeEncounterCommandState(row)
   if (result && input.type !== 'RESOLVE_RULE_OCCURRENCE')
@@ -88,6 +94,7 @@ export async function readLiveEncounterTurnAdmission(
       input,
       row,
       campaign,
+      membership,
       state,
       projection,
       fingerprint,
@@ -112,7 +119,7 @@ export async function readLiveEncounterTurnAdmission(
             )
             .unique()
         : null
-    await requireInitiativeDeclarationController(ctx, {
+    await requireTurnResponseController(ctx, {
       campaign,
       membership,
       state,
@@ -135,6 +142,7 @@ export async function readLiveEncounterTurnAdmission(
         input,
         row,
         campaign,
+        membership,
         state,
         projection,
         fingerprint,
@@ -269,6 +277,7 @@ export async function readLiveEncounterTurnAdmission(
         input,
         row,
         campaign,
+        membership,
         state,
         projection,
         fingerprint,
@@ -283,6 +292,11 @@ export async function readLiveEncounterTurnAdmission(
       command: input,
       userId,
       ownerUserId: campaign.ownerUserId,
+      responderControlledActorIds: await readEncounterControlledActorIds(ctx, {
+        campaign,
+        membership,
+        actors: await readRunActors(ctx, state)
+      }),
       occurrence,
       encounterVersion: row.version
     })
@@ -299,6 +313,7 @@ export async function readLiveEncounterTurnAdmission(
       input,
       row,
       campaign,
+      membership,
       state,
       projection,
       fingerprint,
@@ -312,6 +327,7 @@ export async function readLiveEncounterTurnAdmission(
     input,
     row,
     campaign,
+    userId,
     commandFingerprint: fingerprint,
     projection
   })
@@ -320,6 +336,7 @@ export async function readLiveEncounterTurnAdmission(
       input,
       row,
       campaign,
+      membership,
       state,
       projection,
       fingerprint,
@@ -349,12 +366,24 @@ export async function readLiveEncounterTurnAdmission(
       )
       .first()
     if (active) rejectDomain('ACTIVE_ENCOUNTER_EXISTS')
-  } else if (state.status !== 'ACTIVE' || state.currentActorId === null)
-    rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Only active Encounters with a current actor can advance.')
+  } else {
+    if (state.status !== 'ACTIVE' || state.currentActorId === null)
+      rejectDomain(
+        'ENCOUNTER_NOT_ACTIVE',
+        'Only active Encounters with a current actor can advance.'
+      )
+    // A player ends only the turn of an actor they control; the GM can end any turn.
+    await requireEncounterActorControl(ctx, {
+      campaign,
+      membership,
+      actor: await readRunActor(ctx, state, state.currentActorId)
+    })
+  }
   return {
     input,
     row,
     campaign,
+    membership,
     state,
     projection,
     fingerprint,

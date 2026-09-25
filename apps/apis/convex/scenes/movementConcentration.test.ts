@@ -10,10 +10,6 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type {
-  SceneSessionVisionCaptureInput,
-  SceneSessionVisionScope
-} from '@artificer-toolkit/schema/api/sceneSessionVision'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -27,6 +23,10 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import {
+  refreshMovementSaveVision,
+  useMovementReactions
+} from '../../tests/fixtures/automaticSceneMovement'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
@@ -40,7 +40,6 @@ import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
-import { commitPreparedSpatialTerminal } from './spatialCommit.helper'
 import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
 import { readResponse } from './movementResolutionDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
@@ -71,11 +70,6 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-const capture = makeFunctionReference<
-  'query',
-  SceneSessionVisionCaptureInput,
-  SceneSessionVisionScope
->('scenes/sessionVision:capture')
 const pendingOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -140,21 +134,6 @@ async function installConcentration(
     target,
     character
   })
-}
-
-async function refreshSceneVision(value: MovementFixture) {
-  const save = await value.base.t.run((ctx) =>
-    ctx.db
-      .query('sceneGeometrySaves')
-      .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
-      .unique()
-  )
-  if (!save?.sessionVision)
-    throw new Error('Movement Concentration vision snapshot is unavailable.')
-  const { freshness: ignoredFreshness, ...input } = save.sessionVision
-  void ignoredFreshness
-  const vision = await value.owner.caller.query(capture, input)
-  await value.base.t.run((ctx) => ctx.db.patch(save._id, { sessionVision: vision }))
 }
 
 async function seedMovingSpatialEffect(
@@ -231,7 +210,7 @@ async function records(value: MovementFixture) {
   }))
 }
 
-it('settles an Automatic reaction Concentration check once with its damage receipt', async () => {
+it('settles a used automatic reaction Concentration check once with its damage receipt', async () => {
   const random = vi.mocked(rollRandom.nextRollInt)
   random.mockReset()
   random.mockReturnValueOnce(14).mockReturnValue(0)
@@ -239,18 +218,19 @@ it('settles an Automatic reaction Concentration check once with its damage recei
     features: [concentrationAdvantageFeature]
   })
   const seeded = await installConcentration(value)
-  await refreshSceneVision(value)
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+  await refreshMovementSaveVision(value)
+  const { request, responseCommandId, geometry } = await useMovementReactions(value)
   const before = await records(value)
   if (!before.character) throw new Error('Concentrating Character is unavailable.')
 
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await value.owner.caller.mutation(prepare, request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected Automatic terminal movement.')
   const reaction = prepared.outcome.result.reactionExecutions[0]
   const concentration = reaction?.concentrationChecks?.[0]
   if (!reaction || !concentration) throw new Error('Expected the reaction Concentration child.')
-  expect(concentration.sourceCommandId).toBe(value.rootInput.commandId)
+  // The Use response continues the movement and sources its mechanics.
+  expect(concentration.sourceCommandId).toBe(responseCommandId)
   expect(concentration.result.applicationOutputs).toMatchObject({
     parentOccurrenceId: prepared.outcome.result.occurrenceId,
     application: { targetActorId: value.base.mover.id },
@@ -269,24 +249,29 @@ it('settles an Automatic reaction Concentration check once with its damage recei
 
   await expect(
     value.owner.caller.run(async (ctx) => {
-      await commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry, value.request)
+      await commitPreparedMovementResponse(
+        ctx,
+        request,
+        await readResponse(ctx, request.saveId, geometry)
+      )
       throw new Error('Rollback movement Concentration publication.')
     })
   ).rejects.toThrow('Rollback movement Concentration publication.')
   expect(await records(value)).toEqual(before)
 
-  const published = await value.owner.caller.mutation(finish, value.request)
+  const published = await value.owner.caller.mutation(finish, request)
   const after = await records(value)
   expect(random).toHaveBeenCalledTimes(3)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
   expect(after.character?.streamVersion).toBe(before.character.streamVersion + 2)
-  const receipt = after.receipts.find((entry) => entry.commandId === value.rootInput.commandId)
+  // The Use response continues the paused movement, so its receipt holds the terminal result.
+  const receipt = after.receipts.find((entry) => entry.commandId === responseCommandId)
   if (!receipt) throw new Error('Movement Concentration receipt is unavailable.')
   expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))).toEqual(
     prepared.outcome.result
   )
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
     ...published,
     replayed: true
   })
@@ -307,11 +292,11 @@ it('consumes a moving one-shot effect once across a Concentration pause and late
     value.additionalCharacter
   )
   const effect = await seedMovingSpatialEffect(value, { activation: 'ONE_SHOT', hidden: false })
-  await refreshSceneVision(value)
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+  await refreshMovementSaveVision(value)
+  const { request, geometry } = await useMovementReactions(value)
   const before = await records(value)
 
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await value.owner.caller.mutation(prepare, request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (
     prepared.outcome.kind !== 'TERMINAL' ||
@@ -345,20 +330,24 @@ it('consumes a moving one-shot effect once across a Concentration pause and late
 
   await expect(
     value.owner.caller.run(async (ctx) => {
-      await commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry, value.request)
+      await commitPreparedMovementResponse(
+        ctx,
+        request,
+        await readResponse(ctx, request.saveId, geometry)
+      )
       throw new Error('Rollback shared one-shot movement publication.')
     })
   ).rejects.toThrow('Rollback shared one-shot movement publication.')
   expect(await records(value)).toEqual(before)
 
-  const published = await value.owner.caller.mutation(finish, value.request)
+  const published = await value.owner.caller.mutation(finish, request)
   const after = await records(value)
   expect(after.spatialEffects).toEqual([])
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.allCharacterEffects.map((entry) => entry.id)).not.toContain(seeded.dependent.id)
   expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(published)).not.toContain('frozenGraph')
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
     ...published,
     replayed: true
   })
@@ -378,10 +367,11 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
     value.additionalCharacter
   )
   const effect = await seedMovingSpatialEffect(value, { activation: 'REPEATABLE', hidden: true })
-  await refreshSceneVision(value)
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+  await refreshMovementSaveVision(value)
+  const hidden = await records(value)
+  const { request } = await useMovementReactions(value)
 
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await value.owner.caller.mutation(prepare, request)
   if (
     prepared.outcome.kind !== 'TERMINAL' ||
     prepared.outcome.result.status !== 'BATCH_COMPLETE' ||
@@ -393,21 +383,21 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
       (execution) => execution.candidate.candidate.effectId === effect.id
     )
   ).toHaveLength(2)
-  const before = await records(value)
-  const published = await value.owner.caller.mutation(finish, value.request)
+  const published = await value.owner.caller.mutation(finish, request)
   const after = await records(value)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
+  // The first crossing, before the reactions paused the movement, revealed the effect once.
   expect(after.spatialEffects).toMatchObject([
     { id: effect.id, version: effect.version + 1, spatialState: { revealed: true } }
   ])
   expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(published)).not.toContain('frozenGraph')
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
     ...published,
     replayed: true
   })
   expect(await records(value)).toEqual(after)
-  expect(before.spatialEffects).toMatchObject([
+  expect(hidden.spatialEffects).toMatchObject([
     { id: effect.id, spatialState: { revealed: false } }
   ])
 }, 60_000)
@@ -427,11 +417,12 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     radius: 5,
     targetActorId: value.base.mover.id
   })
-  // The mover's GM rolls the Concentration check; the stationary Character's controller resumes the
-  // shared effect and rolls the later hazard.
+  // Each roll pauses for its actor's controller: the stationary Character's Concentration check for
+  // its player, the mover's hazard save for the mover's player, and Creature dice for the GM.
   await setAutoRollDice(value.base.t, value.base.owner.userId, false)
   await setAutoRollDice(value.base.t, value.additionalPlayer.userId, false)
-  await refreshSceneVision(value)
+  await setAutoRollDice(value.base.t, value.player.userId, false)
+  await refreshMovementSaveVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
 
   const prepared = await value.owner.caller.mutation(prepare, value.request)
@@ -443,7 +434,12 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   const answer = response({
     encounterId: value.base.run.id,
     pending,
-    resolution: { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [1] }
+    resolution: {
+      kind: 'ENTER_DICE',
+      requestId: pending.request.requestId,
+      rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: pending.request.rollMode
+    }
   })
   await expect(value.player.caller.mutation(begin, answer)).rejects.toThrow('another controller')
   expect(
@@ -472,34 +468,36 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   await value.additionalPlayer.caller.mutation(prepare, request)
   const concentrationResponse = await value.additionalPlayer.caller.mutation(finish, request)
   let completed = concentrationResponse
-  let d20EvidenceCount = 0
   let sawHazardPause = false
   for (let index = 0; completed.occurrence?.status === 'PENDING'; index += 1) {
-    if (index >= 10) throw new Error('Shared-effect continuation did not settle.')
+    if (index >= 20) throw new Error('Shared-effect continuation did not settle.')
     const next =
       completed.occurrence.pending ??
       (await value.owner.caller.query(pendingOccurrence, {
         encounterId: value.base.run.id
       }))
     if (!next) throw new Error('Shared-effect continuation pending summary is unavailable.')
+    // Reactions now pause for Use and their rolls, so find the hazard save by its sealed context.
+    let respondingToHazard = false
     if (next.kind === 'D20_EVIDENCE') {
-      d20EvidenceCount += 1
-      if (d20EvidenceCount === 2) {
-        const staged = await records(value)
-        const root = staged.occurrences.find((occurrence) => occurrence.id === next.occurrenceId)
-        if (!root?.pendingSnapshotJson) throw new Error('Expected retained E/H pending snapshot.')
-        const snapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
-          JSON.parse(root.pendingSnapshotJson)
-        )
-        const context = snapshot.applicationContext
+      const staged = await records(value)
+      const root = staged.occurrences.find((occurrence) => occurrence.id === next.occurrenceId)
+      if (!root?.pendingSnapshotJson) throw new Error('Expected retained E/H pending snapshot.')
+      const snapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
+        JSON.parse(root.pendingSnapshotJson)
+      )
+      const context = snapshot.applicationContext
+      if (
+        context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+        context.phase.kind === 'SPATIAL_EVIDENCE' &&
+        context.phase.currentCandidate.effect.effectId === hazard.id
+      ) {
+        respondingToHazard = true
         if (
-          context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-          context.phase.kind !== 'SPATIAL_EVIDENCE' ||
           context.appliedSpatialPrefix?.status !== 'BATCH_COMPLETE' ||
           context.appliedSpatialPrefix.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT'
         )
           throw new Error('Expected spatial evidence after the committed E prefix.')
-        expect(context.phase.currentCandidate.effect.effectId).toBe(hazard.id)
         expect(
           context.completedSpatialExecutions.filter(
             (entry) => entry.candidate.effect.effectId === effect.id
@@ -517,7 +515,6 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
         sawHazardPause = true
       }
     }
-    const respondingToHazard = next.kind === 'D20_EVIDENCE' && d20EvidenceCount === 2
     const resolution =
       next.kind === 'MOVEMENT_REACTION'
         ? next.choice.options[0]
@@ -527,10 +524,17 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
           ? {
               kind: 'ENTER_DICE' as const,
               requestId: next.request.requestId,
-              rawFaces: [d20EvidenceCount === 2 ? 1 : 20]
+              rawFaces: Array.from({ length: next.request.rollMode === 'NORMAL' ? 1 : 2 }, () =>
+                respondingToHazard ? 1 : 20
+              ),
+              rollMode: next.request.rollMode
             }
           : next.kind === 'ACTION_OUTCOME_EVIDENCE'
-            ? { kind: 'SYSTEM_ROLL' as const, requestId: next.request.requestId }
+            ? {
+                kind: 'ENTER_INTEGER' as const,
+                requestId: next.request.requestId,
+                value: next.request.min
+              }
             : null
     if (!resolution) throw new Error('Unexpected shared-effect continuation request.')
     const staged = await value.owner.caller.mutation(
@@ -651,7 +655,7 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
     { x: 230, y: 50 },
     5
   )
-  await refreshSceneVision(value)
+  await refreshMovementSaveVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   const before = await records(value)
   const prepared = await value.owner.caller.mutation(prepare, value.request)
@@ -704,21 +708,23 @@ it.each(['native', 'private'] as const)(
     const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
     const seeded = await installConcentration(value)
     await setAutoRollDice(value.base.t, value.base.owner.userId, false)
-    await refreshSceneVision(value)
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, value.request)
-    // The System-automatic reaction fires without a choice; its dice pause as evidence.
-    const actionEvidence = (await value.owner.caller.mutation(finish, value.request)).occurrence
+    // The mover's Concentration check is its controller's roll.
+    await setAutoRollDice(value.base.t, value.player.userId, false)
+    await refreshMovementSaveVision(value)
+    // The GM uses the authored automatic reaction; its dice pause as evidence.
+    const used = await useMovementReactions(value)
+    const actionEvidence = (await value.owner.caller.mutation(finish, used.request)).occurrence
       ?.pending
     if (!actionEvidence || actionEvidence.kind !== 'D20_EVIDENCE')
-      throw new Error('Expected reaction d20 evidence without a reaction choice.')
+      throw new Error('Expected reaction d20 evidence after its Use.')
     const action = response({
       encounterId: value.base.run.id,
       pending: actionEvidence,
       resolution: {
         kind: 'ENTER_DICE',
         requestId: actionEvidence.request.requestId,
-        rawFaces: [20]
+        rawFaces: actionEvidence.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+        rollMode: actionEvidence.request.rollMode
       }
     })
     await expect(value.player.caller.mutation(begin, action)).rejects.toThrow('another controller')
@@ -726,9 +732,28 @@ it.each(['native', 'private'] as const)(
     if (!actionStarted || actionStarted.kind !== 'READY')
       throw new Error('Expected reaction evidence staging.')
     let request: Request = { ...value.request, saveId: actionStarted.saveId }
-    await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, request)
-    const pending = (await value.owner.caller.mutation(finish, request)).occurrence?.pending
+    let pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
+    for (;;) {
+      await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
+      await value.owner.caller.mutation(prepare, request)
+      pending = (await value.owner.caller.mutation(finish, request)).occurrence?.pending
+      // The GM enters the reaction's damage before its target's Concentration check.
+      if (pending?.kind !== 'ACTION_OUTCOME_EVIDENCE') break
+      const damage = await value.owner.caller.mutation(
+        begin,
+        response({
+          encounterId: value.base.run.id,
+          pending,
+          resolution: {
+            kind: 'ENTER_INTEGER',
+            requestId: pending.request.requestId,
+            value: pending.request.min
+          }
+        })
+      )
+      if (!damage || damage.kind !== 'READY') throw new Error('Expected damage evidence staging.')
+      request = { ...request, saveId: damage.saveId }
+    }
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the sealed Concentration evidence.')
     const staged = await records(value)
@@ -755,7 +780,12 @@ it.each(['native', 'private'] as const)(
     const concentration = response({
       encounterId: value.base.run.id,
       pending,
-      resolution: { kind: 'ENTER_DICE', requestId: pending.request.requestId, rawFaces: [1] }
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: pending.request.rollMode
+      }
     })
     let completed: SceneGeometryCommandResult
     let beforeFinish: Awaited<ReturnType<typeof records>>

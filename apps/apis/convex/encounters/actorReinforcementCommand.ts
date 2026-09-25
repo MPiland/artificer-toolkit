@@ -213,6 +213,8 @@ export async function reinforceEncounterActors(
     systemId: enemy.systemId,
     stableTieKey: crypto.randomUUID(),
     public: input.public,
+    controllerUserIds: [],
+    disposition: 'HOSTILE',
     currentHitPoints: enemy.maxHitPoints,
     maxHitPoints: enemy.maxHitPoints,
     tempHitPoints: 0,

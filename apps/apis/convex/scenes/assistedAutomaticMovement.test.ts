@@ -1,6 +1,9 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  PendingEncounterRuleOccurrenceSummaryDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type {
   SceneGeometryBeginResult,
   SceneGeometryCommandResult
@@ -30,6 +33,11 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
+const pendingRuleOccurrence = makeFunctionReference<
+  'query',
+  { encounterId: string },
+  PendingEncounterRuleOccurrenceSummaryDto | null
+>('encounters/pendingReads:pendingRuleOccurrence')
 
 function command(input: {
   encounterId: string
@@ -59,31 +67,75 @@ async function actorChecksums(value: Awaited<ReturnType<typeof setupReactionMove
   )
 }
 
+async function reactorChecksum(
+  value: Awaited<ReturnType<typeof setupReactionMovementScene>>,
+  reactorId: string
+) {
+  return value.base.t.run(async (ctx) => {
+    const reactor = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', value.base.run.id).eq('id', reactorId)
+      )
+      .unique()
+    if (!reactor) throw new Error('Missing reactor actor.')
+    return reactor.stateChecksum
+  })
+}
+
 it.each(['PROMPT', 'AUTO_ROLL'] as const)(
-  'fires a System-automatic reaction in Assisted mode without a controller choice (%s dice)',
+  'offers a System-automatic reaction to its controller as Use/Decline in Assisted mode, then applies it on Use (%s dice)',
   async (rolls) => {
     const base = await setupCreatureReactionRun(null, false, false, 'AUTOMATIC', 'AUTOMATIC', {
       outcomeDice: true
     })
-    // The mover initiates the movement and therefore rolls its reaction dice.
+    // The GM controls both Creatures, so it answers the choice and rolls the reaction dice.
     if (rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
     await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
     const beforePause = await actorChecksums(value)
     expect((await value.owner.caller.mutation(prepare, value.request)).outcome.kind).toBe('PENDING')
-    const initial = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+    const choice = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+    expect(await actorChecksums(value)).toEqual(beforePause)
+    if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+      throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
+    expect(choice.choice).toMatchObject({
+      reactorActorId: base.reactor.id,
+      options: [expect.objectContaining({ actionSourceKind: 'ENCOUNTER_FEATURE' })]
+    })
+    expect(choice.choice.options).toHaveLength(1)
+    // The decision is addressed to the reactor's controller (the GM), not the mover's token player.
+    expect(
+      await value.owner.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
+    ).toEqual(choice)
+    expect(
+      await value.player.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
+    ).toBeNull()
+    const use = command({
+      encounterId: base.run.id,
+      pending: choice,
+      resolution: { kind: 'OPTION', optionId: choice.choice.options[0]!.optionId }
+    })
+    await expect(value.player.caller.mutation(begin, use)).rejects.toThrow()
+    const used = await value.owner.caller.mutation(begin, use)
+    if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
+    const usedRequest = { ...value.request, saveId: used.saveId }
+    await value.owner.caller.mutation(observe, { saveId: used.saveId, characterRevisions: [] })
+    expect((await value.owner.caller.mutation(prepare, usedRequest)).outcome.kind).toBe('PENDING')
+    const initial = (await value.owner.caller.mutation(finish, usedRequest)).occurrence?.pending
     expect(await actorChecksums(value)).toEqual(beforePause)
     let resistance = initial
     if (rolls === 'PROMPT') {
       if (!initial || initial.kind !== 'D20_EVIDENCE')
-        throw new Error('Expected TEST evidence for the automatic reaction without a choice.')
+        throw new Error('Expected TEST evidence for the used automatic reaction.')
       const enterTest = command({
         encounterId: base.run.id,
         pending: initial,
         resolution: {
           kind: 'ENTER_DICE',
           requestId: initial.request.requestId,
-          rawFaces: [initial.request.min]
+          rawFaces: initial.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+          rollMode: initial.request.rollMode
         }
       })
       await expect(value.player.caller.mutation(begin, enterTest)).rejects.toThrow(
@@ -136,7 +188,11 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
         command({
           encounterId: base.run.id,
           pending: outcomeEvidence,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: outcomeEvidence.request.requestId }
+          resolution: {
+            kind: 'ENTER_INTEGER',
+            requestId: outcomeEvidence.request.requestId,
+            value: outcomeEvidence.request.min
+          }
         })
       )
       if (!staged || staged.kind !== 'READY') throw new Error('Expected OUTCOME evidence staging.')
@@ -162,3 +218,31 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
   },
   30_000
 )
+
+it('skips a declined System-automatic reaction in Assisted mode without rolling or spending it', async () => {
+  const base = await setupCreatureReactionRun(null, false, false, 'AUTOMATIC', 'AUTOMATIC', {
+    outcomeDice: true
+  })
+  const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
+  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+  const reactorBefore = await reactorChecksum(value, base.reactor.id)
+  expect((await value.owner.caller.mutation(prepare, value.request)).outcome.kind).toBe('PENDING')
+  const choice = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+  if (!choice || choice.kind !== 'MOVEMENT_REACTION')
+    throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
+  const declined = await value.owner.caller.mutation(
+    begin,
+    command({ encounterId: base.run.id, pending: choice, resolution: { kind: 'DECLINE' } })
+  )
+  if (!declined || declined.kind !== 'READY') throw new Error('Expected the Decline staging.')
+  const request = { ...value.request, saveId: declined.saveId }
+  await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
+  expect((await value.owner.caller.mutation(prepare, request)).outcome.kind).toBe('TERMINAL')
+  const complete = await value.owner.caller.mutation(finish, request)
+  expect(complete.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  expect(complete.delta).toMatchObject({
+    tokenId: value.moverTokenId,
+    position: { x: 450, y: 50 }
+  })
+  expect(await reactorChecksum(value, base.reactor.id)).toBe(reactorBefore)
+}, 30_000)

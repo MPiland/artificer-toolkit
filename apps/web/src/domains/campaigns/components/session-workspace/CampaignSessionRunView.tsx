@@ -9,7 +9,7 @@ import { CampaignSessionReferences } from '../CampaignSessionReferences'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
 import { CampaignSharedSessionNotes } from '../CampaignSessionNotes'
 import { runSessionSectionKinds } from '../campaignSessionSections.model'
-import { CampaignSessionPlayerEncounters } from './CampaignSessionPlayerEncounters'
+import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecisions'
 import { CampaignTabletopLauncher } from '../../vtt/CampaignTabletopLauncher'
 import * as styles from '../../campaignSessions.css'
 
@@ -26,7 +26,7 @@ export function CampaignSessionRunView({
     return (
       <Stack gap='lg'>
         <CampaignTabletopLauncher campaign={campaign} />
-        <CampaignSessionPlayerEncounters campaign={campaign} />
+        <CampaignPlayerEncounterDecisions campaign={campaign} />
         <CampaignFileList
           campaign={campaign}
           currentUserId={currentUserId}

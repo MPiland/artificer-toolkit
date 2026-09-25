@@ -27,6 +27,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api, components } from '../_generated/api'
 import { createEncounterSceneFixture, createRun } from '../../tests/fixtures/encounterScene'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 14 : 0)
@@ -76,12 +77,6 @@ const finishSpatialMovement = makeFunctionReference<
   SceneMovementRequest,
   SceneGeometryCommandResult
 >('scenes/geometryCommands:finish')
-const observeSpatialMovement = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
-
 async function setup() {
   const base = await createEncounterSceneFixture()
   await base.t.run(async (ctx) => {
@@ -426,24 +421,32 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
 
 async function settleNativeMovementFixture() {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
-  await value.owner.caller.mutation(observeSpatialMovement, {
-    saveId: value.saveId,
-    characterRevisions: []
-  })
-  const prepared = await value.owner.caller.mutation(prepareSpatialMovement, value.request)
+  // Assisted mode turns the authored automatic reaction into the GM's Use choice.
+  const { request } = await useMovementReactions(value)
+  const prepared = await value.owner.caller.mutation(prepareSpatialMovement, request)
   if (prepared.outcome.kind !== 'TERMINAL')
-    throw new Error('Expected automatic native movement terminal.')
-  await value.owner.caller.mutation(finishSpatialMovement, value.request)
-  const receipt = await value.base.t.run((ctx) =>
-    ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) =>
-        q.eq('encounterId', value.base.run.id).eq('commandId', value.rootInput.commandId)
-      )
-      .unique()
+    throw new Error('Expected native movement reaction terminal.')
+  await value.owner.caller.mutation(finishSpatialMovement, request)
+  // The Use response settles the movement, so its receipt, not the paused root's, is terminal.
+  const terminal = (
+    await value.base.t.run((ctx) =>
+      ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
+        .collect()
+    )
   )
-  if (!receipt) throw new Error('Missing native movement receipt.')
-  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    .map((receipt) => ({
+      receipt,
+      result: storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+    }))
+    .filter(
+      ({ result }) =>
+        result.status === 'MOVEMENT_COMPLETE' ||
+        (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
+    )
+  if (terminal.length !== 1) throw new Error('Missing native movement receipt.')
+  const { receipt, result } = terminal[0]!
   if (
     (result.status !== 'MOVEMENT_COMPLETE' &&
       (result.status !== 'BATCH_COMPLETE' || result.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')) ||

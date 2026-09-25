@@ -2,6 +2,7 @@ import { z } from '../zod.js'
 
 import { automationModeDtoSchema, manualReminderModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
+import { creatureQualifiedDamageDefenseDtoSchema } from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
@@ -39,6 +40,29 @@ export const encounterHealthBandDtoSchema = z.enum([
   'DEFEATED'
 ])
 
+/** Foundry-style token disposition; target warnings and flanking relationships compare it. */
+export const encounterActorDispositionDtoSchema = z.enum(['FRIENDLY', 'NEUTRAL', 'HOSTILE'])
+export type EncounterActorDispositionDto = z.infer<typeof encounterActorDispositionDtoSchema>
+
+export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8
+
+/**
+ * GM-granted controllers of one Run actor (ADR 0034 decision 1). A Character actor's assigned player
+ * is always a controller too; that derived control is never stored here.
+ */
+export const encounterActorControllerUserIdsDtoSchema = z
+  .array(uuidSchema)
+  .check(z.maxLength(MAX_ENCOUNTER_ACTOR_CONTROLLERS))
+  .check(
+    z.superRefine((userIds, context) => {
+      if (userIds.some((userId, index) => index > 0 && userIds[index - 1]! >= userId))
+        context.addIssue({
+          code: 'custom',
+          message: 'Actor controllers must be unique and sorted.'
+        })
+    })
+  )
+
 const encounterActorBaseDtoSchema = z.strictObject({
   id: uuidSchema,
   encounterId: uuidSchema,
@@ -47,12 +71,17 @@ const encounterActorBaseDtoSchema = z.strictObject({
   sourceId: z.nullable(postgresUuidSchema),
   sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
   public: z.boolean(),
+  controllerUserIds: encounterActorControllerUserIdsDtoSchema,
+  disposition: encounterActorDispositionDtoSchema,
   initiative: z.nullable(z.number().check(z.int())),
   manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-  conditions: jsonSchema,
-  healthBand: encounterHealthBandDtoSchema
+  conditions: jsonSchema
 })
 
+/**
+ * Players see no health for any actor by default (ADR 0034 decision 5); the Hidden, Descriptive,
+ * Bar and Exact display levels arrive with their Sheet and Encounter settings in Phase 8.3.
+ */
 export const encounterPlayerActorDtoSchema = encounterActorBaseDtoSchema
 
 export const encounterFeatureReferenceDtoSchema = z.extend(
@@ -79,6 +108,7 @@ export const encounterFeatureReferenceDtoSchema = z.extend(
 )
 
 export const encounterGmActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
+  healthBand: encounterHealthBandDtoSchema,
   systemId: z.nullable(postgresUuidSchema),
   stableTieKey: z.string().check(z.minLength(1)),
   currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
@@ -95,6 +125,8 @@ export const encounterGmActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
       damageVulnerabilities: z.array(z.string()),
       damageResistances: z.array(z.string()),
       damageImmunities: z.array(z.string()),
+      /** "From nonmagical attacks" defenses, kept apart from the unconditional ones. */
+      qualifiedDamageDefenses: z.array(creatureQualifiedDamageDefenseDtoSchema),
       conditionImmunities: z.array(z.string())
     })
   ),
@@ -167,11 +199,54 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
 
 export { encounterRuleOccurrenceSummaryDtoSchema, pendingEncounterRuleOccurrenceSummaryDtoSchema }
 
+const d20RollModeSchema = z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+
+/**
+ * One "Roll dice" attempt for a prompt row, recorded by the server and settled later only by its
+ * `rollId` (ADR 0034 decision 3). Advantage and disadvantage keep two faces; `value` is the kept one.
+ */
+export const encounterEvidenceRollDtoSchema = z
+  .strictObject({
+    rollId: uuidSchema,
+    occurrenceId: uuidSchema,
+    occurrenceVersion: versionSchema,
+    requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+    attempt: z.number().check(z.int()).check(z.positive()),
+    faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
+    value: z.number().check(z.int()),
+    /** The mode the d20 was rolled with; null for any other roll. */
+    rollMode: z.nullable(d20RollModeSchema),
+    /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
+    derivedRollMode: z.nullable(d20RollModeSchema)
+  })
+  .check(
+    z.superRefine((value, context) => {
+      if ((value.rollMode === null) !== (value.derivedRollMode === null))
+        context.addIssue({ code: 'custom', message: 'Only d20 rolls carry roll modes.' })
+      if (value.faces.length !== (value.rollMode && value.rollMode !== 'NORMAL' ? 2 : 1))
+        context.addIssue({ code: 'custom', path: ['faces'], message: 'Roll faces are invalid.' })
+    })
+  )
+export type EncounterEvidenceRollDto = z.infer<typeof encounterEvidenceRollDtoSchema>
+
+/**
+ * The recorded faces a `SYSTEM_ROLL` response settles with, read by the server from its roll id.
+ * Server-to-planner only; a client never supplies these values.
+ */
+export const encounterSettledAppRollDtoSchema = z.strictObject({
+  rollId: uuidSchema,
+  faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
+  rollMode: z.nullable(d20RollModeSchema)
+})
+export type EncounterSettledAppRollDto = z.infer<typeof encounterSettledAppRollDtoSchema>
+
 export const encounterCommandResultDtoSchema = z.strictObject({
   projection: z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema]),
   roll: z.nullable(rollRecordDtoSchema),
   resolution: z._default(z.nullable(ruleResolutionEvidenceDtoSchema), null),
-  occurrence: z._default(z.nullable(encounterRuleOccurrenceSummaryDtoSchema), null)
+  occurrence: z._default(z.nullable(encounterRuleOccurrenceSummaryDtoSchema), null),
+  /** Present only for `ROLL_RULE_EVIDENCE`: the attempt the row now shows. */
+  evidenceRoll: z._default(z.nullable(encounterEvidenceRollDtoSchema), null)
 })
 
 export const encounterTimelineResolutionSummaryDtoSchema = z.strictObject({
@@ -311,7 +386,12 @@ export const encounterProjectionDtoSchema = z.union([
 export const encounterProjectionListDtoSchema = z.array(encounterProjectionDtoSchema)
 export const encounterSessionStateDtoSchema = z.strictObject({
   encounter: z.nullable(encounterProjectionDtoSchema),
-  pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
+  pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema),
+  /**
+   * Who the table waits on when a decision is pending that this member can't answer: the GM, or
+   * another player. Null when nothing is pending or the decision is this member's own.
+   */
+  waitingOn: z.nullable(z.enum(['GM', 'PLAYER']))
 })
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>
 

@@ -4,6 +4,7 @@ import {
   type ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
+import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { CompiledDamageEffect, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type {
   ActorRelationshipAuthored,
@@ -47,7 +48,7 @@ import {
   MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
   MOVEMENT_REACTION_CHOICE_OPERATION_KEY
 } from '../../movementReactionChoice.js'
-import { isDnd5eMeleeAttackKind } from './attackKind.js'
+import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
@@ -321,13 +322,7 @@ interface TestPlan {
 
 function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
   const trigger = action.compiledEffect.invocation.triggerCode
-  const attack = [
-    'MELEE_WEAPON_ATTACK',
-    'RANGED_WEAPON_ATTACK',
-    'UNARMED_ATTACK',
-    'SPELL_ATTACK'
-  ].includes(trigger)
-  if (attack) return 'ATTACK'
+  if (dnd5eAttackKind(trigger) !== null) return 'ATTACK'
   return trigger === 'SAVING_THROW' ? 'SAVE' : null
 }
 
@@ -5833,6 +5828,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
         },
         d20RollMode: matches[0]!.rollMode,
+        d20Roller: 'TARGET',
         d20Audit: {
           contributors,
           contributorChecksum,
@@ -5850,8 +5846,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         action.attackRollMode !== 'DISADVANTAGE'
       )
         throw new Dnd5eEffectActionCompilerError('D&D attack roll mode is unavailable.')
+      // Roll-mode evidence is keyed by the modifier domain the attack reads.
+      const attackKind = attackKindSchema.safeParse(action.attackKind)
       const contributors = (
-        sourceContributorEvidence?.attacks?.[String(action.attackKind ?? 'MELEE')] ?? []
+        sourceContributorEvidence?.attacks?.[
+          attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
+        ] ?? []
       ).map(({ sourceId, grantId, domainKey, influence }) => ({
         sourceId,
         grantId,
@@ -5888,6 +5888,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
         },
         d20RollMode: rollMode,
+        d20Roller: 'SOURCE',
         d20Audit: {
           contributors: allContributors,
           contributorChecksum,
@@ -5922,6 +5923,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
         },
         d20RollMode: rollMode,
+        d20Roller: 'TARGET',
         d20Audit: {
           contributors,
           contributorChecksum,

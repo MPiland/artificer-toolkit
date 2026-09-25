@@ -21,6 +21,7 @@ import {
 import {
   organizeEncounterMovementReactionDecisions,
   movementReactionActionSourceCurrentnessChecksum,
+  sealEncounterMovementReactionChoiceGroups,
   sealEncounterMovementReactionTimeline
 } from './encounterMovementReactionDecision.js'
 import { evaluateEncounterMovementReactionContacts } from './encounterMovementReactionEvaluation.js'
@@ -101,10 +102,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
   const first = reactionTimeline[0]
   return {
     reactionTimeline,
-    firstBoundaryDistance:
-      first?.kind === 'AUTOMATIC_ACTION'
-        ? first.option.candidate.pathDistance
-        : (first?.group.pathDistance ?? null)
+    firstBoundaryDistance: first?.group.pathDistance ?? null
   }
 }
 
@@ -168,10 +166,10 @@ export async function revalidateEncounterMovementReactionOption(input: {
     lockRelationship: input.lockRelationship,
     resolvePerception: input.resolvePerception
   })
-  const sealed = sealEncounterMovementReactionTimeline(
+  const sealed = sealEncounterMovementReactionChoiceGroups(
     organizeEncounterMovementReactionDecisions(evaluated)
   )
-    .flatMap((entry) => (entry.kind === 'AUTOMATIC_ACTION' ? [entry.option] : entry.group.options))
+    .flatMap((group) => group.options)
     .find((option) => option.optionId === input.option.optionId)
   if (!sealed || checksumRuleDocument(sealed) !== checksumRuleDocument(input.option))
     throw new EncounterConflictError('The selected movement reaction is no longer eligible.')

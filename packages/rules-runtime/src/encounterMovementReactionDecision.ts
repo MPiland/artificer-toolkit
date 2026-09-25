@@ -38,9 +38,27 @@ export interface EncounterMovementReactionChoiceGroup<
   options: readonly EncounterMovementReactionChoiceOption<TSource>[]
 }
 
-type OrganizedEncounterMovementReactionDecisions = {
-  automatic: readonly EvaluatedEncounterMovementReaction<EncounterMovementReactionEvaluationSource>[]
-  choiceGroups: readonly EncounterMovementReactionChoiceGroup<EncounterMovementReactionEvaluationSource>[]
+/** The Use/Decline choice every authored reaction becomes in Assisted play. */
+export const ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID =
+  '00000000-0000-4000-8000-0000000000f0'
+
+/**
+ * Assisted play never chooses for anyone (ADR 0034 decision 2): an authored "automatic" reaction is
+ * offered to its reactor's controllers (the GM for monsters) as a Use/Decline choice.
+ */
+function assistedChoice<TSource extends MovementReactionEligibilitySource>(
+  entry: EvaluatedEncounterMovementReaction<TSource>
+): EvaluatedEncounterMovementReaction<TSource> {
+  return entry.policy.selectionPolicy === 'CHOICE'
+    ? entry
+    : {
+        ...entry,
+        policy: {
+          ...entry.policy,
+          selectionPolicy: 'CHOICE',
+          choiceDefinitionId: ASSISTED_MOVEMENT_REACTION_CHOICE_DEFINITION_ID
+        }
+      }
 }
 
 function compareEntry<TSource extends MovementReactionEligibilitySource>(
@@ -74,13 +92,11 @@ export function organizeEncounterMovementReactionDecisions<
   TSource extends MovementReactionEligibilitySource
 >(
   evaluated: readonly EvaluatedEncounterMovementReaction<TSource>[]
-): {
-  automatic: readonly EvaluatedEncounterMovementReaction<TSource>[]
-  choiceGroups: readonly EncounterMovementReactionChoiceGroup<TSource>[]
-} {
-  const eligible = evaluated.filter((entry) => entry.policy.eligible).sort(compareEntry)
-  const automatic = eligible.filter((entry) => entry.policy.selectionPolicy === 'AUTOMATIC')
-  const choiceEntries = eligible.filter((entry) => entry.policy.selectionPolicy === 'CHOICE')
+): readonly EncounterMovementReactionChoiceGroup<TSource>[] {
+  const choiceEntries = evaluated
+    .filter((entry) => entry.policy.eligible)
+    .map(assistedChoice)
+    .sort(compareEntry)
   const groups: EncounterMovementReactionChoiceGroup<TSource>[] = []
   for (const entry of choiceEntries) {
     const prior = groups.at(-1)
@@ -107,7 +123,7 @@ export function organizeEncounterMovementReactionDecisions<
       options: [option]
     })
   }
-  return { automatic, choiceGroups: groups }
+  return groups
 }
 
 export function movementReactionActionSourceCurrentnessChecksum(
@@ -184,27 +200,12 @@ function sealOption(
 }
 
 export function sealEncounterMovementReactionTimeline(
-  organized: OrganizedEncounterMovementReactionDecisions
+  choiceGroups: readonly EncounterMovementReactionChoiceGroup<EncounterMovementReactionEvaluationSource>[]
 ): MovementReactionTimelineDto {
-  const automatic = organized.automatic.map((evaluated) =>
-    sealOption({ kind: 'REACT', optionId: optionId(evaluated), evaluated })
-  )
-  const choices = sealEncounterMovementReactionChoiceGroups(organized.choiceGroups)
   return movementReactionTimelineDtoSchema.parse(
-    [
-      ...automatic.map((option) => ({ kind: 'AUTOMATIC_ACTION' as const, option })),
-      ...choices.map((group) => ({ kind: 'CONTROLLER_CHOICE' as const, group }))
-    ].sort((left, right) => {
-      const leftOption = left.kind === 'AUTOMATIC_ACTION' ? left.option : left.group.options[0]!
-      const rightOption = right.kind === 'AUTOMATIC_ACTION' ? right.option : right.group.options[0]!
-      return (
-        leftOption.candidate.pathDistance - rightOption.candidate.pathDistance ||
-        leftOption.candidate.reactorActorId.localeCompare(rightOption.candidate.reactorActorId) ||
-        leftOption.candidate.reactorTokenId.localeCompare(rightOption.candidate.reactorTokenId) ||
-        (left.kind === 'AUTOMATIC_ACTION' ? 0 : 1) - (right.kind === 'AUTOMATIC_ACTION' ? 0 : 1) ||
-        leftOption.actionId.localeCompare(rightOption.actionId) ||
-        leftOption.optionId.localeCompare(rightOption.optionId)
-      )
-    })
+    sealEncounterMovementReactionChoiceGroups(choiceGroups).map((group) => ({
+      kind: 'CONTROLLER_CHOICE' as const,
+      group
+    }))
   )
 }

@@ -229,6 +229,7 @@ export function VttLoadFixture() {
         updateCount += 1
         scene = moveLoadFixtureScene(scene, updateCount)
         renderer.update({
+          boundTokenControl: new Map(),
           currentUserId: vttLoadFixtureUserId,
           mapDelivery: vttLoadFixtureMapDelivery,
           mode: 'PLAY',
@@ -447,6 +448,7 @@ function ownerUpdate(
   tool: 'MEASURE' | 'SELECT'
 ): Parameters<VttSceneRenderer['update']>[0] {
   return {
+    boundTokenControl: new Map(),
     currentUserId: vttLoadFixtureUserId,
     mapDelivery: vttLoadFixtureMapDelivery,
     mode: 'PLAY',

@@ -25,6 +25,7 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
+import { isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
@@ -268,7 +269,7 @@ export async function prepareEncounterActionMechanics<
             attackKind,
             itemMechanics: source.effectivePolicyOutput.itemMechanics
           })
-        : { magical: attackKind === 'SPELL', silvered: false, adamantine: false }
+        : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   const contributors = await input.loadRelationshipFacts({
     state,
     actors,

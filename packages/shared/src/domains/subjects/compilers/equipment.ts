@@ -60,7 +60,6 @@ export interface ResolvedEquipmentVariantInherited {
   modifiers?: BaseEquipmentAuthored['modifiers']
   maxStack?: BaseEquipmentAuthored['maxStack']
   rarityId: BaseEquipmentAuthored['rarityId']
-  maxBonus?: BaseEquipmentAuthored['maxBonus']
   armorClass?: BaseEquipmentAuthored['armorClass']
   contains?: BaseEquipmentAuthored['contains']
   features?: BaseEquipmentAuthored['features']
@@ -99,7 +98,6 @@ export type CompiledEquipmentBase = {
   modifiers?: CompiledModifierGrant[]
   maxStack?: number
   rarityId: string
-  maxBonus?: number
   armorClass?: number
   contains?: CompiledContainsAuthored[]
   features?: CompiledFeature[]
@@ -172,7 +170,6 @@ function compileEquipmentBase(
     effects,
     features,
     rarityId: authored.rarityId,
-    maxBonus: authored.maxBonus,
     maxStack: 'maxStack' in authored ? authored.maxStack : undefined,
     armorClass: 'armorClass' in authored ? authored.armorClass : undefined,
     contains: 'contains' in authored ? authored.contains : undefined,
@@ -224,7 +221,6 @@ export function resolveEquipmentAuthored(
     modifiers: mergeOrderedValues(resolvedParent.modifiers, authored.modifiers),
     maxStack: resolvedParent.maxStack,
     rarityId: authored.rarityId,
-    maxBonus: authored.maxBonus ?? resolvedParent.maxBonus,
     armorClass: resolvedParent.armorClass,
     contains: resolvedParent.contains,
     features: mergeOrderedValues(resolvedParent.features, authored.features),
@@ -255,7 +251,6 @@ export function resolveEquipmentAuthored(
         modifiers: resolvedParent.modifiers,
         maxStack: resolvedParent.maxStack,
         rarityId: resolvedParent.rarityId,
-        maxBonus: resolvedParent.maxBonus,
         armorClass: resolvedParent.armorClass,
         contains: resolvedParent.contains,
         features: resolvedParent.features,

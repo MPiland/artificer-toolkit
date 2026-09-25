@@ -1,6 +1,5 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
   type EncounterCommandResultDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -26,10 +25,9 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import type { MutationCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterAutoRollByActorId, readEncounterControlledActorIds } from './actorController'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { projectNativeGm } from './nativeProjection'
@@ -56,6 +54,7 @@ import { nativeCleavingCandidates } from './cleavingFacts'
 import { insertNativeCleavingChoice } from './actionChildPersistence'
 import { verifyNativeCleavingParentChain } from './cleavingParent'
 import { rejectDomain } from '../lib/domainRejections'
+import { presentEncounterResultForMember } from './resultPresentation'
 
 /** Called after resource consumption and Run publication, inside the same native mutation. */
 export async function persistNativeCleavingAfterAction(
@@ -210,11 +209,8 @@ export async function resumeNativeCleaving(
   const { campaign, membership } = await requireCampaignAuthority(ctx, state.campaignId, userId)
   if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Cleaving Campaign is stale.')
-  const assigned =
-    membership.role === 'PLAYER'
-      ? await readCampaignAssignedCharacter(ctx, campaign, membership)
-      : null
   const actors = await readRunActors(ctx, state)
+  const controlled = await readEncounterControlledActorIds(ctx, { campaign, membership, actors })
   const fingerprint = checksumCanonicalJson(response)
   const prior = await ctx.db
     .query('encounterRunCommands')
@@ -245,8 +241,7 @@ export async function resumeNativeCleaving(
     const source = actors.find((actor) => actor.id === sourceId)
     if (
       !source ||
-      (membership.role !== 'OWNER' &&
-        (source.kind !== 'CHARACTER' || source.sourceId !== assigned?.id)) ||
+      !controlled.has(source.id) ||
       prior.actorUserId !== userId ||
       evidence.actorUserId !== userId ||
       prior.commandType !== response.type ||
@@ -274,15 +269,7 @@ export async function resumeNativeCleaving(
       checksumCanonicalJson(metadata.response) !== checksumCanonicalJson(response.resolution)
     )
       throw new Error('Stored Cleaving response receipt mismatch.')
-    return encounterCommandResultDtoSchema.parse({
-      ...result,
-      projection:
-        membership.role === 'OWNER'
-          ? result.projection
-          : projectPlayerEncounterProjection(
-              encounterGmProjectionDtoSchema.parse(result.projection)
-            )
-    })
+    return presentEncounterResultForMember(ctx, { campaign, membership, result })
   }
   const pending = readNativeCleavingPending(occurrence)
   if (
@@ -300,7 +287,7 @@ export async function resumeNativeCleaving(
     !sourceActor ||
     (sourceActor.kind === 'CHARACTER' ? sourceActor.sourceId : null) !==
       context.sourceControllerCharacterId ||
-    (membership.role !== 'OWNER' && context.sourceControllerCharacterId !== assigned?.id)
+    !controlled.has(sourceActor.id)
   )
     throw new Error('Cleaving choice is unavailable.')
   await requireUnusedEvidenceCommandId(ctx, campaign.id, response.commandId)
@@ -440,7 +427,12 @@ export async function resumeNativeCleaving(
         [{ targetActorId: target.actor.id, applications: mechanics.receiptApplications }],
         true
       ),
-      userId,
+      userId: campaign.ownerUserId,
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign,
+        initiatorUserId: userId,
+        actors: nextActors
+      }),
       occurredAt: now
     })
     nextActors = concentration.actors
@@ -588,9 +580,9 @@ export async function resumeNativeCleaving(
     })
     if (child) await insertNativeCleavingChoice(ctx, nextState, child, now)
   }
-  return encounterCommandResultDtoSchema.parse({
-    ...result,
-    projection:
-      membership.role === 'OWNER' ? projection : projectPlayerEncounterProjection(projection)
+  return presentEncounterResultForMember(ctx, {
+    campaign,
+    membership,
+    result: encounterCommandResultDtoSchema.parse({ ...result, projection })
   })
 }

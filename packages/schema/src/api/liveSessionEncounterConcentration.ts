@@ -12,7 +12,11 @@ import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activ
 
 /** A completed admitted concentration check and its next sealed decision, never document patches. */
 export const liveSessionEncounterConcentrationCommitInputSchema = z.extend(
-  z.omit(liveSessionEncounterRulesInputSchema, { request: true, movement: true }),
+  z.omit(liveSessionEncounterRulesInputSchema, {
+    request: true,
+    action: true,
+    movement: true
+  }),
   {
     concentrationResponse: resolveRuleOccurrenceInputDtoSchema,
     revisions: liveSessionRulesRevisionsSchema,

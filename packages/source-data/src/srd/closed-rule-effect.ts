@@ -28,7 +28,8 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
     case TRIGGER.MELEE_WEAPON_ATTACK:
     case TRIGGER.UNARMED_ATTACK:
     case TRIGGER.RANGED_WEAPON_ATTACK:
-    case TRIGGER.SPELL_ATTACK:
+    case TRIGGER.MELEE_SPELL_ATTACK:
+    case TRIGGER.RANGED_SPELL_ATTACK:
       return PATH_CODE.ON_HIT
     case TRIGGER.SAVING_THROW:
       return PATH_CODE.ON_SAVE_FAIL

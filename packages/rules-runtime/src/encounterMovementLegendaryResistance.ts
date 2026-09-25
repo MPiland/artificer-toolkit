@@ -52,7 +52,7 @@ export async function reconstructNativeMovementResistanceTest(input: {
     adapter: input.prepared.prepared.adapter,
     binding: input.prepared.prepared.binding,
     plan: input.prepared.executionPlan,
-    autoRoll: false,
+    autoRoll: { SOURCE: false, TARGET: false },
     afterTest: async () => undefined,
     random: () => {
       throw new Error('Retained TEST evidence must not roll again.')
@@ -68,7 +68,8 @@ export async function reconstructNativeMovementResistanceTest(input: {
       resolution: {
         kind: 'ENTER_DICE',
         requestId: input.d20.requestId,
-        rawFaces: input.d20.rawFaces
+        rawFaces: input.d20.rawFaces,
+        rollMode: input.d20.rollMode
       }
     }
   })

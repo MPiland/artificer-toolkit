@@ -9,6 +9,7 @@ import {
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { CampaignTabletopDecisionDrawer } from '../vtt/CampaignTabletopDecisionDrawer'
+import { getEncounterLatestEvidenceRoll } from '#app/data/campaigns/encounterActions'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function CampaignEncounterDecision({
@@ -34,6 +35,7 @@ export function CampaignEncounterDecision({
     select: (occurrence) =>
       occurrence === null ? null : pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(occurrence)
   })
+  const latestRoll = useQuery(getEncounterLatestEvidenceRoll(pending.data ? encounter.id : null))
   const resolve = useMutation({
     mutationFn: sendCommand,
     onSuccess: (result) => {
@@ -50,6 +52,7 @@ export function CampaignEncounterDecision({
       canVoid={canVoid}
       connected={connected}
       encounter={encounter}
+      latestRoll={latestRoll.data ?? null}
       pending={pending.data}
       submitting={resolve.isPending}
       onResolve={resolve.mutateAsync}

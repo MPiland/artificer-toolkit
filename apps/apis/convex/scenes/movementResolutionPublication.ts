@@ -21,7 +21,7 @@ import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/enc
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterControlledActorIds } from '../encounters/actorController'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors, readRunProjection, readRunState } from '../encounters/documents'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
@@ -209,15 +209,6 @@ async function projectCurrentOccurrence(
   if (!run || occurrence.campaignId !== input.campaign.id || run.campaignId !== input.campaign.id)
     throw new Error('Movement response Encounter scope is inconsistent.')
   const state = readRunState(run)
-  const assigned =
-    input.membership.role === 'PLAYER'
-      ? await readCampaignAssignedCharacter(ctx, input.campaign, input.membership)
-      : null
-  const assignedActorId = assigned
-    ? ((await readRunActors(ctx, state)).find(
-        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === assigned.id
-      )?.id ?? null)
-    : null
   const pendingSnapshot = occurrence.pendingSnapshotJson
     ? serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(occurrence.pendingSnapshotJson))
     : null
@@ -230,9 +221,11 @@ async function projectCurrentOccurrence(
     },
     state.version,
     {
-      membershipRole: input.membership.role,
-      assignedCharacterId: assigned?.id ?? null,
-      assignedActorId
+      controlledActorIds: await readEncounterControlledActorIds(ctx, {
+        campaign: input.campaign,
+        membership: input.membership,
+        actors: await readRunActors(ctx, state)
+      })
     }
   )
 }
@@ -451,13 +444,11 @@ export async function publishMovementResponse(
       },
       version,
       {
-        membershipRole: input.membership.role,
-        assignedCharacterId: current.assigned?.id ?? null,
-        assignedActorId: current.assigned
-          ? ((await readRunActors(ctx, current.state)).find(
-              (actor) => actor.kind === 'CHARACTER' && actor.sourceId === current.assigned?.id
-            )?.id ?? null)
-          : null
+        controlledActorIds: await readEncounterControlledActorIds(ctx, {
+          campaign: input.campaign,
+          membership: input.membership,
+          actors: await readRunActors(ctx, current.state)
+        })
       }
     )
     const ownerOccurrence = projectEncounterSpatialOccurrenceSummary(
@@ -468,7 +459,7 @@ export async function publishMovementResponse(
         pendingSnapshot: snapshot
       },
       version,
-      { membershipRole: 'OWNER', assignedCharacterId: null }
+      { controlledActorIds: new Set(current.state.actorIds) }
     )
     const payload = storedRuleExecutionResultDtoSchema.parse({
       status: 'ENCOUNTER_OCCURRENCE_PENDING',

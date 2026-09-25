@@ -1,5 +1,6 @@
 import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   liveSessionJoinOptionsDtoSchema,
   liveSessionTicketClaimsDtoSchema
@@ -9,10 +10,7 @@ import {
   sceneSessionVisionFreshnessSchema
 } from './sceneSessionVision.js'
 import { sceneLiveStateHeaderSchema } from './sceneLiveState.js'
-import {
-  campaignSceneStateDtoSchema,
-  campaignScenePresentationDtoSchema
-} from './vttScenes.js'
+import { campaignSceneStateDtoSchema, campaignScenePresentationDtoSchema } from './vttScenes.js'
 
 const uuidSchema = z.string().check(z.uuid())
 const membershipEpochSchema = z.iso.datetime({ offset: true })
@@ -44,6 +42,14 @@ export const liveSessionTransientCaptureSchema = z.strictObject({
   recipients: z.array(liveSessionTransientMemberSchema).check(z.maxLength(10_000)),
   sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
   sceneEncounterBound: z.boolean(),
+  /**
+   * For a player origin on an Encounter-bound Scene: each Encounter-bound token and whether the
+   * origin controls its bound actor. Bound tokens follow actor control, never the Scene token's
+   * `controlledByUserIds` (ADR 0034). Empty for the GM and for unbound Scenes.
+   */
+  originBoundTokenControl: z
+    .array(z.strictObject({ tokenId: uuidSchema, controlled: z.boolean() }))
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   sceneSnapshot: z.optional(z.nullable(campaignSceneStateDtoSchema)),
   visionFreshness: z.nullable(sceneSessionVisionFreshnessSchema)
 })

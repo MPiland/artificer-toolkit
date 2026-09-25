@@ -33,7 +33,11 @@ import {
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  closedRuleEffect,
+  MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -417,6 +421,34 @@ export const bard: ClassAuthored = {
         properties: ['LIGHT'],
         category: 'ARMOR',
         order: 0
+      },
+      // One skill of your choice
+      {
+        id: classRowId(BD, 99, 5),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.SKILL,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+        scalingKind: SCALING.NONE,
+        count: 1,
+        selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        skillIds: SRD_SKILLS.map((skill) => skill.id),
+        order: 1
+      },
+      // One musical instrument of your choice
+      {
+        id: classRowId(BD, 99, 6),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+        scalingKind: SCALING.NONE,
+        count: 1,
+        selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        equipmentIds: MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES.map(equipmentId),
+        order: 2
       }
     ]
   },
@@ -698,6 +730,32 @@ export const bard: ClassAuthored = {
         skillId('SURVIVAL')
       ],
       order: 3
+    },
+    // Weapons: hand crossbows, longswords, rapiers, shortswords
+    {
+      id: classRowId(BD, 2, 5),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: [34, 22, 26, 28].map(equipmentId),
+      order: 4
+    },
+    // Tools: three musical instruments of your choice
+    {
+      id: classRowId(BD, 2, 6),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      scalingKind: SCALING.NONE,
+      count: 3,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      equipmentIds: MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES.map(equipmentId),
+      order: 5
     }
   ],
 

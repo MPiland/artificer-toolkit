@@ -190,6 +190,7 @@ function recurringSaveBatchResult(outcome: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'): 
   execution.d20 = {
     requestId: 'recurring-save-d20',
     rollMode: 'NORMAL',
+    derivedRollMode: 'NORMAL',
     rawFaces: [12],
     selectedNatural: 12,
     contributors,
@@ -302,6 +303,7 @@ function turnPendingContext() {
       commandFingerprint: 'f'.repeat(64),
       commandType: 'START' as const,
       initiatorUserId: turnBatchIds.character,
+      requestedByUserId: turnBatchIds.character,
       correlationId: null,
       expectedEncounterVersion: 3,
       proposedTerminalTransition: {
@@ -655,6 +657,7 @@ describe('rules runtime contracts', () => {
           testRollEvidence: {
             requestId: 'test-roll',
             rollMode: 'NORMAL',
+            derivedRollMode: 'NORMAL',
             rawFaces: [12],
             selectedNatural: 12
           }
@@ -684,6 +687,7 @@ describe('rules runtime contracts', () => {
       requestNodeId: nestedOutcomeD20.requestNodeId,
       requestId: 'nested-save-request',
       rollMode: nestedOutcomeD20.rollMode,
+      derivedRollMode: nestedOutcomeD20.rollMode,
       rawFaces: [3, 17],
       selectedNatural: 17,
       contributors: nestedContributors,
@@ -706,6 +710,7 @@ describe('rules runtime contracts', () => {
         testRollEvidence: {
           requestId: 'test-roll',
           rollMode: 'NORMAL' as const,
+          derivedRollMode: 'NORMAL' as const,
           rawFaces: [12],
           selectedNatural: 12
         },
@@ -838,6 +843,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [12],
           selectedNatural: 12,
           modifier: 3,
@@ -899,6 +905,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [12],
           selectedNatural: 12,
           modifier: 3,
@@ -928,6 +935,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [2],
           selectedNatural: 2,
           modifier: 3,
@@ -1246,6 +1254,7 @@ describe('rules runtime contracts', () => {
     const evidence = {
       requestId: 'ordinary-d20-request',
       rollMode: 'ADVANTAGE' as const,
+      derivedRollMode: 'ADVANTAGE' as const,
       rawFaces: [3, 17],
       selectedNatural: 17,
       contributors,
@@ -1256,7 +1265,18 @@ describe('rules runtime contracts', () => {
       resultPath: 'ON_HIT'
     }
     expect(serverRuleExecutionD20EvidenceDtoSchema.parse(evidence)).toMatchObject(evidence)
+    // The roller may override the derived mode; faces follow the chosen mode.
+    expect(
+      serverRuleExecutionD20EvidenceDtoSchema.parse({
+        ...evidence,
+        rollMode: 'NORMAL',
+        rawFaces: [3],
+        selectedNatural: 3,
+        total: 7
+      })
+    ).toMatchObject({ rollMode: 'NORMAL', derivedRollMode: 'ADVANTAGE' })
     for (const invalid of [
+      { ...evidence, derivedRollMode: undefined },
       { ...evidence, rawFaces: [17] },
       { ...evidence, selectedNatural: 3 },
       { ...evidence, total: 22 },
@@ -1573,6 +1593,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 14,
           contributors: [],
@@ -1586,6 +1607,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'ADVANTAGE',
+          derivedRollMode: 'ADVANTAGE',
           rawFaces: [14],
           selectedNatural: 14,
           contributors: [],
@@ -1599,6 +1621,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 13,
           contributors: [],
@@ -1612,6 +1635,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'wrong-request',
           rollMode: 'NORMAL',
+          derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 14,
           contributors: [],

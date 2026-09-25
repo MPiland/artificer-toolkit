@@ -93,6 +93,7 @@ export const directActionTwoPhaseDtoSchema = z
         .strictObject({
           requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
           rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+          derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
           rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
           selectedNatural: pendingD20FaceSchema
         })

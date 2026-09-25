@@ -81,6 +81,17 @@ function evidenceCommand(
   })
 }
 
+// An app roll as the server hands it to the rules: the faces it recorded for the roll id.
+function appRoll(requestId: string, face: number) {
+  return {
+    kind: 'SYSTEM_ROLL' as const,
+    requestId,
+    rollId: crypto.randomUUID(),
+    faces: [face],
+    rollMode: 'NORMAL' as const
+  }
+}
+
 describe('native movement passage execution', () => {
   it('executes a canonical automatic option and replays the completion without writes', async () => {
     const base = await issued()
@@ -100,7 +111,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand,
         userId: base.owner.userId,
-        autoRoll: true,
+        autoRoll: { [base.actor.id]: true, [base.blockerId]: true },
         targets
       }).then((result) => ({
         kind: result.kind,
@@ -129,7 +140,7 @@ describe('native movement passage execution', () => {
           resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
           responseCommand,
           userId: base.owner.userId,
-          autoRoll: true,
+          autoRoll: { [base.actor.id]: true, [base.blockerId]: true },
           targets,
           retained: { receipt: result.receipt! }
         })
@@ -159,7 +170,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand: optionCommand(base.owner.userId, option.optionId),
         userId: base.owner.userId,
-        autoRoll: false,
+        autoRoll: {},
         targets
       })
     })
@@ -173,6 +184,7 @@ describe('native movement passage execution', () => {
       1
     )
     expect(systemCommand).not.toHaveProperty('rawFaces')
+    const initiatorAppRoll = appRoll(first.snapshot.request.requestId, 12)
     const second = await base.owner.caller.run(async (ctx) => {
       const targets = await loadMovementTargets(ctx, {
         encounterId: state.id,
@@ -182,10 +194,10 @@ describe('native movement passage execution', () => {
       return evaluateNativeMovementPassageContest(ctx, {
         state,
         snapshot: first.snapshot,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
+        resolution: initiatorAppRoll,
         responseCommand: systemCommand,
         userId: base.owner.userId,
-        autoRoll: false,
+        autoRoll: {},
         targets
       })
     })
@@ -205,10 +217,10 @@ describe('native movement passage execution', () => {
         return await evaluateNativeMovementPassageContest(ctx, {
           state,
           snapshot: first.snapshot,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
+          resolution: initiatorAppRoll,
           responseCommand: systemCommand,
           userId: base.owner.userId,
-          autoRoll: false,
+          autoRoll: {},
           targets,
           retained: { snapshot: second.snapshot }
         })
@@ -231,15 +243,15 @@ describe('native movement passage execution', () => {
         return evaluateNativeMovementPassageContest(ctx, {
           state,
           snapshot: first.snapshot,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: first.snapshot.request.requestId },
+          resolution: initiatorAppRoll,
           responseCommand: systemCommand,
           userId: base.owner.userId,
-          autoRoll: false,
+          autoRoll: {},
           targets,
           retained: { snapshot: extraPendingSnapshot }
         })
       })
-    ).rejects.toThrow('unused d20 faces')
+    ).rejects.toThrow('pending evidence is stale')
     const enterCommand = evidenceCommand(
       base.owner.userId,
       'ENTER_DICE',
@@ -258,11 +270,12 @@ describe('native movement passage execution', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: second.snapshot.request.requestId,
-          rawFaces: [10]
+          rawFaces: [10],
+          rollMode: 'NORMAL'
         },
         responseCommand: enterCommand,
         userId: base.owner.userId,
-        autoRoll: false,
+        autoRoll: {},
         targets
       }).then((value) => ({
         kind: value.kind,
@@ -283,11 +296,12 @@ describe('native movement passage execution', () => {
         resolution: {
           kind: 'ENTER_DICE',
           requestId: second.snapshot.request.requestId,
-          rawFaces: [10]
+          rawFaces: [10],
+          rollMode: 'NORMAL'
         },
         responseCommand: enterCommand,
         userId: base.owner.userId,
-        autoRoll: false,
+        autoRoll: {},
         targets,
         retained: { receipt: entered.receipt! }
       }).then((value) => ({
@@ -302,6 +316,7 @@ describe('native movement passage execution', () => {
       second.snapshot.request.requestId,
       2
     )
+    const defenderAppRoll = appRoll(second.snapshot.request.requestId, 8)
     const systemCompleted = await base.owner.caller.run(async (ctx) => {
       const targets = await loadMovementTargets(ctx, {
         encounterId: state.id,
@@ -311,10 +326,10 @@ describe('native movement passage execution', () => {
       return evaluateNativeMovementPassageContest(ctx, {
         state,
         snapshot: second.snapshot,
-        resolution: { kind: 'SYSTEM_ROLL', requestId: second.snapshot.request.requestId },
+        resolution: defenderAppRoll,
         responseCommand: defenderSystemCommand,
         userId: base.owner.userId,
-        autoRoll: false,
+        autoRoll: {},
         targets
       }).then((value) => ({
         kind: value.kind,
@@ -336,10 +351,10 @@ describe('native movement passage execution', () => {
         return await evaluateNativeMovementPassageContest(ctx, {
           state,
           snapshot: second.snapshot,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: second.snapshot.request.requestId },
+          resolution: defenderAppRoll,
           responseCommand: defenderSystemCommand,
           userId: base.owner.userId,
-          autoRoll: false,
+          autoRoll: {},
           targets,
           retained: { receipt: systemCompleted.receipt! }
         }).then((value) => ({
@@ -368,11 +383,12 @@ describe('native movement passage execution', () => {
           resolution: {
             kind: 'ENTER_DICE',
             requestId: second.snapshot.request.requestId,
-            rawFaces: [10]
+            rawFaces: [10],
+            rollMode: 'NORMAL'
           },
           responseCommand: enterCommand,
           userId: base.owner.userId,
-          autoRoll: false,
+          autoRoll: {},
           targets,
           retained: { receipt: forged }
         })
@@ -398,7 +414,7 @@ describe('native movement passage execution', () => {
         resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
         responseCommand,
         userId: base.owner.userId,
-        autoRoll: true,
+        autoRoll: { [base.actor.id]: true, [base.blockerId]: true },
         targets
       })
     })
@@ -442,7 +458,7 @@ describe('native movement passage execution', () => {
             resolution: { kind: 'PASSAGE_OPTION', optionId: option.optionId },
             responseCommand,
             userId: base.owner.userId,
-            autoRoll: true,
+            autoRoll: { [base.actor.id]: true, [base.blockerId]: true },
             targets,
             retained: { receipt }
           })

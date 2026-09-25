@@ -273,7 +273,7 @@ export const barbedDevil: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            triggerCode: S.TRIGGER.RANGED_SPELL_ATTACK,
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1

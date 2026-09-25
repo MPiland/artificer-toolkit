@@ -69,15 +69,6 @@ export const encounterRunStateSchema = z.extend(
           sortOrder: z.number().check(z.int()).check(z.nonnegative())
         })
       )
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-    sideRelationships: z
-      .array(
-        z.strictObject({
-          firstSideId: postgresUuidSchema,
-          secondSideId: postgresUuidSchema,
-          relationshipKind: z.enum(['ALLIED', 'NEUTRAL', 'HOSTILE'])
-        })
-      )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   }
 )

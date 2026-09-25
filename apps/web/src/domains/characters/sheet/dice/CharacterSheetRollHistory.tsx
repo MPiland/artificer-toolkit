@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { getRollHistory, useClearRollHistoryMutation } from '#app/data/rolls'
 import { CharacterSheetRollReveal } from './CharacterSheetRollReveal'
-import { blindRollLabel, formatRollEvidence } from './dice.utils'
+import { formatRollEvidence } from '#app/components/dice/dice.utils'
+import { blindRollLabel } from './dice.utils'
 import * as diceStyles from './dice.css'
 
 export function CharacterSheetRollHistory({
