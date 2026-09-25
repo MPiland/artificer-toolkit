@@ -178,6 +178,7 @@ export async function prepareNativeLiveMovement(
       prepareMechanics: (mechanics) =>
         prepareEncounterActionMechanics({
           ...mechanics,
+          overridable: false,
           loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
           loadRelationshipFacts: async (relationship) =>
             lockedRelationshipActionFacts({

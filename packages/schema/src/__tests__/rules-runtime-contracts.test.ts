@@ -374,6 +374,7 @@ function maintainedCharacterReceipt() {
   const maintenanceDefinitionId = '00000000-0000-4000-8000-000000000303'
   return {
     kind: 'CHARACTER_MECHANICS_BATCH' as const,
+    actionEconomyTransition: null,
     schemaVersion: 1 as const,
     occurrenceId: turnBatchIds.occurrence,
     sourceActorId: turnBatchIds.actor,
@@ -439,6 +440,7 @@ function encounterActorActiveEffectReceipt() {
   }
   return {
     kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+    actionEconomyTransition: null,
     schemaVersion: 1 as const,
     occurrenceId: turnBatchIds.occurrence,
     sourceActorId: turnBatchIds.actor,
@@ -1733,6 +1735,7 @@ describe('rules runtime contracts', () => {
     }
     const envelope = (application: Record<string, unknown>, after: typeof before) => ({
       kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
       sourceActorId: turnBatchIds.actor,
@@ -2025,6 +2028,31 @@ describe('rules runtime contracts', () => {
     ).toMatchObject({ sourceCharacterStreamVersion: 4 })
   })
 
+  it('records one action allowance use, including an overridden use past its maximum', () => {
+    const transition = {
+      definitionId: turnBatchIds.source,
+      definitionVersion: 1,
+      definitionChecksum: 'a'.repeat(64),
+      maximum: 1,
+      beforeUsed: 1,
+      afterUsed: 2
+    }
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...encounterActorActiveEffectReceipt(),
+        actionEconomyTransition: transition
+      })
+    ).toMatchObject({ actionEconomyTransition: transition })
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.safeParse({
+        ...encounterActorActiveEffectReceipt(),
+        actionEconomyTransition: { ...transition, afterUsed: 3 }
+      }).success
+    ).toBe(false)
+    const { actionEconomyTransition: _omitted, ...missing } = encounterActorActiveEffectReceipt()
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(missing).success).toBe(false)
+  })
+
   it('binds maintained Encounter actor effect creation and preserves legacy receipt shapes', () => {
     const legacy = serverRuleExecutionApplicationOutputsDtoSchema.parse(
       encounterActorActiveEffectReceipt()
@@ -2177,6 +2205,7 @@ describe('rules runtime contracts', () => {
 
     expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      actionEconomyTransition: null,
       maintenanceTransition: {
         characterOwnerTransitions: [
           {
@@ -2230,6 +2259,7 @@ describe('rules runtime contracts', () => {
   it('records only exact, non-overlapping Encounter Feature resource consumption', () => {
     const receipt = {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
       sourceActorId: turnBatchIds.actor,
@@ -2319,6 +2349,7 @@ describe('rules runtime contracts', () => {
     }
     const receipt = {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: turnBatchIds.occurrence,
       sourceActorId: turnBatchIds.actor,

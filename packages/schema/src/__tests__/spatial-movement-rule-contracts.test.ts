@@ -361,6 +361,7 @@ function reactionExecution(
     execution: completedExecution().execution,
     application: {
       kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: ids.occurrence,
       sourceActorId: ids.actorTwo,
@@ -474,6 +475,7 @@ function encounterActorResourceReaction(): ReturnType<
     },
     application: {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
       schemaVersion: 1 as const,
       occurrenceId: ids.occurrence,
       sourceActorId: ids.actorTwo,

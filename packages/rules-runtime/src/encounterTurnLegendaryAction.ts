@@ -271,6 +271,7 @@ export async function prepareTurnLegendaryActions<
           sourceCharacterStreamVersion: null,
           resourceConsumption: null,
           featureResourceConsumption: plan.featureResourceReceipt,
+          actionEconomyTransition: null,
           d20: execution.d20,
           nestedD20: null,
           targetTransition: plan.mechanics.targetTransition,

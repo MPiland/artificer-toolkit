@@ -589,6 +589,15 @@ status 422; every other failure keeps the redacted 409 text. The room forwards i
 rejection carries `reason: null` and a generic message, so Convex internals never reach clients.
 Integrity checks and authorization gates stay plain errors.
 
+Rule warnings (current, ADR 0034 decision 2) are the one rejection with a payload: reason
+`RULE_WARNINGS` is a discriminated variant of `domainRejectionErrorDataSchema` that also carries
+`warnings: [{ code, message }]` (`packages/schema/src/shared/encounterRuleWarnings.ts`), and
+`COMMAND_REJECTED` carries them in `warnings` (`null` for every other rejection). The DO action
+planner raises the same data itself as a `LiveSessionDomainRejectionError`, so both RESOLVE_ACTION
+paths reach the client identically. The web action drawer shows the warnings and resends the command
+with `acknowledgedWarnings` when the user chooses "Do it anyway". `REVERT_LAST_ACTION` routes
+`NATIVE`; its refusals use reason `REVERT_UNAVAILABLE` with a message naming what changed.
+
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their
 `sceneGeometrySaves`, in self-rescheduling batches of 64. Replay by command ID and owner undo

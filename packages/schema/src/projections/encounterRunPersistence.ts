@@ -2,6 +2,7 @@ import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
+import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots.
 export const encounterStoredRunSchema = z.strictObject({
@@ -80,19 +81,27 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
     ])
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
-    commandType: z.enum([
-      'START',
-      'ADVANCE_TURN',
-      'MOVE_SCENE_TOKEN',
-      'RESOLVE_ACTION',
-      'RESOLVE_RULE_OCCURRENCE'
-    ]),
+    commandType: z.enum(['START', 'ADVANCE_TURN', 'MOVE_SCENE_TOKEN', 'RESOLVE_RULE_OCCURRENCE']),
     ruleOccurrenceId: postgresUuidSchema,
     ruleResultChecksum: projectionChecksumSchema,
     optionalCombatSnapshotChecksum: projectionChecksumSchema
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
+    commandType: z.literal('RESOLVE_ACTION'),
+    ruleOccurrenceId: postgresUuidSchema,
+    ruleResultChecksum: projectionChecksumSchema,
+    optionalCombatSnapshotChecksum: projectionChecksumSchema,
+    /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
+    ruleOverrides: encounterRuleWarningsDtoSchema
+  }),
+  z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('VOID_RULE_OCCURRENCE'),
+    ruleOccurrenceId: postgresUuidSchema
+  }),
+  z.extend(encounterStoredRunCommandResultSchema, {
+    commandType: z.literal('REVERT_LAST_ACTION'),
+    /** The undone RESOLVE_ACTION root command and its occurrence. */
+    revertedCommandId: postgresUuidSchema,
     ruleOccurrenceId: postgresUuidSchema
   }),
   z.extend(encounterStoredRunCommandResultSchema, {

@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
@@ -273,6 +275,7 @@ async function enemyBitesHero(fixture: Fixture, from: CommandResult) {
     ...base,
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     expectedVersion,
     actorId: fixture.enemy.id,
     targetActorId: fixture.hero.id,
@@ -357,6 +360,7 @@ describe('Encounter reads of live Character state', () => {
             commandId,
             type: 'RESOLVE_ACTION',
             acceptedWieldConflict: null,
+            acknowledgedWarnings: [],
             expectedVersion,
             actorId: fixture.enemy.id,
             targetActorId: fixture.hero.id,
@@ -392,6 +396,7 @@ describe('Encounter reads of live Character state', () => {
             ...base,
             type: 'RESOLVE_ACTION',
             acceptedWieldConflict: null,
+            acknowledgedWarnings: [],
             expectedVersion,
             actorId: fixture.hero.id,
             targetActorId: fixture.enemy.id,
@@ -528,5 +533,62 @@ describe('Encounter reads of live Character state', () => {
     } finally {
       random.mockRestore()
     }
+  }, 60000)
+})
+
+async function revertRejection(fixture: Fixture, expectedVersion: number) {
+  const error = await execute(fixture, (base) => ({
+    ...base,
+    type: 'REVERT_LAST_ACTION',
+    expectedVersion
+  })).then(
+    () => null,
+    (caught: unknown) => caught
+  )
+  if (!(error instanceof ConvexError)) throw new Error('Expected a domain rejection.')
+  return domainRejectionErrorDataSchema.parse(error.data)
+}
+
+describe('GM undo against live Character state', () => {
+  it('restores a Character the action damaged, then refuses once its Sheet changes', async () => {
+    const fixture = await setup()
+    const started = await start(fixture)
+    const before = await storedCharacter(fixture)
+    const bitten = await enemyBitesHero(fixture, started)
+    expect((await storedCharacter(fixture)).state.hitpoints.current).toBe(
+      before.state.hitpoints.current - 1
+    )
+    await expect(
+      fixture.player.caller.mutation(internal.encounters.commands.execute, {
+        command: {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: fixture.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: bitten.projection.version
+        }
+      })
+    ).rejects.toThrow('Campaign not found')
+    const undone = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: bitten.projection.version
+    }))
+    expect(undone.projection.version).toBe(bitten.projection.version + 1)
+    const restored = (await storedCharacter(fixture)).state.hitpoints
+    expect(restored.current).toBe(before.state.hitpoints.current)
+    expect(restored.temp ?? 0).toBe(before.state.hitpoints.temp ?? 0)
+    expect(projectedHero(fixture, undone).currentHitPoints).toBe(before.state.hitpoints.current)
+
+    const again = await enemyBitesHero(fixture, undone)
+    await sheetCommand(fixture, (base) => ({
+      ...base,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'HEAL',
+      amount: 1
+    }))
+    expect(await revertRejection(fixture, again.projection.version)).toMatchObject({
+      reason: 'REVERT_UNAVAILABLE',
+      message: `${fixture.character.label}'s Sheet changed after this action; adjust manually.`
+    })
   }, 60000)
 })

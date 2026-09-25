@@ -104,6 +104,7 @@ function command(input: {
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: input.encounterId,
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion,

@@ -145,6 +145,7 @@ export async function verifyEncounterActionTransactions({
     command: {
       type: 'RESOLVE_ACTION',
       acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
       encounterId: fixture.run.id,
       commandId,
       expectedVersion: fixture.run.version,
@@ -266,6 +267,7 @@ export async function verifyEncounterActionTransactions({
     command: {
       type: 'RESOLVE_ACTION',
       acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
       encounterId: winnerCommand.encounterId,
       commandId: winnerCommand.commandId,
       expectedVersion: winnerCommand.expectedVersion,

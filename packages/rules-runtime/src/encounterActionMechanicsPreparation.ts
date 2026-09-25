@@ -87,6 +87,8 @@ export async function prepareEncounterActionMechanics<
   actors: readonly EncounterRunActorState[]
   actionId: string
   wieldConflictAcceptance: EncounterWieldConflictAcceptance
+  /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
+  overridable: boolean
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
@@ -183,7 +185,8 @@ export async function prepareEncounterActionMechanics<
             resourceUsage: characterFacts.sheetState.resourceUsage,
             characterId: source.characterId,
             expectedStreamVersion: source.characterStreamVersion,
-            automationMode: state.automationMode
+            automationMode: state.automationMode,
+            overridable: input.overridable
           })
         })()
       : null
@@ -231,9 +234,24 @@ export async function prepareEncounterActionMechanics<
       featureResource.used !== featureUsed ||
       featureResource.rawUsed !== featureUsed ||
       featureResource.remaining !== featureResource.maximum - featureResource.used ||
-      featureResource.remaining < resourceUse.cost)
+      (!input.overridable && featureResource.remaining < resourceUse.cost))
   )
     throw new Error('The selected Encounter feature action resource is unavailable.')
+  // "Do it anyway" spends only the charges that remain; the warning records the shortfall.
+  const featureSpent = resourceUse
+    ? Math.min(resourceUse.cost, Math.max(0, featureResource?.remaining ?? 0))
+    : 0
+  const ruleWarnings = [
+    ...(characterActionState?.ruleWarnings ?? []),
+    ...(resourceUse && featureSpent < resourceUse.cost
+      ? [
+          {
+            code: 'RESOURCE_UNAVAILABLE' as const,
+            message: `Not enough charges left: needs ${resourceUse.cost}, has ${featureSpent}.`
+          }
+        ]
+      : [])
+  ]
   const actionMechanic =
     source.kind === 'CHARACTER_ACTION'
       ? characterActionState!.actionMechanic
@@ -280,6 +298,8 @@ export async function prepareEncounterActionMechanics<
     resourceUse,
     featureResource,
     featureUsed,
+    featureSpent,
+    ruleWarnings,
     relationshipContributors: contributors,
     binding: {
       actionMechanic,

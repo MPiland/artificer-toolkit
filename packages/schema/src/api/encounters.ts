@@ -7,6 +7,7 @@ import {
   commandBaseDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
+  revertLastEncounterActionInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
@@ -15,6 +16,7 @@ export {
   optionalCombatActionIntentDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
+  revertLastEncounterActionInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
@@ -22,6 +24,7 @@ export type {
   OptionalCombatActionIntentDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
+  RevertLastEncounterActionInputDto,
   VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
 
@@ -224,7 +227,8 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   upgradeEncounterRulePackInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
-  voidRuleOccurrenceInputDtoSchema
+  voidRuleOccurrenceInputDtoSchema,
+  revertLastEncounterActionInputDtoSchema
 ])
 
 export const encounterExecuteInputSchema = z.strictObject({

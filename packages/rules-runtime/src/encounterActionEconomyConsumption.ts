@@ -16,12 +16,14 @@ export type EncounterActionEconomyConsumption = {
 export function consumeEncounterActionEconomy(input: {
   actor: EncounterRunActorState
   consumption: EncounterActionEconomyConsumption
+  /** An Assisted "Do it anyway" may use an allowance past its maximum; nothing else may. */
+  overridden: boolean
 }): EncounterRunActorState {
   if (
     encounterRuleUsageUsed(input.actor, input.consumption.definitionId) !==
       input.consumption.beforeUsed ||
     input.consumption.afterUsed !== input.consumption.beforeUsed + 1 ||
-    input.consumption.afterUsed > input.consumption.maximum
+    (!input.overridden && input.consumption.afterUsed > input.consumption.maximum)
   )
     throw new Error('The selected action allowance changed before settlement.')
   return encounterRunActorStateSchema.parse({

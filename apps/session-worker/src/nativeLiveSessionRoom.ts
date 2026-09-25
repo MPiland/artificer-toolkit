@@ -932,6 +932,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
           message: error.rejection.message,
           reason: error.rejection.reason,
+          warnings: error.rejection.reason === 'RULE_WARNINGS' ? error.rejection.warnings : null,
           type: 'COMMAND_REJECTED'
         })
         return
@@ -1000,6 +1001,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       currentSequence,
       message,
       reason: null,
+      warnings: null,
       type: 'COMMAND_REJECTED'
     })
   }

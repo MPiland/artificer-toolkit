@@ -377,9 +377,11 @@ describe('native Encounter timeline reads', () => {
         'id',
         'resolution',
         'roll',
+        'ruleOverrides',
         'version',
         'visibility'
       ])
+      expect(entry.ruleOverrides).toEqual([])
     }
     const privateCursor = (await owner.caller.query(timeline, { encounterId: run.id, limit: 2 }))
       .entries[1]!.id

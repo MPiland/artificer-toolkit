@@ -112,6 +112,7 @@ export function presentTimelineEntry(
           })),
           overridden: result.resolution.override !== null
         }
-      : null
+      : null,
+    ruleOverrides: command.commandType === 'RESOLVE_ACTION' ? command.ruleOverrides : []
   }
 }

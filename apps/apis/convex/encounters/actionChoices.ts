@@ -88,7 +88,10 @@ export const get = query({
       actions = sheet.actions.items
         .filter(
           (action) =>
-            action.availability.status === 'AVAILABLE' &&
+            // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
+            (action.availability.status === 'AVAILABLE' ||
+              action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
+              action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
             action.rollable &&
             action.mechanic &&
             mechanics.compiledActionEntryPoints.some(

@@ -1,0 +1,40 @@
+import { z } from '../zod.js'
+
+/**
+ * Assisted-mode rule checks the actor may override with "Do it anyway" (ADR 0034 decision 2).
+ * Authorization, stale versions, missing targets, acting out of turn and invalid game state are
+ * never warnings.
+ */
+export const encounterRuleWarningCodeDtoSchema = z.enum([
+  'ACTION_ECONOMY_UNAVAILABLE',
+  'RESOURCE_UNAVAILABLE',
+  'SOURCE_NOT_EQUIPPED',
+  'TARGET_DISPOSITION',
+  'TARGET_OUT_OF_RANGE',
+  'TARGET_RANGE_UNCHECKED'
+])
+export type EncounterRuleWarningCodeDto = z.infer<typeof encounterRuleWarningCodeDtoSchema>
+
+export const encounterRuleWarningDtoSchema = z.strictObject({
+  code: encounterRuleWarningCodeDtoSchema,
+  message: z.string().check(z.minLength(1)).check(z.maxLength(200))
+})
+export type EncounterRuleWarningDto = z.infer<typeof encounterRuleWarningDtoSchema>
+
+const uniqueCodes = <T>(code: (value: T) => string) =>
+  z.superRefine((values: T[], context) => {
+    if (new Set(values.map(code)).size !== values.length)
+      context.addIssue({ code: 'custom', message: 'Rule warning codes must be unique.' })
+  })
+
+/** At most one warning per code; the room and the web show them in this order. */
+export const encounterRuleWarningsDtoSchema = z
+  .array(encounterRuleWarningDtoSchema)
+  .check(z.maxLength(encounterRuleWarningCodeDtoSchema.options.length))
+  .check(uniqueCodes((warning: EncounterRuleWarningDto) => warning.code))
+
+/** The warning codes a command overrides; part of the command fingerprint. */
+export const encounterAcknowledgedRuleWarningsDtoSchema = z
+  .array(encounterRuleWarningCodeDtoSchema)
+  .check(z.maxLength(encounterRuleWarningCodeDtoSchema.options.length))
+  .check(uniqueCodes((code: EncounterRuleWarningCodeDto) => code))

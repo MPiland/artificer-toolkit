@@ -121,11 +121,12 @@ export function finishNativeActionMechanicsSettlement(
     | 'itemUseStateTransition'
   > | null
 ) {
-  const { actor, target, source, resourceUse, featureResource, featureUsed } = prepared
+  const { actor, target, source, resourceUse, featureResource, featureUsed, featureSpent } =
+    prepared
   let settledSource =
     sourceResourceMechanics?.updatedActor ??
     (mechanics.updatedActor.id === actor.id ? mechanics.updatedActor : actor)
-  if (source.kind === 'CREATURE' && resourceUse) {
+  if (source.kind === 'CREATURE' && resourceUse && featureSpent > 0) {
     if (featureChargeUsed(settledSource, source.capability.ownerFeatureId) !== featureUsed)
       throw new Error('The selected Encounter feature action resource changed before settlement.')
     const resourceActor = encounterRunActorStateSchema.parse({
@@ -133,7 +134,7 @@ export function finishNativeActionMechanicsSettlement(
       resources: withFeatureChargeUsed(
         settledSource,
         source.capability.ownerFeatureId,
-        featureUsed + resourceUse.cost
+        featureUsed + featureSpent
       )
     })
     settledSource = resourceActor
@@ -168,17 +169,18 @@ export function finishNativeActionMechanicsSettlement(
   const featureResourceReceipt =
     source.kind === 'CREATURE' &&
     resourceUse &&
+    featureSpent > 0 &&
     featureResource?.remaining !== null &&
     featureResource?.remaining !== undefined
       ? {
           ownerActorId: actor.id,
           ownerFeatureId: source.capability.ownerFeatureId,
           chargeId: resourceUse.chargeId,
-          cost: resourceUse.cost,
+          cost: featureSpent,
           beforeUsed: featureUsed,
-          afterUsed: featureUsed + resourceUse.cost,
+          afterUsed: featureUsed + featureSpent,
           beforeRemaining: featureResource.remaining,
-          afterRemaining: featureResource.remaining - resourceUse.cost
+          afterRemaining: featureResource.remaining - featureSpent
         }
       : null
   return {

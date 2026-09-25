@@ -308,6 +308,7 @@ export function movementReactionSettlement<
           spellCastConsumption: null,
           featureResourceConsumption: settled.featureResourceReceipt,
           targetFeatureResourceConsumption: null,
+          actionEconomyTransition: null,
           activeEffectTransitions: effects.activeEffectTransitions.map(
             ({ targetActorId: _targetActorId, ...transition }) => ({
               ...transition,
@@ -342,6 +343,7 @@ export function movementReactionSettlement<
           resourceConsumption: settled.resourceReceipt,
           featureResourceConsumption: settled.featureResourceReceipt,
           targetFeatureResourceConsumption: charge,
+          actionEconomyTransition: null,
           legendaryResistance: execution.resistance
             ? {
                 ...execution.resistance.legendaryResistance,

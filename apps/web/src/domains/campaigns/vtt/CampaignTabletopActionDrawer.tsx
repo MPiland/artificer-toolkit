@@ -4,6 +4,7 @@ import {
   Button,
   Drawer,
   Group,
+  List,
   SegmentedControl,
   Select,
   Stack,
@@ -25,7 +26,10 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
+import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
+import { LiveSessionCommandRejectedError } from './liveSessionClient'
 
 export function CampaignTabletopActionDrawer({
   actions,
@@ -75,6 +79,12 @@ export function CampaignTabletopActionDrawer({
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [stowConfirmationIdentity, setStowConfirmationIdentity] = useState<string | null>(null)
+  // Warnings the server raised for this exact selection; "Do it anyway" resends acknowledging them.
+  const [ruleWarnings, setRuleWarnings] = useState<{
+    requestIdentity: string
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+    warnings: EncounterRuleWarningDto[]
+  } | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const currentActor =
@@ -151,6 +161,8 @@ export function CampaignTabletopActionDrawer({
   const wieldConflict = optionalRuleId === null ? (selectedAction?.wieldConflict ?? null) : null
   const confirmingStow =
     wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
+  const confirmingWarnings =
+    ruleWarnings?.requestIdentity === choiceRequestIdentity ? ruleWarnings : null
   const incompleteOptionalChoices =
     optionalRuleId !== null &&
     (!selectedOptionalRule ||
@@ -233,9 +245,11 @@ export function CampaignTabletopActionDrawer({
   ])
 
   async function resolveAction(
-    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
+    acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
   ): Promise<void> {
     setStowConfirmationIdentity(null)
+    setRuleWarnings(null)
     if (
       !currentActor ||
       !selectedAction ||
@@ -260,6 +274,7 @@ export function CampaignTabletopActionDrawer({
         targetActorId,
         sceneContext,
         acceptedWieldConflict,
+        acknowledgedWarnings,
         optionalCombatIntent: currentOptionalChoices
           ? {
               definitionId: currentOptionalChoices.definitionId,
@@ -289,7 +304,16 @@ export function CampaignTabletopActionDrawer({
         setFeedback('Action resolved.')
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'The action could not be resolved.')
+      if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.warnings)
+        setRuleWarnings({
+          requestIdentity: choiceRequestIdentity,
+          acceptedWieldConflict,
+          warnings: nextError.rejection.warnings
+        })
+      else
+        setError(
+          nextError instanceof Error ? nextError.message : 'The action could not be resolved.'
+        )
     } finally {
       setSubmitting(false)
     }
@@ -415,31 +439,51 @@ export function CampaignTabletopActionDrawer({
                     }}
                   />
                 ))}
-              {confirmingStow ? (
-                <Alert color='yellow' title='Stow shield?'>
-                  <Stack gap='sm'>
-                    <Text size='sm'>
-                      Attacking with this weapon stows your shield. AC −
-                      {-wieldConflict.armorClassDelta} until you equip it again.
-                    </Text>
-                    <Group>
-                      <Button
-                        disabled={dependentControlsDisabled}
-                        onClick={() =>
-                          void resolveAction({
-                            kind: wieldConflict.kind,
-                            shieldItemInstanceId: wieldConflict.shieldItemInstanceId
-                          })
-                        }
-                      >
-                        Stow shield and attack
-                      </Button>
-                      <Button variant='default' onClick={() => setStowConfirmationIdentity(null)}>
-                        Cancel
-                      </Button>
-                    </Group>
-                  </Stack>
-                </Alert>
+              {confirmingWarnings ? (
+                <CampaignTabletopActionConfirmation
+                  confirmIsPrimary={false}
+                  confirmLabel='Do it anyway'
+                  disabled={dependentControlsDisabled}
+                  title='This breaks a rule'
+                  onCancel={() => setRuleWarnings(null)}
+                  onConfirm={() =>
+                    void resolveAction(
+                      confirmingWarnings.acceptedWieldConflict,
+                      confirmingWarnings.warnings.map((warning) => warning.code)
+                    )
+                  }
+                >
+                  <List size='sm'>
+                    {confirmingWarnings.warnings.map((warning) => (
+                      <List.Item key={warning.code}>{warning.message}</List.Item>
+                    ))}
+                  </List>
+                  <Text c='dimmed' size='xs'>
+                    The GM sees every override in the Encounter history.
+                  </Text>
+                </CampaignTabletopActionConfirmation>
+              ) : confirmingStow ? (
+                <CampaignTabletopActionConfirmation
+                  confirmIsPrimary
+                  confirmLabel='Stow shield and attack'
+                  disabled={dependentControlsDisabled}
+                  title='Stow shield?'
+                  onCancel={() => setStowConfirmationIdentity(null)}
+                  onConfirm={() =>
+                    void resolveAction(
+                      {
+                        kind: wieldConflict.kind,
+                        shieldItemInstanceId: wieldConflict.shieldItemInstanceId
+                      },
+                      []
+                    )
+                  }
+                >
+                  <Text size='sm'>
+                    Attacking with this weapon stows your shield. AC −
+                    {-wieldConflict.armorClassDelta} until you equip it again.
+                  </Text>
+                </CampaignTabletopActionConfirmation>
               ) : (
                 <Group>
                   <Button
@@ -454,7 +498,7 @@ export function CampaignTabletopActionDrawer({
                     onClick={() =>
                       wieldConflict
                         ? setStowConfirmationIdentity(choiceRequestIdentity)
-                        : void resolveAction(null)
+                        : void resolveAction(null, [])
                     }
                   >
                     Resolve action

@@ -167,7 +167,8 @@ describe('native Character action resource persistence', () => {
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
         expectedStreamVersion: current.active.streamVersion,
-        automationMode: 'ASSISTED'
+        automationMode: 'ASSISTED',
+        overridable: false
       })
       if (!prepared.resourceConsumption) throw new Error('Missing resource consumption.')
       const binding = entry.compilation.resourceBinding
@@ -186,7 +187,8 @@ describe('native Character action resource persistence', () => {
           resourceUsage: current.sheetState.resourceUsage,
           characterId: character.id,
           expectedStreamVersion: current.active.streamVersion,
-          automationMode: 'ASSISTED'
+          automationMode: 'ASSISTED',
+          overridable: false
         })
       ).toThrow('unavailable or stale')
       let staleRawUsageRefused = false
@@ -209,11 +211,82 @@ describe('native Character action resource persistence', () => {
           ],
           characterId: character.id,
           expectedStreamVersion: current.active.streamVersion,
-          automationMode: 'ASSISTED'
+          automationMode: 'ASSISTED',
+          overridable: false
         })
       } catch (error) {
         staleRawUsageRefused = error instanceof Error && /unavailable or stale/.test(error.message)
       }
+      // Assisted RESOLVE_ACTION reports an exhausted pool or an unequipped source as a warning.
+      const output = current.ruleEvaluation.output
+      const decide = (
+        change: Pick<
+          (typeof output.actionDecisions)[number],
+          'status' | 'reasonCode' | 'resourcePoolId' | 'resourceCost'
+        >
+      ) => ({
+        ...output,
+        actionDecisions: output.actionDecisions.map((value) =>
+          value.actionId === candidate.actionId ? { ...value, ...change } : value
+        )
+      })
+      const exhausted = {
+        entry,
+        candidate,
+        policyOutput: {
+          ...decide({
+            status: 'UNAVAILABLE',
+            reasonCode: 'INSUFFICIENT_RESOURCE',
+            resourcePoolId: binding.poolId,
+            resourceCost: binding.cost
+          }),
+          resources: output.resources.map((value) =>
+            value.poolId === binding.poolId ? { ...value, rawUsed: 2, remaining: 0 } : value
+          )
+        },
+        resourceUsage: [
+          {
+            id: crypto.randomUUID(),
+            characterId: character.id,
+            owner: prepared.resourceConsumption.owner,
+            used: 2,
+            createdBy: base.owner.userId,
+            updatedBy: base.owner.userId,
+            createdAt: '2026-09-12T00:00:00.000Z',
+            updatedAt: '2026-09-12T00:00:00.000Z'
+          }
+        ],
+        characterId: character.id,
+        expectedStreamVersion: current.active.streamVersion,
+        automationMode: 'ASSISTED' as const
+      }
+      const overridden = prepareNativeCharacterActionState({ ...exhausted, overridable: true })
+      expect(overridden.resourceConsumption).toBeNull()
+      expect(overridden.ruleWarnings).toEqual([
+        { code: 'RESOURCE_UNAVAILABLE', message: 'Not enough uses left: needs 1, has 0.' }
+      ])
+      expect(() => prepareNativeCharacterActionState({ ...exhausted, overridable: false })).toThrow(
+        'unavailable or stale'
+      )
+      const unequipped = prepareNativeCharacterActionState({
+        entry,
+        candidate,
+        policyOutput: decide({
+          status: 'UNAVAILABLE',
+          reasonCode: 'SOURCE_NOT_EQUIPPED',
+          resourcePoolId: null,
+          resourceCost: null
+        }),
+        resourceUsage: current.sheetState.resourceUsage,
+        characterId: character.id,
+        expectedStreamVersion: current.active.streamVersion,
+        automationMode: 'ASSISTED',
+        overridable: true
+      })
+      expect(unequipped.ruleWarnings).toEqual([
+        { code: 'SOURCE_NOT_EQUIPPED', message: "The item this action uses isn't equipped." }
+      ])
+      expect(unequipped.resourceConsumption).toMatchObject({ cost: 1, afterRemaining: 1 })
       return { ...prepared.resourceConsumption, staleRawUsageRefused }
     })
     expect(result).toMatchObject({

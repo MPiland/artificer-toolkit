@@ -47857,6 +47857,14 @@ export declare const api: {
                           kind: "STOW_SHIELD";
                           shieldItemInstanceId: string;
                         } | null;
+                        acknowledgedWarnings?: Array<
+                          | "ACTION_ECONOMY_UNAVAILABLE"
+                          | "RESOURCE_UNAVAILABLE"
+                          | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DISPOSITION"
+                          | "TARGET_OUT_OF_RANGE"
+                          | "TARGET_RANGE_UNCHECKED"
+                        >;
                         actionId: string;
                         actorId: string;
                         commandId: string;
@@ -47987,6 +47995,12 @@ export declare const api: {
                         expectedVersion: number;
                         occurrenceId: string;
                         type: "VOID_RULE_OCCURRENCE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        type: "REVERT_LAST_ACTION";
                       };
                 };
                 kind: "COMMAND";
@@ -49395,6 +49409,16 @@ export declare const api: {
                 label: string;
               };
             } | null;
+            ruleOverrides: Array<{
+              code:
+                | "ACTION_ECONOMY_UNAVAILABLE"
+                | "RESOURCE_UNAVAILABLE"
+                | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DISPOSITION"
+                | "TARGET_OUT_OF_RANGE"
+                | "TARGET_RANGE_UNCHECKED";
+              message: string;
+            }>;
             version: number;
             visibility: "PRIVATE" | "TABLE";
           }>;
@@ -65817,6 +65841,14 @@ export declare const internal: {
                   kind: "STOW_SHIELD";
                   shieldItemInstanceId: string;
                 } | null;
+                acknowledgedWarnings?: Array<
+                  | "ACTION_ECONOMY_UNAVAILABLE"
+                  | "RESOURCE_UNAVAILABLE"
+                  | "SOURCE_NOT_EQUIPPED"
+                  | "TARGET_DISPOSITION"
+                  | "TARGET_OUT_OF_RANGE"
+                  | "TARGET_RANGE_UNCHECKED"
+                >;
                 actionId: string;
                 actorId: string;
                 commandId: string;
@@ -65943,6 +65975,12 @@ export declare const internal: {
                 expectedVersion: number;
                 occurrenceId: string;
                 type: "VOID_RULE_OCCURRENCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REVERT_LAST_ACTION";
               };
         },
         {
@@ -67846,6 +67884,14 @@ export declare const internal: {
                   kind: "STOW_SHIELD";
                   shieldItemInstanceId: string;
                 } | null;
+                acknowledgedWarnings?: Array<
+                  | "ACTION_ECONOMY_UNAVAILABLE"
+                  | "RESOURCE_UNAVAILABLE"
+                  | "SOURCE_NOT_EQUIPPED"
+                  | "TARGET_DISPOSITION"
+                  | "TARGET_OUT_OF_RANGE"
+                  | "TARGET_RANGE_UNCHECKED"
+                >;
                 actionId: string;
                 actorId: string;
                 commandId: string;
@@ -67972,6 +68018,12 @@ export declare const internal: {
                 expectedVersion: number;
                 occurrenceId: string;
                 type: "VOID_RULE_OCCURRENCE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "REVERT_LAST_ACTION";
               };
         },
         {
@@ -69945,6 +69997,14 @@ export declare const internal: {
                           kind: "STOW_SHIELD";
                           shieldItemInstanceId: string;
                         } | null;
+                        acknowledgedWarnings?: Array<
+                          | "ACTION_ECONOMY_UNAVAILABLE"
+                          | "RESOURCE_UNAVAILABLE"
+                          | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DISPOSITION"
+                          | "TARGET_OUT_OF_RANGE"
+                          | "TARGET_RANGE_UNCHECKED"
+                        >;
                         actionId: string;
                         actorId: string;
                         commandId: string;
@@ -70075,6 +70135,12 @@ export declare const internal: {
                         expectedVersion: number;
                         occurrenceId: string;
                         type: "VOID_RULE_OCCURRENCE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        type: "REVERT_LAST_ACTION";
                       };
                 };
                 kind: "COMMAND";
@@ -76644,6 +76710,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions?: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -77122,6 +77196,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -78110,6 +78192,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions?: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -78588,6 +78678,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -80563,6 +80661,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -81064,6 +81170,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -81643,6 +81757,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -82144,6 +82266,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -83776,6 +83906,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -84312,6 +84450,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -85861,6 +86007,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -86397,6 +86551,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -87508,6 +87670,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -88010,6 +88180,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -90192,6 +90370,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -90694,6 +90880,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -92529,6 +92723,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -93065,6 +93267,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -93801,6 +94011,14 @@ export declare const internal: {
                                     };
                                   }
                                 | {
+                                    actionEconomyTransition: {
+                                      afterUsed: number;
+                                      beforeUsed: number;
+                                      definitionChecksum: string;
+                                      definitionId: string;
+                                      definitionVersion: number;
+                                      maximum: number;
+                                    } | null;
                                     activeEffectTransitions?: Array<{
                                       activeEffectId: string;
                                       afterVersion: number;
@@ -94287,6 +94505,14 @@ export declare const internal: {
                                     };
                                   }
                                 | {
+                                    actionEconomyTransition: {
+                                      afterUsed: number;
+                                      beforeUsed: number;
+                                      definitionChecksum: string;
+                                      definitionId: string;
+                                      definitionVersion: number;
+                                      maximum: number;
+                                    } | null;
                                     activeEffectTransitions: Array<{
                                       activeEffectId: string;
                                       afterVersion: number;
@@ -96878,6 +97104,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -97380,6 +97614,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -97960,6 +98202,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -98462,6 +98712,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -100106,6 +100364,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -100648,6 +100914,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -102205,6 +102479,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -102747,6 +103029,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -103860,6 +104150,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions?: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -104363,6 +104661,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -106575,6 +106881,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions?: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -107078,6 +107392,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -108933,6 +109255,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -109475,6 +109805,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -110228,6 +110566,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -110722,6 +111068,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -113144,6 +113498,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -113638,6 +114000,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -114203,6 +114573,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -114697,6 +115075,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -116311,6 +116697,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -116825,6 +117219,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -118341,6 +118743,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -118855,6 +119265,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -119938,6 +120356,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -120439,6 +120865,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -122603,6 +123037,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -123104,6 +123546,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -124926,6 +125376,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -125440,6 +125898,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -126165,6 +126631,14 @@ export declare const internal: {
                                   };
                                 }
                               | {
+                                  actionEconomyTransition: {
+                                    afterUsed: number;
+                                    beforeUsed: number;
+                                    definitionChecksum: string;
+                                    definitionId: string;
+                                    definitionVersion: number;
+                                    maximum: number;
+                                  } | null;
                                   activeEffectTransitions?: Array<{
                                     activeEffectId: string;
                                     afterVersion: number;
@@ -126646,6 +127120,14 @@ export declare const internal: {
                                   };
                                 }
                               | {
+                                  actionEconomyTransition: {
+                                    afterUsed: number;
+                                    beforeUsed: number;
+                                    definitionChecksum: string;
+                                    definitionId: string;
+                                    definitionVersion: number;
+                                    maximum: number;
+                                  } | null;
                                   activeEffectTransitions: Array<{
                                     activeEffectId: string;
                                     afterVersion: number;
@@ -131705,6 +132187,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions?: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -132183,6 +132673,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -133171,6 +133669,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions?: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -133649,6 +134155,14 @@ export declare const internal: {
                               };
                             }
                           | {
+                              actionEconomyTransition: {
+                                afterUsed: number;
+                                beforeUsed: number;
+                                definitionChecksum: string;
+                                definitionId: string;
+                                definitionVersion: number;
+                                maximum: number;
+                              } | null;
                               activeEffectTransitions: Array<{
                                 activeEffectId: string;
                                 afterVersion: number;
@@ -135624,6 +136138,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -136125,6 +136647,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -136704,6 +137234,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -137205,6 +137743,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -138837,6 +139383,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -139373,6 +139927,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -140922,6 +141484,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -141458,6 +142028,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -142569,6 +143147,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -143071,6 +143657,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -145253,6 +145847,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -145755,6 +146357,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -147590,6 +148200,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions?: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -148126,6 +148744,14 @@ export declare const internal: {
                                                 };
                                               }
                                             | {
+                                                actionEconomyTransition: {
+                                                  afterUsed: number;
+                                                  beforeUsed: number;
+                                                  definitionChecksum: string;
+                                                  definitionId: string;
+                                                  definitionVersion: number;
+                                                  maximum: number;
+                                                } | null;
                                                 activeEffectTransitions: Array<{
                                                   activeEffectId: string;
                                                   afterVersion: number;
@@ -148862,6 +149488,14 @@ export declare const internal: {
                                     };
                                   }
                                 | {
+                                    actionEconomyTransition: {
+                                      afterUsed: number;
+                                      beforeUsed: number;
+                                      definitionChecksum: string;
+                                      definitionId: string;
+                                      definitionVersion: number;
+                                      maximum: number;
+                                    } | null;
                                     activeEffectTransitions?: Array<{
                                       activeEffectId: string;
                                       afterVersion: number;
@@ -149348,6 +149982,14 @@ export declare const internal: {
                                     };
                                   }
                                 | {
+                                    actionEconomyTransition: {
+                                      afterUsed: number;
+                                      beforeUsed: number;
+                                      definitionChecksum: string;
+                                      definitionId: string;
+                                      definitionVersion: number;
+                                      maximum: number;
+                                    } | null;
                                     activeEffectTransitions: Array<{
                                       activeEffectId: string;
                                       afterVersion: number;
@@ -151939,6 +152581,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -152441,6 +153091,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -153021,6 +153679,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions?: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -153523,6 +154189,14 @@ export declare const internal: {
                                           };
                                         }
                                       | {
+                                          actionEconomyTransition: {
+                                            afterUsed: number;
+                                            beforeUsed: number;
+                                            definitionChecksum: string;
+                                            definitionId: string;
+                                            definitionVersion: number;
+                                            maximum: number;
+                                          } | null;
                                           activeEffectTransitions: Array<{
                                             activeEffectId: string;
                                             afterVersion: number;
@@ -155167,6 +155841,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -155709,6 +156391,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -157266,6 +157956,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -157808,6 +158506,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -158921,6 +159627,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions?: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -159424,6 +160138,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -161636,6 +162358,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions?: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -162139,6 +162869,14 @@ export declare const internal: {
                                             };
                                           }
                                         | {
+                                            actionEconomyTransition: {
+                                              afterUsed: number;
+                                              beforeUsed: number;
+                                              definitionChecksum: string;
+                                              definitionId: string;
+                                              definitionVersion: number;
+                                              maximum: number;
+                                            } | null;
                                             activeEffectTransitions: Array<{
                                               activeEffectId: string;
                                               afterVersion: number;
@@ -163994,6 +164732,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions?: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -164536,6 +165282,14 @@ export declare const internal: {
                                                   };
                                                 }
                                               | {
+                                                  actionEconomyTransition: {
+                                                    afterUsed: number;
+                                                    beforeUsed: number;
+                                                    definitionChecksum: string;
+                                                    definitionId: string;
+                                                    definitionVersion: number;
+                                                    maximum: number;
+                                                  } | null;
                                                   activeEffectTransitions: Array<{
                                                     activeEffectId: string;
                                                     afterVersion: number;
@@ -165289,6 +166043,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -165783,6 +166545,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -168205,6 +168975,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -168699,6 +169477,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -169264,6 +170050,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions?: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -169758,6 +170552,14 @@ export declare const internal: {
                                       };
                                     }
                                   | {
+                                      actionEconomyTransition: {
+                                        afterUsed: number;
+                                        beforeUsed: number;
+                                        definitionChecksum: string;
+                                        definitionId: string;
+                                        definitionVersion: number;
+                                        maximum: number;
+                                      } | null;
                                       activeEffectTransitions: Array<{
                                         activeEffectId: string;
                                         afterVersion: number;
@@ -171372,6 +172174,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -171886,6 +172696,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -173402,6 +174220,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -173916,6 +174742,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -174999,6 +175833,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -175500,6 +176342,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -177664,6 +178514,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions?: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -178165,6 +179023,14 @@ export declare const internal: {
                                         };
                                       }
                                     | {
+                                        actionEconomyTransition: {
+                                          afterUsed: number;
+                                          beforeUsed: number;
+                                          definitionChecksum: string;
+                                          definitionId: string;
+                                          definitionVersion: number;
+                                          maximum: number;
+                                        } | null;
                                         activeEffectTransitions: Array<{
                                           activeEffectId: string;
                                           afterVersion: number;
@@ -179987,6 +180853,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions?: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -180501,6 +181375,14 @@ export declare const internal: {
                                               };
                                             }
                                           | {
+                                              actionEconomyTransition: {
+                                                afterUsed: number;
+                                                beforeUsed: number;
+                                                definitionChecksum: string;
+                                                definitionId: string;
+                                                definitionVersion: number;
+                                                maximum: number;
+                                              } | null;
                                               activeEffectTransitions: Array<{
                                                 activeEffectId: string;
                                                 afterVersion: number;
@@ -181226,6 +182108,14 @@ export declare const internal: {
                                   };
                                 }
                               | {
+                                  actionEconomyTransition: {
+                                    afterUsed: number;
+                                    beforeUsed: number;
+                                    definitionChecksum: string;
+                                    definitionId: string;
+                                    definitionVersion: number;
+                                    maximum: number;
+                                  } | null;
                                   activeEffectTransitions?: Array<{
                                     activeEffectId: string;
                                     afterVersion: number;
@@ -181707,6 +182597,14 @@ export declare const internal: {
                                   };
                                 }
                               | {
+                                  actionEconomyTransition: {
+                                    afterUsed: number;
+                                    beforeUsed: number;
+                                    definitionChecksum: string;
+                                    definitionId: string;
+                                    definitionVersion: number;
+                                    maximum: number;
+                                  } | null;
                                   activeEffectTransitions: Array<{
                                     activeEffectId: string;
                                     afterVersion: number;

@@ -18,7 +18,7 @@ import {
 export type SceneMovementSettlement =
   | { kind: 'SPATIAL'; plan: NativeSpatialPrefixSettlement }
   | { kind: 'REACTION'; plan: NativeMovementReactionSettlementInput }
-  | { kind: 'PASSAGE'; plan: Parameters<typeof consumeNativeActionEconomy>[1] }
+  | { kind: 'PASSAGE'; plan: Omit<Parameters<typeof consumeNativeActionEconomy>[1], 'overridden'> }
   | { kind: 'CONCENTRATION'; plan: NativeMovementConcentrationSettlement }
 
 export async function settleSceneMovementSettlements(
@@ -50,7 +50,7 @@ export async function settleSceneMovementSettlements(
       )
       transitions.push({ kind: 'CONCENTRATION' as const, execution })
     } else {
-      await consumeNativeActionEconomy(ctx, settlement.plan)
+      await consumeNativeActionEconomy(ctx, { ...settlement.plan, overridden: false })
     }
   }
   return {

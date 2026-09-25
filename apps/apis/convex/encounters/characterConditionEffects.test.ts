@@ -331,6 +331,7 @@ function action(
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: base.run.id,
     commandId: crypto.randomUUID(),
     expectedVersion,

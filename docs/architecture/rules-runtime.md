@@ -64,6 +64,45 @@ evaluation, never from the Run. The Character row also stores its effective maxi
 rules never read it. Known lag: a published-content change reaches that stored value on the
 Character's next write; a publish-time recompute is a follow-up.
 
+### Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
+
+`RESOLVE_ACTION` evaluates its overridable rule checks once, through
+`rules-runtime/encounterActionRuleWarnings`, in both the DO planner (`nativeEncounterRules.ts`) and
+the Convex fallback (`encounters/actionCommands.ts`):
+
+- `prepareEncounterActionMechanics({ overridable: true })` reports an unequipped source
+  (`SOURCE_NOT_EQUIPPED`) and an exhausted Character resource or Creature charge
+  (`RESOURCE_UNAVAILABLE`) instead of refusing them;
+- `evaluateEncounterActionEconomy` reports an exhausted or suppressed allowance
+  (`ACTION_ECONOMY_UNAVAILABLE`);
+- `evaluateEncounterActionTargetPolicy` reports range (`TARGET_OUT_OF_RANGE`, or
+  `TARGET_RANGE_UNCHECKED` without both tokens) and target disposition (`TARGET_DISPOSITION`).
+  Unsupported policy shapes, excluded creature types and missing targets stay hard.
+
+The command proceeds only when `acknowledgedWarnings` (part of its fingerprint) covers every current
+code; otherwise it is refused with `RULE_WARNINGS`. An override spends only what remains (the
+warning message records the shortfall; a zero spend records no resource receipt) and lets the
+allowance exceed its maximum (`consumeEncounterActionEconomy({ overridden: true })`). The
+`RESOLVE_ACTION` run command stores the accepted warnings as `ruleOverrides`, and the timeline badges
+each one. Hard checks (authorization, versions, the current actor, Manual mode, completed
+Encounters) are never warnings. Reactions, legendary actions, Disarm and movement call the same
+preparation with `overridable: false` and keep refusing. Spell slots are not spent by
+`RESOLVE_ACTION` until Phase 8.3 spell casting.
+
+`REVERT_LAST_ACTION` (`encounters/actionRevert.ts`, GM-only, `NATIVE`) undoes the Run's last
+`RESOLVE_ACTION` and its committed child receipts, found through the
+`encounterRuleReceipts.by_encounterId_encounterVersion` index. It requires that the newest Run
+command is that action or one of its child decisions, that no decision is pending, and that every
+affected Character's stream version equals the receipt's after-version. It inverts only from
+recorded before-states: target hit points, temporary and maximum hit points, applied conditions,
+Character resource usage, a stowed shield (verified against the recorded equipment checksum),
+Creature feature charges, the action allowance (`actionEconomyTransition`, now on both mechanics
+batch receipts), created active and state effects (deleted by their recorded version) and a newly
+created maintained state. It refuses, naming the kind, a removed condition, a replaced maintained
+effect, lost Concentration, Cleaving damage to a Character, Disarm and other contested actions. The
+undo is its own `REVERT_LAST_ACTION` run command and timeline entry ("Undone by the GM"); a second
+undo is refused. Unused counters restored to 0 may stay stored as 0 rather than absent.
+
 ## Initiative and live delivery
 
 Encounter initiative, active reordering, actor removal, and reinforcement timing are application

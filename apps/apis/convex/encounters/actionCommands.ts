@@ -1,4 +1,7 @@
-import { targetPolicyPermitsEncounterActor } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import {
+  evaluateEncounterActionRuleWarnings,
+  overridesActionEconomy
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   dnd5eAttackKind,
   isDnd5eMeleeAttackKind
@@ -33,7 +36,7 @@ import { readAutoRollDice } from '../lib/rollPreferences'
 import { createRulesRuntime } from '../rules/runtime'
 import { readRunActor, readRunActors } from './documents'
 import { projectNativeGm } from './nativeProjection'
-import { prepareNativeActionEconomy } from './actionEconomy'
+import { evaluateNativeActionEconomy } from './actionEconomy'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence'
 import { insertRunCommand } from './timelineEntries'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -49,6 +52,7 @@ import {
   finishNativeActionMaintenance
 } from './actionMaintenance'
 import { nextRollInt } from '../lib/rollRandom'
+import { rejectRuleWarnings } from '../lib/domainRejections'
 import { readNativeEncounterActionAdmission } from './actionAdmission'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt'
@@ -86,34 +90,37 @@ export async function executeNativeEncounterAction(
     actors,
     actionId: input.actionId,
     wieldConflictAcceptance: { kind: 'PROMPTED', accepted: input.acceptedWieldConflict },
+    overridable: true,
     campaignOwnerUserId: campaign.ownerUserId
   })
   const { source, adapter, targetPolicy: policy, plan, actorRules, binding } = prepared
   const sceneContext = await readNativeActionSceneContext(ctx, state, input)
   if (input.optionalCombatIntent != null)
     throw new Error('Native action execution requires the complete contextual action coordinator.')
-  if (
-    !targetPolicyPermitsEncounterActor({
-      actorId: actor.id,
-      targetActorId: target.id,
-      targetPolicy: policy,
-      sceneContext
-    })
-  )
-    throw new Error('The selected action does not permit this target.')
   const activation =
     source.kind === 'CHARACTER_ACTION'
       ? source.candidate.mechanicFacts.invocation.activation
       : source.capability.mechanicFacts.invocation.activation
   if (!activation || activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
-  const actionEconomy = await prepareNativeActionEconomy(ctx, {
+  const economy = await evaluateNativeActionEconomy(ctx, {
     actor,
     state,
     userId,
     activation: { code: activation.code, amount: activation.amount },
     target: prepared.movementTargets.get(actor.id)
   })
+  const ruleWarnings = evaluateEncounterActionRuleWarnings({
+    preparedWarnings: prepared.ruleWarnings,
+    target: { actorId: actor.id, targetActorId: target.id, targetPolicy: policy, sceneContext },
+    actionEconomy: economy,
+    activationCode: activation.code,
+    acknowledged: input.acknowledgedWarnings
+  })
+  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
+    throw new Error('The selected action does not permit this target.')
+  if (ruleWarnings.kind === 'UNACKNOWLEDGED') rejectRuleWarnings(ruleWarnings.warnings)
+  const actionEconomy = economy?.consumption ?? null
 
   const maintenance = await prepareNativeActionMaintenance(ctx, prepared, userId)
   const currentnessChecksum = encounterActionCurrentnessChecksum({
@@ -284,7 +291,8 @@ export async function executeNativeEncounterAction(
   const economyActor = actionEconomy
     ? await consumeNativeActionEconomy(ctx, {
         actor: settledSource,
-        consumption: actionEconomy
+        consumption: actionEconomy,
+        overridden: overridesActionEconomy(ruleWarnings.overrides)
       })
     : prepared.resourceUse || sourceResourceMechanics
       ? settledSource
@@ -360,7 +368,8 @@ export async function executeNativeEncounterAction(
     settled,
     effects: { stateEffectTransitions, activeEffectTransitions },
     maintainedState,
-    maintenanceTransition: maintained?.transition ?? null
+    maintenanceTransition: maintained?.transition ?? null,
+    actionEconomy
   })
   const ruleResultChecksum = checksumRuleDocument(storedExecution)
   await ctx.db.patch(run._id, {
@@ -426,6 +435,7 @@ export async function executeNativeEncounterAction(
       ruleOccurrenceId: occurrenceId,
       ruleResultChecksum,
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      ruleOverrides: ruleWarnings.overrides,
       commandFingerprint: fingerprint,
       actorUserId: userId,
       version: nextState.version,

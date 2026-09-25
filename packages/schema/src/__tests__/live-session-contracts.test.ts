@@ -14,6 +14,11 @@ import {
   liveSessionPublishInputSchema,
   liveSessionPublishResponseSchema
 } from '../api/liveSessionState.js'
+import { domainRejectionErrorDataSchema } from '../api/domainRejections.js'
+import {
+  resolveEncounterActionInputDtoSchema,
+  revertLastEncounterActionInputDtoSchema
+} from '../api/encounterRuleCommands.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
@@ -295,6 +300,7 @@ describe('live-session contracts', () => {
         currentSequence: 9,
         message: 'Scene state changed.',
         reason: null,
+        warnings: null,
         type: 'COMMAND_REJECTED'
       })
     ).toMatchObject({ commandId: ids.command, code: 'STALE_STATE', currentSequence: 9 })
@@ -305,9 +311,38 @@ describe('live-session contracts', () => {
         currentSequence: 9,
         message: 'Encounter version is stale.',
         reason: 'VERSION_STALE',
+        warnings: null,
         type: 'COMMAND_REJECTED'
       })
     ).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' })
+    const warnings = [
+      { code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'No bonus action left this turn.' },
+      { code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' }
+    ]
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        code: 'DOMAIN_REJECTED',
+        commandId: ids.command,
+        currentSequence: 9,
+        message: 'This action breaks a rule. Do it anyway?',
+        reason: 'RULE_WARNINGS',
+        warnings,
+        type: 'COMMAND_REJECTED'
+      })
+    ).toMatchObject({ reason: 'RULE_WARNINGS', warnings })
+    // Rule warnings are a discriminated rejection: required for RULE_WARNINGS, refused otherwise.
+    const rejection = { code: 'DOMAIN_REJECTED', message: 'No.' }
+    expect(
+      domainRejectionErrorDataSchema.safeParse({ ...rejection, reason: 'RULE_WARNINGS', warnings })
+        .success
+    ).toBe(true)
+    for (const invalid of [
+      { ...rejection, reason: 'RULE_WARNINGS' },
+      { ...rejection, reason: 'RULE_WARNINGS', warnings: [] },
+      { ...rejection, reason: 'RULE_WARNINGS', warnings: [warnings[0], warnings[0]] },
+      { ...rejection, reason: 'VERSION_STALE', warnings }
+    ])
+      expect(domainRejectionErrorDataSchema.safeParse(invalid).success).toBe(false)
     expect(
       liveSessionWebSocketServerMessageDtoSchema.safeParse({
         code: 'SOMETHING_ELSE',
@@ -315,6 +350,7 @@ describe('live-session contracts', () => {
         currentSequence: 9,
         message: 'No.',
         reason: null,
+        warnings: null,
         type: 'COMMAND_REJECTED'
       }).success
     ).toBe(false)
@@ -482,5 +518,38 @@ describe('live-session contracts', () => {
       message: { envelope, userId: ids.user },
       type: 'TRANSIENT'
     })
+  })
+})
+
+describe('Encounter rule overrides and undo', () => {
+  const action = {
+    type: 'RESOLVE_ACTION',
+    encounterId: ids.encounter,
+    commandId: ids.command,
+    expectedVersion: 3,
+    actorId: ids.character,
+    actionId: 'bite',
+    targetActorId: ids.token
+  }
+
+  it('defaults acknowledgements to none and keeps each code once', () => {
+    expect(resolveEncounterActionInputDtoSchema.parse(action).acknowledgedWarnings).toEqual([])
+    expect(
+      resolveEncounterActionInputDtoSchema.parse({
+        ...action,
+        acknowledgedWarnings: ['TARGET_OUT_OF_RANGE', 'ACTION_ECONOMY_UNAVAILABLE']
+      }).acknowledgedWarnings
+    ).toEqual(['TARGET_OUT_OF_RANGE', 'ACTION_ECONOMY_UNAVAILABLE'])
+    for (const acknowledgedWarnings of [['TARGET_OUT_OF_RANGE', 'TARGET_OUT_OF_RANGE'], ['AUTH']])
+      expect(
+        resolveEncounterActionInputDtoSchema.safeParse({ ...action, acknowledgedWarnings }).success
+      ).toBe(false)
+  })
+
+  it('accepts a GM undo with only its Run version', () => {
+    const { actorId: _actor, actionId: _action, targetActorId: _target, ...base } = action
+    expect(
+      revertLastEncounterActionInputDtoSchema.parse({ ...base, type: 'REVERT_LAST_ACTION' })
+    ).toEqual({ ...base, type: 'REVERT_LAST_ACTION' })
   })
 })

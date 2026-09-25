@@ -211,6 +211,7 @@ async function setup() {
   const command: ResolveEncounterActionInputDto = {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: run.id,
     commandId: crypto.randomUUID(),
     expectedVersion: run.version,

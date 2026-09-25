@@ -63,6 +63,7 @@ export const encounterTables = {
   encounterRuleReceipts: defineTable(zodToConvexFields(encounterStoredRuleReceiptSchema.shape))
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId_commandId', ['encounterId', 'commandId'])
+    .index('by_encounterId_encounterVersion', ['encounterId', 'encounterVersion'])
     .index('by_occurrenceId', ['occurrenceId']),
   encounterBlueprints: defineTable(zodToConvexFields(encounterStoredBlueprintSchema.shape))
     .index('by_publicId', ['id'])

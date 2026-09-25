@@ -13,6 +13,7 @@ import {
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
@@ -49,6 +50,15 @@ export interface LiveSessionCommandRejection {
   currentSequence: number
   message: string
   reason: DomainRejectionReasonDto | null
+  warnings: EncounterRuleWarningDto[] | null
+}
+
+/** A refused live command; callers read the reason and any overridable rule warnings. */
+export class LiveSessionCommandRejectedError extends Error {
+  constructor(readonly rejection: LiveSessionCommandRejection) {
+    super(rejection.message)
+    this.name = 'LiveSessionCommandRejectedError'
+  }
 }
 
 type LiveSessionClientMessage = Extract<
@@ -340,7 +350,9 @@ export function createLiveSessionConnection(
               requestResume()
             }
           }
-          pendingCommands.get(message.commandId)?.reject(new Error(message.message))
+          pendingCommands
+            .get(message.commandId)
+            ?.reject(new LiveSessionCommandRejectedError(message))
           pendingCommands.delete(message.commandId)
           options.onCommandRejected?.(message)
         }

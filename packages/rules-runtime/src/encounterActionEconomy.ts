@@ -49,8 +49,7 @@ export async function stageEncounterActionEconomyRefreshes(input: {
       !capability.success ||
       capability.data.id !== definitionId ||
       !capability.data.usage ||
-      capability.data.usage.refreshBoundary !== 'START_OF_TURN' ||
-      beforeUsed > capability.data.usage.maximum
+      capability.data.usage.refreshBoundary !== 'START_OF_TURN'
     )
       throw new Error('Encounter action-economy refresh definition is unavailable or stale.')
     refreshes.push({
@@ -70,14 +69,22 @@ export async function stageEncounterActionEconomyRefreshes(input: {
   return { refreshes, refreshedActor: refreshes.length ? actor : null }
 }
 
-export async function prepareEncounterActionEconomy(input: {
+type ActionEconomyInput = {
   actor: EncounterRunActorState
   state: EncounterRunState
   activation: { code: string; amount: number }
   target?: ActionEconomyTarget
   loadTarget(): Promise<ActionEconomyTarget | undefined>
   definitions: CurrentReusableDefinitionSource
-}): Promise<EncounterActionEconomyConsumption | null> {
+}
+
+/**
+ * The allowance an action uses. An exhausted or suppressed allowance is still returned, marked
+ * unavailable; only Assisted actions may override it (`prepareEncounterActionEconomy` refuses).
+ */
+export async function evaluateEncounterActionEconomy(
+  input: ActionEconomyInput
+): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
   if (input.state.automationMode === 'MANUAL') return null
   const binding = actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
     gameSystemId: input.state.gameSystemId,
@@ -121,20 +128,27 @@ export async function prepareEncounterActionEconomy(input: {
   const capability = capabilityState.capabilities[0]
   const usage = capability?.capability.document.usage
   const beforeUsed = encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId)
-  if (
-    !capability ||
-    !usage ||
-    usage.refreshBoundary !== 'START_OF_TURN' ||
-    !capability.available ||
-    beforeUsed >= usage.maximum
-  )
+  if (!capability || !usage || usage.refreshBoundary !== 'START_OF_TURN')
     throw new Error('The selected action allowance is unavailable.')
   return {
-    definitionId: binding.capabilityDefinitionId,
-    definitionVersion: capability.capability.definitionVersion,
-    definitionChecksum: capability.capability.definitionChecksum,
-    maximum: usage.maximum,
-    beforeUsed,
-    afterUsed: beforeUsed + 1
+    consumption: {
+      definitionId: binding.capabilityDefinitionId,
+      definitionVersion: capability.capability.definitionVersion,
+      definitionChecksum: capability.capability.definitionChecksum,
+      maximum: usage.maximum,
+      beforeUsed,
+      afterUsed: beforeUsed + 1
+    },
+    available: capability.available && beforeUsed < usage.maximum
   }
+}
+
+/** The allowance for flows without overrides (movement, Disarm): an unavailable one is refused. */
+export async function prepareEncounterActionEconomy(
+  input: ActionEconomyInput
+): Promise<EncounterActionEconomyConsumption | null> {
+  const evaluated = await evaluateEncounterActionEconomy(input)
+  if (evaluated && !evaluated.available)
+    throw new Error('The selected action allowance is unavailable.')
+  return evaluated?.consumption ?? null
 }

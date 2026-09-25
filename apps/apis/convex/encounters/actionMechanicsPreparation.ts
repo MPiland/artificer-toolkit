@@ -20,6 +20,7 @@ export async function prepareNativeEncounterActionMechanics(
     actors: EncounterActors
     actionId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
+    overridable: boolean
     campaignOwnerUserId: string
     movementTargets?: ReadonlyMap<string, MovementTarget>
   }
@@ -40,6 +41,7 @@ export async function prepareNativeEncounterActionMechanics(
     actors: input.actors,
     actionId: input.actionId,
     wieldConflictAcceptance: input.wieldConflictAcceptance,
+    overridable: input.overridable,
     movementTargets,
     loadSource: (sourceInput) => loadNativeEncounterActionSource(ctx, sourceInput),
     loadRelationshipFacts: (factsInput) => loadNativeActionRelationshipFacts(ctx, factsInput)

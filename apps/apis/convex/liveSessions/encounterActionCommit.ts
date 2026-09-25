@@ -22,6 +22,7 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
@@ -74,6 +75,9 @@ export const commit = internalMutation({
     )
       throw new Error('Live Session action evidence source mismatch.')
     const batch = execution.applicationOutputs
+    // The room gated these warnings; only codes the command acknowledged may be recorded.
+    if (input.ruleOverrides.some((warning) => !command.acknowledgedWarnings.includes(warning.code)))
+      throw new Error('Live Session action overrides were not acknowledged.')
     if (
       (batch.kind !== 'CHARACTER_MECHANICS_BATCH' &&
         batch.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') ||
@@ -238,10 +242,11 @@ export const commit = internalMutation({
         resources: withFeatureChargeUsed(settledSource, feature.ownerFeatureId, feature.afterUsed)
       })
     }
-    if (input.actionEconomy)
+    if (batch.actionEconomyTransition)
       settledSource = consumeEncounterActionEconomy({
         actor: settledSource,
-        consumption: input.actionEconomy
+        consumption: batch.actionEconomyTransition,
+        overridden: overridesActionEconomy(input.ruleOverrides)
       })
     if (checksumCanonicalJson(settledSource) !== checksumCanonicalJson(beforeSource)) {
       const row = await ctx.db
@@ -378,6 +383,7 @@ export const commit = internalMutation({
         ruleOccurrenceId: execution.occurrenceId,
         ruleResultChecksum,
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+        ruleOverrides: input.ruleOverrides,
         commandFingerprint: fingerprint,
         actorUserId: userId,
         version: nextState.version,

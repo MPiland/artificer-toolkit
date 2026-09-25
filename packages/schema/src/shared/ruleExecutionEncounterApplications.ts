@@ -196,6 +196,27 @@ export type CharacterItemUseStateTransitionDto = z.infer<
   typeof characterItemUseStateTransitionDtoSchema
 >
 
+/** One action-economy allowance use. An overridden ("Do it anyway") use may exceed the maximum. */
+export const encounterActionEconomyTransitionDtoSchema = z
+  .strictObject({
+    definitionId: uuidSchema,
+    definitionVersion: positiveIntegerSchema,
+    definitionChecksum: checksumSchema,
+    maximum: positiveIntegerSchema,
+    beforeUsed: nonNegativeIntegerSchema,
+    afterUsed: positiveIntegerSchema
+  })
+  .check(
+    z.superRefine((value, context) => {
+      if (value.afterUsed !== value.beforeUsed + 1)
+        context.addIssue({
+          code: 'custom',
+          path: ['afterUsed'],
+          message: 'An action-economy transition uses exactly one allowance.'
+        })
+    })
+  )
+
 export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
   .strictObject({
     kind: z.literal('ENCOUNTER_ACTOR_MECHANICS_BATCH'),
@@ -235,6 +256,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
       z.nullable(characterItemUseStateTransitionDtoSchema),
       null
     ),
+    actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
     legendaryResistance: z._default(
       z.nullable(
         z.strictObject({
@@ -702,16 +724,7 @@ export const contestedActionApplicationOutputDtoSchema = z
         destination: z.strictObject({ x: z.number(), y: z.number() })
       })
     ]),
-    actionEconomyTransition: z.nullable(
-      z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        maximum: positiveIntegerSchema,
-        beforeUsed: nonNegativeIntegerSchema,
-        afterUsed: positiveIntegerSchema
-      })
-    )
+    actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema)
   })
   .check(
     z.superRefine((value, context) => {
@@ -771,8 +784,7 @@ export const contestedActionApplicationOutputDtoSchema = z
         })
       if (
         value.actionEconomyTransition &&
-        (value.actionEconomyTransition.beforeUsed >= value.actionEconomyTransition.maximum ||
-          value.actionEconomyTransition.afterUsed !== value.actionEconomyTransition.beforeUsed + 1)
+        value.actionEconomyTransition.beforeUsed >= value.actionEconomyTransition.maximum
       )
         context.addIssue({
           code: 'custom',

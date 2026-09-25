@@ -207,7 +207,8 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
     actionId,
     optionalCombatIntent: null,
     sceneContext: null,
-    acceptedWieldConflict
+    acceptedWieldConflict,
+    acknowledgedWarnings: []
   })
   const armorClass = () =>
     base.owner.caller.run(async (ctx) => {
@@ -274,6 +275,7 @@ describe('shield stow on two-handed attacks', () => {
           target: actors.find((actor) => actor.id === base.target.id)!,
           actionId: base.actionId,
           wieldConflictAcceptance: { kind: 'PROMPTED', accepted },
+          overridable: true,
           campaignOwnerUserId: base.owner.userId
         })
       await expect(prepare(null)).rejects.toThrow(
@@ -292,6 +294,7 @@ describe('shield stow on two-handed attacks', () => {
         target: actors.find((actor) => actor.id === base.target.id)!,
         actionId: base.actionId,
         wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: true,
         campaignOwnerUserId: base.owner.userId
       })
       expect(unprompted.acceptedWieldConflict).toBeNull()

@@ -59,7 +59,8 @@ export async function prepareNativeTurnLegendaryActions(input: Input) {
         state,
         campaignOwnerUserId: userId,
         actors,
-        ...mechanics
+        ...mechanics,
+        overridable: false
       }),
     definitions: {
       requireCurrent: async (definitionId) => {

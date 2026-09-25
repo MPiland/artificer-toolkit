@@ -46,6 +46,7 @@ export function planNativeLiveEncounterSettlement(input: {
   mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
+  actionEconomyOverridden: boolean
   maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }) {
@@ -115,7 +116,8 @@ export function planNativeLiveEncounterSettlement(input: {
   const economyActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
-        consumption: input.actionEconomy
+        consumption: input.actionEconomy,
+        overridden: input.actionEconomyOverridden
       })
     : prepared.resourceUse || mechanics.sourceResourceMechanics
       ? mechanics.settledSource

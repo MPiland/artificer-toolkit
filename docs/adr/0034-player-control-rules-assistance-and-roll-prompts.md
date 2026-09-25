@@ -38,13 +38,17 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
 2. **Two modes, not three.**
    - **Assisted** (default): the app resolves the rules (hit versus AC, damage, saves, conditions,
      slot and resource spending, concentration, action economy) and applies results immediately.
+     The app never acts or chooses on anyone's behalf: every reaction, optional feature or triggered
+     ability, including authored "automatic" reactions, is offered to the actor's controller (the GM
+     for monsters) as a Use/Decline choice.
      Rule checks warn instead of blocking: the actor sees the warning and may choose "Do it anyway".
      Overrides are logged with a badge the GM sees, and the GM can undo or void results and stuck
      prompts.
    - **Manual**: a digital tracker for a table that runs the rules itself (initiative and turns, HP and
      conditions, dice roller, map). The app resolves no attacks and tracks no rules.
-   - `AUTOMATIC` is removed. Each person has an "Auto-roll my dice" preference instead (players for
-     their own rolls, the GM for monster rolls). Auto-rolls are logged app rolls.
+   - `AUTOMATIC` is removed. Each person has an "Auto-roll my dice" preference (players for their own
+     rolls, the GM for monster rolls). It only produces dice results, recorded as app rolls, and never
+     makes a choice.
 3. **Roll prompts.**
    - Every roll the app needs is a row with value input(s) and a "Roll dice" button.
    - "Roll dice" is a non-settling server roll (secure RNG), shown with the Character Sheet's 3D dice

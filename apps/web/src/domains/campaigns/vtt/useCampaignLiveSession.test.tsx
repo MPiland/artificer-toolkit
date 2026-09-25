@@ -116,7 +116,8 @@ describe('useCampaignLiveSession', () => {
         commandId,
         currentSequence: 4,
         message: 'Scene state changed.',
-        reason: null
+        reason: null,
+        warnings: null
       })
       options.onError(new Error('connection failed'))
     })

@@ -2,6 +2,7 @@ import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSe
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
@@ -128,9 +129,12 @@ export function prepareNativeCharacterActionState(input: {
   characterId: string
   expectedStreamVersion: number
   automationMode: AutomationModeDto
+  /** Assisted RESOLVE_ACTION reports overridable warnings; every other caller refuses them. */
+  overridable: boolean
 }): {
   actionMechanic: NativeCharacterActionMechanic
   resourceConsumption: NativeCharacterActionResourceConsumption | null
+  ruleWarnings: EncounterRuleWarningDto[]
 } {
   if (
     !Number.isSafeInteger(input.expectedStreamVersion) ||
@@ -142,8 +146,19 @@ export function prepareNativeCharacterActionState(input: {
   const decision = input.policyOutput.actionDecisions.find(
     (value) => value.actionId === input.candidate.actionId
   )
-  if (!decision || !sameIdentity(decision, input.candidate) || decision.status !== 'AVAILABLE')
+  if (!decision || !sameIdentity(decision, input.candidate)) stale()
+  // An overridable action may lack its equip or resource; any other refusal is stale.
+  const { overridable } = input
+  const notEquipped =
+    decision.status === 'UNAVAILABLE' && decision.reasonCode === 'SOURCE_NOT_EQUIPPED'
+  if (
+    decision.status !== 'AVAILABLE' &&
+    !(overridable && (notEquipped || decision.reasonCode === 'INSUFFICIENT_RESOURCE'))
+  )
     stale()
+  const ruleWarnings: EncounterRuleWarningDto[] = notEquipped
+    ? [{ code: 'SOURCE_NOT_EQUIPPED', message: "The item this action uses isn't equipped." }]
+    : []
 
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
   const actionMechanic: NativeCharacterActionMechanic = {
@@ -172,7 +187,7 @@ export function prepareNativeCharacterActionState(input: {
       decision.resourceCost !== null
     )
       stale()
-    return { actionMechanic, resourceConsumption: null }
+    return { actionMechanic, resourceConsumption: null, ruleWarnings }
   }
   if (!Number.isSafeInteger(binding.cost) || binding.cost < 1) stale()
   const resource = input.policyOutput.resources.find((value) => value.poolId === binding.poolId)
@@ -181,8 +196,9 @@ export function prepareNativeCharacterActionState(input: {
     input.candidate.resourceUse.poolId !== binding.poolId ||
     input.candidate.resourceUse.chargeId !== binding.chargeId ||
     input.candidate.resourceUse.cost !== binding.cost ||
-    decision.resourcePoolId !== binding.poolId ||
-    decision.resourceCost !== binding.cost ||
+    // An unequipped source reports no bound resource; its binding still comes from the entry.
+    (!notEquipped &&
+      (decision.resourcePoolId !== binding.poolId || decision.resourceCost !== binding.cost)) ||
     !resource ||
     resource.state !== 'RESOLVED' ||
     resource.chargeId !== binding.chargeId ||
@@ -190,7 +206,8 @@ export function prepareNativeCharacterActionState(input: {
     resource.rawUsed < 0 ||
     resource.remaining === null ||
     !Number.isSafeInteger(resource.remaining) ||
-    resource.remaining < binding.cost
+    resource.remaining < 0 ||
+    (!overridable && resource.remaining < binding.cost)
   )
     stale()
 
@@ -212,21 +229,26 @@ export function prepareNativeCharacterActionState(input: {
   const existing = matchingUsage[0]
   const beforeUsed = existing?.used ?? 0
   if (beforeUsed !== resource.rawUsed) stale()
-  if (input.automationMode === 'MANUAL') return { actionMechanic, resourceConsumption: null }
-  const afterUsed = beforeUsed + binding.cost
-  const afterRemaining = resource.remaining - binding.cost
-  if (
-    !Number.isSafeInteger(afterUsed) ||
-    !Number.isSafeInteger(afterRemaining) ||
-    afterRemaining < 0
-  )
-    stale()
+  if (input.automationMode === 'MANUAL')
+    return { actionMechanic, resourceConsumption: null, ruleWarnings }
+  // "Do it anyway" spends only what remains; the warning records the shortfall.
+  const spent = Math.min(binding.cost, resource.remaining)
+  if (spent < binding.cost)
+    ruleWarnings.push({
+      code: 'RESOURCE_UNAVAILABLE',
+      message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
+    })
+  if (spent === 0) return { actionMechanic, resourceConsumption: null, ruleWarnings }
+  const afterUsed = beforeUsed + spent
+  const afterRemaining = resource.remaining - spent
+  if (!Number.isSafeInteger(afterUsed)) stale()
   return {
     actionMechanic,
+    ruleWarnings,
     resourceConsumption: {
       poolId: binding.poolId,
       chargeId: binding.chargeId,
-      cost: binding.cost,
+      cost: spent,
       owner,
       usageId: existing?.id ?? crypto.randomUUID(),
       beforeUsed,

@@ -796,6 +796,7 @@ async function executeCutoverWorkloadAction(
       command: {
         type: 'RESOLVE_ACTION',
         acceptedWieldConflict: null,
+        acknowledgedWarnings: [],
         encounterId: aggregate.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: aggregate.run.version,
@@ -999,6 +1000,7 @@ async function verifyCutoverWorkloadPreflight({
     command: {
       type: 'RESOLVE_ACTION' as const,
       acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
       encounterId: aggregate.run.id,
       commandId,
       expectedVersion: aggregate.run.version,
@@ -1049,6 +1051,7 @@ async function verifyCutoverWorkloadPreflight({
       command: {
         type: 'RESOLVE_ACTION',
         acceptedWieldConflict: null,
+        acknowledgedWarnings: [],
         encounterId: aggregate.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: aggregate.run.version,

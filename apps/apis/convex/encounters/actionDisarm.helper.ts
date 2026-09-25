@@ -424,6 +424,8 @@ export async function executeNativeDisarm(
       ruleOccurrenceId: occurrenceId,
       ruleResultChecksum,
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      // Disarm has no "Do it anyway"; its checks stay hard.
+      ruleOverrides: [],
       commandFingerprint: fingerprint,
       actorUserId: initiatorUserId,
       version: nextState.version,

@@ -163,6 +163,7 @@ export function concentrationAction(
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: fixture.run.id,
     commandId,
     expectedVersion,

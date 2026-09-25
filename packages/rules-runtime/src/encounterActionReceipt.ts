@@ -2,6 +2,7 @@ import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/sc
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
+import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import type {
   finishNativeActionMechanicsSettlement,
@@ -21,11 +22,23 @@ export function buildEncounterActionStoredExecution(input: {
   effects: ReturnType<typeof projectNativeActionEffectTransitions>
   maintainedState: EncounterMaintainedEffectStateRecord | null
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
+  actionEconomy: EncounterActionEconomyConsumption | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
   const { mechanics, resourceReceipt, featureResourceReceipt } = settled
   const { stateEffectTransitions, activeEffectTransitions } = effects
+  // Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum.
+  const actionEconomyTransition = input.actionEconomy
+    ? {
+        definitionId: input.actionEconomy.definitionId,
+        definitionVersion: input.actionEconomy.definitionVersion,
+        definitionChecksum: input.actionEconomy.definitionChecksum,
+        maximum: input.actionEconomy.maximum,
+        beforeUsed: input.actionEconomy.beforeUsed,
+        afterUsed: input.actionEconomy.afterUsed
+      }
+    : null
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
     (source.kind === 'CHARACTER_ACTION' && actor.id !== target.id
@@ -57,6 +70,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            actionEconomyTransition,
             activeEffectTransitions: activeEffectTransitions.map(
               ({ targetActorId: _targetActorId, ...transition }) => ({
                 ...transition,
@@ -89,6 +103,7 @@ export function buildEncounterActionStoredExecution(input: {
             resourceConsumption: resourceReceipt,
             featureResourceConsumption: featureResourceReceipt,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            actionEconomyTransition,
             activeEffectTransitions,
             stateEffectTransitions,
             ...(input.maintenanceTransition

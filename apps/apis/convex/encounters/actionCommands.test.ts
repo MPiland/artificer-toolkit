@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
@@ -25,6 +26,8 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -837,6 +840,7 @@ function command(
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: input.encounterId,
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion ?? 0,
@@ -1104,13 +1108,13 @@ describe('native encounter actions', () => {
       actionId: base.actionId
     })
     const before = await records(base.t, base.run.id)
-    await expect(
-      base.owner.caller.run((ctx) =>
-        ctx.runMutation(internal.encounters.commands.execute, {
+    expect(
+      await rejection(
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: command({ ...input, targetActorId: base.actor.id })
         })
       )
-    ).rejects.toThrow('target')
+    ).toMatchObject({ reason: 'RULE_WARNINGS', warnings: [{ code: 'TARGET_DISPOSITION' }] })
     const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
       command: input
     })
@@ -1224,7 +1228,7 @@ describe('native encounter actions', () => {
       const base = await distanceSetup()
       await replaceTargetToken(base, change === 'moved' ? { x: 450, y: 450 } : null)
       const before = await records(base.t, base.run.id)
-      await expect(
+      const attempt = () =>
         base.owner.caller.mutation(internal.encounters.commands.execute, {
           command: command({
             encounterId: base.run.id,
@@ -1240,7 +1244,13 @@ describe('native encounter actions', () => {
             }
           })
         })
-      ).rejects.toThrow(change === 'moved' ? 'does not permit this target' : 'token is unavailable')
+      // A live target out of range is an overridable warning; a missing token stays hard.
+      if (change === 'moved')
+        expect(await rejection(attempt())).toMatchObject({
+          reason: 'RULE_WARNINGS',
+          warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
+        })
+      else await expect(attempt()).rejects.toThrow('token is unavailable')
       expect(await records(base.t, base.run.id)).toEqual(before)
     },
     30000
@@ -1681,7 +1691,7 @@ describe('native encounter actions', () => {
     ).toBe(stored.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY])
   }, 30000)
 
-  it('settles a charged Feature once and refuses an exhausted source', async () => {
+  it('settles a charged Feature once and warns before using an exhausted source', async () => {
     const base = await setup({ charged: true })
     const input = command({
       encounterId: base.run.id,
@@ -1733,17 +1743,17 @@ describe('native encounter actions', () => {
         stateChecksum: checksumCanonicalJson(exhausted)
       })
     })
-    await expect(
-      base.owner.caller.run((ctx) =>
-        ctx.runMutation(internal.encounters.commands.execute, {
-          command: command({
-            ...input,
-            commandId: crypto.randomUUID(),
-            expectedVersion: 1
-          })
-        })
-      )
-    ).rejects.toThrow('resource is unavailable')
+    const exhausted = await rejection(
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: command({ ...input, commandId: crypto.randomUUID(), expectedVersion: 1 })
+      })
+    )
+    expect(exhausted).toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [
+        { code: 'RESOURCE_UNAVAILABLE', message: 'Not enough charges left: needs 1, has 0.' }
+      ]
+    })
   }, 30000)
   it.each(['AUTO_ROLL', 'PROMPT'] as const)(
     'creates one recurring condition effect atomically and replays its typed receipt (%s)',
@@ -1904,5 +1914,311 @@ describe('native encounter actions', () => {
       }
     })
     expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(0)
+  }, 30000)
+})
+
+async function rejection(promise: Promise<unknown>) {
+  const error = await promise.then(
+    () => null,
+    (caught: unknown) => caught
+  )
+  if (!(error instanceof ConvexError)) throw new Error('Expected a domain rejection.')
+  return domainRejectionErrorDataSchema.parse(error.data)
+}
+
+function sourceActorState(base: Awaited<ReturnType<typeof setup>>) {
+  return base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', base.run.id).eq('id', base.actor.id)
+      )
+      .unique()
+    if (!row) throw new Error('Missing source actor.')
+    return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  })
+}
+
+function actorsWithoutCounters(value: Awaited<ReturnType<typeof records>>) {
+  return value.actors.map((row) => {
+    const { resources: _resources, ...actor } = encounterRunActorStateSchema.parse(
+      JSON.parse(row.stateJson)
+    )
+    return actor
+  })
+}
+
+function revert(
+  base: Awaited<ReturnType<typeof setup>>,
+  expectedVersion: number,
+  caller = base.owner.caller
+) {
+  return caller.mutation(internal.encounters.commands.execute, {
+    command: {
+      type: 'REVERT_LAST_ACTION',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion
+    }
+  })
+}
+
+describe('Assisted soft enforcement', () => {
+  it('warns on an exhausted allowance and charge, refuses a partial acknowledgement, then records the override without going negative', async () => {
+    const base = await setup({ charged: true })
+    const featureId = nativeCreature(true).features!.find((feature) => feature.label === 'Bite')!.id
+    const first = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    await base.owner.caller.mutation(internal.encounters.commands.execute, { command: first })
+    const again = (acknowledgedWarnings: EncounterRuleWarningCodeDto[]) =>
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: {
+          ...command({ ...first, commandId: crypto.randomUUID(), expectedVersion: 1 }),
+          acknowledgedWarnings
+        }
+      })
+    const before = await records(base.t, base.run.id)
+    expect(await rejection(again([]))).toEqual({
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: 'This action breaks a rule. Do it anyway?',
+      warnings: [
+        { code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'No action left this turn.' },
+        { code: 'RESOURCE_UNAVAILABLE', message: 'Not enough charges left: needs 1, has 0.' }
+      ]
+    })
+    // A warning the acknowledgement does not cover still refuses the command.
+    expect(await rejection(again(['ACTION_ECONOMY_UNAVAILABLE']))).toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }, { code: 'RESOURCE_UNAVAILABLE' }]
+    })
+    expect(await records(base.t, base.run.id)).toEqual(before)
+
+    const result = await again(['ACTION_ECONOMY_UNAVAILABLE', 'RESOURCE_UNAVAILABLE'])
+    expect(result.projection.version).toBe(2)
+    const source = await sourceActorState(base)
+    // Charges stop at their maximum; the allowance records the over-use.
+    expect(featureChargeUsed(source, featureId)).toBe(1)
+    expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(2)
+    const stored = await base.t.run(async (ctx) => ({
+      runCommand: await ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId_version', (q) =>
+          q.eq('encounterId', base.run.id).eq('version', 2)
+        )
+        .unique(),
+      receipt: await ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_encounterVersion', (q) =>
+          q.eq('encounterId', base.run.id).eq('encounterVersion', 2)
+        )
+        .unique()
+    }))
+    if (stored.runCommand?.commandType !== 'RESOLVE_ACTION' || !stored.receipt)
+      throw new Error('Missing overridden action records.')
+    expect(stored.runCommand.ruleOverrides.map((warning) => warning.code)).toEqual([
+      'ACTION_ECONOMY_UNAVAILABLE',
+      'RESOURCE_UNAVAILABLE'
+    ])
+    const execution = storedRuleExecutionResultDtoSchema.parse(
+      JSON.parse(stored.receipt.resultJson)
+    )
+    if (
+      !('applicationOutputs' in execution) ||
+      execution.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    )
+      throw new Error('Expected a completed Creature action receipt.')
+    expect(execution.applicationOutputs.featureResourceConsumption).toBeNull()
+    expect(execution.applicationOutputs.actionEconomyTransition).toMatchObject({
+      maximum: 1,
+      beforeUsed: 1,
+      afterUsed: 2
+    })
+    const timeline = await base.owner.caller.query(api.encounters.timelineReads.timeline, {
+      encounterId: base.run.id,
+      limit: 5
+    })
+    expect(timeline.entries.find((entry) => entry.version === 2)?.ruleOverrides).toEqual(
+      stored.runCommand.ruleOverrides
+    )
+  }, 30000)
+
+  it('treats range and target disposition as overridable warnings', async () => {
+    const base = await distanceSetup()
+    await replaceTargetToken(base, { x: 450, y: 450 })
+    const outOfRange = command({
+      encounterId: base.run.id,
+      expectedVersion: base.run.version,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      sceneContext: {
+        sceneId: base.sceneId,
+        expectedSceneVersion: 1,
+        sourceTokenId: base.tokens[0]!.id,
+        targetTokenId: base.tokens[1]!.id
+      }
+    })
+    expect(
+      await rejection(
+        base.owner.caller.mutation(internal.encounters.commands.execute, { command: outOfRange })
+      )
+    ).toMatchObject({ warnings: [{ code: 'TARGET_OUT_OF_RANGE' }] })
+    expect(
+      await rejection(
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
+          command: { ...outOfRange, commandId: crypto.randomUUID(), sceneContext: null }
+        })
+      )
+    ).toMatchObject({ warnings: [{ code: 'TARGET_RANGE_UNCHECKED' }] })
+    expect(
+      await rejection(
+        base.owner.caller.mutation(internal.encounters.commands.execute, {
+          command: {
+            ...outOfRange,
+            commandId: crypto.randomUUID(),
+            targetActorId: base.actor.id,
+            sceneContext: null
+          }
+        })
+      )
+    ).toMatchObject({
+      warnings: [{ code: 'TARGET_DISPOSITION' }, { code: 'TARGET_RANGE_UNCHECKED' }]
+    })
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: { ...outOfRange, acknowledgedWarnings: ['TARGET_OUT_OF_RANGE'] }
+    })
+    expect(result.projection.version).toBe(base.run.version + 1)
+  }, 30000)
+
+  it('never overrides hard checks', async () => {
+    const base = await setup({ targetCreature: true })
+    const input = {
+      ...command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId
+      }),
+      acknowledgedWarnings: [
+        'ACTION_ECONOMY_UNAVAILABLE',
+        'RESOURCE_UNAVAILABLE',
+        'SOURCE_NOT_EQUIPPED',
+        'TARGET_DISPOSITION',
+        'TARGET_OUT_OF_RANGE',
+        'TARGET_RANGE_UNCHECKED'
+      ] satisfies EncounterRuleWarningCodeDto[]
+    }
+    const before = await records(base.t, base.run.id)
+    const refuse = async (changed: typeof input) =>
+      (
+        await rejection(
+          base.owner.caller.mutation(internal.encounters.commands.execute, { command: changed })
+        )
+      ).reason
+    expect(await refuse({ ...input, actorId: base.target.id, targetActorId: base.actor.id })).toBe(
+      'NOT_CURRENT_ACTOR'
+    )
+    expect(await refuse({ ...input, expectedVersion: 7 })).toBe('VERSION_STALE')
+    await expect(
+      base.other.caller.mutation(internal.encounters.commands.execute, { command: input })
+    ).rejects.toThrow('Campaign not found')
+    await expect(
+      base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: { ...input, targetActorId: crypto.randomUUID() }
+      })
+    ).rejects.toThrow()
+    expect(await records(base.t, base.run.id)).toEqual(before)
+  }, 30000)
+})
+
+describe('GM undo of the last action', () => {
+  it('restores Creature hit points, charges and the action allowance exactly, once', async () => {
+    const base = await setup({ charged: true, targetCreature: true })
+    const featureId = nativeCreature(true).features!.find((feature) => feature.label === 'Bite')!.id
+    const before = await records(base.t, base.run.id)
+    const action = command({
+      encounterId: base.run.id,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId
+    })
+    await base.owner.caller.mutation(internal.encounters.commands.execute, { command: action })
+    const settled = await records(base.t, base.run.id)
+    const targetState = (value: Awaited<ReturnType<typeof records>>) =>
+      creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!.stateJson)
+    expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
+
+    await expect(revert(base, 1, base.other.caller)).rejects.toThrow('Campaign not found')
+    const undone = await revert(base, 1)
+    expect(undone.projection.version).toBe(2)
+    const after = await records(base.t, base.run.id)
+    // Counters return to their values; an unused counter may be stored as 0 rather than absent.
+    expect(actorsWithoutCounters(after)).toEqual(actorsWithoutCounters(before))
+    const source = await sourceActorState(base)
+    expect(featureChargeUsed(source, featureId)).toBe(0)
+    expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+    expect(after.commands.find((entry) => entry.version === 2)).toMatchObject({
+      commandType: 'REVERT_LAST_ACTION',
+      revertedCommandId: action.commandId
+    })
+    const timeline = await base.owner.caller.query(api.encounters.timelineReads.timeline, {
+      encounterId: base.run.id,
+      limit: 5
+    })
+    expect(timeline.entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION', version: 2 })
+    expect(await rejection(revert(base, 2))).toMatchObject({
+      reason: 'REVERT_UNAVAILABLE',
+      message: 'The last action was already undone.'
+    })
+  }, 30000)
+
+  it('deletes the effect an action created and restores its conditions', async () => {
+    const base = await setup({ self: true, recurring: true, condition: true })
+    const before = await records(base.t, base.run.id)
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.actor.id,
+        actionId: base.actionId
+      })
+    })
+    expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(1)
+    await revert(base, 1)
+    const after = await records(base.t, base.run.id)
+    expect(after.activeEffects).toEqual([])
+    expect(actorsWithoutCounters(after)).toEqual(actorsWithoutCounters(before))
+    expect(
+      encounterRuleUsageUsed(await sourceActorState(base), SRD_ACTION_ALLOWANCE_DEFINITION_ID)
+    ).toBe(0)
+  }, 30000)
+
+  it('refuses after a later Encounter command changed the Run', async () => {
+    const base = await setup({ targetCreature: true })
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId
+      })
+    })
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: {
+        type: 'SET_ROUND',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1,
+        round: 2
+      }
+    })
+    const settled = await records(base.t, base.run.id)
+    expect(await rejection(revert(base, 2))).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
+    expect(await records(base.t, base.run.id)).toEqual(settled)
   }, 30000)
 })

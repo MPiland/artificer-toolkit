@@ -97,6 +97,7 @@ import { encounterEvidenceMode } from '@artificer-toolkit/rules-runtime/encounte
 import { removeEncounterActor } from './actorRemovalCommand'
 import { reorderEncounterActors } from './actorReorderCommand'
 import { reinforceEncounterActors } from './actorReinforcementCommand'
+import { revertLastEncounterAction } from './actionRevert'
 import { executeNativeEncounterAction } from './actionCommands'
 import { resumeNativeEncounterAction } from './actionResume'
 import { executeNativeDisarm, resumeNativeDisarm } from './actionDisarm.helper'
@@ -223,6 +224,8 @@ export const execute = internalMutation({
     if (command.type === 'REMOVE_ACTOR') return removeEncounterActor(ctx, command, userId)
     if (command.type === 'REORDER') return reorderEncounterActors(ctx, command, userId)
     if (command.type === 'REINFORCE') return reinforceEncounterActors(ctx, command, userId)
+    if (command.type === 'REVERT_LAST_ACTION')
+      return revertLastEncounterAction(ctx, command, userId)
     if (
       command.type !== 'UPSERT_REMINDER' &&
       command.type !== 'REMOVE_REMINDER' &&

@@ -280,7 +280,11 @@ export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
           throw new Error('Movement passage allowance differs from its retained contest.')
         const actor = actors.find((entry) => entry.id === step.actorId)
         if (!actor) throw new Error('Movement passage actor is unavailable.')
-        const next = await consumeNativeActionEconomy(ctx, { actor, consumption: step.consumption })
+        const next = await consumeNativeActionEconomy(ctx, {
+          actor,
+          consumption: step.consumption,
+          overridden: false
+        })
         actors = actors.map((entry) => (entry.id === next.id ? next : entry))
         passageSettled = true
       } else {

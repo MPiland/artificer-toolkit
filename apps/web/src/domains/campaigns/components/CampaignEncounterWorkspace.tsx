@@ -36,6 +36,7 @@ import { EncounterReinforcement } from './EncounterReinforcement'
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 import { EncounterReminders } from './EncounterReminders'
 import { useCampaignLiveSession } from '../vtt/useCampaignLiveSession'
+import { LiveSessionCommandRejectedError } from '../vtt/liveSessionClient'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
 export function CampaignEncounterWorkspace({
@@ -52,6 +53,7 @@ export function CampaignEncounterWorkspace({
   const queryClient = useQueryClient()
   const convex = useConvex()
   const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false)
+  const [undoConfirmOpen, setUndoConfirmOpen] = useState(false)
   const [reinforceOpen, setReinforceOpen] = useState(false)
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
   const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
@@ -94,12 +96,19 @@ export function CampaignEncounterWorkspace({
       )
       void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.timeline(encounter.id) })
       setCompleteConfirmOpen(false)
+      setUndoConfirmOpen(false)
       setRemoveActorId(null)
       setReinforceOpen(false)
       onUpdated(updated)
     }
   })
   const readOnly = !canManage || encounter.status === 'COMPLETED'
+  // Expected refusals (such as an undo that can't be exact) explain themselves; others stay generic.
+  const commandError = command.error
+    ? command.error instanceof LiveSessionCommandRejectedError && command.error.rejection.reason
+      ? command.error.message
+      : 'The Encounter couldn’t be updated. Try that action again.'
+    : null
   const commandBlocked = command.isPending || !live.commandReady
   const pendingDecision = useQuery({
     ...convexQuery(convexApi.encounters.pendingReads.pendingRuleOccurrence, {
@@ -275,6 +284,14 @@ export function CampaignEncounterWorkspace({
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
+                <Menu.Item
+                  onClick={() => {
+                    command.reset()
+                    setUndoConfirmOpen(true)
+                  }}
+                >
+                  Undo last action
+                </Menu.Item>
                 <Menu.Item color='red' onClick={() => setCompleteConfirmOpen(true)}>
                   Complete encounter
                 </Menu.Item>
@@ -305,9 +322,7 @@ export function CampaignEncounterWorkspace({
           {live.error ?? 'Connecting to the table…'}
         </Text>
       ) : null}
-      {command.error ? (
-        <Alert color='red'>The Encounter couldn’t be updated. Try that action again.</Alert>
-      ) : null}
+      {commandError ? <Alert color='red'>{commandError}</Alert> : null}
       <Accordion value={openedActorId} variant='separated' onChange={setOpenedActorId}>
         {encounter.actors.map((actor, actorIndex) => (
           <Accordion.Item
@@ -453,9 +468,16 @@ export function CampaignEncounterWorkspace({
                       justify='space-between'
                       key={entry.id}
                     >
-                      <Text fw={600} size='sm'>
-                        {encounterCommandLabel(entry.commandType)}
-                      </Text>
+                      <Group gap='xs'>
+                        <Text fw={600} size='sm'>
+                          {encounterCommandLabel(entry.commandType)}
+                        </Text>
+                        {entry.ruleOverrides.map((override) => (
+                          <Badge color='orange' key={override.code} variant='light'>
+                            Rule override: {override.message}
+                          </Badge>
+                        ))}
+                      </Group>
                       <Text c='dimmed' size='xs'>
                         {new Date(entry.createdAt).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -496,6 +518,31 @@ export function CampaignEncounterWorkspace({
               }}
             >
               Remove enemy
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+      <Modal
+        centered
+        opened={undoConfirmOpen}
+        title='Undo last action?'
+        onClose={() => setUndoConfirmOpen(false)}
+      >
+        <Stack gap='md'>
+          <Text>
+            Restore everything the last action changed: hit points, conditions, resources, effects
+            and its action. Undo can&apos;t be redone.
+          </Text>
+          {commandError ? <Alert color='red'>{commandError}</Alert> : null}
+          <Group justify='flex-end'>
+            <Button variant='default' onClick={() => setUndoConfirmOpen(false)}>
+              Keep it
+            </Button>
+            <Button
+              loading={command.isPending}
+              onClick={() => commandWithVersion({ type: 'REVERT_LAST_ACTION' })}
+            >
+              Undo action
             </Button>
           </Group>
         </Stack>
@@ -547,5 +594,6 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'START') return 'Encounter started'
   if (commandType === 'COMPLETE') return 'Encounter completed'
   if (commandType === 'VOID_RULE_OCCURRENCE') return 'Voided by the GM'
+  if (commandType === 'REVERT_LAST_ACTION') return 'Undone by the GM'
   return commandType.toLowerCase().replaceAll('_', ' ')
 }

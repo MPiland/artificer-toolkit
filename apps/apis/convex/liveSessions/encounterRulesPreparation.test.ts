@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { ConvexError } from 'convex/values'
+import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { LiveSessionDomainRejectionError } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -305,6 +311,7 @@ it('plans the same Character action and target facts in the Worker using private
   const command = {
     type: 'RESOLVE_ACTION' as const,
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     commandId: crypto.randomUUID(),
     sceneContext: {
       sceneId,
@@ -446,6 +453,7 @@ it('plans the same Character action and target facts in the Worker using private
       target: actors.find((actor) => actor.id === target.id)!,
       actionId,
       wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
+      overridable: true,
       campaignOwnerUserId: fixture.owner.userId
     })
     if (expected.source.kind !== 'CHARACTER_ACTION') throw new Error('Expected Club action.')
@@ -566,6 +574,7 @@ it('plans the same Character action and target facts in the Worker using private
         target: actors.find((actor) => actor.id === target.id)!,
         actionId,
         wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
+        overridable: true,
         campaignOwnerUserId: fixture.owner.userId
       })
       const settled = await settleNativeEncounterActionMechanics(ctx, {
@@ -588,7 +597,8 @@ it('plans the same Character action and target facts in the Worker using private
       if (!actual.actionEconomy) throw new Error('Missing action economy consumption.')
       await consumeNativeActionEconomy(ctx, {
         actor: settled.settledSource,
-        consumption: actual.actionEconomy
+        consumption: actual.actionEconomy,
+        overridden: false
       })
       try {
         const nativeActors = await readRunActors(ctx, state)
@@ -625,6 +635,62 @@ it('plans the same Character action and target facts in the Worker using private
     })
   ).rejects.toThrow('Rollback native action settlement proof.')
   if (settlementProofError) throw settlementProofError
+  expect(await storedRecords()).toEqual(beforePlanning)
+
+  // With the allowance spent, the DO planner and the Convex fallback raise the same warning.
+  const economy = actual.actionEconomy
+  if (!economy) throw new Error('Missing action economy consumption.')
+  const spendAllowance = (used: number) =>
+    fixture.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', fixture.run.id).eq('id', fixture.actor.id)
+        )
+        .unique()
+      if (!row) throw new Error('Missing action source actor.')
+      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const next = encounterRunActorStateSchema.parse({
+        ...actor,
+        resources: withEncounterRuleUsageUsed(actor, economy.definitionId, used)
+      })
+      await ctx.db.patch(row._id, {
+        stateJson: JSON.stringify(next),
+        stateChecksum: checksumCanonicalJson(next)
+      })
+      return row
+    })
+  const unspent = await spendAllowance(economy.maximum)
+  const plannerError = await planNativeLiveEncounterAction(
+    workerEnvironment(secret),
+    'fixture-access-token',
+    scope,
+    command,
+    executionOptions
+  ).then(
+    () => null,
+    (caught: unknown) => caught
+  )
+  if (!(plannerError instanceof LiveSessionDomainRejectionError))
+    throw new Error('Expected the DO planner to raise rule warnings.')
+  expect(plannerError.rejection).toMatchObject({
+    reason: 'RULE_WARNINGS',
+    warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
+  })
+  const nativeError = await fixture.owner.caller
+    .mutation(internal.encounters.commands.execute, { command })
+    .then(
+      () => null,
+      (caught: unknown) => caught
+    )
+  if (!(nativeError instanceof ConvexError)) throw new Error('Expected a Convex domain rejection.')
+  expect(nativeError.data).toEqual(plannerError.rejection)
+  await fixture.t.run(async (ctx) => {
+    await ctx.db.patch(unspent._id, {
+      stateJson: unspent.stateJson,
+      stateChecksum: unspent.stateChecksum
+    })
+  })
   expect(await storedRecords()).toEqual(beforePlanning)
 
   const playRevision = async () =>

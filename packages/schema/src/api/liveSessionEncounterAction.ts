@@ -21,6 +21,10 @@ import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResul
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '../shared/ruleExecutionReceiptCommandMetadata.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+import {
+  encounterRuleWarningsDtoSchema,
+  type EncounterRuleWarningDto
+} from '../shared/encounterRuleWarnings.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = z.extend(
@@ -72,14 +76,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
         expectedStreamVersion: number
       })
     | null
-  actionEconomy: {
-    definitionId: string
-    definitionVersion: number
-    definitionChecksum: string
-    maximum: number
-    beforeUsed: number
-    afterUsed: number
-  } | null
+  /** Warnings the command acknowledged and the planner found; recorded as overrides. */
+  ruleOverrides: EncounterRuleWarningDto[]
   createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
   maintainedState: z.infer<typeof encounterMaintainedEffectStateRecordSchema> | null
   concentration: {
@@ -117,16 +115,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
     execution: storedRuleExecutionResultDtoSchema,
     rules: encounterActorRuleOutputSchema,
     resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-    actionEconomy: z.nullable(
-      z.strictObject({
-        definitionId: postgresUuidSchema,
-        definitionVersion: z.number().check(z.int()).check(z.positive()),
-        definitionChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-        maximum: z.number().check(z.int()).check(z.nonnegative()),
-        beforeUsed: z.number().check(z.int()).check(z.nonnegative()),
-        afterUsed: z.number().check(z.int()).check(z.nonnegative())
-      })
-    ),
+    ruleOverrides: encounterRuleWarningsDtoSchema,
     createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
     maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
     ...liveSessionEncounterConcentrationFields,

@@ -1,6 +1,7 @@
 import { z } from '../zod.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { domainRejectionReasonDtoSchema } from './domainRejections.js'
+import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import {
   sceneBarrierDtoSchema,
   sceneFogLayerDtoSchema,
@@ -166,6 +167,8 @@ export const liveSessionWebSocketServerMessageDtoSchema = z.discriminatedUnion('
     message: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
     // The expected domain reason for `DOMAIN_REJECTED`; `null` for every other code.
     reason: z.nullable(domainRejectionReasonDtoSchema),
+    // The unacknowledged warnings for reason `RULE_WARNINGS`; `null` otherwise.
+    warnings: z.nullable(encounterRuleWarningsDtoSchema),
     type: z.literal('COMMAND_REJECTED')
   })
 ])

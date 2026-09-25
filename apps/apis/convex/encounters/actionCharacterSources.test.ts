@@ -66,6 +66,7 @@ function input(
   return {
     type: 'RESOLVE_ACTION' as const,
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: fixture.run.id,
     commandId,
     expectedVersion,

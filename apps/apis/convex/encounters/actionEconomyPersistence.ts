@@ -8,7 +8,11 @@ import type { MutationCtx } from '../_generated/server'
 
 export async function consumeNativeActionEconomy(
   ctx: MutationCtx,
-  input: { actor: EncounterRunActorState; consumption: EncounterActionEconomyConsumption }
+  input: {
+    actor: EncounterRunActorState
+    consumption: EncounterActionEconomyConsumption
+    overridden: boolean
+  }
 ) {
   const actor = consumeEncounterActionEconomy(input)
   const row = await ctx.db

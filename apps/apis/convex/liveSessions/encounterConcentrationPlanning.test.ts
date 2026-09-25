@@ -148,6 +148,7 @@ it.each([
         target,
         actionId: command.actionId,
         wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: true,
         campaignOwnerUserId: fixture.owner.userId
       })
       const maintenance = await prepareNativeActionMaintenance(ctx, prepared, fixture.owner.userId)
@@ -187,13 +188,15 @@ it.each([
             targetActorId: target.id
           }),
           maintainedState: null,
-          maintenanceTransition: null
+          maintenanceTransition: null,
+          actionEconomy: planned.actionEconomy
         })
       )
       const economyActor = planned.actionEconomy
         ? await consumeNativeActionEconomy(ctx, {
             actor: settled.settledSource,
-            consumption: planned.actionEconomy
+            consumption: planned.actionEconomy,
+            overridden: false
           })
         : settled.settledSource
       const nextActors = actors.map((actor) =>

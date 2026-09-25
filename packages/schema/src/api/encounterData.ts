@@ -14,6 +14,7 @@ import {
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
+import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
 import { ruleOutcomeKindDtoSchema, ruleResolutionEvidenceDtoSchema } from './rules.js'
 
@@ -194,7 +195,9 @@ export const encounterTimelineEntryDtoSchema = z.strictObject({
   actorUserId: uuidSchema,
   createdAt: timestampSchema,
   roll: z.nullable(rollRecordDtoSchema),
-  resolution: z._default(z.nullable(encounterTimelineResolutionSummaryDtoSchema), null)
+  resolution: z._default(z.nullable(encounterTimelineResolutionSummaryDtoSchema), null),
+  /** Rule warnings the action overrode; the GM log badges each one. */
+  ruleOverrides: encounterRuleWarningsDtoSchema
 })
 export const encounterTimelineDtoSchema = z.strictObject({
   entries: z.array(encounterTimelineEntryDtoSchema),

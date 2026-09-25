@@ -261,6 +261,7 @@ describe('live-session browser connection', () => {
       currentSequence: 5,
       message: 'Scene state changed.',
       reason: null,
+      warnings: null,
       type: 'COMMAND_REJECTED'
     })
     await expect(rejected).rejects.toThrow('Scene state changed.')
@@ -512,6 +513,7 @@ describe('live-session browser connection', () => {
       currentSequence: 6,
       message: 'Scene state changed.',
       reason: null,
+      warnings: null,
       type: 'COMMAND_REJECTED'
     })
     expect(durableStates.at(-1)).toMatchObject({

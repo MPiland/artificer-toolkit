@@ -2422,6 +2422,55 @@ it('forwards an expected domain rejection and keeps an unexpected failure generi
   expect(JSON.stringify(base.messages)).not.toContain('internal detail')
 })
 
+it('forwards overridable rule warnings with an action rejection', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const warnings = [
+    { code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'No bonus action left this turn.' },
+    { code: 'TARGET_OUT_OF_RANGE', message: 'The target is out of range.' }
+  ]
+  await routeEncounterRequests(base, (pathname) =>
+    pathname === '/live-sessions/encounter-command'
+      ? Response.json(
+          {
+            code: 'DOMAIN_REJECTED',
+            reason: 'RULE_WARNINGS',
+            message: 'This action breaks a rule. Do it anyway?',
+            warnings
+          },
+          { status: 422 }
+        )
+      : undefined
+  )
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'SET_ROUND',
+          encounterId: crypto.randomUUID(),
+          commandId,
+          expectedVersion: 3,
+          round: 2
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+    ).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'RULE_WARNINGS', warnings })
+  )
+})
+
 const ownerTicket = (base: Awaited<ReturnType<typeof fixture>>) =>
   signTicket({
     authorityEpoch: base.authorityEpoch,

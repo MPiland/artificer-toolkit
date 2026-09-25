@@ -57,7 +57,7 @@ export async function prepareNativeMovementReactionAction(
     revalidate: input,
     maintenanceProjection,
     prepareMechanics: (mechanicsInput) =>
-      prepareNativeEncounterActionMechanics(ctx, mechanicsInput),
+      prepareNativeEncounterActionMechanics(ctx, { ...mechanicsInput, overridable: false }),
     prepareMaintenance: (prepared, userId, projection) =>
       prepareNativeActionMaintenance(ctx, prepared, userId, projection)
   })

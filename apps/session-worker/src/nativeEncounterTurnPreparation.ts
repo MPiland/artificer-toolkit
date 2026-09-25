@@ -128,6 +128,7 @@ export function createNativeLiveTurnStages(
           return prepareEncounterActionMechanics<CharacterFacts>({
             ...mechanics,
             state,
+            overridable: false,
             movementTargets: targets,
             loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
             loadRelationshipFacts: async (relation) =>

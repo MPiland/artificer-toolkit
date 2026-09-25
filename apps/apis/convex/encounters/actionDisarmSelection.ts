@@ -12,7 +12,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { dnd5eAttackRollContributors } from '@artificer-toolkit/rules-runtime/systems/dnd5e/characterRollModes'
 import { dnd5eCharacterActionTarget } from '@artificer-toolkit/rules-runtime/systems/dnd5e/modifierApplicability'
-import { targetPolicyPermitsEncounterActor } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import { evaluateEncounterActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -80,18 +80,19 @@ export async function readNativeDisarmSelection(
     target,
     actionId: command.actionId,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: false,
     campaignOwnerUserId: input.campaignOwnerUserId
   })
   const { source, sourceFacts, targetFacts } = prepared
   const sceneContext = await readNativeActionSceneContext(ctx, state, command, 'MEMBER')
-  if (
-    !targetPolicyPermitsEncounterActor({
-      actorId: actor.id,
-      targetActorId: target.id,
-      targetPolicy: prepared.targetPolicy,
-      sceneContext
-    })
-  )
+  // Disarm has no "Do it anyway": any targeting warning refuses it.
+  const targetWarnings = evaluateEncounterActionTargetPolicy({
+    actorId: actor.id,
+    targetActorId: target.id,
+    targetPolicy: prepared.targetPolicy,
+    sceneContext
+  })
+  if (targetWarnings === null || targetWarnings.length)
     throw new Error('The selected action does not permit this target.')
   const invocation =
     source.kind === 'CHARACTER_ACTION'

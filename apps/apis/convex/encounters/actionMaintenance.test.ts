@@ -336,6 +336,7 @@ function action(
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
     encounterId: base.run.id,
     commandId: crypto.randomUUID(),
     expectedVersion,
@@ -1169,6 +1170,7 @@ it('captures five real maintained dependents and matches native action preflight
       target: source,
       actionId: command.actionId,
       wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+      overridable: true,
       campaignOwnerUserId: base.owner.userId
     })
     const expected = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)
@@ -1344,6 +1346,7 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
         target,
         actionId: command.actionId,
         wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+        overridable: true,
         campaignOwnerUserId: base.owner.userId
       })
       const maintenance = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)
@@ -1435,7 +1438,8 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
       const economyActor = planned.actionEconomy
         ? await consumeNativeActionEconomy(ctx, {
             actor: settled.settledSource,
-            consumption: planned.actionEconomy
+            consumption: planned.actionEconomy,
+            overridden: false
           })
         : settled.settledSource
       const nextActors = actors.map((actor) =>
@@ -1468,7 +1472,8 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
           settled,
           effects: transitions,
           maintainedState,
-          maintenanceTransition: finished.transition
+          maintenanceTransition: finished.transition,
+          actionEconomy: planned.actionEconomy
         })
       )
       const store = createActiveRuleEffectStore(ctx)

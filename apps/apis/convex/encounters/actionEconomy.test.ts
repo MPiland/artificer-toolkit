@@ -91,7 +91,11 @@ describe('native action economy', () => {
           })
         ).rejects.toThrow('Encounter action economy source is stale.')
         if (!prepared) throw new Error('Missing allowance.')
-        const updated = await consumeNativeActionEconomy(ctx, { actor, consumption: prepared })
+        const updated = await consumeNativeActionEconomy(ctx, {
+          actor,
+          consumption: prepared,
+          overridden: false
+        })
         expect({ ...updated, resources: actor.resources }).toEqual(actor)
         if (abort) throw new Error('abort')
         return updated

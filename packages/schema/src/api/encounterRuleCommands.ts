@@ -5,6 +5,7 @@ import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
 import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 
 const uuidSchema = z.string().check(z.uuid())
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
@@ -106,6 +107,8 @@ export const resolveEncounterActionInputDtoSchema = z.extend(commandBaseDtoSchem
     z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
     null
   ),
+  /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+  acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), []),
   /**
    * Required only by action policies that consume exact Scene position. The
    * server locks and validates this dependency before it constructs facts.
@@ -170,6 +173,13 @@ export const voidRuleOccurrenceInputDtoSchema = z.extend(commandBaseDtoSchema, {
   occurrenceId: uuidSchema,
   expectedOccurrenceVersion: versionSchema
 })
+/** GM-only exact undo of the Run's last committed action and its committed children. */
+export const revertLastEncounterActionInputDtoSchema = z.extend(commandBaseDtoSchema, {
+  type: z.literal('REVERT_LAST_ACTION')
+})
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
+export type RevertLastEncounterActionInputDto = z.infer<
+  typeof revertLastEncounterActionInputDtoSchema
+>

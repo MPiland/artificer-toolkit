@@ -17,18 +17,26 @@ import {
   dnd5eAttackKind,
   isDnd5eMeleeAttackKind
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
-import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
-import { targetPolicyPermitsEncounterActor } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import {
+  evaluateEncounterActionRuleWarnings,
+  overridesActionEconomy,
+  RULE_WARNINGS_MESSAGE
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { LivePlannerUnsupportedError } from './nativeRulesRuntime.js'
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import {
+  callLiveSessionRoute,
+  LiveSessionDomainRejectionError,
+  type NativeLiveSessionEnvironment
+} from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import {
   advanceNativeActionGraphs,
@@ -177,6 +185,7 @@ export async function planNativeLiveEncounterAction(
     actors,
     actionId: command.actionId,
     wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },
+    overridable: true,
     movementTargets,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
@@ -214,22 +223,13 @@ export async function planNativeLiveEncounterAction(
     : null
   if (command.optionalCombatIntent != null)
     throw new LivePlannerUnsupportedError('optional-combat actions')
-  if (
-    !targetPolicyPermitsEncounterActor({
-      actorId: prepared.actor.id,
-      targetActorId: prepared.target.id,
-      targetPolicy: prepared.targetPolicy,
-      sceneContext
-    })
-  )
-    throw new Error('The selected action does not permit this target.')
   const activation =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts.invocation.activation
       : prepared.source.capability.mechanicFacts.invocation.activation
   if (!activation || activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
-  const actionEconomy = await prepareEncounterActionEconomy({
+  const economy = await evaluateEncounterActionEconomy({
     actor: prepared.actor,
     state,
     activation: { code: activation.code, amount: activation.amount },
@@ -244,6 +244,29 @@ export async function planNativeLiveEncounterAction(
       }
     }
   })
+  const ruleWarnings = evaluateEncounterActionRuleWarnings({
+    preparedWarnings: prepared.ruleWarnings,
+    target: {
+      actorId: prepared.actor.id,
+      targetActorId: prepared.target.id,
+      targetPolicy: prepared.targetPolicy,
+      sceneContext
+    },
+    actionEconomy: economy,
+    activationCode: activation.code,
+    acknowledged: command.acknowledgedWarnings
+  })
+  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
+    throw new Error('The selected action does not permit this target.')
+  // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
+  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: RULE_WARNINGS_MESSAGE,
+      warnings: ruleWarnings.warnings
+    })
+  const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared,
     activeEffectsByActorId,
@@ -324,6 +347,7 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     prepared,
     actionEconomy,
+    ruleOverrides: ruleWarnings.overrides,
     maintenance,
     sceneContext,
     currentnessChecksum,
@@ -375,6 +399,7 @@ export async function planNativeLiveEncounterAction(
     mechanics,
     effects: preparedEffects,
     actionEconomy,
+    actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     maintenance,
     activeEffectsByActorId
   })
@@ -414,7 +439,8 @@ export async function planNativeLiveEncounterAction(
     settled: mechanics,
     effects: settlement,
     maintainedState: settlement.maintainedState,
-    maintenanceTransition: settlement.maintenanceTransition
+    maintenanceTransition: settlement.maintenanceTransition,
+    actionEconomy
   })
   const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =
@@ -533,7 +559,7 @@ export async function commitNativeLiveEncounterAction(
     execution: plan.storedExecution,
     rules: plan.nextRules,
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
-    actionEconomy: plan.actionEconomy,
+    ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,
     maintainedState: plan.settlement.maintainedState,
     concentration: plan.concentration.completed,

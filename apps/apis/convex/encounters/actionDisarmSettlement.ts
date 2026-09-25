@@ -165,7 +165,8 @@ export async function settleNativeDisarm(
   const actor = preparation.actionEconomy
     ? await consumeNativeActionEconomy(ctx, {
         actor: prepared.actor,
-        consumption: preparation.actionEconomy
+        consumption: preparation.actionEconomy,
+        overridden: false
       })
     : prepared.actor
   const { definitionId, definitionVersion, definitionChecksum, moduleKey, moduleContractVersion } =

@@ -472,6 +472,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = z
                 sourceCharacterStreamVersion: null,
                 targetCharacterStreamVersion: changed ? 1 : null,
                 resourceConsumption: null,
+                actionEconomyTransition: null,
                 activeEffectTransitions: [],
                 d20: execution.d20,
                 targetTransition: execution.targetTransition,
@@ -487,6 +488,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = z
                 resourceConsumption: null,
                 featureResourceConsumption: null,
                 targetFeatureResourceConsumption: null,
+                actionEconomyTransition: null,
                 d20: execution.d20,
                 targetTransition: execution.targetTransition,
                 applications: execution.applications

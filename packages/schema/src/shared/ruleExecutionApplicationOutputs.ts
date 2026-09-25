@@ -19,6 +19,7 @@ import {
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
+  encounterActionEconomyTransitionDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema
 } from './ruleExecutionEncounterApplications.js'
 import {
@@ -79,6 +80,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
         .check(z.maxLength(1)),
