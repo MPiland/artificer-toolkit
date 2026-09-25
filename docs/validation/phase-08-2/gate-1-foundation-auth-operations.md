@@ -5,7 +5,7 @@
 - **Update when:** a Gate 1 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 1 has **14/15** cases and **46/51** criteria accepted.
+Gate 1 has **14/15** cases and **46/51** criteria accepted. A further **3** criteria are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -240,10 +240,10 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 
 What was proven or remains to prove:
 
-- `F12.1` IN_PROGRESS: Wrong-password deletion and deletion by the owner of an ACTIVE or ARCHIVED Campaign are refused with no writes.
-- `F12.2` IN_PROGRESS: Deletion through Better Auth revokes every session and stale JWT and removes private Characters, authored content, Profile, Social, notification, usage and media state.
+- `F12.1` READY_FOR_ACCEPTANCE: Wrong-password deletion and deletion by the owner of an ACTIVE or ARCHIVED Campaign are refused with no writes.
+- `F12.2` READY_FOR_ACCEPTANCE: Deletion through Better Auth revokes every session and stale JWT and removes private Characters, authored content, Profile, Social, notification, usage and media state.
 - `F12.3` IN_PROGRESS: Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033) and retained handout delivery survive with Deleted user attribution.
-- `F12.4` IN_PROGRESS: Account deletion evicts the exact user from the Campaign live table (ADR 0033).
+- `F12.4` READY_FOR_ACCEPTANCE: Account deletion evicts the exact user from the Campaign live table (ADR 0033).
 - `F12.5` IN_PROGRESS: Deferred cleanup converges identically on rerun, and an injected rollback preserves the complete persisted catalogue.
 
 Evidence:

@@ -11,6 +11,7 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 - [Gate 3 — Characters, Campaigns, Social](gate-3-characters-campaigns-social.md)
 - [Gate 4 — Scene, Encounter, VTT](gate-4-scene-encounter-vtt.md)
 - [Gate 5 — Cutover and release](gate-5-cutover-release.md)
+- [Gate readiness review, 2026-09-25](gate-readiness-2026-09-25.md): 44 open criteria and 4 cases moved to READY_FOR_ACCEPTANCE, with the missing clause of every criterion still open
 
 ## Local checkpoints
 

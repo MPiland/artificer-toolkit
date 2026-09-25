@@ -5,7 +5,7 @@
 - **Update when:** a Gate 5 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 5 has **1/10** cases and **3/23** criteria accepted.
+Gate 5 has **1/10** cases and **3/23** criteria accepted. A further **2** criteria are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -112,8 +112,8 @@ What was proven or remains to prove:
 
 - `R06.1` IN_PROGRESS: The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.
 - `R06.2` IN_PROGRESS: Live Encounter-bound movement has a working Durable Object-to-Convex route (the gap exposed by V15-20260924-05).
-- `R06.3` IN_PROGRESS: Character Sheet writes stay in Convex under the approved Character authority amendment.
-- `R06.4` IN_PROGRESS: While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, and the direct-write fence covers only the presented Scene (ADR 0033).
+- `R06.3` READY_FOR_ACCEPTANCE: Character Sheet writes stay in Convex under the approved Character authority amendment.
+- `R06.4` READY_FOR_ACCEPTANCE: While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, and the direct-write fence covers only the presented Scene (ADR 0033).
 
 Evidence:
 

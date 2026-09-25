@@ -5,7 +5,7 @@
 - **Update when:** a Gate 3 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 3 has **17/19** cases and **65/71** criteria accepted.
+Gate 3 has **17/19** cases and **65/71** criteria accepted. A further **3** criteria and **1** case are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -173,7 +173,7 @@ Evidence:
 
 ## P06 — Authoritative rolls and evidence
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-08 (reopened 2026-09-25, ADR 0034)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 3/5
@@ -185,8 +185,8 @@ What was proven or remains to prove:
 - `P06.1` ACCEPTED: Personal, Campaign TABLE, private GM and Character-private rolls use current authority, Sheet mechanics and server-side unbiased randomness.
 - `P06.2` ACCEPTED: Roll evidence persists only in the caller's bounded private history or the TABLE conversation, and private rolls write nothing to the conversation.
 - `P06.3` ACCEPTED: Forged and foreign rolls are denied; history trims, replays, discards and clears; rest receipts consume rolls; failures roll back.
-- `P06.4` IN_PROGRESS: Player Campaign rolls default to the Table, with To GM and Just me options, and rolls that change Character state (such as short-rest hit dice) are always GM-visible: Table or To GM, never Just me (ADR 0034).
-- `P06.5` IN_PROGRESS: The GM rolls Private, Blind or to the Table and can reveal a private roll (ADR 0034).
+- `P06.4` READY_FOR_ACCEPTANCE: Player Campaign rolls default to the Table, with To GM and Just me options, and rolls that change Character state (such as short-rest hit dice) are always GM-visible: Table or To GM, never Just me (ADR 0034).
+- `P06.5` READY_FOR_ACCEPTANCE: The GM rolls Private, Blind or to the Table and can reveal a private roll (ADR 0034).
 
 Evidence:
 
@@ -420,7 +420,7 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 What was proven or remains to prove:
 
 - `P15.1` IN_PROGRESS: Concurrent Session numbering and metadata, RSVP uniqueness, attendance authority, note privacy, reference pins and finish replay pass.
-- `P15.2` IN_PROGRESS: Sessions are an optional log (schedule, RSVP, attendance, notes, references, recap), and finishing one changes no Encounter Run, presentation or live-table state (ADR 0033).
+- `P15.2` READY_FOR_ACCEPTANCE: Sessions are an optional log (schedule, RSVP, attendance, notes, references, recap), and finishing one changes no Encounter Run, presentation or live-table state (ADR 0033).
 - `P15.3` IN_PROGRESS: Clock version contention, exact replay, once-only DAILY recovery and watermark hold, and managed recovery stays within limits.
 - `P15.4` IN_PROGRESS: GM adjustment and condition contention, effective projection, secret masking and removal pass, and archived authorization is checked before replay.
 

@@ -5,7 +5,7 @@
 - **Update when:** a Gate 4 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 4 has **5/15** cases and **31/81** criteria accepted.
+Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **36** criteria and **3** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -59,7 +59,7 @@ Evidence:
 
 ## V03 — Scene entities, geometry, and visibility facts
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-11 (reopened 2026-09-25, ADR 0034)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 3/5
@@ -71,8 +71,8 @@ What was proven or remains to prove:
 - `V03.1` ACCEPTED: All six entity collections and persisted geometry keep recipient privacy and separate definition and live Scene state.
 - `V03.2` ACCEPTED: Exact replay, competing writes, stale versions and entity/fog/head/receipt rollback pass through the shared verifier.
 - `V03.3` ACCEPTED: Maximum-polygon and full fog-capacity coverage is kept without smaller Scene limits.
-- `V03.4` IN_PROGRESS: Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
-- `V03.5` IN_PROGRESS: Fog of war is opt-in per Scene: with fog off, players see every non-hidden token, wall, door and light; with fog on, the shared-party or per-player exploration model applies (ADR 0034).
+- `V03.4` READY_FOR_ACCEPTANCE: Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
+- `V03.5` READY_FOR_ACCEPTANCE: Fog of war is opt-in per Scene: with fog off, players see every non-hidden token, wall, door and light; with fog on, the shared-party or per-player exploration model applies (ADR 0034).
 
 Evidence:
 
@@ -114,8 +114,8 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 
 What was proven or remains to prove:
 
-- `V05.1` IN_PROGRESS: Any ACTIVE Campaign member can get a ticket without an open Session; ticket issue and authority claim require current membership and an ACTIVE Campaign (ADR 0033).
-- `V05.2` IN_PROGRESS: Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.
+- `V05.1` READY_FOR_ACCEPTANCE: Any ACTIVE Campaign member can get a ticket without an open Session; ticket issue and authority claim require current membership and an ACTIVE Campaign (ADR 0033).
+- `V05.2` READY_FOR_ACCEPTANCE: Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.
 - `V05.3` IN_PROGRESS: The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.
 - `V05.4` IN_PROGRESS: Renewal closes removed or stale-role sockets, keeps valid users and rotates authority to another current member.
 - `V05.5` IN_PROGRESS: The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).
@@ -173,7 +173,7 @@ Evidence:
 
 ## V08 — Encounter lifecycle and optional Scene binding
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-11 (reopened 2026-09-24, ADR 0033)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 0/6
@@ -182,12 +182,12 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 
 What was proven or remains to prove:
 
-- `V08.1` IN_PROGRESS: Encounter Runs belong to the Campaign and carry no Session reference, and a PREPARED Run can be deleted (ADR 0033).
-- `V08.2` IN_PROGRESS: START requires no other ACTIVE Run in the Campaign, and an ACTIVE Run persists across sittings until COMPLETE (ADR 0033).
-- `V08.3` IN_PROGRESS: Runs in Manual and Assisted mode freeze snapshots, accept normalized corrections and progress later (ADR 0034 removes AUTOMATIC).
-- `V08.4` IN_PROGRESS: Run-to-Scene bindings are immutable and actor-token bindings are versioned, with successive token reuse and historical receipts.
-- `V08.5` IN_PROGRESS: The Campaign presents zero or one live Scene, and presentation survives reconnects, Encounter completion and Session finish (ADR 0033).
-- `V08.6` IN_PROGRESS: Forced rollbacks and real command, binding, presentation and ownership races leave consistent state, with exact cleanup.
+- `V08.1` READY_FOR_ACCEPTANCE: Encounter Runs belong to the Campaign and carry no Session reference, and a PREPARED Run can be deleted (ADR 0033).
+- `V08.2` READY_FOR_ACCEPTANCE: START requires no other ACTIVE Run in the Campaign, and an ACTIVE Run persists across sittings until COMPLETE (ADR 0033).
+- `V08.3` READY_FOR_ACCEPTANCE: Runs in Manual and Assisted mode freeze snapshots, accept normalized corrections and progress later (ADR 0034 removes AUTOMATIC).
+- `V08.4` READY_FOR_ACCEPTANCE: Run-to-Scene bindings are immutable and actor-token bindings are versioned, with successive token reuse and historical receipts.
+- `V08.5` READY_FOR_ACCEPTANCE: The Campaign presents zero or one live Scene, and presentation survives reconnects, Encounter completion and Session finish (ADR 0033).
+- `V08.6` READY_FOR_ACCEPTANCE: Forced rollbacks and real command, binding, presentation and ownership races leave consistent state, with exact cleanup.
 
 Evidence:
 
@@ -211,12 +211,12 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 
 What was proven or remains to prove:
 
-- `V09.1` IN_PROGRESS: Actor removal, remaining-turn reorder and initiative-position reinforcement preserve the cursor, history, pending decisions, source authority, privacy and checksums.
-- `V09.2` IN_PROGRESS: Actor, side and cadence initiative scenarios pass current-round and next-round eligibility, same-version reinforcement races, exact replay and rollback.
-- `V09.3` IN_PROGRESS: A Run takes its party from the Campaign's ACTIVE Character assignments, and the GM removes absent Characters before START (ADR 0033).
-- `V09.4` IN_PROGRESS: Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.
-- `V09.5` IN_PROGRESS: One predicate (encounters/actorController.ts) decides control: the GM always, and a controller for that actor.
-- `V09.6` IN_PROGRESS: Each Run actor has a GM-editable disposition, FRIENDLY for Characters and HOSTILE for creatures by default.
+- `V09.1` READY_FOR_ACCEPTANCE: Actor removal, remaining-turn reorder and initiative-position reinforcement preserve the cursor, history, pending decisions, source authority, privacy and checksums.
+- `V09.2` READY_FOR_ACCEPTANCE: Actor, side and cadence initiative scenarios pass current-round and next-round eligibility, same-version reinforcement races, exact replay and rollback.
+- `V09.3` READY_FOR_ACCEPTANCE: A Run takes its party from the Campaign's ACTIVE Character assignments, and the GM removes absent Characters before START (ADR 0033).
+- `V09.4` READY_FOR_ACCEPTANCE: Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.
+- `V09.5` READY_FOR_ACCEPTANCE: One predicate (encounters/actorController.ts) decides control: the GM always, and a controller for that actor.
+- `V09.6` READY_FOR_ACCEPTANCE: Each Run actor has a GM-editable disposition, FRIENDLY for Characters and HOSTILE for creatures by default.
 - `V09.7` IN_PROGRESS: Removing a member drops them from every controller list, and development rows are migrated.
 
 Evidence:
@@ -230,7 +230,7 @@ Evidence:
 
 ## V10 — Actions, reactions, effects, and selected optional combat rules
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-17 (notes; reopened 2026-09-25)
 - **Proof tier:** LOCAL_E2E
 - **Criteria met:** 4/11
@@ -243,13 +243,13 @@ What was proven or remains to prove:
 - `V10.2` ACCEPTED: Effect saves resolve with correct outcomes and privacy.
 - `V10.3` ACCEPTED: Enemy Feature action rolls evaluate immutable definitions once, spend exact charges atomically and replay without rerolling or recharging.
 - `V10.4` ACCEPTED: Optional-combat selections can be replaced with checksum-protected, same-System, Campaign-enabled definitions on prepared or active Runs.
-- `V10.5` IN_PROGRESS: A player resolves actions for actors they control on that actor's turn, and ends that turn.
-- `V10.6` IN_PROGRESS: Actions for other actors or uncontrolled creatures, out-of-turn actions and hidden targets are refused with domain rejections.
-- `V10.7` IN_PROGRESS: A granted companion can be used until control is revoked.
-- `V10.8` IN_PROGRESS: Target disposition warnings compare dispositions, and the action drawer shows unavailable actions dimmed with their reasons.
-- `V10.9` IN_PROGRESS: In Assisted mode, bendable rule checks warn and allow a logged "Do it anyway" that the GM sees as a badge, and never drive resources negative (ADR 0034).
-- `V10.10` IN_PROGRESS: A player has at most one Encounter command in flight.
-- `V10.11` IN_PROGRESS: GM undo reverts the last committed action exactly from its receipt's before-states, or refuses with an explanation when a later command or Sheet write touched an affected actor (ADR 0034).
+- `V10.5` READY_FOR_ACCEPTANCE: A player resolves actions for actors they control on that actor's turn, and ends that turn.
+- `V10.6` READY_FOR_ACCEPTANCE: Actions for other actors or uncontrolled creatures, out-of-turn actions and hidden targets are refused with domain rejections.
+- `V10.7` READY_FOR_ACCEPTANCE: A granted companion can be used until control is revoked.
+- `V10.8` READY_FOR_ACCEPTANCE: Target disposition warnings compare dispositions, and the action drawer shows unavailable actions dimmed with their reasons.
+- `V10.9` READY_FOR_ACCEPTANCE: In Assisted mode, bendable rule checks warn and allow a logged "Do it anyway" that the GM sees as a badge, and never drive resources negative (ADR 0034).
+- `V10.10` READY_FOR_ACCEPTANCE: A player has at most one Encounter command in flight.
+- `V10.11` READY_FOR_ACCEPTANCE: GM undo reverts the last committed action exactly from its receipt's before-states, or refuses with an explanation when a later command or Sheet write touched an affected actor (ADR 0034).
 
 Evidence:
 
@@ -274,12 +274,12 @@ What was proven or remains to prove:
 - `V11.2` ACCEPTED: Paused state is preserved, validated sequential evidence resumes the flow, and DECLINE cancels.
 - `V11.3` ACCEPTED: Disarm03 proves participant evidence, nonparticipant and stale refusal, terminal contention, one ACTION, one item transition and unchanged replay.
 - `V11.4` IN_PROGRESS: A roll is answered by the controllers of the actor making it and by the GM; a player's spell against a creature pauses on the creature's save for the GM.
-- `V11.5` IN_PROGRESS: "Roll dice" records every attempt in the roll log without settling.
-- `V11.6` IN_PROGRESS: A response settles with the latest app roll ID or entered faces, never with a client-supplied app value.
-- `V11.7` IN_PROGRESS: The chosen d20 mode is stored beside the derived mode and labeled when changed.
-- `V11.8` IN_PROGRESS: In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller.
-- `V11.9` IN_PROGRESS: The "Auto-roll my dice" preference is stored server-side, defaults on, and only produces dice results without making choices (ADR 0034).
-- `V11.10` IN_PROGRESS: GM void cancels a paused action whole and resolves declinable choices as declined (ADR 0034).
+- `V11.5` READY_FOR_ACCEPTANCE: "Roll dice" records every attempt in the roll log without settling.
+- `V11.6` READY_FOR_ACCEPTANCE: A response settles with the latest app roll ID or entered faces, never with a client-supplied app value.
+- `V11.7` READY_FOR_ACCEPTANCE: The chosen d20 mode is stored beside the derived mode and labeled when changed.
+- `V11.8` READY_FOR_ACCEPTANCE: In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller.
+- `V11.9` READY_FOR_ACCEPTANCE: The "Auto-roll my dice" preference is stored server-side, defaults on, and only produces dice results without making choices (ADR 0034).
+- `V11.10` READY_FOR_ACCEPTANCE: GM void cancels a paused action whole and resolves declinable choices as declined (ADR 0034).
 
 Evidence:
 
@@ -303,9 +303,9 @@ What was proven or remains to prove:
 - `V12.1` ACCEPTED: The GM receives full data, Character controllers receive their decisions, other players receive redacted views, and hidden actors, targets and server snapshots are excluded.
 - `V12.2` ACCEPTED: Anonymous, outsider, departed and revoked users are refused, and ownership transfer changes the audience.
 - `V12.3` ACCEPTED: Every current producer uses the reviewed current-authority dispatcher.
-- `V12.4` IN_PROGRESS: Every command result and replay a player receives is the redacted player projection, and the room refuses anything else.
-- `V12.5` IN_PROGRESS: A replay by command ID is returned only to its issuer.
-- `V12.6` IN_PROGRESS: The player projection carries no actor health by default.
+- `V12.4` READY_FOR_ACCEPTANCE: Every command result and replay a player receives is the redacted player projection, and the room refuses anything else.
+- `V12.5` READY_FOR_ACCEPTANCE: A replay by command ID is returned only to its issuer.
+- `V12.6` READY_FOR_ACCEPTANCE: The player projection carries no actor health by default.
 - `V12.7` IN_PROGRESS: Health display is Hidden by default, Descriptive, Bar or Exact; each player sets it for their Character and the GM per Encounter with per-actor overrides, and the GM always sees exact values (ADR 0034).
 - `V12.8` IN_PROGRESS: Another player's Character Sheet is GM-only unless its "Party can view" option is on, personality and background are never shown to other players, and the Campaign roster shows only public basics (name, portrait, level, class) (ADR 0034).
 
@@ -347,11 +347,11 @@ Reopened 2026-09-24 under ADR 0033. Its earlier evidence proves the superseded S
 
 What was proven or remains to prove:
 
-- `V14.1` IN_PROGRESS: Lifecycle, binding, presentation and ownership race schedules pass against Campaign-keyed Runs and presentation (ADR 0033).
-- `V14.2` IN_PROGRESS: Same-Scene movement contention and distinct-Scene writes stay consistent.
-- `V14.3` IN_PROGRESS: Same-Run actions serialize while independent Runs proceed.
+- `V14.1` READY_FOR_ACCEPTANCE: Lifecycle, binding, presentation and ownership race schedules pass against Campaign-keyed Runs and presentation (ADR 0033).
+- `V14.2` READY_FOR_ACCEPTANCE: Same-Scene movement contention and distinct-Scene writes stay consistent.
+- `V14.3` READY_FOR_ACCEPTANCE: Same-Run actions serialize while independent Runs proceed.
 - `V14.4` IN_PROGRESS: A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.
-- `V14.5` IN_PROGRESS: An Encounter reads a Character's HP and state live from the Character at capture time, fenced by the captured revisions; the Run keeps no Character HP, maximum, condition or stream-version mirror, so a Sheet write no longer refuses that Character's Encounter commands (ADR 0034).
+- `V14.5` READY_FOR_ACCEPTANCE: An Encounter reads a Character's HP and state live from the Character at capture time, fenced by the captured revisions; the Run keeps no Character HP, maximum, condition or stream-version mirror, so a Sheet write no longer refuses that Character's Encounter commands (ADR 0034).
 
 Evidence:
 

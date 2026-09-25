@@ -508,14 +508,31 @@
             {
               "id": "F12.1",
               "text": "Wrong-password deletion and deletion by the owner of an ACTIVE or ARCHIVED Campaign are refused with no writes.",
-              "status": "IN_PROGRESS",
-              "proof": ["browser suite account-deletion-browser12 (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/accountDeletion.test.ts › requires the current account email and password without changing credentials, sessions or app state",
+                "apps/apis/convex/accountDeletion.test.ts › rejects invalid credentials, stale cookie-session tokens and actor injection without writes",
+                "apps/apis/convex/accountDeletion.test.ts › preserves every provider/app row when the account owns a %s Campaign (ACTIVE, ARCHIVED)",
+                "impl: apps/apis/convex/lib/authTriggers.helper.ts"
+              ]
             },
             {
               "id": "F12.2",
               "text": "Deletion through Better Auth revokes every session and stale JWT and removes private Characters, authored content, Profile, Social, notification, usage and media state.",
-              "status": "IN_PROGRESS",
-              "proof": ["browser suite account-deletion-browser12 (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/accountDeletion.test.ts › deletes every own session and linked credential while preserving another account",
+                "apps/apis/convex/accountDeletionHttp.test.ts › deletes only the signed-in account and expires exact session and Convex JWT cookies after commit",
+                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
+                "apps/apis/convex/accountDeletion.test.ts › cleans current owned authored records through the native trigger: %s",
+                "apps/apis/convex/social/profiles.test.ts › fails closed on corrupt mature preference evidence and deletes only the departing account profile",
+                "apps/apis/convex/social/accountDeletion.test.ts › withdraws pending applicant history, deletes current identity, and presents retained evidence",
+                "apps/apis/convex/notifications.test.ts › removes only the deleted account notification rows and preference-bearing profile",
+                "apps/apis/convex/accountEntitlements.test.ts › removes the deleted account tier without touching another account",
+                "apps/apis/convex/encounters/accountDeletion.test.ts › removes only the deleted owner’s Blueprints, receipts, and usage",
+                "apps/apis/convex/media/avatar.test.ts › cleans pending and ready keys after account deletion, without touching another owner",
+                "impl: apps/apis/convex/lib/authTriggers.helper.ts"
+              ]
             },
             {
               "id": "F12.3",
@@ -526,8 +543,13 @@
             {
               "id": "F12.4",
               "text": "Account deletion evicts the exact user from the Campaign live table (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/accountDeparture.test.ts › detaches a trusted account from an %s Campaign while retaining Campaign history (asserts the exact liveSessions/control:evictUser schedule)",
+                "apps/apis/convex/liveSessions/control.test.ts › evicts one membership epoch from the Campaign room without any Session",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › evicts only the exact departed membership epoch through private room control",
+                "impl: apps/apis/convex/campaigns/accountDeparture.helper.ts, apps/apis/convex/liveSessions/controlScheduling.ts"
+              ]
             },
             {
               "id": "F12.5",
@@ -1645,7 +1667,7 @@
           "id": "P06",
           "title": "Authoritative rolls and evidence",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-08",
           "evidence": [
             ".codex/validation/phase82-sheet-rest-rolls/local-progress.md",
@@ -1678,14 +1700,27 @@
             {
               "id": "P06.4",
               "text": "Player Campaign rolls default to the Table, with To GM and Just me options, and rolls that change Character state (such as short-rest hit dice) are always GM-visible: Table or To GM, never Just me (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › defaults a player Campaign roll to the table and can send it to the GM",
+                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › keeps player hit-die rolls on Table or To GM, never Just me",
+                "apps/apis/convex/campaigns/rolls.test.ts › posts a player TABLE roll to everyone and a To GM roll only to that player and the GM",
+                "apps/apis/convex/campaigns/rolls.test.ts › keeps a player \"Just me\" roll in that player history only",
+                "apps/apis/convex/campaigns/characterRolls.test.ts › refuses a player \"Just me\" hit-die roll for a Campaign rest",
+                "apps/apis/convex/campaigns/characterRolls.test.ts › completes a short rest from a To GM hit-die roll that only the player and GM can read",
+                "impl: apps/apis/convex/campaigns/rolls.ts, apps/apis/convex/characters/rest.ts"
+              ]
             },
             {
               "id": "P06.5",
               "text": "The GM rolls Private, Blind or to the Table and can reveal a private roll (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › defaults a GM Campaign roll to private and hides a blind result",
+                "apps/apis/convex/campaigns/rolls.test.ts › hides a GM blind roll value from everyone until the GM reveals it to the TABLE once",
+                "apps/apis/convex/campaigns/rolls.test.ts › reveals only a GM roll retained for the same Campaign",
+                "impl: apps/apis/convex/campaigns/rolls.ts"
+              ]
             }
           ]
         },
@@ -2093,8 +2128,16 @@
             {
               "id": "P15.2",
               "text": "Sessions are an optional log (schedule, RSVP, attendance, notes, references, recap), and finishing one changes no Encounter Run, presentation or live-table state (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › leaves live authority, presentation and an ACTIVE Run untouched when a Session finishes",
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › builds the party from active assignments and opens the table for a player without a Session",
+                "apps/apis/convex/campaigns/sessions.test.ts › merges schedule updates, clears nullable metadata together, and rejects stale or malformed writes",
+                "apps/apis/convex/campaigns/sessions.test.ts › keeps RSVP identity self-scoped and unique, while attendance is owner-only and versioned",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › keeps private notes out of player pages and preserves kind, Session, archive, and membership boundaries",
+                "apps/apis/convex/campaigns/sessionReferences.test.ts › enforces member reads, GM-only writes, Session and Campaign scope, archive, and exact removal scope",
+                "impl: apps/apis/convex/campaigns/sessionFinish.ts"
+              ]
             },
             {
               "id": "P15.3",
@@ -2393,7 +2436,7 @@
           "id": "V03",
           "title": "Scene entities, geometry, and visibility facts",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-11",
           "evidence": ".codex/validation/phase82-ultra-continuation-20260911/v03-integration.md",
           "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. Accepted at LOCAL_INTEGRATION. All six entity collections, persisted geometry, recipient privacy, independent definition/live Scene state, exact replay, competing writes, stale versions and actual entity/fog/head/receipt rollback pass through the shared local and authenticated personal-development verifier. Existing maximum-polygon and full fog-capacity coverage is retained without smaller Scene limits. The final affected lifecycle passes fresh build, all web types, lint, 1,296 web tests, 206 stories and 23 Playwright journeys; unchanged native/core/worker evidence is verified by source hashes. Real owner map upload/create/edit/reload and private-read denials pass with zero browser diagnostics. Exact fixture/account cleanup, revoked-JWT denial and post-fence physical R2 absence pass for every proof asset. Complete live hydration/reconnect, movement, exhaustive privacy/contention/performance and release promotion retain their separate cases.",
@@ -2419,14 +2462,25 @@
             {
               "id": "V03.4",
               "text": "Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets $role change a visible $from door to $to: $outcome",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a player door change for $case",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets a player open a door in a fog-OFF Scene even with a kept unexplored layer",
+                "impl: packages/shared/src/domains/vtt/geometry.ts (sceneDoorChangeFailure), apps/session-worker/src/nativeRoomSceneCommand.ts"
+              ]
             },
             {
               "id": "V03.5",
               "text": "Fog of war is opt-in per Scene: with fog off, players see every non-hidden token, wall, door and light; with fog on, the shared-party or per-player exploration model applies (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-scene.test.ts › shows players every non-hidden object with fog OFF and hides them again with fog on",
+                "apps/apis/convex/scenes/fog.test.ts › shows players every non-hidden object with fog OFF, refuses fog writes and keeps layers across modes",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › fans out every non-hidden token and door to a player in a fog-OFF Scene",
+                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › combines explored fog bits from private layers and draws no fog while fog is OFF",
+                "impl: packages/shared/src/domains/vtt/sceneReducer.ts (projectSceneForViewer), apps/apis/convex/scenes/fogCommands.ts"
+              ]
             }
           ]
         },
@@ -2492,15 +2546,23 @@
             {
               "id": "V05.1",
               "text": "Any ACTIVE Campaign member can get a ticket without an open Session; ticket issue and authority claim require current membership and an ACTIVE Campaign (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/liveSessions/tickets.test.ts › issues HS256 60-second tickets for active owner and player admissions",
+                "apps/apis/convex/liveSessions/tickets.test.ts › denies unauthenticated, nonmember, archived, and cross-Campaign ticket requests",
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › builds the party from active assignments and opens the table for a player without a Session",
+                "impl: apps/apis/convex/liveSessions/tickets.ts, apps/apis/convex/liveSessions/authority.ts"
+              ]
             },
             {
               "id": "V05.2",
               "text": "Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-v05-final/acceptance.md (historical, Session-scoped)"
+                "apps/apis/convex/liveSessions/tickets.test.ts › issues HS256 60-second tickets for active owner and player admissions",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › requires native authentication, consumes the ticket once, and never persists the JWT",
+                "apps/session-worker/test/nativeWorkerEntry.test.ts › refuses a valid ticket used on another Campaign room path",
+                "impl: apps/apis/convex/liveSessions/tickets.ts, apps/session-worker/src/ticket.ts"
               ]
             },
             {
@@ -2621,7 +2683,7 @@
           "id": "V08",
           "title": "Encounter lifecycle and optional Scene binding",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-11",
           "evidence": [
             ".codex/validation/phase82-blueprints/reminder-proof.md",
@@ -2637,38 +2699,69 @@
             {
               "id": "V08.1",
               "text": "Encounter Runs belong to the Campaign and carry no Session reference, and a PREPARED Run can be deleted (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › deletes only a prepared Run with exact command replay",
+                "apps/apis/convex/campaigns/playMigrations.test.ts › strips Session keys from every Campaign-owned play row and narrows presentations",
+                "impl: apps/apis/convex/encounters/runs.ts (deletePrepared)"
+              ]
             },
             {
               "id": "V08.2",
               "text": "START requires no other ACTIVE Run in the Campaign, and an ACTIVE Run persists across sittings until COMPLETE (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/commands.test.ts › allows only one active Run per Campaign and preserves START replay",
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › leaves live authority, presentation and an ACTIVE Run untouched when a Session finishes",
+                "impl: apps/apis/convex/encounters/commands.ts"
+              ]
             },
             {
               "id": "V08.3",
               "text": "Runs in Manual and Assisted mode freeze snapshots, accept normalized corrections and progress later (ADR 0034 removes AUTOMATIC).",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-v08-auth/acceptance.md (historical, three-mode)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/commands.test.ts › starts a Manual Run through normalized initiative and replays the terminal command",
+                "apps/apis/convex/encounters/commands.test.ts › pauses and resolves Assisted initiative without exposing partial Run state",
+                "apps/apis/convex/encounters/initiativeCorrection.test.ts › rewinds, clears, reselects, and revisits a manually-settled round without new rolls",
+                "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads",
+                "packages/schema/src/__tests__/campaign-live-play-contracts.test.ts (AUTOMATIC automationMode rejected)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions",
+                "impl: packages/schema/src/api/campaignSettings.ts (automationModeDtoSchema), apps/apis/convex/encounters/commands.ts"
+              ]
             },
             {
               "id": "V08.4",
               "text": "Run-to-Scene bindings are immutable and actor-token bindings are versioned, with successive token reuse and historical receipts.",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-v08-auth/acceptance.md (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/sceneBindings.test.ts › binds the presented Scene and replays the original result after presentation changes",
+                "apps/apis/convex/encounters/sceneBindings.test.ts › rejects a competing binding and authorization or lifecycle failures without rows",
+                "apps/apis/convex/encounters/actorTokenBindings.test.ts › sets and replaces tokens, preserves exact historical replay and exposes binding receipts in timeline",
+                "apps/apis/convex/encounters/actorTokenBindings.test.ts › enforces token uniqueness within a Run and allows stable token identity across Runs",
+                "impl: apps/apis/convex/encounters/sceneBindings.ts, apps/apis/convex/encounters/actorTokenBindings.ts"
+              ]
             },
             {
               "id": "V08.5",
               "text": "The Campaign presents zero or one live Scene, and presentation survives reconnects, Encounter completion and Session finish (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/scenes/presentations.test.ts › creates, replays, clears and reads one Campaign presentation without duplicating receipts",
+                "apps/apis/convex/scenes/presentations.test.ts › keeps one Campaign presentation and its map across Session finish until the Scene is cleared",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterLifecycle.ts asserts the presentation is unchanged after COMPLETE)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › resends the authoritative state on a valid resume frame",
+                "impl: apps/apis/convex/scenes/presentations.ts"
+              ]
             },
             {
               "id": "V08.6",
               "text": "Forced rollbacks and real command, binding, presentation and ownership races leave consistent state, with exact cleanup.",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-v08-auth/acceptance.md (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterTransactions.ts: forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules)",
+                "impl: apps/apis/convex/encounters/developmentLifecycle.ts (verifyRollback), apps/apis/convex/encounters/commands.ts"
+              ]
             }
           ]
         },
@@ -2692,42 +2785,70 @@
             {
               "id": "V09.1",
               "text": "Actor removal, remaining-turn reorder and initiative-position reinforcement preserve the cursor, history, pending decisions, source authority, privacy and checksums.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/v09-acceptance.md (historical)"
+                "apps/apis/convex/encounters/actorRemovalCommand.test.ts › removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority",
+                "apps/apis/convex/encounters/actorRemovalCommand.test.ts › reconciles active initiative across historical rounds and permits an empty Run to change round",
+                "apps/apis/convex/encounters/actorRemovalCommand.test.ts › supersedes a frozen Assisted initiative and preserves its maintenance receipt on retry",
+                "apps/apis/convex/encounters/actorReorderCommand.test.ts › changes remaining turns immediately while preserving current/completed turns, scores and older rounds",
+                "apps/apis/convex/encounters/actorReorderCommand.test.ts › preserves contiguous SIDE_ROLL order and refuses a pending Assisted decision",
+                "apps/apis/convex/encounters/actorReinforcementCommand.test.ts › inserts before and after the current actor while preserving settled manual participants",
+                "apps/apis/convex/encounters/actorReinforcementCommand.test.ts › rejects a tampered retained reinforcement actor snapshot and rolls back an injected post-write failure",
+                "impl: apps/apis/convex/encounters/actorRemovalCommand.ts, apps/apis/convex/encounters/actorReorderCommand.ts, apps/apis/convex/encounters/actorReinforcementCommand.ts"
               ]
             },
             {
               "id": "V09.2",
               "text": "Actor, side and cadence initiative scenarios pass current-round and next-round eligibility, same-version reinforcement races, exact replay and rollback.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/v09-acceptance.md (historical)"
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterAutomation.ts: actor/side/cadence scenarios and the same-version REINFORCE race with one VERSION_STALE loser)",
+                "apps/apis/convex/encounters/commands.test.ts › runs native SIDE_ROLL start, side transitions, correction, and both cadence wraps",
+                "apps/apis/convex/encounters/actorReinforcementCommand.test.ts › rejects stale versions and pending occurrences without writes",
+                "impl: apps/apis/convex/encounters/actorReinforcementCommand.ts, apps/apis/convex/encounters/commands.ts"
               ]
             },
             {
               "id": "V09.3",
               "text": "A Run takes its party from the Campaign's ACTIVE Character assignments, and the GM removes absent Characters before START (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads",
+                "apps/apis/convex/encounters/runs.test.ts › excludes unassigned Characters from the party and fails closed for corrupt replay projections",
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › builds the party from active assignments and opens the table for a player without a Session",
+                "apps/apis/convex/encounters/actorRemovalCommand.test.ts › removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority",
+                "impl: apps/apis/convex/encounters/runs.ts"
+              ]
             },
             {
               "id": "V09.4",
               "text": "Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › lets the GM grant a player control of an actor and set its disposition",
+                "impl: apps/apis/convex/encounters/actorController.ts, apps/apis/convex/encounters/commands.ts (UPDATE_ACTOR controllerUserIds)"
+              ]
             },
             {
               "id": "V09.5",
               "text": "One predicate (encounters/actorController.ts) decides control: the GM always, and a controller for that actor.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member",
+                "apps/apis/convex/encounters/playerControl.test.ts › moves an Encounter-bound token only for the bound actor controllers",
+                "impl: apps/apis/convex/encounters/actorController.ts (readEncounterActorControl, used by action, choice, Disarm, turn, response, pending and movement admission)"
+              ]
             },
             {
               "id": "V09.6",
               "text": "Each Run actor has a GM-editable disposition, FRIENDLY for Characters and HOSTILE for creatures by default.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › defaults dispositions by actor kind and lets only the GM change them",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › omits every actor health band and hidden actors while keeping control and disposition",
+                "impl: apps/apis/convex/encounters/commands.ts, packages/schema/src/api/encounterData.ts"
+              ]
             },
             {
               "id": "V09.7",
@@ -2741,7 +2862,7 @@
           "id": "V10",
           "title": "Actions, reactions, effects, and selected optional combat rules",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-native-optional-combat-final/local-progress.md",
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
@@ -2782,44 +2903,77 @@
             {
               "id": "V10.5",
               "text": "A player resolves actions for actors they control on that actor's turn, and ends that turn.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › lets a granted player act for the companion only on its turn against visible targets",
+                "apps/apis/convex/encounters/playerControl.test.ts › lets the assigned player end their Character turn but not the GM-only commands",
+                "apps/apis/convex/encounters/actionCommands.test.ts › lets a player resolve only an actor the GM granted them and binds its replay to that player",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › lets a player end the turn only for an actor they control",
+                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/apis/convex/liveSessions/encounterTurnAdmission.ts"
+              ]
             },
             {
               "id": "V10.6",
               "text": "Actions for other actors or uncontrolled creatures, out-of-turn actions and hidden targets are refused with domain rejections.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › lets a granted player act for the companion only on its turn against visible targets (NOT_ACTOR_CONTROLLER, NOT_CURRENT_ACTOR, TARGET_UNAVAILABLE)",
+                "apps/apis/convex/encounters/actionCommands.test.ts › never overrides hard checks",
+                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/apis/convex/lib/domainRejections.ts"
+              ]
             },
             {
               "id": "V10.7",
               "text": "A granted companion can be used until control is revoked.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › lets a granted player act for the companion only on its turn against visible targets (revoking control refuses the next action)",
+                "impl: apps/apis/convex/encounters/actorController.ts"
+              ]
             },
             {
               "id": "V10.8",
               "text": "Target disposition warnings compare dispositions, and the action drawer shows unavailable actions dimmed with their reasons.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/actionCommands.test.ts › treats range and target disposition as overridable warnings",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › shows why an action already breaks a rule before it is chosen",
+                "impl: apps/apis/convex/encounters/actionChoices.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.tsx"
+              ]
             },
             {
               "id": "V10.9",
               "text": "In Assisted mode, bendable rule checks warn and allow a logged \"Do it anyway\" that the GM sees as a badge, and never drive resources negative (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/actionCommands.test.ts › warns on an exhausted allowance and charge, refuses a partial acknowledgement, then records the override without going negative",
+                "apps/apis/convex/encounters/actionCommands.test.ts › treats range and target disposition as overridable warnings",
+                "apps/apis/convex/encounters/actionCommands.test.ts › never overrides hard checks",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards overridable rule warnings with an action rejection",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › shows the server warnings and resends with them acknowledged on \"Do it anyway\"",
+                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/web/src/domains/campaigns/components/CampaignEncounterWorkspace.tsx (override badge)"
+              ]
             },
             {
               "id": "V10.10",
               "text": "A player has at most one Encounter command in flight.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets a player have one Encounter command in flight",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts"
+              ]
             },
             {
               "id": "V10.11",
               "text": "GM undo reverts the last committed action exactly from its receipt's before-states, or refuses with an explanation when a later command or Sheet write touched an affected actor (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/actionCommands.test.ts › restores Creature hit points, charges and the action allowance exactly, once",
+                "apps/apis/convex/encounters/actionCommands.test.ts › deletes the effect an action created and restores its conditions",
+                "apps/apis/convex/encounters/actionCommands.test.ts › refuses after a later Encounter command changed the Run",
+                "apps/apis/convex/encounters/liveCharacterState.test.ts › restores a Character the action damaged, then refuses once its Sheet changes",
+                "impl: apps/apis/convex/encounters/actionRevert.ts"
+              ]
             }
           ]
         },
@@ -2868,38 +3022,65 @@
             {
               "id": "V11.5",
               "text": "\"Roll dice\" records every attempt in the roll log without settling.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › routes a creature save against a player action to the GM, who rolls twice and settles the latest roll",
+                "impl: apps/apis/convex/encounters/evidenceRolls.ts"
+              ]
             },
             {
               "id": "V11.6",
               "text": "A response settles with the latest app roll ID or entered faces, never with a client-supplied app value.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › routes a creature save against a player action to the GM, who rolls twice and settles the latest roll (ROLL_UNAVAILABLE for an older or unknown roll id)",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › lets the controlling player enter their own attack roll and rejects a forged face count",
+                "impl: packages/schema/src/api/encounterRuleCommands.ts (SYSTEM_ROLL carries only rollId), apps/apis/convex/encounters/evidenceRolls.ts"
+              ]
             },
             {
               "id": "V11.7",
               "text": "The chosen d20 mode is stored beside the derived mode and labeled when changed.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › settles an overridden advantage app roll with both faces and labels the change",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › lets the controlling player enter their own attack roll and rejects a forged face count",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx › recommends the derived mode, rolls without settling and settles by the latest roll id",
+                "impl: apps/apis/convex/encounters/evidenceRolls.ts"
+              ]
             },
             {
               "id": "V11.8",
               "text": "In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/automaticMovementReactionPolicy.test.ts › offers an authored automatic reaction to its controller as a Use/Decline choice in Assisted mode",
+                "impl: apps/apis/convex/encounters/movementReactionDiscovery.ts"
+              ]
             },
             {
               "id": "V11.9",
               "text": "The \"Auto-roll my dice\" preference is stored server-side, defaults on, and only produces dice results without making choices (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/auth.test.ts › defaults new profiles to automatic dice and persists the choice only for the caller",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › rolls on the server without a prompt when the roller auto-rolls",
+                "apps/apis/convex/encounters/automaticMovementReactionPolicy.test.ts › offers an authored automatic reaction to its controller as a Use/Decline choice in Assisted mode",
+                "apps/web/src/settings/SettingsPages.test.tsx › persists the automatic dice rolling preference",
+                "impl: apps/apis/convex/lib/rollPreferences.ts, apps/apis/convex/account.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId)"
+              ]
             },
             {
               "id": "V11.10",
               "text": "GM void cancels a paused action whole and resolves declinable choices as declined (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/occurrenceVoid.test.ts › cancels paused actions, declines optional choices and refuses steps play needs",
+                "apps/apis/convex/encounters/occurrenceVoid.test.ts › cancels a paused Disarm whole, records the void once and settles nothing",
+                "apps/apis/convex/encounters/occurrenceVoid.test.ts › declines movement reaction choices, keeping a paused move fenced until it settles",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx › lets the GM void the pending decision and hides the control from players",
+                "impl: apps/apis/convex/encounters/occurrenceVoid.ts"
+              ]
             }
           ]
         },
@@ -2935,20 +3116,32 @@
             {
               "id": "V12.4",
               "text": "Every command result and replay a player receives is the redacted player projection, and the room refuses anything else.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › lets a granted player act for the companion only on its turn against visible targets (result and replay parse as the player projection)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › never hands a player an unredacted GM projection",
+                "impl: apps/apis/convex/encounters/resultPresentation.ts, apps/session-worker/src/nativeRoomEncounterCommand.ts"
+              ]
             },
             {
               "id": "V12.5",
               "text": "A replay by command ID is returned only to its issuer.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › lets a granted player act for the companion only on its turn against visible targets (COMMAND_ID_REUSED for another member)",
+                "apps/apis/convex/encounters/actionCommands.test.ts › lets a player resolve only an actor the GM granted them and binds its replay to that player",
+                "impl: apps/apis/convex/encounters/actionAdmission.ts, apps/apis/convex/encounters/resultPresentation.ts"
+              ]
             },
             {
               "id": "V12.6",
               "text": "The player projection carries no actor health by default.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › omits every actor health band and hidden actors while keeping control and disposition",
+                "apps/apis/convex/encounters/playerControl.test.ts (expectPlayerProjection: no healthBand, currentHitPoints, resources, statBlock or gmNotes)",
+                "impl: packages/rules-runtime/src/encounterPlayerProjection.ts"
+              ]
             },
             {
               "id": "V12.7",
@@ -3017,22 +3210,28 @@
             {
               "id": "V14.1",
               "text": "Lifecycle, binding, presentation and ownership race schedules pass against Campaign-keyed Runs and presentation (ADR 0033).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-ultra-continuation-20260911/workstreams/v14-real-20260913/real-09/evidence.json (historical, Session-scoped)"
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterTransactions.ts: lifecycle, binding, presentation, ownership and Session-finish race schedules on Campaign-keyed Runs)",
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live"
               ]
             },
             {
               "id": "V14.2",
               "text": "Same-Scene movement contention and distinct-Scene writes stay consistent.",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/v14-acceptance-20260916/acceptance.md (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: same-Scene bound-move race with one stale loser, exact replay and concurrent distinct-Scene writes)",
+                "apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene"
+              ]
             },
             {
               "id": "V14.3",
               "text": "Same-Run actions serialize while independent Runs proceed.",
-              "status": "IN_PROGRESS",
-              "proof": ["proof mode action02 (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/developmentActionContentionProof.test.ts › proves V14 native RESOLVE_ACTION contention through public commands (apps/apis/tests/developmentEncounterActionTransactions.ts: same-Run winner/stale loser while a second Run's concurrent duplicate commits once)"
+              ]
             },
             {
               "id": "V14.4",
@@ -3043,8 +3242,14 @@
             {
               "id": "V14.5",
               "text": "An Encounter reads a Character's HP and state live from the Character at capture time, fenced by the captured revisions; the Run keeps no Character HP, maximum, condition or stream-version mirror, so a Sheet write no longer refuses that Character's Encounter commands (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/liveCharacterState.test.ts › keeps Encounter commands and projections current after Sheet edits made after Run creation",
+                "apps/apis/convex/encounters/liveCharacterState.test.ts › shows a changed Character maximum without blocking Encounter commands on it",
+                "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan",
+                "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads (Character actor stores no currentHitPoints or sourceRevision)",
+                "impl: apps/apis/convex/encounters/documents.ts, apps/apis/convex/liveSessions/encounterRulesCapture.ts"
+              ]
             }
           ]
         },
@@ -3251,16 +3456,23 @@
             {
               "id": "R06.3",
               "text": "Character Sheet writes stay in Convex under the approved Character authority amendment.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-goal-20260923/r06-amended-acceptance.md (historical review)"
+                "apps/apis/convex/liveSessions/state.test.ts › keeps Character Sheet commands in Convex while Scene authority is active and draining",
+                "impl: apps/apis/convex/characters/sheetCommands.ts"
               ]
             },
             {
               "id": "R06.4",
               "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, and the direct-write fence covers only the presented Scene (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live",
+                "apps/apis/convex/scenes/presentations.test.ts › fences direct writes and commits a live presentation only at the matching room state",
+                "apps/apis/convex/encounters/sceneBindings.test.ts › rejects a new binding while the Campaign live table owns the presented Scene",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards an unplanned Encounter command in room order and acknowledges only its initiator",
+                "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)"
+              ]
             }
           ]
         },

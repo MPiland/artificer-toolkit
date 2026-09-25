@@ -6,7 +6,11 @@
 
 ## Open
 
-_(none)_
+- **Q6: acceptance wording for V11.4.** The criterion says "a player's spell against a creature pauses on the creature's save for the GM". Spell casting in Encounters is Phase 8.3 (ADR 0034), so it can't be proven literally in 8.2. The mechanism is built and tested with a granted creature's save-forcing Bite, and it doesn't care whether the save comes from a spell or an ability.
+  - **Recommendation:** reword V11.4 to "a player's save-forcing action", and add a matching spell criterion to the 8.3 spell-casting work so nothing is dropped.
+  - **Alternative:** leave V11.4 open until 8.3 spells land.
+- **Q7: acceptance wording for V09.7.** The criterion says "development rows are migrated" for `controllerUserIds` and `disposition`. Under your standing reset approval, local development data was reset and reseeded instead of migrated. The migrations were removed as unused code, and no live data exists.
+  - **Recommendation:** reword to "development data is migrated or reset under the standing local-reset approval".
 
 ## Decisions to review
 
