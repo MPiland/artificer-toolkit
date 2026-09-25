@@ -30,7 +30,6 @@ export function projectPlayerEncounterProjection(
     name: encounter.name,
     status: encounter.status,
     automationMode: encounter.automationMode,
-    rulePackRevisionId: encounter.rulePackRevisionId,
     initiativePolicy: encounter.initiativePolicy,
     optionalCombatRules: encounter.optionalCombatRules,
     version: encounter.version,

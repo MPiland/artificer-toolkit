@@ -1738,12 +1738,6 @@ export declare const api: {
           characterId: string;
           command:
             | {
-                commandId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
-            | {
                 adjustment: any | any | any;
                 commandId: string;
                 expectedVersion: number;
@@ -6362,6 +6356,18 @@ export declare const api: {
           };
           id: string;
           normalizedExpression: string;
+          ruleCheck?: {
+            actorId: string;
+            actorLabel: string;
+            damage: { amount: number; typeLabel: string | null };
+            dc: number;
+            faces: Array<number>;
+            kind: "CONCENTRATION";
+            modifier: number;
+            outcome: "KEPT" | "LOST";
+            sourceLabel: string | null;
+            total: number;
+          };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -10083,6 +10089,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -10154,6 +10172,18 @@ export declare const api: {
               };
               id: string;
               normalizedExpression: string;
+              ruleCheck?: {
+                actorId: string;
+                actorLabel: string;
+                damage: { amount: number; typeLabel: string | null };
+                dc: number;
+                faces: Array<number>;
+                kind: "CONCENTRATION";
+                modifier: number;
+                outcome: "KEPT" | "LOST";
+                sourceLabel: string | null;
+                total: number;
+              };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -10230,6 +10260,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -10294,6 +10336,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -12352,6 +12406,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -12428,6 +12494,18 @@ export declare const api: {
             } | null;
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -12455,6 +12533,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -12516,6 +12606,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -25275,12 +25377,6 @@ export declare const api: {
         "public",
         {
           command:
-            | {
-                commandId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
             | {
                 adjustment: any | any | any;
                 commandId: string;
@@ -45521,7 +45617,6 @@ export declare const api: {
                     | "TURN_END";
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -45589,7 +45684,6 @@ export declare const api: {
                   label: string;
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -45610,6 +45704,12 @@ export declare const api: {
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                 };
                 rollerActorId: string | null;
+                trigger?: {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                };
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -45750,6 +45850,7 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: { max: 6; min: 1; requestId: string };
+                rollerActorId: string;
               }
             | {
                 allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -45821,6 +45922,12 @@ export declare const api: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -45962,6 +46069,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -46134,7 +46242,6 @@ export declare const api: {
                     | "TURN_END";
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -46202,194 +46309,10 @@ export declare const api: {
                   label: string;
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
               };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -46417,6 +46340,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -46589,12 +46524,6 @@ export declare const api: {
                     | {
                         actorId: string;
                         characterCommand?:
-                          | {
-                              commandId: string;
-                              expectedVersion: number;
-                              revisionId: string;
-                              type: "UPGRADE_RULE_PACK";
-                            }
                           | {
                               adjustment: any | any | any;
                               commandId: string;
@@ -47882,13 +47811,6 @@ export declare const api: {
                         type: "COMPLETE";
                       }
                     | {
-                        commandId: string;
-                        encounterId: string;
-                        expectedVersion: number;
-                        revisionId: string;
-                        type: "UPGRADE_RULE_PACK";
-                      }
-                    | {
                         acceptedWieldConflict?: {
                           kind: "STOW_SHIELD";
                           shieldItemInstanceId: string;
@@ -48128,6 +48050,12 @@ export declare const api: {
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
             };
             rollerActorId: string | null;
+            trigger?: {
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              kind: "CONCENTRATION";
+              sourceLabel: string | null;
+            };
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -48268,6 +48196,7 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: { max: 6; min: 1; requestId: string };
+            rollerActorId: string;
           }
         | {
             allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -48436,7 +48365,6 @@ export declare const api: {
                 | "TURN_END";
             }>;
             round: number;
-            rulePackRevisionId?: string | null;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -48504,7 +48432,6 @@ export declare const api: {
               label: string;
             }>;
             round: number;
-            rulePackRevisionId?: string | null;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -48675,7 +48602,6 @@ export declare const api: {
                 | "TURN_END";
             }>;
             round: number;
-            rulePackRevisionId?: string | null;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -48743,7 +48669,6 @@ export declare const api: {
               label: string;
             }>;
             round: number;
-            rulePackRevisionId?: string | null;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
@@ -48907,7 +48832,6 @@ export declare const api: {
                   | "TURN_END";
               }>;
               round: number;
-              rulePackRevisionId?: string | null;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -48975,7 +48899,6 @@ export declare const api: {
                 label: string;
               }>;
               round: number;
-              rulePackRevisionId?: string | null;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -49140,7 +49063,6 @@ export declare const api: {
                   | "TURN_END";
               }>;
               round: number;
-              rulePackRevisionId?: string | null;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -49208,7 +49130,6 @@ export declare const api: {
                 label: string;
               }>;
               round: number;
-              rulePackRevisionId?: string | null;
               status: "PREPARED" | "ACTIVE" | "COMPLETED";
               updatedAt: string;
               version: number;
@@ -49370,7 +49291,6 @@ export declare const api: {
               | "TURN_END";
           }>;
           round: number;
-          rulePackRevisionId?: string | null;
           status: "PREPARED" | "ACTIVE" | "COMPLETED";
           updatedAt: string;
           version: number;
@@ -49426,55 +49346,6 @@ export declare const api: {
             commandType: string;
             createdAt: string;
             id: string;
-            resolution?: {
-              outcomes: Array<{
-                kind: "DAMAGE" | "HEAL" | "CONDITION" | "RESOURCE" | "MANUAL";
-                status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-              }>;
-              overridden: boolean;
-              rolls: Array<{
-                characterId: string | null;
-                characterLabel: string;
-                createdAt: string;
-                evidence: {
-                  mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  modifier: number;
-                  subtotal: number;
-                  terms: Array<{
-                    count: number;
-                    die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                    keptRollIndex?: number;
-                    keptRollIndexes?: Array<number>;
-                    modifier?: number;
-                    rollSequences?: Array<Array<number>>;
-                    rolls: Array<number>;
-                    subtotal: number;
-                  }>;
-                  total: number;
-                  transform:
-                    | { kind: "NONE" }
-                    | { kind: "HALF" }
-                    | { kind: "DOUBLE" }
-                    | { kind: "MULTIPLY"; value: number };
-                };
-                id: string;
-                normalizedExpression: string;
-                ruleset: { code: string; systemId: string; version: string };
-                source: {
-                  kind:
-                    | "MANUAL"
-                    | "ABILITY_CHECK"
-                    | "SAVING_THROW"
-                    | "SKILL_CHECK"
-                    | "INITIATIVE"
-                    | "ATTACK"
-                    | "DAMAGE"
-                    | "HEALING"
-                    | "HIT_DIE";
-                  label: string;
-                };
-              }>;
-            } | null;
             roll: {
               characterId: string | null;
               characterLabel: string;
@@ -49502,6 +49373,18 @@ export declare const api: {
               };
               id: string;
               normalizedExpression: string;
+              ruleCheck?: {
+                actorId: string;
+                actorLabel: string;
+                damage: { amount: number; typeLabel: string | null };
+                dc: number;
+                faces: Array<number>;
+                kind: "CONCENTRATION";
+                modifier: number;
+                outcome: "KEPT" | "LOST";
+                sourceLabel: string | null;
+                total: number;
+              };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -50604,6 +50487,18 @@ export declare const api: {
         };
         id: string;
         normalizedExpression: string;
+        ruleCheck?: {
+          actorId: string;
+          actorLabel: string;
+          damage: { amount: number; typeLabel: string | null };
+          dc: number;
+          faces: Array<number>;
+          kind: "CONCENTRATION";
+          modifier: number;
+          outcome: "KEPT" | "LOST";
+          sourceLabel: string | null;
+          total: number;
+        };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -50687,6 +50582,18 @@ export declare const api: {
             } | null;
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -50714,6 +50621,18 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -51266,6 +51185,12 @@ export declare const api: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -51407,6 +51332,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -52655,6 +52581,12 @@ export declare const api: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -52796,6 +52728,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -53348,6 +53281,12 @@ export declare const api: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -53489,6 +53428,7 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -53957,6 +53897,12 @@ export declare const api: {
                       rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     };
                     rollerActorId: string | null;
+                    trigger?: {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    };
                   }
                 | {
                     allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -54098,6 +54044,7 @@ export declare const api: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: { max: 6; min: 1; requestId: string };
+                    rollerActorId: string;
                   }
                 | {
                     allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -58527,12 +58474,6 @@ export declare const internal: {
           campaignId: string;
           characterId: string;
           command:
-            | {
-                commandId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
             | {
                 adjustment: any | any | any;
                 commandId: string;
@@ -64717,12 +64658,6 @@ export declare const internal: {
                 actorId: string;
                 characterCommand?:
                   | {
-                      commandId: string;
-                      expectedVersion: number;
-                      revisionId: string;
-                      type: "UPGRADE_RULE_PACK";
-                    }
-                  | {
                       adjustment: any | any | any;
                       commandId: string;
                       expectedVersion: number;
@@ -65971,13 +65906,6 @@ export declare const internal: {
                 type: "COMPLETE";
               }
             | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
-            | {
                 acceptedWieldConflict?: {
                   kind: "STOW_SHIELD";
                   shieldItemInstanceId: string;
@@ -66166,6 +66094,12 @@ export declare const internal: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -66307,6 +66241,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -66479,7 +66414,6 @@ export declare const internal: {
                     | "TURN_END";
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -66547,194 +66481,10 @@ export declare const internal: {
                   label: string;
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
               };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -66762,6 +66512,18 @@ export declare const internal: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -66790,12 +66552,6 @@ export declare const internal: {
                 actorId: string;
                 characterCommand?:
                   | {
-                      commandId: string;
-                      expectedVersion: number;
-                      revisionId: string;
-                      type: "UPGRADE_RULE_PACK";
-                    }
-                  | {
                       adjustment: any | any | any;
                       commandId: string;
                       expectedVersion: number;
@@ -68044,13 +67800,6 @@ export declare const internal: {
                 type: "COMPLETE";
               }
             | {
-                commandId: string;
-                encounterId: string;
-                expectedVersion: number;
-                revisionId: string;
-                type: "UPGRADE_RULE_PACK";
-              }
-            | {
                 acceptedWieldConflict?: {
                   kind: "STOW_SHIELD";
                   shieldItemInstanceId: string;
@@ -68239,6 +67988,12 @@ export declare const internal: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -68380,6 +68135,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -68552,7 +68308,6 @@ export declare const internal: {
                     | "TURN_END";
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -68620,194 +68375,10 @@ export declare const internal: {
                   label: string;
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
               };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -68835,6 +68406,18 @@ export declare const internal: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -68894,12 +68477,6 @@ export declare const internal: {
                     | {
                         actorId: string;
                         characterCommand?:
-                          | {
-                              commandId: string;
-                              expectedVersion: number;
-                              revisionId: string;
-                              type: "UPGRADE_RULE_PACK";
-                            }
                           | {
                               adjustment: any | any | any;
                               commandId: string;
@@ -70187,13 +69764,6 @@ export declare const internal: {
                         type: "COMPLETE";
                       }
                     | {
-                        commandId: string;
-                        encounterId: string;
-                        expectedVersion: number;
-                        revisionId: string;
-                        type: "UPGRADE_RULE_PACK";
-                      }
-                    | {
                         acceptedWieldConflict?: {
                           kind: "STOW_SHIELD";
                           shieldItemInstanceId: string;
@@ -70451,6 +70021,12 @@ export declare const internal: {
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
             };
             rollerActorId: string | null;
+            trigger?: {
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              kind: "CONCENTRATION";
+              sourceLabel: string | null;
+            };
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -70591,6 +70167,7 @@ export declare const internal: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: { max: 6; min: 1; requestId: string };
+            rollerActorId: string;
           }
         | {
             allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -71878,6 +71455,12 @@ export declare const internal: {
                       rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                     };
                     rollerActorId: string | null;
+                    trigger?: {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    };
                   }
                 | {
                     allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -72019,6 +71602,7 @@ export declare const internal: {
                     occurrenceId: string;
                     occurrenceVersion: number;
                     request: { max: 6; min: 1; requestId: string };
+                    rollerActorId: string;
                   }
                 | {
                     allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -74232,6 +73816,12 @@ export declare const internal: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -74373,6 +73963,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -75032,6 +74623,12 @@ export declare const internal: {
                         rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                       };
                       rollerActorId: string | null;
+                      trigger?: {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      };
                     }
                   | {
                       allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -75176,6 +74773,7 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: { max: 6; min: 1; requestId: string };
+                      rollerActorId: string;
                     }
                   | {
                       allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -76607,6 +76205,11 @@ export declare const internal: {
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
                               };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
+                              };
                             };
                             evidence: {
                               capabilityContractVersion: number;
@@ -76946,6 +76549,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             }
                           | {
@@ -77880,6 +77488,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             };
                             evidence: {
@@ -78445,6 +78058,11 @@ export declare const internal: {
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
                               };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
+                              };
                             }
                           | {
                               actionEconomyTransition: {
@@ -79378,6 +78996,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             };
                             evidence: {
@@ -79967,6 +79590,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -80518,6 +80146,15 @@ export declare const internal: {
                                               | "DISADVANTAGE";
                                           };
                                           rollerActorId: string | null;
+                                          trigger?: {
+                                            damage: {
+                                              amount: number;
+                                              typeLabel: string | null;
+                                            };
+                                            dc: number;
+                                            kind: "CONCENTRATION";
+                                            sourceLabel: string | null;
+                                          };
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -80697,6 +80334,7 @@ export declare const internal: {
                                             min: 1;
                                             requestId: string;
                                           };
+                                          rollerActorId: string;
                                         }
                                       | {
                                           allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -80938,6 +80576,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -82058,6 +81701,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -84232,6 +83880,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -86361,6 +86015,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -88052,6 +87712,11 @@ export declare const internal: {
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
                                           };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
+                                          };
                                         }
                                       | {
                                           actionEconomyTransition: {
@@ -89047,6 +88712,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         };
                                         evidence: {
@@ -90406,6 +90076,11 @@ export declare const internal: {
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
                                           };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
+                                          };
                                         };
                                         evidence: {
                                           capabilityContractVersion: number;
@@ -90789,6 +90464,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -91785,6 +91465,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         };
                                         evidence: {
@@ -93177,6 +92862,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -94487,6 +94178,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   }
                                 | {
                                     actionEconomyTransition: {
@@ -95436,6 +95132,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -96043,6 +95744,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -96301,6 +96007,12 @@ export declare const internal: {
                                       savingThrowAbilityDefinitionId: string;
                                     };
                                     schemaVersion: 1;
+                                    sourceLabels: Array<{
+                                      label: string;
+                                      ordinal: number;
+                                      sourceNodeId: string;
+                                      sourceOperationKey: string;
+                                    }>;
                                     systemVocabularySnapshot: {
                                       checksum: string;
                                       id: string;
@@ -96311,6 +96023,11 @@ export declare const internal: {
                                       campaignOverlayChecksum: string;
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
+                                    };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
                                     };
                                   };
                                   damageSource: {
@@ -97122,6 +96839,15 @@ export declare const internal: {
                                                 | "DISADVANTAGE";
                                             };
                                             rollerActorId: string | null;
+                                            trigger?: {
+                                              damage: {
+                                                amount: number;
+                                                typeLabel: string | null;
+                                              };
+                                              dc: number;
+                                              kind: "CONCENTRATION";
+                                              sourceLabel: string | null;
+                                            };
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -97304,6 +97030,7 @@ export declare const internal: {
                                               min: 1;
                                               requestId: string;
                                             };
+                                            rollerActorId: string;
                                           }
                                         | {
                                             allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -97545,6 +97272,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -98667,6 +98399,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -100854,6 +100591,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -102997,6 +102740,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -104696,6 +104445,11 @@ export declare const internal: {
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
                                             };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
+                                            };
                                           }
                                         | {
                                             actionEconomyTransition: {
@@ -105698,6 +105452,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           };
                                           evidence: {
@@ -107077,6 +106836,11 @@ export declare const internal: {
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
                                             };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
+                                            };
                                           };
                                           evidence: {
                                             capabilityContractVersion: number;
@@ -107466,6 +107230,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           }
                                         | {
@@ -108469,6 +108238,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           };
                                           evidence: {
@@ -109877,6 +109651,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -111212,6 +110992,11 @@ export declare const internal: {
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
                                       };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
+                                      };
                                     }
                                   | {
                                       actionEconomyTransition: {
@@ -112191,6 +111976,11 @@ export declare const internal: {
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
                                       };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
+                                      };
                                     };
                                     evidence: {
                                       capabilityContractVersion: number;
@@ -112804,6 +112594,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     };
                                     evidence: {
@@ -113695,6 +113490,15 @@ export declare const internal: {
                                             | "DISADVANTAGE";
                                         };
                                         rollerActorId: string | null;
+                                        trigger?: {
+                                          damage: {
+                                            amount: number;
+                                            typeLabel: string | null;
+                                          };
+                                          dc: number;
+                                          kind: "CONCENTRATION";
+                                          sourceLabel: string | null;
+                                        };
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -113874,6 +113678,7 @@ export declare const internal: {
                                           min: 1;
                                           requestId: string;
                                         };
+                                        rollerActorId: string;
                                       }
                                     | {
                                         allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -114108,6 +113913,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     }
                                   | {
@@ -115207,6 +115017,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     }
                                   | {
@@ -117356,6 +117171,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -119430,6 +119250,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -121071,6 +120896,11 @@ export declare const internal: {
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
                                         };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
+                                        };
                                       }
                                     | {
                                         actionEconomyTransition: {
@@ -122064,6 +121894,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       };
                                       evidence: {
@@ -123404,6 +123239,11 @@ export declare const internal: {
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
                                         };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
+                                        };
                                       };
                                       evidence: {
                                         capabilityContractVersion: number;
@@ -123787,6 +123627,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -124781,6 +124626,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       };
                                       evidence: {
@@ -126159,6 +126009,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -127436,6 +127291,11 @@ export declare const internal: {
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
                                   };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
+                                  };
                                 }
                               | {
                                   actionEconomyTransition: {
@@ -128376,6 +128236,11 @@ export declare const internal: {
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
                                   };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
+                                  };
                                 };
                                 evidence: {
                                   capabilityContractVersion: number;
@@ -128978,6 +128843,11 @@ export declare const internal: {
                                     campaignOverlayChecksum: string;
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
+                                  };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
                                   };
                                 };
                                 evidence: {
@@ -129619,6 +129489,12 @@ export declare const internal: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
+                  trigger?: {
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    kind: "CONCENTRATION";
+                    sourceLabel: string | null;
+                  };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -129760,6 +129636,7 @@ export declare const internal: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: { max: 6; min: 1; requestId: string };
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -129932,7 +129809,6 @@ export declare const internal: {
                     | "TURN_END";
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
@@ -130000,194 +129876,10 @@ export declare const internal: {
                   label: string;
                 }>;
                 round: number;
-                rulePackRevisionId?: string | null;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
               };
-          resolution?: {
-            appliedOutcomes: Array<{
-              after:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              before:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>
-                | null;
-              correlatedCommandId: string | null;
-              proposed:
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  };
-              status: "APPLIED" | "MANUAL" | "OVERRIDDEN";
-            }>;
-            checksum: string;
-            evaluatorKind: "ZEN";
-            evaluatorVersion: string;
-            modelContractVersion: number;
-            modelKey: string;
-            normalizedFacts:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
-            override: {
-              outcomes: Array<
-                | {
-                    amount: number;
-                    damageTypeId: string | null;
-                    kind: "DAMAGE";
-                    targetActorId: string;
-                  }
-                | {
-                    amount: number;
-                    kind: "HEAL";
-                    targetActorId: string;
-                    temporary: boolean;
-                  }
-                | {
-                    conditionId: string;
-                    kind: "CONDITION";
-                    operation: "APPLY" | "REMOVE";
-                    targetActorId: string;
-                  }
-                | {
-                    kind: "RESOURCE";
-                    remainingDelta: number;
-                    resourceId: string;
-                    targetActorId: string;
-                  }
-                | {
-                    code: string;
-                    instructions: string;
-                    kind: "MANUAL";
-                    label: string;
-                  }
-              >;
-              reason: string;
-            } | null;
-            proposedOutcomes: Array<
-              | {
-                  amount: number;
-                  damageTypeId: string | null;
-                  kind: "DAMAGE";
-                  targetActorId: string;
-                }
-              | {
-                  amount: number;
-                  kind: "HEAL";
-                  targetActorId: string;
-                  temporary: boolean;
-                }
-              | {
-                  conditionId: string;
-                  kind: "CONDITION";
-                  operation: "APPLY" | "REMOVE";
-                  targetActorId: string;
-                }
-              | {
-                  kind: "RESOURCE";
-                  remainingDelta: number;
-                  resourceId: string;
-                  targetActorId: string;
-                }
-              | {
-                  code: string;
-                  instructions: string;
-                  kind: "MANUAL";
-                  label: string;
-                }
-            >;
-            rolls: Array<{
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            }>;
-            rulePackRevisionId: string;
-            trace:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>
-              | null;
-          } | null;
           roll: {
             characterId: string | null;
             characterLabel: string;
@@ -130215,6 +129907,18 @@ export declare const internal: {
             };
             id: string;
             normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -130753,6 +130457,12 @@ export declare const internal: {
                         rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                       };
                       rollerActorId: string | null;
+                      trigger?: {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      };
                     }
                   | {
                       allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -130897,6 +130607,7 @@ export declare const internal: {
                       occurrenceId: string;
                       occurrenceVersion: number;
                       request: { max: 6; min: 1; requestId: string };
+                      rollerActorId: string;
                     }
                   | {
                       allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -132637,6 +132348,11 @@ export declare const internal: {
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
                               };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
+                              };
                             };
                             evidence: {
                               capabilityContractVersion: number;
@@ -132976,6 +132692,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             }
                           | {
@@ -133910,6 +133631,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             };
                             evidence: {
@@ -134475,6 +134201,11 @@ export declare const internal: {
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
                               };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
+                              };
                             }
                           | {
                               actionEconomyTransition: {
@@ -135408,6 +135139,11 @@ export declare const internal: {
                                 campaignOverlayChecksum: string;
                                 mechanicalContextChecksum: string;
                                 streamVersion: number;
+                              };
+                              trigger: {
+                                damageTypeLabel: string | null;
+                                dc: number;
+                                sourceLabel: string | null;
                               };
                             };
                             evidence: {
@@ -135997,6 +135733,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -136548,6 +136289,15 @@ export declare const internal: {
                                               | "DISADVANTAGE";
                                           };
                                           rollerActorId: string | null;
+                                          trigger?: {
+                                            damage: {
+                                              amount: number;
+                                              typeLabel: string | null;
+                                            };
+                                            dc: number;
+                                            kind: "CONCENTRATION";
+                                            sourceLabel: string | null;
+                                          };
                                         }
                                       | {
                                           allowedResponses: Array<
@@ -136727,6 +136477,7 @@ export declare const internal: {
                                             min: 1;
                                             requestId: string;
                                           };
+                                          rollerActorId: string;
                                         }
                                       | {
                                           allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -136968,6 +136719,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -138088,6 +137844,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -140262,6 +140023,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -142391,6 +142158,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -144082,6 +143855,11 @@ export declare const internal: {
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
                                           };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
+                                          };
                                         }
                                       | {
                                           actionEconomyTransition: {
@@ -145077,6 +144855,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         };
                                         evidence: {
@@ -146436,6 +146219,11 @@ export declare const internal: {
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
                                           };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
+                                          };
                                         };
                                         evidence: {
                                           capabilityContractVersion: number;
@@ -146819,6 +146607,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -147815,6 +147608,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         };
                                         evidence: {
@@ -149207,6 +149005,12 @@ export declare const internal: {
                                                   mechanicalContextChecksum: string;
                                                   streamVersion: number;
                                                 };
+                                                trigger: {
+                                                  damageTypeLabel:
+                                                    string | null;
+                                                  dc: number;
+                                                  sourceLabel: string | null;
+                                                };
                                               }
                                             | {
                                                 actionEconomyTransition: {
@@ -150517,6 +150321,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   }
                                 | {
                                     actionEconomyTransition: {
@@ -151466,6 +151275,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -152073,6 +151887,11 @@ export declare const internal: {
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
                                     };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
+                                    };
                                   };
                                   evidence: {
                                     capabilityContractVersion: number;
@@ -152331,6 +152150,12 @@ export declare const internal: {
                                       savingThrowAbilityDefinitionId: string;
                                     };
                                     schemaVersion: 1;
+                                    sourceLabels: Array<{
+                                      label: string;
+                                      ordinal: number;
+                                      sourceNodeId: string;
+                                      sourceOperationKey: string;
+                                    }>;
                                     systemVocabularySnapshot: {
                                       checksum: string;
                                       id: string;
@@ -152341,6 +152166,11 @@ export declare const internal: {
                                       campaignOverlayChecksum: string;
                                       mechanicalContextChecksum: string;
                                       streamVersion: number;
+                                    };
+                                    trigger: {
+                                      damageTypeLabel: string | null;
+                                      dc: number;
+                                      sourceLabel: string | null;
                                     };
                                   };
                                   damageSource: {
@@ -153152,6 +152982,15 @@ export declare const internal: {
                                                 | "DISADVANTAGE";
                                             };
                                             rollerActorId: string | null;
+                                            trigger?: {
+                                              damage: {
+                                                amount: number;
+                                                typeLabel: string | null;
+                                              };
+                                              dc: number;
+                                              kind: "CONCENTRATION";
+                                              sourceLabel: string | null;
+                                            };
                                           }
                                         | {
                                             allowedResponses: Array<
@@ -153334,6 +153173,7 @@ export declare const internal: {
                                               min: 1;
                                               requestId: string;
                                             };
+                                            rollerActorId: string;
                                           }
                                         | {
                                             allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -153575,6 +153415,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -154697,6 +154542,11 @@ export declare const internal: {
                                             campaignOverlayChecksum: string;
                                             mechanicalContextChecksum: string;
                                             streamVersion: number;
+                                          };
+                                          trigger: {
+                                            damageTypeLabel: string | null;
+                                            dc: number;
+                                            sourceLabel: string | null;
                                           };
                                         }
                                       | {
@@ -156884,6 +156734,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -159027,6 +158883,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -160726,6 +160588,11 @@ export declare const internal: {
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
                                             };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
+                                            };
                                           }
                                         | {
                                             actionEconomyTransition: {
@@ -161728,6 +161595,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           };
                                           evidence: {
@@ -163107,6 +162979,11 @@ export declare const internal: {
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
                                             };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
+                                            };
                                           };
                                           evidence: {
                                             capabilityContractVersion: number;
@@ -163496,6 +163373,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           }
                                         | {
@@ -164499,6 +164381,11 @@ export declare const internal: {
                                               campaignOverlayChecksum: string;
                                               mechanicalContextChecksum: string;
                                               streamVersion: number;
+                                            };
+                                            trigger: {
+                                              damageTypeLabel: string | null;
+                                              dc: number;
+                                              sourceLabel: string | null;
                                             };
                                           };
                                           evidence: {
@@ -165907,6 +165794,12 @@ export declare const internal: {
                                                     mechanicalContextChecksum: string;
                                                     streamVersion: number;
                                                   };
+                                                  trigger: {
+                                                    damageTypeLabel:
+                                                      string | null;
+                                                    dc: number;
+                                                    sourceLabel: string | null;
+                                                  };
                                                 }
                                               | {
                                                   actionEconomyTransition: {
@@ -167242,6 +167135,11 @@ export declare const internal: {
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
                                       };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
+                                      };
                                     }
                                   | {
                                       actionEconomyTransition: {
@@ -168221,6 +168119,11 @@ export declare const internal: {
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
                                       };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
+                                      };
                                     };
                                     evidence: {
                                       capabilityContractVersion: number;
@@ -168834,6 +168737,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     };
                                     evidence: {
@@ -169725,6 +169633,15 @@ export declare const internal: {
                                             | "DISADVANTAGE";
                                         };
                                         rollerActorId: string | null;
+                                        trigger?: {
+                                          damage: {
+                                            amount: number;
+                                            typeLabel: string | null;
+                                          };
+                                          dc: number;
+                                          kind: "CONCENTRATION";
+                                          sourceLabel: string | null;
+                                        };
                                       }
                                     | {
                                         allowedResponses: Array<
@@ -169904,6 +169821,7 @@ export declare const internal: {
                                           min: 1;
                                           requestId: string;
                                         };
+                                        rollerActorId: string;
                                       }
                                     | {
                                         allowedResponses: Array<"INITIATIVE_ENTITY">;
@@ -170138,6 +170056,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     }
                                   | {
@@ -171237,6 +171160,11 @@ export declare const internal: {
                                         campaignOverlayChecksum: string;
                                         mechanicalContextChecksum: string;
                                         streamVersion: number;
+                                      };
+                                      trigger: {
+                                        damageTypeLabel: string | null;
+                                        dc: number;
+                                        sourceLabel: string | null;
                                       };
                                     }
                                   | {
@@ -173386,6 +173314,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -175460,6 +175393,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -177101,6 +177039,11 @@ export declare const internal: {
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
                                         };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
+                                        };
                                       }
                                     | {
                                         actionEconomyTransition: {
@@ -178094,6 +178037,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       };
                                       evidence: {
@@ -179434,6 +179382,11 @@ export declare const internal: {
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
                                         };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
+                                        };
                                       };
                                       evidence: {
                                         capabilityContractVersion: number;
@@ -179817,6 +179770,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       }
                                     | {
@@ -180811,6 +180769,11 @@ export declare const internal: {
                                           campaignOverlayChecksum: string;
                                           mechanicalContextChecksum: string;
                                           streamVersion: number;
+                                        };
+                                        trigger: {
+                                          damageTypeLabel: string | null;
+                                          dc: number;
+                                          sourceLabel: string | null;
                                         };
                                       };
                                       evidence: {
@@ -182189,6 +182152,11 @@ export declare const internal: {
                                                 mechanicalContextChecksum: string;
                                                 streamVersion: number;
                                               };
+                                              trigger: {
+                                                damageTypeLabel: string | null;
+                                                dc: number;
+                                                sourceLabel: string | null;
+                                              };
                                             }
                                           | {
                                               actionEconomyTransition: {
@@ -183466,6 +183434,11 @@ export declare const internal: {
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
                                   };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
+                                  };
                                 }
                               | {
                                   actionEconomyTransition: {
@@ -184406,6 +184379,11 @@ export declare const internal: {
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
                                   };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
+                                  };
                                 };
                                 evidence: {
                                   capabilityContractVersion: number;
@@ -185008,6 +184986,11 @@ export declare const internal: {
                                     campaignOverlayChecksum: string;
                                     mechanicalContextChecksum: string;
                                     streamVersion: number;
+                                  };
+                                  trigger: {
+                                    damageTypeLabel: string | null;
+                                    dc: number;
+                                    sourceLabel: string | null;
                                   };
                                 };
                                 evidence: {

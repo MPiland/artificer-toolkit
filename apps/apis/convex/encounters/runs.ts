@@ -184,7 +184,6 @@ export const create = mutation({
       version: 0,
       round: 0,
       currentActorId: null,
-      rulePackRevisionId: null,
       ...policies,
       actorIds: actors.map((actor) => actor.id),
       reminders: [],

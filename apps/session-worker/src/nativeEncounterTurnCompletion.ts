@@ -9,7 +9,11 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  labelTurnEffectDamage,
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -113,12 +117,18 @@ export async function prepareNativeLiveTurnCompletion(input: {
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
+  const damage = await labelTurnEffectDamage(executions, async (definitionId) => {
+    const response = await input.capture({ kind: 'DEFINITION', definitionId })
+    if (response.kind !== 'DEFINITION') throw new Error('Turn effect definition is unavailable.')
+    return response.definition?.label ?? null
+  })
   const concentration = await planNativeLiveConcentration({
     state: nextState,
     autoRollByActorId: input.autoRollByActorId,
     parentOccurrenceId: input.occurrenceId,
     parentCommandFingerprint: prepared.root.commandFingerprint,
-    applications: nativeConcentrationDamageApplications(executions),
+    applications: nativeConcentrationDamageApplications(damage),
+    sourceLabels: nativeConcentrationDamageSourceLabels(damage),
     occurredAt: input.occurredAt,
     settlement: {
       actors: prepared.actors,

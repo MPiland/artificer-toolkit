@@ -109,8 +109,7 @@ export async function readNativeDisarmReplay(
     result.occurrence.status !== 'COMPLETE' ||
     result.occurrence.pending !== null ||
     result.occurrence.outcome !== null ||
-    result.roll !== null ||
-    result.resolution !== null
+    result.roll !== null
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
   const target = result.projection.actors.find((actor) => actor.id === command.targetActorId)
@@ -178,7 +177,6 @@ export function readNativeDisarmEvidenceReplay(input: {
     result.occurrence.status !== (payload.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING') ||
     result.occurrence.outcome !== null ||
     result.roll !== null ||
-    result.resolution !== null ||
     checksumCanonicalJson(result) !== metadata.commandResult.resultChecksum
   )
     throw new Error('Stored Disarm evidence receipt mismatch.')

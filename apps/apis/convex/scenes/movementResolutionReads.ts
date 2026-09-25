@@ -71,7 +71,6 @@ export const result = internalQuery({
       result: encounterCommandResultDtoSchema.parse({
         projection: readRunProjection(run),
         roll: null,
-        resolution: null,
         occurrence: projectEncounterSpatialOccurrenceSummary(
           {
             id: occurrence.id,

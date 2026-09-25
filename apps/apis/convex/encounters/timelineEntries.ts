@@ -103,16 +103,6 @@ export function presentTimelineEntry(
     actorUserId: command.actorUserId,
     createdAt: command.createdAt,
     roll: result?.roll ?? null,
-    resolution: result?.resolution
-      ? {
-          rolls: result.resolution.rolls,
-          outcomes: result.resolution.appliedOutcomes.map(({ proposed, status }) => ({
-            kind: proposed.kind,
-            status
-          })),
-          overridden: result.resolution.override !== null
-        }
-      : null,
     ruleOverrides: command.commandType === 'RESOLVE_ACTION' ? command.ruleOverrides : []
   }
 }

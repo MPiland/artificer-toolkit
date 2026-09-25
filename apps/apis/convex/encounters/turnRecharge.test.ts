@@ -682,6 +682,84 @@ describe('native Encounter turn Recharge', () => {
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
+  it('sends a granted Creature Recharge to its controller by their roll preference', async () => {
+    for (const variant of ['PLAYER_ANSWERS', 'GM_ANSWERS', 'PLAYER_AUTO_ROLL'] as const) {
+      // The GM prompts, so only the controller's preference can auto-roll this Recharge.
+      const base = await setup('PROMPT')
+      await setAutoRollDice(base.t, base.other.userId, variant === 'PLAYER_AUTO_ROLL')
+      const creatureId = base.run.actors[0]!.id
+      const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.run.version,
+          actorId: creatureId,
+          controllerUserIds: [base.other.userId]
+        }
+      })
+      let result = await base.owner.caller.mutation(executeEncounterCommand, {
+        command: {
+          type: 'START',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: granted.projection.version
+        }
+      })
+      while (
+        result.occurrence?.pending?.kind === 'INITIATIVE_EVIDENCE' ||
+        result.occurrence?.pending?.kind === 'INITIATIVE_ORDER'
+      ) {
+        const pending = result.occurrence.pending
+        result = await base.owner.caller.mutation(executeEncounterCommand, {
+          command: {
+            type: 'RESOLVE_RULE_OCCURRENCE',
+            encounterId: base.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: granted.projection.version,
+            occurrenceId: result.occurrence.occurrenceId,
+            expectedOccurrenceVersion: result.occurrence.occurrenceVersion,
+            correlationId: null,
+            resolution:
+              pending.kind === 'INITIATIVE_EVIDENCE'
+                ? { kind: 'ENTER_INTEGER', requestId: pending.request.requestId, value: 20 }
+                : {
+                    kind: 'INITIATIVE_ENTITY',
+                    requestId: pending.requestId,
+                    entityId: pending.optionIds[0]!
+                  }
+          }
+        })
+      }
+      if (variant === 'PLAYER_AUTO_ROLL') {
+        expect(result).toMatchObject({
+          projection: { status: 'ACTIVE' },
+          occurrence: { status: 'COMPLETE', pending: null }
+        })
+        continue
+      }
+      const pending = result.occurrence?.pending
+      if (!pending || pending.kind !== 'RECHARGE_EVIDENCE')
+        throw new Error('Expected the granted Creature Recharge prompt.')
+      expect(pending.rollerActorId).toBe(creatureId)
+      for (const member of [base.owner, base.other])
+        await expect(
+          member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: base.run.id
+          })
+        ).resolves.toEqual(pending)
+      const answerer = variant === 'PLAYER_ANSWERS' ? base.other : base.owner
+      const settled = await answerer.caller.action(
+        internal.encounters.commandActions.execute,
+        rechargeResolution({ encounterId: base.run.id, pending, value: 5 })
+      )
+      expect(settled).toMatchObject({
+        projection: { status: 'ACTIVE' },
+        occurrence: { status: 'COMPLETE', pending: null }
+      })
+    }
+  }, 60000)
+
   it('rejects wrong evidence, authority, and stale Feature source without changing a pending Recharge', async () => {
     const base = await setup('PROMPT')
     let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {

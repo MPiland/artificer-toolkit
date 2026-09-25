@@ -56,6 +56,10 @@ function positiveSafeInteger(value: RuleValue | undefined, label: string): numbe
 }
 
 /** D&D 2014 concentration damage-check DC: max(10, floor(applied damage / 2)). */
+export function dnd5eConcentrationDamageDc(appliedDamage: number) {
+  return Math.max(10, Math.floor(positiveSafeInteger(appliedDamage, 'Applied damage') / 2))
+}
+
 export const dnd5eConcentrationDamageDcOperation: PureRuleOperationContract = {
   key: DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY,
   contractVersion: 1,
@@ -63,8 +67,9 @@ export const dnd5eConcentrationDamageDcOperation: PureRuleOperationContract = {
   inputs: { appliedDamage: RULE_VALUE_KIND.NUMBER },
   outputs: { dc: RULE_VALUE_KIND.NUMBER },
   execute(inputs) {
-    const appliedDamage = positiveSafeInteger(inputs.appliedDamage, 'Applied damage')
-    return { dc: Math.max(10, Math.floor(appliedDamage / 2)) }
+    return {
+      dc: dnd5eConcentrationDamageDc(positiveSafeInteger(inputs.appliedDamage, 'Applied damage'))
+    }
   }
 }
 

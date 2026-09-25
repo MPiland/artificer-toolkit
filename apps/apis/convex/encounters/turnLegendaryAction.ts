@@ -17,7 +17,7 @@ type Input = {
   ctx: MutationCtx
   state: EncounterRunState
   userId: string
-  autoRoll: boolean
+  autoRollByActorId: Readonly<Record<string, boolean>>
   occurrenceId: string
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
@@ -37,7 +37,7 @@ export async function prepareNativeTurnLegendaryActions(input: Input) {
   >({
     state,
     userId,
-    autoRoll: input.autoRoll,
+    autoRollByActorId: input.autoRollByActorId,
     occurrenceId: input.occurrenceId,
     root: input.root,
     pending: input.pending,

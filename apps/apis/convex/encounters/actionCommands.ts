@@ -44,7 +44,11 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { persistNativeCleavingAfterAction } from './cleaving'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { startNativeConcentrationChecks } from './concentration'
 import { persistNativeActionEffects, prepareNativeActionEffects } from './actionEffects'
 import {
@@ -352,16 +356,21 @@ export async function executeNativeEncounterAction(
     version: state.version + 1,
     updatedAt
   })
+  const damage = [
+    {
+      targetActorId: target.id,
+      applications: mechanics.receiptApplications,
+      sourceLabel: encounterActionSourceLabel(prepared.source)
+    }
+  ]
   const concentration = await startNativeConcentrationChecks(ctx, {
     state: nextState,
     readVersion: state.version,
     actors: nextActors,
     parentOccurrenceId: occurrenceId,
     parentCommandFingerprint: fingerprint,
-    applications: nativeConcentrationDamageApplications(
-      [{ targetActorId: target.id, applications: mechanics.receiptApplications }],
-      true
-    ),
+    applications: nativeConcentrationDamageApplications(damage, true),
+    sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     userId: readerUserId,
     autoRollByActorId,
     occurredAt: updatedAt
@@ -380,7 +389,6 @@ export async function executeNativeEncounterAction(
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId,
       occurrenceVersion,

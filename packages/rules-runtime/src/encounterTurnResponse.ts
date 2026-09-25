@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnCommands'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { EncounterInitiativeOccurrenceRoot } from './encounterInitiativeOccurrence.js'
+import { turnPendingActorId } from './encounterTurnPending.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 export function matchesNativeTurnResponse(
@@ -47,7 +48,7 @@ export function prepareEncounterTurnResponse(input: {
   command: ResolveRuleOccurrenceInputDto
   userId: string
   ownerUserId: string
-  /** Actors the responder controls; a turn-effect save is answered by its actor's controllers. */
+  /** Actors the responder controls; a turn step's dice are answered by its actor's controllers. */
   responderControlledActorIds: ReadonlySet<string>
   occurrence: {
     id: string
@@ -145,13 +146,11 @@ export function prepareEncounterTurnResponse(input: {
       })
     }
   }
-  // Turn-effect saves go to the turn actor's controllers; every other turn step is the GM's.
+  // A turn step goes to its actor's controllers; initiative scoring and order are the GM's.
+  const actorId = turnPendingActorId(pending)
   if (
     userId !== ownerUserId &&
-    !(
-      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
-      input.responderControlledActorIds.has(context.currentCandidate.targetActorId)
-    )
+    (actorId === null || !input.responderControlledActorIds.has(actorId))
   )
     throw new Error('Rule occurrence is unavailable.')
   if (context.kind === 'ENCOUNTER_INITIATIVE') {

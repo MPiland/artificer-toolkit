@@ -564,9 +564,6 @@ export function applyCharacterSheetCommand(
   }
 
   switch (command.type) {
-    case 'UPGRADE_RULE_PACK':
-      return next
-
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
@@ -1449,8 +1446,6 @@ export function summarizeCharacterSheetCommand(
   sheet?: CharacterSheetResponseDto
 ): string {
   switch (command.type) {
-    case 'UPGRADE_RULE_PACK':
-      return 'Character rules upgraded'
     case 'UPSERT_SHEET_ADJUSTMENT':
       return 'Character sheet adjustment updated'
     case 'REMOVE_SHEET_ADJUSTMENT':

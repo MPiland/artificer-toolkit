@@ -49,7 +49,6 @@ describe('player encounter projection', () => {
       status: 'ACTIVE',
       automationMode: 'ASSISTED',
       manualReminderMode: 'OFF',
-      rulePackRevisionId: null,
       version: 4,
       round: 1,
       currentActorId: HIDDEN_ACTOR_ID,

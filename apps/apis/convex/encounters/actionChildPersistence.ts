@@ -20,6 +20,7 @@ import type {
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import type { MutationCtx } from '../_generated/server'
+import { recordConcentrationCheckRoll } from './ruleCheckRolls'
 import type { Doc } from '../_generated/dataModel'
 
 export async function persistNativeConcentrationResult(
@@ -74,6 +75,13 @@ export async function persistNativeConcentrationResult(
       createdAt: input.occurredAt
     })
   )
+  // Every settled check, answered or automatic, gets its own roll-log entry.
+  await recordConcentrationCheckRoll(ctx, {
+    state,
+    result,
+    authorUserId: input.userId,
+    occurredAt: input.occurredAt
+  })
 }
 
 export async function persistNativeConcentrationPending(

@@ -17,6 +17,29 @@ type RechargePendingContext = Extract<
   { kind: 'ENCOUNTER_TURN_RECHARGE' }
 >
 
+/**
+ * The actor a pending turn step belongs to: a turn-effect save's target, the recharging Creature, or
+ * the Creature choosing and rolling a Legendary Action. Its controllers and the GM answer it (ADR 0034
+ * decision 3; D24, D30), so a Creature the GM granted to a player acts and rolls with that player.
+ * Null for the GM's own turn steps (initiative scoring and order).
+ */
+export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDto) {
+  const context = pending.applicationContext
+  if (context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
+    return pending.snapshotKind === 'AGGREGATE_CHOICE' ? context.choice.ownerActorId : null
+  if (pending.snapshotKind !== 'KERNEL_EVIDENCE') return null
+  switch (context.kind) {
+    case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
+      return context.currentCandidate.targetActorId
+    case 'ENCOUNTER_TURN_RECHARGE':
+      return context.currentCandidate.actorId
+    case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
+      return context.choice.ownerActorId
+    default:
+      return null
+  }
+}
+
 export function requireRechargePending(snapshot: ServerRuleExecutionPendingSnapshotDto): {
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
   context: RechargePendingContext
@@ -33,7 +56,7 @@ function projectNativeRechargePending(input: {
   occurrenceVersion: number
   encounterVersion: number
 }): PendingEncounterRuleOccurrenceSummaryDto {
-  const { snapshot } = requireRechargePending(input.snapshot)
+  const { snapshot, context } = requireRechargePending(input.snapshot)
   if (
     snapshot.occurrenceId !== input.occurrenceId ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
@@ -46,6 +69,7 @@ function projectNativeRechargePending(input: {
     occurrenceId: input.occurrenceId,
     occurrenceVersion: input.occurrenceVersion,
     encounterVersion: input.encounterVersion,
+    rollerActorId: context.currentCandidate.actorId,
     request: {
       requestId: snapshot.request.requestId,
       min: 1,
@@ -93,8 +117,7 @@ export function projectNativeLegendaryPending(input: {
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     ...identity,
     kind: 'D20_EVIDENCE',
-    // Turn-flow rolls belong to the GM, who initiates every turn.
-    rollerActorId: null,
+    rollerActorId: context.choice.ownerActorId,
     request: {
       requestId: input.snapshot.request.requestId,
       min: 1,
@@ -125,7 +148,6 @@ export function projectNativeTurnPending(
       occurrenceId: input.occurrenceId,
       occurrenceVersion: input.occurrenceVersion,
       encounterVersion: input.encounterVersion,
-      // A turn-effect save belongs to the actor making it, so its controllers answer it.
       rollerActorId: context.currentCandidate.targetActorId,
       request: {
         requestId: input.snapshot.request.requestId,

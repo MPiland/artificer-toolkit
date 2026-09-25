@@ -20,7 +20,8 @@ import type { Doc } from '../_generated/dataModel'
 import { internalQuery, query, type QueryCtx } from '../_generated/server'
 import {
   projectNativeTurnPending,
-  projectNativeLegendaryPending
+  projectNativeLegendaryPending,
+  turnPendingActorId
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending'
 import { projectNativeConcentrationPending } from './concentrationPending'
@@ -82,7 +83,9 @@ export async function readEncounterWaitingOn(
   const decision = await readPendingRunDecision(ctx, row, campaign, ownerMembership)
   if (!decision) return null
   const actorId =
-    decision.kind === 'D20_EVIDENCE' || decision.kind === 'ACTION_OUTCOME_EVIDENCE'
+    decision.kind === 'D20_EVIDENCE' ||
+    decision.kind === 'ACTION_OUTCOME_EVIDENCE' ||
+    decision.kind === 'RECHARGE_EVIDENCE'
       ? decision.rollerActorId
       : decision.kind === 'INITIATIVE_DECLARATION'
         ? decision.actorId
@@ -90,7 +93,9 @@ export async function readEncounterWaitingOn(
           ? decision.choice.reactorActorId
           : decision.kind === 'MOVEMENT_PASSAGE_CHOICE'
             ? decision.sourceActorId
-            : null
+            : decision.kind === 'LEGENDARY_ACTION_CHOICE'
+              ? decision.ownerActorId
+              : null
   if (!actorId) return 'GM'
   const actor = await readRunActor(ctx, readRunState(row), actorId)
   return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
@@ -154,7 +159,9 @@ export async function readPendingRunDecision(
       root.initiatorUserId !== campaign.ownerUserId
     )
       throw new Error('Stored Encounter turn root is invalid.')
-    if (membership.role !== 'OWNER') return null
+    // A Creature's controllers pick and roll its Legendary Action.
+    const actorId = turnPendingActorId(pendingSnapshot)
+    if (actorId === null || !controlledActorIds.has(actorId)) return null
     return withEncounterRollModeReasons(ctx, row.gameSystemId, (reasons) =>
       projectNativeLegendaryPending({
         snapshot: pendingSnapshot,
@@ -236,13 +243,9 @@ export async function readPendingRunDecision(
     context.kind === 'ENCOUNTER_TURN_RECHARGE' ||
     context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
   ) {
-    // A turn-effect save goes to its actor's controllers; Recharge is the GM's.
-    if (
-      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
-        ? !controlledActorIds.has(context.currentCandidate.targetActorId)
-        : membership.role !== 'OWNER'
-    )
-      return null
+    // Turn-effect saves and Recharge dice go to their actor's controllers.
+    const actorId = turnPendingActorId(pendingSnapshot)
+    if (actorId === null || !controlledActorIds.has(actorId)) return null
     if (
       context.root.rootCommandId !== occurrence.rootCommandId ||
       context.root.expectedEncounterVersion !== row.version ||

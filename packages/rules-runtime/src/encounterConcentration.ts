@@ -8,6 +8,7 @@ import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schem
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   resolveEncounterD20Answer,
@@ -15,8 +16,10 @@ import {
 } from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
   DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+  dnd5eConcentrationDamageDc,
   resolveDnd5eConcentrationSaveFacts
 } from './systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './systems/dnd5e/concentrationIdentity.js'
@@ -106,6 +109,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
     maintained,
     published,
     target,
+    damageTypes: vocabulary.document.damageTypes,
     pins: {
       concentrationDefinition: { id: published.id, checksum: published.checksum },
       systemVocabularySnapshot: {
@@ -135,12 +139,14 @@ export function createNativeConcentrationContext(input: {
       'concentrationDefinition' | 'systemVocabularySnapshot' | 'targetCharacter'
     >
     target: Pick<MovementTarget, 'effectiveRulePolicyOutput'>
+    damageTypes: readonly { id: string; label: string }[]
   }
   parentOccurrenceId: string
   parentCommandFingerprint: string
   application: NativeConcentrationContext['application']
   remaining: NativeConcentrationContext['remaining']
   finalizedDamageEnvelopeChecksum: string
+  sourceLabels: NativeConcentrationContext['sourceLabels']
 }) {
   const { current, application } = input
   const facts = resolveDnd5eConcentrationSaveFacts({
@@ -161,6 +167,14 @@ export function createNativeConcentrationContext(input: {
     parentCommandFingerprint: input.parentCommandFingerprint,
     finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum,
     application,
+    sourceLabels: input.sourceLabels,
+    trigger: {
+      sourceLabel: concentrationDamageSourceLabel(input.sourceLabels, application),
+      damageTypeLabel:
+        current.damageTypes.find((damageType) => damageType.id === application.damageTypeId)
+          ?.label ?? null,
+      dc: dnd5eConcentrationDamageDc(application.appliedAmount)
+    },
     maintainedState,
     ...current.pins,
     save: {
@@ -184,6 +198,21 @@ export function createNativeConcentrationContext(input: {
     remaining: input.remaining
   })
   return { context, facts: facts.facts }
+}
+
+/** Names a pending Concentration check for its roller: the damage behind it and its DC. */
+export function concentrationRollTrigger(
+  context: NativeConcentrationContext
+): EncounterRuleRollTriggerDto {
+  return {
+    kind: 'CONCENTRATION',
+    damage: {
+      amount: context.application.appliedAmount,
+      typeLabel: context.trigger.damageTypeLabel
+    },
+    sourceLabel: context.trigger.sourceLabel,
+    dc: context.trigger.dc
+  }
 }
 
 export async function evaluateNativeConcentrationEvidence(input: {
@@ -266,6 +295,7 @@ export function completeNativeConcentrationResult(input: {
     systemVocabularySnapshot: context.systemVocabularySnapshot,
     targetCharacter: context.targetCharacter,
     application: { ...context.application, maintainedStateId: context.maintainedState.id },
+    trigger: context.trigger,
     outcome: failed ? 'SAVE_FAILURE' : 'SAVE_SUCCESS',
     d20: {
       requestId: continuation.request.requestId,

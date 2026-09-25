@@ -256,7 +256,25 @@ export async function presentChatEntry(
             source: {
               ...payload.roll.source,
               label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
-            }
+            },
+            ...(payload.roll.ruleCheck
+              ? {
+                  ruleCheck: {
+                    ...payload.roll.ruleCheck,
+                    actorLabel: presentCampaignPlainText(
+                      payload.roll.ruleCheck.actorLabel,
+                      maturity
+                    ).slice(0, 160),
+                    sourceLabel:
+                      payload.roll.ruleCheck.sourceLabel === null
+                        ? null
+                        : presentCampaignPlainText(
+                            payload.roll.ruleCheck.sourceLabel,
+                            maturity
+                          ).slice(0, 160)
+                  }
+                }
+              : {})
           },
     revealedByGm: payload.revealedByGm,
     authorUserId: entry.authorUserId,

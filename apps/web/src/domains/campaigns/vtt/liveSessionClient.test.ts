@@ -320,7 +320,6 @@ describe('live-session browser connection', () => {
     const result = {
       occurrence: null,
       projection: tabletopGmEncounter,
-      resolution: null,
       roll: null
     }
     // The room reports its current sequence, which may run ahead of this client.

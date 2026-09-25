@@ -538,7 +538,6 @@ export async function publishSpatialPending<TSettlement>(
     const command = encounterCommandResultDtoSchema.parse({
       projection: publishedProjection,
       roll: null,
-      resolution: null,
       occurrence: ownerOccurrence
     })
     await insertRunCommand(

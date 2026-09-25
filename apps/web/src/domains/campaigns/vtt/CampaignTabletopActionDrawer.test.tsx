@@ -37,7 +37,6 @@ const warnings = [
 const resolved: EncounterCommandResultDto = {
   projection: tabletopGmEncounter,
   roll: null,
-  resolution: null,
   occurrence: null,
   evidenceRoll: null
 }

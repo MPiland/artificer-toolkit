@@ -156,6 +156,12 @@ export async function readEncounterRulesCapture(
     const response: SemanticResponse = {
       kind: 'CONCENTRATION_RESPONSE',
       fingerprint: concentrationAdmission.fingerprint,
+      // Each remaining check is its actor's save, so its primary controller's preference applies.
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign: concentrationAdmission.campaign,
+        initiatorUserId: concentrationAdmission.campaign.ownerUserId,
+        actors: concentrationAdmission.actors
+      }),
       appRoll: concentrationAdmission.kind === 'READY' ? concentrationAdmission.appRoll : null,
       state: concentrationAdmission.state,
       projection: concentrationAdmission.projection,

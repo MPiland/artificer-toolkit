@@ -2196,7 +2196,6 @@ function encounterResult(campaignId: string, encounterId: string) {
       name: 'Live Encounter',
       status: 'ACTIVE' as const,
       automationMode: 'ASSISTED' as const,
-      rulePackRevisionId: null,
       version: 4,
       round: 2,
       currentActorId: null,
@@ -2205,7 +2204,6 @@ function encounterResult(campaignId: string, encounterId: string) {
       updatedAt: '2026-09-24T00:00:00.000Z'
     },
     roll: null,
-    resolution: null,
     occurrence: null
   }
 }

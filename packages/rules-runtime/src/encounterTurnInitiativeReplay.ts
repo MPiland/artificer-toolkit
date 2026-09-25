@@ -43,7 +43,7 @@ export async function restoreEncounterInitiativeTurnActors<
       Parameters<typeof prepareTurnLegendaryActions<TCharacterFacts>>[0],
       | 'state'
       | 'userId'
-      | 'autoRoll'
+      | 'autoRollByActorId'
       | 'occurrenceId'
       | 'updatedAt'
       | 'actors'
@@ -142,7 +142,7 @@ export async function restoreEncounterInitiativeTurnActors<
   const prepared = await input.prepareLegendary({
     state,
     userId: input.campaign.ownerUserId,
-    autoRoll: false,
+    autoRollByActorId: {},
     occurrenceId: input.occurrenceId,
     updatedAt: input.updatedAt,
     actors: outgoing.actors,

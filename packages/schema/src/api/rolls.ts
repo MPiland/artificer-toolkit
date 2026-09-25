@@ -106,6 +106,38 @@ export const rollResultDtoSchema = z.object({
   evidence: rollEvidenceDtoSchema
 })
 
+const ruleCheckLabelSchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(160))
+
+/**
+ * What an automatic rule roll checked, beside its dice. One member per rule kind; a log entry names
+ * the actor, the trigger, the target number and the outcome.
+ */
+export const rollRuleCheckDtoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('CONCENTRATION'),
+    actorId: z.string().check(z.uuid()),
+    actorLabel: ruleCheckLabelSchema,
+    damage: z.strictObject({
+      amount: z.number().check(z.int()).check(z.positive()),
+      typeLabel: z.nullable(ruleCheckLabelSchema)
+    }),
+    /** The spell, action or turn effect that dealt the damage; null when it has no name. */
+    sourceLabel: z.nullable(ruleCheckLabelSchema),
+    dc: z.number().check(z.int()).check(z.positive()),
+    faces: z
+      .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+      .check(z.minLength(1))
+      .check(z.maxLength(2)),
+    modifier: z.number().check(z.int()),
+    total: z.number().check(z.int()),
+    outcome: z.enum(['KEPT', 'LOST'])
+  })
+])
+
 export const rollRecordDtoSchema = z.extend(rollResultDtoSchema, {
   characterId: z.nullable(z.string()),
   characterLabel: z.string(),
@@ -115,7 +147,9 @@ export const rollRecordDtoSchema = z.extend(rollResultDtoSchema, {
     code: z.string(),
     version: z.string()
   }),
-  createdAt: z.string()
+  createdAt: z.string(),
+  /** Present when a rule rolled automatically or settled a prompted roll. */
+  ruleCheck: z.optional(rollRuleCheckDtoSchema)
 })
 
 /** Binds a GM-retained roll to its Campaign so it can be revealed to that TABLE once. */
@@ -155,6 +189,7 @@ export type ExecuteDiceConfigurationInputDto = z.infer<
 >
 export type RollEvidenceDto = z.infer<typeof rollEvidenceDtoSchema>
 export type RollResultDto = z.infer<typeof rollResultDtoSchema>
+export type RollRuleCheckDto = z.infer<typeof rollRuleCheckDtoSchema>
 export type RollRecordDto = z.infer<typeof rollRecordDtoSchema>
 export type GmCampaignRollDto = z.infer<typeof gmCampaignRollDtoSchema>
 export type RollHistoryEntryDto = z.infer<typeof rollHistoryEntryDtoSchema>

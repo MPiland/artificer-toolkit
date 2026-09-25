@@ -34,7 +34,6 @@ const pending = {
 const result: EncounterCommandResultDto = {
   projection: tabletopGmEncounter,
   roll: null,
-  resolution: null,
   occurrence: null,
   evidenceRoll: null
 }

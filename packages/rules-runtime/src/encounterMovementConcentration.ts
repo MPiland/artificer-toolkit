@@ -187,7 +187,9 @@ export async function prepareEncounterMovementConcentration<
       parentCommandFingerprint: remainder.root.commandFingerprint,
       application,
       remaining,
-      finalizedDamageEnvelopeChecksum: source.envelopeChecksum
+      finalizedDamageEnvelopeChecksum: source.envelopeChecksum,
+      // Movement contacts carry no display name yet; their checks name only the damage.
+      sourceLabels: []
     })
     const occurrenceId = concentrationOccurrenceId(input.occurrenceId, application)
     const started = await runtime!.executeResolved({

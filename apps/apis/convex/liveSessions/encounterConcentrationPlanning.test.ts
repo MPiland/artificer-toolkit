@@ -14,7 +14,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import {
@@ -214,10 +218,14 @@ it.each([
         version: state.version + 1,
         updatedAt: planned.occurredAt
       })
-      const applications = nativeConcentrationDamageApplications(
-        [{ targetActorId: target.id, applications: settled.mechanics.receiptApplications }],
-        true
-      )
+      const damage = [
+        {
+          targetActorId: target.id,
+          applications: settled.mechanics.receiptApplications,
+          sourceLabel: encounterActionSourceLabel(prepared.source)
+        }
+      ]
+      const applications = nativeConcentrationDamageApplications(damage, true)
       expect(applications).not.toEqual([])
       const native = await startNativeConcentrationChecks(ctx, {
         state: nextState,
@@ -226,6 +234,7 @@ it.each([
         parentOccurrenceId: planned.occurrenceId,
         parentCommandFingerprint: planned.fingerprint,
         applications,
+        sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
         userId: fixture.owner.userId,
         autoRollByActorId: { [target.id]: rolls === 'AUTO_ROLL' },
         occurredAt: planned.occurredAt

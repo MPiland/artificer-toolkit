@@ -69,7 +69,6 @@ export async function readNativeTurnCommandPending(
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: rootCommandOccurrence.id,
         occurrenceVersion: rootCommandOccurrence.version,

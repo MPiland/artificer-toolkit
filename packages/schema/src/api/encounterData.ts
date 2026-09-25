@@ -17,7 +17,6 @@ import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
-import { ruleOutcomeKindDtoSchema, ruleResolutionEvidenceDtoSchema } from './rules.js'
 
 const uuidSchema = z.string().check(z.uuid())
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
@@ -143,7 +142,6 @@ export const encounterPlayerProjectionDtoSchema = z.strictObject({
   name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
   status: encounterStatusDtoSchema,
   automationMode: automationModeDtoSchema,
-  rulePackRevisionId: z._default(z.nullable(uuidSchema), null),
   initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
   optionalCombatRules: z._default(
     z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
@@ -168,7 +166,6 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
   status: encounterStatusDtoSchema,
   automationMode: automationModeDtoSchema,
   manualReminderMode: manualReminderModeDtoSchema,
-  rulePackRevisionId: z._default(z.nullable(uuidSchema), null),
   initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
   optionalCombatRules: z._default(
     z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
@@ -243,23 +240,9 @@ export type EncounterSettledAppRollDto = z.infer<typeof encounterSettledAppRollD
 export const encounterCommandResultDtoSchema = z.strictObject({
   projection: z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema]),
   roll: z.nullable(rollRecordDtoSchema),
-  resolution: z._default(z.nullable(ruleResolutionEvidenceDtoSchema), null),
   occurrence: z._default(z.nullable(encounterRuleOccurrenceSummaryDtoSchema), null),
   /** Present only for `ROLL_RULE_EVIDENCE`: the attempt the row now shows. */
   evidenceRoll: z._default(z.nullable(encounterEvidenceRollDtoSchema), null)
-})
-
-export const encounterTimelineResolutionSummaryDtoSchema = z.strictObject({
-  rolls: z.array(rollRecordDtoSchema).check(z.maxLength(50)),
-  outcomes: z
-    .array(
-      z.strictObject({
-        kind: ruleOutcomeKindDtoSchema,
-        status: z.enum(['APPLIED', 'MANUAL', 'OVERRIDDEN'])
-      })
-    )
-    .check(z.maxLength(50)),
-  overridden: z.boolean()
 })
 
 export const encounterTimelineEntryDtoSchema = z.strictObject({
@@ -270,7 +253,6 @@ export const encounterTimelineEntryDtoSchema = z.strictObject({
   actorUserId: uuidSchema,
   createdAt: timestampSchema,
   roll: z.nullable(rollRecordDtoSchema),
-  resolution: z._default(z.nullable(encounterTimelineResolutionSummaryDtoSchema), null),
   /** Rule warnings the action overrode; the GM log badges each one. */
   ruleOverrides: encounterRuleWarningsDtoSchema
 })

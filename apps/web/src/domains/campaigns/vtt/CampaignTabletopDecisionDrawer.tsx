@@ -30,6 +30,7 @@ import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolki
 import {
   adjudicationSelectionValues,
   decisionTitle,
+  rollPromptText,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
 import { CampaignTabletopEvidenceRollRow } from './CampaignTabletopEvidenceRollRow'
@@ -160,7 +161,9 @@ export function CampaignTabletopDecisionDrawer({
             <Text fw={650}>
               {pending.kind === 'OPTIONAL_COMBAT_CLEAVING'
                 ? 'Cleaving choice'
-                : decisionTitle(pending.kind)}
+                : pending.kind === 'D20_EVIDENCE' && pending.trigger?.kind === 'CONCENTRATION'
+                  ? 'Concentration check'
+                  : decisionTitle(pending.kind)}
             </Text>
             <Text c='dimmed' size='sm'>
               This choice is durable. Reconnecting returns to the same decision.
@@ -176,9 +179,11 @@ export function CampaignTabletopDecisionDrawer({
             <>
               {'rollerActorId' in pending && pending.rollerActorId ? (
                 <Text size='sm'>
-                  Roll for{' '}
-                  {encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
-                    'a hidden combatant'}
+                  {rollPromptText(
+                    encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                      'a hidden combatant',
+                    'trigger' in pending ? pending.trigger : undefined
+                  )}
                 </Text>
               ) : null}
               <CampaignTabletopEvidenceRollRow

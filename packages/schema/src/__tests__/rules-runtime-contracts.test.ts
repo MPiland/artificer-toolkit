@@ -765,6 +765,8 @@ describe('rules runtime contracts', () => {
       parentCommandFingerprint: 'a'.repeat(64),
       finalizedDamageEnvelopeChecksum: 'b'.repeat(64),
       application,
+      sourceLabels: [],
+      trigger: { sourceLabel: null, damageTypeLabel: null, dc: 10 },
       maintainedState: {
         id: '00000000-0000-4000-8000-000000000304',
         version: 1,
@@ -839,6 +841,7 @@ describe('rules runtime contracts', () => {
         targetCharacter: pending.targetCharacter,
         systemVocabularySnapshot: pending.systemVocabularySnapshot,
         application: { ...application, maintainedStateId: pending.maintainedState.id },
+        trigger: pending.trigger,
         outcome: 'SAVE_SUCCESS',
         d20: {
           requestId: 'concentration-d20',
@@ -901,6 +904,7 @@ describe('rules runtime contracts', () => {
         targetCharacter: pending.targetCharacter,
         systemVocabularySnapshot: pending.systemVocabularySnapshot,
         application: { ...application, maintainedStateId: pending.maintainedState.id },
+        trigger: pending.trigger,
         outcome: 'SAVE_SUCCESS',
         d20: {
           requestId: 'concentration-d20',

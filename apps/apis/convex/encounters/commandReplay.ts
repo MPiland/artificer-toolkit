@@ -107,7 +107,6 @@ export async function readNativeEncounterCommandReplay(
       (prior.commandType === 'ROLL_ACTOR_INITIATIVE' || prior.commandType === 'ROLL_ENEMY_ACTION'
         ? result.roll === null
         : result.roll !== null) ||
-      result.resolution !== null ||
       (prior.commandType !== 'START' &&
         prior.commandType !== 'ADVANCE_TURN' &&
         result.occurrence !== null) ||

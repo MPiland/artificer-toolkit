@@ -399,7 +399,6 @@ export async function revertLastEncounterAction(
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    resolution: null,
     occurrence: null
   })
   await ctx.db.patch(run._id, {

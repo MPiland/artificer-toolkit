@@ -69,10 +69,8 @@ import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
 } from '../../../session-worker/src/nativeEncounterRules'
-import {
-  commitNativeLiveConcentrationResponse,
-  planNativeLiveConcentrationResponse
-} from '../../../session-worker/src/nativeConcentrationResponse'
+import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import { executeNativeEncounterAction } from './actionCommands'
 import {
   insertActiveLiveAuthority,
@@ -1026,10 +1024,11 @@ describe('native Cleaving action settlement', () => {
         )
         if (plan.kind !== 'PLANNED') throw new Error('Expected planned concentration response.')
         expect(await records(base)).toEqual(afterParent)
-        concentration = await commitNativeLiveConcentrationResponse(
+        concentration = await callLiveSessionRoute(
           environment,
           'fixture-access-token',
-          plan
+          'encounterConcentrationCommit',
+          plan.input
         )
         retryConcentration = async () => {
           const beforeRetry = await records(base)
@@ -1048,7 +1047,12 @@ describe('native Cleaving action settlement', () => {
           if (replay.kind !== 'REPLAY') throw new Error('Expected concentration response replay.')
           expect(replay).toEqual({ kind: 'REPLAY', result: concentration })
           expect(
-            await commitNativeLiveConcentrationResponse(environment, 'fixture-access-token', plan)
+            await callLiveSessionRoute(
+              environment,
+              'fixture-access-token',
+              'encounterConcentrationCommit',
+              plan.input
+            )
           ).toEqual(concentration)
           expect(await records(base)).toEqual(beforeRetry)
           return replay.result

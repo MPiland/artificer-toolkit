@@ -159,8 +159,7 @@ export async function readNativeEncounterActionAdmission(
       result.occurrence.occurrenceVersion !== occurrence.version ||
       result.occurrence.pending !== null ||
       result.occurrence.outcome !== null ||
-      result.roll !== null ||
-      result.resolution !== null
+      result.roll !== null
     )
       throw new Error('Stored Encounter action receipt mismatch.')
     if (

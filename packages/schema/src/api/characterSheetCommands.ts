@@ -32,27 +32,6 @@ const stringSchema = z.string()
 const integerSchema = z.number().check(z.int())
 const booleanSchema = z.boolean()
 
-export const characterRuleRevisionIdentityDtoSchema = z.strictObject({
-  revisionId: stringSchema.check(z.uuid()),
-  checksum: stringSchema.check(z.trim()).check(z.minLength(1)),
-  evaluatorKind: z.literal('ZEN'),
-  evaluatorVersion: stringSchema.check(z.trim()).check(z.minLength(1)),
-  modelContractVersion: integerSchema.check(z.positive())
-})
-
-export const characterRuleUpgradePreviewRequestDtoSchema = z.strictObject({
-  expectedVersion: integerSchema.check(z.nonnegative())
-})
-
-export const characterRuleUpgradePreviewResponseDtoSchema = z.strictObject({
-  characterId: stringSchema.check(z.uuid()),
-  streamVersion: integerSchema.check(z.nonnegative()),
-  currentRevision: characterRuleRevisionIdentityDtoSchema,
-  targetRevision: characterRuleRevisionIdentityDtoSchema,
-  upgradeAvailable: booleanSchema,
-  sheet: characterSheetResponseDtoSchema
-})
-
 export const characterRestPreviewRequestDtoSchema = z
   .strictObject({
     restKind: characterRestKindDtoSchema,
@@ -164,15 +143,6 @@ export const characterRestPreviewInputSchema = z.extend(characterSheetReadInputS
 export type CharacterRestPreviewRequestDto = z.infer<typeof characterRestPreviewRequestDtoSchema>
 export type CharacterRestPreviewInput = z.infer<typeof characterRestPreviewInputSchema>
 export type CharacterRestPreviewResponseDto = z.infer<typeof characterRestPreviewResponseDtoSchema>
-export type CharacterRuleRevisionIdentityDto = z.infer<
-  typeof characterRuleRevisionIdentityDtoSchema
->
-export type CharacterRuleUpgradePreviewRequestDto = z.infer<
-  typeof characterRuleUpgradePreviewRequestDtoSchema
->
-export type CharacterRuleUpgradePreviewResponseDto = z.infer<
-  typeof characterRuleUpgradePreviewResponseDtoSchema
->
 export type CharacterSheetCommandResponseDto = z.infer<
   typeof characterSheetCommandResponseDtoSchema
 >

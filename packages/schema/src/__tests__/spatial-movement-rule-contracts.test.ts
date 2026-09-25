@@ -736,6 +736,8 @@ function concentrationContext(input: {
     parentOccurrenceId: ids.occurrence,
     parentCommandFingerprint: checksum('3'),
     finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum,
+    sourceLabels: [],
+    trigger: { sourceLabel: null, damageTypeLabel: null, dc: 10 },
     application: {
       ordinal: 0,
       sourceNodeId: input.damageSource.kind === 'SPATIAL' ? 'effect' : 'reaction',

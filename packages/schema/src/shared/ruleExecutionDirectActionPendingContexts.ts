@@ -3,7 +3,9 @@ import { z } from '../zod.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
+  concentrationCheckTriggerDtoSchema,
   concentrationDamageApplicationDtoSchema,
+  concentrationDamageSourceLabelsDtoSchema,
   concentrationMaintainedDamageApplicationDtoSchema
 } from './ruleExecutionConcentration.js'
 
@@ -473,6 +475,9 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = z
     parentCommandFingerprint: checksumSchema,
     finalizedDamageEnvelopeChecksum: checksumSchema,
     application: concentrationDamageApplicationDtoSchema,
+    /** Display names for the whole envelope, so each later check can name its own trigger. */
+    sourceLabels: concentrationDamageSourceLabelsDtoSchema,
+    trigger: concentrationCheckTriggerDtoSchema,
     maintainedState: z.strictObject({
       id: uuidSchema,
       version: integerSchema.check(z.gte(0)),

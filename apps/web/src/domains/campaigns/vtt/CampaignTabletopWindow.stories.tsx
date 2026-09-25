@@ -638,7 +638,6 @@ function renderWindow(
     return encounterCommandResultDtoSchema.parse({
       projection: { ...encounter, version: encounter.version + 1 },
       roll: null,
-      resolution: null,
       occurrence: null
     })
   })

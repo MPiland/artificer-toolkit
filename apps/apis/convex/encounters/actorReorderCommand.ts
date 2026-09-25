@@ -77,7 +77,6 @@ export async function reorderEncounterActors(
       ) ||
       new Set(input.actorIds).size !== input.actorIds.length ||
       result.roll !== null ||
-      result.resolution !== null ||
       result.occurrence !== null
     )
       throw new Error('Stored Encounter reorder receipt mismatch.')
@@ -269,7 +268,6 @@ export async function reorderEncounterActors(
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: null
   })
   await ctx.db.patch(row._id, {

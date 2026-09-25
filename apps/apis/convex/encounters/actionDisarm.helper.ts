@@ -335,7 +335,6 @@ export async function executeNativeDisarm(
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId,
       occurrenceVersion,

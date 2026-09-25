@@ -89,7 +89,6 @@ export const execute = mutation({
         historical.version !== prior.version ||
         historical.version !== input.expectedEncounterVersion + 1 ||
         result.roll !== null ||
-        result.resolution !== null ||
         result.occurrence !== null
       )
         throw new Error('Stored Encounter command receipt mismatch.')
@@ -196,7 +195,6 @@ export const execute = mutation({
     const result = encounterCommandResultDtoSchema.parse({
       occurrence: null,
       projection: nextProjection,
-      resolution: null,
       roll: null
     })
     await ctx.db.patch(run._id, {

@@ -45,6 +45,7 @@ export async function planNativeLiveConcentration(input: {
   parentOccurrenceId: string
   parentCommandFingerprint: string
   applications: readonly NativeConcentrationContext['application'][]
+  sourceLabels: NativeConcentrationContext['sourceLabels']
   occurredAt: string
   settlement: Pick<
     ReturnType<typeof planNativeLiveEncounterSettlement>,
@@ -69,20 +70,22 @@ export async function planNativeLiveConcentration(input: {
     applicationIndex: number
   }
 }) {
-  let state = input.state
+  const state = input.state
   let projection = {
     actors: input.settlement.actors,
     projectedTargets: input.settlement.projectedTargets,
     activeEffectsByActorId: input.settlement.activeEffectsByActorId,
     maintenanceOwners: input.settlement.maintenanceOwners
   }
-  const completed: Array<{
+  const settled: Array<{
     result: ReturnType<typeof completeNativeConcentrationResult>
     commandId: string
     fingerprint: string
     correlationId: string
-    metadata: ReturnType<typeof serverRuleExecutionReceiptCommandMetadataDtoSchema.parse>
+    definitionId: string
+    factsChecksum: string
   }> = []
+  let failed = false
   const cleanups: Array<{
     state: EncounterMaintainedEffectStateRecord
     removed: Parameters<typeof projectNativeLiveMaintenanceOwners>[0]['maintenance']['removed']
@@ -99,7 +102,7 @@ export async function planNativeLiveConcentration(input: {
   if (input.resume && (!input.applications.length || input.state.automationMode === 'MANUAL'))
     throw new Error('The concentration response is unavailable.')
   if (!input.applications.length || input.state.automationMode === 'MANUAL')
-    return { ...projection, completed, cleanups, pending, resumed, nextState: state }
+    return { ...projection, completed: [], cleanups, pending, resumed, nextState: state }
 
   const { capture } = input
   const slots = new Map<string, EncounterMaintainedEffectStateRecord | null>()
@@ -188,7 +191,8 @@ export async function planNativeLiveConcentration(input: {
       parentCommandFingerprint: input.parentCommandFingerprint,
       application,
       remaining,
-      finalizedDamageEnvelopeChecksum: envelope
+      finalizedDamageEnvelopeChecksum: envelope,
+      sourceLabels: input.sourceLabels
     })
     const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, application)
     const resume = resumed === null ? input.resume : undefined
@@ -253,6 +257,7 @@ export async function planNativeLiveConcentration(input: {
     })
     let cleanup: Parameters<typeof completeNativeConcentrationResult>[0]['cleanup'] = null
     if (evidence.failed) {
+      failed = true
       const created = input.settlement.maintainedState?.id === maintainedStateId
       const slot = created
         ? {
@@ -377,7 +382,7 @@ export async function planNativeLiveConcentration(input: {
     if (isResumed)
       resumed = { result, failed: evidence.failed, selectedNatural: evidence.selectedNatural }
     else
-      completed.push({
+      settled.push({
         result,
         commandId: concentrationCommandId(occurrenceId),
         correlationId,
@@ -386,24 +391,33 @@ export async function planNativeLiveConcentration(input: {
           application,
           contextChecksum: context.contextChecksum
         }),
-        metadata: serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
-          schemaVersion: 1,
-          transition: 'START',
-          definitionId: loaded.published.id,
-          expectedAggregateVersion: state.version,
-          factsChecksum: checksumRuleDocument(facts),
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-        })
+        definitionId: loaded.published.id,
+        factsChecksum: checksumRuleDocument(facts)
       })
     correlationId = occurrenceId
-    if (isResumed && evidence.failed)
-      state = encounterRunStateSchema.parse({
-        ...state,
-        version: state.version + 1,
-        updatedAt: input.occurredAt
-      })
     if (evidence.failed)
       remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
   }
-  return { ...projection, completed, cleanups, pending, resumed, nextState: state }
+  // A response commit advances the Encounter once when any check it settled failed (D23); a
+  // parent's own commit owns its version.
+  const nextState =
+    input.resume && failed
+      ? encounterRunStateSchema.parse({
+          ...state,
+          version: state.version + 1,
+          updatedAt: input.occurredAt
+        })
+      : state
+  const completed = settled.map(({ definitionId, factsChecksum, ...check }) => ({
+    ...check,
+    metadata: serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+      schemaVersion: 1,
+      transition: 'START',
+      definitionId,
+      expectedAggregateVersion: nextState.version,
+      factsChecksum,
+      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+    })
+  }))
+  return { ...projection, completed, cleanups, pending, resumed, nextState }
 }

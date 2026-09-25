@@ -117,7 +117,6 @@ async function resolveDecisionCommand(
     return {
       projection: tabletopGmEncounter,
       roll: null,
-      resolution: null,
       occurrence: null,
       evidenceRoll: {
         rollId: appRollId,
@@ -134,7 +133,6 @@ async function resolveDecisionCommand(
   return {
     projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: command.occurrenceId,
       occurrenceVersion: command.expectedOccurrenceVersion + 1,

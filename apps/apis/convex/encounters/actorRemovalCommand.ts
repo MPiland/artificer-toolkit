@@ -214,7 +214,6 @@ async function removeEncounterActorCore(
       projection.reminders.some((reminder) => reminder.actorId === input.actorId) ||
       projection.currentActorId === input.actorId ||
       result.roll !== null ||
-      result.resolution !== null ||
       result.occurrence !== null
     )
       throw new Error('Stored actor removal receipt mismatch.')
@@ -484,7 +483,6 @@ async function removeEncounterActorCore(
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: null
   })
   await ctx.db.patch(row._id, {

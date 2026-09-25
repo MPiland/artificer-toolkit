@@ -18,11 +18,11 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   input: {
     state: EncounterRunState
     campaign: { id: string; ownerUserId: string }
-    /** The GM's auto-roll preference for the GM's turn steps: initiative, Legendary Actions, Recharge. */
+    /** The GM's auto-roll preference for initiative, which is the GM's turn step. */
     autoRoll: boolean
     /**
-     * Each actor's roller preference for its own turn-effect saves, which go to the actor's
-     * controllers (ADR 0034 decision 3).
+     * Each actor's roller preference for its own turn dice (turn-effect saves, Recharge, Legendary
+     * Actions), which go to the actor's controllers (ADR 0034 decision 3).
      */
     autoRollByActorId: Readonly<Record<string, boolean>>
     root: TurnCoordinatorRootDto
@@ -57,7 +57,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         Parameters<typeof prepareTurnLegendaryActions<TCharacterFacts>>[0],
         | 'state'
         | 'userId'
-        | 'autoRoll'
+        | 'autoRollByActorId'
         | 'root'
         | 'occurrenceId'
         | 'actors'
@@ -88,7 +88,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
 ) {
   const { state, campaign, autoRoll, occurrenceId, pending } = input
   // A missing preference prompts rather than rolling for someone.
-  const effectAutoRoll = (actorId: string | null) =>
+  const actorAutoRoll = (actorId: string | null) =>
     actorId !== null && input.autoRollByActorId[actorId] === true
   let root = input.root
   const effectContext =
@@ -101,7 +101,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       ? await stages.effects({
           state,
           userId: campaign.ownerUserId,
-          autoRoll: effectAutoRoll(state.currentActorId),
+          autoRoll: actorAutoRoll(state.currentActorId),
           root,
           occurrenceId,
           actors: input.actors,
@@ -121,7 +121,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   let legendary = await stages.legendary({
     state,
     userId: campaign.ownerUserId,
-    autoRoll,
+    autoRollByActorId: input.autoRollByActorId,
     root,
     occurrenceId,
     actors: outgoingActors,
@@ -148,7 +148,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     legendary = await stages.legendary({
       state,
       userId: campaign.ownerUserId,
-      autoRoll,
+      autoRollByActorId: input.autoRollByActorId,
       root,
       occurrenceId,
       actors: outgoingActors,
@@ -158,9 +158,10 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     if (legendary.kind === 'PENDING') throw new Error('Outgoing Legendary Actions are incomplete.')
     root = legendary.root
   }
+  // Recharge candidates all belong to the entering actor.
   const recharge = await stages.recharge({
     state,
-    autoRoll,
+    autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
     root,
     occurrenceId,
     actors: legendary.actors,
@@ -193,7 +194,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   const incoming = await stages.effects({
     state,
     userId: campaign.ownerUserId,
-    autoRoll: effectAutoRoll(root.proposedTerminalTransition.currentActorId),
+    autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
     root,
     occurrenceId,
     actors: recharge.actors,

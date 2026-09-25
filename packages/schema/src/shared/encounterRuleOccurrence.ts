@@ -85,6 +85,22 @@ export type InitiativeDeclarationAdjudicationFieldDto = z.infer<
   typeof initiativeDeclarationAdjudicationFieldDtoSchema
 >
 
+const triggerLabelSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+
+/** Why a rule asks for a roll, named for the person answering it. */
+export const encounterRuleRollTriggerDtoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('CONCENTRATION'),
+    damage: z.strictObject({
+      amount: z.number().check(z.int()).check(z.positive()),
+      typeLabel: z.nullable(triggerLabelSchema)
+    }),
+    sourceLabel: z.nullable(triggerLabelSchema),
+    dc: z.number().check(z.int()).check(z.positive())
+  })
+])
+export type EncounterRuleRollTriggerDto = z.infer<typeof encounterRuleRollTriggerDtoSchema>
+
 export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
   .discriminatedUnion('kind', [
     z.strictObject({
@@ -94,6 +110,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
       encounterVersion: versionSchema,
       /** The actor whose roll this is; its controllers and the GM answer it. */
       rollerActorId: z.nullable(uuidSchema),
+      /** What the roll is for, when a rule raised it from an earlier outcome. */
+      trigger: z.optional(encounterRuleRollTriggerDtoSchema),
       request: z.strictObject({
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
         min: z.literal(1),
@@ -244,6 +262,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
       occurrenceId: uuidSchema,
       occurrenceVersion: versionSchema,
       encounterVersion: versionSchema,
+      /** The recharging Creature; its controllers and the GM answer it. */
+      rollerActorId: uuidSchema,
       request: z.strictObject({
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
         min: z.literal(1),

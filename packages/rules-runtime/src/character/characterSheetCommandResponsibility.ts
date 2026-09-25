@@ -35,7 +35,6 @@ export function classifyCharacterSheetCommandRuleResponsibility(
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
       return 'COMMITTED_SNAPSHOT'
-    case 'UPGRADE_RULE_PACK':
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':

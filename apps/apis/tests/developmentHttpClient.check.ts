@@ -65,7 +65,6 @@ const result = {
     name: 'Room check Encounter',
     status: 'ACTIVE',
     automationMode: 'ASSISTED',
-    rulePackRevisionId: null,
     initiativePolicy: null,
     optionalCombatRules: [],
     version: 5,
@@ -76,7 +75,6 @@ const result = {
     updatedAt: '2026-09-24T00:00:00.000Z'
   },
   roll: null,
-  resolution: null,
   occurrence: null
 }
 

@@ -124,7 +124,6 @@ export async function readNativeTurnResponseReplay(
   return encounterCommandResultDtoSchema.parse({
     projection: replayProjection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,

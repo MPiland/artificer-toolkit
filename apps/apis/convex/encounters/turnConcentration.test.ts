@@ -14,13 +14,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
+import { consumeUserRateLimit } from '../lib/rateLimits'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { turnConcentrationFixture } from '../../tests/fixtures/turnConcentration'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
-import {
-  commitNativeLiveConcentrationResponse,
-  planNativeLiveConcentrationResponse
-} from '../../../session-worker/src/nativeConcentrationResponse'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
@@ -77,6 +76,20 @@ async function records(base: Fixture) {
   }))
 }
 
+/** Concentration checks the rules logged: TABLE chat rolls and the GM's private roll history. */
+async function ruleCheckRolls(base: Fixture) {
+  return base.t.run(async (ctx) => ({
+    table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap((payload) =>
+      payload.roll?.ruleCheck ? [payload.roll] : []
+    ),
+    gm: (
+      await ctx.db
+        .query('userRollHistory')
+        .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', base.owner.userId))
+        .collect()
+    ).filter((roll) => roll.ruleCheck)
+  }))
+}
 function response(
   encounterId: string,
   pending: {
@@ -242,6 +255,67 @@ async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) 
   return { result: encounterCommandResultDtoSchema.parse(result), responses }
 }
 
+type ConcentrationController = Awaited<ReturnType<typeof prepareTurn>>['aOwner']['controller']
+
+/** Answers concentration checks through the live Worker planner and its private commit route. */
+async function liveConcentrationHarness(base: Fixture, workerSecret: string) {
+  const authorityEpoch = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: authorityEpoch,
+      createdAt: base.campaign.createdAt
+    })
+  )
+  const environment = workerEnvironment(workerSecret)
+  const runtime = createPlatformRulesRuntime({
+    continuationIntegrityKey: await deriveRulesContinuationKey(
+      process.env.RULES_CONTINUATION_SECRET
+    ),
+    definitions: {
+      async requireCurrent() {
+        throw new Error('Sealed turn concentration graph must be supplied by capture.')
+      }
+    }
+  })
+  const executeChild = async (
+    controller: ConcentrationController,
+    pending: Parameters<typeof response>[1],
+    face: number,
+    random: (maximum: number) => number = () => {
+      throw new Error('Entered concentration dice must not reroll.')
+    }
+  ) => {
+    stubLiveSessionFetch((pathname, init) => controller.caller.fetch(pathname, init))
+    const command = response(base.run.id, pending, face).command
+    if (command.type !== 'RESOLVE_RULE_OCCURRENCE')
+      throw new Error('Expected concentration response command.')
+    const scope = {
+      campaignId: base.campaign.id,
+      authorityEpoch,
+      expectedUserId: controller.userId,
+      expectedRole: 'PLAYER' as const,
+      encounterId: base.run.id,
+      expectedVersion: pending.encounterVersion
+    }
+    const plan = await planNativeLiveConcentrationResponse(
+      environment,
+      'fixture-access-token',
+      scope,
+      command,
+      { runtime, random }
+    )
+    if (plan.kind !== 'PLANNED') throw new Error('Expected planned concentration response.')
+    const result = await callLiveSessionRoute(
+      environment,
+      'fixture-access-token',
+      'encounterConcentrationCommit',
+      plan.input
+    )
+    return { scope, command, plan, result }
+  }
+  return { environment, runtime, executeChild }
+}
 describe('turn damage concentration ordering', () => {
   it('retains an Assisted success between failures that advance the Run twice', async () => {
     const base = await turnConcentrationFixture('PROMPT')
@@ -588,67 +662,10 @@ describe('turn damage concentration ordering', () => {
         (receipt) => receipt.commandId === prepared.advance.command.commandId
       )
       if (!parentReceipt) throw new Error('Missing immutable turn receipt.')
-      const authorityEpoch = crypto.randomUUID()
-      await base.t.run((ctx) =>
-        insertActiveLiveAuthority(ctx, {
-          campaignId: base.campaign.id,
-          epoch: authorityEpoch,
-          createdAt: base.campaign.createdAt
-        })
+      const { environment, runtime, executeChild } = await liveConcentrationHarness(
+        base,
+        workerSecret
       )
-      const environment = workerEnvironment(workerSecret)
-      const runtime = createPlatformRulesRuntime({
-        continuationIntegrityKey: await deriveRulesContinuationKey(
-          process.env.RULES_CONTINUATION_SECRET
-        ),
-        definitions: {
-          async requireCurrent() {
-            throw new Error('Sealed turn concentration graph must be supplied by capture.')
-          }
-        }
-      })
-      const executeChild = async (
-        controller: typeof prepared.aOwner.controller,
-        pending: {
-          encounterVersion: number
-          occurrenceId: string
-          occurrenceVersion: number
-          request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
-        },
-        face: number
-      ) => {
-        stubLiveSessionFetch((pathname, init) => controller.caller.fetch(pathname, init))
-        const command = response(base.run.id, pending, face).command
-        if (command.type !== 'RESOLVE_RULE_OCCURRENCE')
-          throw new Error('Expected concentration response command.')
-        const scope = {
-          campaignId: base.campaign.id,
-          authorityEpoch,
-          expectedUserId: controller.userId,
-          expectedRole: 'PLAYER' as const,
-          encounterId: base.run.id,
-          expectedVersion: pending.encounterVersion
-        }
-        const plan = await planNativeLiveConcentrationResponse(
-          environment,
-          'fixture-access-token',
-          scope,
-          command,
-          {
-            runtime,
-            random: () => {
-              throw new Error('Entered concentration dice must not reroll.')
-            }
-          }
-        )
-        if (plan.kind !== 'PLANNED') throw new Error('Expected planned concentration response.')
-        const result = await commitNativeLiveConcentrationResponse(
-          environment,
-          'fixture-access-token',
-          plan
-        )
-        return { scope, command, plan, result }
-      }
       const first = await prepared.aOwner.controller.caller.query(
         api.encounters.pendingReads.pendingRuleOccurrence,
         { encounterId: base.run.id }
@@ -709,10 +726,11 @@ describe('turn damage concentration ordering', () => {
         )
         expect(replay).toEqual({ kind: 'REPLAY', result: child.result })
         expect(
-          await commitNativeLiveConcentrationResponse(
+          await callLiveSessionRoute(
             environment,
             'fixture-access-token',
-            child.plan
+            'encounterConcentrationCommit',
+            child.plan.input
           )
         ).toEqual(child.result)
       }
@@ -720,6 +738,303 @@ describe('turn damage concentration ordering', () => {
     } finally {
       vi.unstubAllGlobals()
       vi.unstubAllEnvs()
+    }
+  }, 60_000)
+  it('settles auto-roll checks in the answering commit and stops at the first manual one', async () => {
+    const base = await turnConcentrationFixture('PROMPT')
+    const prepared = await prepareTurn(base)
+    const { result: parent } = await finishTurnEffects(base, prepared.advance)
+    const first = await prepared.aOwner.controller.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    if (!first || first.kind !== 'D20_EVIDENCE')
+      throw new Error('Missing first turn concentration decision.')
+    // The first controller now auto-rolls, so their remaining check settles with this answer.
+    await setAutoRollDice(base.t, prepared.aOwner.controller.userId, true)
+    const firstResponse = response(base.run.id, first, 20)
+    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(0)
+    const answered = await prepared.aOwner.controller.caller
+      .action(internal.encounters.commandActions.execute, firstResponse)
+      .finally(() => random.mockRestore())
+    expect(answered.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
+    const afterFirst = await records(base)
+    // The auto-rolled failure advances the Run once, inside the answering commit.
+    expect(afterFirst.run?.version).toBe(parent.projection.version + 1)
+    const sibling = afterFirst.receipts.find(
+      (receipt) =>
+        receipt.commandType === 'CONCENTRATION_CHECK' &&
+        receipt.correlationId === first.occurrenceId
+    )
+    if (!sibling) throw new Error('Missing the auto-rolled concentration receipt.')
+    expect(sibling.encounterVersion).toBe(parent.projection.version + 1)
+    expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(sibling.resultJson))).toMatchObject({
+      applicationOutputs: { outcome: 'SAVE_FAILURE', application: { targetActorId: prepared.a.id } }
+    })
+    // The manual controller's check is the first that prompts, so the chain stops there.
+    const second = await prepared.bOwner.controller.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    if (!second || second.kind !== 'D20_EVIDENCE')
+      throw new Error('Missing the manual controller concentration decision.')
+    expect(second).toMatchObject({
+      rollerActorId: prepared.b.id,
+      encounterVersion: parent.projection.version + 1
+    })
+    const secondResponse = response(base.run.id, second, 20)
+    const success = await prepared.bOwner.controller.caller.action(
+      internal.encounters.commandActions.execute,
+      secondResponse
+    )
+    expect(success.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
+    const terminal = await records(base)
+    expect(terminal.run?.version).toBe(parent.projection.version + 1)
+    expect(terminal.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
+    await expect(
+      prepared.aOwner.controller.caller.action(
+        internal.encounters.commandActions.execute,
+        firstResponse
+      )
+    ).resolves.toEqual(answered)
+    await expect(
+      prepared.bOwner.controller.caller.action(
+        internal.encounters.commandActions.execute,
+        secondResponse
+      )
+    ).resolves.toEqual(success)
+    expect(await records(base)).toEqual(terminal)
+    // Answered and automatic checks each get one entry, and replays add none.
+    const logged = await ruleCheckRolls(base)
+    expect(logged.table.map((roll) => [roll.ruleCheck?.actorId, roll.ruleCheck?.outcome])).toEqual(
+      expect.arrayContaining([
+        [prepared.a.id, 'KEPT'],
+        [prepared.a.id, 'LOST'],
+        [prepared.b.id, 'KEPT']
+      ])
+    )
+    expect(logged.table).toHaveLength(3)
+    expect(new Set(logged.table.map((roll) => roll.id)).size).toBe(3)
+  }, 60_000)
+
+  it('settles every remaining check in the answering commit when each controller auto-rolls', async () => {
+    const base = await turnConcentrationFixture('PROMPT')
+    const prepared = await prepareTurn(base)
+    const { result: parent } = await finishTurnEffects(base, prepared.advance)
+    const first = await prepared.aOwner.controller.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    if (!first || first.kind !== 'D20_EVIDENCE')
+      throw new Error('Missing first turn concentration decision.')
+    await setAutoRollDice(base.t, prepared.bOwner.controller.userId, true)
+    const firstResponse = response(base.run.id, first, 1)
+    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
+    const answered = await prepared.aOwner.controller.caller
+      .action(internal.encounters.commandActions.execute, firstResponse)
+      .finally(() => random.mockRestore())
+    expect(answered.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
+    const terminal = await records(base)
+    expect(terminal.run?.version).toBe(parent.projection.version + 1)
+    expect(terminal.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
+    const sibling = terminal.receipts.find(
+      (receipt) =>
+        receipt.commandType === 'CONCENTRATION_CHECK' &&
+        receipt.correlationId === first.occurrenceId
+    )
+    if (!sibling) throw new Error('Missing the auto-rolled concentration receipt.')
+    expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(sibling.resultJson))).toMatchObject({
+      applicationOutputs: {
+        outcome: 'SAVE_SUCCESS',
+        nextOccurrenceId: null,
+        application: { targetActorId: prepared.b.id }
+      }
+    })
+    await expect(
+      prepared.aOwner.controller.caller.action(
+        internal.encounters.commandActions.execute,
+        firstResponse
+      )
+    ).resolves.toEqual(answered)
+    expect(await records(base)).toEqual(terminal)
+  }, 60_000)
+
+  it('settles auto-roll checks in the live Worker answering commit and stops at a manual one', async () => {
+    const workerSecret = 'turn-concentration-chain-worker-secret-at-least-32-bytes'
+    vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
+    vi.stubEnv('BETTER_AUTH_SECRET', 'turn-concentration-chain-auth-secret-at-least-32-bytes')
+    try {
+      const base = await turnConcentrationFixture('PROMPT')
+      const prepared = await prepareTurn(base)
+      const { result: parent } = await finishTurnEffects(base, prepared.advance)
+      const { environment, runtime, executeChild } = await liveConcentrationHarness(
+        base,
+        workerSecret
+      )
+      const first = await prepared.aOwner.controller.caller.query(
+        api.encounters.pendingReads.pendingRuleOccurrence,
+        { encounterId: base.run.id }
+      )
+      if (!first || first.kind !== 'D20_EVIDENCE')
+        throw new Error('Missing first turn concentration decision.')
+      await setAutoRollDice(base.t, prepared.aOwner.controller.userId, true)
+      // The answered check succeeds; the auto-rolled one rolls a natural 1 and fails.
+      const answered = await executeChild(prepared.aOwner.controller, first, 20, () => 0)
+      expect(answered.plan.input.concentration).toHaveLength(1)
+      expect(answered.result.occurrence).toMatchObject({
+        status: 'COMPLETE',
+        outcome: 'SAVE_SUCCESS'
+      })
+      const afterFirst = await records(base)
+      expect(afterFirst.run?.version).toBe(parent.projection.version + 1)
+      const second = await prepared.bOwner.controller.caller.query(
+        api.encounters.pendingReads.pendingRuleOccurrence,
+        { encounterId: base.run.id }
+      )
+      if (!second || second.kind !== 'D20_EVIDENCE')
+        throw new Error('Missing the manual controller concentration decision.')
+      expect(second).toMatchObject({
+        rollerActorId: prepared.b.id,
+        encounterVersion: parent.projection.version + 1
+      })
+      const settled = await executeChild(prepared.bOwner.controller, second, 20)
+      expect(settled.plan.input.concentration).toEqual([])
+      expect(settled.result.occurrence).toMatchObject({
+        status: 'COMPLETE',
+        outcome: 'SAVE_SUCCESS'
+      })
+      const terminal = await records(base)
+      expect(terminal.run?.version).toBe(parent.projection.version + 1)
+      expect(terminal.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
+      stubLiveSessionFetch((pathname, init) =>
+        prepared.aOwner.controller.caller.fetch(pathname, init)
+      )
+      await expect(
+        planNativeLiveConcentrationResponse(
+          environment,
+          'fixture-access-token',
+          answered.scope,
+          answered.command,
+          {
+            runtime,
+            random: () => {
+              throw new Error('Replay must not reroll.')
+            }
+          }
+        )
+      ).resolves.toEqual({ kind: 'REPLAY', result: answered.result })
+      await expect(
+        callLiveSessionRoute(
+          environment,
+          'fixture-access-token',
+          'encounterConcentrationCommit',
+          answered.plan.input
+        )
+      ).resolves.toEqual(answered.result)
+      expect(await records(base)).toEqual(terminal)
+    } finally {
+      vi.unstubAllGlobals()
+      vi.unstubAllEnvs()
+    }
+  }, 60_000)
+  it('logs each automatic Concentration check once in a GM turn without spending the chat limit', async () => {
+    const base = await turnConcentrationFixture('AUTO_ROLL')
+    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
+    try {
+      const prepared = await prepareTurn(base)
+      // Exhaust the GM's chat limit: the rules' entries must not spend it.
+      for (let message = 0; message < 30; message += 1)
+        await base.t.run((ctx) =>
+          consumeUserRateLimit(ctx, 'campaignConversation', base.owner.userId)
+        )
+      random.mockReset()
+      for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
+      const result = await base.owner.caller.mutation(
+        internal.encounters.commands.execute,
+        prepared.advance
+      )
+      expect(result.occurrence?.status).toBe('COMPLETE')
+      const logged = await ruleCheckRolls(base)
+      expect(logged.gm).toEqual([])
+      expect(logged.table).toHaveLength(2)
+      expect(new Set(logged.table.map((roll) => roll.id)).size).toBe(2)
+      expect(
+        logged.table
+          .map((roll) => roll.ruleCheck)
+          .sort((left, right) => (left!.outcome < right!.outcome ? 1 : -1))
+      ).toEqual([
+        {
+          kind: 'CONCENTRATION',
+          actorId: prepared.a.id,
+          actorLabel: prepared.a.label,
+          // The fixture's damage type is not in the System vocabulary, so it has no name.
+          damage: { amount: 1, typeLabel: null },
+          sourceLabel: 'Turn saving throw damage',
+          dc: 10,
+          faces: [1],
+          modifier: expect.any(Number),
+          total: expect.any(Number),
+          outcome: 'LOST'
+        },
+        {
+          kind: 'CONCENTRATION',
+          actorId: prepared.b.id,
+          actorLabel: prepared.b.label,
+          // The fixture's damage type is not in the System vocabulary, so it has no name.
+          damage: { amount: 1, typeLabel: null },
+          sourceLabel: 'Turn saving throw damage',
+          dc: 10,
+          faces: [20],
+          modifier: expect.any(Number),
+          total: expect.any(Number),
+          outcome: 'KEPT'
+        }
+      ])
+      for (const roll of logged.table) expect(roll.characterLabel).toBe(roll.ruleCheck?.actorLabel)
+      await expect(
+        base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
+      ).resolves.toEqual(result)
+      expect(await ruleCheckRolls(base)).toEqual(logged)
+    } finally {
+      random.mockRestore()
+    }
+  }, 60_000)
+
+  it("files a hidden actor's Concentration check with the GM only", async () => {
+    const base = await turnConcentrationFixture('AUTO_ROLL')
+    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
+    try {
+      const prepared = await prepareTurn(base)
+      const hidden = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: prepared.started.projection.version,
+          actorId: prepared.b.id,
+          public: false
+        }
+      })
+      random.mockReset()
+      for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
+      await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: hidden.projection.version
+        }
+      })
+      const logged = await ruleCheckRolls(base)
+      expect(logged.table.map((roll) => roll.ruleCheck?.actorId)).toEqual([prepared.a.id])
+      expect(logged.gm.map((roll) => roll.ruleCheck?.actorId)).toEqual([prepared.b.id])
+      expect(logged.gm[0]?.gmCampaignRoll).toEqual({
+        campaignId: base.campaign.id,
+        blind: false,
+        revealedAt: null
+      })
+    } finally {
+      random.mockRestore()
     }
   }, 60_000)
 })

@@ -10,7 +10,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
 import { insertNativeCleavingChoice } from '../encounters/actionChildPersistence'
-import { persistLiveEncounterConcentrationChildren } from './encounterConcentrationChildrenCommit'
+import {
+  bindLiveConcentrationApplications,
+  persistLiveEncounterConcentrationChildren
+} from './encounterConcentrationChildrenCommit'
 
 /** Persists only children of this completed action; all writes share the parent's transaction. */
 export async function persistLiveEncounterActionChildren(
@@ -36,15 +39,17 @@ export async function persistLiveEncounterActionChildren(
     [{ targetActorId: batch.targetActorId, applications: batch.applications }],
     true
   )
-  const actors = await persistLiveEncounterConcentrationChildren(ctx, {
+  const { actors } = await persistLiveEncounterConcentrationChildren(ctx, {
     state,
     actors: args.actors,
     parentOccurrenceId: execution.occurrenceId,
-    fingerprint: args.fingerprint,
+    parentCommandFingerprint: args.fingerprint,
+    finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
+    remaining: await bindLiveConcentrationApplications(ctx, state, applications),
+    correlationId: execution.occurrenceId,
     userId: args.userId,
     authorizedCharacterIds: args.authorizedCharacterIds,
     occurredAt: input.occurredAt,
-    applications,
     concentration: input.concentration,
     pendingConcentration: input.pendingConcentration
   })

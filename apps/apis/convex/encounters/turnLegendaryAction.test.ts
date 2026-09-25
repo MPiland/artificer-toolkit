@@ -947,6 +947,75 @@ describe('native Encounter turn Legendary Actions', () => {
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
+  it('lets a granted Creature controller pick and roll its Legendary Action, with GM override', async () => {
+    for (const variant of ['PLAYER_PROMPT', 'PLAYER_AUTO_ROLL', 'GM_OVERRIDE'] as const) {
+      // The GM prompts, so only the controller's preference can auto-roll the Legendary d20.
+      const base = await setup('PROMPT', 2)
+      await setAutoRollDice(base.t, base.other.userId, variant === 'PLAYER_AUTO_ROLL')
+      const started = await start(base)
+      const ownerActorId = started.projection.actors.find(
+        (actor) => actor.id !== started.projection.currentActorId
+      )!.id
+      const granted = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: started.projection.version,
+          actorId: ownerActorId,
+          controllerUserIds: [base.other.userId]
+        }
+      })
+      let result = await base.owner.caller.action(internal.encounters.commandActions.execute, {
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: granted.projection.version
+        }
+      })
+      const choice = result.occurrence?.pending
+      if (!choice || choice.kind !== 'LEGENDARY_ACTION_CHOICE')
+        throw new Error('Expected the granted Creature Legendary choice.')
+      expect(choice.ownerActorId).toBe(ownerActorId)
+      for (const member of [base.owner, base.other])
+        await expect(
+          member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: base.run.id
+          })
+        ).resolves.toEqual(choice)
+      const answerer = variant === 'GM_OVERRIDE' ? base.owner : base.other
+      result = await answerer.caller.action(
+        internal.encounters.commandActions.execute,
+        response(base.run.id, result, { kind: 'OPTION', optionId: choice.options[0]!.optionId })
+      )
+      if (variant === 'PLAYER_AUTO_ROLL') {
+        expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+        continue
+      }
+      const dice = result.occurrence?.pending
+      if (!dice || dice.kind !== 'D20_EVIDENCE')
+        throw new Error('Expected the controller Legendary d20 prompt.')
+      expect(dice.rollerActorId).toBe(ownerActorId)
+      for (const member of [base.owner, base.other])
+        await expect(
+          member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: base.run.id
+          })
+        ).resolves.toEqual(dice)
+      result = await answerer.caller.action(
+        internal.encounters.commandActions.execute,
+        response(base.run.id, result, {
+          kind: 'ENTER_DICE',
+          requestId: dice.request.requestId,
+          rawFaces: dice.request.rollMode === 'NORMAL' ? [15] : [15, 15],
+          rollMode: dice.request.rollMode
+        })
+      )
+      expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    }
+  }, 90000)
+
   it('rejects another player, stale options, changed retained owner source and changed lifecycle publication without writes', async () => {
     const base = await setup('AUTO_ROLL')
     const started = await start(base)
@@ -961,6 +1030,12 @@ describe('native Encounter turn Legendary Actions', () => {
     const first = result.occurrence?.pending
     if (!first || first.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected Legendary choice.')
+    // An ungranted Creature's Legendary choice stays with the GM.
+    await expect(
+      base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: base.run.id
+      })
+    ).resolves.toBeNull()
     const valid = response(base.run.id, result, { kind: 'DECLINE' })
     const before = await stored(base.t, base.run.id)
     await expect(

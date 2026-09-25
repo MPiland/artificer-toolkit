@@ -43,7 +43,11 @@ import { createNativeCleavingChoice } from '@artificer-toolkit/rules-runtime/enc
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { readNativeCleavingPending } from './cleavingPending'
 import { startNativeConcentrationChecks } from './concentration'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import {
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import {
   retainedCleavingDamage,
   cleavingDamageEnvelope,
@@ -332,6 +336,7 @@ export async function resumeNativeCleaving(
   )
     rejectDomain('TARGET_UNAVAILABLE', 'Cleaving target is unavailable.')
   let target: MovementTarget | undefined
+  let sourceLabel: string | null = null
   if (selected) {
     const { candidates, targets } = await nativeCleavingCandidates(ctx, {
       state,
@@ -341,6 +346,7 @@ export async function resumeNativeCleaving(
     const sourceFacts = targets.get(context.sourceActorId)
     if (!sourceFacts) throw new Error('Cleaving source is unavailable.')
     const source = await currentSource(ctx, state, sourceFacts, context.action.actionId)
+    sourceLabel = encounterActionSourceLabel(source)
     const range =
       source.kind === 'CREATURE'
         ? buildCompiledActionTargetPolicy(source.capability).range
@@ -417,16 +423,17 @@ export async function resumeNativeCleaving(
     actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
   )
   if (target && mechanics) {
+    const damage = [
+      { targetActorId: target.actor.id, applications: mechanics.receiptApplications, sourceLabel }
+    ]
     const concentration = await startNativeConcentrationChecks(ctx, {
       state: nextState,
       readVersion: state.version,
       actors: nextActors,
       parentOccurrenceId: occurrence.id,
       parentCommandFingerprint: fingerprint,
-      applications: nativeConcentrationDamageApplications(
-        [{ targetActorId: target.actor.id, applications: mechanics.receiptApplications }],
-        true
-      ),
+      applications: nativeConcentrationDamageApplications(damage, true),
+      sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
       userId: campaign.ownerUserId,
       autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
         campaign,
@@ -472,7 +479,6 @@ export async function resumeNativeCleaving(
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version + 1,

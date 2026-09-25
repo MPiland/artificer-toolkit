@@ -72,6 +72,8 @@ export const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
 export const campaignChatEntryKindDtoSchema = z.enum(['CHAT', 'ROLL'])
 export const campaignChatModeDtoSchema = z.enum(['OOC', 'ROLEPLAY'])
 export const deletedCampaignAuthorLabel = 'Deleted user'
+/** The author shown on roll entries the rules write, such as a settled Concentration check. */
+export const ruleCheckAuthorLabel = 'Rules'
 export const campaignChatEntryDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,

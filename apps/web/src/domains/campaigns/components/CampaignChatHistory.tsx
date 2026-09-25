@@ -10,6 +10,7 @@ import { CharacterSheetRollReveal } from '#app/domains/characters/sheet/dice/Cha
 import { formatRollEvidence } from '#app/components/dice/dice.utils'
 import { blindRollLabel } from '#app/domains/characters/sheet/dice/dice.utils'
 import * as chatStyles from './CampaignChat.css'
+import { CampaignRuleCheckRoll } from './CampaignRuleCheckRoll'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
 
 export function CampaignChatHistory({
@@ -105,6 +106,11 @@ export function CampaignChatHistory({
                 </div>
                 {privateRoll.evidence === null ? (
                   <Text>{blindRollLabel}</Text>
+                ) : privateRoll.ruleCheck ? (
+                  <CampaignRuleCheckRoll
+                    evidence={privateRoll.evidence}
+                    ruleCheck={privateRoll.ruleCheck}
+                  />
                 ) : (
                   <>
                     <Text>
@@ -231,6 +237,11 @@ export function CampaignChatHistory({
                   <Text c='dimmed' fs='italic'>
                     Message unsent
                   </Text>
+                ) : entry.kind === 'ROLL' && entry.roll?.ruleCheck ? (
+                  <CampaignRuleCheckRoll
+                    evidence={entry.roll.evidence}
+                    ruleCheck={entry.roll.ruleCheck}
+                  />
                 ) : entry.kind === 'ROLL' && entry.roll ? (
                   <Text>
                     Rolled {entry.roll.normalizedExpression}:{' '}

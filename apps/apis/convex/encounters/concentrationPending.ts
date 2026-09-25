@@ -5,6 +5,7 @@ import {
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { concentrationRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import type { Doc } from '../_generated/dataModel'
 import {
   concentrationCommandId,
@@ -56,6 +57,7 @@ export function projectNativeConcentrationPending(
     encounterVersion: occurrence.expectedEncounterVersion,
     // The concentrating actor makes the save; its controllers and the GM answer it.
     rollerActorId: context.application.targetActorId,
+    trigger: concentrationRollTrigger(context),
     request: {
       requestId: snapshot.request.requestId,
       min: 1,

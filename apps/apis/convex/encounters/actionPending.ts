@@ -129,7 +129,6 @@ export function nativeActionPendingResult(
   return encounterCommandResultDtoSchema.parse({
     projection: readRunProjection(run),
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,

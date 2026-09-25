@@ -19,10 +19,10 @@ import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { insertRunCommand } from '../encounters/timelineEntries'
 import {
-  persistNativeConcentrationPending,
   persistNativeConcentrationResult,
   insertNativeCleavingChoice
 } from '../encounters/actionChildPersistence'
+import { persistLiveEncounterConcentrationChildren } from './encounterConcentrationChildrenCommit'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
@@ -30,7 +30,10 @@ import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 
-/** Commits one admitted child, its cleanup, receipt and next decision in the same transaction. */
+/**
+ * Commits one admitted check, its cleanup and receipt, the remaining checks it auto-rolled and the
+ * next decision in the same transaction (D23).
+ */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
 export const commit = internalMutation({
   args: v.any(),
@@ -72,6 +75,7 @@ export const commit = internalMutation({
           ...context.application,
           maintainedStateId: context.maintainedState.id
         }) ||
+      checksumCanonicalJson(output.trigger) !== checksumCanonicalJson(context.trigger) ||
       output.savingThrowAbilityDefinitionId !== context.save.savingThrowAbilityDefinitionId ||
       output.d20.requestId !== resolution.requestId ||
       output.d20.requestId !== continuation.request.requestId ||
@@ -157,6 +161,15 @@ export const commit = internalMutation({
     )
       throw new Error('Live Session concentration successor mismatch.')
 
+    // Remaining checks the commit auto-rolled; one version advance covers every failure (D23).
+    const commitFailed =
+      failed ||
+      input.concentration.some(
+        ({ result }) =>
+          result.status === 'COMPLETE' &&
+          result.applicationOutputs.kind === 'CONCENTRATION_CHECK' &&
+          result.applicationOutputs.outcome === 'SAVE_FAILURE'
+      )
     const characterIds = new Set(
       admission.actors.flatMap((actor) => {
         if (actor.kind !== 'CHARACTER') return []
@@ -166,11 +179,12 @@ export const commit = internalMutation({
     const ownerRequests = new Set<string>()
     for (const request of input.maintenanceOwners) {
       const key = checksumCanonicalJson(request)
+      const requestSlot = slots.get(request.actorId)
       if (
-        !failed ||
-        request.actorId !== target.id ||
-        request.stateId !== slot.id ||
-        request.definitionId !== slot.maintenanceDefinitionId ||
+        !commitFailed ||
+        !requestSlot ||
+        request.stateId !== requestSlot.id ||
+        request.definitionId !== requestSlot.maintenanceDefinitionId ||
         ownerRequests.has(key)
       )
         throw new Error('Live Session concentration owner scope mismatch.')
@@ -202,6 +216,15 @@ export const commit = internalMutation({
       campaignId: state.campaignId,
       characterIds: [...characterIds]
     })
+    const nextPending = input.pendingConcentration
+    if (
+      nextPending &&
+      (nextPending.snapshotKind !== 'KERNEL_EVIDENCE' ||
+        input.cleaving ||
+        checksumCanonicalJson(nextPending.deferredCleaving ?? null) !==
+          checksumCanonicalJson(deferred ?? null))
+    )
+      throw new Error('The next concentration decision does not match its parent.')
     let actors = admission.actors
     if (output.cleanup)
       actors = await applyLiveConcentrationCleanup(ctx, {
@@ -212,17 +235,34 @@ export const commit = internalMutation({
         authorizedCharacterIds: characterIds,
         occurredAt: input.occurredAt
       })
-    const nextState = failed
+    const nextState = commitFailed
       ? encounterRunStateSchema.parse({
           ...state,
           version: state.version + 1,
           updatedAt: input.occurredAt
         })
       : state
+    // The remaining checks this commit auto-rolled, then the first one that prompts.
+    actors = (
+      await persistLiveEncounterConcentrationChildren(ctx, {
+        state: nextState,
+        actors,
+        parentOccurrenceId: context.parentOccurrenceId,
+        parentCommandFingerprint: context.parentCommandFingerprint,
+        finalizedDamageEnvelopeChecksum: context.finalizedDamageEnvelopeChecksum,
+        remaining: nextRemaining,
+        correlationId: occurrence.id,
+        userId: input.expectedUserId,
+        authorizedCharacterIds: characterIds,
+        occurredAt: input.occurredAt,
+        concentration: input.concentration,
+        pendingConcentration: nextPending
+      })
+    ).actors
     const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
     const rules = input.rules
     if (
-      failed
+      commitFailed
         ? !rules ||
           rules.actors.length !== ruleActors.length ||
           new Set(rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
@@ -231,7 +271,7 @@ export const commit = internalMutation({
     )
       throw new Error('Live Session concentration projection scope mismatch.')
     const projection =
-      failed && rules
+      commitFailed && rules
         ? projectCurrentEncounterGm({
             state: nextState,
             actors,
@@ -246,7 +286,6 @@ export const commit = internalMutation({
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version + 1,
@@ -255,7 +294,7 @@ export const commit = internalMutation({
         pending: null
       }
     })
-    if (failed)
+    if (commitFailed)
       await ctx.db.patch(run._id, {
         version: nextState.version,
         stateJson: JSON.stringify(nextState),
@@ -302,87 +341,35 @@ export const commit = internalMutation({
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
       }
     })
-    const nextPending = input.pending
-    if (next) {
+    const cleaving = input.cleaving
+    if (cleaving) {
       if (
-        !nextPending ||
-        nextPending.snapshotKind !== 'KERNEL_EVIDENCE' ||
-        nextPending.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
-        input.cleaving
+        !deferred ||
+        cleaving.snapshotKind !== 'AGGREGATE_CHOICE' ||
+        cleaving.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
       )
-        throw new Error('The next concentration decision is missing.')
-      const child = nextPending.applicationContext
-      const nextSlot = slots.get(next.targetActorId)
-      const nextTarget = actors.find((actor) => actor.id === next.targetActorId)
-      const { maintainedStateId, ...damage } = next
+        throw new Error('Unexpected deferred Cleaving decision.')
+      const choice = cleaving.applicationContext
       if (
-        !nextSlot ||
-        nextSlot.id !== maintainedStateId ||
-        nextTarget?.kind !== 'CHARACTER' ||
-        (await readLiveCharacterStreamVersion(ctx, state, nextTarget.sourceId)) !==
-          child.targetCharacter.streamVersion ||
-        nextPending.occurrenceId !== output.nextOccurrenceId ||
-        nextPending.graph.source.gameSystemId !== state.gameSystemId ||
-        nextPending.graph.source.definitionId !== child.concentrationDefinition.id ||
-        nextPending.graph.source.checksum !== child.concentrationDefinition.checksum ||
-        nextPending.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
-        child.parentOccurrenceId !== context.parentOccurrenceId ||
-        child.parentCommandFingerprint !== context.parentCommandFingerprint ||
-        child.finalizedDamageEnvelopeChecksum !== context.finalizedDamageEnvelopeChecksum ||
-        checksumCanonicalJson(child.application) !== checksumCanonicalJson(damage) ||
-        checksumCanonicalJson(child.remaining) !== checksumCanonicalJson(nextRemaining.slice(1)) ||
-        checksumCanonicalJson(nextPending.deferredCleaving ?? null) !==
-          checksumCanonicalJson(deferred ?? null) ||
-        checksumCanonicalJson(child.maintainedState) !==
-          checksumCanonicalJson({
-            id: nextSlot.id,
-            version: nextSlot.version,
-            maintenanceDefinitionId: nextSlot.maintenanceDefinitionId,
-            descriptorChecksum: nextSlot.descriptorChecksum
-          })
+        cleaving.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+        cleaving.occurrenceId !==
+          cleavingChildOccurrenceIdentity(deferred.parentOccurrenceId, deferred.chainStep) ||
+        choice.parentOccurrenceId !== deferred.parentOccurrenceId ||
+        choice.parentResultChecksum !== deferred.parentResultChecksum ||
+        choice.sourceActorId !== deferred.sourceActorId ||
+        choice.sourceControllerCharacterId !== deferred.sourceControllerCharacterId ||
+        choice.initialTargetActorId !== deferred.initialTargetActorId ||
+        choice.chainStep !== deferred.chainStep ||
+        checksumCanonicalJson(choice.action) !== checksumCanonicalJson(deferred.action) ||
+        checksumCanonicalJson(choice.scene) !== checksumCanonicalJson(deferred.scene) ||
+        checksumCanonicalJson(choice.originalAttack) !==
+          checksumCanonicalJson(deferred.originalAttack) ||
+        checksumCanonicalJson(choice.visitedTargetActorIds) !==
+          checksumCanonicalJson(deferred.visitedTargetActorIds) ||
+        choice.options.some((option) => !actors.some((actor) => actor.id === option.targetActorId))
       )
-        throw new Error('The next concentration decision does not match its parent.')
-      await persistNativeConcentrationPending(ctx, {
-        state: nextState,
-        context: child,
-        continuation: nextPending,
-        deferredCleaving: nextPending.deferredCleaving,
-        occurredAt: input.occurredAt
-      })
-    } else {
-      if (nextPending) throw new Error('Unexpected next concentration decision.')
-      const cleaving = input.cleaving
-      if (cleaving) {
-        if (
-          !deferred ||
-          cleaving.snapshotKind !== 'AGGREGATE_CHOICE' ||
-          cleaving.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
-        )
-          throw new Error('Unexpected deferred Cleaving decision.')
-        const choice = cleaving.applicationContext
-        if (
-          cleaving.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
-          cleaving.occurrenceId !==
-            cleavingChildOccurrenceIdentity(deferred.parentOccurrenceId, deferred.chainStep) ||
-          choice.parentOccurrenceId !== deferred.parentOccurrenceId ||
-          choice.parentResultChecksum !== deferred.parentResultChecksum ||
-          choice.sourceActorId !== deferred.sourceActorId ||
-          choice.sourceControllerCharacterId !== deferred.sourceControllerCharacterId ||
-          choice.initialTargetActorId !== deferred.initialTargetActorId ||
-          choice.chainStep !== deferred.chainStep ||
-          checksumCanonicalJson(choice.action) !== checksumCanonicalJson(deferred.action) ||
-          checksumCanonicalJson(choice.scene) !== checksumCanonicalJson(deferred.scene) ||
-          checksumCanonicalJson(choice.originalAttack) !==
-            checksumCanonicalJson(deferred.originalAttack) ||
-          checksumCanonicalJson(choice.visitedTargetActorIds) !==
-            checksumCanonicalJson(deferred.visitedTargetActorIds) ||
-          choice.options.some(
-            (option) => !actors.some((actor) => actor.id === option.targetActorId)
-          )
-        )
-          throw new Error('Deferred Cleaving decision scope mismatch.')
-        await insertNativeCleavingChoice(ctx, nextState, cleaving, input.occurredAt)
-      }
+        throw new Error('Deferred Cleaving decision scope mismatch.')
+      await insertNativeCleavingChoice(ctx, nextState, cleaving, input.occurredAt)
     }
     return presentEncounterResultForMember(ctx, {
       campaign,

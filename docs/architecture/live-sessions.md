@@ -315,9 +315,38 @@ Rolls of actors no player controls stay with the GM, and the GM may answer any p
 override. Turn-effect saves follow the same rule: the save belongs to the turn actor, so its pending
 summary names it as `rollerActorId`, its controllers see and answer it (`pendingReads`,
 `encounters/turnResponseAuthority.ts`, `prepareEncounterTurnResponse`), and its primary controller's
-preference decides auto-roll; Concentration checks raised by turn damage do the same. The other
-turn-flow steps (initiative scoring and order, Recharge, Legendary Actions) remain GM decisions;
-initiative declarations go to the declaring actor's controllers. In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller;
+preference decides auto-roll; Concentration checks raised by turn damage do the same. Recharge
+dice and Legendary Actions follow it too (D24, D30): the recharging Creature or the Legendary
+Action's owner is the step's actor (`turnPendingActorId` in `rules-runtime/encounterTurnPending`),
+so a Creature the GM granted to a player picks its Legendary Action and rolls its Recharge and
+Legendary dice with that player and that player's auto-roll preference, while an ungranted
+Creature stays with the GM. Initiative scoring and order remain GM decisions; initiative
+declarations go to the declaring actor's controllers.
+
+**Concentration chains (CURRENT, D23).** Damage to several concentrating actors raises ordered
+checks. Each check auto-rolls by its actor's primary-controller preference, and the chain stops at
+the first check that prompts. The command that answers a prompted check settles, in the same
+transaction, every following check whose roller auto-rolls, and parks the first one that prompts
+(`planNativeLiveConcentration` in the DO; `planNativeConcentrationChain` in Convex; the Worker commit
+carries them as `concentration` and `pendingConcentration`, persisted by
+`persistLiveEncounterConcentrationChildren`). That commit advances the Encounter version once when
+any check it settled failed. Auto-rolled checks are START receipts chained by `correlationId` from
+the answered check and pinned to the commit's version, so replay and continuation guards
+(`concentrationResponseAdmission.ts`, `concentrationParent.ts`) count a commit's failures with
+`readConcentrationCommitFailed`.
+
+**Rule-check roll log (CURRENT, D23).** Every settled Concentration check, answered or automatic, is
+logged once by `recordConcentrationCheckRoll` (`encounters/ruleCheckRolls.ts`), which
+`persistNativeConcentrationResult` calls at every settle point, live and native. The entry is a
+`RollRecordDto` carrying a `ruleCheck` (`kind: 'CONCENTRATION'`: actor, damage amount and type
+label, source label, DC, faces, modifier, total, `KEPT`/`LOST`), authored by the settling member
+with the "Rules" label and keyed by `ruleCheckRollId(occurrenceId, checkIndex)`, so replays add
+nothing. It spends no chat rate limit, since its command was already limited. A hidden actor's
+check goes to the GM's private roll history instead of TABLE chat. The parent records display
+names for its damage envelope in the check context (`sourceLabels`: action or Creature Feature name,
+turn-effect definition label; movement contacts have none yet), and each context carries a
+`trigger` (source label, damage-type label, DC). The d20 pending summary exposes it as `trigger`,
+so the decision drawer reads "Concentration check for Mira: took 12 fire from Fire Bolt (DC 10)". In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller;
 auto-roll fills in dice only. Each prompt row is answered one of three ways:
 
 - `ROLL_RULE_EVIDENCE` ("Roll dice") rolls the request with secure randomness in Convex

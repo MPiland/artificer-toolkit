@@ -570,7 +570,6 @@ describe('native Encounter Run commands', () => {
     const used = await owner.caller.mutation(execute, use)
     expect(used).toMatchObject({
       roll: null,
-      resolution: null,
       occurrence: null
     })
     expect(
@@ -2337,7 +2336,6 @@ describe('native Encounter Run commands', () => {
         currentActorId: run.actors[0]!.id
       },
       roll: null,
-      resolution: null,
       occurrence: null
     })
 

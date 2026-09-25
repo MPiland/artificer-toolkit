@@ -114,7 +114,6 @@ async function resolveActionCommand(
   return {
     projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: '77777777-7777-4777-8777-777777777799',
       occurrenceVersion: 0,

@@ -28,7 +28,12 @@ import { readNativeTurnSettlement } from './turnSettlement'
 import { persistNativeTurnEffects } from './turnEffects'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { startNativeConcentrationChecks } from './concentration'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  labelTurnEffectDamage,
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { readDefinitionRoot } from '../content/definitionStore'
 import { readAutoRollDice } from '../lib/rollPreferences'
 import { readEncounterAutoRollByActorId } from './actorController'
 
@@ -179,7 +184,6 @@ async function completeTurn(input: {
     return encounterCommandResultDtoSchema.parse({
       projection: committedProjection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: input.occurrenceId,
         occurrenceVersion: input.occurrenceVersion,
@@ -259,19 +263,23 @@ async function completeTurn(input: {
     version: state.version + 1,
     updatedAt: input.updatedAt
   })
+  const damage = await labelTurnEffectDamage(
+    [outgoingEffects?.result, incomingEffects?.result].flatMap((result) =>
+      result?.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
+        ? result.executions
+        : []
+    ),
+    async (definitionId) =>
+      (await readDefinitionRoot(ctx, definitionId, campaign.ownerUserId))?.current?.label ?? null
+  )
   const concentration = await startNativeConcentrationChecks(ctx, {
     state: nextState,
     readVersion: state.version,
     actors: await readRunActors(ctx, state),
     parentOccurrenceId: input.occurrenceId,
     parentCommandFingerprint: root.commandFingerprint,
-    applications: nativeConcentrationDamageApplications(
-      [outgoingEffects?.result, incomingEffects?.result].flatMap((result) =>
-        result?.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
-          ? result.executions
-          : []
-      )
-    ),
+    applications: nativeConcentrationDamageApplications(damage),
+    sourceLabels: nativeConcentrationDamageSourceLabels(damage),
     userId: campaign.ownerUserId,
     autoRollByActorId,
     occurredAt: input.updatedAt

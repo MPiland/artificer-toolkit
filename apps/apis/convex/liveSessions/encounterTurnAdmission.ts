@@ -251,7 +251,6 @@ export async function readLiveEncounterTurnAdmission(
       const result = encounterCommandResultDtoSchema.parse({
         projection,
         roll: null,
-        resolution: null,
         occurrence: {
           occurrenceId: occurrence.id,
           occurrenceVersion: occurrence.version,

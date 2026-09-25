@@ -179,7 +179,6 @@ export const commitPending = internalMutation({
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: snapshot.occurrenceId,
         occurrenceVersion,

@@ -20,21 +20,17 @@ import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 
-/** Persists concentration children within the authorized parent's transaction. */
-export async function persistLiveEncounterConcentrationChildren(
+type ConcentrationDamageApplication = ReturnType<
+  typeof nativeConcentrationDamageApplications
+>[number]
+type BoundConcentrationApplication = ConcentrationDamageApplication & { maintainedStateId: string }
+
+/** Binds a parent's damage to the concentration each target currently maintains. */
+export async function bindLiveConcentrationApplications(
   ctx: MutationCtx,
-  args: {
-    state: EncounterRunState
-    actors: EncounterRunActorState[]
-    parentOccurrenceId: string
-    fingerprint: string
-    userId: string
-    authorizedCharacterIds: ReadonlySet<string>
-    occurredAt: string
-    applications: ReturnType<typeof nativeConcentrationDamageApplications>
-  } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
-) {
-  const { state, applications, parentOccurrenceId } = args
+  state: EncounterRunState,
+  applications: readonly ConcentrationDamageApplication[]
+): Promise<BoundConcentrationApplication[]> {
   const store = createActiveRuleEffectStore(ctx)
   const bindings = new Map<string, string>()
   for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId))) {
@@ -45,12 +41,40 @@ export async function persistLiveEncounterConcentrationChildren(
     })
     if (slot) bindings.set(targetActorId, slot.id)
   }
-  let remaining = applications.flatMap((application) => {
+  return applications.flatMap((application) => {
     const maintainedStateId = bindings.get(application.targetActorId)
     return maintainedStateId ? [{ ...application, maintainedStateId }] : []
   })
+}
+
+/**
+ * Persists the settled concentration checks and next decision of one damage chain within the
+ * authorized transaction: a parent's children, or the checks a response commit auto-rolled after
+ * its answered check (D23). state is the transaction's final Encounter state.
+ */
+export async function persistLiveEncounterConcentrationChildren(
+  ctx: MutationCtx,
+  args: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    parentOccurrenceId: string
+    parentCommandFingerprint: string
+    finalizedDamageEnvelopeChecksum: string
+    /** The bound checks still to settle, in damage order. */
+    remaining: readonly BoundConcentrationApplication[]
+    /** The occurrence the first settled check correlates to. */
+    correlationId: string
+    userId: string
+    authorizedCharacterIds: ReadonlySet<string>
+    occurredAt: string
+  } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
+) {
+  const { state, parentOccurrenceId } = args
+  const store = createActiveRuleEffectStore(ctx)
+  let remaining = [...args.remaining]
   let actors = args.actors
-  let correlationId = parentOccurrenceId
+  let correlationId = args.correlationId
+  let failed = false
   for (const child of args.concentration) {
     const result = child.result
     const application = remaining.shift()
@@ -120,6 +144,7 @@ export async function persistLiveEncounterConcentrationChildren(
     )
       throw new Error('Live Session concentration skipped applications mismatch.')
     if (output.cleanup) {
+      failed = true
       actors = await applyLiveConcentrationCleanup(ctx, {
         state,
         actors,
@@ -171,10 +196,12 @@ export async function persistLiveEncounterConcentrationChildren(
           context.targetCharacter.streamVersion) ||
       pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, damage) ||
       pending.graph.source.gameSystemId !== state.gameSystemId ||
+      pending.graph.source.definitionId !== context.concentrationDefinition.id ||
+      pending.graph.source.checksum !== context.concentrationDefinition.checksum ||
       pending.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       context.parentOccurrenceId !== parentOccurrenceId ||
-      context.parentCommandFingerprint !== args.fingerprint ||
-      context.finalizedDamageEnvelopeChecksum !== checksumRuleDocument(applications) ||
+      context.parentCommandFingerprint !== args.parentCommandFingerprint ||
+      context.finalizedDamageEnvelopeChecksum !== args.finalizedDamageEnvelopeChecksum ||
       checksumCanonicalJson(context.application) !== checksumCanonicalJson(damage) ||
       checksumCanonicalJson(context.remaining) !== checksumCanonicalJson(remaining) ||
       checksumCanonicalJson(context.maintainedState) !==
@@ -195,5 +222,5 @@ export async function persistLiveEncounterConcentrationChildren(
     })
   } else if (remaining.length)
     throw new Error('Live Session concentration children are incomplete.')
-  return actors
+  return { actors, failed }
 }

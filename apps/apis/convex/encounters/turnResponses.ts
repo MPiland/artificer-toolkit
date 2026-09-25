@@ -52,7 +52,6 @@ export async function resolveNativeTurnResponse(input: {
     return encounterCommandResultDtoSchema.parse({
       projection: readRunProjection(encounter),
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,

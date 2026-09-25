@@ -11,7 +11,6 @@ import {
   optionalCombatActionIntentDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from '../api/encounters.js'
-import { proposedRuleOutcomeDtoSchema, ruleOutcomeOverrideDtoSchema } from '../api/rules.js'
 import { serverRuleExecutionPendingApplicationContextDtoSchema } from '../shared/rulesExecution.js'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 
@@ -554,7 +553,6 @@ describe('encounter contracts', () => {
       name: 'Goblin ambush',
       status: 'ACTIVE' as const,
       automationMode: 'ASSISTED' as const,
-      rulePackRevisionId: null,
       version: 1,
       round: 1,
       currentActorId: null,
@@ -703,27 +701,45 @@ describe('encounter contracts', () => {
     ).toMatchObject({ type: 'ADJUST_FEATURE_RESOURCE', amount: 1 })
   })
 
-  it('pins a nullable rule pack revision for staged legacy encounters', () => {
+  it('rejects the retired rule-pack revision, upgrade command, and evaluator evidence', () => {
+    const projection = {
+      id: encounterId,
+      campaignId: commandId,
+      gameSystemId: encounterId,
+      blueprintId: commandId,
+      blueprintVersion: 1,
+      blueprintChecksum: 'a'.repeat(64),
+      name: 'Encounter',
+      status: 'PREPARED',
+      automationMode: 'ASSISTED',
+      version: 0,
+      round: 0,
+      currentActorId: null,
+      actors: [],
+      createdAt: '2026-08-07T00:00:00.000Z',
+      updatedAt: '2026-08-07T00:00:00.000Z'
+    }
+    expect(encounterPlayerProjectionDtoSchema.safeParse(projection).success).toBe(true)
     expect(
-      encounterPlayerProjectionDtoSchema.parse({
-        id: encounterId,
-        campaignId: commandId,
-        gameSystemId: encounterId,
-        blueprintId: commandId,
-        blueprintVersion: 1,
-        blueprintChecksum: 'a'.repeat(64),
-        name: 'Legacy encounter',
-        status: 'PREPARED',
-        automationMode: 'ASSISTED',
-        rulePackRevisionId: null,
-        version: 0,
-        round: 0,
-        currentActorId: null,
-        actors: [],
-        createdAt: '2026-08-07T00:00:00.000Z',
-        updatedAt: '2026-08-07T00:00:00.000Z'
-      }).rulePackRevisionId
-    ).toBeNull()
+      encounterPlayerProjectionDtoSchema.safeParse({ ...projection, rulePackRevisionId: null })
+        .success
+    ).toBe(false)
+    expect(
+      encounterCommandInputDtoSchema.safeParse({
+        encounterId,
+        commandId,
+        expectedVersion: 0,
+        type: 'UPGRADE_RULE_PACK',
+        revisionId: commandId
+      }).success
+    ).toBe(false)
+    expect(
+      encounterCommandResultDtoSchema.safeParse({
+        projection,
+        roll: null,
+        resolution: null
+      }).success
+    ).toBe(false)
   })
 
   it('accepts the closed single-target action command and rejects legacy action inputs', () => {
@@ -751,16 +767,6 @@ describe('encounter contracts', () => {
         visibility: 'TABLE'
       })
     ).toThrow()
-    expect(() =>
-      proposedRuleOutcomeDtoSchema.parse({
-        kind: 'DAMAGE',
-        targetActorId: commandId,
-        amount: 4,
-        damageTypeId: null,
-        forged: true
-      })
-    ).toThrow()
-    expect(() => ruleOutcomeOverrideDtoSchema.parse({ reason: '   ', outcomes: [] })).toThrow()
   })
 
   it('accepts only closed optional combat action intent selections', () => {
@@ -1018,7 +1024,6 @@ describe('encounter contracts', () => {
     const parsed = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: encounterId,
         occurrenceVersion: 0,
@@ -1052,7 +1057,6 @@ describe('encounter contracts', () => {
       encounterCommandResultDtoSchema.parse({
         projection,
         roll: null,
-        resolution: null,
         occurrence: {
           occurrenceId: encounterId,
           occurrenceVersion: 0,

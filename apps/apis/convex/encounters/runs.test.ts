@@ -108,7 +108,7 @@ describe('native Encounter Run creation', () => {
     expect(actor?.features.map((feature) => feature.id)).toEqual(
       wolf.features?.map((feature) => feature.id) ?? []
     )
-    expect(result.rulePackRevisionId).toBeNull()
+    expect(result).not.toHaveProperty('rulePackRevisionId')
   }, 30000)
   it('atomically snapshots assigned Characters and enemies, and replays without source reads', async () => {
     const { t, other, input, character, blueprint } = await setup()
@@ -123,7 +123,6 @@ describe('native Encounter Run creation', () => {
       status: 'PREPARED',
       version: 0,
       round: 0,
-      rulePackRevisionId: null,
       blueprintId: blueprint.id,
       blueprintVersion: blueprint.version,
       blueprintChecksum: blueprint.setupChecksum

@@ -7,6 +7,7 @@ import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtim
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { internalMutation } from '../lib/mutations'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
@@ -18,7 +19,10 @@ import { completeNativeInitiativeOccurrence } from '../encounters/initiativeTerm
 import { readLiveEncounterTurnAdmission, assertLiveTurnRevisions } from './encounterTurnAdmission'
 import { persistLiveTurnEffects } from './encounterTurnEffectsCommit'
 import { persistLiveTurnResources } from './encounterTurnResourcesCommit'
-import { persistLiveEncounterConcentrationChildren } from './encounterConcentrationChildrenCommit'
+import {
+  bindLiveConcentrationApplications,
+  persistLiveEncounterConcentrationChildren
+} from './encounterConcentrationChildrenCommit'
 
 /** Commits a DO-computed turn in one transaction, using the native normalized writes and receipts. */
 // Worker-boundary input: the handler's Zod contract is the validator (live-sessions.md).
@@ -160,15 +164,17 @@ export const commit = internalMutation({
     )
     for (const request of input.maintenanceOwners)
       if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
-    const actors = await persistLiveEncounterConcentrationChildren(ctx, {
+    const { actors } = await persistLiveEncounterConcentrationChildren(ctx, {
       state: nextState,
       actors: await readRunActors(ctx, state),
       parentOccurrenceId: input.occurrenceId,
-      fingerprint,
+      parentCommandFingerprint: fingerprint,
+      finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
+      remaining: await bindLiveConcentrationApplications(ctx, nextState, applications),
+      correlationId: input.occurrenceId,
       userId: input.expectedUserId,
       authorizedCharacterIds: characterIds,
       occurredAt: input.occurredAt,
-      applications,
       concentration: input.concentration,
       pendingConcentration: input.pendingConcentration
     })

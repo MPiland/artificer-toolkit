@@ -1,6 +1,8 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { concentrationPromptText } from '../ruleCheckCopy'
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>
@@ -49,4 +51,14 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'RECHARGE_EVIDENCE') return 'Recharge roll required'
   if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
   return 'Initiative order required'
+}
+
+/** Names who a prompted roll is for and, when a rule raised it, why. */
+export function rollPromptText(
+  actorLabel: string,
+  trigger: EncounterRuleRollTriggerDto | undefined
+) {
+  return trigger?.kind === 'CONCENTRATION'
+    ? concentrationPromptText(actorLabel, trigger)
+    : `Roll for ${actorLabel}`
 }

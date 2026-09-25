@@ -56,7 +56,6 @@ export {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   encounterCommandResultDtoSchema,
   encounterEvidenceRollDtoSchema,
-  encounterTimelineResolutionSummaryDtoSchema,
   encounterTimelineEntryDtoSchema,
   encounterTimelineDtoSchema,
   encounterBlueprintDtoSchema,
@@ -218,10 +217,6 @@ export const rollEncounterEnemyActionInputDtoSchema = z.extend(commandBaseDtoSch
 export const completeEncounterInputDtoSchema = z.extend(commandBaseDtoSchema, {
   type: z.literal('COMPLETE')
 })
-export const upgradeEncounterRulePackInputDtoSchema = z.extend(commandBaseDtoSchema, {
-  type: z.literal('UPGRADE_RULE_PACK'),
-  revisionId: uuidSchema
-})
 
 export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   updateEncounterActorInputDtoSchema,
@@ -242,7 +237,6 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   removeEncounterReminderInputDtoSchema,
   rollEncounterEnemyActionInputDtoSchema,
   completeEncounterInputDtoSchema,
-  upgradeEncounterRulePackInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema,
@@ -263,7 +257,4 @@ export type ReplaceCreatureEquipmentInputDto = z.infer<
 export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiativeInputDtoSchema>
 export type SetEncounterRoundInputDto = z.infer<typeof setEncounterRoundInputDtoSchema>
 export type ReorderEncounterInputDto = z.infer<typeof reorderEncounterInputDtoSchema>
-export type UpgradeEncounterRulePackInputDto = z.infer<
-  typeof upgradeEncounterRulePackInputDtoSchema
->
 export type EncounterCommandInputDto = z.infer<typeof encounterCommandInputDtoSchema>

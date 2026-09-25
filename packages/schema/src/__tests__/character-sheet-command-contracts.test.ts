@@ -7,8 +7,7 @@ import {
   characterSheetInventoryItemDtoSchema,
   characterSheetProficiencyFactDtoSchema,
   characterSheetResponseDtoSchema,
-  characterRestPreviewRequestDtoSchema,
-  characterRuleUpgradePreviewRequestDtoSchema
+  characterRestPreviewRequestDtoSchema
 } from '../api/characters.js'
 import {
   characterCompletedRestResultDtoSchema,
@@ -40,23 +39,15 @@ describe('character sheet command contracts', () => {
     expect(characterHistoryEntryDtoSchema.safeParse({ ...entry, summary: 12 }).success).toBe(false)
   })
 
-  it('accepts versioned rule upgrade preview and apply inputs', () => {
-    expect(characterRuleUpgradePreviewRequestDtoSchema.parse({ expectedVersion: 3 })).toEqual({
-      expectedVersion: 3
-    })
+  it('rejects the retired rule-pack upgrade command', () => {
     expect(
-      characterSheetCommandInputDtoSchema.parse({
+      characterSheetCommandInputDtoSchema.safeParse({
         type: 'UPGRADE_RULE_PACK',
         commandId: '00000000-0000-4000-8000-000000000001',
         expectedVersion: 3,
         revisionId: '00000000-0000-4000-8000-000000000202'
-      })
-    ).toEqual({
-      type: 'UPGRADE_RULE_PACK',
-      commandId: '00000000-0000-4000-8000-000000000001',
-      expectedVersion: 3,
-      revisionId: '00000000-0000-4000-8000-000000000202'
-    })
+      }).success
+    ).toBe(false)
   })
 
   it('accepts positive source-charge action costs and rejects zero cost', () => {

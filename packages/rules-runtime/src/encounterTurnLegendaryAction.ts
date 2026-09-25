@@ -33,8 +33,8 @@ export type TurnLegendaryActionInput<
 > = {
   state: EncounterRunState
   userId: string
-  /** The roller's auto-roll preference; the GM rolls creature Legendary Actions. */
-  autoRoll: boolean
+  /** Each Creature's roller preference; its controllers roll its Legendary Actions (ADR 0034). */
+  autoRollByActorId: Readonly<Record<string, boolean>>
   occurrenceId: string
   root: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
@@ -173,7 +173,7 @@ export async function prepareTurnLegendaryActions<
       runtime: await (runtimePromise ??= input.createRuntime()),
       occurrenceId,
       // A retained replay never prompts: its recorded d20 replays with the mode it was rolled with.
-      autoRoll: retained !== undefined || input.autoRoll,
+      autoRoll: retained !== undefined || input.autoRollByActorId[actor.id] === true,
       ...(retainedD20
         ? { retainedRoll: { rawFaces: retainedD20.rawFaces, rollMode: retainedD20.rollMode } }
         : {}),

@@ -2,6 +2,7 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
+import { turnPendingActorId } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -10,8 +11,10 @@ import { requireEncounterActorControl } from './actorController'
 
 /**
  * A player answers only the turn decisions that belong to an actor they control: its initiative
- * declaration and its turn-effect saves. A replay returns only to the user who answered, and a
- * declaration replay also requires current control. Every other turn step is the GM's.
+ * declaration, its turn-effect saves, and a granted Creature's Recharge dice and Legendary Action
+ * choice and dice.
+ * A replay returns only to the user who answered, and a declaration replay also requires current
+ * control. Every other turn step is the GM's.
  */
 export async function requireTurnResponseController(
   ctx: QueryCtx,
@@ -63,12 +66,17 @@ export async function requireTurnResponseController(
         resolution.kind === 'INITIATIVE_DECLARATION' &&
         context.request.requestId === resolution.requestId
       ? context.request.actorId
-      : context?.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
-          snapshot?.snapshotKind === 'KERNEL_EVIDENCE' &&
-          (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
+      : snapshot?.snapshotKind === 'KERNEL_EVIDENCE' &&
+          (resolution.kind === 'ENTER_DICE' ||
+            resolution.kind === 'ENTER_INTEGER' ||
+            resolution.kind === 'SYSTEM_ROLL') &&
           snapshot.request.requestId === resolution.requestId
-        ? context.currentCandidate.targetActorId
-        : null
+        ? turnPendingActorId(snapshot)
+        : context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
+            snapshot &&
+            (resolution.kind === 'DECLINE' || resolution.kind === 'OPTION')
+          ? turnPendingActorId(snapshot)
+          : null
   const actor = actorId ? await readRunActor(ctx, state, actorId) : null
   if (!actor) throw new Error('Campaign not found.')
   await requireEncounterActorControl(ctx, { campaign, membership, actor })

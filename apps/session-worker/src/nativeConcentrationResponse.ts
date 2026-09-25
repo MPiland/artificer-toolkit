@@ -137,11 +137,12 @@ export async function planNativeLiveConcentrationResponse(
   }
   const planned = await planNativeLiveConcentration({
     state,
-    // A resumed Concentration sequence keeps prompting until it settles, like the native path.
-    autoRollByActorId: {},
+    // Remaining checks auto-roll by their roller's preference until one prompts (D23).
+    autoRollByActorId: admission.autoRollByActorId,
     parentOccurrenceId: context.parentOccurrenceId,
     parentCommandFingerprint: context.parentCommandFingerprint,
     applications: parentApplications,
+    sourceLabels: context.sourceLabels,
     occurredAt,
     settlement: { ...startingProjection, maintainedState: null, createdEffects: [] },
     capture,
@@ -150,9 +151,10 @@ export async function planNativeLiveConcentrationResponse(
     resume: { snapshot, context, response, appRoll: admission.appRoll, applicationIndex }
   })
   if (!planned.resumed) throw new Error('Concentration response did not complete.')
-  const nextFacts = planned.resumed.failed
-    ? buildEncounterActorRuleFacts({ actors: planned.actors })
-    : null
+  const nextFacts =
+    planned.nextState.version !== state.version
+      ? buildEncounterActorRuleFacts({ actors: planned.actors })
+      : null
   const rules = nextFacts
     ? reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
@@ -194,19 +196,9 @@ export async function planNativeLiveConcentrationResponse(
     execution: planned.resumed.result,
     rules,
     maintenanceOwners: [...maintenanceOwners.values()],
-    pending,
+    concentration: planned.completed,
+    pendingConcentration: pending,
     cleaving
   })
   return { kind: 'PLANNED' as const, input }
-}
-
-export async function commitNativeLiveConcentrationResponse(
-  environment: NativeLiveSessionEnvironment,
-  accessToken: string,
-  plan: Extract<
-    Awaited<ReturnType<typeof planNativeLiveConcentrationResponse>>,
-    { kind: 'PLANNED' }
-  >
-) {
-  return callLiveSessionRoute(environment, accessToken, 'encounterConcentrationCommit', plan.input)
 }

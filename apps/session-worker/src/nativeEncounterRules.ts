@@ -18,7 +18,10 @@ import {
   isDnd5eMeleeAttackKind
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
-import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import {
+  encounterActionSourceLabel,
+  resolveEncounterActionSource
+} from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -53,7 +56,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import {
   encounterRunStateSchema,
   type EncounterRunActorState
@@ -429,17 +435,20 @@ export async function planNativeLiveEncounterAction(
     version: state.version + 1,
     updatedAt: occurredAt
   })
+  const damage = [
+    {
+      targetActorId: prepared.target.id,
+      applications: mechanics.mechanics.receiptApplications,
+      sourceLabel: encounterActionSourceLabel(prepared.source)
+    }
+  ]
   const concentration = await planNativeLiveConcentration({
     state: nextState,
     autoRollByActorId,
     parentOccurrenceId: occurrenceId,
     parentCommandFingerprint: admission.fingerprint,
-    applications: nativeConcentrationDamageApplications(
-      [
-        { targetActorId: prepared.target.id, applications: mechanics.mechanics.receiptApplications }
-      ],
-      true
-    ),
+    applications: nativeConcentrationDamageApplications(damage, true),
+    sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     occurredAt,
     settlement,
     capture,

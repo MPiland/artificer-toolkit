@@ -216,8 +216,7 @@ export async function publishSpatialTerminal(
       replay.occurrence.occurrenceVersion !== retained.occurrenceVersion ||
       replay.occurrence.pending !== null ||
       replay.occurrence.outcome !== null ||
-      replay.roll !== null ||
-      replay.resolution !== null
+      replay.roll !== null
     )
       throw new Error('Spatial terminal replay summary is inconsistent.')
     return replay
@@ -241,7 +240,6 @@ export async function publishSpatialTerminal(
   const command = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: preparation.occurrenceId,
       occurrenceVersion: retained.occurrenceVersion,

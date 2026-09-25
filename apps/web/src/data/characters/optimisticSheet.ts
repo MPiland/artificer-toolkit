@@ -547,7 +547,6 @@ export function projectOptimisticCharacterSheet(
     case 'CREATE_NOTE_GROUP':
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
-    case 'UPGRADE_RULE_PACK':
       return sheet
     default:
       return command satisfies never
@@ -822,7 +821,6 @@ export function projectOptimisticCharacterSheetPanel(
     case 'CREATE_NOTE_GROUP':
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
-    case 'UPGRADE_RULE_PACK':
       return panel
     default:
       return command satisfies never

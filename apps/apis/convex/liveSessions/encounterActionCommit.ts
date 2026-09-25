@@ -320,7 +320,6 @@ export const commit = internalMutation({
     const result = encounterCommandResultDtoSchema.parse({
       projection,
       roll: null,
-      resolution: null,
       occurrence: {
         occurrenceId: execution.occurrenceId,
         occurrenceVersion,

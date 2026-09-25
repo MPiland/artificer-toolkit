@@ -298,15 +298,6 @@ export function CampaignTabletopActionDrawer({
       })
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
-      } else if (response.resolution) {
-        const applied = response.resolution.appliedOutcomes.filter(
-          (outcome) => outcome.status === 'APPLIED'
-        ).length
-        setFeedback(
-          applied === 0
-            ? 'Action resolved with no applied outcomes.'
-            : `Action resolved · ${applied} ${applied === 1 ? 'outcome' : 'outcomes'} applied.`
-        )
       } else if (response.roll) {
         setFeedback(`Action resolved · rolled ${response.roll.evidence.total}.`)
       } else {

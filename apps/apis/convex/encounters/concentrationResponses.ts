@@ -11,17 +11,19 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { createRulesRuntime } from '../rules/runtime'
 import { projectNativeGm } from './nativeProjection'
-import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { createNativeConcentrationContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { loadNativeConcentrationState } from './concentrationState'
-import { executeNativeConcentrationCheck } from './concentration'
+import {
+  executeNativeConcentrationCheck,
+  persistNativeConcentrationChain,
+  planNativeConcentrationChain
+} from './concentration'
 import {
   insertNativeCleavingChoice,
-  persistNativeConcentrationPending,
   persistNativeConcentrationResult
 } from './actionChildPersistence'
+import { readEncounterAutoRollByActorId } from './actorController'
 import { readNativeConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { insertRunCommand } from './timelineEntries'
 import { rebuildNativeDeferredCleaving } from './cleaving'
@@ -107,21 +109,44 @@ export async function resumeNativeConcentration(
     userId,
     occurredAt: now
   })
-  const nextState = completed.failed
+  // Remaining checks auto-roll by their roller's preference until one prompts (D23).
+  const chain = await planNativeConcentrationChain(ctx, {
+    state,
+    readVersion: state.version,
+    actors: completed.actors,
+    parentOccurrenceId: context.parentOccurrenceId,
+    parentCommandFingerprint: context.parentCommandFingerprint,
+    finalizedDamageEnvelopeChecksum: context.finalizedDamageEnvelopeChecksum,
+    sourceLabels: context.sourceLabels,
+    remaining: context.remaining.filter(
+      (entry) => !completed.failed || entry.maintainedStateId !== context.maintainedState.id
+    ),
+    correlationId: occurrence.id,
+    userId,
+    // Each remaining check is its actor's save, so its primary controller's preference applies.
+    autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+      campaign,
+      initiatorUserId: campaign.ownerUserId,
+      actors
+    }),
+    occurredAt: now
+  })
+  // One version advance covers every check this commit settled.
+  const commitFailed = completed.failed || chain.failed
+  const nextState = commitFailed
     ? encounterRunStateSchema.parse({ ...state, version: state.version + 1, updatedAt: now })
     : state
-  const facts = buildEncounterActorRuleFacts({ actors: completed.actors })
+  const facts = buildEncounterActorRuleFacts({ actors: chain.actors })
   const rules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
     facts
   )
-  const nextProjection = completed.failed
-    ? await projectNativeGm(ctx, nextState, completed.actors, rules)
+  const nextProjection = commitFailed
+    ? await projectNativeGm(ctx, nextState, chain.actors, rules)
     : projection
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version + 1,
@@ -130,7 +155,7 @@ export async function resumeNativeConcentration(
       pending: null
     }
   })
-  if (completed.failed)
+  if (commitFailed)
     await ctx.db.patch(run._id, {
       version: nextState.version,
       stateJson: JSON.stringify(nextState),
@@ -177,54 +202,14 @@ export async function resumeNativeConcentration(
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
     }
   })
-  const nextRemaining = context.remaining.filter(
-    (entry) => !completed.failed || entry.maintainedStateId !== context.maintainedState.id
-  )
-  const next = nextRemaining[0]
-  if (next) {
-    const nextCurrent = await loadNativeConcentrationState(ctx, {
-      state: nextState,
-      readVersion: nextState.version,
-      targetActorId: next.targetActorId,
-      userId
-    })
-    if (!nextCurrent || nextCurrent.maintained.id !== next.maintainedStateId)
-      throw new Error('The next concentration state changed before its check.')
-    const child = createNativeConcentrationContext({
-      ...context,
-      current: nextCurrent,
-      application: {
-        ordinal: next.ordinal,
-        sourceNodeId: next.sourceNodeId,
-        sourceOperationKey: next.sourceOperationKey,
-        targetActorId: next.targetActorId,
-        appliedAmount: next.appliedAmount,
-        damageTypeId: next.damageTypeId
-      },
-      remaining: nextRemaining.slice(1)
-    })
-    const runtime = await createRulesRuntime(ctx, userId)
-    const execution = await runtime.executeResolved({
-      command: {
-        definitionId: nextCurrent.published.id,
-        occurrenceId: concentrationOccurrenceId(
-          context.parentOccurrenceId,
-          child.context.application
-        ),
-        facts: child.facts
-      },
-      published: nextCurrent.published
-    })
-    if (execution.status !== 'PAUSED')
-      throw new Error('Concentration did not request d20 evidence.')
-    await persistNativeConcentrationPending(ctx, {
-      state: nextState,
-      context: child.context,
-      continuation: execution.continuation,
-      deferredCleaving: snapshot.deferredCleaving,
-      occurredAt: now
-    })
-  } else if (snapshot.deferredCleaving) {
+  await persistNativeConcentrationChain(ctx, {
+    state: nextState,
+    chain,
+    userId,
+    occurredAt: now,
+    deferredCleaving: snapshot.deferredCleaving
+  })
+  if (!chain.pending && snapshot.deferredCleaving) {
     // The pre-cleanup choice was checked above. Only this transaction's cleanup may change its pins.
     const deferred = await rebuildNativeDeferredCleaving(ctx, {
       state: nextState,

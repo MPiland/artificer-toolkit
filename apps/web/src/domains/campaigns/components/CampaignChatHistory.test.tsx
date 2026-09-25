@@ -1,7 +1,10 @@
 import { MantineProvider } from '@mantine/core'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import {
+  ruleCheckAuthorLabel,
+  type CampaignChatEntryDto
+} from '@artificer-toolkit/schema/api/campaignCommunication'
 
 import { CampaignChatHistory } from './CampaignChatHistory'
 
@@ -53,5 +56,76 @@ describe('CampaignChatHistory', () => {
 
     expect(screen.getByText('Deleted user')).toBeInTheDocument()
     expect(screen.queryByText('Retained Ranger')).not.toBeInTheDocument()
+  })
+
+  it('shows a rules-settled Concentration check with its trigger, dice and outcome', () => {
+    const roll: CampaignChatEntryDto = {
+      ...entry,
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      authorUsername: ruleCheckAuthorLabel,
+      characterId: null,
+      characterLabel: 'Mira',
+      roll: {
+        id: '0c0b0a09-0807-4605-8403-020100fffefd',
+        normalizedExpression: '1d20+3',
+        evidence: {
+          terms: [{ count: 1, die: 20, rolls: [6], subtotal: 6 }],
+          modifier: 3,
+          mode: 'NORMAL',
+          subtotal: 9,
+          transform: { kind: 'NONE' },
+          total: 9
+        },
+        characterId: null,
+        characterLabel: 'Mira',
+        source: { kind: 'SAVING_THROW', label: 'Concentration' },
+        ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
+        createdAt: '2026-09-18T12:00:00.000Z',
+        ruleCheck: {
+          kind: 'CONCENTRATION',
+          actorId: '5c6f2647-8a8e-4e8e-8a9e-19f9554bf79c',
+          actorLabel: 'Mira',
+          damage: { amount: 12, typeLabel: 'Fire' },
+          sourceLabel: 'Fire Bolt',
+          dc: 10,
+          faces: [6],
+          modifier: 3,
+          total: 9,
+          outcome: 'LOST'
+        }
+      }
+    }
+    render(
+      <MantineProvider>
+        <CampaignChatHistory
+          chatLog={{ current: null }}
+          conversationLabel='Table'
+          currentUserId='different-user'
+          directUserId={undefined}
+          encounterEntries={undefined}
+          entries={[roll]}
+          hasNextPage={false}
+          isEncounterTimelineError={false}
+          isEncounterTimelinePending={false}
+          isHistoryLoading={false}
+          isLoadingOlderMessages={false}
+          isPrivateRollsError={false}
+          isPrivateRollsPending={false}
+          privateRolls={undefined}
+          rollView={null}
+          room='TABLE'
+          onEntryAction={vi.fn()}
+          onLoadOlderMessages={vi.fn()}
+        />
+      </MantineProvider>
+    )
+
+    expect(
+      screen.getByText('Concentration check: took 12 fire from Fire Bolt (DC 10)')
+    ).toBeInTheDocument()
+    expect(screen.getByText('Concentration lost')).toBeInTheDocument()
+    expect(screen.getByText(/vs DC 10/)).toBeInTheDocument()
   })
 })

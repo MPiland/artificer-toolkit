@@ -564,7 +564,6 @@ export const execute = internalMutation({
         return encounterCommandResultDtoSchema.parse({
           projection,
           roll: null,
-          resolution: null,
           occurrence: {
             occurrenceId,
             occurrenceVersion: 0,
@@ -636,7 +635,6 @@ export const execute = internalMutation({
         return encounterCommandResultDtoSchema.parse({
           projection,
           roll: null,
-          resolution: null,
           occurrence: {
             occurrenceId,
             occurrenceVersion: 0,
@@ -901,7 +899,6 @@ export const execute = internalMutation({
             result: encounterCommandResultDtoSchema.parse({
               projection,
               roll: null,
-              resolution: null,
               occurrence: {
                 occurrenceId: resolvedOccurrence.id,
                 occurrenceVersion: resolvedOccurrence.version,
@@ -988,7 +985,6 @@ export const execute = internalMutation({
             result: encounterCommandResultDtoSchema.parse({
               projection,
               roll: null,
-              resolution: null,
               occurrence: {
                 occurrenceId: resolvedOccurrence.id,
                 occurrenceVersion: resolvedOccurrence.version,
@@ -1231,7 +1227,6 @@ export const execute = internalMutation({
             result: encounterCommandResultDtoSchema.parse({
               projection,
               roll: null,
-              resolution: null,
               occurrence: {
                 occurrenceId: resolvedOccurrence.id,
                 occurrenceVersion,
@@ -1425,7 +1420,6 @@ export const execute = internalMutation({
           result: encounterCommandResultDtoSchema.parse({
             projection,
             roll: null,
-            resolution: null,
             occurrence: {
               occurrenceId: resolvedOccurrence.id,
               occurrenceVersion,
@@ -1558,7 +1552,6 @@ export const execute = internalMutation({
         return encounterCommandResultDtoSchema.parse({
           projection,
           roll: null,
-          resolution: null,
           occurrence: {
             occurrenceId: resolvedOccurrence.id,
             occurrenceVersion: resolvedOccurrence.version,
@@ -1686,7 +1679,6 @@ export const execute = internalMutation({
         return encounterCommandResultDtoSchema.parse({
           projection,
           roll: null,
-          resolution: null,
           occurrence: {
             occurrenceId: resolvedOccurrence.id,
             occurrenceVersion,
@@ -2201,7 +2193,6 @@ export const execute = internalMutation({
     const result = encounterCommandResultDtoSchema.parse({
       projection: nextProjection,
       roll,
-      resolution: null,
       occurrence: null
     })
     await ctx.db.patch(row._id, {

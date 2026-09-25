@@ -11,7 +11,10 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { readRunActors, readRunProjection, readRunState } from './documents'
 import { readEncounterControlledActorIds } from './actorController'
 import { readNativeConcentrationPending } from './concentrationPending'
-import { readNativeConcentrationParentDamage } from './concentrationParent'
+import {
+  readConcentrationCommitFailed,
+  readNativeConcentrationParentDamage
+} from './concentrationParent'
 import { presentTimelineEntry } from './timelineEntries'
 import { isNativeConcentrationOccurrence } from './occurrenceOwner'
 import { rejectDomain } from '../lib/domainRejections'
@@ -73,10 +76,18 @@ export async function readNativeConcentrationResponseAdmission(
     if (
       payload.status !== 'COMPLETE' ||
       payload.applicationOutputs.kind !== 'CONCENTRATION_CHECK' ||
+      prior.encounterId !== run.id
+    )
+      throw new Error('The concentration occurrence is unavailable.')
+    const commitFailed = await readConcentrationCommitFailed(ctx, {
+      encounterId: run.id,
+      output: payload.applicationOutputs,
+      encounterVersion: prior.version
+    })
+    if (
       !authorized(payload.applicationOutputs.application.targetActorId) ||
       prior.actorUserId !== userId ||
       evidence.actorUserId !== userId ||
-      prior.encounterId !== run.id ||
       evidence.encounterId !== run.id ||
       evidence.commandType !== response.type ||
       prior.commandFingerprint !== fingerprint ||
@@ -88,9 +99,7 @@ export async function readNativeConcentrationResponseAdmission(
       occurrence.state !== 'COMPLETED' ||
       occurrence.version !== response.expectedOccurrenceVersion + 1 ||
       payload.occurrenceVersion !== occurrence.version ||
-      prior.version !==
-        response.expectedVersion +
-          (payload.applicationOutputs.outcome === 'SAVE_FAILURE' ? 1 : 0) ||
+      prior.version !== response.expectedVersion + (commitFailed ? 1 : 0) ||
       evidence.encounterVersion !== prior.version ||
       prior.version > state.version ||
       occurrence.expectedEncounterVersion !== prior.version ||

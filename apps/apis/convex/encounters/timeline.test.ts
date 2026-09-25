@@ -274,7 +274,6 @@ describe('native Encounter timeline reads', () => {
         const result = encounterCommandResultDtoSchema.parse({
           projection,
           roll: null,
-          resolution: null,
           occurrence: null
         })
         const document = encounterStoredRunCommandSchema.parse({
@@ -375,7 +374,6 @@ describe('native Encounter timeline reads', () => {
         'commandType',
         'createdAt',
         'id',
-        'resolution',
         'roll',
         'ruleOverrides',
         'version',

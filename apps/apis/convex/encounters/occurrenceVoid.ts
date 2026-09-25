@@ -167,7 +167,6 @@ async function recordVoid(ctx: MutationCtx, scope: VoidScope, status: 'COMPLETE'
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
@@ -314,7 +313,6 @@ export const record = internalMutation({
       return encounterCommandResultDtoSchema.parse({
         projection: readRunProjection(run),
         roll: null,
-        resolution: null,
         occurrence: {
           occurrenceId: pending.occurrenceId,
           occurrenceVersion: pending.occurrenceVersion,

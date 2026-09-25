@@ -55,7 +55,6 @@ export const encounterRunStateSchema = z.extend(
     optionalCombatRules: true
   }),
   {
-    rulePackRevisionId: z.null(),
     actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     initiativePolicySnapshot: z.nullable(encounterInitiativePolicySnapshotDtoSchema),
     initiativePolicySnapshotChecksum: z.nullable(projectionChecksumSchema),

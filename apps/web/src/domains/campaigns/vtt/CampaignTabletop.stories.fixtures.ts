@@ -256,7 +256,6 @@ const encounterBase = {
   name: 'Vault confrontation',
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
   round: 3,
-  rulePackRevisionId: null,
   status: 'ACTIVE',
   blueprintId: '99999999-9999-4999-8999-999999999903',
   blueprintVersion: 1,

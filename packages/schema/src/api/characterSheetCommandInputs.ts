@@ -60,10 +60,6 @@ const characterSheetCommandBaseDtoSchema = z.object({
 export const characterSheetCommandInputDtoSchema = z
   .discriminatedUnion('type', [
     z.extend(characterSheetCommandBaseDtoSchema, {
-      type: z.literal('UPGRADE_RULE_PACK'),
-      revisionId: stringSchema.check(z.uuid())
-    }),
-    z.extend(characterSheetCommandBaseDtoSchema, {
       type: z.literal('UPSERT_SHEET_ADJUSTMENT'),
       adjustment: z.union([
         characterSheetCoreAdjustmentCommandDtoSchema,

@@ -73,7 +73,6 @@ export async function completeNativeInitiativeOccurrence(input: {
   const result = encounterCommandResultDtoSchema.parse({
     projection: input.nextProjection,
     roll: null,
-    resolution: null,
     occurrence:
       input.includeOccurrence === false
         ? null

@@ -189,11 +189,14 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     campaignOwnerUserId: postgresUuidSchema,
-    /** The GM's preference for the GM's turn steps: initiative, Legendary Actions, Recharge. */
+    /** The GM's preference for the GM's own turn step: initiative. */
     autoRollDice: z.boolean(),
-    /** Each actor's roller preference for its own saves (turn effects, Concentration). */
+    /**
+     * Each actor's roller preference for its own turn dice (turn-effect saves, Recharge, Legendary
+     * Actions, Concentration).
+     */
     autoRollByActorId: encounterAutoRollByActorIdSchema,
-    /** Actors the issuing member controls; a turn-effect save is answered by its controllers. */
+    /** Actors the issuing member controls; an actor's turn step is answered by its controllers. */
     responderControlledActorIds: z
       .array(postgresUuidSchema)
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
@@ -209,6 +212,8 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     revisions: liveSessionRulesRevisionsSchema,
     readChecksum: projectionChecksumSchema,
     fingerprint: projectionChecksumSchema,
+    /** Each remaining check's roller preference; auto-roll settles it in the answering commit (D23). */
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
     appRoll: z.nullable(encounterSettledAppRollDtoSchema),
     state: encounterRunStateSchema,
     projection: encounterGmProjectionDtoSchema,

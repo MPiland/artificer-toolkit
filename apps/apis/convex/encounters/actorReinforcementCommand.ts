@@ -130,7 +130,6 @@ export async function reinforceEncounterActors(
       projection.version !== prior.version ||
       prior.version !== input.expectedVersion + 1 ||
       result.roll !== null ||
-      result.resolution !== null ||
       result.occurrence !== null
     )
       throw new Error('Stored actor reinforcement receipt mismatch.')
@@ -277,7 +276,6 @@ export async function reinforceEncounterActors(
   const result = encounterCommandResultDtoSchema.parse({
     projection: nextProjection,
     roll: null,
-    resolution: null,
     occurrence: null
   })
   for (const currentActor of actors) {

@@ -17,10 +17,8 @@ import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
 } from '../../../session-worker/src/nativeEncounterRules'
-import {
-  commitNativeLiveConcentrationResponse,
-  planNativeLiveConcentrationResponse
-} from '../../../session-worker/src/nativeConcentrationResponse'
+import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
+import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
   concentrationAction,
   concentrationRecords,
@@ -275,15 +273,12 @@ it.each([
       const revision = plan.input.revisions[0]
       if (!revision) throw new Error('Concentration revision was not captured.')
       await expect(
-        commitNativeLiveConcentrationResponse(environment, token, {
-          ...plan,
-          input: {
-            ...plan.input,
-            revisions: [
-              { ...revision, revision: crypto.randomUUID() },
-              ...plan.input.revisions.slice(1)
-            ]
-          }
+        callLiveSessionRoute(environment, token, 'encounterConcentrationCommit', {
+          ...plan.input,
+          revisions: [
+            { ...revision, revision: crypto.randomUUID() },
+            ...plan.input.revisions.slice(1)
+          ]
         })
       ).rejects.toThrow()
       expect(await concentrationRecords(fixture)).toEqual(staged)
@@ -295,40 +290,42 @@ it.each([
       )
         throw new Error('Expected completed concentration cleanup receipt.')
       await expect(
-        commitNativeLiveConcentrationResponse(environment, token, {
-          ...plan,
-          input: {
-            ...plan.input,
-            execution: {
-              ...execution,
-              applicationOutputs: {
-                ...execution.applicationOutputs,
-                cleanup: {
-                  ...execution.applicationOutputs.cleanup,
-                  removedDependentEffectIds: [crypto.randomUUID()]
-                }
+        callLiveSessionRoute(environment, token, 'encounterConcentrationCommit', {
+          ...plan.input,
+          execution: {
+            ...execution,
+            applicationOutputs: {
+              ...execution.applicationOutputs,
+              cleanup: {
+                ...execution.applicationOutputs.cleanup,
+                removedDependentEffectIds: [crypto.randomUUID()]
               }
             }
           }
         })
       ).rejects.toThrow()
       expect(await concentrationRecords(fixture)).toEqual(staged)
-      expect(plan.input.pending).toBeNull()
+      expect(plan.input.pendingConcentration).toBeNull()
       const storedSnapshot = staged.pending[0]?.pendingSnapshotJson
       if (!storedSnapshot) throw new Error('Stored concentration child snapshot is unavailable.')
       const unexpectedNext = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse(
         JSON.parse(storedSnapshot)
       )
       await expect(
-        commitNativeLiveConcentrationResponse(environment, token, {
-          ...plan,
-          input: { ...plan.input, pending: unexpectedNext }
+        callLiveSessionRoute(environment, token, 'encounterConcentrationCommit', {
+          ...plan.input,
+          pendingConcentration: unexpectedNext
         })
       ).rejects.toThrow()
       expect(await concentrationRecords(fixture)).toEqual(staged)
     }
 
-    const committed = await commitNativeLiveConcentrationResponse(environment, token, plan)
+    const committed = await callLiveSessionRoute(
+      environment,
+      token,
+      'encounterConcentrationCommit',
+      plan.input
+    )
     expect(committed).toEqual(native.result)
     expect(committed.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
     const after = await concentrationRecords(fixture)
@@ -342,7 +339,9 @@ it.each([
     expect(after.effects.some((effect) => effect.id === seeded.independent.id)).toBe(true)
     expect(after.pending).toEqual([])
     expect(after.completed.map((entry) => entry.id)).toContain(response.occurrenceId)
-    expect(await commitNativeLiveConcentrationResponse(environment, token, plan)).toEqual(committed)
+    expect(
+      await callLiveSessionRoute(environment, token, 'encounterConcentrationCommit', plan.input)
+    ).toEqual(committed)
     expect(await concentrationRecords(fixture)).toEqual(after)
     const retry = await planNativeLiveConcentrationResponse(environment, token, scope, response, {
       runtime: await runtime(),

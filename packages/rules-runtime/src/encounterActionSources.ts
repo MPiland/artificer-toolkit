@@ -85,3 +85,8 @@ export function resolveEncounterActionSource(
   if (!capability) throw new Error('The selected Creature action source is stale.')
   return { kind: 'CREATURE', actor, capability }
 }
+
+/** The action's display name for logs and prompts; a Character action may have none. */
+export function encounterActionSourceLabel(source: NativeEncounterActionSource): string | null {
+  return source.kind === 'CREATURE' ? source.capability.label : (source.candidate.label ?? null)
+}

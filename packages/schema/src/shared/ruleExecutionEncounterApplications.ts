@@ -2,6 +2,7 @@ import { z } from '../zod.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
+  concentrationCheckTriggerDtoSchema,
   concentrationMaintainedDamageApplicationDtoSchema
 } from './ruleExecutionConcentration.js'
 
@@ -69,6 +70,8 @@ export const concentrationCheckApplicationOutputDtoSchema = z
       mechanicalContextChecksum: checksumSchema
     }),
     application: concentrationMaintainedDamageApplicationDtoSchema,
+    /** The context's display trigger, so every settled check can be logged without its context. */
+    trigger: concentrationCheckTriggerDtoSchema,
     outcome: z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE']),
     d20: z
       .strictObject({
@@ -140,6 +143,12 @@ export const concentrationCheckApplicationOutputDtoSchema = z
           code: 'custom',
           path: ['cleanup'],
           message: 'Concentration cleanup must occur exactly on a failed save.'
+        })
+      if (value.trigger.dc !== value.d20.dc)
+        context.addIssue({
+          code: 'custom',
+          path: ['trigger', 'dc'],
+          message: 'The Concentration trigger must name the checked DC.'
         })
       if (
         value.cleanup?.maintainedStateId !== undefined &&

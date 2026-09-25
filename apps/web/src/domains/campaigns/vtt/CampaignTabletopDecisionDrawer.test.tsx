@@ -156,7 +156,6 @@ function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
   return {
     projection: tabletopGmEncounter,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId,
       occurrenceVersion,
@@ -521,6 +520,35 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
       return { ...resolved(), occurrence: null, evidenceRoll: rolls.shift() ?? null }
     })
   }
+
+  it('names the actor and the damage behind a Concentration check', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={{
+          ...advantagePending,
+          trigger: {
+            kind: 'CONCENTRATION',
+            damage: { amount: 12, typeLabel: 'Fire' },
+            sourceLabel: 'Fire Bolt',
+            dc: 10
+          }
+        }}
+        submitting={false}
+        onResolve={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Concentration check')).toBeVisible()
+    expect(
+      screen.getByText('Concentration check for Vault Warden: took 12 fire from Fire Bolt (DC 10)')
+    ).toBeVisible()
+  })
 
   it('recommends the derived mode, rolls without settling and settles by the latest roll id', async () => {
     const user = userEvent.setup()

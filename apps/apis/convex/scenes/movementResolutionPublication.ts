@@ -596,7 +596,6 @@ export async function publishMovementResponse(
   const occurrence = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    resolution: null,
     occurrence: {
       occurrenceId: current.occurrence.id,
       occurrenceVersion: retained.occurrenceVersion,
@@ -695,11 +694,10 @@ async function insertMovementResponseCommand(
       actorUserId: current.userId,
       version,
       commandJson: JSON.stringify(current.command),
-      resultJson: JSON.stringify({ projection, roll: null, resolution: null, occurrence }),
+      resultJson: JSON.stringify({ projection, roll: null, occurrence }),
       resultChecksum: checksumCanonicalJson({
         projection,
         roll: null,
-        resolution: null,
         occurrence
       }),
       ruleOccurrenceId: current.occurrence.id,

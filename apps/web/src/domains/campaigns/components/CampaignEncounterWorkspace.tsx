@@ -60,9 +60,7 @@ export function CampaignEncounterWorkspace({
   const [round, setRound] = useState(encounter.round)
   const timeline = useQuery(getEncounterTimeline(encounter.id, convex))
   const needsExplicitSystem =
-    encounter.status === 'PREPARED' &&
-    encounter.rulePackRevisionId === null &&
-    encounter.actors.every((actor) => actor.systemId === null)
+    encounter.status === 'PREPARED' && encounter.actors.every((actor) => actor.systemId === null)
   const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   const systems = useSystemList(needsExplicitSystem && canManage)
   const [openedActorId, setOpenedActorId] = useState<string | null>(

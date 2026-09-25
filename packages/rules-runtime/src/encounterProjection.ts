@@ -134,7 +134,6 @@ export function projectGm(
     status: encounter.status,
     automationMode: encounter.automationMode,
     manualReminderMode: encounter.manualReminderMode,
-    rulePackRevisionId: encounter.rulePackRevisionId,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null
         ? null

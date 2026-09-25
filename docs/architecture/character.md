@@ -599,7 +599,7 @@ IDs and owner references, spell-slot use/restoration, known/prepared spell selec
 source-specific spell display customization and mechanic customization set/removal, inventory
 add/remove/update, equip/unequip, attune/unattune, currency adjustment/movement, and
 Creature/Vehicle extra add/update/removal, and short/long rest completion.
-All other command variants, including the transitional rule-upgrade command, reject without writes.
+All other command variants reject without writes.
 The shared execute input lives in `schema/api/characterSheetCommandInputs`; `characterSheetCommands`
 retains its response schemas and compatibility exports. The existing legacy command
 union remains transitional until all native consumers replace it. This is not complete P04 acceptance.
