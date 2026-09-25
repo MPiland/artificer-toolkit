@@ -379,7 +379,6 @@ export async function assertLiveTurnRevisions(
 ) {
   const characterIds = actors.flatMap((actor) => {
     if (actor.kind !== 'CHARACTER') return []
-    if (!actor.sourceId) throw new Error('Encounter Character actor is stale.')
     return [actor.sourceId]
   })
   if (new Set(characterIds).size !== characterIds.length)

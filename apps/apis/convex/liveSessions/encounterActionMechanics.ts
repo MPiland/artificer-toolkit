@@ -9,7 +9,6 @@ import {
 } from '../campaigns/characterState'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
-import { requireSystem } from '../content/systemDocuments'
 import {
   persistEncounterMechanicsBatchPlan,
   readEncounterMechanicsBatchTarget,
@@ -19,19 +18,22 @@ import {
 /**
  * Applies a trusted normalized batch after the terminal has checked the root command replay,
  * current authority epoch and revisions, Scene/source scope, and private transport input.
- * This function alone is not the remote-plan authorization boundary.
+ * This function alone is not the remote-plan authorization boundary. The terminal's
+ * `assertLiveSessionRulesRevisions` call pins each Character to the room's captured revision, so
+ * the Character read here is the one the room planned against.
  */
 export async function applyLiveEncounterMechanicsBatch(
   ctx: MutationCtx,
-  input: EncounterMechanicsBatchInput
+  input: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
 ): Promise<EncounterMechanicsBatchResult> {
-  const target = await readEncounterMechanicsBatchTarget(ctx, input)
-  const { actor, campaign, userId } = target
+  const read = await readEncounterMechanicsBatchTarget(ctx, {
+    ...input,
+    expectedCharacterStreamVersion: null
+  })
+  const { actor, campaign, userId } = read
   let characterRecord: Doc<'characters'> | null = null
   let characterFacts: Parameters<typeof planEncounterMechanicsBatch>[0]['characterFacts']
   if (actor.kind === 'CHARACTER') {
-    if (!actor.sourceId || actor.sourceRevision === null)
-      throw new Error('Encounter Character actor is stale.')
     const { assignment } = await requireCampaignCharacterAuthority(
       ctx,
       campaign.id,
@@ -55,23 +57,17 @@ export async function applyLiveEncounterMechanicsBatch(
     const character = readCharacterRecord(active) as CharacterAuthored
     const sheetState = readCharacterSheetState(active)
     const campaignState = await readCampaignCharacterState(ctx, campaign.id, active.id)
-    const needsConditionLabels = target.input.applications.some(
-      (application) =>
-        application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-    )
-    const system = needsConditionLabels ? await requireSystem(ctx, active.systemId) : null
     characterRecord = active
     characterFacts = {
       active,
       character,
       sheetState,
-      campaignContext: { conditions: campaignState.state.conditions },
-      prepared: {
-        context: {
-          registry: { system: system ? { conditionTypes: system.conditionTypes } : null }
-        }
-      }
+      campaignContext: { conditions: campaignState.state.conditions }
     }
+  }
+  const target = {
+    ...read,
+    input: { ...read.input, expectedCharacterStreamVersion: characterRecord?.streamVersion ?? null }
   }
   const plan = planEncounterMechanicsBatch({
     batch: target.input,

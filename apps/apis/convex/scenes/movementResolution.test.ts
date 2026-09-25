@@ -437,11 +437,11 @@ describe('native movement response publication', () => {
     expect(
       encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)).resources
     ).toMatchObject({ ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 } })
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
-    ).toBeLessThan(
-      encounterRunActorStateSchema.parse(JSON.parse(priorTarget.stateJson)).currentHitPoints!
-    )
+    const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
+    const priorTargetState = encounterRunActorStateSchema.parse(JSON.parse(priorTarget.stateJson))
+    if (targetState.kind === 'CHARACTER' || priorTargetState.kind === 'CHARACTER')
+      throw new Error('Expected a Creature reaction target.')
+    expect(targetState.currentHitPoints).toBeLessThan(priorTargetState.currentHitPoints)
     await expect(value.base.owner.caller.mutation(finish, replayRequest)).resolves.toMatchObject({
       replayed: true,
       occurrence: { status: 'COMPLETE' }

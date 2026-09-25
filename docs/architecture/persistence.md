@@ -296,6 +296,28 @@ schedules bounded usage-entry cleanup; full owned-source deletion remains F12 wo
 profile and existing shared tier enum. The public read accepts no account ID or tier override. Account
 settings subscribe to this native projection. Customer-facing billing remains Phase 09 work.
 
+## Character stored effective maximum hit points — local implementation
+
+Every write of a `characters` row goes through `characters/characterWrites.writeCharacterRecord`.
+It stores the caller's document, Sheet state, status and stream version, then evaluates the written
+Character with the existing Sheet evaluation and stores `maximumHitPoints` (the Sheet's effective
+maximum, before Encounter effect reductions) in the same transaction. Callers keep authority, replay,
+receipts and the one-stream-advance-per-transaction invariant. A caller that already evaluated the
+written Character passes its maximum (source-loss reconciliation) or reuses the returned facts for its
+own response (Sheet commands); others pass their loaded authored sources to avoid catalogue reloads.
+A DRAFT Character has no readable Sheet and keeps its last stored maximum.
+
+Writers: Builder commit (creation sets the field), Sheet commands, source-loss reconciliation, the
+Encounter mechanics batch, Disarm, maintenance-owner cleanup, actor-removal cleanup, Campaign
+currency rewrites and inventory custody. Campaign-owned inputs refresh it through the same helper
+without advancing the stream: GM Campaign adjustments (`campaigns/gmWrites`), a Campaign attunement
+override change (`campaigns/updateDependencies`), Campaign assignment and Character departure.
+
+Rules never read the stored value; Encounter projections display it. Known lag: a published-content
+change (for example a homebrew republish) reaches a Character's stored maximum on that Character's
+next write, while the Sheet always shows the live value. Follow-up: a publish-time background
+recompute for Characters that use the republished source.
+
 ## Native System vocabulary snapshots — local implementation
 
 Native canonical bootstrap creates an immutable `systemVocabularySnapshots` row alongside each
@@ -345,13 +367,24 @@ and requires an active Campaign and the exact open Session. A matching Campaign 
 the checksum-validated current GM projection before loading the Blueprint or current sources.
 New creation uses the same verified Blueprint reader as listing/update, checks System identity,
 and reads present attendees through an indexed bounded range. Campaign-aware native Sheet evaluation
-supplies each attending Character's current revision and vitals. Missing or unauthorized attendees
-reject the entire command. New actors start with zero resource usage; native policy evaluation,
+supplies each attending Character's maximum hit points. Missing or unauthorized attendees reject the
+entire command. New actors start with zero resource usage; native policy evaluation,
 reconciliation and fact binding must succeed before state and the receipt are committed.
 
 The Run retains its exact Blueprint version/checksum, current Campaign policy snapshots, UUID sides
 and canonical ordered side relationships. Each actor has a separate indexed document containing its
-validated snapshot and state. Recursive state and the committed GM projection use validated JSON
+validated snapshot and state. Actor state is a discriminated union on `kind`: Creature and custom
+actors own their current/temporary hit points, conditions and source revision in the Run, while a
+Character actor keeps no hit point, maximum, condition or stream-version copy
+([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) decision 4). Encounter
+reads load the current Character; Convex-native paths read it in the writing transaction, and Session
+room commits are fenced by the Character revision their capture recorded. Rules evaluate a
+Character's effective maximum live. Every GM projection build reads current Character hit points,
+Sheet conditions and the Character's stored effective maximum (`encounters/characterStates`); a
+detached Character grants no Sheet access and keeps its last projected values. Live Encounter reads
+replace the stored projection's Character hit points, temporary hit points, maximum, health band and
+conditions with current Character values; the health band uses current hit points over the stored
+maximum. Recursive state and the committed GM projection use validated JSON
 encoding with canonical checksums, preserving the existing authored nesting. The public projection
 keeps its existing shape and has a null legacy rule-pack revision. No GoRules revision is invented.
 The owner-only, version-checked actor-side query exposes all Run sides, including an empty side,
@@ -435,8 +468,8 @@ preserves the existing Scene limit and deterministic ordinal allocation. Updates
 exact version checks within the calling mutation; no spatial helper opens a separate transaction.
 
 `encounters/movementTargets` reads only selected actors and their current effects under caller,
-Campaign and Run-version authority. Character state mirrors, System conditions and effective
-maximum HP are checked; UUID scalar reductions feed the installed Character/actor policies.
+Campaign and Run-version authority. Character hit points and effective maximum come from the current
+Character's evaluation; System conditions are checked; UUID scalar reductions feed the installed Character/actor policies.
 These private facts stay inside the movement coordinator. The loader performs no writes; the
 parent still owns current Session/Scene authority, initiator control, occurrence/replay and atomic
 target, spatial-effect, Run, token and fog publication. Character currentness pins are computed
@@ -687,16 +720,17 @@ action's initiator must remain the current GM; controller reassignment is still 
 Evidence response IDs reserve the same Campaign-wide command namespace as Run commands and pending
 roots. Other commands cannot reuse those IDs, including commands for another Run in that Campaign.
 Creature actions may also target current Characters for hit-point and condition outcomes: the
-Character document, stream version, history and Run mirror settle in the same transaction. Condition
+Character document, stream version and history settle in the same transaction. Condition
 outcomes update raw Sheet state and preserve separately owned Campaign records. Active-effect
 baselines use raw Sheet conditions so a DM entry cannot become a permanent Sheet condition.
-The mechanics planner advances the Character actor's source revision and snapshot source revision
-together, preserving the identity checks used by the next turn's Recharge and initiative preparation.
+Each mechanics batch names the Character stream version its applications were planned against;
+planning and persistence refuse a Character at any other version, so one Character version and
+receipt still settle per transaction.
 Character action facts use the effective policy after active scalar reductions, including derived
 values, defenses and condition immunities. Internal Character action resource preflight checks the
 sealed compiled binding against current policy and stored usage. Mechanics settlement can merge that
 consumption with HP and spell-slot changes in one Character stream advance, preserving unrelated
-Sheet state and updating the Run mirror. The owning action coordinator retains root receipt/replay
+Sheet state. The owning action coordinator retains root receipt/replay
 and resource-only history ownership. The same public coordinator accepts sealed Character actions;
 optional-combat, spatial-effect and controller-decision paths remain unfinished.
 Movement reactions now use the same completed-action effect planner. Before later contacts are
@@ -816,8 +850,8 @@ retains the original command and initiator plus the existing typed contest conte
 authorized against the current sealed participant and current Campaign Character assignment. Pending
 evidence spends no ACTION and changes no item. Terminal settlement uses the existing Character
 UNEQUIP reducer or Creature HELD-to-CARRIED applicator and existing action allowance, with native
-version, history and receipt writes in the enclosing Encounter mutation. The Character actor mirror
-recomputes maximum HP after unequipping through the same calculation used by movement target reads.
+version, history and receipt writes in the enclosing Encounter mutation. The Character actor's stored
+maximum HP is recomputed after unequipping through the same calculation used by movement target reads.
 
 `ACTION_EVIDENCE` metadata may retain `commandResult` JSON and checksum, parsed by the owning Encounter
 API schema, for exact retries of an already-authorized response after later contest progress. The root
@@ -853,7 +887,7 @@ that unused runtime. Current target policy uses focused Character and Encounter 
 the same installed System identity, input/output validation and dispatch errors. Active discovery and
 response helpers live in `movementPerceptionValidation`, keeping their modules out of capture's
 initial import path. All receiving/control/origin checks, complete source catalogues, readiness,
-current effects, actor/Character mirror checks and exact issued-contact construction are preserved.
+current effects, current Character reads and exact issued-contact construction are preserved.
 Retained pending-command replay compares the original geometry occurrence with the same caller projection of the verified original pending snapshot. The full owner receipt and current occurrence remain independently validated; another controller's pending choice stays private.
 
 Native geometry begin delegates retained pending-command replay to the existing geometry finish
@@ -1023,9 +1057,9 @@ UUIDs are normalized before the Encounter fingerprint is computed.
 
 The internal `encounters/mechanicsBatch` helper is a local prerequisite for terminal rule outcomes.
 It reads the current actor and Campaign-authorized Character facts, folds trusted kernel applications,
-and writes Character state, its actor mirror and compact Character history in the enclosing mutation.
-The parent supplies the current effect-adjusted maximum HP, which must match the actor mirror;
-the helper does not substitute the unreduced Sheet maximum.
+and writes Character state and compact Character history in the enclosing mutation. The parent supplies
+the Character stream version it planned against and the current effect-adjusted maximum HP, which must
+match the actor's stored maximum; the helper does not substitute the unreduced Sheet maximum.
 Native Character policy remains computed from current sources and Campaign state. Full application
 evidence belongs to the owning Encounter receipt. Root replay, initiator control, effect transitions,
 Run projection/version and Scene/fog publication remain the terminal coordinator's responsibility;
@@ -2456,8 +2490,8 @@ definitions.
 token binding and present Character in one query snapshot. It checks supplied Scene, Session,
 presentation, Run and current Character versions, then calls the internal Character vision query in
 that same snapshot. `readRunActor` validates just the requested actor rather than hydrating unrelated
-actor snapshots. The Run's original `sourceRevision` does not replace the current Character stream for
-passive vision. The returned checksum identifies the observed binding and scalar facts; it is not a
+actor snapshots. Character actors keep no stream version, so passive vision uses the current Character
+stream. The returned checksum identifies the observed binding and scalar facts; it is not a
 lease or a standalone publication-time freshness guarantee. Callers still select actual current Scene
 tokens and must validate dependencies when committing derived geometry.
 

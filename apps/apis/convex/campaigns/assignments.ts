@@ -10,6 +10,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readCharacterRecord } from '../characters/documents'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import { prepareCharacterBuilder } from '../characters/builderPreparation'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
@@ -95,6 +96,11 @@ export const assign = mutation({
       characterId,
       documentJson: JSON.stringify(state),
       checksum: checksumRuleDocument(state)
+    })
+    // The Campaign's attunement override now feeds the Character's stored maximum hit points.
+    await writeCharacterRecord(ctx, {
+      current: record,
+      fields: { streamVersion: record.streamVersion, updatedAt: record.updatedAt }
     })
     return { ok: true as const }
   }

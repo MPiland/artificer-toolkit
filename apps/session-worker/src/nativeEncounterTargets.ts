@@ -38,7 +38,7 @@ export async function readNativeLiveActorsAndEffects(input: {
   const characterIds = actors.flatMap((actor) =>
     actor.kind === 'CHARACTER' ? [actor.sourceId] : []
   )
-  if (characterIds.includes(null) || new Set(characterIds).size !== characterIds.length)
+  if (new Set(characterIds).size !== characterIds.length)
     throw new Error('Encounter Character source binding mismatch.')
 
   const activeEffectsByActorId = new Map(
@@ -110,16 +110,7 @@ export async function prepareNativeLiveMovementTarget(input: {
             : {}),
           ...(scope.turnResponse ? { turnResponse: scope.turnResponse } : {}),
           ...(scope.movement ? { movement: { ...scope.movement, actorId: actor.id } } : {}),
-          characterId:
-            actor.sourceId ??
-            (() => {
-              throw new Error('Encounter Character source is missing.')
-            })(),
-          expectedStreamVersion:
-            actor.sourceRevision ??
-            (() => {
-              throw new Error('Encounter Character revision is missing.')
-            })()
+          characterId: actor.sourceId
         })
       : null
   const activeEffects = input.activeEffectsByActorId.get(actor.id)

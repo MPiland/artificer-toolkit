@@ -186,7 +186,6 @@ export const character = internalQuery({
     if (tokenBinding?.sceneId !== scope.header.id || tokenBinding.tokenId !== input.tokenId)
       throw new Error('Scene vision actor token binding is unavailable.')
 
-    // Run sourceRevision describes its original actor snapshot, not the Character's current passive facts.
     const characterVision = await ctx.runQuery(readCharacterVision, {
       campaignId: scope.campaign.id,
       characterId: input.characterId,

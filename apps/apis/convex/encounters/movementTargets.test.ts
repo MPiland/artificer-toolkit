@@ -4,6 +4,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { api } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { loadMovementTargets } from './movementTargets'
 import { readRunState } from './documents'
@@ -344,19 +345,6 @@ describe('native movement target facts', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: null },
         maintainedEffectStateId: null
       })
-      const row = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) =>
-          q.eq('encounterId', fixture.run.id).eq('id', fixture.actor.id)
-        )
-        .unique()
-      if (!row) throw new Error('Fixture actor missing')
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-      actor.maxHitPoints -= 1
-      await ctx.db.patch(row._id, {
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      })
     })
     const after = await read()
     expect(after.baseScalarValues).toEqual(before.baseScalarValues)
@@ -388,7 +376,7 @@ describe('native movement target facts', () => {
       })
     )
     const refreshed = await read()
-    expect(refreshed.actor.sourceRevision).toBe(after.actor.sourceRevision)
+    expect(refreshed.actor).toEqual(after.actor)
     expect(refreshed.characterCurrentness!.projectionChecksum).toBe(
       after.characterCurrentness!.projectionChecksum
     )
@@ -397,24 +385,34 @@ describe('native movement target facts', () => {
     )
   })
 
-  it('rejects a Character stream advanced outside the actor mirror', async () => {
+  it('reads a Character changed on the Sheet after Run creation live', async () => {
     const fixture = await setupCharacterRun()
-    await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-        .unique()
-      if (!row) throw new Error('Fixture Character missing')
-      await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+    await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: fixture.character.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 1,
+        expectedVersion: fixture.characterStreamVersion,
+        commandId: crypto.randomUUID()
+      }
     })
-    await expect(
-      fixture.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, {
+    const target = await fixture.owner.caller.run(async (ctx) => {
+      const loaded = (
+        await loadMovementTargets(ctx, {
           encounterId: fixture.run.id,
           expectedEncounterVersion: fixture.run.version,
           targetActorIds: [fixture.actor.id]
         })
-      )
-    ).rejects.toThrow('mirror is stale')
+      ).get(fixture.actor.id)
+      return {
+        currentHitPoints: loaded?.state.current,
+        streamVersion: loaded?.characterFacts?.active.streamVersion
+      }
+    })
+    expect(target).toEqual({
+      currentHitPoints: fixture.actor.currentHitPoints - 1,
+      streamVersion: fixture.characterStreamVersion + 1
+    })
   })
 })

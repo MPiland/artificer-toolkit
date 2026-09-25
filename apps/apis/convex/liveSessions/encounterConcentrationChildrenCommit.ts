@@ -18,6 +18,7 @@ import {
 } from '../encounters/actionChildPersistence'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
+import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 
 /** Persists concentration children within the authorized parent's transaction. */
 export async function persistLiveEncounterConcentrationChildren(
@@ -98,7 +99,8 @@ export async function persistLiveEncounterConcentrationChildren(
       slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
       !target ||
       (target.kind === 'CHARACTER' &&
-        target.sourceRevision !== output.targetCharacter.streamVersion)
+        (await readLiveCharacterStreamVersion(ctx, state, target.sourceId)) !==
+          output.targetCharacter.streamVersion)
     )
       throw new Error('Live Session concentration target changed.')
     const existing = await ctx.db
@@ -165,7 +167,8 @@ export async function persistLiveEncounterConcentrationChildren(
       slot.ownerActorId !== application.targetActorId ||
       !target ||
       (target.kind === 'CHARACTER' &&
-        target.sourceRevision !== context.targetCharacter.streamVersion) ||
+        (await readLiveCharacterStreamVersion(ctx, state, target.sourceId)) !==
+          context.targetCharacter.streamVersion) ||
       pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, damage) ||
       pending.graph.source.gameSystemId !== state.gameSystemId ||
       pending.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||

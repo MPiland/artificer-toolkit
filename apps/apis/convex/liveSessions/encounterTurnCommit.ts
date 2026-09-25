@@ -8,6 +8,7 @@ import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation } from '../lib/mutations'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors } from '../encounters/documents'
 import { readNativeTurnSettlement } from '../encounters/turnSettlement'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
@@ -171,7 +172,8 @@ export const commit = internalMutation({
       initiativeRoundState: await readEncounterInitiativeRound(ctx, {
         encounterId: state.id,
         round: nextState.round
-      })
+      }),
+      characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
     })
     const occurrenceId =
       admission.pending?.occurrence._id ??

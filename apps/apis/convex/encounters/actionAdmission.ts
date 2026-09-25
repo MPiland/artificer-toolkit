@@ -9,7 +9,6 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending'
-import { readNativeConcentrationCleanupRevisions } from './concentrationReplay'
 import { readRunProjection, readRunState } from './documents'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries'
 
@@ -158,44 +157,18 @@ export async function readNativeEncounterActionAdmission(
       result.resolution !== null
     )
       throw new Error('Stored Encounter action receipt mismatch.')
-    if (characterBatch) {
-      const cleanup = await readNativeConcentrationCleanupRevisions(ctx, {
-        campaignId: campaign.id,
-        encounterId: run.id,
-        encounterVersion: replay.version,
-        parentOccurrenceId: occurrence.id,
-        targetActorId: input.targetActorId,
-        userId,
-        applications: characterBatch.applications
-      })
-      const finalRevision = (characterId: string | null, base: number | null) => {
-        const transition = characterId ? cleanup.get(characterId) : undefined
-        if (transition && transition.before !== base)
-          throw new Error('Stored concentration owner transition mismatch.')
-        return transition?.after ?? base
-      }
-      if (
-        !sourceProjectionActor ||
+    if (
+      characterBatch &&
+      (!sourceProjectionActor ||
         !targetProjectionActor ||
         targetProjectionActor.kind !== 'CHARACTER' ||
         targetProjectionActor.sourceId === null ||
-        (characterBatch.targetCharacterStreamVersion !== null &&
-          finalRevision(
-            targetProjectionActor.sourceId,
-            characterBatch.targetCharacterStreamVersion
-          ) !== targetProjectionActor.sourceRevision) ||
         (characterBatch.sourceCharacterId === null
           ? sourceProjectionActor.kind === 'CHARACTER'
           : sourceProjectionActor.kind !== 'CHARACTER' ||
-            sourceProjectionActor.sourceId !== characterBatch.sourceCharacterId) ||
-        (characterBatch.sourceCharacterStreamVersion !== null &&
-          finalRevision(
-            characterBatch.sourceCharacterId,
-            characterBatch.sourceCharacterStreamVersion
-          ) !== sourceProjectionActor.sourceRevision)
-      )
-        throw new Error('Stored Encounter Character action receipt mismatch.')
-    }
+            sourceProjectionActor.sourceId !== characterBatch.sourceCharacterId))
+    )
+      throw new Error('Stored Encounter Character action receipt mismatch.')
     return { kind: 'REPLAY' as const, input, run, state, campaign, fingerprint, result }
   }
   if (state.version !== input.expectedVersion) throw new Error('Encounter version is stale.')

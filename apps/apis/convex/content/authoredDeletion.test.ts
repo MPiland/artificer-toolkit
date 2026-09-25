@@ -229,7 +229,8 @@ describe('native authored deletion source-loss cleanup', () => {
       const encoded: unknown = JSON.parse(JSON.stringify(document))
       await ctx.db.patch(record._id, {
         documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded)
+        checksum: checksumRuleDocument(encoded),
+        maximumHitPoints: 0
       })
     })
     const otherDraft = await base.other.caller.mutation(api.characters.drafts.create, {
@@ -266,7 +267,8 @@ describe('native authored deletion source-loss cleanup', () => {
         createdAt: now,
         updatedAt: now,
         documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded)
+        checksum: checksumRuleDocument(encoded),
+        maximumHitPoints: 0
       })
       const storedDraft = await ctx.db
         .query('characterDrafts')
@@ -319,7 +321,8 @@ describe('native authored deletion source-loss cleanup', () => {
         createdAt: now,
         updatedAt: now,
         documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded)
+        checksum: checksumRuleDocument(encoded),
+        maximumHitPoints: 0
       })
       const storedDraft = await ctx.db
         .query('characterDrafts')
@@ -513,7 +516,8 @@ describe('native authored deletion source-loss cleanup', () => {
       const encoded: unknown = JSON.parse(JSON.stringify(character))
       await ctx.db.patch(record._id, {
         documentJson: JSON.stringify(encoded),
-        checksum: checksumRuleDocument(encoded)
+        checksum: checksumRuleDocument(encoded),
+        maximumHitPoints: 0
       })
     })
     await base.owner.caller.mutation(deleteActive, {

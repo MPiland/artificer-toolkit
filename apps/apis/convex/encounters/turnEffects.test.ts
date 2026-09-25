@@ -40,6 +40,8 @@ import { createRulesRuntime } from '../rules/runtime'
 import { internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import * as random from '../lib/rollRandom'
+import { readCharacterRecord } from '../characters/stateDocuments'
+import { characterProjectionState } from './characterStates'
 import { readRunActors, readRunState } from './documents'
 import { loadMovementTargets } from './movementTargets'
 import { prepareNativeTurnEffects, persistNativeTurnEffects } from './turnEffects'
@@ -62,6 +64,20 @@ async function current(ctx: MutationCtx, encounterId: string) {
   if (!row) throw new Error('Missing fixture Run.')
   const state = readRunState(row)
   return { state, actors: await readRunActors(ctx, state) }
+}
+
+async function storedCharacter(ctx: MutationCtx, characterId: string) {
+  const row = await ctx.db
+    .query('characters')
+    .withIndex('by_publicId', (q) => q.eq('id', characterId))
+    .unique()
+  if (!row) throw new Error('Missing fixture Character.')
+  const { current, temporary, maximum } = characterProjectionState(
+    readCharacterRecord(row),
+    row.maximumHitPoints,
+    srdSystemRecord.conditionTypes
+  )
+  return { streamVersion: row.streamVersion, hitPoints: { current, temporary, maximum } }
 }
 
 function root(state: EncounterRunState, userId: string, actorId: string): TurnCoordinatorRootDto {
@@ -192,6 +208,14 @@ async function seed(
       }
     ]
   }
+  const hitPoints =
+    input.actor.kind === 'CHARACTER'
+      ? (await storedCharacter(ctx, input.actor.sourceId)).hitPoints
+      : {
+          current: input.actor.currentHitPoints,
+          temporary: input.actor.tempHitPoints,
+          maximum: input.actor.maxHitPoints
+        }
   const runtime = await createRulesRuntime(ctx, input.userId)
   const compiled = await runtime.executeResolvedWithGraph!({
     command: {
@@ -201,9 +225,9 @@ async function seed(
         [DND5E_TARGET_ACTOR_FACT_KEY]: input.actor.id,
         [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
           targetActorId: input.actor.id,
-          currentHitPoints: input.actor.currentHitPoints,
-          temporaryHitPoints: input.actor.tempHitPoints,
-          maximumHitPoints: input.actor.maxHitPoints,
+          currentHitPoints: hitPoints.current,
+          temporaryHitPoints: hitPoints.temporary,
+          maximumHitPoints: hitPoints.maximum,
           conditionIds: []
         }),
         [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
@@ -333,6 +357,7 @@ async function fixture(assisted = false) {
     })
     const actors = await readRunActors(ctx, state)
     const actor = actors.find((value) => value.id === base.reactor.id)!
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature reactor.')
     return {
       state,
       actors,
@@ -382,9 +407,10 @@ describe('native turn effect planning and terminal transactions', () => {
       })
       expect(await records(ctx, base.run.id)).toEqual(before)
       if (prepared.kind !== 'COMPLETE' || !prepared.plan) throw new Error('Expected completion.')
-      expect(
-        prepared.actors.find((actor) => actor.id === base.input.actor.id)?.currentHitPoints
-      ).toBe(base.input.actor.currentHitPoints - 2)
+      const damaged = prepared.actors.find((actor) => actor.id === base.input.actor.id)
+      if (!damaged || damaged.kind === 'CHARACTER')
+        throw new Error('Expected the Creature reactor.')
+      expect(damaged.currentHitPoints).toBe(base.input.actor.currentHitPoints - 2)
       const applied = await persistNativeTurnEffects(ctx, {
         ...base.input,
         rootCommandId: base.input.root.rootCommandId,
@@ -958,10 +984,9 @@ describe('native turn effect planning and terminal transactions', () => {
       if (prepared.kind !== 'COMPLETE' || !prepared.plan)
         throw new Error('Expected Character completion.')
       const projected = prepared.movementTargets.get(base.actor.id)!
-      expect(projected.actor.sourceRevision).toBe(base.actor.sourceRevision! + 1)
-      expect(projected.characterFacts?.active.streamVersion).toBe(projected.actor.sourceRevision)
+      expect(projected.characterFacts?.active.streamVersion).toBe(base.characterStreamVersion + 1)
       expect(projected.characterFacts?.character.state.hitpoints.current).toBe(
-        projected.actor.currentHitPoints
+        projected.state.current
       )
       const incoming = await prepareNativeTurnEffects({
         ctx,
@@ -974,7 +999,7 @@ describe('native turn effect planning and terminal transactions', () => {
       if (incoming.kind !== 'COMPLETE' || !incoming.plan)
         throw new Error('Expected Character incoming effects.')
       const finalTarget = incoming.movementTargets.get(base.actor.id)!
-      expect(finalTarget.actor.sourceRevision).toBe(base.actor.sourceRevision! + 2)
+      expect(finalTarget.characterFacts?.active.streamVersion).toBe(base.characterStreamVersion + 2)
       const settled = await persistNativeTurnEffects(ctx, {
         ...input,
         rootCommandId: input.root.rootCommandId,
@@ -991,6 +1016,14 @@ describe('native turn effect planning and terminal transactions', () => {
         plan: incoming.plan
       })
       expect(final.actors[0]).toEqual(finalTarget.actor)
+      expect(await storedCharacter(ctx, base.character.id)).toEqual({
+        streamVersion: base.characterStreamVersion + 2,
+        hitPoints: {
+          current: finalTarget.state.current,
+          temporary: finalTarget.state.temporary,
+          maximum: base.actor.maxHitPoints
+        }
+      })
       const loaded = (
         await loadMovementTargets(ctx, {
           encounterId: base.run.id,
@@ -1061,9 +1094,10 @@ describe('native turn effect planning and terminal transactions', () => {
           occurredAt,
           plan: prepared.plan
         })
-        expect(result.actors[0]?.conditions).toEqual(
-          baseline ? [{ conditionTypeId: conditionId }] : []
-        )
+        const settled = result.actors[0]
+        if (!settled || settled.kind === 'CHARACTER')
+          throw new Error('Expected the Creature target.')
+        expect(settled.conditions).toEqual(baseline ? [{ conditionTypeId: conditionId }] : [])
         expect((await records(ctx, base.run.id)).effects).toHaveLength(0)
         if (
           result.result?.status !== 'BATCH_COMPLETE' ||
@@ -1146,6 +1180,7 @@ describe('native turn effect planning and terminal transactions', () => {
       const facts = await current(ctx, base.run.id)
       const [actor, source] = facts.actors
       if (!actor || !source) throw new Error('Missing Scene actors.')
+      if (source.kind === 'CHARACTER') throw new Error('Expected a custom Scene source.')
       for (const [index, target] of [actor, source].entries()) {
         await ctx.db.insert('encounterActorTokenBindings', {
           encounterId: base.run.id,
@@ -1188,9 +1223,12 @@ describe('native turn effect planning and terminal transactions', () => {
       })
       expect(staged?.satisfied).toBe(false)
       expect(staged?.checksum).not.toBe(before)
-      expect(
-        (await current(ctx, base.run.id)).actors.find((value) => value.id === source.id)?.conditions
-      ).toEqual(source.conditions)
+      const storedSource = (await current(ctx, base.run.id)).actors.find(
+        (value) => value.id === source.id
+      )
+      if (!storedSource || storedSource.kind === 'CHARACTER')
+        throw new Error('Missing custom Scene source.')
+      expect(storedSource.conditions).toEqual(source.conditions)
       const observerBinding = await ctx.db
         .query('encounterActorTokenBindings')
         .withIndex('by_encounterId_actorId', (q) =>

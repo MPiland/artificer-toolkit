@@ -181,9 +181,11 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   const complete = await mechanics(value)
   const target = complete.actors.find((actor) => actor.id === value.base.mover.id)
   if (!target) throw new Error('Expected completed mover state.')
-  expect(encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints).toBe(
-    encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson)).currentHitPoints! - 2
-  )
+  const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
+  const beforeTargetState = encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson))
+  if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
+    throw new Error('Expected a non-Character mover.')
+  expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)
   await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
     replayed: true,
     occurrence: { status: 'COMPLETE', pending: null }
@@ -300,9 +302,11 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   const complete = await mechanics(value)
   const target = complete.actors.find((actor) => actor.id === value.base.mover.id)
   if (!target) throw new Error('Expected completed mover state.')
-  expect(encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints).toBe(
-    encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson)).currentHitPoints! - 2
-  )
+  const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
+  const beforeTargetState = encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson))
+  if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
+    throw new Error('Expected a non-Character mover.')
+  expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)
   await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
     replayed: true,
     occurrence: { status: 'COMPLETE', pending: null }

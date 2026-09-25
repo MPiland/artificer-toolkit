@@ -320,7 +320,11 @@ export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
       }))
     }
   }
-  const project: SpatialTerminalPublicationCallbacks['project'] = (state, actors) => {
+  const project: SpatialTerminalPublicationCallbacks['project'] = (
+    state,
+    actors,
+    characterStates
+  ) => {
     const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
     const rules = input.rules
     if (
@@ -332,7 +336,7 @@ export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
       )
     )
       throw new Error('Movement actor rule output scope mismatch.')
-    return projectGm({ ...state, actors }, rules)
+    return projectGm({ ...state, actors }, rules, characterStates)
   }
   return publishSceneGeometry(
     ctx,

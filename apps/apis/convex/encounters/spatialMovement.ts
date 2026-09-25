@@ -117,17 +117,13 @@ export async function settleNativeSpatialMovementPrefix(input: NativeSpatialPref
   const characterTransitions = input.mechanicsPlan.settlements.flatMap(({ batch, plan }) => {
     const target = input.targets.get(batch.targetActorId)!
     if (target.actor.kind !== 'CHARACTER') return []
-    if (
-      target.actor.sourceId === null ||
-      target.actor.sourceRevision === null ||
-      plan.characterStreamVersion === null
-    )
+    if (batch.expectedCharacterStreamVersion === null || plan.characterStreamVersion === null)
       throw new Error('Spatial Character settlement span is unavailable.')
     return [
       {
         characterId: target.actor.sourceId,
         targetActorId: batch.targetActorId,
-        beforeStreamVersion: target.actor.sourceRevision,
+        beforeStreamVersion: batch.expectedCharacterStreamVersion,
         afterStreamVersion: plan.characterStreamVersion,
         before: plan.targetTransition.before,
         after: plan.targetTransition.after

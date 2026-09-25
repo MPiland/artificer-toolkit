@@ -572,7 +572,7 @@ export async function verifyEncounterDisarm({
     assert.ok(finalSource && finalTarget)
     assert.equal(encounterRuleUsageUsed(finalSource, SRD_ACTION_ALLOWANCE_DEFINITION_ID), 1)
     assert.equal(finalTarget.sourceId, characterId)
-    assert.equal(finalTarget.sourceRevision, after.sheet.meta.streamVersion)
+    assert.equal(finalTarget.sourceRevision, null)
     assert.equal(await owner.query(api.characters.builder.get, { id: characterId }), null)
     for (const client of [owner, player])
       assert.equal(

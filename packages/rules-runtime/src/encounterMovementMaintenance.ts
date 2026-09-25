@@ -19,7 +19,6 @@ import {
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { requireSnapshotIdentity } from './encounterActorState.js'
 
 export type MovementCharacterRow = {
   id: string
@@ -164,26 +163,19 @@ function projectEncounterMovementMaintenanceOwners<
         throw new Error('Movement maintenance Encounter owner is unavailable.')
       continue
     }
-    const conditions = readEncounterActorConditionState(target.actor.conditions ?? [])
-    const actor = encounterRunActorStateSchema.parse({
-      ...target.actor,
-      ...(owner.kind === 'CHARACTER' && row
-        ? {
-            sourceRevision: row.streamVersion,
-            snapshot: {
-              ...requireSnapshotIdentity(target.actor),
-              sourceRevision: row.streamVersion
-            }
-          }
-        : {}),
-      ...(ended.size
-        ? {
-            conditions: conditions.values.filter(
-              (_value, index) => !ended.has(conditions.ids[index]!)
-            )
-          }
-        : {})
-    })
+    // A Character's conditions live on the Character, which `characterUpdate` above rewrites.
+    const actor =
+      target.actor.kind === 'CHARACTER' || !ended.size
+        ? target.actor
+        : (() => {
+            const conditions = readEncounterActorConditionState(target.actor.conditions ?? [])
+            return encounterRunActorStateSchema.parse({
+              ...target.actor,
+              conditions: conditions.values.filter(
+                (_value, index) => !ended.has(conditions.ids[index]!)
+              )
+            })
+          })()
     const projected = projectEncounterActionTarget({
       target: {
         ...target,

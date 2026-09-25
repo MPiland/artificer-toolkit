@@ -13,7 +13,6 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import { requireSnapshotIdentity } from './encounterActorState.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -148,27 +147,16 @@ export function planEncounterMaintenanceOwner(input: {
   return {
     character,
     actors: ownerActors.map((actor) => {
+      // A Character's conditions live on the Character, which `character` above updates.
+      if (actor.kind === 'CHARACTER' || !ended.size) return { before: actor, after: actor }
       const conditions = readEncounterActorConditionState(actor.conditions ?? [])
       return {
         before: actor,
         after: encounterRunActorStateSchema.parse({
           ...actor,
-          ...(character === null
-            ? {}
-            : {
-                sourceRevision: character.streamVersion,
-                snapshot: {
-                  ...requireSnapshotIdentity(actor),
-                  sourceRevision: character.streamVersion
-                }
-              }),
-          ...(ended.size
-            ? {
-                conditions: conditions.values.filter(
-                  (_value, index) => !ended.has(conditions.ids[index]!)
-                )
-              }
-            : {})
+          conditions: conditions.values.filter(
+            (_value, index) => !ended.has(conditions.ids[index]!)
+          )
         })
       }
     })

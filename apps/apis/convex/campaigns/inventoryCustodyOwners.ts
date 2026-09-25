@@ -1,8 +1,8 @@
 import { versionSchema } from '@artificer-toolkit/schema/api/campaignContractSchemas'
 import type { InventoryOwnerRefDto } from '@artificer-toolkit/schema/api/campaignInventory'
 import { campaignStoredPartyInventorySchema } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readCharacterRecord, characterDocumentSchema } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { readAssignedInventoryCharacter } from './inventoryCharacter'
@@ -82,12 +82,13 @@ export async function publishInventoryCustodyOwners(
       const updatedAt = Date.parse(owner.record.updatedAt)
       if (!Number.isFinite(updatedAt)) throw new Error('Stored Character update time is invalid.')
       const character = characterDocumentSchema.parse(owner.character)
-      const document: unknown = JSON.parse(JSON.stringify(character))
-      await ctx.db.patch(owner.record._id, {
-        streamVersion: version,
-        documentJson: canonicalizeRuleDocument(document),
-        checksum: checksumRuleDocument(document),
-        updatedAt: new Date(Math.max(Date.now(), updatedAt + 1)).toISOString()
+      await writeCharacterRecord(ctx, {
+        current: owner.record,
+        fields: {
+          streamVersion: version,
+          updatedAt: new Date(Math.max(Date.now(), updatedAt + 1)).toISOString()
+        },
+        document: JSON.parse(JSON.stringify(character))
       })
     } else {
       const inventory = campaignStoredPartyInventorySchema.parse({

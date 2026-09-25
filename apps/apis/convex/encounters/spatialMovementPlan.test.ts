@@ -251,8 +251,13 @@ describe('planNativeSpatialMovementPrefix', () => {
       } satisfies Parameters<typeof planNativeSpatialMovementPrefix>[0]
       const result = planNativeSpatialMovementPrefix(input)
       const projected = result.projectedTargets.get(base.actor.id)!
-      expect(result.settlements[0]!.plan.characterStreamVersion).toBe(base.actorSourceRevision + 1)
-      expect(projected.actor.sourceRevision).toBe(base.actorSourceRevision + 1)
+      expect(result.settlements[0]!.plan.characterStreamVersion).toBe(
+        base.characterStreamVersion + 1
+      )
+      expect(result.settlements[0]!.batch.expectedCharacterStreamVersion).toBe(
+        base.characterStreamVersion
+      )
+      expect(projected.characterFacts?.active.streamVersion).toBe(base.characterStreamVersion + 1)
       expect(projected.state).toEqual({
         current: 0,
         temporary: target.state.temporary,
@@ -315,7 +320,7 @@ describe('planNativeSpatialMovementPrefix', () => {
       )
       await applyEncounterMechanicsBatch(ctx, firstBatch)
       const secondWrite = await applyEncounterMechanicsBatch(ctx, secondBatch)
-      expect(secondWrite.characterStreamVersion).toBe(base.actorSourceRevision + 2)
+      expect(secondWrite.characterStreamVersion).toBe(base.characterStreamVersion + 2)
       expect(secondWrite.targetTransition.after.conditionIds).toEqual([])
     })
   })

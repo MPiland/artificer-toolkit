@@ -310,8 +310,6 @@ export async function readEncounterRulesCapture(
   } else {
     const actor = await readRunActor(ctx, state, input.request.actorId)
     if (actor.kind === 'CHARACTER') {
-      if (!actor.sourceId || actor.sourceRevision === null)
-        throw new Error('Encounter Character actor is stale.')
       characterId = actor.sourceId
       const { assignment } = await requireCampaignCharacterAuthority(
         ctx,
@@ -328,14 +326,13 @@ export async function readEncounterRulesCapture(
         (draft && draft.userId !== active.userId)
       )
         throw new Error('Encounter Character actor identity is stale.')
-      // This reads stored Run snapshots/effects, not current Sheet mechanics. The selected
-      // source/target character-rules capture checks expectedStreamVersion before preparing facts.
+      // This reads stored Run snapshots/effects, not current Sheet mechanics. The CHARACTER
+      // revision captured here fences the character-rules capture and the later commit.
     }
     const after = input.request.kind === 'ACTOR' ? null : input.request.afterEffectId
     let effects: Extract<LiveSessionEncounterRulesResponse, { kind: 'EFFECTS' }>['effects']
     if (actor.kind === 'CHARACTER') {
       const characterId = actor.sourceId
-      if (!characterId) throw new Error('Encounter Character actor is stale.')
       const rows = await ctx.db
         .query('characterActiveRuleEffects')
         .withIndex('by_characterId_id', (q) =>

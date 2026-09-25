@@ -17,7 +17,8 @@ export function requireSnapshotIdentity(actor: EncounterRunActorState) {
   if (
     snapshot.kind !== actor.kind ||
     snapshot.systemId !== actor.systemId ||
-    (actor.kind !== 'CUSTOM' && snapshot.sourceRevision !== actor.sourceRevision) ||
+    (actor.kind === 'CHARACTER' && snapshot.sourceRevision !== undefined) ||
+    (actor.kind === 'CREATURE' && snapshot.sourceRevision !== actor.sourceRevision) ||
     (actor.kind === 'CUSTOM' &&
       snapshot.sourceRevision !== undefined &&
       snapshot.sourceRevision !== actor.sourceRevision)

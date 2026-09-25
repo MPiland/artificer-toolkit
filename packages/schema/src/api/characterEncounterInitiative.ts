@@ -3,10 +3,14 @@ import { characterMechanicsReadInputSchema } from './characterMechanicsRead.js'
 import { characterInitiativeActorFactsSchema } from '../projections/characterInitiativeFacts.js'
 import { characterRulePolicyOutputSchema } from './characterRules.js'
 
-export const characterEncounterInitiativeInputSchema = characterMechanicsReadInputSchema
+/** A same-transaction read; the loaded Character's stream version is returned, not expected. */
+export const characterEncounterInitiativeInputSchema = z.omit(characterMechanicsReadInputSchema, {
+  streamVersion: true
+})
 
 /** Server mechanics only; this result is never exposed as a viewer projection. */
 export const characterEncounterInitiativeResultSchema = z.strictObject({
+  streamVersion: z.number().check(z.int()).check(z.nonnegative()),
   initiativeActorFacts: characterInitiativeActorFactsSchema,
   rulePolicyOutput: characterRulePolicyOutputSchema
 })

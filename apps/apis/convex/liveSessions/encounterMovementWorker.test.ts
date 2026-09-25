@@ -149,8 +149,7 @@ it.each([
       t: value.base.t,
       run: value.base.run,
       target: value.base.mover,
-      character: value.base.character,
-      characterActor: value.base.mover
+      character: value.base.character
     })
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     const oneShot = withSuffix
@@ -754,12 +753,7 @@ it.each([
     expect(
       sourceActor && encounterRuleUsageUsed(sourceActor, reaction.allowance.definitionId)
     ).toBe(reaction.allowance.afterUsed)
-    expect(targetActor?.currentHitPoints).toBe(
-      withSuffix
-        ? spatial.at(-1)!.targetTransition.after.currentHitPoints
-        : reaction.application.targetTransition.after.currentHitPoints
-    )
-    expect(targetActor?.sourceRevision).toBe(committed.character?.streamVersion)
+    expect(targetActor?.kind).toBe('CHARACTER')
     expect(committed.character?.streamVersion).toBe(
       before.character!.streamVersion + (withSuffix ? 3 : 2)
     )
@@ -773,6 +767,11 @@ it.each([
     )
     if (!committed.character) throw new Error('Settled Character is unavailable.')
     const character = characterAuthoredDtoSchema.parse(JSON.parse(committed.character.documentJson))
+    expect(character.state.hitpoints.current).toBe(
+      withSuffix
+        ? spatial.at(-1)!.targetTransition.after.currentHitPoints
+        : reaction.application.targetTransition.after.currentHitPoints
+    )
     expect((character.state.conditions ?? []).map((entry) => entry.conditionTypeId)).toContain(
       seeded.poisoned.id
     )

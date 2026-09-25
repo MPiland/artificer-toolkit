@@ -67,7 +67,7 @@ export async function setupMovementReactionCharacterEffects(withSecondReactor = 
     command: {
       type: 'ADD_CONDITION',
       commandId: crypto.randomUUID(),
-      expectedVersion: base.actorSourceRevision,
+      expectedVersion: base.characterStreamVersion,
       conditionTypeId: frightened.id,
       notes: 'Sheet condition survives reaction effect'
     }

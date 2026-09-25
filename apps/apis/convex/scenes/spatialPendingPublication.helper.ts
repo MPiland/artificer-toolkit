@@ -21,7 +21,7 @@ export async function publishPreparedSpatialPending(
   return publishSpatialPending(ctx, request, geometry, {
     evaluateInitial: evaluateInitialSceneMovement,
     settle: settleSceneMovementSettlements,
-    project: (nextState, actors) => {
+    project: (nextState, actors, characterStates) => {
       const facts = buildEncounterActorRuleFacts({ actors })
       return projectGm(
         { ...nextState, actors },
@@ -31,7 +31,8 @@ export async function publishPreparedSpatialPending(
             facts
           ),
           facts
-        )
+        ),
+        characterStates
       )
     }
   })

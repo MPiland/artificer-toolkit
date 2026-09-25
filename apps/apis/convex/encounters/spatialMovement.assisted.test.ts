@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -233,12 +234,22 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
           .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
           .unique()
         if (!row) throw new Error('Fixture Run missing')
+        const character = await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+          .unique()
+        if (!character) throw new Error('Fixture Character missing')
         const scope = await createSpatialRuleEffectStore(ctx).scope({
           encounterId: base.run.id,
           sceneId
         })
         return {
           actor: await readRunActor(ctx, readRunState(row), base.actor.id),
+          character: {
+            currentHitPoints: characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson))
+              .state.hitpoints.current,
+            streamVersion: character.streamVersion
+          },
           effects: await scope!.list()
         }
       })
@@ -309,8 +320,8 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
       expect(completed).toEqual(pending)
       expect(randomRoll).toHaveBeenCalledTimes(1)
       const after = await current()
-      expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
-      expect(after.actor.sourceRevision).toBe(base.actorSourceRevision + 1)
+      expect(after.character.currentHitPoints).toBe(before.character.currentHitPoints - 1)
+      expect(after.character.streamVersion).toBe(base.characterStreamVersion + 1)
       expect(after.effects).toEqual([])
       return
     }
@@ -362,8 +373,8 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
         return (await settleNativeSpatialMovementPrefix(boundary.prefixSettlementPlan)).result
       })
       const afterPrefix = await current()
-      expect(afterPrefix.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
-      expect(afterPrefix.actor.sourceRevision).toBe(base.actorSourceRevision + 1)
+      expect(afterPrefix.character.currentHitPoints).toBe(before.character.currentHitPoints - 1)
+      expect(afterPrefix.character.streamVersion).toBe(base.characterStreamVersion + 1)
       expect(afterPrefix.effects).toHaveLength(1)
       const continuation: NativeSpatialMovementInput = {
         ...movement,
@@ -476,8 +487,8 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
         ).toEqual(later.prefixSettlement)
       })
       const after = await current()
-      expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 2)
-      expect(after.actor.sourceRevision).toBe(base.actorSourceRevision + 2)
+      expect(after.character.currentHitPoints).toBe(before.character.currentHitPoints - 2)
+      expect(after.character.streamVersion).toBe(base.characterStreamVersion + 2)
       expect(after.effects).toEqual([])
       expect(randomRoll).not.toHaveBeenCalled()
       return
@@ -514,15 +525,15 @@ it.each(['ASSISTED', 'AUTOMATIC', 'AUTOMATIC_PREPARED', 'ASSISTED_PREFIX'] as co
         executions: [{ d20: { rawFaces: [1] } }],
         characterTransitions: [
           {
-            beforeStreamVersion: base.actorSourceRevision,
-            afterStreamVersion: base.actorSourceRevision + 1
+            beforeStreamVersion: base.characterStreamVersion,
+            afterStreamVersion: base.characterStreamVersion + 1
           }
         ]
       }
     })
     const after = await current()
-    expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
-    expect(after.actor.sourceRevision).toBe(base.actorSourceRevision + 1)
+    expect(after.character.currentHitPoints).toBe(before.character.currentHitPoints - 1)
+    expect(after.character.streamVersion).toBe(base.characterStreamVersion + 1)
     expect(after.effects).toEqual([])
   },
   60000

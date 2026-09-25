@@ -13,6 +13,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
+import {
+  readLiveCharacterStreamVersion,
+  readLiveMovementTargetState
+} from './encounterMovementTargetState'
 
 type SpatialStep = Extract<LiveSessionMovementSettlement, { kind: 'SPATIAL' }>
 type SpatialExecution = SpatialStep['executions'][number]
@@ -45,6 +49,8 @@ export async function persistLiveMovementSpatial(
     throw new Error('Spatial settlement actor cohort is stale.')
   const byTarget = new Map<string, SpatialExecution[]>()
   const effectIds = new Set<string>()
+  // The movement admission's revision fence pins these to the room's captured Characters.
+  const characterBeforeVersions = new Map<string, number>()
   for (const execution of step.executions) {
     const { candidate } = execution
     const targetActorId = candidate.candidate.targetActorId
@@ -81,12 +87,14 @@ export async function persistLiveMovementSpatial(
     )
       throw new Error('Spatial settlement effect pin is stale.')
     if (actor.kind === 'CHARACTER') {
+      const streamVersion =
+        characterBeforeVersions.get(targetActorId) ??
+        (await readLiveCharacterStreamVersion(ctx, state, actor.sourceId))
+      characterBeforeVersions.set(targetActorId, streamVersion)
       if (
         candidate.target.kind !== 'CHARACTER' ||
-        !actor.sourceId ||
-        actor.sourceRevision === null ||
         candidate.target.characterId !== actor.sourceId ||
-        candidate.target.streamVersion !== actor.sourceRevision
+        candidate.target.streamVersion !== streamVersion
       )
         throw new Error('Spatial Character source pin is stale.')
     } else if (candidate.target.kind !== 'ENCOUNTER_ACTOR')
@@ -125,12 +133,17 @@ export async function persistLiveMovementSpatial(
     throw new Error('Spatial settlement lifecycle transitions are stale.')
 
   for (const [targetActorId, executions] of byTarget) {
-    const actor = actors.get(targetActorId)!
     const before = executions[0]!.targetTransition.before
+    const current = await readLiveMovementTargetState(
+      ctx,
+      state,
+      actors.get(targetActorId)!,
+      before.maximumHitPoints
+    )
     if (
-      actor.currentHitPoints !== before.currentHitPoints ||
-      actor.tempHitPoints !== before.temporaryHitPoints ||
-      actor.maxHitPoints !== before.maximumHitPoints
+      current.currentHitPoints !== before.currentHitPoints ||
+      current.temporaryHitPoints !== before.temporaryHitPoints ||
+      current.maximumHitPoints !== before.maximumHitPoints
     )
       throw new Error('Spatial target state is stale.')
   }
@@ -149,7 +162,7 @@ export async function persistLiveMovementSpatial(
       : left.kind !== 'CHARACTER' && right.kind === 'CHARACTER'
         ? 1
         : left.kind === 'CHARACTER' && right.kind === 'CHARACTER'
-          ? left.sourceId!.localeCompare(right.sourceId!)
+          ? left.sourceId.localeCompare(right.sourceId)
           : leftId.localeCompare(rightId)
   )
   const characterTransitions: Array<{
@@ -181,7 +194,7 @@ export async function persistLiveMovementSpatial(
               sourceCommandId: input.sourceCommandId,
               phase: 'SPATIAL_EFFECT',
               ordinal: step.executions[0]!.ordinal + ordinal,
-              targetCharacterId: actor.sourceId!
+              targetCharacterId: actor.sourceId
             })
           : input.sourceCommandId,
       occurredAt: input.occurredAt,
@@ -203,17 +216,16 @@ export async function persistLiveMovementSpatial(
           }))
         ) ||
       (actor.kind === 'CHARACTER'
-        ? applied.characterStreamVersion !== actor.sourceRevision! + 1 ||
-          applied.updatedActor.sourceRevision !== applied.characterStreamVersion
+        ? applied.characterStreamVersion !== characterBeforeVersions.get(targetActorId)! + 1
         : applied.characterStreamVersion !== null)
     )
       throw new Error('Spatial mechanics settlement differs from prepared evidence.')
     actors.set(targetActorId, applied.updatedActor)
     if (actor.kind === 'CHARACTER')
       characterTransitions.push({
-        characterId: actor.sourceId!,
+        characterId: actor.sourceId,
         targetActorId,
-        beforeStreamVersion: actor.sourceRevision!,
+        beforeStreamVersion: characterBeforeVersions.get(targetActorId)!,
         afterStreamVersion: applied.characterStreamVersion!,
         before,
         after: applied.targetTransition.after

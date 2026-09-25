@@ -170,7 +170,7 @@ describe('native Disarm preparation and settlement transactions', () => {
           }
         })
         expect(after.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
-        expect(actorState(after, base.target.id).sourceRevision).toBe(after.character.streamVersion)
+        expect(actorState(after, base.target.id)).toEqual(actorState(before, base.target.id))
       } else {
         const prior = actorState(before, base.target.id)
         const current = actorState(after, base.target.id)

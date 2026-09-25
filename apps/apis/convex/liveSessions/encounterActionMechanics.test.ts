@@ -20,6 +20,7 @@ function batch(fixture: Fixture): EncounterMechanicsBatchInput {
     sourceCommandId: crypto.randomUUID(),
     commandId: crypto.randomUUID(),
     occurredAt: '2026-09-12T00:00:00.000Z',
+    expectedCharacterStreamVersion: fixture.characterStreamVersion,
     effectiveMaximumHitPoints: actor.maxHitPoints,
     forceVersionAdvance: false,
     applications: [
@@ -53,7 +54,7 @@ function batch(fixture: Fixture): EncounterMechanicsBatchInput {
       beforeRemaining: 2,
       afterRemaining: 1,
       characterId: fixture.character.id,
-      expectedStreamVersion: fixture.actorSourceRevision
+      expectedStreamVersion: fixture.characterStreamVersion
     }
   }
 }
@@ -86,7 +87,7 @@ async function stored(fixture: Fixture) {
 }
 
 describe('applyLiveEncounterMechanicsBatch', () => {
-  it('matches native Character damage and resource output, then commits the mirror and receipt together', async () => {
+  it('matches native Character damage and resource output, then commits the Character and receipt together', async () => {
     const fixture = await setupCharacterRun()
     const input = batch(fixture)
     const before = await stored(fixture)
@@ -112,8 +113,10 @@ describe('applyLiveEncounterMechanicsBatch', () => {
     expect(after.run).toEqual(before.run)
     expect(JSON.parse(after.actor.stateJson)).toEqual(live.updatedActor)
     expect(after.actor.stateChecksum).toBe(checksumCanonicalJson(live.updatedActor))
-    expect(after.character.streamVersion).toBe(fixture.actorSourceRevision + 1)
-    expect(live.updatedActor.sourceRevision).toBe(after.character.streamVersion)
+    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
+    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
+      fixture.actor.currentHitPoints - 1
+    )
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
     expect(after.receipts.at(-1)).toMatchObject({
       id: live.characterReceiptId,
@@ -135,7 +138,6 @@ describe('applyLiveEncounterMechanicsBatch', () => {
     await expect(
       fixture.owner.caller.run((ctx) => applyLiveEncounterMechanicsBatch(ctx, input))
     ).rejects.toThrow(/stale|already exists/)
-    const next = JSON.parse(committed.actor.stateJson) as typeof fixture.actor
     await expect(
       fixture.owner.caller.run((ctx) =>
         applyLiveEncounterMechanicsBatch(ctx, {
@@ -144,7 +146,7 @@ describe('applyLiveEncounterMechanicsBatch', () => {
           forceVersionAdvance: true,
           applications: [],
           characterResourceConsumption: undefined,
-          effectiveMaximumHitPoints: next.maxHitPoints
+          effectiveMaximumHitPoints: committed.character.maximumHitPoints
         })
       )
     ).rejects.toThrow('Encounter Character outcome command already exists.')

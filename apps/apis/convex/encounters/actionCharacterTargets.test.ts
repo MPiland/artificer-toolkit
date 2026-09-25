@@ -344,12 +344,14 @@ describe('native Creature actions against Character targets', () => {
       const after = await records(base)
       if (!before.character || !after.character || !before.target || !after.target)
         throw new Error('Missing Character effect records.')
-      const beforeActor = encounterRunActorStateSchema.parse(JSON.parse(before.target.stateJson))
-      const afterActor = encounterRunActorStateSchema.parse(JSON.parse(after.target.stateJson))
-      expect(afterActor.currentHitPoints).toBe(beforeActor.currentHitPoints)
-      expect(afterActor.conditions).toEqual(beforeActor.conditions)
+      expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
+        JSON.parse(before.character.documentJson).state.hitpoints.current
+      )
+      expect(JSON.parse(after.character.documentJson).state.conditions).toEqual(
+        JSON.parse(before.character.documentJson).state.conditions ?? []
+      )
+      expect(after.target.stateJson).toBe(before.target.stateJson)
       expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
-      expect(afterActor.sourceRevision).toBe(after.character.streamVersion)
       const row = after.receipts.find((receipt) => receipt.commandId === input.commandId)
       if (!row) throw new Error('Missing Character effect receipt.')
       const receipt = storedRuleExecutionResultDtoSchema.parse(JSON.parse(row.resultJson))
@@ -386,7 +388,7 @@ describe('native Creature actions against Character targets', () => {
     }
   }, 30000)
 
-  it('settles Character hit points and its Run mirror once, including replay and source charge', async () => {
+  it('settles Character hit points once without rewriting its Run actor, including replay and source charge', async () => {
     const base = await setup()
     const input = command({
       encounterId: base.run.id,
@@ -405,11 +407,13 @@ describe('native Creature actions against Character targets', () => {
     expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
       JSON.parse(before.character.documentJson).state.hitpoints.current - 1
     )
-    expect(after.target.stateJson).not.toBe(before.target.stateJson)
-    const settledTarget = encounterRunActorStateSchema.parse(JSON.parse(after.target.stateJson))
-    expect(settledTarget.currentHitPoints).toBe(
-      encounterRunActorStateSchema.parse(JSON.parse(before.target.stateJson)).currentHitPoints - 1
-    )
+    expect(after.target.stateJson).toBe(before.target.stateJson)
+    expect(
+      result.projection.actors.find((candidate) => candidate.id === base.target.id)
+    ).toMatchObject({
+      sourceRevision: null,
+      currentHitPoints: JSON.parse(after.character.documentJson).state.hitpoints.current
+    })
     expect(
       featureChargeUsed(
         encounterRunActorStateSchema.parse(JSON.parse(after.source.stateJson)),
@@ -417,7 +421,6 @@ describe('native Creature actions against Character targets', () => {
       )
     ).toBe(1)
     expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
-    expect(settledTarget.sourceRevision).toBe(after.character.streamVersion)
     expect(after.characterReceipts).toHaveLength(1)
     const receipt = after.receipts.find((value) => value.commandId === input.commandId)
     if (!receipt) throw new Error('Missing Creature action receipt.')
@@ -512,29 +515,38 @@ describe('native Creature actions against Character targets', () => {
     )
   }, 30000)
 
-  it('refuses a changed Character source revision without writes', async () => {
+  it('targets the current Character after a Sheet edit made after Run creation', async () => {
     const base = await setup()
-    await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      if (!row) throw new Error('Missing Character.')
-      await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+    const created = (await records(base)).character
+    if (!created) throw new Error('Missing Character.')
+    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: base.character.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 1,
+        expectedVersion: created.streamVersion,
+        commandId: crypto.randomUUID()
+      }
     })
     const before = await records(base)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
-        command: command({
-          encounterId: base.run.id,
-          actorId: base.actor.id,
-          targetActorId: base.target.id,
-          actionId: base.actionId,
-          expectedVersion: base.run.version
-        })
+    if (!before.character) throw new Error('Missing edited Character.')
+    expect(before.character.streamVersion).toBe(created.streamVersion + 1)
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: command({
+        encounterId: base.run.id,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        expectedVersion: base.run.version
       })
-    ).rejects.toThrow(/mirror|stale/)
-    expect(await records(base)).toEqual(before)
+    })
+    const after = await records(base)
+    if (!after.character) throw new Error('Missing settled Character.')
+    expect(after.character.streamVersion).toBe(before.character.streamVersion + 1)
+    expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
+      JSON.parse(before.character.documentJson).state.hitpoints.current - 1
+    )
   }, 30000)
 
   it('rolls back Character, actors, Run, occurrence, receipts, and source charge when the caller throws', async () => {

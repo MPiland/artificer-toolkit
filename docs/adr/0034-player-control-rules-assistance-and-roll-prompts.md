@@ -58,8 +58,12 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
    - A roll belonging to an actor the initiator does not control goes to that actor's controllers
      (the GM for uncontrolled actors).
 4. **Character state is read live.** An Encounter reads a Character's HP and state from the Character
-   at capture time, fenced by the revisions that captures already record. The Run keeps no Character HP
-   or stream-version mirror. The Sheet stays the single writer of Character play state.
+   at capture time, fenced by the revisions that captures already record. The Run keeps no Character HP,
+   maximum, condition or stream-version mirror. The Sheet stays the single writer of Character play state.
+   - Note (2026-09-25): for display, the Character row stores its effective maximum HP, recomputed by the
+     one Character persistence helper on every Character write and on Campaign adjustment, attunement and
+     assignment changes. Rules evaluate the maximum live. A published-content change reaches the stored
+     value on the Character's next write (accepted lag; publish-time recompute is a follow-up).
 5. **Table policy.**
    - Players may open and close unlocked doors; locking stays GM-only.
    - Player rolls default to the table, with a "To GM" option. The GM keeps private and blind rolls and

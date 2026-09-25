@@ -4,17 +4,13 @@ import type { CharacterMechanicsProjection } from '../projections/characterMecha
 import type { ResolvedCampaignCharacterMechanicsProjection } from '../projections/campaignCharacterMechanics.js'
 
 /** Exact server-owned inputs to a System adapter, not a repository or viewer projection. */
-export type InitiativeActorFactSource = {
-  actor: {
-    id: string
-    sourceId: string | null
-    sourceRevision: number | null
-    // Systems validate the pinned snapshot's relevant mechanics before using them.
-    snapshot: unknown
-  }
-} & (
+// Systems validate the pinned snapshot's relevant mechanics before using them.
+type InitiativeRunActor = { id: string; sourceId: string | null; snapshot: unknown }
+
+export type InitiativeActorFactSource =
   | {
       kind: 'CHARACTER'
+      actor: InitiativeRunActor & { sourceId: string }
       characterId: string
       systemId: string
       streamVersion: number
@@ -24,14 +20,15 @@ export type InitiativeActorFactSource = {
     }
   | {
       kind: 'CREATURE'
+      actor: InitiativeRunActor & { sourceRevision: number | null }
       systemId: string
       actorRule: EncounterActorRuleResult
     }
   | {
       kind: 'CUSTOM'
+      actor: InitiativeRunActor & { sourceRevision: number | null }
       systemId: string | null
     }
-)
 
 export type InitiativeFactSources = {
   characterIds: readonly string[]

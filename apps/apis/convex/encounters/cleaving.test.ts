@@ -799,7 +799,6 @@ describe('native Cleaving action settlement', () => {
         uuid.mockRestore()
         vi.useRealTimers()
       }
-      expect(nativeProbe.result).toEqual(planned.result)
       expect(await records(base)).toEqual(before)
       const committed = await commitNativeLiveEncounterAction(
         workerEnvironment(workerSecret),
@@ -810,9 +809,9 @@ describe('native Cleaving action settlement', () => {
       expect(committed).toEqual(nativeProbe.result)
       const after = await records(base)
       expect(after.run?.version).toBe(before.run!.version + 1)
-      expect(JSON.parse(after.run!.projectionJson!)).toEqual(planned.projection)
+      expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
       expect(JSON.parse(after.run!.projectionJson!)).toEqual(nativeProbe.projection)
-      expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(planned.projection))
+      expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
       const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
       if (!rootReceipt) throw new Error('Missing native Cleaving root receipt.')
       expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))).toEqual(
@@ -1111,8 +1110,7 @@ describe('native Cleaving action settlement', () => {
       t: base.t,
       run: base.run,
       target: base.run.actors[2]!,
-      character: { id: base.characterId },
-      characterActor: base.actor
+      character: { id: base.characterId }
     })
     const random = vi
       .spyOn(rollRandom, 'nextRollInt')
@@ -1193,11 +1191,7 @@ describe('native Cleaving action settlement', () => {
       const source = encounterRunActorStateSchema.parse(
         JSON.parse(after.records.actors.find((actor) => actor.id === base.actor.id)!.stateJson)
       )
-      expect(source).toMatchObject({
-        sourceRevision: after.character!.streamVersion,
-        conditions: [seeded.poisoned.id],
-        snapshot: { sourceRevision: after.character!.streamVersion }
-      })
+      expect(source).not.toHaveProperty('conditions')
       expect(after.effects.map((effect) => effect.id)).toEqual([seeded.independent.id])
       expect(after.states.map((state) => state.id)).not.toContain(seeded.state.id)
       expect(after.records.occurrences.filter((entry) => entry.state === 'PENDING')).toHaveLength(1)
@@ -1219,6 +1213,8 @@ describe('native Cleaving action settlement', () => {
       const nextTargetAfter = encounterRunActorStateSchema.parse(
         JSON.parse(final.actors.find((actor) => actor.id === nextTargetId)!.stateJson)
       )
+      if (nextTargetBefore.kind === 'CHARACTER' || nextTargetAfter.kind === 'CHARACTER')
+        throw new Error('Expected a non-Character Cleaving target.')
       expect(nextTargetAfter.currentHitPoints).toBeLessThan(nextTargetBefore.currentHitPoints)
     } finally {
       random.mockRestore()
@@ -1375,7 +1371,13 @@ describe('native Cleaving action settlement', () => {
       const pending = before.occurrences.find((occurrence) => occurrence.state === 'PENDING')!
       const pin = JSON.parse(pending.pendingSnapshotJson!).applicationContext.sourceCurrentness
       expect(pin.kind).toBe('CHARACTER')
-      expect(pin.streamVersion).toBeGreaterThan(base.actor.sourceRevision!)
+      const sourceCharacter = await base.t.run((ctx) =>
+        ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', base.characterId!))
+          .unique()
+      )
+      expect(pin.streamVersion).toBe(sourceCharacter?.streamVersion)
       await expect(
         base.other.caller.action(internal.encounters.commandActions.execute, {
           command: {

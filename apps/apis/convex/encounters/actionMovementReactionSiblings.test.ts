@@ -760,8 +760,6 @@ describe('native sibling movement reaction receipts', () => {
         expect(state.resources).toMatchObject({
           ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
         })
-        if (state.kind === 'CHARACTER')
-          expect(state.sourceRevision).toBe(after.character.streamVersion)
       }
       const beforeMover = before.actors.find((actor) => actor.id === base.mover.id)
       const afterMover = after.actors.find((actor) => actor.id === base.mover.id)
@@ -976,12 +974,10 @@ describe('native sibling movement reaction receipts', () => {
     const beforeDocument = JSON.parse(before.character.documentJson)
     const afterDocument = JSON.parse(after.character.documentJson)
     expect(afterDocument.state.hitpoints.current).toBe(beforeDocument.state.hitpoints.current - 2)
-    const targetRow = after.actors.find((actor) => actor.id === base.target.id)
-    if (!targetRow) throw new Error('Persisted Character target mirror is unavailable.')
-    expect(encounterRunActorStateSchema.parse(JSON.parse(targetRow.stateJson))).toMatchObject({
-      currentHitPoints: afterDocument.state.hitpoints.current,
-      sourceRevision: after.character.streamVersion
-    })
+    const beforeTarget = before.actors.find((actor) => actor.id === base.target.id)
+    const afterTarget = after.actors.find((actor) => actor.id === base.target.id)
+    if (!beforeTarget || !afterTarget) throw new Error('Persisted Character target is unavailable.')
+    expect(afterTarget.stateJson).toBe(beforeTarget.stateJson)
   }, 60000)
 
   it('rolls both sibling settlements and Character streams back when the enclosing transaction fails', async () => {

@@ -1,5 +1,5 @@
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
-import { assertStagedCharacterFactsCurrent } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { assertCharacterFactsBoundToActor } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -30,12 +30,11 @@ export async function loadInitiativeDeclarationSources(
     actors,
     system,
     loadCharacter: (actor) => {
-      if (!actor.sourceId) throw new Error('Character initiative source is incomplete.')
       const staged = stagedMovementTargets?.get(actor.id)
       if (staged) {
         const facts = staged.characterFacts
         if (staged.actor.id !== actor.id) throw new Error('Encounter Character source is stale.')
-        assertStagedCharacterFactsCurrent(
+        assertCharacterFactsBoundToActor(
           facts,
           actor,
           state.gameSystemId,

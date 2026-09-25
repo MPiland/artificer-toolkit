@@ -85,9 +85,17 @@ export async function setupCharacterRun(
     commandId: crypto.randomUUID()
   })
   const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
-  if (!actor || actor.sourceRevision === null)
-    throw new Error('Fixture Character actor is unavailable.')
-  return { ...base, player, owner, campaign, run, actor, actorSourceRevision: actor.sourceRevision }
+  const stored = (await base.readState()).character
+  if (!actor || !stored) throw new Error('Fixture Character actor is unavailable.')
+  return {
+    ...base,
+    player,
+    owner,
+    campaign,
+    run,
+    actor,
+    characterStreamVersion: stored.streamVersion
+  }
 }
 
 /** Declared weapon actions compile only from equipped item facts. */
@@ -96,7 +104,7 @@ export async function equipAllCharacterItems(base: Awaited<ReturnType<typeof set
     id: base.character.id
   })
   if (!sheet) throw new Error('Expected Character Sheet.')
-  let characterVersion = base.actorSourceRevision
+  let characterVersion = base.characterStreamVersion
   for (const item of sheet.inventory.items) {
     await base.player.caller.mutation(api.characters.sheetCommands.execute, {
       id: base.character.id,

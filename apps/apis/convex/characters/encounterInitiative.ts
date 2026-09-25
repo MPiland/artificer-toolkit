@@ -36,15 +36,13 @@ export async function loadCharacterEncounterInitiative(
   const loaded = await loadCharacterSheetFacts(ctx, userId, input.characterId, input.campaignId)
   if (!loaded || loaded.active.id !== input.characterId)
     throw new Error('Character initiative source is unavailable.')
-  if (
-    loaded.active.streamVersion !== input.streamVersion ||
-    loaded.character.systemId !== input.systemId
-  )
+  if (loaded.character.systemId !== input.systemId)
     throw new Error('Character initiative source is stale.')
   const { snapshot, registry, output } = loaded.ruleEvaluation
   if (snapshot.characterId !== input.characterId || snapshot.systemId !== input.systemId)
     throw new Error('Character initiative source identity does not match the actor.')
   return characterEncounterInitiativeResultSchema.parse({
+    streamVersion: loaded.active.streamVersion,
     initiativeActorFacts: toCharacterInitiativeActorFacts({
       snapshot,
       registry,

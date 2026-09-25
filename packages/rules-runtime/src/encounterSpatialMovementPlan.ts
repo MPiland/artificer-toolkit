@@ -98,11 +98,12 @@ export function planNativeSpatialMovementPrefix<
               phase: 'SPATIAL_EFFECT',
               // Preserve first-segment IDs and reserve disjoint ordinals for later segments.
               ordinal: (input.executions[0]?.ordinal ?? 0) + ordinal,
-              targetCharacterId: target.actor.sourceId!
+              targetCharacterId: target.actor.sourceId
             })
           : input.sourceCommandId,
       occurredAt: input.occurredAt,
       applications,
+      expectedCharacterStreamVersion: target.characterFacts?.active.streamVersion ?? null,
       effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
       effectiveScalarValues: target.effectiveScalarValues,
       forceVersionAdvance: target.actor.kind === 'CHARACTER'

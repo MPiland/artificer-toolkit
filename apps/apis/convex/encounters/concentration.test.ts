@@ -2,12 +2,8 @@
 import { expect, it, vi } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   concentrationAction,
@@ -146,13 +142,7 @@ it('does not create a concentration child when finalized applied damage is zero'
       .query('characters')
       .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
       .unique()
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (query) =>
-        query.eq('encounterId', fixture.run.id).eq('id', fixture.target.id)
-      )
-      .unique()
-    if (!characterRow || !actorRow) throw new Error('Concentration target is unavailable.')
+    if (!characterRow) throw new Error('Concentration target is unavailable.')
     const character = characterAuthoredDtoSchema.parse(JSON.parse(characterRow.documentJson))
     const nextCharacter = {
       ...character,
@@ -164,14 +154,6 @@ it('does not create a concentration child when finalized applied damage is zero'
     await ctx.db.patch(characterRow._id, {
       documentJson: canonicalizeRuleDocument(nextCharacter),
       checksum: checksumRuleDocument(nextCharacter)
-    })
-    const actor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(actorRow.stateJson),
-      currentHitPoints: 0
-    })
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
     })
   })
   const before = await concentrationRecords(fixture)

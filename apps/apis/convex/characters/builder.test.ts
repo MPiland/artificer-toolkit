@@ -101,6 +101,7 @@ describe('native Character Builder queries', () => {
         label: active.label,
         documentJson: canonicalizeRuleDocument(active),
         checksum: checksumRuleDocument(active),
+        maximumHitPoints: 0,
         createdAt: baseline,
         updatedAt: baseline
       })

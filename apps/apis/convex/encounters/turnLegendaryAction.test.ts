@@ -655,6 +655,7 @@ describe('native Encounter turn Legendary Actions', () => {
       const acting = encounterRunActorStateSchema.parse(
         JSON.parse(terminal.actors.find((row) => row.id === choice.ownerActorId)!.stateJson)
       )
+      if (acting.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(acting.currentHitPoints).toBe(10)
       for (const input of [advance, option, dice, ...initiativeResponses, rechargeInput])
         await expect(
@@ -755,6 +756,7 @@ describe('native Encounter turn Legendary Actions', () => {
     })
     for (const row of terminal.actors) {
       const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(actor.currentHitPoints).toBe(row.id === expectedOwners[1] ? 10 : 11)
       expect(actor.resources).toMatchObject({
         featureCharges: {
@@ -915,6 +917,7 @@ describe('native Encounter turn Legendary Actions', () => {
     const selectedActor = encounterRunActorStateSchema.parse(
       JSON.parse(terminal.actors.find((row) => row.id === selectedOwner)!.stateJson)
     )
+    if (selectedActor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
     expect(selectedActor.currentHitPoints).toBe(10)
     const enteringActor = encounterRunActorStateSchema.parse(
       JSON.parse(
@@ -1287,6 +1290,7 @@ describe('private DO turn Legendary Action response', () => {
       JSON.parse(after.actors.find((row) => row.id === ownerId)!.stateJson)
     )
     expect(terminal.projection.currentActorId).toBe(ownerId)
+    if (spent.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
     expect(spent.currentHitPoints).toBe(10)
     expect(spent.resources).toMatchObject({
       featureCharges: { [automaticChargedBiteFeatureId]: 0 }

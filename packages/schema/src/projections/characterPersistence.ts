@@ -21,6 +21,12 @@ export const characterStoredRecordSchema = z.strictObject({
   streamVersion: z.number().check(z.int()).check(z.nonnegative()),
   documentJson: z.string(),
   checksum: projectionChecksumSchema,
+  /**
+   * Effective maximum hit points from the Character's own rules evaluation, rewritten by every
+   * Character write (`characters/characterWrites`). Encounter projections display it; rules evaluate
+   * live. Published-content changes reach it on the Character's next write.
+   */
+  maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
   portraitAssetId: z.optional(uuid),
   portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
   sheetState: z.optional(

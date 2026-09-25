@@ -252,6 +252,10 @@ export async function verifyCampaignGmState(input: {
     playerScoped.overview.maxHitPoints + 4
   )
   assert.equal(
+    characterRow(current.personal, input.characterId).maximumHitPoints,
+    scopedWithInitialOverlay.overview.maxHitPoints
+  )
+  assert.equal(
     scopedWithInitialOverlay.overview.abilities.find((entry) => entry.ability === 'STRENGTH')
       ?.score,
     21
@@ -360,6 +364,10 @@ export async function verifyCampaignGmState(input: {
   assert.equal(
     scopedWithUpdatedOverlay.overview.maxHitPoints,
     playerScoped.overview.maxHitPoints + 6
+  )
+  assert.equal(
+    characterRow(current.personal, input.characterId).maximumHitPoints,
+    scopedWithUpdatedOverlay.overview.maxHitPoints
   )
   const personalWithUpdatedOverlay = await input.player.query(api.characters.sheet.get, {
     id: input.characterId
@@ -593,6 +601,11 @@ async function assertCommit(input: {
   assert.notEqual(afterMarker.revision, beforeMarker.revision)
   expectedPersonal.sceneVisionRevisions = expectedPersonal.sceneVisionRevisions.map((row) =>
     row._id === beforeMarker._id ? afterMarker : row
+  )
+  // Campaign overlays feed the Character's evaluation; only its stored maximum may move.
+  const { maximumHitPoints } = characterRow(after.personal, input.characterId)
+  expectedPersonal.characters = expectedPersonal.characters.map((row) =>
+    row.id === input.characterId ? { ...row, maximumHitPoints } : row
   )
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
@@ -856,6 +869,12 @@ function marker(tables: TableMap, characterId: string): Record<string, unknown> 
   const rows = (tables.sceneVisionRevisions ?? []).filter(
     (row) => row.scope === 'CHARACTER' && row.id === characterId
   )
+  assert.equal(rows.length, 1)
+  return rows[0]!
+}
+
+function characterRow(tables: TableMap, characterId: string): Record<string, unknown> {
+  const rows = (tables.characters ?? []).filter((row) => row.id === characterId)
   assert.equal(rows.length, 1)
   return rows[0]!
 }

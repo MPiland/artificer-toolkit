@@ -48,7 +48,11 @@ export async function nativeCleavingCandidates(
       target.actor.kind === 'CHARACTER'
         ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
         : snapshotStatBlock(target.actor)?.armorClass
-    if (armorClass == null || target.actor.sourceRevision === null) continue
+    if (
+      armorClass == null ||
+      (target.actor.kind === 'CREATURE' && target.actor.sourceRevision === null)
+    )
+      continue
     const geometry = await readNativeActionSceneContext(
       ctx,
       input.state,

@@ -1,6 +1,5 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmActorDtoSchema,
   encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
@@ -23,11 +22,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import * as z from 'zod/mini'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { snapshotBlueprintEnemies } from './blueprintSnapshots'
-import { readRunActors, readRunProjection, readRunState } from './documents'
+import { readEncounterCharacterStates } from './characterStates'
+import { readEncounterActorCore, readRunActors, readRunProjection, readRunState } from './documents'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -35,19 +34,10 @@ import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntr
 
 type ReinforceCommand = Extract<EncounterExecuteInput['command'], { type: 'REINFORCE' }>
 
-const coreFields = z.omit(encounterGmActorDtoSchema, {
-  statBlock: true,
-  features: true,
-  healthBand: true
-})
-const actorCore = coreFields.clone({
-  ...coreFields._zod.def,
-  catchall: undefined
-})
-
 function sameActorCore(left: unknown, right: unknown) {
   return (
-    checksumCanonicalJson(actorCore.parse(left)) === checksumCanonicalJson(actorCore.parse(right))
+    checksumCanonicalJson(readEncounterActorCore(left)) ===
+    checksumCanonicalJson(readEncounterActorCore(right))
   )
 }
 
@@ -275,7 +265,8 @@ export async function reinforceEncounterActors(
         actors: nextActors,
         initiativeRoundState: initiative.state
       },
-      output
+      output,
+      await readEncounterCharacterStates(ctx, nextState, nextActors)
     )
   )
   const projectedActor = nextProjection.actors.find((candidate) => candidate.id === actor.id)

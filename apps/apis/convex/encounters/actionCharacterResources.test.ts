@@ -24,6 +24,7 @@ function command(
     commandId: crypto.randomUUID(),
     occurredAt: '2026-09-12T00:00:00.000Z',
     effectiveMaximumHitPoints: fixture.actor.maxHitPoints,
+    expectedCharacterStreamVersion: fixture.characterStreamVersion,
     forceVersionAdvance: false
   }
 }
@@ -269,7 +270,7 @@ describe('native Character action resource persistence', () => {
         applications: [],
         characterResourceConsumption: resourceConsumption({
           characterId: fixture.character.id,
-          expectedStreamVersion: fixture.actorSourceRevision,
+          expectedStreamVersion: fixture.characterStreamVersion,
           usageId: crypto.randomUUID()
         })
       })
@@ -288,8 +289,7 @@ describe('native Character action resource persistence', () => {
     )
     expect(state.resourceUsage).toHaveLength(2)
     expect(result.characterReceiptId).toBeNull()
-    expect(after.character.streamVersion).toBe(fixture.actorSourceRevision + 1)
-    expect(JSON.parse(after.actor.stateJson).sourceRevision).toBe(after.character.streamVersion)
+    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
   })
 
   it('commits hit point and resource state in one Character stream advance', async () => {
@@ -307,7 +307,7 @@ describe('native Character action resource persistence', () => {
         ],
         characterResourceConsumption: resourceConsumption({
           characterId: fixture.character.id,
-          expectedStreamVersion: fixture.actorSourceRevision,
+          expectedStreamVersion: fixture.characterStreamVersion,
           usageId: crypto.randomUUID()
         })
       })
@@ -315,12 +315,11 @@ describe('native Character action resource persistence', () => {
     const after = await read(fixture)
     if (!after.character || !after.actor || !after.character.sheetState)
       throw new Error('Missing persisted Character state.')
-    expect(after.character.streamVersion).toBe(fixture.actorSourceRevision + 1)
+    expect(after.character.streamVersion).toBe(fixture.characterStreamVersion + 1)
     expect(result.characterStreamVersion).toBe(after.character.streamVersion)
     expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
       fixture.actor.currentHitPoints - 1
     )
-    expect(JSON.parse(after.actor.stateJson).sourceRevision).toBe(after.character.streamVersion)
     expect(
       characterSheetStateSchema.parse(JSON.parse(after.character.sheetState.documentJson))
         .resourceUsage
@@ -339,7 +338,7 @@ describe('native Character action resource persistence', () => {
           characterResourceConsumption: {
             ...resourceConsumption({
               characterId: fixture.character.id,
-              expectedStreamVersion: fixture.actorSourceRevision,
+              expectedStreamVersion: fixture.characterStreamVersion,
               usageId: crypto.randomUUID()
             }),
             beforeUsed: 1,
@@ -356,7 +355,7 @@ describe('native Character action resource persistence', () => {
           applications: [],
           characterResourceConsumption: resourceConsumption({
             characterId: fixture.character.id,
-            expectedStreamVersion: fixture.actorSourceRevision + 1,
+            expectedStreamVersion: fixture.characterStreamVersion + 1,
             usageId: crypto.randomUUID()
           })
         })
@@ -375,7 +374,7 @@ describe('native Character action resource persistence', () => {
           applications: [],
           characterResourceConsumption: resourceConsumption({
             characterId: fixture.character.id,
-            expectedStreamVersion: fixture.actorSourceRevision,
+            expectedStreamVersion: fixture.characterStreamVersion,
             usageId: crypto.randomUUID()
           })
         })

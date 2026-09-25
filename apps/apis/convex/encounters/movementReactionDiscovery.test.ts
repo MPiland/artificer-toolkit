@@ -200,7 +200,7 @@ describe('native movement reaction discovery', () => {
     ).rejects.toThrow('no longer eligible')
   }, 30000)
 
-  it('loads compiled current Character reaction sources and refuses a stale Character mirror', async () => {
+  it('loads compiled current Character reaction sources, including Sheet changes after Run creation', async () => {
     const base = await setupCharacterRun()
     const source = await base.owner.caller.run(
       async (ctx) =>
@@ -216,7 +216,7 @@ describe('native movement reaction discovery', () => {
     if (!source) throw new Error('Expected current Character reaction source.')
     expect(source).toMatchObject({
       id: base.character.id,
-      streamVersion: base.actorSourceRevision,
+      streamVersion: base.characterStreamVersion,
       actor: { id: base.actor.id }
     })
     const candidates = source.mechanics.rulePolicyInput.actionCandidates
@@ -235,15 +235,21 @@ describe('native movement reaction discovery', () => {
       if (!row) throw new Error('Missing fixture Character.')
       await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
     })
-    await expect(
-      base.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, {
-          encounterId: base.run.id,
-          expectedEncounterVersion: base.run.version,
-          targetActorIds: [base.actor.id],
-          includeReactionSources: true
-        })
-      )
-    ).rejects.toThrow('mirror is stale')
+    const current = await base.owner.caller.run(
+      async (ctx) =>
+        (
+          await loadMovementTargets(ctx, {
+            encounterId: base.run.id,
+            expectedEncounterVersion: base.run.version,
+            targetActorIds: [base.actor.id],
+            includeReactionSources: true
+          })
+        ).get(base.actor.id)?.characterReactionSource
+    )
+    expect(current).toMatchObject({
+      id: base.character.id,
+      streamVersion: base.characterStreamVersion + 1,
+      actor: { id: base.actor.id }
+    })
   }, 30000)
 })

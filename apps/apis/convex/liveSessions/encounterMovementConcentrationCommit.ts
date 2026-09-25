@@ -19,6 +19,7 @@ import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
 import {
   movementPersistedTransitionState,
+  readLiveCharacterStreamVersion,
   readLiveMovementTargetState
 } from './encounterMovementTargetState'
 
@@ -65,9 +66,9 @@ export async function persistLiveMovementConcentration(
     target.systemId !== state.gameSystemId ||
     !state.actorIds.includes(target.id) ||
     target.kind !== 'CHARACTER' ||
-    !target.sourceId ||
     !input.authorizedCharacterIds.has(target.sourceId) ||
-    target.sourceRevision !== output.targetCharacter.streamVersion
+    (await readLiveCharacterStreamVersion(ctx, state, target.sourceId)) !==
+      output.targetCharacter.streamVersion
   )
     throw new Error('Live Session movement Concentration target changed.')
   const store = createActiveRuleEffectStore(ctx)
@@ -99,7 +100,9 @@ export async function persistLiveMovementConcentration(
       throw new Error('Live Session movement Concentration owner projection changed.')
     if (
       checksumCanonicalJson(movementPersistedTransitionState(transition.before)) !==
-      checksumCanonicalJson(await readLiveMovementTargetState(ctx, state, actor))
+      checksumCanonicalJson(
+        await readLiveMovementTargetState(ctx, state, actor, transition.before.maximumHitPoints)
+      )
     )
       throw new Error('Live Session movement Concentration owner projection changed.')
   }
@@ -120,12 +123,16 @@ export async function persistLiveMovementConcentration(
     )
     if (
       !actor ||
-      (characterVersion && actor.sourceRevision !== characterVersion.afterStreamVersion)
+      (characterVersion &&
+        (await readLiveCharacterStreamVersion(ctx, state, characterVersion.characterId)) !==
+          characterVersion.afterStreamVersion)
     )
       throw new Error('Live Session movement Concentration cleanup differs from its plan.')
     if (
       checksumCanonicalJson(movementPersistedTransitionState(transition.after)) !==
-      checksumCanonicalJson(await readLiveMovementTargetState(ctx, state, actor))
+      checksumCanonicalJson(
+        await readLiveMovementTargetState(ctx, state, actor, transition.after.maximumHitPoints)
+      )
     )
       throw new Error('Live Session movement Concentration cleanup differs from its plan.')
   }

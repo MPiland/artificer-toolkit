@@ -3,7 +3,10 @@ import { discoverCharacterActionCapabilities } from './characterActionCapability
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunCharacterActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderContext } from './character/builderTypes.js'
 import type { CharacterSheetCampaignContext } from './character/campaignCharacterSheet.js'
@@ -98,22 +101,19 @@ export function nativeCharacterMaximumHitPoints(
   )
 }
 
-/** Staged Character facts must match the actor's exact source revision and the Run's System. */
-export function assertStagedCharacterFactsCurrent<
-  TFacts extends { active: { id: string; streamVersion: number }; character: { systemId: string } }
+/**
+ * Staged Character facts must belong to the actor's Character and the Run's System. Their stream
+ * version is the Character currentness; callers fence it through their read or capture revisions.
+ */
+export function assertCharacterFactsBoundToActor<
+  TFacts extends { active: { id: string }; character: { systemId: string } }
 >(
   facts: TFacts | null | undefined,
-  actor: Pick<EncounterRunActorState, 'sourceId' | 'sourceRevision'>,
+  actor: Pick<EncounterRunCharacterActorState, 'sourceId'>,
   gameSystemId: string,
   message: string
 ): asserts facts is TFacts {
-  if (
-    !facts ||
-    !actor.sourceId ||
-    facts.active.id !== actor.sourceId ||
-    facts.active.streamVersion !== actor.sourceRevision ||
-    facts.character.systemId !== gameSystemId
-  )
+  if (!facts || facts.active.id !== actor.sourceId || facts.character.systemId !== gameSystemId)
     throw new Error(message)
 }
 
@@ -130,18 +130,12 @@ export function buildMovementTarget<
 }): MovementTarget<TCharacterFacts> {
   const { actor, activeEffects, gameSystemId, campaignId, characterFacts } = input
   if (actor.kind === 'CHARACTER') {
-    if (!characterFacts) throw new Error('Encounter Character source is unavailable.')
-    assertStagedCharacterFactsCurrent(
+    assertCharacterFactsBoundToActor(
       characterFacts,
       actor,
       gameSystemId,
-      'Encounter Character state mirror is stale.'
+      'Encounter Character source is unavailable.'
     )
-    if (
-      actor.currentHitPoints !== characterFacts.character.state.hitpoints.current ||
-      actor.tempHitPoints !== (characterFacts.character.state.hitpoints.temp ?? 0)
-    )
-      throw new Error('Encounter Character state mirror is stale.')
     const conditions = characterFacts.character.state.conditions ?? []
     const conditionIds = [
       ...new Set([
@@ -194,15 +188,13 @@ export function buildMovementTarget<
         )
       : baseRulePolicyOutput
     const effectiveMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
-    if (actor.maxHitPoints !== effectiveMaximumHitPoints)
-      throw new Error('Encounter Character maximum hit points are stale.')
     return {
       actor,
       activeEffects,
       characterFacts,
       state: {
-        current: actor.currentHitPoints,
-        temporary: actor.tempHitPoints,
+        current: characterFacts.character.state.hitpoints.current,
+        temporary: characterFacts.character.state.hitpoints.temp ?? 0,
         conditions: conditionIds
       },
       initialConditionRows: null,
@@ -214,7 +206,7 @@ export function buildMovementTarget<
       ...(input.includeReactionSources
         ? {
             characterReactionSource: {
-              id: actor.sourceId!,
+              id: actor.sourceId,
               systemId: characterFacts.character.systemId,
               streamVersion: characterFacts.active.streamVersion,
               actor,

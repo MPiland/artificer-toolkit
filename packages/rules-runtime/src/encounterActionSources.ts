@@ -51,10 +51,8 @@ export function resolveEncounterActionSource(
   if (actor.kind === 'CHARACTER') {
     const character = input.characterSource
     if (
-      !actor.sourceId ||
       !character ||
       actor.sourceId !== character.id ||
-      actor.sourceRevision !== character.streamVersion ||
       actor.systemId !== input.gameSystemId ||
       character.entry.actionId !== input.actionId ||
       character.entry.effectId !== character.candidate.effectId

@@ -536,14 +536,16 @@ describe('native public Disarm commands', () => {
         assisted.owner.caller.run(async (ctx) => {
           const row = staged.actors.find((actor) => actor.id === actorId)!
           const state = actorState(staged, actorId)
-          const changed = {
-            ...state,
-            currentHitPoints: (state.currentHitPoints ?? 1) - 1
+          if (state.kind === 'CHARACTER') {
+            const character = staged.character!
+            await ctx.db.patch(character._id, { streamVersion: character.streamVersion + 1 })
+          } else {
+            const changed = { ...state, currentHitPoints: state.currentHitPoints - 1 }
+            await ctx.db.patch(row._id, {
+              stateJson: JSON.stringify(changed),
+              stateChecksum: checksumCanonicalJson(changed)
+            })
           }
-          await ctx.db.patch(row._id, {
-            stateJson: JSON.stringify(changed),
-            stateChecksum: checksumCanonicalJson(changed)
-          })
           await expect(
             ctx.runMutation(internal.encounters.commands.execute, {
               command: response

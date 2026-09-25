@@ -372,15 +372,14 @@ export function movementReactionSettlement<
         ]
       : []),
     ...(prepared.prepared.target.kind === 'CHARACTER' &&
-    prepared.prepared.target.sourceId !== null &&
     settled.mechanics.characterStreamVersion !== null
       ? [
           {
             characterId: prepared.prepared.target.sourceId,
             beforeStreamVersion:
-              prepared.prepared.target.sourceRevision ??
+              prepared.prepared.targetFacts.characterFacts?.active.streamVersion ??
               (() => {
-                throw new Error('Encounter Character reaction target is stale.')
+                throw new Error('Encounter Character reaction target is unavailable.')
               })(),
             afterStreamVersion: settled.mechanics.characterStreamVersion
           }
@@ -405,7 +404,7 @@ export function movementReactionSettlement<
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {}),
     application,
     ...(prepared.prepared.target.kind === 'CHARACTER'
-      ? { targetCharacterId: prepared.prepared.target.sourceId! }
+      ? { targetCharacterId: prepared.prepared.target.sourceId }
       : {}),
     ...(maintenance ? { maintenanceOwnerTransitions: maintenance.ownerTransitions } : {}),
     legendaryResistance: execution.resistance?.legendaryResistance ?? null,

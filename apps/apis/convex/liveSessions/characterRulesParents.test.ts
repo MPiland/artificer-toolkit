@@ -44,8 +44,7 @@ async function setup() {
     authorityEpoch,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER',
-    characterId: fixture.character.id,
-    expectedStreamVersion: fixture.actorSourceRevision
+    characterId: fixture.character.id
   }
   const secret = 'private-character-parent-test-secret-at-least-32-bytes'
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)

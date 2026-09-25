@@ -203,6 +203,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       throw new Error('Missing stored Encounter actors.')
     const beforeState = encounterRunActorStateSchema.parse(JSON.parse(beforeCreature.stateJson))
     const afterState = encounterRunActorStateSchema.parse(JSON.parse(afterCreature.stateJson))
+    if (beforeState.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
     if (
       typeof beforeState.snapshot !== 'object' ||
       beforeState.snapshot === null ||

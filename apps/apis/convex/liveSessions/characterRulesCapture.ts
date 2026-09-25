@@ -55,12 +55,8 @@ export async function readCharacterRulesCapture(
     : null
   if (movementAdmission && input.movement) {
     const actor = await readRunActor(ctx, movementAdmission.state, input.movement.actorId)
-    if (
-      actor.kind !== 'CHARACTER' ||
-      actor.sourceId !== input.characterId ||
-      actor.sourceRevision !== input.expectedStreamVersion
-    )
-      throw new Error('Movement Character source is unavailable or stale.')
+    if (actor.kind !== 'CHARACTER' || actor.sourceId !== input.characterId)
+      throw new Error('Movement Character source is unavailable.')
   }
   const concentrationAdmission = input.concentrationResponse
     ? await readLiveConcentrationResponseAdmission(ctx, {
@@ -98,13 +94,10 @@ export async function readCharacterRulesCapture(
       turnAdmission.state.id !== input.turnResponse.encounterId.toLowerCase() ||
       turnAdmission.state.version !== input.turnResponse.expectedVersion ||
       !(await readRunActors(ctx, turnAdmission.state)).some(
-        (actor) =>
-          actor.kind === 'CHARACTER' &&
-          actor.sourceId === input.characterId &&
-          actor.sourceRevision === input.expectedStreamVersion
+        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
       )
     )
-      throw new Error('Turn Character source is unavailable or stale.')
+      throw new Error('Turn Character source is unavailable.')
   }
   const { campaign, membership } =
     movementAdmission ?? (await requireCampaignAuthority(ctx, input.campaignId, userId))
@@ -133,8 +126,6 @@ export async function readCharacterRulesCapture(
     throw new Error('Stored Character draft ownership mismatch.')
   if (active.status !== 'ACTIVE')
     throw new Error('Character requires Builder repair before the Sheet can be read.')
-  if (active.streamVersion !== input.expectedStreamVersion)
-    throw new Error('Live Session Character stream version is stale.')
   if (active.systemId !== campaign.gameSystemId)
     throw new Error('Stored Campaign Character System mismatch.')
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: active.id })

@@ -116,9 +116,7 @@ export async function readNativeDisarmReplay(
   const target = result.projection.actors.find((actor) => actor.id === command.targetActorId)
   if (
     application.stateTransition.kind === 'CHARACTER_ITEM_USE_STATE' &&
-    (target?.kind !== 'CHARACTER' ||
-      target.sourceId !== application.stateTransition.characterId ||
-      target.sourceRevision !== application.stateTransition.afterStreamVersion)
+    (target?.kind !== 'CHARACTER' || target.sourceId !== application.stateTransition.characterId)
   )
     throw new Error('Stored Disarm Character transition mismatch.')
   return { result, payload, occurrence }

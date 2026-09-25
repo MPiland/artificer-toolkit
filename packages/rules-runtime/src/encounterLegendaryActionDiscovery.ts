@@ -92,7 +92,7 @@ function actorCurrentnessChecksum(actor: EncounterLegendaryActionActor): string 
   return checksumRuleDocument({
     id: actor.id,
     sourceId: actor.sourceId,
-    sourceRevision: actor.sourceRevision,
+    sourceRevision: actor.kind === 'CHARACTER' ? null : actor.sourceRevision,
     systemId: actor.systemId,
     snapshot: actor.snapshot,
     resources: actor.resources

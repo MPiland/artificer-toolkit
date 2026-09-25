@@ -2208,9 +2208,9 @@ describe('native Encounter Run commands', () => {
         .unique()
       if (!row) throw new Error('Missing Character actor.')
       const state = JSON.parse(row.stateJson) as {
-        snapshot: { sourceRevision: number }
+        snapshot: { id: string }
       }
-      state.snapshot.sourceRevision += 1
+      state.snapshot.id = crypto.randomUUID()
       await ctx.db.patch(row._id, {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)

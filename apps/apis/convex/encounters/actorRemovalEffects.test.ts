@@ -18,7 +18,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 
-import { readRunActors, readRunState } from './documents'
+import { readRunState } from './documents'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 
@@ -161,6 +161,9 @@ describe('native actor maintained-effect cleanup', () => {
         commandId: crypto.randomUUID()
       }
       const removed = await fixture.owner.caller.mutation(execute, { command })
+      expect(
+        removed.projection.actors.find((actor) => actor.id === fixture.actor.id)
+      ).toMatchObject({ sourceRevision: null, currentHitPoints: fixture.actor.currentHitPoints })
       const result = await fixture.t.run(async (ctx) => {
         const receipt = await ctx.db
           .query('encounterRuleReceipts')
@@ -169,21 +172,6 @@ describe('native actor maintained-effect cleanup', () => {
           )
           .unique()
         if (!receipt) throw new Error('Missing maintenance receipt')
-        const run = await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', state.id))
-          .unique()
-        if (!run) throw new Error('Missing Run')
-        const mirror = (await readRunActors(ctx, readRunState(run))).find(
-          (actor) => actor.id === fixture.actor.id
-        )!
-        expect(mirror.sourceRevision).toBe(before.character!.streamVersion + 1)
-        expect(mirror.snapshot).toMatchObject({
-          sourceRevision: before.character!.streamVersion + 1
-        })
-        expect(
-          removed.projection.actors.find((actor) => actor.id === fixture.actor.id)!.sourceRevision
-        ).toBe(mirror.sourceRevision)
         return maintenanceCompleteRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
       })
       expect(result).toMatchObject({
@@ -304,7 +292,7 @@ describe('native actor maintained-effect cleanup', () => {
           contributorChecksum: checksum
         },
         targetCharacter: {
-          streamVersion: target.sourceRevision,
+          streamVersion: fixture.characterStreamVersion,
           baseProjectionChecksum: checksum,
           campaignOverlayChecksum: checksum,
           mechanicalContextChecksum: checksum

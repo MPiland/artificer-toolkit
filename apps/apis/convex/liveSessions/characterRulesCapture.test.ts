@@ -78,7 +78,6 @@ async function setup() {
     expectedUserId: base.other.userId,
     expectedRole: 'OWNER',
     characterId: base.character.id,
-    expectedStreamVersion: stored.streamVersion,
     request: { kind: 'INPUTS' }
   }
   return { ...base, campaign, stored, input, assignmentId }
@@ -160,12 +159,6 @@ it('captures the assigned player Character stored inputs for the GM and rejects 
   await expect(
     base.other.caller.query(capture, { ...base.input, authorityEpoch: crypto.randomUUID() })
   ).rejects.toThrow('stale')
-  await expect(
-    base.other.caller.query(capture, {
-      ...base.input,
-      expectedStreamVersion: base.stored.streamVersion + 1
-    })
-  ).rejects.toThrow('stream version')
   await base.t.run((ctx) => ctx.db.delete(base.assignmentId))
   await expect(base.other.caller.query(capture, base.input)).rejects.toThrow('Assigned Character')
 })

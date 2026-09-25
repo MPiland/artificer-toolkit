@@ -57,6 +57,13 @@ Encounter coordinators still evaluate inside Convex. Any authority-transaction f
 exact retry returns the stored receipt without rerunning randomness, rereading current authored
 definitions, or applying state twice.
 
+Encounter rules read Character state live ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)
+decision 4): hit points, conditions and the effective maximum come from the current Character's
+evaluation, never from the Run. The Character row also stores its effective maximum for display
+(see [persistence](persistence.md#character-stored-effective-maximum-hit-points--local-implementation));
+rules never read it. Known lag: a published-content change reaches that stored value on the
+Character's next write; a publish-time recompute is a follow-up.
+
 ## Initiative and live delivery
 
 Encounter initiative, active reordering, actor removal, and reinforcement timing are application
@@ -88,7 +95,8 @@ The current loader still returns an assembled context, so it is not a raw-docume
 The private `liveSessionCharacterRules` contract now supplies stored Character/Sheet/System/Campaign
 inputs, authorized source indexes and paged publication DTOs to Worker `nativeCharacterRules`.
 Convex `liveSessions/characterRulesCapture` requires the authenticated GM, current DO epoch, open
-Session, exact assignment and Character stream version; source access remains the Character owner's.
+Session and exact assignment and returns the current Character stream version under the CHARACTER
+revision fence; source access remains the Character owner's.
 It imports neither context preparation nor rules evaluation. The Worker reuses the same context,
 active Builder catalogue and Sheet preparation functions, without serializing database contexts or Maps.
 This preparation function is implemented separately from the still-incomplete live command/commit route.

@@ -72,14 +72,15 @@ const rawResolutionSchema = z.discriminatedUnion('kind', [
 
 type TargetState = { current: number; temporary: number; conditions: string[] }
 export type SpatialMovementTarget = {
-  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId' | 'maxHitPoints'>
+  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId'>
   character: {
     id: string
     streamVersion: number
-    maximumHitPoints: number
     projectionChecksum: string
     mechanicalContextChecksum: string
   } | null
+  /** The target's effective maximum: Run-owned for creatures, live-evaluated for Characters. */
+  maximumHitPoints: number
   state: TargetState
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
@@ -1291,7 +1292,7 @@ function executionInput(input: {
     targetActorId: input.target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.character?.maximumHitPoints ?? input.target.actor.maxHitPoints,
+    maximumHitPoints: input.target.maximumHitPoints,
     targetScalarValues: input.target.scalarValues,
     targetConditionIds: input.state.conditions,
     targetDerivedFacts: input.target.targetDerivedFacts,
@@ -1314,7 +1315,7 @@ function pendingCandidate(input: {
     targetActorId: input.target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.character?.maximumHitPoints ?? input.target.actor.maxHitPoints,
+    maximumHitPoints: input.target.maximumHitPoints,
     conditionIds: input.state.conditions,
     scalarValues: input.target.scalarValues
   })
@@ -1363,7 +1364,7 @@ function completeExecution(input: {
     targetActorId: input.target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.character?.maximumHitPoints ?? input.target.actor.maxHitPoints,
+    maximumHitPoints: input.target.maximumHitPoints,
     conditionIds: input.state.conditions,
     scalarValues: input.target.scalarValues,
     applications: input.result.applications

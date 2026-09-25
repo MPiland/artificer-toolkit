@@ -2,6 +2,7 @@ import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/ini
 import type { CharacterEncounterInitiativeResult } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import type {
   EncounterRunActorState,
+  EncounterRunCharacterActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
@@ -28,9 +29,8 @@ function requireActorSources(state: EncounterRunState, actors: readonly Encounte
       throw new Error('Encounter initiative actor identity does not match the staged Run.')
     }
     if (
-      actor.kind === 'CUSTOM'
-        ? actor.sourceId !== null || actor.sourceRevision !== null
-        : actor.sourceId === null || actor.sourceRevision === null
+      (actor.kind === 'CUSTOM' && (actor.sourceId !== null || actor.sourceRevision !== null)) ||
+      (actor.kind === 'CREATURE' && (actor.sourceId === null || actor.sourceRevision === null))
     ) {
       throw new Error('Encounter initiative actor source revision is incomplete.')
     }
@@ -41,7 +41,7 @@ export async function prepareEncounterInitiativeSources(input: {
   state: EncounterRunState
   campaignId: string
   actors: readonly EncounterRunActorState[]
-  loadCharacter(actor: EncounterRunActorState): Promise<CharacterEncounterInitiativeResult>
+  loadCharacter(actor: EncounterRunCharacterActorState): Promise<CharacterEncounterInitiativeResult>
 }): Promise<InitiativeFactSources> {
   const { state, actors } = input
   if (input.campaignId !== state.campaignId)
@@ -53,9 +53,8 @@ export async function prepareEncounterInitiativeSources(input: {
   const sources: InitiativeFactSources['actors'][number][] = []
   const nonCharacters = actors.filter((actor) => actor.kind !== 'CHARACTER')
 
-  for (const actor of actors.filter((candidate) => candidate.kind === 'CHARACTER')) {
-    if (!actor.sourceId || actor.sourceRevision === null)
-      throw new Error('Character initiative source is incomplete.')
+  for (const actor of actors) {
+    if (actor.kind !== 'CHARACTER') continue
     const loaded = await input.loadCharacter(actor)
     characterIds.push(actor.sourceId)
     sources.push({
@@ -63,7 +62,7 @@ export async function prepareEncounterInitiativeSources(input: {
       actor,
       characterId: actor.sourceId,
       systemId: state.gameSystemId,
-      streamVersion: actor.sourceRevision,
+      streamVersion: loaded.streamVersion,
       mechanics: {
         initiativeActorFacts: loaded.initiativeActorFacts
       },

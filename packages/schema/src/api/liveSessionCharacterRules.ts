@@ -45,7 +45,6 @@ export const liveSessionCharacterRulesInputSchema = z.extend(liveSessionBootstra
     z.extend(liveSessionMovementCaptureScopeSchema, { actorId: postgresUuidSchema })
   ),
   characterId: postgresUuidSchema,
-  expectedStreamVersion: z.number().check(z.int()).check(z.nonnegative()),
   request: liveSessionCharacterRulesRequestSchema
 })
 

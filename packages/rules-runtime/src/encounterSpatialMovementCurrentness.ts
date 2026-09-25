@@ -5,7 +5,12 @@ import type { MovementTarget } from './encounterMovementTargets.js'
 
 type SpatialCurrentnessTarget = Pick<
   MovementTarget,
-  'actor' | 'state' | 'effectiveMaximumHitPoints' | 'effectiveScalarValues' | 'characterCurrentness'
+  | 'actor'
+  | 'state'
+  | 'effectiveMaximumHitPoints'
+  | 'effectiveScalarValues'
+  | 'characterCurrentness'
+  | 'characterFacts'
 >
 
 export function checksumSpatialCurrentness(input: {
@@ -54,10 +59,10 @@ export function projectSpatialMovementCandidates(input: {
         after.actor.kind !== 'CHARACTER' ||
         !before.characterCurrentness ||
         !after.characterCurrentness ||
-        !after.actor.sourceId ||
-        after.actor.sourceRevision === null ||
+        !before.characterFacts ||
+        !after.characterFacts ||
         candidate.target.characterId !== before.actor.sourceId ||
-        candidate.target.streamVersion !== before.actor.sourceRevision ||
+        candidate.target.streamVersion !== before.characterFacts.active.streamVersion ||
         candidate.target.projectionChecksum !== before.characterCurrentness.projectionChecksum ||
         candidate.target.mechanicalContextChecksum !==
           before.characterCurrentness.mechanicalContextChecksum
@@ -68,7 +73,7 @@ export function projectSpatialMovementCandidates(input: {
         target: {
           kind: 'CHARACTER' as const,
           characterId: after.actor.sourceId,
-          streamVersion: after.actor.sourceRevision,
+          streamVersion: after.characterFacts.active.streamVersion,
           ...after.characterCurrentness,
           targetStateChecksum
         }

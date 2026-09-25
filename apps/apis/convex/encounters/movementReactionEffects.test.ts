@@ -98,6 +98,12 @@ function resolution(
   }
 }
 
+function moverConditionIds(stateJson: string) {
+  const actor = encounterRunActorStateSchema.parse(JSON.parse(stateJson))
+  if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character movement target.')
+  return readEncounterActorConditionState(actor.conditions).ids
+}
+
 function diceResponse(encounterId: string, input: unknown, face: number): EncounterExecuteInput {
   const result = encounterCommandResultDtoSchema.parse(input)
   const pending = result.occurrence?.pending
@@ -139,11 +145,7 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
     (entry) => entry.id === base.mover.id
   )
   if (!actor) throw new Error('Movement reaction target missing.')
-  expect(
-    readEncounterActorConditionState(
-      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).conditions
-    ).ids
-  ).not.toEqual([])
+  expect(moverConditionIds(actor.stateJson)).not.toEqual([])
   expect(before.actors).not.toEqual((await reactionRecords(base.t, base.run.id)).actors)
 }, 30_000)
 
@@ -286,11 +288,7 @@ it('keeps an Assisted reaction inert until entered dice, then replays one create
         (actor) => actor.id === base.mover.id
       )
       if (!target) throw new Error('Expiry target actor missing.')
-      expect(
-        readEncounterActorConditionState(
-          encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).conditions
-        ).ids
-      ).toContain(frightened.id)
+      expect(moverConditionIds(target.stateJson)).toContain(frightened.id)
     }
   }
   expect(targetTurns).toBe(2)
@@ -299,9 +297,5 @@ it('keeps an Assisted reaction inert until entered dice, then replays one create
     (actor) => actor.id === base.mover.id
   )
   if (!expiredTarget) throw new Error('Expired target actor missing.')
-  expect(
-    readEncounterActorConditionState(
-      encounterRunActorStateSchema.parse(JSON.parse(expiredTarget.stateJson)).conditions
-    ).ids
-  ).not.toContain(frightened.id)
+  expect(moverConditionIds(expiredTarget.stateJson)).not.toContain(frightened.id)
 }, 30_000)

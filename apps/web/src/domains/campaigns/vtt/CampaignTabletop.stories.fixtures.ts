@@ -226,7 +226,7 @@ const playerActors = [
     manualOrder: null,
     public: true,
     sourceId: assignedCharacter.id,
-    sourceRevision: 1
+    sourceRevision: null
   },
   {
     conditions: [],

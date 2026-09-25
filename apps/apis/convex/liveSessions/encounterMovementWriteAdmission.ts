@@ -24,7 +24,6 @@ export async function readLiveMovementWriteAdmission(
       ? []
       : actors.flatMap((actor) => {
           if (actor.kind !== 'CHARACTER') return []
-          if (!actor.sourceId) throw new Error('Live movement Character binding is unavailable.')
           return [actor.sourceId]
         })
   )

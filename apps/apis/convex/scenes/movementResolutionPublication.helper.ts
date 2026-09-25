@@ -19,7 +19,7 @@ export async function publishPreparedMovementResponse(
 ) {
   return publishMovementResponse(ctx, request, geometry, {
     commit: commitPreparedMovementResponse,
-    project: (state, actors) => {
+    project: (state, actors, characterStates) => {
       const facts = buildEncounterActorRuleFacts({ actors })
       return projectGm(
         { ...state, actors },
@@ -29,7 +29,8 @@ export async function publishPreparedMovementResponse(
             facts
           ),
           facts
-        )
+        ),
+        characterStates
       )
     }
   })

@@ -217,7 +217,11 @@ describe('native Campaign GM state writes', () => {
     expect(sheet.overview.abilities.find((row) => row.ability === 'STRENGTH')?.score).toBe(21)
     for (const secret of [hp.id, ability.id, 'SECRET-HP', 'SECRET-ABILITY'])
       expect(JSON.stringify(sheet)).not.toContain(secret)
-    expect(await readState()).toEqual(before)
+    // A Campaign maximum adjustment moves only the Character's stored effective maximum.
+    expect(await readState()).toEqual({
+      ...before,
+      character: { ...before.character, maximumHitPoints: sheet.overview.maxHitPoints }
+    })
     expect(
       await gm.caller.mutation(deleteAdjustment, {
         ...input,
@@ -362,7 +366,11 @@ describe('native Campaign GM state writes', () => {
       conditionTypeId: first.conditionTypeId,
       version: 1
     })
-    expect(await readState()).toEqual(before)
+    // The retained Campaign maximum adjustment moves only the Character's stored maximum.
+    expect(await readState()).toEqual({
+      ...before,
+      character: { ...before.character, maximumHitPoints: withCondition.overview.maxHitPoints }
+    })
   })
 
   it('rejects unavailable scoped adjustment targets without writing state or audit', async () => {
@@ -415,6 +423,7 @@ describe('native Campaign GM state writes', () => {
     spy.mockRestore()
     const saved = await gm.caller.mutation(saveAdjustment, adjustment)
     const afterSave = await readCampaignState()
+    const characterAfterSave = await readState()
     vi.spyOn(projection, 'projectCharacterSheetBundle').mockImplementationOnce(() => {
       throw new Error('Injected delete projection failure')
     })
@@ -422,7 +431,7 @@ describe('native Campaign GM state writes', () => {
       gm.caller.mutation(deleteAdjustment, { ...input, adjustmentId: saved.id, expectedVersion: 0 })
     ).rejects.toThrow('Injected delete projection failure')
     expect(await readCampaignState()).toEqual(afterSave)
-    expect(await readState()).toEqual(characterBefore)
+    expect(await readState()).toEqual(characterAfterSave)
   })
 
   it('denies every writer to non-owners and revoked, mismatched or archived assignments without side effects', async () => {

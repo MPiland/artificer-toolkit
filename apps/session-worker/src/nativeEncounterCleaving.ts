@@ -128,7 +128,11 @@ async function readNativeLiveCleavingCandidates(
                 target.actor.kind === 'CHARACTER'
                   ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
                   : snapshotStatBlock(target.actor)?.armorClass
-              if (armorClass == null || target.actor.sourceRevision === null) return null
+              if (
+                armorClass == null ||
+                (target.actor.kind === 'CREATURE' && target.actor.sourceRevision === null)
+              )
+                return null
               const captured = await input.capture({
                 kind: 'ACTION_SCENE',
                 command: {

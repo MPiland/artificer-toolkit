@@ -13,10 +13,11 @@ export async function readyCharacterFixture(
   options: Partial<
     Pick<typeof fighter | ClassAuthoredDto, 'resources' | 'spellcasting' | 'features'>
   > = {},
-  equipment = club
+  equipment = club,
+  existing?: Awaited<ReturnType<typeof fixture>>
 ) {
   if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter class.')
-  const base = await fixture()
+  const base = existing ?? (await fixture())
   const groupId = crypto.randomUUID()
   const optionId = crypto.randomUUID()
   const background = {
@@ -126,9 +127,10 @@ export async function readyCharacterFixture(
 
 export async function readySheetFixture(
   options: Parameters<typeof readyCharacterFixture>[0] = {},
-  equipment?: Parameters<typeof readyCharacterFixture>[1]
+  equipment?: Parameters<typeof readyCharacterFixture>[1],
+  existing?: Parameters<typeof readyCharacterFixture>[2]
 ) {
-  const base = await readyCharacterFixture(options, equipment)
+  const base = await readyCharacterFixture(options, equipment, existing)
   const { draft, character } = await base.createCharacter()
   const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
     expectedDraftId: draft.id,

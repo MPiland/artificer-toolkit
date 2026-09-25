@@ -12,7 +12,7 @@ import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/e
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
-  assertStagedCharacterFactsCurrent,
+  assertCharacterFactsBoundToActor,
   type MovementTarget
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type {
@@ -20,6 +20,7 @@ import type {
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
 import { resolveNativeLiveTurnEffectPerception } from './nativeTurnEffectPerception.js'
@@ -145,10 +146,10 @@ export function createNativeLiveTurnStages(
         rollD6: () => random(6) + 1
       }),
     initiative: (stage) => {
-      async function loadCharacter(actor: (typeof stage.actors)[number]) {
+      async function loadCharacter(actor: EncounterRunCharacterActorState) {
         const target = stage.movementTargets?.get(actor.id) ?? (await loadTarget(actor.id))
         const facts = target?.characterFacts
-        assertStagedCharacterFactsCurrent(
+        assertCharacterFactsBoundToActor(
           facts,
           actor,
           state.gameSystemId,
@@ -170,6 +171,7 @@ export function createNativeLiveTurnStages(
               const facts = await loadCharacter(actor)
               const { snapshot, registry, output } = facts.ruleEvaluation
               return {
+                streamVersion: facts.active.streamVersion,
                 initiativeActorFacts: toCharacterInitiativeActorFacts({
                   snapshot,
                   registry,

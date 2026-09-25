@@ -154,9 +154,11 @@ it('publishes a sealed movement response through the private DO path without rep
   )
   const baselineMover = baseline.actors.find((actor) => actor.id === value.base.mover.id)
   if (!appliedEffect || !baselineMover) throw new Error('Crossed movement effect is unavailable.')
-  expect(
-    encounterRunActorStateSchema.parse(JSON.parse(baselineMover.stateJson)).currentHitPoints
-  ).toBe(appliedEffect.targetTransition.after.currentHitPoints)
+  const baselineMoverState = encounterRunActorStateSchema.parse(JSON.parse(baselineMover.stateJson))
+  if (baselineMoverState.kind === 'CHARACTER') throw new Error('Expected a non-Character mover.')
+  expect(baselineMoverState.currentHitPoints).toBe(
+    appliedEffect.targetTransition.after.currentHitPoints
+  )
   const command: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
@@ -466,7 +468,9 @@ it('publishes a sealed movement response through the private DO path without rep
   const moverHitPoints = (actors: typeof after.actors) => {
     const mover = actors.find((actor) => actor.id === value.base.mover.id)
     if (!mover) throw new Error('Movement target actor is unavailable.')
-    return encounterRunActorStateSchema.parse(JSON.parse(mover.stateJson)).currentHitPoints
+    const state = encounterRunActorStateSchema.parse(JSON.parse(mover.stateJson))
+    if (state.kind === 'CHARACTER') throw new Error('Expected a non-Character mover.')
+    return state.currentHitPoints
   }
   expect(moverHitPoints(terminalRecords.actors)).toBe(moverHitPoints(after.actors))
   expect(terminalRecords.scene).toEqual(after.scene)

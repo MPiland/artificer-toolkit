@@ -159,23 +159,17 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
   })
 }
 
-async function copyDetachedCharacter(base: MaintainedBase) {
-  const characterFixture = await readySheetFixture()
-  const row = await characterFixture.t.run((ctx) =>
-    ctx.db
-      .query('characters')
-      .withIndex('by_publicId', (q) => q.eq('id', characterFixture.character.id))
-      .unique()
-  )
-  if (!row) throw new Error('Detached Character fixture is unavailable.')
-  const { _id: _sourceId, _creationTime: _sourceCreationTime, ...stored } = row
-  await base.t.run((ctx) => ctx.db.insert('characters', stored))
+/** Commits a Character in the Run's deployment without assigning it to the Run's Campaign. */
+async function createDetachedCharacter(base: MaintainedBase) {
+  const { readState } = await readySheetFixture({}, undefined, base)
+  const stored = (await readState()).character
+  if (!stored) throw new Error('Detached Character fixture is unavailable.')
   return { id: stored.id, streamVersion: stored.streamVersion }
 }
 
 async function seedDetachedPassageDependents(
   base: MaintainedBase,
-  character: Awaited<ReturnType<typeof copyDetachedCharacter>>
+  character: Awaited<ReturnType<typeof createDetachedCharacter>>
 ) {
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
@@ -493,12 +487,12 @@ it('forecasts and atomically publishes maintained replacement across ordered aut
   const thirdOwner = afterReplacement.actors.find(
     (actor) => actor.id === base.additionalReactorActor!.id
   )
-  expect(encounterRunActorStateSchema.parse(JSON.parse(mover!.stateJson)).conditions).toEqual([
-    seeded.poisonedId
-  ])
-  expect(encounterRunActorStateSchema.parse(JSON.parse(thirdOwner!.stateJson)).conditions).toEqual(
-    []
-  )
+  const moverState = encounterRunActorStateSchema.parse(JSON.parse(mover!.stateJson))
+  const thirdOwnerState = encounterRunActorStateSchema.parse(JSON.parse(thirdOwner!.stateJson))
+  if (moverState.kind === 'CHARACTER' || thirdOwnerState.kind === 'CHARACTER')
+    throw new Error('Expected Creature maintenance owners.')
+  expect(moverState.conditions).toEqual([seeded.poisonedId])
+  expect(thirdOwnerState.conditions).toEqual([])
   const receipt = afterReplacement.receipts.find(
     (entry) => entry.commandId === secondScene.rootInput.commandId
   )
@@ -524,7 +518,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
   const initialPreparation = await base.owner.caller.mutation(prepare, initialScene.request)
   expect(initialPreparation.outcome.kind).toBe('TERMINAL')
   await base.owner.caller.mutation(finish, initialScene.request)
-  const character = await copyDetachedCharacter(base)
+  const character = await createDetachedCharacter(base)
   const seeded = await seedDetachedPassageDependents(base, character)
   const currentRun = await resetReactionAndDetachScene(base)
   const passageScene = await setupReactionMovementScene(

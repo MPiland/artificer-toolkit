@@ -94,11 +94,11 @@ function pendingCandidate(input: {
     stage: input.boundary.stage,
     targetActorId: input.target.actor.id,
     owner:
-      currentness && input.target.actor.kind === 'CHARACTER' && input.target.actor.sourceId
+      currentness && input.target.actor.kind === 'CHARACTER' && input.target.characterFacts
         ? {
             kind: 'CHARACTER' as const,
             characterId: input.target.actor.sourceId,
-            streamVersion: input.target.actor.sourceRevision!,
+            streamVersion: input.target.characterFacts.active.streamVersion,
             projectionChecksum: currentness.projectionChecksum,
             mechanicalContextChecksum: currentness.mechanicalContextChecksum
           }
@@ -541,7 +541,7 @@ export function turnEffectMechanicsBatch(input: {
     occurrenceId: input.occurrenceId,
     sourceCommandId: input.rootCommandId,
     commandId:
-      actor.kind === 'CHARACTER' && actor.sourceId
+      actor.kind === 'CHARACTER'
         ? deriveEncounterCharacterMechanicsEventCommandId({
             occurrenceId: input.occurrenceId,
             sourceCommandId: input.rootCommandId,
@@ -552,6 +552,7 @@ export function turnEffectMechanicsBatch(input: {
         : input.rootCommandId,
     occurredAt: input.occurredAt,
     applications: input.applications,
+    expectedCharacterStreamVersion: input.target.characterFacts?.active.streamVersion ?? null,
     effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
     effectiveScalarValues: input.target.effectiveScalarValues,
     retainedConditionIds: input.retainedConditionIds,

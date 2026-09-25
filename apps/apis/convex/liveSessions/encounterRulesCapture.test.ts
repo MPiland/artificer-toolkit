@@ -198,10 +198,8 @@ it('captures only current Run members and current assigned Character actors', as
       ...base.input,
       request: { kind: 'ACTOR', actorId: base.actor.id }
     })
-  ).resolves.toMatchObject({
-    kind: 'ACTOR',
-    actor: { id: base.actor.id, sourceRevision: base.actorSourceRevision }
-  })
+  ).resolves.toMatchObject({ kind: 'ACTOR', actor: { id: base.actor.id } })
+  // The Character actor keeps no stream version; the capture returns the current Character.
   await expect(
     base.owner.caller.query(characterCapture, {
       campaignId: base.campaign.id,
@@ -209,10 +207,9 @@ it('captures only current Run members and current assigned Character actors', as
       expectedUserId: base.owner.userId,
       expectedRole: 'OWNER',
       characterId: base.character.id,
-      expectedStreamVersion: base.actorSourceRevision,
       request: { kind: 'INPUTS' }
     })
-  ).rejects.toThrow('stream version is stale')
+  ).resolves.toMatchObject({ kind: 'INPUTS', streamVersion: characterRow.streamVersion + 1 })
   await base.t.run((ctx) => ctx.db.patch(characterRow._id, { status: 'DRAFT' }))
   await expect(
     base.owner.caller.query(capture, {

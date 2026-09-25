@@ -42,7 +42,6 @@ import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
@@ -53,7 +52,6 @@ import {
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
@@ -407,27 +405,6 @@ export async function planNativeLiveEncounterAction(
     nextFacts,
     { output: prepared.actorRules }
   )
-  const initiative = await capture({ kind: 'INITIATIVE_ROUND' })
-  if (initiative.kind !== 'INITIATIVE_ROUND')
-    throw new Error('Encounter initiative round is unavailable.')
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: concentration.actors,
-    rules: nextRules,
-    initiativeRoundState: initiative.state
-  })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    resolution: null,
-    occurrence: {
-      occurrenceId,
-      occurrenceVersion,
-      status: 'COMPLETE',
-      outcome: null,
-      pending: null
-    }
-  })
   const storedExecution = buildEncounterActionStoredExecution({
     prepared,
     execution,
@@ -489,8 +466,6 @@ export async function planNativeLiveEncounterAction(
     concentration,
     nextState,
     nextRules,
-    projection,
-    result,
     storedExecution,
     cleaving,
     revisions

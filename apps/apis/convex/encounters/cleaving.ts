@@ -412,6 +412,7 @@ export async function resumeNativeCleaving(
             commandId: response.commandId,
             occurredAt: now,
             applications: [application],
+            expectedCharacterStreamVersion: target.characterFacts?.active.streamVersion ?? null,
             effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
             effectiveScalarValues: target.effectiveScalarValues,
             forceVersionAdvance: false

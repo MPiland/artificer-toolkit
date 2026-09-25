@@ -279,9 +279,13 @@ persistence writer. It retains the authenticated initiator in Character and Enco
 control is checked again at commit, so revoking control rejects a previously prepared move atomically.
 
 Raw Run actor/effect captures retain current Character assignment, ownership, System and ACTIVE checks.
-An unrelated Character's newer stream version does not invalidate its stored actor snapshot. Selected
-source/target Character facts still require the exact expected stream version on `character-rules`;
-the merged revision vector also fences changes occurring during capture.
+A Character actor keeps no hit point or stream-version copy
+([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) decision 4), so
+`character-rules` takes no expected stream version: it returns the current Character, and its
+CHARACTER revision joins the merged revision vector with the ACTOR capture's. The commit's
+`assertLiveSessionRulesRevisions` call covers every Character actor in a rules-applying Run, so a
+Sheet write between planning and commit refuses the stale plan; a retry re-captures. Commits read the fenced
+Character's current stream version as the before version of each planned Character transition.
 
 Character source indexes page at most four raw roots or shares through one native Convex pagination
 call per capture, including empty pages. They distinguish feature matches from other readable roots

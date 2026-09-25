@@ -87,12 +87,12 @@ describe('native action economy', () => {
         await expect(
           prepareNativeActionEconomy(ctx, {
             ...input,
-            actor: { ...actor, currentHitPoints: actor.currentHitPoints + 1 }
+            actor: { ...actor, label: `${actor.label} (stale)` }
           })
         ).rejects.toThrow('Encounter action economy source is stale.')
         if (!prepared) throw new Error('Missing allowance.')
         const updated = await consumeNativeActionEconomy(ctx, { actor, consumption: prepared })
-        expect(updated.currentHitPoints).toBe(actor.currentHitPoints)
+        expect({ ...updated, resources: actor.resources }).toEqual(actor)
         if (abort) throw new Error('abort')
         return updated
       })
@@ -216,6 +216,7 @@ describe('native action economy', () => {
         currentActorId: source.id
       })
       const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      if (actor.kind === 'CHARACTER') throw new Error('Expected custom actor.')
       const definitionId = crypto.randomUUID()
       const entryId = crypto.randomUUID()
       await ctx.db.patch(run._id, {

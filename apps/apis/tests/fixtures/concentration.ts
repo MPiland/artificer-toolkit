@@ -177,7 +177,6 @@ export async function seedConcentration(fixture: {
   run: { id: string; gameSystemId: string }
   target: { id: string }
   character: { id: string }
-  characterActor?: { id: string }
 }) {
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
@@ -296,15 +295,7 @@ export async function seedConcentration(fixture: {
       .query('characters')
       .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
       .unique()
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (query) =>
-        query
-          .eq('encounterId', fixture.run.id)
-          .eq('id', fixture.characterActor?.id ?? fixture.target.id)
-      )
-      .unique()
-    if (!characterRow || !actorRow) throw new Error('Concentration Character is unavailable.')
+    if (!characterRow) throw new Error('Concentration Character is unavailable.')
     const character = characterAuthoredDtoSchema.parse(JSON.parse(characterRow.documentJson))
     const nextCharacter = {
       ...character,
@@ -316,14 +307,6 @@ export async function seedConcentration(fixture: {
     await ctx.db.patch(characterRow._id, {
       documentJson: canonicalizeRuleDocument(nextCharacter),
       checksum: checksumRuleDocument(nextCharacter)
-    })
-    const actor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(actorRow.stateJson),
-      conditions: [blinded.id, poisoned.id]
-    })
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
     })
     return { state, dependent, independent, blinded, poisoned }
   })

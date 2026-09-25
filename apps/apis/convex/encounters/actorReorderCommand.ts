@@ -1,11 +1,9 @@
 import {
   encounterCommandInputDtoSchema,
   encounterCommandResultDtoSchema,
-  encounterGmActorDtoSchema,
   encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
-import * as z from 'zod/mini'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -18,18 +16,11 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { readRunActors, readRunProjection, readRunState } from './documents'
+import { readEncounterActorCore, readRunActors, readRunProjection, readRunState } from './documents'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries'
-
-const fields = z.omit(encounterGmActorDtoSchema, {
-  statBlock: true,
-  features: true,
-  healthBand: true
-})
-const actorCore = fields.clone({ ...fields._zod.def, catchall: undefined })
 
 export async function reorderEncounterActors(
   ctx: MutationCtx,
@@ -137,8 +128,8 @@ export async function reorderEncounterActors(
       const stored = actors.find((candidate) => candidate.id === actor.id)
       return (
         !stored ||
-        checksumCanonicalJson(actorCore.parse(stored)) !==
-          checksumCanonicalJson(actorCore.parse(actor))
+        checksumCanonicalJson(readEncounterActorCore(stored)) !==
+          checksumCanonicalJson(readEncounterActorCore(actor))
       )
     }) ||
     projection.currentActorId !== state.currentActorId ||

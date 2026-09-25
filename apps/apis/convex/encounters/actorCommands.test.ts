@@ -245,17 +245,23 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     expect(first.projection.actors.find((actor) => actor.id === characterActor.id)).toMatchObject({
       currentHitPoints: 9,
       maxHitPoints: 15,
-      sourceRevision: 4
+      sourceRevision: null
     })
     expect(
       first.projection.actors.find((actor) => actor.id === characterActor.id)?.conditions
     ).toHaveLength(1)
     const after = await stored(t, run.id, characterActor.id)
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(after.actor!.stateJson)).snapshot
-    ).toMatchObject({
-      sourceRevision: 4
-    })
+    expect(encounterRunActorStateSchema.parse(JSON.parse(after.actor!.stateJson)).kind).toBe(
+      'CHARACTER'
+    )
+    const storedCharacter = await t.run((ctx) =>
+      ctx.db
+        .query('characters')
+        .withIndex('by_publicId', (q) => q.eq('id', character.id))
+        .unique()
+    )
+    expect(storedCharacter!.maximumHitPoints).toBe(15)
+    expect(JSON.parse(storedCharacter!.documentJson).state.conditions).toHaveLength(1)
     const receipt = after.receipts.find((candidate) => candidate.commandId === commandId)!
     if (receipt.commandType !== 'UPDATE_ACTOR') throw new Error('Missing UPDATE_ACTOR receipt.')
     const nestedReceipt = (await readState()).receipts.find(
@@ -301,7 +307,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     )
     expect(
       replayedSheet.projection.actors.find((actor) => actor.id === characterActor.id)
-    ).toMatchObject({ currentHitPoints: 6, maxHitPoints: 15, sourceRevision: 5 })
+    ).toMatchObject({ currentHitPoints: 6, maxHitPoints: 15, sourceRevision: null })
     const replayedReceipt = (await stored(t, run.id, characterActor.id)).receipts.find(
       (candidate) => candidate.commandId === currentOuterCommandId
     )

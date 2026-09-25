@@ -53,7 +53,7 @@ import {
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
-import { readRunActor, readRunState } from '../encounters/documents'
+import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
@@ -437,9 +437,9 @@ it('plans a fresh Automatic action with damage and feature charge without publis
   expect(executeResolved).toHaveBeenCalled()
   const target = base.run.actors.find((actor) => actor.id === base.command.targetActorId)
   if (!target) throw new Error('Missing action target.')
-  expect(planned.mechanics.targetPlan.updatedActor.currentHitPoints).toBe(
-    target.currentHitPoints - 1
-  )
+  const updatedTarget = planned.mechanics.targetPlan.updatedActor
+  if (updatedTarget.kind === 'CHARACTER') throw new Error('Expected a non-Character target.')
+  expect(updatedTarget.currentHitPoints).toBe(target.currentHitPoints - 1)
   expect(planned.mechanics.featureResourceReceipt).toMatchObject({
     cost: 1,
     beforeUsed: 0,
@@ -762,8 +762,16 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
         base.scope,
         next
       )
-      expect(publicResult).toEqual(next.result)
       expect(publicResult.projection.version).toBe(base.run.version + 1)
+      const storedProjection = await base.t.run(async (ctx) => {
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+          .unique()
+        if (!run) throw new Error('Committed Encounter Run is unavailable.')
+        return readRunProjection(run)
+      })
+      expect(storedProjection).toEqual(publicResult.projection)
       expect(
         await commitNativeLiveEncounterAction(environment, 'fixture-access-token', base.scope, next)
       ).toEqual(publicResult)

@@ -1,5 +1,5 @@
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
-import { assertStagedCharacterFactsCurrent } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { assertCharacterFactsBoundToActor } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { characterEncounterInitiativeResultSchema } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
@@ -26,13 +26,11 @@ export async function loadEncounterInitiativeSources(
     campaignId: campaign.id,
     actors: stagedActors ?? (await readRunActors(ctx, state)),
     loadCharacter: async (actor) => {
-      if (!actor.sourceId || actor.sourceRevision === null)
-        throw new Error('Character initiative source is incomplete.')
       const staged = stagedMovementTargets?.get(actor.id)
       if (staged) {
         const facts = staged.characterFacts
         if (staged.actor.id !== actor.id) throw new Error('Character initiative source is stale.')
-        assertStagedCharacterFactsCurrent(
+        assertCharacterFactsBoundToActor(
           facts,
           actor,
           state.gameSystemId,
@@ -42,6 +40,7 @@ export async function loadEncounterInitiativeSources(
         if (snapshot.characterId !== actor.sourceId || snapshot.systemId !== state.gameSystemId)
           throw new Error('Character initiative source identity does not match the actor.')
         return characterEncounterInitiativeResultSchema.parse({
+          streamVersion: facts.active.streamVersion,
           initiativeActorFacts: toCharacterInitiativeActorFacts({
             snapshot,
             registry,
@@ -53,8 +52,7 @@ export async function loadEncounterInitiativeSources(
       return loadCharacterEncounterInitiative(ctx, campaign.ownerUserId, {
         characterId: actor.sourceId,
         campaignId: state.campaignId,
-        systemId: state.gameSystemId,
-        streamVersion: actor.sourceRevision
+        systemId: state.gameSystemId
       })
     }
   })

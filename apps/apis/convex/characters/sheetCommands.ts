@@ -49,11 +49,13 @@ import {
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import type { Doc } from '../_generated/dataModel'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { loadCharacterSheet } from './sheetPreparation'
+import { loadCharacterSheet, projectCharacterSheetFacts } from './sheetPreparation'
+import { writeCharacterRecord } from './characterWrites'
 import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
@@ -477,24 +479,10 @@ export async function executeCharacterSheetCommand(
           usage.owner.companionInstanceId !== removedCompanionId)
     )
   })
-  const encodedSheetState: unknown = JSON.parse(JSON.stringify(nextSheetState))
-  const sheetStateJson = canonicalizeRuleDocument(encodedSheetState)
-  const document: unknown = JSON.parse(JSON.stringify(updated))
+  const sheetStateChanged =
+    canonicalizeRuleDocument(JSON.parse(JSON.stringify(nextSheetState))) !==
+    canonicalizeRuleDocument(initial.sheetState)
   const streamVersion = initial.active.streamVersion + 1
-  await ctx.db.patch(initial.active._id, {
-    documentJson: canonicalizeRuleDocument(document),
-    checksum: checksumRuleDocument(document),
-    ...(sheetStateJson !== canonicalizeRuleDocument(initial.sheetState)
-      ? {
-          sheetState: {
-            documentJson: sheetStateJson,
-            checksum: checksumRuleDocument(encodedSheetState)
-          }
-        }
-      : {}),
-    streamVersion,
-    updatedAt: occurredAt
-  })
   // One rest spends its roll once, wherever the roll is stored.
   if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
 
@@ -530,15 +518,18 @@ export async function executeCharacterSheetCommand(
     command.type === 'REMOVE_SHEET_EXTRA'
   const unchangedSources =
     changesSourceRecords || catalogScope === 'resolution' ? undefined : initial.sourceContext
-  let current = await loadCharacterSheet(
-    ctx,
-    userId,
-    initial.active.id,
-    campaignId,
-    unchangedSources,
-    'active'
-  )
-  if (!current) throw new Error('Character Sheet is unavailable after applying this command.')
+  const write = (document: typeof updated, row: Doc<'characters'>) =>
+    writeCharacterRecord(ctx, {
+      current: row,
+      fields: { streamVersion, updatedAt: occurredAt },
+      document: JSON.parse(JSON.stringify(document)),
+      ...(sheetStateChanged ? { sheetState: nextSheetState } : {}),
+      sourceContext: unchangedSources,
+      evaluateAs: { userId, campaignId }
+    })
+  let written = await write(updated, initial.active)
+  if (!written.facts) throw new Error('Character Sheet is unavailable after applying this command.')
+  let current = projectCharacterSheetFacts(written.facts)
 
   const shouldClampHitPoints =
     (command.type === 'UPSERT_SHEET_ADJUSTMENT' && command.adjustment.family === 'HIT_POINTS') ||
@@ -551,21 +542,10 @@ export async function executeCharacterSheetCommand(
   )
   if (shouldClampHitPoints && clampedHitPoints !== updated.state.hitpoints.current) {
     updated.state.hitpoints.current = clampedHitPoints
-    const clamped: unknown = JSON.parse(JSON.stringify(updated))
-    await ctx.db.patch(initial.active._id, {
-      documentJson: canonicalizeRuleDocument(clamped),
-      checksum: checksumRuleDocument(clamped)
-    })
     // ponytail: HP overrides may need a third projection; reuse loaded facts if managed profiling requires it.
-    current = await loadCharacterSheet(
-      ctx,
-      userId,
-      initial.active.id,
-      campaignId,
-      unchangedSources,
-      'active'
-    )
-    if (!current) throw new Error('Character Sheet is unavailable after clamping hit points.')
+    written = await write(updated, written.row)
+    if (!written.facts) throw new Error('Character Sheet is unavailable after clamping hit points.')
+    current = projectCharacterSheetFacts(written.facts)
   }
 
   const receiptId = crypto.randomUUID()

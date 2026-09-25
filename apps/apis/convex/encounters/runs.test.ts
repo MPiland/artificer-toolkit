@@ -14,6 +14,7 @@ import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -128,9 +129,19 @@ describe('native Encounter Run creation', () => {
       blueprintChecksum: blueprint.setupChecksum
     })
     expect(result.actors).toHaveLength(2)
+    const characterStates = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('characters')
+        .withIndex('by_publicId', (q) => q.eq('id', character.id))
+        .unique()
+      if (!row) throw new Error('Missing Character')
+      return characterAuthoredDtoSchema.parse(JSON.parse(row.documentJson)).state.hitpoints
+    })
     expect(result.actors.find((actor) => actor.kind === 'CHARACTER')).toMatchObject({
       sourceId: character.id,
-      sourceRevision: 1
+      sourceRevision: null,
+      currentHitPoints: characterStates.current,
+      tempHitPoints: characterStates.temp ?? 0
     })
     expect(result.actors.find((actor) => actor.kind === 'CUSTOM')).toMatchObject({
       label: 'Dummy',
@@ -160,6 +171,11 @@ describe('native Encounter Run creation', () => {
         expect(state.actorIds).toContain(decoded.id)
         expect(state.sides.map((side) => side.id)).toContain(decoded.sideId)
         expect(checksumCanonicalJson(decoded)).toBe(actor.stateChecksum)
+        if (decoded.kind === 'CHARACTER') {
+          expect(decoded.sourceId).toBe(character.id)
+          expect(decoded).not.toHaveProperty('currentHitPoints')
+          expect(decoded).not.toHaveProperty('sourceRevision')
+        }
       }
       const blueprintRow = await ctx.db
         .query('encounterBlueprints')

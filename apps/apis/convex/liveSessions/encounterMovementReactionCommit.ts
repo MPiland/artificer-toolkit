@@ -19,6 +19,8 @@ import {
   persistLiveEncounterActionEffects
 } from './encounterActionEffectsCommit'
 import {
+  readLiveCharacterStoredMaximumHitPoints,
+  readLiveCharacterStreamVersion,
   readLiveMovementTargetState,
   movementPersistedTransitionState
 } from './encounterMovementTargetState'
@@ -60,12 +62,19 @@ export async function persistLiveMovementReaction(
     batch.targetActorId !== target.id ||
     (target.kind === 'CHARACTER') !== (batch.kind === 'CHARACTER_MECHANICS_BATCH') ||
     (target.kind === 'CHARACTER' && receipt.targetCharacterId !== target.sourceId) ||
-    (source.kind === 'CHARACTER' &&
-      (!source.sourceId || !input.authorizedCharacterIds.has(source.sourceId))) ||
-    (target.kind === 'CHARACTER' &&
-      (!target.sourceId || !input.authorizedCharacterIds.has(target.sourceId)))
+    (source.kind === 'CHARACTER' && !input.authorizedCharacterIds.has(source.sourceId)) ||
+    (target.kind === 'CHARACTER' && !input.authorizedCharacterIds.has(target.sourceId))
   )
     throw new Error('Live movement reaction actor or receipt scope mismatch.')
+  // The movement admission's revision fence pins these to the room's captured Characters.
+  const sourceBeforeVersion =
+    source.kind === 'CHARACTER'
+      ? await readLiveCharacterStreamVersion(ctx, state, source.sourceId)
+      : null
+  const targetBeforeVersion =
+    target.kind === 'CHARACTER'
+      ? await readLiveCharacterStreamVersion(ctx, state, target.sourceId)
+      : null
   if (
     ('sourceCharacterId' in batch &&
       batch.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null)) ||
@@ -102,7 +111,7 @@ export async function persistLiveMovementReaction(
     if (
       source.kind !== 'CHARACTER' ||
       source.sourceId !== characterId ||
-      source.sourceRevision !== expectedStreamVersion ||
+      sourceBeforeVersion !== expectedStreamVersion ||
       checksumCanonicalJson(recorded) !== checksumCanonicalJson(batch.resourceConsumption)
     )
       throw new Error('Live movement reaction resource scope mismatch.')
@@ -127,7 +136,10 @@ export async function persistLiveMovementReaction(
           targetCharacterId: resource.characterId
         }),
         applications: [],
-        effectiveMaximumHitPoints: source.maxHitPoints,
+        effectiveMaximumHitPoints:
+          source.kind === 'CHARACTER'
+            ? await readLiveCharacterStoredMaximumHitPoints(ctx, state, source.sourceId)
+            : source.maxHitPoints,
         forceVersionAdvance: false,
         characterResourceConsumption: resource
       })
@@ -142,7 +154,7 @@ export async function persistLiveMovementReaction(
             sourceCommandId: input.sourceCommandId,
             phase: 'MOVEMENT_REACTION_OUTCOME',
             ordinal: receipt.ordinal,
-            targetCharacterId: target.sourceId!
+            targetCharacterId: target.sourceId
           })
         : input.sourceCommandId,
     applications: batch.applications.map((application) => ({
@@ -254,7 +266,9 @@ export async function persistLiveMovementReaction(
       !actor ||
       transition.characterId !== (actor.kind === 'CHARACTER' ? actor.sourceId : null) ||
       checksumCanonicalJson(movementPersistedTransitionState(transition.before)) !==
-        checksumCanonicalJson(await readLiveMovementTargetState(ctx, state, actor))
+        checksumCanonicalJson(
+          await readLiveMovementTargetState(ctx, state, actor, transition.before.maximumHitPoints)
+        )
     )
       throw new Error('Live movement reaction cleanup owner state changed.')
   }
@@ -269,7 +283,9 @@ export async function persistLiveMovementReaction(
     if (
       !actor ||
       checksumCanonicalJson(movementPersistedTransitionState(transition.after)) !==
-        checksumCanonicalJson(await readLiveMovementTargetState(ctx, state, actor))
+        checksumCanonicalJson(
+          await readLiveMovementTargetState(ctx, state, actor, transition.after.maximumHitPoints)
+        )
     )
       throw new Error('Live movement reaction cleanup differs from its receipt.')
   }
@@ -284,20 +300,22 @@ export async function persistLiveMovementReaction(
     throw new Error('Live movement reaction source Character receipt mismatch.')
   const spans = new Map<string, (typeof receipt.characterTransitions)[number]>()
   for (const span of [
-    ...(source.kind === 'CHARACTER' && sourceVersion !== null
+    ...(source.kind === 'CHARACTER' && sourceBeforeVersion !== null && sourceVersion !== null
       ? [
           {
-            characterId: source.sourceId!,
-            beforeStreamVersion: source.sourceRevision!,
+            characterId: source.sourceId,
+            beforeStreamVersion: sourceBeforeVersion,
             afterStreamVersion: sourceVersion
           }
         ]
       : []),
-    ...(target.kind === 'CHARACTER' && mechanics.characterStreamVersion !== null
+    ...(target.kind === 'CHARACTER' &&
+    targetBeforeVersion !== null &&
+    mechanics.characterStreamVersion !== null
       ? [
           {
-            characterId: target.sourceId!,
-            beforeStreamVersion: target.sourceRevision!,
+            characterId: target.sourceId,
+            beforeStreamVersion: targetBeforeVersion,
             afterStreamVersion: mechanics.characterStreamVersion
           }
         ]

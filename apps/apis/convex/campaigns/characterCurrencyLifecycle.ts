@@ -5,11 +5,11 @@ import {
   createCharacterCurrencyIdentityKey,
   resolveCharacterCurrencyIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import { requireSystem } from '../content/systemDocuments'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority } from './authority'
@@ -205,12 +205,10 @@ export async function applyCampaignCharacterCurrencyRewrites(
   rewrites: readonly CharacterCurrencyRewrite[]
 ) {
   for (const rewrite of rewrites) {
-    const document: unknown = JSON.parse(JSON.stringify(rewrite.character))
-    await ctx.db.patch(rewrite.record._id, {
-      documentJson: canonicalizeRuleDocument(document),
-      checksum: checksumRuleDocument(document),
-      streamVersion: rewrite.streamVersion,
-      updatedAt: rewrite.updatedAt
+    await writeCharacterRecord(ctx, {
+      current: rewrite.record,
+      fields: { streamVersion: rewrite.streamVersion, updatedAt: rewrite.updatedAt },
+      document: JSON.parse(JSON.stringify(rewrite.character))
     })
   }
 }

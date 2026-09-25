@@ -50,7 +50,6 @@ export async function prepareNativeLiveCharacterSheet(
   if (
     inputs.kind !== 'INPUTS' ||
     inputs.character.id !== initialInput.characterId ||
-    inputs.streamVersion !== initialInput.expectedStreamVersion ||
     inputs.campaign.id !== initialInput.campaignId ||
     inputs.system.id !== inputs.character.systemId
   )

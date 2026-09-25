@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   EncounterProjectionActorInput,
+  EncounterProjectionCharacterStates,
   EncounterProjectionInput
 } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 
@@ -26,8 +27,9 @@ export function projectCurrentEncounterGm(input: {
   actors: readonly EncounterRunActorState[]
   rules: EncounterActorRuleOutput
   initiativeRoundState: EncounterInitiativeRoundStateDto | null
+  characterStates: EncounterProjectionCharacterStates
 }) {
-  const { state, actors, rules, initiativeRoundState } = input
+  const { state, actors, rules, initiativeRoundState, characterStates } = input
   if (state.status === 'ACTIVE') {
     if (!initiativeRoundState) throw new Error('The normalized initiative round is unavailable.')
     if (
@@ -42,7 +44,7 @@ export function projectCurrentEncounterGm(input: {
       allowedSideIds: state.sides.map((side) => side.id)
     })
   }
-  return projectGm({ ...state, actors, initiativeRoundState }, rules)
+  return projectGm({ ...state, actors, initiativeRoundState }, rules, characterStates)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -108,9 +110,11 @@ function currentActorIdForProjection(encounter: EncounterProjectionInput): strin
     : null
 }
 
+/** Character actors take hit points and conditions from the current Characters, never the Run. */
 export function projectGm(
   encounter: EncounterProjectionInput,
-  actorRules: EncounterActorRuleOutput
+  actorRules: EncounterActorRuleOutput,
+  characterStates: EncounterProjectionCharacterStates
 ): EncounterGmProjectionDto {
   return encounterGmProjectionDtoSchema.parse({
     id: encounter.id,
@@ -144,31 +148,43 @@ export function projectGm(
     version: encounter.version,
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),
-    actors: stableActors(encounter).map((actor) => ({
-      id: actor.id,
-      encounterId: actor.encounterId,
-      kind: actor.kind,
-      label: actor.label,
-      sourceId: actor.sourceId,
-      sourceRevision: actor.sourceRevision,
-      systemId: actor.systemId,
-      stableTieKey: actor.stableTieKey,
-      public: actor.public,
-      currentHitPoints: actor.currentHitPoints,
-      maxHitPoints: actor.maxHitPoints,
-      tempHitPoints: actor.tempHitPoints,
-      conditions: actor.conditions,
-      resources: actor.resources,
-      gmNotes: actor.gmNotes,
-      statBlock: snapshotStatBlock(actor),
-      features:
+    actors: stableActors(encounter).map((actor) => {
+      const current =
         actor.kind === 'CHARACTER'
-          ? []
-          : snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id)),
-      initiative: actor.initiative,
-      manualOrder: actor.manualOrder,
-      healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
-    })),
+          ? characterStates.get(actor.sourceId)
+          : {
+              current: actor.currentHitPoints,
+              temporary: actor.tempHitPoints,
+              maximum: actor.maxHitPoints,
+              conditions: actor.conditions
+            }
+      if (!current) throw new Error('Encounter Character state is unavailable.')
+      return {
+        id: actor.id,
+        encounterId: actor.encounterId,
+        kind: actor.kind,
+        label: actor.label,
+        sourceId: actor.sourceId,
+        sourceRevision: actor.kind === 'CHARACTER' ? null : actor.sourceRevision,
+        systemId: actor.systemId,
+        stableTieKey: actor.stableTieKey,
+        public: actor.public,
+        currentHitPoints: current.current,
+        maxHitPoints: current.maximum,
+        tempHitPoints: current.temporary,
+        conditions: current.conditions,
+        resources: actor.resources,
+        gmNotes: actor.gmNotes,
+        statBlock: snapshotStatBlock(actor),
+        features:
+          actor.kind === 'CHARACTER'
+            ? []
+            : snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id)),
+        initiative: actor.initiative,
+        manualOrder: actor.manualOrder,
+        healthBand: healthBand(current.current, current.maximum)
+      }
+    }),
     reminders: encounter.reminders.map((reminder) => ({
       id: reminder.id,
       label: reminder.label,

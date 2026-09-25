@@ -13,7 +13,10 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import {
+  healthBand,
+  projectPlayerEncounterProjection
+} from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import type { Doc } from '../_generated/dataModel'
 import { query, type QueryCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
@@ -27,6 +30,7 @@ import {
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { characterProjectionState } from './characterStates'
 import { readRunActors, readRunState, readValidatedRunProjection } from './documents'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const
@@ -95,7 +99,8 @@ export async function presentRun(
         .query('campaignCharacterAssignments')
         .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
         .unique()
-      // Detached actors retain Run identity, but grant no current Sheet access or condition fallback.
+      // Detached actors retain Run identity and last projected hit points, but grant no current
+      // Sheet access or condition fallback.
       if (assignment?.campaignId !== campaign.id) return { ...actor, conditions: [] }
       await requireCampaignCharacterAuthority(ctx, campaign.id, characterId, campaign.ownerUserId)
       const { active, draft } = await loadCharacterState(ctx, characterId)
@@ -109,23 +114,30 @@ export async function presentRun(
       if (character.systemId !== campaign.gameSystemId)
         throw new Error('Stored Encounter Character System is unavailable.')
       const { state } = await readCampaignCharacterState(ctx, campaign.id, characterId)
-      const definitions = system?.conditionTypes ?? []
-      const conditions = [
-        ...(character.state.conditions ?? []),
-        ...getVisibleCampaignConditions({
-          conditions: state.conditions,
-          viewer: role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
-        })
-      ].map((condition) => {
-        const definition = definitions.find((entry) => entry.id === condition.conditionTypeId)
-        return {
-          conditionTypeId: condition.conditionTypeId,
-          label: definition?.label ?? 'Unknown condition',
-          ...(definition?.description ? { description: definition.description } : {}),
-          ...(condition.notes ? { notes: condition.notes } : {})
-        }
-      })
-      return { ...actor, conditions }
+      const current = characterProjectionState(
+        {
+          state: {
+            ...character.state,
+            conditions: [
+              ...(character.state.conditions ?? []),
+              ...getVisibleCampaignConditions({
+                conditions: state.conditions,
+                viewer: role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
+              })
+            ]
+          }
+        },
+        active.maximumHitPoints,
+        system?.conditionTypes ?? []
+      )
+      return {
+        ...actor,
+        conditions: current.conditions,
+        currentHitPoints: current.current,
+        maxHitPoints: current.maximum,
+        tempHitPoints: current.temporary,
+        healthBand: healthBand(current.current, current.maximum)
+      }
     })
   )
   const current = { ...projection, actors }

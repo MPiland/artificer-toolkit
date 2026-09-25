@@ -171,15 +171,13 @@ async function prepareTurn(base: Fixture) {
     t: base.t,
     run: base.run,
     target: a,
-    character: aOwner.character,
-    characterActor: a
+    character: aOwner.character
   })
   const bConcentration = await seedConcentration({
     t: base.t,
     run: base.run,
     target: b,
-    character: bOwner.character,
-    characterActor: b
+    character: bOwner.character
   })
   const outgoingFirst = await seedTurnSaveEffect(turnBase, {
     stage: 'END_OF_TURN',
@@ -312,8 +310,7 @@ describe('turn damage concentration ordering', () => {
       t: base.t,
       run: base.run,
       target: base.sourceActor,
-      character: base.character,
-      characterActor: base.sourceActor
+      character: base.character
     })
     await seedTurnSaveEffect(
       { ...base, run: { ...base.run, actors: [base.sourceActor, base.targetActor] } },

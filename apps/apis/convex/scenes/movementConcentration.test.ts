@@ -14,10 +14,8 @@ import type {
   SceneSessionVisionCaptureInput,
   SceneSessionVisionScope
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -141,8 +139,7 @@ async function installConcentration(
     t: value.base.t,
     run: value.base.run,
     target,
-    character,
-    characterActor: target
+    character
   })
 }
 
@@ -795,14 +792,13 @@ it.each(['native', 'private'] as const)(
       | null = null
     const moverHitPoints = async () =>
       value.base.t.run(async (ctx) => {
-        const actor = await ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) =>
-            q.eq('encounterId', value.base.run.id).eq('id', value.base.mover.id)
-          )
+        const character = await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', value.base.character.id))
           .unique()
-        if (!actor) throw new Error('Movement Concentration target actor is unavailable.')
-        return encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).currentHitPoints
+        if (!character) throw new Error('Movement Concentration target Character is unavailable.')
+        return characterAuthoredDtoSchema.parse(JSON.parse(character.documentJson)).state.hitpoints
+          .current
       })
     const damagedHitPoints = await moverHitPoints()
     if (route === 'private') {

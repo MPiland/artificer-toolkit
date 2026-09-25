@@ -1,4 +1,3 @@
-import { characterSheetConditionDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -10,15 +9,12 @@ import {
   type ReceiptApplications,
   type TargetState
 } from './encounterCharacterMechanicsBatch.js'
-import * as zMini from 'zod/mini'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { NativeCharacterActionResourceConsumption } from './character/characterNativeActionResources.js'
-import { requireSnapshotIdentity } from './encounterActorState.js'
 import { unequipCharacterItem } from './character/sheetCommandReducer.js'
 
 type EncounterActor = EncounterRunActorState
@@ -27,13 +23,6 @@ type LoadedCharacterSheetFacts = {
   character: CharacterAuthored
   sheetState: CharacterSheetState
   campaignContext: { conditions: readonly { conditionTypeId: string }[] }
-  prepared: {
-    context: {
-      registry: {
-        system?: Pick<SystemAuthoredDto, 'conditionTypes'> | null
-      }
-    }
-  }
 }
 
 export type EncounterMechanicsBatchInput = {
@@ -45,6 +34,8 @@ export type EncounterMechanicsBatchInput = {
   commandId: string
   occurredAt: string
   applications: readonly CharacterRuleActionApplication[]
+  /** The Character stream version the applications were planned against; null for other actors. */
+  expectedCharacterStreamVersion: number | null
   effectiveMaximumHitPoints: number
   forceVersionAdvance: boolean
   retainedConditionIds?: readonly string[]
@@ -82,6 +73,8 @@ export function planEncounterMechanicsBatch(input: {
 }): EncounterMechanicsBatchPlan {
   const { batch, actor, userId } = input
   if (actor.kind !== 'CHARACTER') {
+    if (batch.expectedCharacterStreamVersion !== null)
+      throw new Error('Encounter non-Character actors have no Character stream version.')
     if (batch.spellSlotUsage !== undefined)
       throw new Error('Encounter non-Character actors cannot use spell slots.')
     if (batch.characterResourceConsumption !== undefined)
@@ -131,7 +124,6 @@ export function planEncounterMechanicsBatch(input: {
     }
   }
 
-  if (!actor.sourceId) throw new Error('Encounter Character actor is stale.')
   const loaded = input.characterFacts
   if (
     !loaded ||
@@ -139,21 +131,9 @@ export function planEncounterMechanicsBatch(input: {
     loaded.character.systemId !== actor.systemId
   )
     throw new Error('Encounter Character source is unavailable.')
+  if (loaded.active.streamVersion !== batch.expectedCharacterStreamVersion)
+    throw new Error('Encounter Character changed after the outcome was planned.')
   const rawConditions = loaded.character.state.conditions ?? []
-  const hasConditionApplication = batch.applications.some(
-    (application) =>
-      application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-  )
-  const mirroredConditions = hasConditionApplication
-    ? zMini.array(characterSheetConditionDtoSchema).safeParse(actor.conditions ?? [])
-    : null
-  if (
-    actor.sourceRevision !== loaded.active.streamVersion ||
-    actor.currentHitPoints !== loaded.character.state.hitpoints.current ||
-    actor.tempHitPoints !== (loaded.character.state.hitpoints.temp ?? 0) ||
-    (mirroredConditions !== null && !mirroredConditions.success)
-  )
-    throw new Error('Encounter Character state mirror is stale.')
 
   const resourceConsumption = batch.characterResourceConsumption
   let nextResourceUsage = loaded.sheetState.resourceUsage
@@ -254,20 +234,6 @@ export function planEncounterMechanicsBatch(input: {
       .filter((id) => !existingConditionIds.has(id))
       .map((conditionTypeId) => ({ conditionTypeId }))
   ]
-  const conditionTypes = loaded.prepared.context.registry.system?.conditionTypes ?? []
-  const nextActorConditions =
-    mirroredConditions === null
-      ? actor.conditions
-      : nextConditions.map((condition) => {
-          const { conditionTypeId } = condition
-          const definition = conditionTypes.find((condition) => condition.id === conditionTypeId)
-          if (!definition) throw new Error('The Character condition definition is unavailable.')
-          return {
-            ...condition,
-            label: definition.label,
-            ...(definition.description ? { description: definition.description } : {})
-          }
-        })
   const spellSlotsChanged =
     batch.spellSlotUsage !== undefined &&
     JSON.stringify(batch.spellSlotUsage) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
@@ -279,18 +245,6 @@ export function planEncounterMechanicsBatch(input: {
     resourceUsageChanged ||
     stowItemId !== undefined ||
     batch.forceVersionAdvance
-  const updatedActor = encounterRunActorStateSchema.parse({
-    ...actor,
-    sourceRevision: shouldAdvance ? loaded.active.streamVersion + 1 : loaded.active.streamVersion,
-    snapshot: {
-      ...requireSnapshotIdentity(actor),
-      sourceRevision: shouldAdvance ? loaded.active.streamVersion + 1 : loaded.active.streamVersion
-    },
-    currentHitPoints: folded.after.currentHitPoints,
-    tempHitPoints: folded.after.temporaryHitPoints,
-    maxHitPoints: folded.after.maximumHitPoints,
-    conditions: nextActorConditions
-  })
   const character = {
     ...equippedCharacter,
     state: {
@@ -308,7 +262,8 @@ export function planEncounterMechanicsBatch(input: {
     ? characterSheetStateSchema.parse({ ...loaded.sheetState, resourceUsage: nextResourceUsage })
     : null
   return {
-    updatedActor,
+    // A Character actor holds no Character state, so the batch leaves it unchanged.
+    updatedActor: actor,
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.streamVersion + 1 : null,

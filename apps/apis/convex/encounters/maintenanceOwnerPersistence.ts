@@ -2,10 +2,10 @@ import { planEncounterMaintenanceOwner } from '@artificer-toolkit/rules-runtime/
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 
 /** Reconciles owners after exact dependent deletion, sharing a preceding mechanics increment. */
@@ -68,15 +68,10 @@ export async function reconcileNativeMaintenanceOwners(
           conditions: planned.character.conditions
         }
       }
-      await ctx.db.patch(characterRow._id, {
-        ...(planned.character.changed
-          ? {
-              documentJson: canonicalizeRuleDocument(nextCharacter),
-              checksum: checksumRuleDocument(nextCharacter)
-            }
-          : {}),
-        streamVersion: planned.character.streamVersion,
-        updatedAt: input.occurredAt
+      await writeCharacterRecord(ctx, {
+        current: characterRow,
+        fields: { streamVersion: planned.character.streamVersion, updatedAt: input.occurredAt },
+        ...(planned.character.changed ? { document: nextCharacter } : {})
       })
     }
     for (const { before: actor, after: updated } of planned.actors) {

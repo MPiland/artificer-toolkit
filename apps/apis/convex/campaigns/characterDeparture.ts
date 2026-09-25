@@ -6,6 +6,7 @@ import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
 import { readCharacterRecord, readCharacterDraft } from '../characters/documents'
 import { readCharacterCampaign } from '../characters/context'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import { reconcileCharacterSourceLoss } from '../characters/sourceLoss'
 import { readCampaignCharacterState } from './characterState'
 import { returnDepartingCharacterCurrency } from './currencyDeparture'
@@ -27,7 +28,10 @@ export async function removeCampaignCharacterAssignment(input: {
   if (!record || record.userId !== assignment.userId || assignment.campaignId !== campaign.id)
     throw new Error('Stored Campaign Character assignment mismatch.')
   const character = readCharacterRecord(record) as CharacterAuthored
-  if ((await readCharacterCampaign(ctx, character, character.userId, input.authorityScope))?.id !== campaign.id)
+  if (
+    (await readCharacterCampaign(ctx, character, character.userId, input.authorityScope))?.id !==
+    campaign.id
+  )
     throw new Error('Stored Campaign Character assignment mismatch.')
   const [{ stored: overlay }, draftRecord] = await Promise.all([
     readCampaignCharacterState(ctx, campaign.id, character.id),
@@ -58,6 +62,13 @@ export async function removeCampaignCharacterAssignment(input: {
     record,
     targets,
     stateAfterContextChange: returned.state
+  })
+  // Campaign adjustments and attunement no longer apply to the stored maximum hit points.
+  const departed = await ctx.db.get(record._id)
+  if (!departed) throw new Error('Departing Character is unavailable.')
+  await writeCharacterRecord(ctx, {
+    current: departed,
+    fields: { streamVersion: departed.streamVersion, updatedAt: departed.updatedAt }
   })
   if (result)
     await ctx.db.insert(

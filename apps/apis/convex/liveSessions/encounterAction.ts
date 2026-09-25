@@ -50,7 +50,6 @@ export const commitPending = internalMutation({
     const characterIds = new Set(
       actors.flatMap((actor) => {
         if (actor.kind !== 'CHARACTER') return []
-        if (!actor.sourceId) throw new Error('Encounter Character actor is stale.')
         return [actor.sourceId]
       })
     )

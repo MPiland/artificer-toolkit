@@ -1200,6 +1200,7 @@ describe('native public turn active-effect journeys', () => {
       })
       const terminal = await stored(base)
       const actor = encounterRunActorStateSchema.parse(JSON.parse(terminal.actors[0]!.stateJson))
+      if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
       expect(actor.currentHitPoints).toBe(
         encounterGmProjectionDtoSchema.parse(spent.projection).actors[0]!.currentHitPoints - 3
       )
@@ -1356,6 +1357,7 @@ describe('native public turn active-effect journeys', () => {
     expect(await stored(base)).toEqual(before)
     const actorRow = before.actors[0]!
     const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
     const alteredActor = {
       ...actor,
       currentHitPoints: actor.currentHitPoints - 1

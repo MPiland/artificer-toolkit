@@ -92,12 +92,12 @@ function toSpatialMovementTarget<TCharacterFacts extends ProjectableCharacterFac
     character:
       target.actor.kind === 'CHARACTER'
         ? {
-            id: target.actor.sourceId!,
-            streamVersion: target.actor.sourceRevision!,
-            maximumHitPoints: target.effectiveMaximumHitPoints,
+            id: target.actor.sourceId,
+            streamVersion: target.characterFacts!.active.streamVersion,
             ...target.characterCurrentness!
           }
         : null,
+    maximumHitPoints: target.effectiveMaximumHitPoints,
     state: { ...target.state, conditions: [...target.state.conditions] },
     targetDerivedFacts: target.targetDerivedFacts,
     defenses: target.defenses,

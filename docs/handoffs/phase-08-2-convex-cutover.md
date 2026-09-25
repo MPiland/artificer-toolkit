@@ -77,10 +77,10 @@ Next (8.2 core, in order):
 3. **Live Character state:** remove the Run's Character HP and stream-version mirror; Encounter reads use the current Character fenced by captured revisions.
 4. **Modes and enforcement:** remove `AUTOMATIC` and add a per-person "Auto-roll my dice" preference. Assisted rule checks become warnings with a logged "Do it anyway"; GM undo or void of results and stuck prompts.
 5. **Player control:** one actor-control predicate with GM-set controllers; player actions, turn end, initiative and rolls; roll prompts ("Roll dice" or typed, rerolls logged, roll-mode override); redaction; action-economy and movement display; one in-flight player Encounter command per user. Spec: `local-validation/s6/spec-player-actions.md` (local).
-5b. **Visibility privacy (with player control):** players see no other actor's health by default (PCs or enemies); another player's Sheet is GM-only by default. Opt-in: "Party can view" per Character. Health display levels (Hidden by default, Descriptive, Bar, Exact) are set per Character by its player, and per Encounter for enemies by the GM, with a per-actor override. In Phase 8.3, the GM's per-enemy "Share health state" action posts a descriptive state (Unhurt, Hurt, Bloodied, Near death) once to the table log.
+   5b. **Visibility privacy (with player control):** players see no other actor's health by default (PCs or enemies); another player's Sheet is GM-only by default. Opt-in: "Party can view" per Character. Health display levels (Hidden by default, Descriptive, Bar, Exact) are set per Character by its player, and per Encounter for enemies by the GM, with a per-actor override. In Phase 8.3, the GM's per-enemy "Share health state" action posts a descriptive state (Unhurt, Hurt, Bloodied, Near death) once to the table log.
 6. **Table fixes:** players commit moves outside Encounters (web gate), toggle unlocked visible doors, and roll to the table by default with a "To GM" option. Fog of war becomes opt-in per Scene: with fog off, players see every non-hidden entity (today a Scene without fog layers shows players only their own tokens).
 7. **S4 remaining:** DO-owned bound movement (Convex-first authority sequence advance and a live `geometryStaging:observe` route), capture cache, deleting the Convex-side rules code for DO-covered flows, removing the retired rule-pack feature.
-7a. **Combat math follow-ups:**
+   7a. **Combat math follow-ups:**
    - remove `maxBonus` (schema, SRD data, web authoring);
    - make unarmored AC formulas choose the best, not stack;
    - reject or implement the remaining unconsumed modifier kinds (SAVE_DC SET_VALUE, PROFICIENCY_BONUS, CHARGE_LIMIT, range/duration/shape, spell-slot and known/prepared counts, action counts), keeping the kinds the SRD uses;
@@ -88,7 +88,7 @@ Next (8.2 core, in order):
    - the GM stat block shows qualified defenses;
    - melee spell attacks can flank (the trigger needs a melee or ranged distinction);
    - Dueling's "no other weapons" condition.
-7b. **R08 proof readiness:** do one local deploy after combat math and rerun an Encounter proof through the room. The `encounter-action-contention` proof imports convex-test-only fixtures (`fixtures/encounterAction` → `fixtures/characters` uses `import.meta.glob`), so split the pure fixture data from the convex-test setup. Proofs that write Scene state directly may be refused while their Campaign's room holds authority; route those writes through the room too.
+     7b. **R08 proof readiness:** do one local deploy after combat math and rerun an Encounter proof through the room. The `encounter-action-contention` proof imports convex-test-only fixtures (`fixtures/encounterAction` → `fixtures/characters` uses `import.meta.glob`), so split the pure fixture data from the convex-test setup. Proofs that write Scene state directly may be refused while their Campaign's room holds authority; route those writes through the room too.
 8. **S4B:** DO planners for Disarm, Cleaving responses, ROLL_ENEMY_ACTION, Legendary Resistance, spatial action interpretation and Manual mode, then delete their Convex rules code.
 9. **S7:** R01–R05 audit, R08 `yarn validate:pre-staging:local`, V15 workload with player-issued commands, docs.
    - R08 prerequisite (done 2026-09-24, not yet run end to end): `scripts/validatePreStagingLocal.mjs` no longer uses the historical Codex packet `.codex/validation/local-convex-linux-20260915/`. Its proof runners are ported to `scripts/runLocalConvexProof.ps1`; the reset stage uses `scripts/resetLocalConvex.ps1`. Admin keys are generated with `docker exec` at run time. The stored credentials file is no longer used. Evidence goes under `local-validation/`. See the [release runbook](../runbooks/phase-8-2-release.md#final-local-source).
@@ -120,9 +120,29 @@ The user delegated decisions on 2026-09-24 (night): use Foundry as the baseline,
   - ammunition counted down per attack.
 
   Rejected: GLOBAL ammunition bonuses faceted to launchers, which add up across stacks and remove the player's choice. It needs Sheet UI and inventory consumption, so it lands with Sheet–tabletop integration.
+
 - **`maxBonus` is removed (2026-09-25).** It is on 165 SRD items, has no consumer and duplicates the authored +N modifiers. Removing the field is cleaner than keeping an authoring option that always fails validation. Foundry has no equivalent; magic bonuses are ordinary modifiers there too.
 - **The Dwarf heavy-armor speed exception is kept (2026-09-25).** It is SRD text.
 - **Unarmored AC formulas choose the best (2026-09-25, queued).** 5e says a creature with several AC formulas picks one, so alternative base formulas (Barbarian, Monk, Draconic Resilience) compete instead of stacking. Foundry's 5e system has the same single-calculation rule.
+- **Character maximum HP: one persistence funnel (2026-09-25, revised).** The first decision assumed a single writer, but maximum HP also depends on GM Campaign adjustments and on published content, and nine code paths write the Character document. Revised:
+  - the Run keeps no maximum-HP copy and no staleness refusal, because rules already compute the live maximum;
+  - for display, one shared Character persistence helper, used by every Character document writer and by GM adjustment writes, recomputes and stores the effective maximum in the same transaction;
+  - accepted lag: after a content republish, a Character's stored maximum updates on its next write, while the Sheet always shows the live value (Roll20 is no better; compendium changes don't reach existing characters);
+  - rejected: evaluating the full Sheet on every reactive Encounter read (too costly) and a publish-time recompute job for now (infrastructure for a rare case; follow-up).
+
+  Copied Character conditions are also removed from Run actors.
+- **Displayed maximum HP includes active reductions (2026-09-25, player-control slice).** Foundry shows the effective maximum with active effects applied, so projections subtract active maximum-HP reductions (such as a vampire's bite) from the stored maximum. Watch item: every Character write now runs a full Sheet evaluation, and some writers reload the catalogue; measure it under the V15 workload before optimizing.
+
+- **"Auto-roll my dice" defaults on and is stored server-side (2026-09-25).** Foundry rolls immediately when you click (manual dice entry is an opt-in configuration), and so does Roll20. So the fast path is the default, and players who roll physical dice turn it off to get the per-roll prompt. It is a profile preference read by the server when a roll is needed:
+  - no prompt round trip;
+  - works if the roller's client has disconnected;
+  - applies on every device.
+
+  With it on, Assisted mode behaves like the removed Automatic mode for that person's rolls.
+- **GM void resolves a stuck decision by kind (2026-09-25).** Foundry and Roll20 have no rules prompts to get stuck; any table tool with prompts needs an escape hatch, especially once players drive actions and can disconnect. GM-only, with the outcome depending on the kind of decision:
+  - a paused action is cancelled whole;
+  - declinable responses resolve as a decline;
+  - turn-flow steps are skipped where the flow can continue, and are otherwise refused with guidance.
 - **Local Worker configuration (2026-09-24).** `apps/session-worker/.dev.vars` was rebuilt from the local Convex secrets to match `.dev.vars.example`. The retired executor variables are removed from it, from the local Convex env and from the generated Worker types. `RULES_CONTINUATION_SECRET` is now provisioned locally.
 
 ## Authority and present state

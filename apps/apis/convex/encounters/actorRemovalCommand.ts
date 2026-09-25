@@ -1,14 +1,9 @@
 import {
   encounterCommandResultDtoSchema,
-  encounterGmActorDtoSchema,
   encounterGmProjectionDtoSchema,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
-import * as z from 'zod/mini'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredRunCommandSchema,
   encounterStoredRuleOccurrenceSchema,
@@ -23,8 +18,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { readCharacterRecord } from '../characters/stateDocuments'
-import { readRunActors, readRunProjection, readRunState } from './documents'
-import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { readEncounterActorCore, readRunActors, readRunProjection, readRunState } from './documents'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
 import { removeActorInitiative } from './actorRemovalInitiative'
@@ -42,12 +36,6 @@ const storedReceipt = encounterStoredRuleReceiptSchema.clone({
   ...encounterStoredRuleReceiptSchema._zod.def,
   catchall: undefined
 })
-const coreFields = z.omit(encounterGmActorDtoSchema, {
-  statBlock: true,
-  features: true,
-  healthBand: true
-})
-const actorCore = coreFields.clone({ ...coreFields._zod.def, catchall: undefined })
 
 export async function removeEncounterActor(
   ctx: MutationCtx,
@@ -326,8 +314,8 @@ async function removeEncounterActorCore(
       const stored = actors.find((candidate) => candidate.id === actor.id)
       return (
         !stored ||
-        checksumCanonicalJson(actorCore.parse(stored)) !==
-          checksumCanonicalJson(actorCore.parse(actor))
+        checksumCanonicalJson(readEncounterActorCore(stored)) !==
+          checksumCanonicalJson(readEncounterActorCore(actor))
       )
     }) ||
     projection.currentActorId !== state.currentActorId ||
@@ -396,35 +384,6 @@ async function removeEncounterActorCore(
     throw new Error('Pending concentration cleanup did not terminate its maintained state.')
 
   const projectedActors = projection.actors.filter((actor) => actor.id !== input.actorId)
-  for (const transition of cleanup?.characterOwnerTransitions ?? []) {
-    for (const actor of actors.filter(
-      (candidate) => candidate.kind === 'CHARACTER' && candidate.sourceId === transition.characterId
-    )) {
-      const snapshot = requireSnapshotIdentity(actor)
-      if (actor.sourceRevision !== transition.beforeStreamVersion)
-        throw new Error('Maintained-effect Character mirror changed before actor removal.')
-      if (actor.id === input.actorId) continue
-      const updated = encounterRunActorStateSchema.parse({
-        ...actor,
-        sourceRevision: transition.afterStreamVersion,
-        snapshot: { ...snapshot, sourceRevision: transition.afterStreamVersion },
-        updatedAt: now
-      })
-      const actorRow = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', actor.id))
-        .unique()
-      if (!actorRow) throw new Error('Encounter actor was not found.')
-      await ctx.db.patch(actorRow._id, {
-        stateJson: JSON.stringify(updated),
-        stateChecksum: checksumCanonicalJson(updated)
-      })
-      const projected = projectedActors.find((candidate) => candidate.id === actor.id)
-      if (!projected || projected.sourceRevision !== transition.beforeStreamVersion)
-        throw new Error('Maintained-effect Character projection changed before actor removal.')
-      projected.sourceRevision = transition.afterStreamVersion
-    }
-  }
   const initiative = await removeActorInitiative(ctx, state, input.actorId, now)
   const actorRow = await ctx.db
     .query('encounterRunActors')

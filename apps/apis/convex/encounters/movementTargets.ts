@@ -75,8 +75,7 @@ export async function loadMovementTargets(
   const characterIds = new Set<string>()
   for (const actor of actors) {
     if (actor.kind === 'CHARACTER') {
-      if (!actor.sourceId || actor.sourceRevision === null || characterIds.has(actor.sourceId))
-        throw new Error('Encounter Character target is stale.')
+      if (characterIds.has(actor.sourceId)) throw new Error('Encounter Character target is stale.')
       characterIds.add(actor.sourceId)
       const loaded = await loadCharacterSheetFacts(
         ctx,
@@ -84,7 +83,7 @@ export async function loadMovementTargets(
         actor.sourceId,
         campaign.id
       )
-      if (!loaded) throw new Error('Encounter Character state mirror is stale.')
+      if (!loaded) throw new Error('Encounter Character source is unavailable.')
       const activeEffects = await listActiveRuleEffects(ctx, {
         kind: 'CHARACTER',
         characterId: actor.sourceId

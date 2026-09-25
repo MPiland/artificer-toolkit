@@ -1,4 +1,8 @@
-import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
+import * as z from 'zod/mini'
+import {
+  encounterGmActorDtoSchema,
+  encounterGmProjectionDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema,
@@ -10,6 +14,35 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 
 type Context = MutationCtx | QueryCtx
+
+const actorCoreFields = z.omit(encounterGmActorDtoSchema, {
+  statBlock: true,
+  features: true,
+  healthBand: true,
+  sourceRevision: true,
+  currentHitPoints: true,
+  maxHitPoints: true,
+  tempHitPoints: true,
+  conditions: true
+})
+const actorCoreSchema = actorCoreFields.clone({ ...actorCoreFields._zod.def, catchall: undefined })
+const runOwnedFields = z.pick(encounterGmActorDtoSchema, {
+  sourceRevision: true,
+  currentHitPoints: true,
+  maxHitPoints: true,
+  tempHitPoints: true,
+  conditions: true
+})
+const runOwnedSchema = runOwnedFields.clone({ ...runOwnedFields._zod.def, catchall: undefined })
+
+/**
+ * The actor fields a stored projection repeats from its Run actor. Character hit points,
+ * maximum, conditions and stream versions belong to the Character, so only other actors include them.
+ */
+export function readEncounterActorCore(actor: unknown) {
+  const core = actorCoreSchema.parse(actor)
+  return core.kind === 'CHARACTER' ? core : { ...core, ...runOwnedSchema.parse(actor) }
+}
 
 export function readRunProjection(row: Doc<'encounterRuns'>) {
   const projection = encounterGmProjectionDtoSchema.parse(JSON.parse(row.projectionJson))

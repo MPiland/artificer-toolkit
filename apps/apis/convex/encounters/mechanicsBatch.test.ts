@@ -63,6 +63,7 @@ async function mechanicsFixture() {
     sourceCommandId: crypto.randomUUID(),
     commandId: crypto.randomUUID(),
     occurredAt: '2026-09-12T00:00:00.000Z',
+    expectedCharacterStreamVersion: null,
     forceVersionAdvance: false,
     applications: [
       {
@@ -103,6 +104,7 @@ describe('applyEncounterMechanicsBatch', () => {
     const result = await base.owner.caller.run((ctx) =>
       applyEncounterMechanicsBatch(ctx, base.input)
     )
+    if (result.updatedActor.kind === 'CHARACTER') throw new Error('Expected a non-Character actor.')
     expect(result.updatedActor.currentHitPoints).toBe(1)
     expect(result.characterReceiptId).toBeNull()
     const stored = await base.readActor()
@@ -124,6 +126,20 @@ describe('applyEncounterMechanicsBatch', () => {
         })
       )
     ).rejects.toThrow('version is stale')
+    expect(await base.readActor()).toEqual(before)
+  })
+
+  it('rejects a planned maximum that differs from the Run-owned maximum before writing', async () => {
+    const base = await mechanicsFixture()
+    const before = await base.readActor()
+    await expect(
+      base.owner.caller.run((ctx) =>
+        applyEncounterMechanicsBatch(ctx, {
+          ...base.input,
+          effectiveMaximumHitPoints: base.actor.maxHitPoints + 1
+        })
+      )
+    ).rejects.toThrow('Encounter actor maximum hit points are stale.')
     expect(await base.readActor()).toEqual(before)
   })
 
@@ -241,6 +257,7 @@ describe('applyEncounterMechanicsBatch', () => {
         ...(retained ? [{ conditionTypeId: oldCondition, label: 'Retained metadata' }] : []),
         { conditionTypeId: newCondition }
       ]
+      if (result.updatedActor.kind === 'CHARACTER') throw new Error('Expected a custom actor.')
       expect(result.updatedActor.conditions).toEqual(expected)
       expect(JSON.parse((await base.readActor())!.stateJson).conditions).toEqual(expected)
     }

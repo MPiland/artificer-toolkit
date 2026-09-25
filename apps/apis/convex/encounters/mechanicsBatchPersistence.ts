@@ -12,6 +12,8 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
 import { requireIdentity } from '../lib/identity'
 import { readRunActor, readRunState } from './documents'
+import { writeCharacterRecord } from '../characters/characterWrites'
+import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { z } from 'zod'
 import type {
@@ -44,6 +46,12 @@ function validateInput(input: EncounterMechanicsBatchInput): EncounterMechanicsB
     throw new Error('Encounter version is invalid.')
   if (!Number.isSafeInteger(input.effectiveMaximumHitPoints) || input.effectiveMaximumHitPoints < 0)
     throw new Error('Effective maximum hit points are invalid.')
+  if (
+    input.expectedCharacterStreamVersion !== null &&
+    (!Number.isSafeInteger(input.expectedCharacterStreamVersion) ||
+      input.expectedCharacterStreamVersion < 0)
+  )
+    throw new Error('Expected Character stream version is invalid.')
   return {
     ...input,
     encounterId,
@@ -81,7 +89,8 @@ export async function readEncounterMechanicsBatchTarget(
     .withIndex('by_encounterId_id', (query) => query.eq('encounterId', state.id).eq('id', actor.id))
     .unique()
   if (!actorRow) throw new Error('Encounter actor was not found.')
-  if (actor.maxHitPoints !== input.effectiveMaximumHitPoints)
+  // Rules evaluate a Character's effective maximum live; only Run-owned maxima are compared.
+  if (actor.kind !== 'CHARACTER' && actor.maxHitPoints !== input.effectiveMaximumHitPoints)
     throw new Error('Encounter actor maximum hit points are stale.')
   return { ctx, input, userId, runRow, state, campaign, actor, actorRow }
 }
@@ -98,6 +107,8 @@ export async function persistEncounterMechanicsBatchPlan(
     actor: Awaited<ReturnType<typeof readRunActor>>
     character: Doc<'characters'> | null
     plan: EncounterMechanicsBatchPlan
+    /** Authored sources already loaded for this Character, reused to evaluate its written state. */
+    sourceContext?: CharacterSheetSourceContext
   }
 ): Promise<EncounterMechanicsBatchResult> {
   if (target.ctx !== ctx)
@@ -152,10 +163,11 @@ export async function persistEncounterMechanicsBatchPlan(
     !character ||
     character.id !== actor.sourceId ||
     character.systemId !== actor.systemId ||
-    character.streamVersion !== actor.sourceRevision ||
     character.status !== 'ACTIVE'
   )
     throw new Error('Encounter Character source is unavailable.')
+  if (character.streamVersion !== input.expectedCharacterStreamVersion)
+    throw new Error('Encounter Character changed after the outcome was planned.')
   const { assignment } = await requireCampaignCharacterAuthority(
     ctx,
     campaign.id,
@@ -172,8 +184,6 @@ export async function persistEncounterMechanicsBatchPlan(
   if (
     plan.shouldAdvance !== (plan.characterUpdate !== null) ||
     plan.characterStreamVersion !== (plan.shouldAdvance ? character.streamVersion + 1 : null) ||
-    plan.updatedActor.sourceRevision !==
-      (plan.shouldAdvance ? character.streamVersion + 1 : character.streamVersion) ||
     (plan.itemUseStateTransition &&
       (!plan.shouldAdvance ||
         plan.itemUseStateTransition.characterId !== character.id ||
@@ -196,23 +206,12 @@ export async function persistEncounterMechanicsBatchPlan(
   if (plan.characterUpdate) {
     const characterStreamVersion = plan.characterStreamVersion
     if (characterStreamVersion === null) throw new Error('Encounter Character plan is invalid.')
-    const encoded: unknown = JSON.parse(JSON.stringify(plan.characterUpdate.character))
-    const encodedSheetState: unknown = plan.characterUpdate.sheetState
-      ? JSON.parse(JSON.stringify(plan.characterUpdate.sheetState))
-      : null
-    await ctx.db.patch(character._id, {
-      documentJson: canonicalizeRuleDocument(encoded),
-      checksum: checksumRuleDocument(encoded),
-      ...(encodedSheetState
-        ? {
-            sheetState: {
-              documentJson: canonicalizeRuleDocument(encodedSheetState),
-              checksum: checksumRuleDocument(encodedSheetState)
-            }
-          }
-        : {}),
-      streamVersion: characterStreamVersion,
-      updatedAt: input.occurredAt
+    await writeCharacterRecord(ctx, {
+      current: character,
+      fields: { streamVersion: characterStreamVersion, updatedAt: input.occurredAt },
+      document: JSON.parse(JSON.stringify(plan.characterUpdate.character)),
+      ...(plan.characterUpdate.sheetState ? { sheetState: plan.characterUpdate.sheetState } : {}),
+      sourceContext: prepared.sourceContext
     })
   }
   const stow = plan.itemUseStateTransition
@@ -259,7 +258,7 @@ export async function persistEncounterMechanicsBatchPlan(
       })
     )
   }
-  if (plan.shouldAdvance)
+  if (checksumCanonicalJson(plan.updatedActor) !== actorRow.stateChecksum)
     await ctx.db.patch(actorRow._id, {
       stateJson: JSON.stringify(plan.updatedActor),
       stateChecksum: checksumCanonicalJson(plan.updatedActor)

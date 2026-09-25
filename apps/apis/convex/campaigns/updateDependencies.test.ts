@@ -15,7 +15,7 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
-import * as sheets from '../characters/sheetPreparation'
+import * as sheetFacts from '../characters/sheetFacts'
 
 const update = makeFunctionReference<'mutation', UpdateCampaignInput, CampaignDetailDto>(
   'campaigns/update:update'
@@ -223,7 +223,7 @@ describe('Campaign update source and mechanics dependencies', () => {
     await assign()
     const before = await snapshot()
     const fault = vi
-      .spyOn(sheets, 'loadCharacterSheet')
+      .spyOn(sheetFacts, 'loadCharacterSheetFacts')
       .mockRejectedValueOnce(new Error('Injected Sheet evaluation failure'))
     try {
       await expect(

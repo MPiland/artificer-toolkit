@@ -355,7 +355,6 @@ it('does not let movement scope read a Character through a custom Encounter acto
       expectedUserId: base.other.userId,
       expectedRole: 'OWNER',
       characterId: character.id,
-      expectedStreamVersion: 0,
       movement: {
         ...base.ownerCapture.movement!,
         saveId: staged.saveId,
@@ -363,7 +362,7 @@ it('does not let movement scope read a Character through a custom Encounter acto
       },
       request: { kind: 'INPUTS' }
     })
-  ).rejects.toThrow('Movement Character source is unavailable or stale')
+  ).rejects.toThrow('Movement Character source is unavailable.')
 })
 
 it('rejects identity, role, epoch, Encounter, and save ownership mismatches', async () => {

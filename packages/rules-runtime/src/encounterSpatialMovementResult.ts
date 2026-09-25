@@ -69,7 +69,7 @@ export function projectSpatialMovementResult(input: {
   terminalPosition: ScenePoint | null
   executions: Readonly<FrozenMovementReactionRemainder['completedSpatialExecutions']>
   effects: ReadonlyMap<string, EncounterSpatialRuleEffectRecord>
-  targets: ReadonlyMap<string, Pick<MovementTarget, 'actor'>>
+  targets: ReadonlyMap<string, Pick<MovementTarget, 'actor' | 'characterFacts'>>
   settlements: readonly {
     targetActorId: string
     targetTransition: EncounterMechanicsBatchPlan['targetTransition']
@@ -106,12 +106,12 @@ export function projectSpatialMovementResult(input: {
     if (target.actor.kind === 'CHARACTER') {
       if (settlement.characterStreamVersion === null)
         throw new Error('Spatial Character state must advance once.')
-      if (target.actor.sourceId === null || target.actor.sourceRevision === null)
+      if (!target.characterFacts)
         throw new Error('Spatial Character settlement span is unavailable.')
       characterTransitions.push({
         characterId: target.actor.sourceId,
         targetActorId: settlement.targetActorId,
-        beforeStreamVersion: target.actor.sourceRevision,
+        beforeStreamVersion: target.characterFacts.active.streamVersion,
         afterStreamVersion: settlement.characterStreamVersion,
         before: first.targetTransition.before,
         after: settlement.targetTransition.after

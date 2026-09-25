@@ -96,7 +96,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
     command: {
       type: 'ADD_INVENTORY_ITEM',
       commandId: crypto.randomUUID(),
-      expectedVersion: base.actorSourceRevision,
+      expectedVersion: base.characterStreamVersion,
       equipmentId: shieldWood.id,
       quantity: 1
     }
@@ -118,7 +118,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       command: {
         type: 'EQUIP_ITEM',
         commandId: crypto.randomUUID(),
-        expectedVersion: base.actorSourceRevision + 1 + index,
+        expectedVersion: base.characterStreamVersion + 1 + index,
         itemId
       }
     })
@@ -334,8 +334,9 @@ describe('shield stow on two-handed attacks', () => {
           sourceCommandId: crypto.randomUUID(),
           commandId: crypto.randomUUID(),
           occurredAt: '2026-09-24T00:00:00.000Z',
+          expectedCharacterStreamVersion: loaded.active.streamVersion,
           applications: [],
-          effectiveMaximumHitPoints: actor.maxHitPoints,
+          effectiveMaximumHitPoints: loaded.active.maximumHitPoints,
           forceVersionAdvance: false,
           stowEquippedItemInstanceId: base.shieldItemId,
           characterResourceConsumption: {
@@ -358,7 +359,7 @@ describe('shield stow on two-handed attacks', () => {
       })
       expect(plan.shouldAdvance).toBe(true)
       expect(plan.characterStreamVersion).toBe(loaded.active.streamVersion + 1)
-      expect(plan.updatedActor.sourceRevision).toBe(loaded.active.streamVersion + 1)
+      expect(plan.updatedActor).toEqual(actor)
       expect(plan.characterUpdate?.character.state.equipment.equipped).not.toContain(
         base.shieldItemId
       )
@@ -454,7 +455,13 @@ describe('shield stow on two-handed attacks', () => {
       scope,
       plan
     )
-    expect(committed).toEqual(plan.result)
+    const runRow = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique()
+    )
+    expect(JSON.parse(runRow!.projectionJson)).toEqual(committed.projection)
     expect(
       await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
     ).toEqual(committed)

@@ -68,6 +68,7 @@ export function prepareNativeActionMechanicsBatches(input: NativeEncounterAction
           }),
           occurredAt: input.occurredAt,
           applications: [],
+          expectedCharacterStreamVersion: source.characterStreamVersion,
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
           forceVersionAdvance: false,
@@ -87,15 +88,12 @@ export function prepareNativeActionMechanicsBatches(input: NativeEncounterAction
             sourceCommandId: input.sourceCommandId,
             phase: input.eventPhases.outcome,
             ordinal: input.ordinal ?? 0,
-            targetCharacterId:
-              target.sourceId ??
-              (() => {
-                throw new Error('Encounter Character action target is stale.')
-              })()
+            targetCharacterId: target.sourceId
           })
         : input.commandId,
     occurredAt: input.occurredAt,
     applications: input.applications,
+    expectedCharacterStreamVersion: targetFacts.characterFacts?.active.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,

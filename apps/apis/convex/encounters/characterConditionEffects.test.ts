@@ -174,7 +174,7 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
     command: {
       type: 'ADD_CONDITION',
       commandId: crypto.randomUUID(),
-      expectedVersion: base.actorSourceRevision,
+      expectedVersion: base.characterStreamVersion,
       conditionTypeId: blinded.id,
       notes: 'baseline Sheet condition'
     }
@@ -185,7 +185,7 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
       command: {
         type: 'ADD_CONDITION',
         commandId: crypto.randomUUID(),
-        expectedVersion: base.actorSourceRevision + 1,
+        expectedVersion: base.characterStreamVersion + 1,
         conditionTypeId: frightened.id,
         notes: 'same-type Sheet condition'
       }

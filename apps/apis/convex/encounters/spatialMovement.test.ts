@@ -115,8 +115,10 @@ async function current(base: Awaited<ReturnType<typeof fixture>>) {
       encounterId: base.run.id,
       sceneId: base.sceneId
     })
+    const actor = await readRunActor(ctx, readRunState(row), base.run.actors[0]!.id)
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
     return {
-      actor: await readRunActor(ctx, readRunState(row), base.run.actors[0]!.id),
+      actor,
       effects: await scope!.list(),
       runVersion: row.version
     }
@@ -572,9 +574,9 @@ describe('native spatial movement coordinator', () => {
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
           .unique()
-        expect(
-          (await readRunActor(ctx, readRunState(row!), base.run.actors[0]!.id)).currentHitPoints
-        ).toBe(0)
+        const actor = await readRunActor(ctx, readRunState(row!), base.run.actors[0]!.id)
+        if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
+        expect(actor.currentHitPoints).toBe(0)
         throw new Error('Parent Scene abort')
       })
     ).rejects.toThrow('Parent Scene abort')

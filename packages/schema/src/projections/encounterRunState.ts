@@ -6,17 +6,47 @@ import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiative
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
-export const encounterRunActorStateSchema = z.extend(
-  z.omit(encounterGmActorDtoSchema, { statBlock: true, features: true, healthBand: true }),
+const encounterRunActorStateBaseSchema = z.extend(
+  z.omit(encounterGmActorDtoSchema, {
+    statBlock: true,
+    features: true,
+    healthBand: true,
+    kind: true,
+    sourceId: true,
+    sourceRevision: true,
+    currentHitPoints: true,
+    maxHitPoints: true,
+    tempHitPoints: true,
+    conditions: true
+  }),
   {
     sideId: postgresUuidSchema,
     snapshot: jsonValueSchema,
-    conditions: jsonValueSchema,
     resources: jsonValueSchema,
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime()
   }
 )
+
+/**
+ * A Character actor keeps no hit point, condition or stream-version copy: Encounter reads load the
+ * current Character (ADR 0034 decision 4). Creature and custom actors own that state in the Run.
+ */
+export const encounterRunActorStateSchema = z.discriminatedUnion('kind', [
+  z.extend(encounterRunActorStateBaseSchema, {
+    kind: z.literal('CHARACTER'),
+    sourceId: postgresUuidSchema
+  }),
+  z.extend(encounterRunActorStateBaseSchema, {
+    kind: z.enum(['CREATURE', 'CUSTOM']),
+    sourceId: z.nullable(postgresUuidSchema),
+    sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
+    currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+    conditions: jsonValueSchema
+  })
+])
 
 export const encounterRunStateSchema = z.extend(
   z.omit(encounterGmProjectionDtoSchema, {
@@ -53,4 +83,5 @@ export const encounterRunStateSchema = z.extend(
 )
 
 export type EncounterRunActorState = z.infer<typeof encounterRunActorStateSchema>
+export type EncounterRunCharacterActorState = Extract<EncounterRunActorState, { kind: 'CHARACTER' }>
 export type EncounterRunState = z.infer<typeof encounterRunStateSchema>

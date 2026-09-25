@@ -44,6 +44,7 @@ export async function applyEncounterMechanicsBatch(
   return persistEncounterMechanicsBatchPlan(ctx, target, {
     actor,
     character: loaded?.active ?? null,
-    plan
+    plan,
+    ...(loaded ? { sourceContext: loaded.sourceContext } : {})
   })
 }

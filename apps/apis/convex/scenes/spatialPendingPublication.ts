@@ -1,3 +1,4 @@
+import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import {
   encounterCommandResultDtoSchema,
@@ -27,6 +28,7 @@ import { checksumSpatialCurrentness } from '@artificer-toolkit/rules-runtime/enc
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors, readRunState } from '../encounters/documents'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
@@ -57,7 +59,8 @@ export type SpatialPendingPublicationCallbacks<TSettlement> = {
   }>
   project: (
     state: EncounterRunState,
-    actors: EncounterRunActorState[]
+    actors: EncounterRunActorState[],
+    characterStates: EncounterProjectionCharacterStates
   ) => EncounterCommandResultDto['projection']
 }
 
@@ -599,7 +602,11 @@ async function advanceInitialAutomaticRun(
     updatedAt: occurredAt
   })
   const actors = await readRunActors(ctx, nextState)
-  const projection = project(nextState, actors)
+  const projection = project(
+    nextState,
+    actors,
+    await readEncounterCharacterStates(ctx, nextState, actors)
+  )
   await ctx.db.patch(run._id, {
     version: nextState.version,
     updatedAt: occurredAt,

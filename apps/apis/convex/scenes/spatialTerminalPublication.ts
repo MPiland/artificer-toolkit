@@ -1,3 +1,4 @@
+import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
@@ -20,6 +21,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import type { MutationCtx } from '../_generated/server'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors, readRunProjection, readRunState } from '../encounters/documents'
 import { insertRunCommand, presentTimelineEntry } from '../encounters/timelineEntries'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
@@ -46,7 +48,8 @@ export type SpatialTerminalPublicationCallbacks = {
   }>
   project: (
     state: EncounterRunState,
-    actors: EncounterRunActorState[]
+    actors: EncounterRunActorState[],
+    characterStates: EncounterProjectionCharacterStates
   ) => EncounterCommandResultDto['projection']
 }
 
@@ -230,7 +233,11 @@ export async function publishSpatialTerminal(
     updatedAt: preparation.occurredAt
   })
   const actors = await readRunActors(ctx, nextState)
-  const projection = callbacks.project(nextState, actors)
+  const projection = callbacks.project(
+    nextState,
+    actors,
+    await readEncounterCharacterStates(ctx, nextState, actors)
+  )
   const command = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

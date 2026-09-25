@@ -98,7 +98,9 @@ export async function persistLiveTurnResources(
       after.systemId !== before.systemId ||
       after.kind !== before.kind ||
       after.sourceId !== before.sourceId ||
-      after.sourceRevision !== before.sourceRevision
+      (after.kind !== 'CHARACTER' &&
+        before.kind !== 'CHARACTER' &&
+        after.sourceRevision !== before.sourceRevision)
     )
       throw new Error('Live Session turn resource actor changed before settlement.')
     const next = encounterRunActorStateSchema.parse({ ...after, updatedAt: occurredAt })

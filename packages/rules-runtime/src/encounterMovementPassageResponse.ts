@@ -99,10 +99,7 @@ export async function evaluateEncounterMovementPassageResponse<
   )
     throw new Error('Movement passage blocker changed before resolution.')
   const characterActors = input.actors.filter((actor) => actor.kind === 'CHARACTER')
-  if (
-    characterActors.some((actor) => !actor.sourceId || actor.sourceRevision === null) ||
-    new Set(characterActors.map((actor) => actor.sourceId)).size !== characterActors.length
-  )
+  if (new Set(characterActors.map((actor) => actor.sourceId)).size !== characterActors.length)
     throw new Error('Encounter Character target is stale.')
   let targets = await callbacks.loadTargets([context.sourceActorId, movement.blockerActorId])
   const currentTargets = new Map(targets)

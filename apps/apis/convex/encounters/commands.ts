@@ -1,5 +1,4 @@
 import { insertRunCommand } from './timelineEntries'
-import * as zMini from 'zod/mini'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
 import { makeFunctionReference } from 'convex/server'
@@ -14,7 +13,8 @@ import {
   encounterGmActorDtoSchema,
   encounterGmProjectionDtoSchema,
   type EncounterCommandResultDto,
-  type EncounterExecuteInput
+  type EncounterExecuteInput,
+  type EncounterGmActorDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
@@ -83,9 +83,8 @@ import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
 
 import { nextRollInt } from '../lib/rollRandom'
-import { readRunActor, readRunActors, readRunProjection } from './documents'
+import { readEncounterActorCore, readRunActor, readRunActors, readRunProjection } from './documents'
 import { loadEncounterInitiativeSources } from './initiativeSources'
-import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { loadInitiativeDeclarationSources } from './initiativeDeclarationSources'
 import { createEncounterInitiativeStore } from './initiativeStore'
 import { correctInitiativeCursor } from './initiativeCorrection'
@@ -131,12 +130,6 @@ const resultValidator: Validator<EncounterCommandResultDto, 'required', string> 
 const inputValidator: Validator<EncounterExecuteInput, 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterExecuteInput>
 >(encounterExecuteInputSchema)
-const actorCoreFields = zMini.omit(encounterGmActorDtoSchema, {
-  statBlock: true,
-  features: true,
-  healthBand: true
-})
-const actorCoreSchema = actorCoreFields.clone({ ...actorCoreFields._zod.def, catchall: undefined })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -1757,8 +1750,8 @@ export const execute = internalMutation({
         actor.encounterId !== row.id ||
         actor.systemId !== row.gameSystemId ||
         checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-        checksumCanonicalJson(actorCoreSchema.parse(actor)) !==
-          checksumCanonicalJson(actorCoreSchema.parse(projectedActor)) ||
+        checksumCanonicalJson(readEncounterActorCore(actor)) !==
+          checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
         !state.sides.some((side) => side.id === actor.sideId)
       )
         throw new Error('Stored Encounter actor mismatch.')
@@ -1772,26 +1765,25 @@ export const execute = internalMutation({
           input.conditions !== undefined)
       )
         throw new Error('Character HP must be changed through its Sheet command.')
+      let sheetState: Pick<
+        EncounterGmActorDto,
+        'currentHitPoints' | 'maxHitPoints' | 'tempHitPoints' | 'conditions'
+      > | null = null
       if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
-        if (actor.kind !== 'CHARACTER' || actor.sourceId === null || actor.sourceRevision === null)
+        if (actor.kind !== 'CHARACTER')
           throw new Error('Sheet command does not target this Character actor.')
-        const snapshot = requireSnapshotIdentity(actor)
         const character = await ctx.runMutation(executeEncounterCharacterCommand, {
           characterId: actor.sourceId,
           command: input.characterCommand,
           campaignId: campaign.id
         })
         characterReceiptId = character.historyEventId
-        const conditions: unknown = character.conditions
-        actor = encounterRunActorStateSchema.parse({
-          ...actor,
-          sourceRevision: character.streamVersion,
-          snapshot: { ...snapshot, sourceRevision: character.streamVersion },
+        sheetState = {
           currentHitPoints: Math.max(character.currentHitPoints, 0),
           maxHitPoints: Math.max(character.maxHitPoints, 0),
           tempHitPoints: Math.max(character.tempHitPoints, 0),
-          conditions
-        })
+          conditions: character.conditions
+        }
       }
       let initiativeModifier = 0
       if (input.type === 'ROLL_ACTOR_INITIATIVE') {
@@ -1850,10 +1842,10 @@ export const execute = internalMutation({
             }
       )
       // These edits leave actor rule facts and initiative ordering unchanged.
+      const nextCore = { ...projectedActor, ...readEncounterActorCore(actor), ...sheetState }
       const nextActor = encounterGmActorDtoSchema.parse({
-        ...projectedActor,
-        ...actorCoreSchema.parse(actor),
-        healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
+        ...nextCore,
+        healthBand: healthBand(nextCore.currentHitPoints, nextCore.maxHitPoints)
       })
       actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
       await ctx.db.patch(actorRow._id, {
@@ -1876,8 +1868,8 @@ export const execute = internalMutation({
         actor.encounterId !== row.id ||
         actor.systemId !== row.gameSystemId ||
         checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-        checksumCanonicalJson(actorCoreSchema.parse(actor)) !==
-          checksumCanonicalJson(actorCoreSchema.parse(projectedActor)) ||
+        checksumCanonicalJson(readEncounterActorCore(actor)) !==
+          checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
         !state.sides.some((side) => side.id === actor.sideId)
       )
         throw new Error('Stored Encounter actor mismatch.')
@@ -1911,9 +1903,8 @@ export const execute = internalMutation({
       const bound = bindEncounterActorRuleOutputToFacts(reconciled, nextFacts)
       const nextActor = encounterGmActorDtoSchema.parse({
         ...projectedActor,
-        ...actorCoreSchema.parse(actor),
-        features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id)),
-        healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
+        ...readEncounterActorCore(actor),
+        features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id))
       })
       actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
       await ctx.db.patch(actorRow._id, {
@@ -1926,8 +1917,8 @@ export const execute = internalMutation({
       const projectedActor = actors.find((candidate) => candidate.id === input.actorId)
       if (!actor || !projectedActor) throw new Error('Encounter actor was not found.')
       if (
-        checksumCanonicalJson(actorCoreSchema.parse(actor)) !==
-        checksumCanonicalJson(actorCoreSchema.parse(projectedActor))
+        checksumCanonicalJson(readEncounterActorCore(actor)) !==
+        checksumCanonicalJson(readEncounterActorCore(projectedActor))
       )
         throw new Error('Stored Encounter actor mismatch.')
       const replacement = await replaceActorEquipment(ctx, userId, actor, input, updatedAt)
@@ -1991,8 +1982,8 @@ export const execute = internalMutation({
         actor.encounterId !== row.id ||
         actor.systemId !== row.gameSystemId ||
         checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-        checksumCanonicalJson(actorCoreSchema.parse(actor)) !==
-          checksumCanonicalJson(actorCoreSchema.parse(projectedActor)) ||
+        checksumCanonicalJson(readEncounterActorCore(actor)) !==
+          checksumCanonicalJson(readEncounterActorCore(projectedActor)) ||
         !state.sides.some((side) => side.id === actor.sideId)
       )
         throw new Error('Stored Encounter actor mismatch.')
@@ -2033,9 +2024,8 @@ export const execute = internalMutation({
         const bound = bindEncounterActorRuleOutputToFacts(reconciled, nextFacts)
         const nextActor = encounterGmActorDtoSchema.parse({
           ...projectedActor,
-          ...actorCoreSchema.parse(actor),
-          features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id)),
-          healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
+          ...readEncounterActorCore(actor),
+          features: snapshotFeatures(actor, requireEncounterActorRuleResult(bound, actor.id))
         })
         actors = actors.map((current) => (current.id === actor.id ? nextActor : current))
         await ctx.db.patch(actorRow._id, {

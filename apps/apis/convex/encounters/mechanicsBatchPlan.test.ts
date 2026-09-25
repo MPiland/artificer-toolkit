@@ -11,6 +11,7 @@ function command(input: {
   targetActorId: string
   expectedEncounterVersion: number
   maximumHitPoints: number
+  characterStreamVersion: number | null
 }): Omit<EncounterMechanicsBatchInput, 'applications'> {
   return {
     encounterId: input.encounterId,
@@ -20,6 +21,7 @@ function command(input: {
     sourceCommandId: crypto.randomUUID(),
     commandId: crypto.randomUUID(),
     occurredAt: '2026-09-12T00:00:00.000Z',
+    expectedCharacterStreamVersion: input.characterStreamVersion,
     effectiveMaximumHitPoints: input.maximumHitPoints,
     forceVersionAdvance: false
   }
@@ -68,7 +70,8 @@ describe('planEncounterMechanicsBatch', () => {
         encounterId: fixture.run.id,
         targetActorId: fixture.actor.id,
         expectedEncounterVersion: fixture.run.version,
-        maximumHitPoints: fixture.actor.maxHitPoints
+        maximumHitPoints: fixture.actor.maxHitPoints,
+        characterStreamVersion: fixture.characterStreamVersion
       }),
       applications: [
         damage({
@@ -91,7 +94,7 @@ describe('planEncounterMechanicsBatch', () => {
           beforeRemaining: 2,
           afterRemaining: 1,
           characterId: fixture.character.id,
-          expectedStreamVersion: fixture.actorSourceRevision
+          expectedStreamVersion: fixture.characterStreamVersion
         }
       })()
     } satisfies EncounterMechanicsBatchInput
@@ -122,12 +125,12 @@ describe('planEncounterMechanicsBatch', () => {
       })
       expect(() =>
         planEncounterMechanicsBatch({
-          batch: input,
-          actor: { ...actor, currentHitPoints: actor.currentHitPoints - 1 },
+          batch: { ...input, expectedCharacterStreamVersion: fixture.characterStreamVersion + 1 },
+          actor,
           userId: fixture.owner.userId,
           characterFacts: loaded
         })
-      ).toThrow('state mirror is stale')
+      ).toThrow('changed after the outcome was planned')
       expect(() =>
         planEncounterMechanicsBatch({
           batch: {
@@ -169,7 +172,8 @@ describe('planEncounterMechanicsBatch', () => {
         encounterId: fixture.run.id,
         targetActorId: actor.id,
         expectedEncounterVersion: fixture.run.version,
-        maximumHitPoints: actor.maxHitPoints
+        maximumHitPoints: actor.maxHitPoints,
+        characterStreamVersion: null
       }),
       applications: [
         damage({

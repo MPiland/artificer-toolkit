@@ -392,21 +392,6 @@ it('settles present and detached Character maintenance once per automatic contac
         checksum: checksumRuleDocument(updated)
       })
     }
-    const actorRow = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) =>
-        q.eq('encounterId', value.run.id).eq('id', value.mover.id)
-      )
-      .unique()
-    if (!actorRow) throw new Error('Missing Character actor.')
-    const actor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(actorRow.stateJson),
-      conditions: [blinded.id, poisoned.id]
-    })
-    await ctx.db.patch(actorRow._id, {
-      stateJson: JSON.stringify(actor),
-      stateChecksum: checksumCanonicalJson(actor)
-    })
     return { removedIds, independentIds }
   })
   const projection = await resetAndDetachScene(value)
@@ -496,9 +481,8 @@ it('settles present and detached Character maintenance once per automatic contac
   )
   const actor = after.actors.find((row) => row.id === value.mover.id)!
   const actorState = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-  expect(actorState.sourceRevision).toBe(presentAfter.streamVersion)
-  expect(actorState.snapshot).toMatchObject({ sourceRevision: presentAfter.streamVersion })
-  expect(actorState.conditions).toEqual([poisoned.id])
+  expect(actorState).toMatchObject({ kind: 'CHARACTER', sourceId: value.character.id })
+  expect(actorState).not.toHaveProperty('conditions')
   const receipt = after.receipts.find((row) => row.commandId === next.rootInput.commandId)
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
   expect(after.characterReceipts.length - before.characterReceipts.length).toBe(2)

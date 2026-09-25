@@ -250,12 +250,12 @@ export async function persistNativeTurnEffects(
       ...(terminatedMaintainedStates.length ? { terminatedMaintainedStates } : {}),
       executions: evaluated.plan.executions,
       characterTransitions:
-        actor.kind === 'CHARACTER'
+        actor.kind === 'CHARACTER' && batch.expectedCharacterStreamVersion !== null
           ? [
               {
                 characterId: actor.sourceId,
                 targetActorId: actor.id,
-                beforeStreamVersion: actor.sourceRevision,
+                beforeStreamVersion: batch.expectedCharacterStreamVersion,
                 afterStreamVersion: applied.characterStreamVersion,
                 before: applied.targetTransition.before,
                 after: applied.targetTransition.after

@@ -22,6 +22,7 @@ import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rul
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readRunActors, readRunProjection, readRunState } from '../encounters/documents'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from '../encounters/timelineEntries'
 import {
@@ -665,7 +666,11 @@ async function advanceMovementResponseRun(
     updatedAt: occurredAt
   })
   const actors = await readRunActors(ctx, nextState)
-  const projection = project(nextState, actors)
+  const projection = project(
+    nextState,
+    actors,
+    await readEncounterCharacterStates(ctx, nextState, actors)
+  )
   await ctx.db.patch(current.run._id, {
     version,
     updatedAt: occurredAt,

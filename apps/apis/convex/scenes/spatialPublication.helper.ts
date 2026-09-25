@@ -18,13 +18,17 @@ export async function publishPreparedSpatialTerminal(
 ) {
   return publishSpatialTerminal(ctx, saveId, geometry, request, {
     settle: commitPreparedSpatialTerminal,
-    project: (nextState, actors) => {
+    project: (nextState, actors, characterStates) => {
       const facts = buildEncounterActorRuleFacts({ actors })
       const output = reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: nextState.gameSystemId, facts }),
         facts
       )
-      return projectGm({ ...nextState, actors }, bindEncounterActorRuleOutputToFacts(output, facts))
+      return projectGm(
+        { ...nextState, actors },
+        bindEncounterActorRuleOutputToFacts(output, facts),
+        characterStates
+      )
     }
   })
 }

@@ -744,6 +744,25 @@ describe('native play Character vision boundary', () => {
     const changed = await base.other.caller.query(readVision, base.input)
     expect(changed.characterVision.dimRange).toBeNull()
     expect(changed.snapshotChecksum).not.toBe(first.snapshotChecksum)
+    const readStoredRun = () =>
+      base.t.run(async (ctx) => {
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+          .unique()
+        const actor = await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) =>
+            q.eq('encounterId', base.run.id).eq('id', base.actor.id)
+          )
+          .unique()
+        if (!run || !actor) throw new Error('Missing Run or actor.')
+        return {
+          version: run.version,
+          actor: encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+        }
+      })
+    const storedBeforePlay = await readStoredRun()
     const advanced = await base.owner.caller.mutation(executeSheet, {
       id: base.character.id,
       command: {
@@ -768,25 +787,10 @@ describe('native play Character vision boundary', () => {
     // A Character write leaves unrelated play/source scopes independent.
     await expect(base.other.caller.query(capture, base.captureInput)).resolves.toEqual(base.scope)
     await expect(base.other.caller.query(readVision, base.input)).rejects.toThrow('stale')
-    const stored = await base.t.run(async (ctx) => {
-      const run = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-        .unique()
-      const actor = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) =>
-          q.eq('encounterId', base.run.id).eq('id', base.actor.id)
-        )
-        .unique()
-      if (!run || !actor) throw new Error('Missing Run or actor.')
-      return {
-        version: run.version,
-        actor: encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-      }
-    })
+    const stored = await readStoredRun()
     expect(stored.version).toBe(base.input.expectedEncounterVersion)
-    expect(stored.actor.sourceRevision).toBe(base.committed.streamVersion)
+    expect(stored.actor).toMatchObject({ kind: 'CHARACTER', sourceId: base.character.id })
+    expect(stored).toEqual(storedBeforePlay)
     const session = await base.other.caller.mutation(createSession, {
       campaignId: base.campaign.id
     })

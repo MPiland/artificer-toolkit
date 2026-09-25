@@ -1,11 +1,12 @@
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
-import type { QueryCtx } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
 import { readCharacterRecord, readCharacterDraft } from '../characters/documents'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
 import { prepareCharacterBuilder } from '../characters/builderPreparation'
-import { loadCharacterSheet } from '../characters/sheetPreparation'
+import { writeCharacterRecord } from '../characters/characterWrites'
+import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import { readActiveCampaignMembers } from './authority'
 import { requireCampaignCharacterAuthority } from './characterState'
 import { readCampaignSharedPublication } from './contentAccess'
@@ -14,9 +15,12 @@ import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/cha
 import { requireCampaignVehicleDefinition } from './vehicleSources'
 import { requireEncounterPolicySources } from '../encounters/sourceDependencies'
 
-/** Validate the proposed binding in the caller's transaction; never silently prune dependent content. */
+/**
+ * Validate the proposed binding in the caller's transaction; never silently prune dependent content.
+ * An attunement change refreshes each assigned Character's stored maximum hit points.
+ */
 export async function validateCampaignUpdateDependencies(
-  ctx: QueryCtx,
+  ctx: MutationCtx,
   campaign: Doc<'campaigns'>,
   userId: string,
   removedSources: ReadonlySet<string>,
@@ -71,12 +75,16 @@ export async function validateCampaignUpdateDependencies(
         }
       }
     }
-    if (
-      attunementChanged &&
-      record.status === 'ACTIVE' &&
-      !(await loadCharacterSheet(ctx, userId, record.id, campaign.id))
-    )
-      throw new Error(`Assigned Character ${record.id} could not be evaluated.`)
+    // The attunement override feeds each Character's evaluation, including its stored maximum.
+    if (attunementChanged && record.status === 'ACTIVE') {
+      const { facts } = await writeCharacterRecord(ctx, {
+        current: record,
+        fields: { streamVersion: record.streamVersion, updatedAt: record.updatedAt },
+        evaluateAs: { userId, campaignId: campaign.id }
+      })
+      if (!facts) throw new Error(`Assigned Character ${record.id} could not be evaluated.`)
+      projectCharacterSheetFacts(facts)
+    }
   }
   if (removedSources.size === 0) return
   await requireEncounterPolicySources(ctx, campaign, removedSources)

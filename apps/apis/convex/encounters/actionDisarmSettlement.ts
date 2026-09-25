@@ -12,15 +12,10 @@ import type { EncounterOptionalContestActionExecution } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import type { prepareNativeDisarm } from './actionDisarmPreparation'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence'
-import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import {
-  buildMovementTarget,
-  nativeCharacterMaximumHitPoints
-} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
 /** Persists terminal item and ACTION changes inside the coordinator's transaction. */
 export async function settleNativeDisarm(
@@ -63,7 +58,6 @@ export async function settleNativeDisarm(
         target.sourceId !== facts.active.id ||
         contest.target.characterId !== facts.active.id ||
         contest.target.streamVersion !== facts.active.streamVersion ||
-        target.sourceRevision !== facts.active.streamVersion ||
         !facts.character.state.equipment.equipped.includes(itemId) ||
         contest.target.stateChecksum !==
           checksumRuleDocument({
@@ -97,36 +91,12 @@ export async function settleNativeDisarm(
         )
       )
       const streamVersion = active.streamVersion + 1
-      const encoded: unknown = JSON.parse(JSON.stringify(character))
-      await ctx.db.patch(active._id, {
-        documentJson: canonicalizeRuleDocument(encoded),
-        checksum: checksumRuleDocument(encoded),
-        streamVersion,
-        updatedAt: input.occurredAt
+      await writeCharacterRecord(ctx, {
+        current: active,
+        fields: { streamVersion, updatedAt: input.occurredAt },
+        document: JSON.parse(JSON.stringify(character)),
+        sourceContext: facts.sourceContext
       })
-      target = encounterRunActorStateSchema.parse({
-        ...target,
-        sourceRevision: streamVersion,
-        snapshot: { ...requireSnapshotIdentity(target), sourceRevision: streamVersion }
-      })
-      const fresh = await loadCharacterSheetFacts(
-        ctx,
-        input.campaignOwnerUserId,
-        active.id,
-        prepared.state.campaignId
-      )
-      if (!fresh) throw new Error('Disarm Character source is unavailable after settlement.')
-      target = encounterRunActorStateSchema.parse({
-        ...target,
-        maxHitPoints: nativeCharacterMaximumHitPoints(fresh, prepared.targetFacts.activeEffects)
-      })
-      target = buildMovementTarget({
-        actor: target,
-        activeEffects: prepared.targetFacts.activeEffects,
-        gameSystemId: prepared.state.gameSystemId,
-        campaignId: prepared.state.campaignId,
-        characterFacts: fresh
-      }).actor
       stateTransition = {
         kind: 'CHARACTER_ITEM_USE_STATE',
         characterId: active.id,

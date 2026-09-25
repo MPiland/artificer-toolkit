@@ -22,7 +22,10 @@ import { type MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireSystem } from '../content/systemDocuments'
-import { loadCharacterSheet } from '../characters/sheetPreparation'
+import { loadCharacterSheet, projectCharacterSheetFacts } from '../characters/sheetPreparation'
+import { writeCharacterRecord } from '../characters/characterWrites'
+import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
+import { loadCharacterState } from '../characters/stateDocuments'
 import { readCampaignCharacterState, requireCampaignCharacterAuthority } from './characterState'
 
 async function requireWritableState(ctx: MutationCtx, campaignId: string, lookupId: string) {
@@ -42,6 +45,26 @@ async function requireWritableState(ctx: MutationCtx, campaignId: string, lookup
     characterId,
     ...(await readCampaignCharacterState(ctx, campaign.id, characterId))
   }
+}
+
+/** Campaign adjustments feed the Character's evaluation, so its stored maximum is refreshed. */
+async function refreshCharacterMaximum(
+  ctx: MutationCtx,
+  current: Awaited<ReturnType<typeof requireWritableState>>,
+  sourceContext?: CharacterSheetSourceContext
+) {
+  const { active } = await loadCharacterState(ctx, current.characterId)
+  const { facts } = active
+    ? await writeCharacterRecord(ctx, {
+        current: active,
+        fields: { streamVersion: active.streamVersion, updatedAt: active.updatedAt },
+        sourceContext,
+        evaluateAs: { userId: current.userId, campaignId: current.campaign.id }
+      })
+    : { facts: null }
+  if (!facts) throw new Error('Assigned Character not found.')
+  // Projecting validates the adjusted Sheet; a rejected effect rolls back the write and its event.
+  projectCharacterSheetFacts(facts)
 }
 
 async function commitState(
@@ -125,8 +148,7 @@ export const saveAdjustment = mutation({
       }
     })
     // Re-evaluation belongs to this transaction; a rejected effect also rolls back its audit event.
-    if (!(await loadCharacterSheet(ctx, userId, characterId, campaign.id, sheet.sourceContext)))
-      throw new Error('Assigned Character not found.')
+    await refreshCharacterMaximum(ctx, current, sheet.sourceContext)
     return saved
   }
 })
@@ -137,7 +159,7 @@ export const deleteAdjustment = mutation({
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const input = deleteCampaignAdjustmentInputSchema.parse(args)
     const current = await requireWritableState(ctx, input.campaignId, input.characterId)
-    const { state, campaign, characterId, userId } = current
+    const { state } = current
     const existing = state.adjustments.find((row) => row.id === input.adjustmentId.toLowerCase())
     if (!existing || existing.version !== input.expectedVersion)
       throw new Error('Campaign adjustment changed before this delete completed.')
@@ -153,8 +175,7 @@ export const deleteAdjustment = mutation({
         version: existing.version
       }
     })
-    if (!(await loadCharacterSheet(ctx, userId, characterId, campaign.id)))
-      throw new Error('Assigned Character not found.')
+    await refreshCharacterMaximum(ctx, current)
     return { ok: true }
   }
 })

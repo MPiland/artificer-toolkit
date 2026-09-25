@@ -17,7 +17,10 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { planNativeLiveEncounterAction } from '../../../session-worker/src/nativeEncounterRules'
+import {
+  commitNativeLiveEncounterAction,
+  planNativeLiveEncounterAction
+} from '../../../session-worker/src/nativeEncounterRules'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
@@ -506,10 +509,10 @@ it('plans the same Character action and target facts in the Worker using private
         fixture.owner.userId
       )
     )
-    expect(actual.mechanics.targetPlan.updatedActor.id).toBe(target.id)
-    expect(actual.mechanics.targetPlan.updatedActor.currentHitPoints).toBeLessThan(
-      target.currentHitPoints
-    )
+    const updatedTarget = actual.mechanics.targetPlan.updatedActor
+    expect(updatedTarget.id).toBe(target.id)
+    if (updatedTarget.kind === 'CHARACTER') throw new Error('Expected a Creature target.')
+    expect(updatedTarget.currentHitPoints).toBeLessThan(target.currentHitPoints)
     for (const key of [
       'binding',
       'source',
@@ -539,7 +542,6 @@ it('plans the same Character action and target facts in the Worker using private
               expectedUserId: scope.expectedUserId,
               expectedRole: scope.expectedRole,
               characterId: facts.characterFacts.active.id,
-              expectedStreamVersion: facts.characterFacts.active.streamVersion,
               request: dependency.request
             })
           ).readChecksum
@@ -671,16 +673,46 @@ it('plans the same Character action and target facts in the Worker using private
       .unique()
   )
   if (!initiativeHeader) throw new Error('Current initiative round is unavailable.')
-  await fixture.t.run((rawCtx) => withSceneVisionTracking(rawCtx).db.delete(initiativeHeader._id))
-  await expect(
-    planNativeLiveEncounterAction(
+  // The Worker action plan does not read initiative; the PLAY fence refuses a plan made before the
+  // round changed, and the Convex commit refuses a Run whose current round is missing or corrupt.
+  const expectCommitRefused = async () => {
+    const planned = await planNativeLiveEncounterAction(
       workerEnvironment(secret),
       'fixture-access-token',
       scope,
       command,
       executionOptions
     )
-  ).rejects.toThrow(/initiative|round/i)
+    if (planned.kind !== 'PLANNED') throw new Error('Expected completed action plan.')
+    const beforeCommit = await storedRecords()
+    await expect(
+      commitNativeLiveEncounterAction(
+        workerEnvironment(secret),
+        'fixture-access-token',
+        scope,
+        planned
+      )
+    ).rejects.toThrow('Live Session route request failed.')
+    expect(await storedRecords()).toEqual(beforeCommit)
+  }
+  const beforeHeaderDeletion = await fixture.owner.caller.run((ctx) =>
+    readLiveSessionRulesRevisions(ctx, {
+      systemId: fixture.campaign.gameSystemId,
+      campaignId: fixture.campaign.id
+    })
+  )
+  await fixture.t.run((rawCtx) => withSceneVisionTracking(rawCtx).db.delete(initiativeHeader._id))
+  await expect(
+    fixture.owner.caller.run((ctx) =>
+      assertLiveSessionRulesRevisions(ctx, beforeHeaderDeletion, {
+        systemId: fixture.campaign.gameSystemId,
+        campaignId: fixture.campaign.id,
+        characterIds: []
+      })
+    )
+  ).rejects.toThrow('changed before commit')
+  stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
+  await expectCommitRefused()
   await fixture.t.run(async (rawCtx) => {
     const { _id, _creationTime, ...stored } = initiativeHeader
     await withSceneVisionTracking(rawCtx).db.insert('encounterInitiativeRounds', stored)
@@ -702,15 +734,7 @@ it('plans the same Character action and target facts in the Worker using private
       readEncounterRulesCapture(ctx, { ...scope, request: { kind: 'INITIATIVE_ROUND' } })
     )
   ).rejects.toThrow(/initiative|policy|checksum/i)
-  await expect(
-    planNativeLiveEncounterAction(
-      workerEnvironment(secret),
-      'fixture-access-token',
-      scope,
-      command,
-      executionOptions
-    )
-  ).rejects.toThrow('Live Session route request failed.')
+  await expectCommitRefused()
   await fixture.t.run((rawCtx) =>
     withSceneVisionTracking(rawCtx).db.patch(restoredHeader._id, {
       policySnapshotChecksum: initiativeHeader.policySnapshotChecksum

@@ -31,8 +31,7 @@ it('prepares the same Character facts in the Worker through authenticated captur
     authorityEpoch,
     expectedUserId: fixture.owner.userId,
     expectedRole: 'OWNER' as const,
-    characterId: fixture.character.id,
-    expectedStreamVersion: fixture.actorSourceRevision
+    characterId: fixture.character.id
   }
   const secret = 'private-character-rules-test-secret-at-least-32-bytes'
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)

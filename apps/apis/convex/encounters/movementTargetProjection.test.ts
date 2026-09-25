@@ -25,10 +25,6 @@ describe('movement target projection', () => {
         includeReactionSources: true
       }
       expect(buildMovementTarget(input)).toEqual(target)
-      const projectedActor = { ...target.actor, currentHitPoints: target.state.current - 1 }
-      expect(() => buildMovementTarget({ ...input, actor: projectedActor })).toThrow(
-        'state mirror is stale'
-      )
       const projectedFacts = {
         ...target.characterFacts,
         character: {
@@ -42,13 +38,9 @@ describe('movement target projection', () => {
           }
         }
       }
-      expect(
-        buildMovementTarget({
-          ...input,
-          actor: projectedActor,
-          characterFacts: projectedFacts
-        }).state.current
-      ).toBe(target.state.current - 1)
+      expect(buildMovementTarget({ ...input, characterFacts: projectedFacts }).state.current).toBe(
+        target.state.current - 1
+      )
       expect(target.characterFacts.character.state.hitpoints.current).toBe(target.state.current)
     })
   })

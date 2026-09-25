@@ -23,6 +23,7 @@ import type { MutationCtx } from '../_generated/server'
 import { readRunActor } from '../encounters/documents'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
+import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 
 function same(left: unknown, right: unknown) {
   return checksumCanonicalJson(left) === checksumCanonicalJson(right)
@@ -199,6 +200,11 @@ export async function persistLiveTurnEffects(
       candidates.flatMap((effect) => turnEffectRetainedConditions(effect, effects, expired))
     )
   ].sort()
+  // The turn admission's revision fence pins this to the room's captured Character.
+  const beforeStreamVersion =
+    actor.kind === 'CHARACTER'
+      ? await readLiveCharacterStreamVersion(ctx, state, actor.sourceId)
+      : null
   const applied = await applyLiveEncounterMechanicsBatch(ctx, {
     encounterId: state.id,
     targetActorId: actor.id,
@@ -206,7 +212,7 @@ export async function persistLiveTurnEffects(
     occurrenceId: input.occurrenceId,
     sourceCommandId: input.rootCommandId,
     commandId:
-      actor.kind === 'CHARACTER' && actor.sourceId
+      actor.kind === 'CHARACTER'
         ? deriveEncounterCharacterMechanicsEventCommandId({
             occurrenceId: input.occurrenceId,
             sourceCommandId: input.rootCommandId,
@@ -230,7 +236,7 @@ export async function persistLiveTurnEffects(
     !same(applied.targetTransition.before, first.targetTransition.before) ||
     !same(applied.targetTransition.after, last.targetTransition.after) ||
     !same(applied.receiptApplications, expectedApplications) ||
-    (actor.kind === 'CHARACTER' && applied.characterStreamVersion !== actor.sourceRevision! + 1)
+    (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
   )
     throw new Error('Turn effect settlement differs from its plan.')
   const terminalMaintainedStateIds = new Set<string>()
@@ -302,7 +308,7 @@ export async function persistLiveTurnEffects(
               {
                 characterId: actor.sourceId,
                 targetActorId: actor.id,
-                beforeStreamVersion: actor.sourceRevision,
+                beforeStreamVersion,
                 afterStreamVersion: applied.characterStreamVersion,
                 before: applied.targetTransition.before,
                 after: applied.targetTransition.after

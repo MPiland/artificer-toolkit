@@ -290,6 +290,7 @@ async function setup(
   return {
     ...base,
     owner,
+    player: base.owner,
     campaign,
     character,
     run,
@@ -405,20 +406,16 @@ async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) 
   })
 }
 
-function expectSourceMirror(
+function expectLiveCharacterProjection(
   fixture: Awaited<ReturnType<typeof setup>>,
   snapshot: Awaited<ReturnType<typeof maintenanceRecords>>,
-  streamVersion: number,
-  projection: { actors: readonly { id: string; sourceRevision?: number | null }[] }
+  projection: { actors: readonly { id: string }[] }
 ) {
-  const row = snapshot.actors.find((candidate) => candidate.id === fixture.actor.id)
-  if (!row) throw new Error('Character actor mirror is unavailable.')
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-  expect(actor.sourceRevision).toBe(streamVersion)
-  expect(actor.snapshot).toMatchObject({ sourceRevision: streamVersion })
-  expect(
-    projection.actors.find((candidate) => candidate.id === fixture.actor.id)?.sourceRevision
-  ).toBe(streamVersion)
+  if (!snapshot.character) throw new Error('Character source is unavailable.')
+  expect(projection.actors.find((candidate) => candidate.id === fixture.actor.id)).toMatchObject({
+    sourceRevision: null,
+    currentHitPoints: JSON.parse(snapshot.character.documentJson).state.hitpoints.current
+  })
 }
 
 describe('native Character action sources', () => {
@@ -543,7 +540,12 @@ describe('native Character action sources', () => {
     expect(JSON.parse(afterCharacter.sheetState.documentJson).resourceUsage).toEqual([
       expect.objectContaining({ used: 1 })
     ])
-    expect(JSON.parse(afterActor.stateJson).sourceRevision).toBe(afterCharacter.streamVersion)
+    expect(
+      result.projection.actors.find((candidate) => candidate.id === fixture.actor.id)
+    ).toMatchObject({
+      sourceRevision: null,
+      currentHitPoints: JSON.parse(afterCharacter.documentJson).state.hitpoints.current
+    })
     const receipt = await fixture.t.run((ctx) =>
       ctx.db
         .query('encounterRuleReceipts')
@@ -635,7 +637,11 @@ describe('native Character action sources', () => {
     expect(result.projection.actors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: fixture.target.id, healthBand: expect.any(String) }),
-        expect.objectContaining({ id: fixture.actor.id, sourceRevision: after[0].streamVersion })
+        expect.objectContaining({
+          id: fixture.actor.id,
+          sourceRevision: null,
+          currentHitPoints: JSON.parse(after[0].documentJson).state.hitpoints.current
+        })
       ])
     )
     await expect(
@@ -731,12 +737,7 @@ describe('native Character action sources', () => {
         createdDependentEffectIds: [afterCreated.characterEffects[0]!.id]
       }
     })
-    expectSourceMirror(
-      fixture,
-      afterCreated,
-      afterCreated.character.streamVersion,
-      created.projection
-    )
+    expectLiveCharacterProjection(fixture, afterCreated, created.projection)
 
     await resetActionAllowance(fixture)
     const replacementRoot = input(
@@ -791,12 +792,7 @@ describe('native Character action sources', () => {
         createdDependentEffectIds: [afterReplacement.characterEffects[0]!.id]
       }
     })
-    expectSourceMirror(
-      fixture,
-      afterReplacement,
-      afterReplacement.character.streamVersion,
-      replaced.projection
-    )
+    expectLiveCharacterProjection(fixture, afterReplacement, replaced.projection)
     await expect(
       fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementRoot
@@ -881,12 +877,7 @@ describe('native Character action sources', () => {
         createdDependentEffectIds: [firstComplete.actorEffects[0]!.id]
       }
     })
-    expectSourceMirror(
-      fixture,
-      firstComplete,
-      firstComplete.character.streamVersion,
-      firstSettled.projection
-    )
+    expectLiveCharacterProjection(fixture, firstComplete, firstSettled.projection)
 
     const seededCharacterEffectId = await fixture.t.run(async (ctx) => {
       const store = createActiveRuleEffectStore(ctx)
@@ -1085,12 +1076,7 @@ describe('native Character action sources', () => {
         createdDependentEffectIds: [replacementComplete.actorEffects[0]!.id]
       }
     })
-    expectSourceMirror(
-      fixture,
-      replacementComplete,
-      replacementComplete.character.streamVersion,
-      replaced.projection
-    )
+    expectLiveCharacterProjection(fixture, replacementComplete, replaced.projection)
     await expect(
       fixture.owner.caller.mutation(internal.encounters.commands.execute, {
         command: replacementRoot
@@ -1104,22 +1090,37 @@ describe('native Character action sources', () => {
     expect(await maintenanceRecords(fixture)).toEqual(replacementComplete)
   }, 60000)
 
-  it('refuses a stale Character source without writes', async () => {
+  it('reads the current Character source after a Sheet edit made after Run creation', async () => {
     const fixture = await setup()
-    await fixture.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
-        .unique()
-      if (!row) throw new Error('Missing Character.')
-      await ctx.db.patch(row._id, { streamVersion: row.streamVersion + 1 })
+    const [created] = await records(fixture)
+    if (!created) throw new Error('Missing Character.')
+    await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: fixture.character.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 1,
+        expectedVersion: created.streamVersion,
+        commandId: crypto.randomUUID()
+      }
     })
-    const before = await records(fixture)
-    await expect(
-      fixture.owner.caller.mutation(internal.encounters.commands.execute, {
-        command: input(fixture)
-      })
-    ).rejects.toThrow(/stale/)
-    expect(await records(fixture)).toEqual(before)
+    const [edited] = await records(fixture)
+    if (!edited) throw new Error('Missing edited Character.')
+    expect(edited.streamVersion).toBe(created.streamVersion + 1)
+    const result = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: input(fixture)
+    })
+    const [after] = await records(fixture)
+    if (!after) throw new Error('Missing settled Character.')
+    expect(after.streamVersion).toBe(edited.streamVersion + 1)
+    expect(JSON.parse(after.documentJson).state.hitpoints.current).toBe(
+      JSON.parse(edited.documentJson).state.hitpoints.current - 1
+    )
+    expect(
+      result.projection.actors.find((candidate) => candidate.id === fixture.actor.id)
+    ).toMatchObject({
+      sourceRevision: null,
+      currentHitPoints: JSON.parse(after.documentJson).state.hitpoints.current
+    })
   }, 30000)
 })

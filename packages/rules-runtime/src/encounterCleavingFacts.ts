@@ -96,13 +96,13 @@ export function nativeCleavingSourceCurrentness(
 ): CleavingContext['sourceCurrentness'] {
   const actor = target.actor
   if (actor.kind === 'CHARACTER') {
-    if (!actor.sourceId || actor.sourceRevision === null || !target.characterCurrentness)
+    if (!target.characterFacts || !target.characterCurrentness)
       throw new Error('Cleaving Character source is unavailable.')
     return {
       kind: 'CHARACTER',
       actorId: actor.id,
       characterId: actor.sourceId,
-      streamVersion: actor.sourceRevision,
+      streamVersion: target.characterFacts.active.streamVersion,
       ...target.characterCurrentness
     }
   }
@@ -139,7 +139,11 @@ export function buildEncounterCleavingCandidate(input: {
     target.actor.kind === 'CHARACTER'
       ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
       : snapshotStatBlock(target.actor)?.armorClass
-  if (armorClass == null || target.actor.sourceRevision === null) return null
+  const targetActorVersion =
+    target.actor.kind === 'CHARACTER'
+      ? (target.characterFacts?.active.streamVersion ?? null)
+      : target.actor.sourceRevision
+  if (armorClass == null || targetActorVersion === null) return null
   const range = rangeDtoSchema.parse(input.action.range)
   if (range.rangeKind !== 'DISTANCE') return null
   if (!geometry || checksumRuleDocument(geometry.grid) !== input.scene.effectiveGridChecksum)
@@ -153,7 +157,7 @@ export function buildEncounterCleavingCandidate(input: {
   return {
     actorId: target.actor.id,
     targetTokenId: input.targetTokenId,
-    targetActorVersion: target.actor.sourceRevision,
+    targetActorVersion,
     targetStateChecksum: checksumRuleDocument(target.actor),
     armorClass,
     footprintChecksum: checksumRuleDocument(footprint),

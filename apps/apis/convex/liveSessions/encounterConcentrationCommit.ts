@@ -17,6 +17,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { internalMutation } from '../lib/mutations'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { insertRunCommand } from '../encounters/timelineEntries'
@@ -28,6 +29,7 @@ import {
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { applyLiveConcentrationCleanup } from './concentrationCleanupCommit'
+import { readLiveCharacterStreamVersion } from './encounterMovementTargetState'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 
 /** Commits one admitted child, its cleanup, receipt and next decision in the same transaction. */
@@ -120,8 +122,8 @@ export const commit = internalMutation({
       !slot ||
       !target ||
       target.kind !== 'CHARACTER' ||
-      !target.sourceId ||
-      target.sourceRevision !== context.targetCharacter.streamVersion ||
+      (await readLiveCharacterStreamVersion(ctx, state, target.sourceId)) !==
+        context.targetCharacter.streamVersion ||
       checksumCanonicalJson(context.maintainedState) !==
         checksumCanonicalJson({
           id: slot.id,
@@ -160,7 +162,6 @@ export const commit = internalMutation({
     const characterIds = new Set(
       admission.actors.flatMap((actor) => {
         if (actor.kind !== 'CHARACTER') return []
-        if (!actor.sourceId) throw new Error('Encounter Character actor is stale.')
         return [actor.sourceId]
       })
     )
@@ -240,7 +241,8 @@ export const commit = internalMutation({
             initiativeRoundState: await readEncounterInitiativeRound(ctx, {
               encounterId: state.id,
               round: state.round
-            })
+            }),
+            characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
           })
         : admission.projection
     const result = encounterCommandResultDtoSchema.parse({
@@ -319,7 +321,8 @@ export const commit = internalMutation({
         !nextSlot ||
         nextSlot.id !== maintainedStateId ||
         nextTarget?.kind !== 'CHARACTER' ||
-        nextTarget.sourceRevision !== child.targetCharacter.streamVersion ||
+        (await readLiveCharacterStreamVersion(ctx, state, nextTarget.sourceId)) !==
+          child.targetCharacter.streamVersion ||
         nextPending.occurrenceId !== output.nextOccurrenceId ||
         nextPending.graph.source.gameSystemId !== state.gameSystemId ||
         nextPending.graph.source.definitionId !== child.concentrationDefinition.id ||

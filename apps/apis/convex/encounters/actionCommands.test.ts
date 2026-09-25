@@ -846,6 +846,12 @@ function command(
   }
 }
 
+function creatureActorState(stateJson: string) {
+  const actor = encounterRunActorStateSchema.parse(JSON.parse(stateJson))
+  if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character actor.')
+  return actor
+}
+
 async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
   return t.run(async (ctx) => ({
     run: await ctx.db
@@ -961,8 +967,8 @@ describe('native encounter actions', () => {
           await expect(
             base.owner.caller.run(async (ctx) => {
               const row = staged.actors.find((actor) => actor.id === actorId)!
-              const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-              const changed = { ...actor, currentHitPoints: actor.currentHitPoints! - 1 }
+              const actor = creatureActorState(row.stateJson)
+              const changed = { ...actor, currentHitPoints: actor.currentHitPoints - 1 }
               await ctx.db.patch(row._id, {
                 stateJson: JSON.stringify(changed),
                 stateChecksum: checksumCanonicalJson(changed)
@@ -1035,9 +1041,9 @@ describe('native encounter actions', () => {
     const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
     expect(featureChargeUsed(sourceState, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
-    ).toBeLessThan(base.target.currentHitPoints!)
+    expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(
+      base.target.currentHitPoints!
+    )
     expect(settled.commands).toHaveLength(before.commands.length + 1)
     await expect(
       base.owner.caller.mutation(internal.encounters.commands.execute, {
@@ -1111,9 +1117,7 @@ describe('native encounter actions', () => {
     expect(settled.run?.version).toBe(1)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     if (!target) throw new Error('Missing settled target.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
-    ).toBeLessThan(100)
+    expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(100)
     expect(settled.occurrences).toHaveLength(before.occurrences.length + 1)
     expect(settled.receipts).toHaveLength(before.receipts.length + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
@@ -1200,9 +1204,9 @@ describe('native encounter actions', () => {
           creature.features!.find((feature) => feature.label === 'Bite')!.id
         )
       ).toBe(1)
-      expect(
-        encounterRunActorStateSchema.parse(JSON.parse(target.stateJson)).currentHitPoints
-      ).toBeLessThan(base.target.currentHitPoints)
+      expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(
+        base.target.currentHitPoints
+      )
       await replaceTargetToken(base, { x: 450, y: 450 })
       await expect(
         base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
@@ -1567,7 +1571,7 @@ describe('native encounter actions', () => {
     const receipt = settled.receipts.find((entry) => entry.commandId === input.commandId)
     if (!source || !target || !receipt) throw new Error('Missing phased native action settlement.')
     const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
-    const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
+    const targetState = creatureActorState(target.stateJson)
     const featureId = nativeCreature(true, false, false, true).features?.find(
       (feature) => feature.label === 'Bite'
     )?.id
@@ -1632,7 +1636,7 @@ describe('native encounter actions', () => {
     const before = await records(base.t, base.run.id)
     const sourceBefore = before.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceBefore) throw new Error('Missing self-action source actor.')
-    const initial = encounterRunActorStateSchema.parse(JSON.parse(sourceBefore.stateJson))
+    const initial = creatureActorState(sourceBefore.stateJson)
     const input = command({
       encounterId: base.run.id,
       actorId: base.actor.id,
@@ -1645,7 +1649,7 @@ describe('native encounter actions', () => {
     const after = await records(base.t, base.run.id)
     const sourceAfter = after.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceAfter) throw new Error('Missing settled self-action source actor.')
-    const settled = encounterRunActorStateSchema.parse(JSON.parse(sourceAfter.stateJson))
+    const settled = creatureActorState(sourceAfter.stateJson)
     expect(settled.currentHitPoints).toBe(initial.currentHitPoints - 1)
     const featureId = nativeCreature(true, true).features?.find(
       (feature) => feature.label === 'Bite'

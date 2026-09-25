@@ -28,11 +28,13 @@ import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readRunActors } from '../encounters/documents'
+import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { insertRunCommand } from '../encounters/timelineEntries'
 import { readEncounterMaintenanceCapture } from './encounterMaintenanceCapture'
 import { assertLiveSessionRulesRevisions } from './rulesRevisions'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
+import { readLiveCharacterStoredMaximumHitPoints } from './encounterMovementTargetState'
 import {
   prepareLiveEncounterActionMaintenance,
   persistLiveEncounterActionEffects
@@ -103,11 +105,7 @@ export const commit = internalMutation({
     )
       throw new Error('Live Session action output scope mismatch.')
     const characterIds = new Set(
-      actors.flatMap((actor) => {
-        if (actor.kind !== 'CHARACTER') return []
-        if (!actor.sourceId) throw new Error('Encounter Character actor is stale.')
-        return [actor.sourceId]
-      })
+      actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
     )
     const ownerRequests = new Set<string>()
     for (const request of input.maintenanceOwners) {
@@ -148,20 +146,20 @@ export const commit = internalMutation({
         owner: _owner,
         usageId: _usage,
         characterId,
-        expectedStreamVersion,
+        // The mechanics batch checks it against the fenced Character it plans with.
+        expectedStreamVersion: _expectedStreamVersion,
         ...receipt
       } = resource
       if (
         source.kind !== 'CHARACTER' ||
         source.sourceId !== characterId ||
-        source.sourceRevision !== expectedStreamVersion ||
         checksumCanonicalJson(receipt) !== checksumCanonicalJson(batch.resourceConsumption)
       )
         throw new Error('Live Session action resource scope mismatch.')
     } else if (batch.resourceConsumption !== null)
       throw new Error('Live Session action resource is missing.')
     const stow = command.acceptedWieldConflict
-    if (stow && (source.kind !== 'CHARACTER' || !source.sourceId))
+    if (stow && source.kind !== 'CHARACTER')
       throw new Error('Live Session shield stow scope mismatch.')
     const sourceMutation = {
       ...(resource ? { characterResourceConsumption: resource } : {}),
@@ -175,7 +173,7 @@ export const commit = internalMutation({
       occurredAt: input.occurredAt
     }
     const sourceMechanics =
-      (resource || stow) && source.id !== target.id && source.sourceId
+      (resource || stow) && source.id !== target.id && source.kind === 'CHARACTER'
         ? await applyLiveEncounterMechanicsBatch(ctx, {
             ...common,
             targetActorId: source.id,
@@ -187,7 +185,11 @@ export const commit = internalMutation({
               targetCharacterId: source.sourceId
             }),
             applications: [],
-            effectiveMaximumHitPoints: source.maxHitPoints,
+            effectiveMaximumHitPoints: await readLiveCharacterStoredMaximumHitPoints(
+              ctx,
+              state,
+              source.sourceId
+            ),
             forceVersionAdvance: false,
             ...sourceMutation
           })
@@ -296,7 +298,8 @@ export const commit = internalMutation({
       initiativeRoundState: await readEncounterInitiativeRound(ctx, {
         encounterId: state.id,
         round: state.round
-      })
+      }),
+      characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
     })
     const result = encounterCommandResultDtoSchema.parse({
       projection,

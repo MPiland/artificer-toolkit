@@ -321,11 +321,11 @@ it('commits a spatial prefix once before a choice pause and rolls back late fail
   const beforeMover = before.actors.find((actor) => actor.id === value.base.mover.id)
   const afterMover = after.actors.find((actor) => actor.id === value.base.mover.id)
   if (!beforeMover || !afterMover) throw new Error('Spatial target actor is unavailable.')
-  expect(
-    encounterRunActorStateSchema.parse(JSON.parse(afterMover.stateJson)).currentHitPoints
-  ).toBe(
-    encounterRunActorStateSchema.parse(JSON.parse(beforeMover.stateJson)).currentHitPoints! - 1
-  )
+  const beforeMoverState = encounterRunActorStateSchema.parse(JSON.parse(beforeMover.stateJson))
+  const afterMoverState = encounterRunActorStateSchema.parse(JSON.parse(afterMover.stateJson))
+  if (beforeMoverState.kind === 'CHARACTER' || afterMoverState.kind === 'CHARACTER')
+    throw new Error('Expected a non-Character mover.')
+  expect(afterMoverState.currentHitPoints).toBe(beforeMoverState.currentHitPoints - 1)
   expect(after.effects.map((entry) => entry.id)).not.toContain(effect.id)
   expect(after.receipts).toHaveLength(before.receipts.length + 1)
   expect(after.runCommands).toHaveLength(before.runCommands.length + 1)

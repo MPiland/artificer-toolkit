@@ -1,6 +1,7 @@
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
+import { writeCharacterRecord } from '../characters/characterWrites'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
@@ -83,10 +84,7 @@ export async function cleanupRemovedActorEffects(
       )
     )
   ].sort((left, right) => left.localeCompare(right))
-  const characterVersions = new Map<
-    string,
-    { rowId: Doc<'characters'>['_id']; streamVersion: number }
-  >()
+  const characterRows = new Map<string, Doc<'characters'>>()
   for (const characterId of affectedCharacterIds) {
     const row = await ctx.db
       .query('characters')
@@ -98,7 +96,7 @@ export async function cleanupRemovedActorEffects(
     readCharacterSheetState(row)
     if (character.systemId !== input.state.gameSystemId)
       throw new Error('Maintained-effect Character owner does not match the Encounter Game System.')
-    characterVersions.set(characterId, { rowId: row._id, streamVersion: row.streamVersion })
+    characterRows.set(characterId, row)
   }
 
   const orderedEffects = [...effectsToDelete.values()].sort((left, right) => {
@@ -143,11 +141,11 @@ export async function cleanupRemovedActorEffects(
 
   const characterOwnerTransitions: MaintenanceCleanupResult['characterOwnerTransitions'] = []
   for (const characterId of affectedCharacterIds) {
-    const character = characterVersions.get(characterId)
+    const character = characterRows.get(characterId)
     if (!character) throw new Error('Maintained-effect Character owner is unavailable.')
-    await ctx.db.patch(character.rowId, {
-      streamVersion: character.streamVersion + 1,
-      updatedAt: input.occurredAt
+    await writeCharacterRecord(ctx, {
+      current: character,
+      fields: { streamVersion: character.streamVersion + 1, updatedAt: input.occurredAt }
     })
     characterOwnerTransitions.push({
       characterId,

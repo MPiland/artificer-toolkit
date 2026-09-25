@@ -207,9 +207,11 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
       encounterId: state.id,
       sceneId: value.base.sceneId
     })
+    const actor = await readRunActor(ctx, state, value.base.run.actors[0]!.id)
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a custom spatial actor.')
     return {
       save,
-      actor: await readRunActor(ctx, state, value.base.run.actors[0]!.id),
+      actor,
       effects: await scope!.list(),
       runVersion: state.version,
       projection,

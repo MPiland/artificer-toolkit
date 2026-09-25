@@ -2,12 +2,13 @@ import { characterBuilderDraftPayloadDtoSchema } from '@artificer-toolkit/schema
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { characterStoredDraftSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   reconcileCharacterAuthoredSourceLoss,
   type CharacterSourceLossTarget
 } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
+import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
 import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
@@ -23,6 +24,7 @@ import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCharacterCampaign } from './context'
 import { readCharacterAuthoredChoiceKinds } from './sourceAccessLoss'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
+import { writeCharacterRecord } from './characterWrites'
 
 export interface CharacterSourceLossResult {
   characterId: string
@@ -213,6 +215,7 @@ export async function reconcileCharacterSourceLoss(input: {
     currentChoiceKinds
   )
   let character: CharacterAuthored = { ...pruned, status: 'DRAFT' }
+  let maximumHitPoints: number | undefined
   if (input.record.status === 'ACTIVE') {
     const prepared = await prepareCharacterBuilder(input.ctx, {
       character,
@@ -249,7 +252,9 @@ export async function reconcileCharacterSourceLoss(input: {
         resourceUsage: sheetState.resourceUsage,
         movementDisplayPreference: sheetState.movementDisplayPreference
       })
-      const maximumHitPoints = Math.max(evaluation.output.derivedStats.maxHitPoints.effective, 0)
+      maximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
+        evaluation.output.derivedStats.maxHitPoints.effective
+      )
       character = {
         ...prepared.character,
         status: 'ACTIVE',
@@ -274,13 +279,11 @@ export async function reconcileCharacterSourceLoss(input: {
   const updatedAt = changed ? nextTimestamp(input.record.updatedAt) : input.record.updatedAt
   const streamVersion = input.record.streamVersion + (changed ? 1 : 0)
   if (changed)
-    await input.ctx.db.patch(input.record._id, {
-      label: committed.label,
-      status,
-      streamVersion,
-      documentJson: canonicalizeRuleDocument(encoded),
-      checksum,
-      updatedAt
+    await writeCharacterRecord(input.ctx, {
+      current: input.record,
+      fields: { label: committed.label, status, streamVersion, updatedAt },
+      document: encoded,
+      ...(maximumHitPoints === undefined ? {} : { maximumHitPoints })
     })
 
   let draftChanged = false

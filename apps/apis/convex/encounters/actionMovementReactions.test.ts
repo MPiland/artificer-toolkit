@@ -74,11 +74,11 @@ describe('native movement reaction action mechanics', () => {
     const afterReactor = after.actors.find((row) => row.id === base.reactor.id)
     if (!beforeMover || !afterMover || !afterReactor)
       throw new Error('Missing movement reaction actor.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(afterMover.stateJson)).currentHitPoints
-    ).toBeLessThan(
-      encounterRunActorStateSchema.parse(JSON.parse(beforeMover.stateJson)).currentHitPoints
-    )
+    const moverBefore = encounterRunActorStateSchema.parse(JSON.parse(beforeMover.stateJson))
+    const moverAfter = encounterRunActorStateSchema.parse(JSON.parse(afterMover.stateJson))
+    if (moverBefore.kind === 'CHARACTER' || moverAfter.kind === 'CHARACTER')
+      throw new Error('Expected a non-Character mover.')
+    expect(moverAfter.currentHitPoints).toBeLessThan(moverBefore.currentHitPoints)
     expect(
       encounterRunActorStateSchema.parse(JSON.parse(afterReactor.stateJson)).resources
     ).toMatchObject({ ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 } })

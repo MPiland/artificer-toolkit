@@ -1053,14 +1053,14 @@ it('commits a maintained Character action from the Worker plan with one atomic r
     scope,
     plan
   )
-  expect(committed).toEqual(plan.result)
   expect(
     await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
   ).toEqual(committed)
   const after = await records(base)
   expect(after.run?.version).toBe(before.run!.version + 1)
-  expect(JSON.parse(after.run!.projectionJson!)).toEqual(plan.projection)
-  expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(plan.projection))
+  expect(committed.projection.version).toBe(after.run?.version)
+  expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
+  expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
   expect(after.actors.map((actor) => checksumCanonicalJson(JSON.parse(actor.stateJson)))).toEqual(
     plan.settlement.actors.map((actor) => checksumCanonicalJson(actor))
   )
@@ -1523,9 +1523,9 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
   )
   const updatedActor = native?.actors.find((actor) => actor.id === base.actor.id)
   if (!updatedActor) throw new Error('Projected maintenance actor write is unavailable.')
-  const updatedConditions = encounterRunActorStateSchema.parse(
-    JSON.parse(updatedActor.stateJson)
-  ).conditions
+  const updatedState = encounterRunActorStateSchema.parse(JSON.parse(updatedActor.stateJson))
+  if (updatedState.kind === 'CHARACTER') throw new Error('Expected a Creature maintenance actor.')
+  const updatedConditions = updatedState.conditions
   expect(updatedConditions).toEqual(expect.arrayContaining([frightened.id, poisoned.id]))
   expect(updatedConditions).not.toContain(blinded.id)
 }, 60000)

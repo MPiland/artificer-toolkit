@@ -64,6 +64,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
         sourceCommandId: crypto.randomUUID(),
         commandId: crypto.randomUUID(),
         occurredAt: '2026-09-12T00:00:00.000Z',
+        expectedCharacterStreamVersion: fixture.characterStreamVersion,
         effectiveMaximumHitPoints: fixture.actor.maxHitPoints,
         forceVersionAdvance: false,
         applications: [
@@ -104,7 +105,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
       expect(plan.characterUpdate).not.toBeNull()
 
       if (changed === 'actor') {
-        const next = { ...target.actor, currentHitPoints: target.actor.currentHitPoints - 1 }
+        const next = { ...target.actor, gmNotes: 'Changed before settlement' }
         await ctx.db.patch(target.actorRow._id, {
           stateJson: JSON.stringify(next),
           stateChecksum: checksumCanonicalJson(next)

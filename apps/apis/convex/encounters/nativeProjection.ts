@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import type { MutationCtx } from '../_generated/server'
+import { readEncounterCharacterStates } from './characterStates'
 import { createEncounterInitiativeStore } from './initiativeStore'
 
 export async function projectNativeGm(
@@ -20,5 +21,11 @@ export async function projectNativeGm(
           round: state.round
         })
       : null
-  return projectCurrentEncounterGm({ state, actors, rules, initiativeRoundState })
+  return projectCurrentEncounterGm({
+    state,
+    actors,
+    rules,
+    initiativeRoundState,
+    characterStates: await readEncounterCharacterStates(ctx, state, actors)
+  })
 }

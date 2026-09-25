@@ -59454,12 +59454,7 @@ export declare const internal: {
       read: FunctionReference<
         "query",
         "internal",
-        {
-          campaignId: string;
-          characterId: string;
-          streamVersion: number;
-          systemId: string;
-        },
+        { campaignId: string; characterId: string; systemId: string },
         {
           initiativeActorFacts: {
             checkTotals?: Record<string, number>;
@@ -63495,6 +63490,7 @@ export declare const internal: {
               sourceClassIds: Array<string>;
             };
           };
+          streamVersion: number;
         }
       >;
     };

@@ -37,6 +37,8 @@ import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
+import { requireSystem } from '../content/systemDocuments'
+import { characterProjectionState } from './characterStates'
 import { readRunProjection, readRunState } from './documents'
 import { removeEncounterRunChildren } from './campaignDeletion'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
@@ -98,12 +100,18 @@ export const create = mutation({
     const partySideId = crypto.randomUUID()
     const oppositionSideId = crypto.randomUUID()
     const actors: EncounterRunActorState[] = []
+    const characterStates = new Map<string, ReturnType<typeof characterProjectionState>>()
+    const { conditionTypes } = await requireSystem(ctx, campaign.gameSystemId)
     for (const characterId of party) {
       const loaded = await loadCharacterSheet(ctx, userId, characterId, campaign.id)
       if (!loaded) throw new Error('Assigned Character is unavailable.')
-      const { character, active, sheet } = loaded
+      const { character, active } = loaded
       if (character.systemId !== campaign.gameSystemId)
         throw new Error('Assigned Character does not match the Campaign Game System.')
+      characterStates.set(
+        character.id,
+        characterProjectionState(character, active.maximumHitPoints, conditionTypes)
+      )
       actors.push(
         encounterRunActorStateSchema.parse({
           id: crypto.randomUUID(),
@@ -111,20 +119,10 @@ export const create = mutation({
           sideId: partySideId,
           kind: 'CHARACTER',
           sourceId: character.id,
-          sourceRevision: active.streamVersion,
           label: character.label,
           systemId: character.systemId,
           stableTieKey: crypto.randomUUID(),
           public: true,
-          currentHitPoints: Math.max(sheet.overview.currentHitPoints, 0),
-          maxHitPoints: Math.max(sheet.overview.maxHitPoints, 0),
-          tempHitPoints: Math.max(sheet.overview.tempHitPoints, 0),
-          conditions: sheet.overview.conditions.map((condition) => ({
-            conditionTypeId: condition.conditionTypeId,
-            label: condition.label,
-            ...(condition.description === undefined ? {} : { description: condition.description }),
-            ...(condition.notes === undefined ? {} : { notes: condition.notes })
-          })),
           resources: {},
           gmNotes: null,
           initiative: null,
@@ -135,8 +133,7 @@ export const create = mutation({
             kind: 'CHARACTER',
             id: character.id,
             label: character.label,
-            systemId: character.systemId,
-            sourceRevision: active.streamVersion
+            systemId: character.systemId
           }
         })
       )
@@ -207,7 +204,11 @@ export const create = mutation({
     )
     // New actors start with zero usage; binding rejects a policy output that cannot retain it.
     const bound = bindEncounterActorRuleOutputToFacts(output, facts)
-    const projection = projectGm({ ...state, actors, initiativeRoundState: null }, bound)
+    const projection = projectGm(
+      { ...state, actors, initiativeRoundState: null },
+      bound,
+      characterStates
+    )
     await ctx.db.insert(
       'encounterRuns',
       encounterStoredRunSchema.parse({

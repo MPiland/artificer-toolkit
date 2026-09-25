@@ -2,6 +2,7 @@ import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
 import type {
   EncounterRunActorState,
+  EncounterRunCharacterActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -11,7 +12,7 @@ import { discoverCharacterActionCapabilities } from './characterActionCapability
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { InitiativeDeclarationSource } from './encounterInitiativeDeclarationCompiler.js'
-import { assertStagedCharacterFactsCurrent } from './encounterMovementTargets.js'
+import { assertCharacterFactsBoundToActor } from './encounterMovementTargets.js'
 
 type DeclarationSheetFacts = Pick<
   Awaited<ReturnType<typeof prepareCharacterSheetFromContext>>,
@@ -33,7 +34,7 @@ export async function prepareEncounterInitiativeDeclarationSources<
   campaignId: string
   actors: readonly EncounterRunActorState[]
   system: SystemAuthoredDto
-  loadCharacter(actor: EncounterRunActorState): Promise<TFacts | null>
+  loadCharacter(actor: EncounterRunCharacterActorState): Promise<TFacts | null>
   readPublishedSpell(
     spellId: string,
     facts: TFacts
@@ -64,14 +65,12 @@ export async function prepareEncounterInitiativeDeclarationSources<
       })
       continue
     }
-    if (!actor.sourceId || actor.sourceRevision === null)
-      throw new Error('Character initiative source is incomplete.')
     const facts = await input.loadCharacter(actor)
-    assertStagedCharacterFactsCurrent(
+    assertCharacterFactsBoundToActor(
       facts,
       actor,
       state.gameSystemId,
-      'Encounter Character source is stale.'
+      'Encounter Character source is unavailable.'
     )
     const entries = compileCharacterActionEntryPoints({
       gameSystemId: state.gameSystemId,

@@ -37,7 +37,6 @@ import { settleNativeEncounterActionMechanics } from '../encounters/actionMechan
 import { executeNativeEncounterAction } from '../encounters/actionCommands'
 import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
 import { startNativeConcentrationChecks } from '../encounters/concentration'
-import { projectNativeGm } from '../encounters/nativeProjection'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {
   insertActiveLiveAuthority,
@@ -237,20 +236,6 @@ it.each([
       )
       expect(planned.nextState).toEqual(nextState)
       expect(planned.nextRules).toEqual(nextRules)
-      const projection = await projectNativeGm(ctx, nextState, native.actors, nextRules)
-      expect(planned.projection).toEqual(projection)
-      expect(planned.result).toMatchObject({
-        projection,
-        roll: null,
-        resolution: null,
-        occurrence: {
-          occurrenceId: planned.occurrenceId,
-          occurrenceVersion: 0,
-          status: 'COMPLETE',
-          outcome: null,
-          pending: null
-        }
-      })
       const store = createActiveRuleEffectStore(ctx)
       const effectsAfter = await store.list({
         kind: 'CHARACTER',
@@ -419,8 +404,8 @@ it.each([
       uuid.mockRestore()
       vi.useRealTimers()
     }
-    if (!probe.result) throw new Error('Native terminal parity probe did not complete.')
-    expect(probe.result).toEqual(plan.result)
+    const nativeResult = probe.result
+    if (!nativeResult) throw new Error('Native terminal parity probe did not complete.')
     expect(await concentrationRecords(fixture)).toEqual(before)
 
     await expect(
@@ -471,7 +456,7 @@ it.each([
       scope,
       plan
     )
-    expect(committed).toEqual(plan.result)
+    expect(committed).toEqual(nativeResult)
     expect(
       await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
     ).toEqual(committed)
@@ -483,8 +468,8 @@ it.each([
     ).rejects.toThrow()
     const after = await concentrationRecords(fixture)
     expect(after.run?.version).toBe(before.run!.version + 1)
-    expect(JSON.parse(after.run!.projectionJson!)).toEqual(plan.projection)
-    expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(plan.projection))
+    expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
+    expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
     expect(after.character?.streamVersion).toBe(
       before.character!.streamVersion + (outcome === 'SAVE_FAILURE' ? 2 : 1)
     )
