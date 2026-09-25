@@ -3,6 +3,7 @@ import { createWriteStream, existsSync } from 'node:fs'
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
+import { createConnection } from 'node:net'
 import { finished } from 'node:stream/promises'
 
 const root = resolve(import.meta.dirname, '..')
@@ -12,6 +13,22 @@ const localConvex = {
   instance: 'phase82-local-linux',
   url: 'http://127.0.0.1:3210'
 }
+// The documented local Session Worker (apps/session-worker README). Proofs that send Encounter
+// commands or open the tabletop need it. The VTT browser proof starts its own Worker on this port
+// (apps/web/playwright.local-vtt.config.ts), so the lifecycle stops its Worker before that stage.
+const localSessionWorker = {
+  allowedOrigins: 'http://localhost:3000,http://127.0.0.1:3000',
+  host: '127.0.0.1',
+  port: 8787,
+  secretNames: [
+    'LIVE_SESSION_TICKET_SECRET',
+    'LIVE_SESSION_WORKER_SECRET',
+    'RULES_CONTINUATION_SECRET'
+  ],
+  selfManagedStage: 'r08-browser-vtt-browser'
+}
+// Application secrets loaded from the local environment files; the Worker child does not receive them.
+const loadedEnvironmentNames = new Set()
 const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
 const localProofDirectory = 'local-validation/local-convex-proofs'
 const localResetDirectory = 'local-validation/convex-reset'
@@ -158,6 +175,7 @@ async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefau
       removedRemoteEnvironmentNames.add(name)
       continue
     }
+    loadedEnvironmentNames.add(name)
     if (process.env[name] === undefined) process.env[name] = value
   }
 
@@ -188,6 +206,7 @@ async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefau
       loopbackRemoteNames.push(name)
       continue
     }
+    loadedEnvironmentNames.add(name)
     process.env[name] = value
   }
   delete process.env.CONVEX_DEPLOYMENT
@@ -305,15 +324,21 @@ function localTargetMetadata(name, value) {
   return { host: url.hostname, name, port: url.port || null, protocol: url.protocol }
 }
 
+function yarnSpawn(args) {
+  return process.platform === 'win32'
+    ? [
+        process.execPath,
+        [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...args]
+      ]
+    : ['yarn', args]
+}
+
 function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
   return new Promise((resolveRun, rejectRun) => {
     const childEnvironment = localChildEnvironment(environment)
-    const useCorepackYarn = process.platform === 'win32' && command === 'yarn'
-    const executable = useCorepackYarn ? process.execPath : command
     const commandArgs = [...args, ...sensitiveArgs]
-    const spawnArgs = useCorepackYarn
-      ? [resolve(dirname(process.execPath), 'node_modules/corepack/dist/yarn.js'), ...commandArgs]
-      : commandArgs
+    const [executable, spawnArgs] =
+      command === 'yarn' ? yarnSpawn(commandArgs) : [command, commandArgs]
     const log = createWriteStream(logPath, { flags: 'a' })
     const child = spawn(executable, spawnArgs, {
       cwd: root,
@@ -357,6 +382,135 @@ function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
         )
     )
   })
+}
+
+// Read in memory for the Worker child only; the value is never logged or written.
+function localConvexEnvironmentValue(name) {
+  const [executable, args] = yarnSpawn([
+    'workspace',
+    '@artificer-toolkit/apis',
+    'exec',
+    'convex',
+    'env',
+    'get',
+    name,
+    '--url',
+    process.env.CONVEX_SELF_HOSTED_URL,
+    '--admin-key',
+    process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+  ])
+  const result = spawnSync(executable, args, {
+    cwd: root,
+    encoding: 'utf8',
+    env: localChildEnvironment(),
+    shell: false,
+    stdio: ['ignore', 'pipe', 'ignore'],
+    windowsHide: true
+  })
+  const value = result.stdout?.trim()
+  if (result.status !== 0 || !value || Buffer.byteLength(value) < 32 || /[\r\n]/u.test(value)) {
+    throw new Error(`${name} must be provisioned in the local Convex deployment for the Worker.`)
+  }
+  return value
+}
+
+function localPortInUse(host, port) {
+  return new Promise((resolvePort) => {
+    const socket = createConnection({ host, port })
+    socket.once('connect', () => {
+      socket.destroy()
+      resolvePort(true)
+    })
+    socket.once('error', () => resolvePort(false))
+  })
+}
+
+// Starts the documented local Worker once and returns a stop function that ends only its process tree.
+async function startLocalSessionWorker(artifactDirectory) {
+  const { allowedOrigins, host, port, secretNames } = localSessionWorker
+  if (await localPortInUse(host, port)) {
+    throw new Error(
+      `Port ${port} is in use; stop that process so the lifecycle can own the Worker.`
+    )
+  }
+  const secrets = Object.fromEntries(
+    secretNames.map((name) => [name, localConvexEnvironmentValue(name)])
+  )
+  // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
+  const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
+  await writeFile(environmentFile, '')
+  const environment = { ...process.env }
+  for (const name of loadedEnvironmentNames) delete environment[name]
+  delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
+  delete environment.YARN_INJECT_ENVIRONMENT_FILES
+  Object.assign(environment, secrets, {
+    CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
+    CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
+    LIVE_SESSION_ALLOWED_ORIGINS: allowedOrigins
+  })
+  const logPath = resolve(artifactDirectory, 'local-session-worker.log')
+  const log = createWriteStream(logPath, { flags: 'a' })
+  const [executable, args] = yarnSpawn([
+    'workspace',
+    '@artificer-toolkit/session-worker',
+    'dev',
+    '--env-file',
+    environmentFile,
+    '--ip',
+    host,
+    '--port',
+    String(port),
+    '--persist-to',
+    resolve(artifactDirectory, 'local-session-worker-state')
+  ])
+  const child = spawn(executable, args, {
+    cwd: root,
+    env: environment,
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true
+  })
+  child.stdout.pipe(log, { end: false })
+  child.stderr.pipe(log, { end: false })
+  const exited = new Promise((resolveExit) => {
+    child.once('error', resolveExit)
+    child.once('close', resolveExit)
+  })
+  let running = true
+  exited.then(() => (running = false))
+  const killTree = () => {
+    if (!running) return
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+        stdio: 'ignore',
+        windowsHide: true
+      })
+    } else child.kill('SIGTERM')
+  }
+  // A thrown lifecycle error must not leave the Worker running.
+  process.once('exit', killTree)
+  const stop = async () => {
+    process.off('exit', killTree)
+    killTree()
+    await exited
+    log.end()
+    await finished(log)
+  }
+  const deadline = Date.now() + 5 * 60_000
+  while (true) {
+    const ready = await fetch(`http://${host}:${port}/health`, {
+      signal: AbortSignal.timeout(2_000)
+    }).then(
+      (response) => response.ok,
+      () => false
+    )
+    if (ready) return { logPath, pid: child.pid, stop }
+    if (!running || Date.now() > deadline) {
+      await stop()
+      throw new Error(`The local Session Worker did not become ready; see ${logPath}.`)
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000))
+  }
 }
 
 async function gitOutput(...args) {
@@ -547,8 +701,9 @@ const browserProofModes = [
   'builder-browser',
   'character-sheet-browser',
   'character-sheet-spells-browser',
-  'vtt-browser',
-  'v15-workload'
+  'v15-workload',
+  // Last: it starts its own Worker on the lifecycle Worker's port.
+  'vtt-browser'
 ]
 function localProofStage(proof, kind) {
   const proofName =
@@ -1101,8 +1256,8 @@ async function main() {
         }
       }
       if (current.name === 'r08-browser-vtt-browser') {
-        // Written by apps/apis/tests/developmentVttBrowser.ts, which still owns this output folder.
-        const source = resolve(root, '.codex/validation/phase82-vtt-browser/playwright.log')
+        // Written by apps/apis/tests/developmentVttBrowser.ts, which owns this output folder.
+        const source = resolve(root, `${localProofDirectory}/phase82-vtt-browser/playwright.log`)
         const timingPath = resolve(artifactDirectory, 'r08-browser-vtt-browser.playwright.log')
         if ((await stat(source)).mtimeMs < stageStart - 2000) {
           throw new Error('The VTT browser timing log was not written by this proof.')
@@ -1125,6 +1280,14 @@ async function main() {
     return null
   }
 
+  let sessionWorker = null
+  const stopSessionWorker = async () => {
+    if (!sessionWorker) return
+    await sessionWorker.stop()
+    sessionWorker = null
+    manifest.localSessionWorker.stoppedAt = new Date().toISOString()
+  }
+
   for (let index = 0; index < selectedStages.length; ) {
     const current = selectedStages[index]
     const next = selectedStages[index + 1]
@@ -1132,6 +1295,28 @@ async function main() {
       (current.name === 'convex-tests-1' && next?.name === 'convex-tests-2') ||
       (current.name === 'convex-tests-3' && next?.name === 'convex-tests-4')
     const batch = pair ? [current, next] : [current]
+    if (sessionWorker && batch.some(({ name }) => name === localSessionWorker.selfManagedStage)) {
+      await stopSessionWorker()
+    } else if (
+      !sessionWorker &&
+      batch.some(({ name, proofName }) => proofName && name !== localSessionWorker.selfManagedStage)
+    ) {
+      console.log('[pre-staging] Start the local Session Worker')
+      try {
+        sessionWorker = await startLocalSessionWorker(artifactDirectory)
+      } catch (error) {
+        manifest.completedAt = new Date().toISOString()
+        manifest.localSessionWorker = { error: error instanceof Error ? error.message : 'failed' }
+        manifest.status = 'failed'
+        await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+        throw error
+      }
+      manifest.localSessionWorker = {
+        log: basename(sessionWorker.logPath),
+        pid: sessionWorker.pid,
+        startedAt: new Date().toISOString()
+      }
+    }
     const prepared = batch.map((stage) => {
       assertLocalLifecycleTarget()
       const logPath = resolve(artifactDirectory, `${stage.name}.log`)
@@ -1156,6 +1341,7 @@ async function main() {
     )
     const failures = results.filter(Boolean)
     if (failures.length > 0) {
+      await stopSessionWorker()
       manifest.completedAt = new Date().toISOString()
       manifest.status = 'failed'
     }
@@ -1171,6 +1357,7 @@ async function main() {
     }
     index += batch.length
   }
+  await stopSessionWorker()
 
   if (stopAfter) {
     try {

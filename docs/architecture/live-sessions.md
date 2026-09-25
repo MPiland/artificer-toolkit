@@ -254,9 +254,13 @@ separate transactions, which Convex fences only by `DO_ACTIVE` authority. Curren
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
 
-Real-backend HTTP development drivers (`apps/apis/tests/development*.ts` over a browser Convex
-client) therefore cannot execute Encounter commands; those Encounter journeys run only under the
-in-process convex-test adapter, which may call internal functions.
+Real-backend HTTP development drivers (`apps/apis/tests/development*.ts`) therefore send Encounter
+commands through the room like the browser: `DevelopmentHttpClient` (`developmentHttpClient.ts`)
+issues a ticket, opens the Worker socket with the ticket subprotocol and the local web Origin,
+authenticates, waits for `TRANSIENT_READY` and `STATE_SYNC`, and resolves on the `ENCOUNTER`
+`COMMAND_COMMITTED` result or rejects on `COMMAND_REJECTED`. The in-process convex-test adapter still
+calls the internal functions directly. The local pre-staging lifecycle starts the documented local
+Worker for its proofs; its secrets must match the local Convex deployment's.
 
 **Worker-boundary validators.** The private rules captures and commits
 (`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,

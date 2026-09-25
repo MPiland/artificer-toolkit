@@ -148,7 +148,7 @@ try {
     # developmentCharacterBrowser.ts overwrites its fixed output folder; keep the previous run's copy.
     $prior = "$stem.previous-builder-output"
     New-Item -ItemType Directory -Path $prior -ErrorAction Stop | Out-Null
-    $oldOutput = Join-Path $root '.codex/validation/phase82-builder-browser'
+    $oldOutput = Join-Path $packet 'phase82-builder-browser'
     foreach ($entry in @('playwright.log', 'playwright')) {
       $source = Join-Path $oldOutput $entry
       if (Test-Path -LiteralPath $source) {

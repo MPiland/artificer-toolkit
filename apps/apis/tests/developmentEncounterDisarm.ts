@@ -670,7 +670,7 @@ export async function verifyEncounterDisarm({
     await controls?.reload()
     assert.deepEqual(await snapshot(), after)
     const evidenceDirectory = new URL(
-      '../../../.codex/validation/disarm-live-driver-20260915/',
+      '../../../local-validation/local-convex-proofs/disarm-live-driver-20260915/',
       import.meta.url
     )
     await mkdir(evidenceDirectory, { recursive: true })

@@ -10,7 +10,12 @@ const localAppOrigin = 'http://localhost:3000'
 const localWorkerOrigin = 'http://127.0.0.1:8787'
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1'])
 const checkpointPath = process.env.MANAGED_VTT_CHECKPOINT_PATH?.trim() || null
-const localWorkerValidationPath = join(repoRoot, '.codex', 'validation', 'phase82-vtt-browser')
+const localWorkerValidationPath = join(
+  repoRoot,
+  'local-validation',
+  'local-convex-proofs',
+  'phase82-vtt-browser'
+)
 if (!checkpointPath) mkdirSync(localWorkerValidationPath, { recursive: true })
 const localWorkerPersistencePath = checkpointPath
   ? join(dirname(resolve(checkpointPath)), 'worker-state')

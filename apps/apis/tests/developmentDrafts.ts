@@ -7,7 +7,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ConvexHttpClient } from 'convex/browser'
+import type { ConvexHttpClient } from 'convex/browser'
 import { hashPassword } from 'better-auth/crypto'
 import { makeFunctionReference } from 'convex/server'
 import { api } from '../convex/_generated/api.js'
@@ -63,6 +63,7 @@ import type {
   EncounterBlueprintPage
 } from '@artificer-toolkit/schema/api/encounterBlueprintPages'
 import { executeEncounterCommand } from './developmentClient'
+import { DevelopmentHttpClient } from './developmentHttpClient'
 
 // Backend integration only. Fixture invitation hashes use the existing internal
 // component CLI; passwords/tokens stay in memory, and signup email is not scheduled.
@@ -79,7 +80,10 @@ assert.ok(
   'VTT_CHECKPOINT_MODE must be retain-on-failure, resume, or resume-retain.'
 )
 const vttCheckpointPath = fileURLToPath(
-  new URL('../../../.codex/validation/phase82-vtt-checkpoint/fixture.private.json', import.meta.url)
+  new URL(
+    '../../../local-validation/local-convex-proofs/phase82-vtt-checkpoint/fixture.private.json',
+    import.meta.url
+  )
 )
 const vttCheckpointSections = [
   'fixture-ready',
@@ -116,7 +120,7 @@ if (
   assert.equal(process.env.CONVEX_SELF_HOSTED_URL, deploymentUrl.origin)
   assert.ok(process.env.CONVEX_SELF_HOSTED_ADMIN_KEY, 'Local fixture CLI credentials are required.')
 }
-const publicClient = new ConvexHttpClient(deploymentUrl.origin, {
+const publicClient = new DevelopmentHttpClient(deploymentUrl.origin, {
   logger: false
 })
 const encounterBlueprintList = makeFunctionReference<
@@ -462,7 +466,7 @@ async function createAuthor() {
   const jwt = await authToken(fixture.session)
   const claims = record(JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8')))
   assert.ok(!('email' in claims) && !('name' in claims), 'JWT must not include profile PII.')
-  fixture.client = new ConvexHttpClient(deploymentUrl.origin, {
+  fixture.client = new DevelopmentHttpClient(deploymentUrl.origin, {
     logger: false
   })
   fixture.client.setAuth(jwt)
@@ -505,7 +509,7 @@ async function restoreAuthor(credential: VttCheckpointCredential) {
   const jwt = await authToken(session)
   const claims = record(JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8')))
   assert.ok(!('email' in claims) && !('name' in claims), 'JWT must not include profile PII.')
-  const client = new ConvexHttpClient(deploymentUrl.origin, { logger: false })
+  const client = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
   client.setAuth(jwt)
   const identity = await client.query(api.account.identity, {})
   assert.equal(identity.role, 'user')
@@ -1107,7 +1111,7 @@ try {
       verifyRetention: process.argv.includes('--vtt-map-retention'),
       evidenceDirectory: fileURLToPath(
         new URL(
-          `../../../.codex/validation/${process.argv.includes('--vtt-map-retention') ? 'phase82-v04-retention' : process.argv.includes('--scene-live-browser') ? 'phase82-v02-live-scene' : 'phase82-scene-owner-live'}/attempt-${Date.now()}/`,
+          `../../../local-validation/local-convex-proofs/${process.argv.includes('--vtt-map-retention') ? 'phase82-v04-retention' : process.argv.includes('--scene-live-browser') ? 'phase82-v02-live-scene' : 'phase82-scene-owner-live'}/attempt-${Date.now()}/`,
           import.meta.url
         )
       )
@@ -1197,7 +1201,7 @@ try {
   } else if (process.argv.includes('--character-concurrency')) {
     const owner = await createAuthor()
     const foreign = await createAuthor()
-    const peer = new ConvexHttpClient(deploymentUrl.origin, { logger: false })
+    const peer = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
     peer.setAuth(await owner.fetchToken())
     const ids = [crypto.randomUUID(), crypto.randomUUID()]
     for (const characterId of ids)
@@ -1266,7 +1270,10 @@ try {
       email: owner.email,
       password: owner.password,
       evidenceDirectory: fileURLToPath(
-        new URL('../../../.codex/validation/phase82-entitlements/', import.meta.url)
+        new URL(
+          '../../../local-validation/local-convex-proofs/phase82-entitlements/',
+          import.meta.url
+        )
       ),
       upgrade: async () => {
         await cli(
@@ -2272,7 +2279,7 @@ try {
         publicId: campaign.publicId,
         evidenceDirectory:
           process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY ??
-          '.codex/validation/movement-replay-duplicates-20260916/custody-browser-01/attempt01'
+          'local-validation/local-convex-proofs/movement-replay-duplicates-20260916/custody-browser-01/attempt01'
       })
     }
   } else if (process.argv.includes('--campaign-inventory')) {
@@ -2408,7 +2415,10 @@ try {
         campaignId: campaign.id,
         publicId: campaign.publicId,
         evidenceDirectory: fileURLToPath(
-          new URL('../../../.codex/validation/phase82-p14-complete', import.meta.url)
+          new URL(
+            '../../../local-validation/local-convex-proofs/phase82-p14-complete',
+            import.meta.url
+          )
         )
       })
     }
@@ -2468,7 +2478,10 @@ try {
       password: owner.password,
       publicId: campaign.publicId,
       evidenceDirectory: fileURLToPath(
-        new URL('../../../.codex/validation/phase82-campaign-native-detail/', import.meta.url)
+        new URL(
+          '../../../local-validation/local-convex-proofs/phase82-campaign-native-detail/',
+          import.meta.url
+        )
       ),
       verifyRemoved: async (count) => {
         const detail = await owner.client.query(api.campaigns.queries.get, {
@@ -2568,7 +2581,7 @@ try {
       process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY ??
       fileURLToPath(
         new URL(
-          `../../../.codex/validation/phase82-v15-preview-browser/attempt-${Date.now()}/`,
+          `../../../local-validation/local-convex-proofs/phase82-v15-preview-browser/attempt-${Date.now()}/`,
           import.meta.url
         )
       )
@@ -2752,7 +2765,7 @@ try {
                     campaign,
                     evidenceDirectory: fileURLToPath(
                       new URL(
-                        '../../../.codex/validation/disarm-vtt-browser-20260915/browser/attempt-' +
+                        '../../../local-validation/local-convex-proofs/disarm-vtt-browser-20260915/browser/attempt-' +
                           Date.now() +
                           '/',
                         import.meta.url
@@ -2841,7 +2854,7 @@ try {
                   campaign,
                   evidenceDirectory: fileURLToPath(
                     new URL(
-                      '../../../.codex/validation/effect-browser-20260916/browser/attempt-' +
+                      '../../../local-validation/local-convex-proofs/effect-browser-20260916/browser/attempt-' +
                         Date.now() +
                         '/',
                       import.meta.url
@@ -2902,7 +2915,7 @@ try {
             expectedVersion: run.version
           }
         }))
-        const startPeer = new ConvexHttpClient(deploymentUrl.origin, { logger: false })
+        const startPeer = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
         owner.client.setAuth(await owner.fetchToken())
         startPeer.setAuth(await owner.fetchToken())
         const starts = await Promise.allSettled([
@@ -3035,7 +3048,7 @@ try {
           await import('./developmentEncounterMovement')
         const { verifyEncounterReactionTransactions } =
           await import('./developmentEncounterReactionTransactions')
-        const peer = new ConvexHttpClient(deploymentUrl.origin, {
+        const peer = new DevelopmentHttpClient(deploymentUrl.origin, {
           logger: false
         })
         owner.client.setAuth(await owner.fetchToken())
@@ -3228,7 +3241,7 @@ try {
           reactor: fixture.reactor,
           evidenceDirectory: fileURLToPath(
             new URL(
-              `../../../.codex/validation/${passageBrowser ? 'scene-passage-coordinator-20260914' : 'scene-reaction-coordinator-20260913'}/browser/attempt-${Date.now()}/`,
+              `../../../local-validation/local-convex-proofs/${passageBrowser ? 'scene-passage-coordinator-20260914' : 'scene-reaction-coordinator-20260913'}/browser/attempt-${Date.now()}/`,
               import.meta.url
             )
           ),
@@ -3638,7 +3651,7 @@ try {
           subjectId: workloadDraft.subjectId,
           expectedDraftUpdatedAt: workloadDraft.updatedAt
         })
-        const workloadPeer = new ConvexHttpClient(deploymentUrl.origin, { logger: false })
+        const workloadPeer = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
         const workloadToken = await owner.fetchToken()
         owner.client.setAuth(workloadToken)
         workloadPeer.setAuth(workloadToken)
@@ -3674,7 +3687,7 @@ try {
         if (!result) throw new Error('Encounter cutover requires the lifecycle fixture.')
         const { prepareEncounterCutoverFixture, verifyEncounterCutoverContention } =
           await import('./developmentEncounterCutover')
-        const cutoverPeer = new ConvexHttpClient(deploymentUrl.origin, {
+        const cutoverPeer = new DevelopmentHttpClient(deploymentUrl.origin, {
           logger: false
         })
         owner.client.setAuth(await owner.fetchToken())
@@ -3733,7 +3746,7 @@ try {
         })
         const { verifyEncounterActionTransactions } =
           await import('./developmentEncounterActionTransactions')
-        const actionPeer = new ConvexHttpClient(deploymentUrl.origin, {
+        const actionPeer = new DevelopmentHttpClient(deploymentUrl.origin, {
           logger: false
         })
         const actionToken = await owner.fetchToken()
@@ -3787,7 +3800,7 @@ try {
     })
   } else if (process.argv.includes('--cleanup-campaign-custody')) {
     assert.equal(mode, 'local')
-    const packet = resolve('.codex/validation/local-convex-linux-20260915')
+    const packet = resolve('local-validation/local-convex-proofs')
     const fileArgument = process.argv.find((arg) => arg.startsWith('--fixture-accounts='))
     assert.ok(fileArgument)
     const fixtureFile = resolve(fileArgument.slice('--fixture-accounts='.length))
@@ -3855,7 +3868,7 @@ try {
         }
       })
       const fetchToken = async () => responseToken(await auth('/convex/token', undefined, session))
-      const client = new ConvexHttpClient(deploymentUrl.origin, {
+      const client = new DevelopmentHttpClient(deploymentUrl.origin, {
         logger: false
       })
       client.setAuth(await fetchToken())
@@ -3875,7 +3888,7 @@ try {
         JSON.parse(
           await readFile(
             resolve(
-              '.codex/validation/movement-replay-duplicates-20260916',
+              'local-validation/local-convex-proofs/movement-replay-duplicates-20260916',
               proofName,
               'fixture-scope.json'
             ),
@@ -3947,7 +3960,7 @@ try {
               completedCustodyRecovery
                 ? resolve(packet, proofName + '.evidence', 'fixture-scope.json')
                 : resolve(
-                    '.codex/validation/movement-replay-duplicates-20260916',
+                    'local-validation/local-convex-proofs/movement-replay-duplicates-20260916',
                     proofName,
                     'fixture-scope.json'
                   ),
@@ -4095,7 +4108,7 @@ try {
     }
   } else if (process.argv.includes('--cleanup-campaign-lifecycle')) {
     assert.equal(mode, 'local')
-    const packet = resolve('.codex/validation/local-convex-linux-20260915')
+    const packet = resolve('local-validation/local-convex-proofs')
     const attemptArgument = process.argv.find((arg) => arg.startsWith('--fixture-attempt='))
     assert.ok(attemptArgument)
     const attempt = attemptArgument.slice('--fixture-attempt='.length)
@@ -4178,7 +4191,7 @@ try {
           }
         }
       })
-      const client = new ConvexHttpClient(deploymentUrl.origin, { logger: false })
+      const client = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
       client.setAuth(await responseToken(await auth('/convex/token', undefined, session)))
       const identity = await client.query(api.account.identity, {})
       assert.equal(
@@ -4274,7 +4287,7 @@ try {
       }
     })
     const jwt = await responseToken(await auth('/convex/token', undefined, fixture.session))
-    fixture.client = new ConvexHttpClient(deploymentUrl.origin, {
+    fixture.client = new DevelopmentHttpClient(deploymentUrl.origin, {
       logger: false
     })
     fixture.client.setAuth(jwt)
@@ -4559,14 +4572,14 @@ try {
             ? 'equipment'
             : 'background',
       evidenceDirectory: classBrowser
-        ? '.codex/validation/phase82-native-authoring-browser-closure'
+        ? 'local-validation/local-convex-proofs/phase82-native-authoring-browser-closure'
         : featBrowser
-          ? '.codex/validation/phase82-native-authoring-browser-closure'
+          ? 'local-validation/local-convex-proofs/phase82-native-authoring-browser-closure'
           : equipmentBrowser
-            ? '.codex/validation/phase82-equipment-frontend'
+            ? 'local-validation/local-convex-proofs/phase82-equipment-frontend'
             : publicationBrowser
-              ? '.codex/validation/phase82-native-authoring-browser-closure'
-              : '.codex/validation/phase82-foundation',
+              ? 'local-validation/local-convex-proofs/phase82-native-authoring-browser-closure'
+              : 'local-validation/local-convex-proofs/phase82-foundation',
       email: author.email,
       password: author.password,
       start,
@@ -4777,10 +4790,7 @@ try {
       ?.slice('--fixture-attempt='.length)
     assert.ok(attempt)
     assert.match(attempt, /^account-deletion-browser[a-z0-9-]{2,80}$/u)
-    const evidenceDirectory = resolve(
-      '.codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919',
-      attempt + '.evidence'
-    )
+    const evidenceDirectory = resolve('local-validation/local-convex-proofs', attempt + '.evidence')
     const [
       { createDevelopmentAccountDeletionFixture },
       { verifyAccountDeletionBrowser },
@@ -5198,7 +5208,10 @@ try {
       replacementPassword,
       code,
       screenshotDirectory: fileURLToPath(
-        new URL('../../../.codex/validation/phase82-auth-closure/', import.meta.url)
+        new URL(
+          '../../../local-validation/local-convex-proofs/phase82-auth-closure/',
+          import.meta.url
+        )
       ),
       verifySessions: async () => {
         await assert.rejects(author.client.query(api.account.identity, {}), /Unauthenticated/)
@@ -5256,7 +5269,10 @@ try {
             bio: 'Separate private profile for the second account.'
           },
           screenshotDirectory: fileURLToPath(
-            new URL('../../../.codex/validation/phase82-foundation/', import.meta.url)
+            new URL(
+              '../../../local-validation/local-convex-proofs/phase82-foundation/',
+              import.meta.url
+            )
           )
         }
       : undefined
@@ -5325,7 +5341,7 @@ try {
       password: author.password,
       profile,
       verifyRevoked: async (jwt) => {
-        const browserClient = new ConvexHttpClient(deploymentUrl.origin, {
+        const browserClient = new DevelopmentHttpClient(deploymentUrl.origin, {
           logger: false
         })
         browserClient.setAuth(jwt)

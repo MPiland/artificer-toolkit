@@ -18,8 +18,9 @@ export type DevelopmentClient = Pick<ConvexHttpClient, 'query'> & {
   ): Promise<FunctionReturnType<Reference>>
 }
 
-// Native Encounter commands are internal: browsers reach them only through the Session room. These
-// references resolve through the transactional test adapter; a real HTTP client is refused.
+// Native Encounter commands are internal: browsers reach them only through the Session room. The
+// transactional test adapter calls these references directly; DevelopmentHttpClient
+// (developmentHttpClient.ts) sends them through the Campaign's Session room like the browser.
 export const executeEncounterCommand = makeFunctionReference<
   'mutation',
   EncounterExecuteInput,

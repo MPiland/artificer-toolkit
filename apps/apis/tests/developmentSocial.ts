@@ -77,7 +77,7 @@ export async function verifySocialLifecycle(
   const accounts = Object.values(cohort)
   const { owner, player, invitee, moderator } = cohort
   const evidenceDirectory = fileURLToPath(
-    new URL('../../../.codex/validation/phase82-social-live', import.meta.url)
+    new URL('../../../local-validation/local-convex-proofs/phase82-social-live', import.meta.url)
   )
   await mkdir(evidenceDirectory, { recursive: true })
   for (const account of accounts) {

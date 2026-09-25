@@ -66,8 +66,15 @@ flowchart LR
      goes to `local-validation/convex-reset/r08-reset-<attempt>.*` and native proof evidence to
      `local-validation/local-convex-proofs/<proof>.*`. Provenance manifests must sit under
      `local-validation/`.
-   - The development drivers still write their own browser output under `.codex/validation/`, for
-     example `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder.
+   - The development drivers write their own browser output under
+     `local-validation/local-convex-proofs/<topic>/`, for example
+     `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder.
+   - The drivers send Encounter commands through the Session room, so the proof stages need the local
+     Worker. Before the first proof stage the runner starts the documented Worker once on
+     `127.0.0.1:8787` (refusing a port that is already in use), with its ticket, Worker and rules
+     continuation secrets read in memory from the local Convex deployment. It stops that Worker's
+     process tree before the VTT browser proof, which starts its own Worker, and after a failure.
+     Worker output goes to `local-session-worker.log` in the manifest folder.
 
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only

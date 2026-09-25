@@ -427,7 +427,7 @@ export async function verifyEncounterReactionTransactions({
     'Terminal and root replays cannot change state.'
   )
   const evidenceDirectory = new URL(
-    '../../../.codex/validation/equipment-builder-catalogue-20260915/reaction-driver/',
+    '../../../local-validation/local-convex-proofs/equipment-builder-catalogue-20260915/reaction-driver/',
     import.meta.url
   )
   await mkdir(evidenceDirectory, { recursive: true })

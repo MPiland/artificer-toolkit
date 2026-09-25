@@ -14,7 +14,7 @@ export async function verifyCharacterBrowser(
 ): Promise<void> {
   const evidenceDirectory = fileURLToPath(
     new URL(
-      `../../../.codex/validation/phase82-${input.journey === 'builder' ? 'builder-browser' : input.journey === 'sheet' ? 'sheet-browser' : 'sheet-spells-browser'}`,
+      `../../../local-validation/local-convex-proofs/phase82-${input.journey === 'builder' ? 'builder-browser' : input.journey === 'sheet' ? 'sheet-browser' : 'sheet-spells-browser'}`,
       import.meta.url
     )
   )

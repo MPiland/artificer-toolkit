@@ -829,7 +829,7 @@ placement, the other source-loss producers and complete P12 proof remain tracked
 The `--authoring-browser` mode creates only one owned Acolyte copy and drives its edit route on the
 existing localhost:3000 server: native field resolution, draft save and reload, with exact backend
 owner/payload checks, then opens Guided starting gear and checks a canonical equipment option.
-It records credential-free screenshots under `.codex/validation`, rejects
+It records credential-free screenshots under `local-validation/local-convex-proofs`, rejects
 legacy product requests, and uses the same fixture cleanup. This focused journey is not the full
 Background publication or release gate.
 The focused journey now passes native resolution/save/reload, exact owner/payload checks, Guided

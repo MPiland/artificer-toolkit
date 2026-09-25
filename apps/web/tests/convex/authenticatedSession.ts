@@ -143,7 +143,9 @@ export async function verifyAuthenticatedBrowserSession(input: {
     assert.ok(!html.includes(jwt), 'Backend JWT must not appear in serialized SSR output.')
     assert.match(html, /Game Systems/, 'Authenticated content must be server rendered.')
     await expect(page.getByRole('heading', { name: 'Game Systems', exact: true })).toBeVisible()
-    await page.screenshot({ path: '.codex/validation/phase82-foundation/private-ssr-browser.png' })
+    await page.screenshot({
+      path: 'local-validation/local-convex-proofs/phase82-foundation/private-ssr-browser.png'
+    })
     console.log(
       JSON.stringify({ authenticatedReloadMs: Math.round(performance.now() - reloadStarted) })
     )

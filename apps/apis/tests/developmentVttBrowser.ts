@@ -79,7 +79,7 @@ export async function verifyDevelopmentVttBrowser(input: {
 }): Promise<void> {
   const startedAt = new Date().toISOString().replaceAll(':', '-')
   const evidenceDirectory = fileURLToPath(
-    new URL('../../../.codex/validation/phase82-vtt-browser', import.meta.url)
+    new URL('../../../local-validation/local-convex-proofs/phase82-vtt-browser', import.meta.url)
   )
   await mkdir(evidenceDirectory, { recursive: true })
   if (input.checkpoint) {
