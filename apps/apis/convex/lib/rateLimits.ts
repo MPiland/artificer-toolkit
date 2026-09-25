@@ -1,4 +1,6 @@
 import { DAY, HOUR, MINUTE, RateLimiter } from '@convex-dev/rate-limiter'
+import type { RateLimitedErrorData } from '@artificer-toolkit/schema/api/rateLimits'
+import { ConvexError } from 'convex/values'
 import { SOCIAL_RATE_LIMITS } from '@artificer-toolkit/shared/social/rateLimits'
 import { components } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
@@ -45,8 +47,17 @@ export function socialRateLimits(action: SocialRateLimitAction) {
 }
 
 export async function consumeUserRateLimit(ctx: MutationCtx, name: UserRateLimit, userId: string) {
-  const { ok } = await rateLimiter.limit(ctx, name, { key: userId })
-  if (!ok) throw new Error(userRateLimitMessages[name])
+  const { ok, retryAfter } = await rateLimiter.limit(ctx, name, { key: userId })
+  if (!ok) throwRateLimited(userRateLimitMessages[name], retryAfter)
+}
+
+// ConvexError data survives production error redaction, so clients can show the message.
+function throwRateLimited(message: string, retryAfter: number | undefined): never {
+  throw new ConvexError({
+    code: 'RATE_LIMITED',
+    message,
+    retryAfterMs: Math.ceil(retryAfter ?? 0)
+  } satisfies RateLimitedErrorData)
 }
 
 /** Public Scene write entry points share one allowance for the authenticated caller. */
@@ -62,8 +73,8 @@ export async function consumeSocialRateLimit(
   action: SocialRateLimitAction
 ) {
   for (const { name, config } of socialRateLimits(action)) {
-    const { ok } = await rateLimiter.limit(ctx, name, { key: userId, config })
-    if (!ok) throw new Error('Too many Social actions. Try again later.')
+    const { ok, retryAfter } = await rateLimiter.limit(ctx, name, { key: userId, config })
+    if (!ok) throwRateLimited('Too many Social actions. Try again later.', retryAfter)
   }
 }
 

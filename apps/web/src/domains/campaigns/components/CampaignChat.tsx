@@ -11,6 +11,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { getCampaignConversations } from '#app/data/campaigns/queries'
 import { useCampaignChatHistory } from '#app/data/campaigns/useCampaignChatHistory'
 import { getRollHistory } from '#app/data/rolls'
+import { errorMessage } from '#app/lib/errorMessage'
 import { CampaignChatHistory } from './CampaignChatHistory'
 import { CampaignChatNavigation } from './CampaignChatNavigation'
 import * as chatStyles from './CampaignChat.css'
@@ -213,7 +214,7 @@ export function CampaignChat({
         onSelectRoom={selectRoom}
       />
 
-      {error ? <Alert color='red'>{error.message}</Alert> : null}
+      {error ? <Alert color='red'>{errorMessage(error)}</Alert> : null}
       <CampaignChatHistory
         chatLog={chatLog}
         conversationLabel={conversationLabel}

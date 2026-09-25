@@ -150,6 +150,29 @@ function waitForClose(socket: WebSocket): Promise<CloseEvent> {
   })
 }
 
+function signTicket(input: {
+  authorityEpoch: string
+  campaignId: string
+  issuedAt: number
+  role: 'OWNER' | 'PLAYER'
+  subject: string
+}) {
+  return new SignJWT({
+    authorityEpoch: input.authorityEpoch,
+    campaignId: input.campaignId,
+    role: input.role,
+    v: LIVE_SESSION_TICKET_VERSION
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(LIVE_SESSION_TICKET_ISSUER)
+    .setAudience(LIVE_SESSION_TICKET_AUDIENCE)
+    .setSubject(input.subject)
+    .setJti(crypto.randomUUID())
+    .setIssuedAt(input.issuedAt)
+    .setExpirationTime(input.issuedAt + 60)
+    .sign(new TextEncoder().encode(secret))
+}
+
 async function fixture(scene: CampaignSceneStateDto | null = null) {
   const campaignId = scene?.campaignId ?? crypto.randomUUID()
   const authorityEpoch = crypto.randomUUID()
@@ -157,20 +180,13 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
   const userId = crypto.randomUUID()
   const playerId = crypto.randomUUID()
   const issuedAt = Math.floor(Date.now() / 1_000)
-  const ticket = await new SignJWT({
+  const ticket = await signTicket({
     authorityEpoch,
     campaignId,
+    issuedAt,
     role: 'OWNER',
-    v: LIVE_SESSION_TICKET_VERSION
+    subject: userId
   })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer(LIVE_SESSION_TICKET_ISSUER)
-    .setAudience(LIVE_SESSION_TICKET_AUDIENCE)
-    .setSubject(userId)
-    .setJti(crypto.randomUUID())
-    .setIssuedAt(issuedAt)
-    .setExpirationTime(issuedAt + 60)
-    .sign(new TextEncoder().encode(secret))
   const issueAccessTokenFor = (subject: string, expirationTime: number) =>
     new SignJWT({})
       .setProtectedHeader({ alg: 'HS256' })
@@ -341,20 +357,13 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
 }
 
 async function connectPlayer(base: Awaited<ReturnType<typeof fixture>>) {
-  const ticket = await new SignJWT({
+  const ticket = await signTicket({
     authorityEpoch: base.authorityEpoch,
     campaignId: base.capture.campaignId,
+    issuedAt: base.issuedAt,
     role: 'PLAYER',
-    v: LIVE_SESSION_TICKET_VERSION
+    subject: base.playerId
   })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer(LIVE_SESSION_TICKET_ISSUER)
-    .setAudience(LIVE_SESSION_TICKET_AUDIENCE)
-    .setSubject(base.playerId)
-    .setJti(crypto.randomUUID())
-    .setIssuedAt(base.issuedAt)
-    .setExpirationTime(base.issuedAt + 60)
-    .sign(new TextEncoder().encode(secret))
   const response = await base.stub.fetch(base.request(ticket))
   const socket = response.webSocket
   if (!socket) throw new Error('Missing player native test WebSocket.')
@@ -2341,4 +2350,167 @@ it('rejects a refused Encounter command with a generic code and no Convex detail
     ).toMatchObject({ code: 'STALE_STATE' })
   )
   expect(JSON.stringify(base.messages)).not.toContain('internal detail')
+})
+
+const ownerTicket = (base: Awaited<ReturnType<typeof fixture>>) =>
+  signTicket({
+    authorityEpoch: base.authorityEpoch,
+    campaignId: base.capture.campaignId,
+    issuedAt: base.issuedAt,
+    role: 'OWNER',
+    subject: base.userId
+  })
+
+it('closes a socket whose message exceeds the UTF-8 byte cap', async () => {
+  const base = await fixture()
+  const closed = waitForClose(base.socket)
+  // 30,000 code units of a 3-byte character: under the cap in UTF-16, over it in UTF-8.
+  base.socket.send(JSON.stringify({ type: 'RESUME', padding: '€'.repeat(30_000) }))
+  await expect(closed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Invalid live-session message.'
+  })
+})
+
+it('closes a socket that exceeds its message budget', async () => {
+  const base = await fixture()
+  const closed = waitForClose(base.socket)
+  for (let index = 0; index < 30; index++)
+    base.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
+  await expect(closed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Too many live-session messages.'
+  })
+})
+
+it('refuses a user beyond the per-user socket cap before consuming the ticket', async () => {
+  const base = await fixture()
+  for (let index = 1; index < 4; index++) {
+    const response = await base.stub.fetch(base.request(await ownerTicket(base)))
+    expect(response.status).toBe(101)
+    response.webSocket?.accept()
+    if (response.webSocket) sockets.push(response.webSocket)
+  }
+  const ticket = await ownerTicket(base)
+  expect((await base.stub.fetch(base.request(ticket))).status).toBe(429)
+  base.socket.close(1000, 'done')
+  await vi.waitFor(async () => {
+    const response = await base.stub.fetch(base.request(ticket))
+    expect(response.status).toBe(101)
+    response.webSocket?.accept()
+    if (response.webSocket) sockets.push(response.webSocket)
+  })
+})
+
+it('closes sockets that do not authenticate within the admission window', async () => {
+  const base = await fixture()
+  const closed = waitForClose(base.socket)
+  await runInDurableObject(base.stub, async (instance) => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_001)
+    await instance.alarm()
+  })
+  await expect(closed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Live-session authentication timed out.'
+  })
+})
+
+it('keeps authenticated sockets open when the admission alarm fires', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const open = await runInDurableObject(base.stub, async (instance, state) => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_001)
+    await instance.alarm()
+    return state.getWebSockets().filter((socket) => socket.readyState === WebSocket.OPEN).length
+  })
+  expect(open).toBe(1)
+})
+
+it('reuses a recent authority capture for pointer samples on the same Scene version', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const captures = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]!
+    const header = base.capture.sceneHeader!
+    const pointer = (sequence: number) =>
+      JSON.stringify({
+        type: 'TRANSIENT',
+        envelope: {
+          kind: 'POINTER_PREVIEW',
+          sceneId: header.id,
+          baselineVersion: header.version,
+          sequence,
+          position: { x: sequence, y: 10 }
+        }
+      })
+    const captureCalls = () =>
+      vi
+        .mocked(globalThis.fetch)
+        .mock.calls.filter(([input]) => new Request(input).url.endsWith('/live-sessions/capture'))
+        .length
+    const before = captureCalls()
+    for (let sequence = 1; sequence <= 5; sequence++)
+      await instance.webSocketMessage(socket, pointer(sequence))
+    const cached = captureCalls() - before
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 2_001)
+    await instance.webSocketMessage(socket, pointer(6))
+    return { cached, expired: captureCalls() - before }
+  })
+  expect(captures).toEqual({ cached: 1, expired: 2 })
+})
+
+it('rejects commands beyond the pending-command bound without closing the socket', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  // Each forwarded command stays in Convex long enough for the rest to queue behind it.
+  await routeEncounterRequests(base, (pathname) =>
+    pathname === '/live-sessions/encounter-command'
+      ? new Promise<Response>((resolve) =>
+          setTimeout(() => resolve(new Response('stale', { status: 409 })), 100)
+        )
+      : undefined
+  )
+  const commandIds = Array.from({ length: 9 }, () => crypto.randomUUID())
+  for (const commandId of commandIds)
+    base.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'SET_ROUND',
+            encounterId: crypto.randomUUID(),
+            commandId,
+            expectedVersion: 3,
+            round: 2
+          }
+        }
+      })
+    )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandIds[8]
+      )
+    ).toMatchObject({ code: 'UNAVAILABLE', message: 'Too many pending table changes.' })
+  )
+  expect(base.socket.readyState).toBe(WebSocket.OPEN)
+  await vi.waitFor(
+    () =>
+      expect(
+        base.messages.filter((message) => message.type === 'COMMAND_REJECTED')
+      ).toHaveLength(9),
+    { timeout: 3_000 }
+  )
 })

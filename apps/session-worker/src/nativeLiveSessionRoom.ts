@@ -57,12 +57,19 @@ import { callLiveSessionRoute, LiveSessionRouteError } from './liveSessionRoutes
 import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
+import {
+  exceedsMessageBytes,
+  messageClass,
+  PendingWork,
+  ROOM_LIMITS,
+  SocketMessageBudget
+} from './roomLimits.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
-const MAX_MESSAGE_BYTES = 256 * 1024
 
 const socketAttachmentSchema = z.strictObject({
+  acceptedAt: z.number().int().positive(),
   authorityEpoch: z.string().uuid(),
   campaignId: z.string().uuid(),
   membershipEpoch: z.nullable(z.iso.datetime({ offset: true })),
@@ -158,6 +165,19 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     { barriers: CampaignSceneStateDto['barriers']; index: SceneBarrierIndex }
   >()
   #activation: Promise<void> | null = null
+  readonly #authorityCaptures = new Map<
+    string,
+    { cacheGeneration: number; capture: LiveSessionTransientCapture; expiresAt: number }
+  >()
+  readonly #budgets = new Map<WebSocket, SocketMessageBudget>()
+  readonly #pendingCommands = new PendingWork(
+    ROOM_LIMITS.maxPendingCommandsPerSocket,
+    ROOM_LIMITS.maxPendingCommandsPerRoom
+  )
+  readonly #pendingTransients = new PendingWork(
+    ROOM_LIMITS.maxPendingTransientsPerSocket,
+    ROOM_LIMITS.maxPendingTransientsPerSocket * ROOM_LIMITS.maxSocketsPerRoom
+  )
   #cache: TransientCache | null = null
   #cacheGeneration = 0
   #presentationChanging = false
@@ -244,6 +264,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         'INSERT INTO native_room_identity (id, campaign_id) VALUES (1, ?)',
         claims.campaignId
       )
+    // Refusing (rather than replacing an older socket) cannot make a user's tabs evict each other
+    // in a reconnect loop. Both checks precede ticket use, so a refused attempt consumes nothing.
+    if (this.ctx.getWebSockets(claims.sub).length >= ROOM_LIMITS.maxSocketsPerUser)
+      return new Response('Too many live-session connections for this user.', { status: 429 })
+    if (this.ctx.getWebSockets().length >= ROOM_LIMITS.maxSocketsPerRoom)
+      return new Response('Live-session room is full.', { status: 503 })
     const nowSeconds = Math.floor(Date.now() / 1_000)
     this.ctx.storage.sql.exec('DELETE FROM used_tickets WHERE expires_at <= ?', nowSeconds)
     try {
@@ -258,7 +284,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
+    const acceptedAt = Date.now()
     server.serializeAttachment({
+      acceptedAt,
       authorityEpoch: claims.authorityEpoch,
       campaignId: claims.campaignId,
       membershipEpoch: null,
@@ -267,7 +295,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       ticketExpiresAt: claims.exp,
       userId: claims.sub
     } satisfies SocketAttachment)
-    this.ctx.acceptWebSocket(server)
+    this.ctx.acceptWebSocket(server, [claims.sub])
+    const authenticationDeadline = acceptedAt + ROOM_LIMITS.authenticationTimeoutMs
+    const alarm = await this.ctx.storage.getAlarm()
+    if (alarm === null || alarm > authenticationDeadline)
+      await this.ctx.storage.setAlarm(authenticationDeadline)
     return new Response(null, {
       headers: { 'sec-websocket-protocol': 'artificer.live-session.v1' },
       status: 101,
@@ -276,14 +308,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   async webSocketMessage(socket: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
-    if (typeof rawMessage !== 'string' || rawMessage.length > MAX_MESSAGE_BYTES) {
-      socket.close(1008, 'Invalid live-session message.')
+    if (typeof rawMessage !== 'string' || exceedsMessageBytes(rawMessage)) {
+      this.#closeSocket(socket, 'Invalid live-session message.')
       return
     }
-    const message = this.#json(rawMessage)
-
-    const parsed = liveSessionWebSocketClientMessageDtoSchema.safeParse(message)
-
+    const parsed = liveSessionWebSocketClientMessageDtoSchema.safeParse(this.#json(rawMessage))
+    let budget = this.#budgets.get(socket)
+    if (!budget) {
+      budget = new SocketMessageBudget()
+      this.#budgets.set(socket, budget)
+    }
+    if (!budget.take(messageClass(parsed.success ? parsed.data : null))) {
+      this.#closeSocket(socket, 'Too many live-session messages.')
+      return
+    }
     if (!parsed.success) {
       this.#challenge(socket)
       return
@@ -304,16 +342,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (parsed.data.type === 'COMMAND') {
       const work = { admission, message: parsed.data }
+      const commandId = work.message.command.command.commandId
+      if (!this.#pendingCommands.tryAcquire(socket)) {
+        this.#rejectCommand(socket, commandId, 'UNAVAILABLE', 'Too many pending table changes.')
+        return
+      }
       const next = this.#commandChain
         .then(() => this.#executeCommand(socket, work.admission, work.message))
         .catch(() =>
-          this.#rejectCommand(
-            socket,
-            work.message.command.command.commandId,
-            'UNAVAILABLE',
-            'Live Session command unavailable.'
-          )
+          this.#rejectCommand(socket, commandId, 'UNAVAILABLE', 'Live Session command unavailable.')
         )
+        .finally(() => this.#pendingCommands.release(socket))
       this.#commandChain = next
       await next
       return
@@ -348,6 +387,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       // Pointer samples replace one queued sample; ordered token paths still keep every segment.
       this.#queuedPointers.set(socket, work)
     }
+    // Previews are lossy: a socket that outruns the room drops samples instead of queueing them.
+    if (!this.#pendingTransients.tryAcquire(socket)) {
+      if (this.#queuedPointers.get(socket) === work) this.#queuedPointers.delete(socket)
+      return
+    }
     const chain =
       envelope.kind === 'TOKEN_DRAG_PREVIEW' ? this.#tokenTransientChain : this.#transientChain
     const next = chain
@@ -361,21 +405,32 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#cache = null
         this.#challenge(socket, admission.generation)
       })
+      .finally(() => this.#pendingTransients.release(socket))
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') this.#tokenTransientChain = next
     else this.#transientChain = next
     await next
   }
 
   webSocketClose(socket: WebSocket): void {
-    this.#invalidate(socket)
-    const value = attachment(socket)
-    if (value) this.#transients.forget(value.socketId)
+    this.#forgetSocket(socket)
   }
 
   webSocketError(socket: WebSocket): void {
-    this.#invalidate(socket)
-    const value = attachment(socket)
-    if (value) this.#transients.forget(value.socketId)
+    this.#forgetSocket(socket)
+  }
+
+  /** Closes sockets that have not authenticated within the admission window. */
+  async alarm(): Promise<void> {
+    const now = Date.now()
+    let nextDeadline: number | null = null
+    for (const socket of this.ctx.getWebSockets()) {
+      const value = attachment(socket)
+      if (!value || value.membershipEpoch !== null || this.#admissions.has(socket)) continue
+      const deadline = value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs
+      if (deadline <= now) this.#closeSocket(socket, 'Live-session authentication timed out.')
+      else nextDeadline = Math.min(nextDeadline ?? deadline, deadline)
+    }
+    if (nextDeadline !== null) await this.ctx.storage.setAlarm(nextDeadline)
   }
 
   async #authenticate(socket: WebSocket, accessToken: string): Promise<void> {
@@ -989,24 +1044,46 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return candidate ? [{ admission: candidate, socket }] : (this.#challenge(socket), [])
     })
     if (envelope.kind === 'POINTER_PREVIEW') {
-      let capture: LiveSessionTransientCapture
-      try {
-        capture = await this.#capture(
-          originAttachment,
-          originAdmission,
-          candidates,
-          'AUTHORITY',
-          []
-        )
-      } catch (error) {
-        if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
-        capture = await this.#capture(
-          originAttachment,
-          originAdmission,
-          candidates,
-          'AUTHORITY',
-          []
-        )
+      // Pointer samples reuse a recent authority capture for the same origin and audience instead
+      // of querying Convex per sample; presentation changes bump the cache generation.
+      const audience = [...new Set(candidates.map(({ admission }) => admission.userId))].sort()
+      const captureKey = `${originAdmission.userId}|${audience.join(',')}`
+      const cached = this.#authorityCaptures.get(captureKey)
+      let capture =
+        cached &&
+        cached.expiresAt > Date.now() &&
+        cached.cacheGeneration === this.#cacheGeneration &&
+        cached.capture.sceneHeader?.id === envelope.sceneId &&
+        cached.capture.sceneHeader.version === envelope.baselineVersion
+          ? cached.capture
+          : null
+      if (!capture) {
+        const cacheGeneration = this.#cacheGeneration
+        try {
+          capture = await this.#capture(
+            originAttachment,
+            originAdmission,
+            candidates,
+            'AUTHORITY',
+            []
+          )
+        } catch (error) {
+          if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
+          capture = await this.#capture(
+            originAttachment,
+            originAdmission,
+            candidates,
+            'AUTHORITY',
+            []
+          )
+        }
+        for (const [key, entry] of this.#authorityCaptures)
+          if (entry.expiresAt <= Date.now()) this.#authorityCaptures.delete(key)
+        this.#authorityCaptures.set(captureKey, {
+          cacheGeneration,
+          capture,
+          expiresAt: Date.now() + ROOM_LIMITS.authorityCaptureTtlMs
+        })
       }
       if (
         capture.sceneHeader?.id !== envelope.sceneId ||
@@ -1512,11 +1589,19 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   #closeIfCurrent(socket: WebSocket, expectedGeneration: number, reason: string): void {
-    if (this.#generations.get(socket) !== expectedGeneration) return
+    if (this.#generations.get(socket) === expectedGeneration) this.#closeSocket(socket, reason)
+  }
+
+  #closeSocket(socket: WebSocket, reason: string): void {
+    this.#forgetSocket(socket)
+    if (socket.readyState === WebSocket.OPEN) socket.close(1008, reason)
+  }
+
+  #forgetSocket(socket: WebSocket): void {
     this.#invalidate(socket)
+    this.#budgets.delete(socket)
     const value = attachment(socket)
     if (value) this.#transients.forget(value.socketId)
-    if (socket.readyState === WebSocket.OPEN) socket.close(1008, reason)
   }
 
   async #presentScene(input: LiveSessionPresentationControlInput) {

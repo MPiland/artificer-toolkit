@@ -517,6 +517,33 @@ The activation reservation cap, publication role check and control retry are des
 [Ticket and authentication flow](#ticket-and-authentication-flow) and
 [Supported live-command flow](#supported-live-command-flow).
 
+The Session room enforces its own limits (current, `apps/session-worker/src/roomLimits.ts`), so a
+signed-in client cannot turn one socket into unbounded Convex work:
+
+- **Message size:** a message over 64 KB of UTF-8 closes the socket (1008).
+- **Message budgets:** each socket has a token bucket per message class. Exceeding one closes the
+  socket (1008). Budgets: `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME` and
+  `SYNCHRONIZE_SCENE` together 20 then 2/s; `TRANSIENT` 200 then 100/s (clients send each preview
+  stream at about 31 Hz); unparseable messages 5 then 1 per 2 s.
+- **Sockets:** at most 4 per user and 64 per room. An upgrade over either cap is refused (429 or 503)
+  before its one-use ticket is consumed. Refusing, rather than closing an older socket, prevents a
+  user's tabs from evicting each other in a reconnect loop.
+- **Authentication window:** a socket that has not authenticated within 10 s is closed by the room's
+  Durable Object alarm.
+- **Queues:** at most 8 pending commands per socket and 64 per room; a command beyond either is
+  rejected with `UNAVAILABLE` and the socket stays open. At most 32 pending previews per socket;
+  extra samples are dropped, since previews are lossy.
+- **Pointer captures:** pointer previews reuse an AUTHORITY capture for the same origin and audience
+  for up to 2 s instead of querying Convex per sample. A Scene version change or presentation change
+  bypasses the cached capture.
+- **Admission freshness:** an admission lasts only until the access token expires; renewing it
+  re-captures membership and role from Convex. Evictions close sockets through the retried control
+  route.
+
+Rate-limit rejections throw `ConvexError` data matching `rateLimitedErrorDataSchema`
+(`packages/schema/src/api/rateLimits.ts`), which survives production error redaction. The web reads it
+through `apps/web/src/lib/errorMessage.ts`.
+
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their
 `sceneGeometrySaves`, in self-rescheduling batches of 64. Replay by command ID and owner undo
@@ -535,6 +562,7 @@ can point at a pruned geometry save, and superseded fog saves and chunks are not
 | Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                                       |
 | Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                                |
 | Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte protected bootstrap/publication/control secret shared only with the Worker       |
+| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction and closure control calls reach                                  |
 | Worker              | `CONVEX_SITE_URL`                 | Matching Convex bootstrap/publication/control HTTP Actions origin                                 |
 | Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                             |
 | Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                               |

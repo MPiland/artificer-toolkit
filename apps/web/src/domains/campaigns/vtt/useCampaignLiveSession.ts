@@ -11,6 +11,7 @@ import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vt
 import { useConvex } from 'convex/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
+import { errorMessage } from '#app/lib/errorMessage'
 import {
   createLiveSessionConnection,
   resolveLiveSessionWebSocketUrl,
@@ -68,7 +69,7 @@ export function useCampaignLiveSession({
         return accessToken
       },
       getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
-      onError: (nextError) => setError(nextError.message),
+      onError: (nextError) => setError(errorMessage(nextError)),
       onCommandRejected: setRejection,
       onDurableState: (state) => {
         setCommandReady(state.commandReady)

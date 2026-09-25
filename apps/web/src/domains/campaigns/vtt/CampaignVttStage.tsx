@@ -52,6 +52,7 @@ import {
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { queryKeys } from '#app/lib/queryKeys'
+import { errorMessage } from '#app/lib/errorMessage'
 import type {
   EncounterCommandInputDto,
   EncounterCommandResultDto
@@ -893,6 +894,17 @@ export function CampaignVttStage({
     )
   }
 
+  const requestFailure =
+    bindEncounter.error ??
+    encounterCommand.error ??
+    sceneCommand.error ??
+    actorTokenBindings.error ??
+    sceneBinding.error ??
+    presented.presentationError
+  const stageError = requestFailure
+    ? errorMessage(requestFailure)
+    : (live.rejection?.message ?? live.error)
+
   return (
     <section
       className={styles.shell}
@@ -1119,23 +1131,9 @@ export function CampaignVttStage({
           </Tooltip>
         </div>
       </div>
-      {live.error ||
-      live.rejection ||
-      presented.presentationError ||
-      sceneBinding.error ||
-      actorTokenBindings.error ||
-      sceneCommand.error ||
-      encounterCommand.error ||
-      bindEncounter.error ? (
+      {stageError ? (
         <Alert className={styles.error} color='red'>
-          {bindEncounter.error?.message ??
-            encounterCommand.error?.message ??
-            sceneCommand.error?.message ??
-            actorTokenBindings.error?.message ??
-            sceneBinding.error?.message ??
-            presented.presentationError?.message ??
-            live.rejection?.message ??
-            live.error}
+          {stageError}
         </Alert>
       ) : null}
       {mapLoadStatus ? (
