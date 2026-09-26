@@ -10,7 +10,6 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   encounterCommandResultDtoSchema,
-  initiativeDeclarationSelectionDtoSchema,
   type CreateEncounterBlueprintInputDto,
   type CreateEncounterInputDto,
   type EncounterBlueprintDto,
@@ -211,69 +210,80 @@ async function setup() {
       expectedVersion: run.version
     }
   }
-  const started = await forward(start)
+  const started = encounterCommandResultDtoSchema.parse(
+    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: start.command
+    })
+  )
   const pending = started.occurrence?.pending
   if (pending?.kind !== 'INITIATIVE_DECLARATION')
     throw new Error('Expected a pending initiative declaration.')
   const route: LiveSessionEncounterRouteInput = {
     ...scope,
-    commandType: 'RESOLVE_RULE_OCCURRENCE',
-    encounterId: run.id,
-    occurrenceId: pending.occurrenceId
+    command: {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'DECLINE' }
+    }
   }
   return { ...base, campaign, run, epoch, scope, forward, start, started, pending, route }
 }
 
 describe('Session room Encounter door', () => {
-  it('forwards native commands with exact replay and classifies the pending declaration', async () => {
+  it('classifies the pending declaration, and Convex runs only the listed GM commands', async () => {
     const base = await setup()
-    expect(await base.forward(base.start)).toEqual(base.started)
     expect(
       await base.owner.caller.query(internal.liveSessions.encounterRoute.route, base.route)
-    ).toEqual({ route: 'TURN' })
-    // Only a GM void that declines a movement decision settles through the room (D26).
+    ).toEqual({ route: 'TURN', decline: null })
+    // Initiative can't be voided, so Convex records the refusal without a planner.
     expect(
       await base.owner.caller.query(internal.liveSessions.encounterRoute.route, {
-        ...base.route,
-        commandType: 'VOID_RULE_OCCURRENCE'
+        ...base.scope,
+        command: {
+          type: 'VOID_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: base.pending.encounterVersion,
+          occurrenceId: base.pending.occurrenceId,
+          expectedOccurrenceVersion: base.pending.occurrenceVersion
+        }
       })
-    ).toEqual({ route: 'NATIVE' })
-
-    const option = base.pending.primaryOptions[0]
-    if (!option) throw new Error('Expected an issued declaration option.')
-    const declaration: LiveSessionEncounterCommandInput = {
+    ).toEqual({ route: 'VOID', decline: null })
+    // Turn commands and decision answers are planned in the room; Convex refuses to run them.
+    await expect(base.forward(base.start)).rejects.toThrow(
+      'The Encounter command is planned in the Session room.'
+    )
+    await expect(base.forward({ ...base.scope, command: base.route.command })).rejects.toThrow(
+      'The Encounter command is planned in the Session room.'
+    )
+    const reminder: LiveSessionEncounterCommandInput = {
       ...base.scope,
       command: {
-        type: 'RESOLVE_RULE_OCCURRENCE',
+        type: 'UPSERT_REMINDER',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: base.pending.encounterVersion,
-        occurrenceId: base.pending.occurrenceId,
-        expectedOccurrenceVersion: base.pending.occurrenceVersion,
-        correlationId: null,
-        resolution: {
-          kind: 'INITIATIVE_DECLARATION',
-          requestId: base.pending.requestId,
-          primary: initiativeDeclarationSelectionDtoSchema.parse(
-            option.kind === 'GM_ADJUDICATED'
-              ? {
-                  kind: 'GM_ADJUDICATED',
-                  optionId: 'GM_ADJUDICATED',
-                  actorSize: 'MEDIUM',
-                  actionFactors: [],
-                  spellLevel: null
-                }
-              : { kind: option.kind, optionId: option.optionId }
-          ),
-          bonus: null
+        expectedVersion: base.run.version,
+        reminder: {
+          label: 'Lair action',
+          timing: 'ROUND_START',
+          round: null,
+          actorId: null,
+          public: false,
+          notes: null,
+          order: 0
         }
       }
     }
-    const declared = await base.forward(declaration)
-    expect(declared.occurrence?.occurrenceVersion).toBe(base.pending.occurrenceVersion + 1)
-    expect(await base.forward(declaration)).toEqual(declared)
+    // A GM reminder is bookkeeping: the door admits it, and Convex then waits out the decision.
+    await expect(base.forward(reminder)).rejects.toMatchObject({
+      data: { reason: 'PENDING_DECISION' }
+    })
   })
-
   it('applies native resume precedence to the stored occurrence root', async () => {
     const base = await setup()
     const patchRoot = (rootCommandId: string) =>
@@ -287,11 +297,11 @@ describe('Session room Encounter door', () => {
     await patchRoot(concentrationCommandId(base.pending.occurrenceId))
     expect(
       await base.owner.caller.query(internal.liveSessions.encounterRoute.route, base.route)
-    ).toEqual({ route: 'CONCENTRATION' })
+    ).toEqual({ route: 'CONCENTRATION', decline: null })
     await patchRoot(cleavingChildCommandIdentity(base.pending.occurrenceId))
     expect(
       await base.owner.caller.query(internal.liveSessions.encounterRoute.route, base.route)
-    ).toEqual({ route: 'NATIVE' })
+    ).toEqual({ route: 'CLEAVING', decline: null })
   })
 
   it('refuses players outside the occurrence audience, forged scope and stale authority', async () => {
@@ -315,7 +325,10 @@ describe('Session room Encounter door', () => {
       base.other.caller.action(command, { ...base.start, expectedUserId: base.other.userId })
     ).rejects.toThrow('Live Session role mismatch.')
     await expect(
-      base.owner.caller.query(route, { ...base.route, occurrenceId: crypto.randomUUID() })
+      base.owner.caller.query(route, {
+        ...base.route,
+        command: { ...base.route.command, occurrenceId: crypto.randomUUID() }
+      })
     ).rejects.toThrow('Rule occurrence is unavailable.')
     await expect(
       base.owner.caller.query(route, { ...base.route, authorityEpoch: crypto.randomUUID() })

@@ -39,8 +39,8 @@ that makes staged publications visible; this supplies its System revision change
 `assertLiveSessionRulesRevisions` guard requires the complete authorized scope and compares its
 observations before settlement writes. Commit callers must still perform fresh identity,
 authority epoch, aggregate and any Scene-version checks. Rehydrating every captured payload
-inside the commit would defeat paging and repeat the Convex read-limit problem. Command dispatch,
-pending-response and complete contextual coordination remain unfinished.
+inside the commit would defeat paging and repeat the Convex read-limit problem. Room dispatch is
+described under "Single Encounter command door" below.
 
 Ordinary action preparation starts with `ACTION_COMMAND` on the private Encounter capture route.
 It shares the native command's admission and complete receipt verification, including Character
@@ -101,8 +101,8 @@ overkill result, bound Scene, melee action and optional-combat snapshot qualify 
 preparation overlays any planned maintenance/concentration Character changes before calculating
 currentness and armor class. Unchanged targets are reused, and independent geometry captures run in
 parallel while retaining candidate order. A pending concentration child carries the deferred Cleaving
-context; otherwise the terminal transaction inserts a standalone choice. Concentration responses now
-use the private DO path below; contextual choice responses remain unfinished.
+context; otherwise the terminal transaction inserts a standalone choice. Concentration and Cleaving
+responses use the private DO paths below.
 
 The private `/live-sessions/encounter-action-pending` mutation accepts the Worker-computed sealed
 ordinary action request. It requires both the Worker secret and the current GM's authenticated
@@ -133,8 +133,7 @@ Maintenance replacement shares that increment; failed concentration uses the pos
 new baseline. Rule evaluation and Character fact preparation remain in the DO. The commit imports
 focused pure mechanics, receipt, identity and projection modules, with no Kernel/runtime initialization.
 The terminal also completes admitted ordinary Assisted responses, updating the existing occurrence and
-inserting the response evidence receipt in that same transaction. Room dispatch and contextual command
-coordination remain unfinished.
+inserting the response evidence receipt in that same transaction.
 
 The private `/live-sessions/encounter-concentration` transaction completes an admitted Assisted
 concentration response for the GM or the assigned Character's player. Private captures require the
@@ -149,6 +148,22 @@ checks retain their ordered parent damage, while deferred Cleaving is rebuilt af
 becoming the next pending choice. Raw receipt-chain proofs remain in Convex; fact preparation and
 rules evaluation stay in the DO. Room dispatch and real continuation-key provisioning still gate use.
 
+**Cleaving answers and Disarm (CURRENT, S4B).** A Cleaving choice's answer is planned in the room
+(`apps/session-worker/src/nativeCleavingResponse.ts`): the `CLEAVING_RESPONSE` admission
+(`encounters/cleavingResponseAdmission.ts`, replay first) is followed by the DO rebuilding the
+sealed choice from current facts, applying the retained damage (`cleavingDamageApplication`), the
+target's Concentration checks, and the next choice on an overkill. The private `encounter-cleaving`
+commit (`liveSessions/encounterCleavingCommit.ts`) re-applies the damage through the shared
+mechanics batch, fences the choice's Scene version and revisions, and records the receipts. A
+Disarm and each participant's d20 are planned the same way (`nativeDisarm.ts`): the `DISARM`
+admission (`encounters/disarmAdmission.ts`) and the shared contest preparation
+(`rules-runtime/encounterDisarmPreparation.ts`) seal the contest, both d20s roll in the room with
+each participant's auto-roll preference (an auto-rolled initiator keeps its faces while the
+defender's controller is prompted), and the private `encounter-disarm-pending` and
+`encounter-disarm` commits store the paused contest or re-derive the item and ACTION changes from
+current state and record them. Room and native results were proven identical before the native
+Cleaving and Disarm command code was deleted. A settled answer is no longer routable, so its
+retry is refused as stale by the route read, as for every room decision.
 Turn planning now lives in shared `rules-runtime` modules used by the native adapters and the DO
 `nativeEncounterTurn` planner. `prepareEncounterTurn` preserves the existing order: outgoing effects, Legendary owner
 decisions, new-round initiative when required, incoming resource refresh and Recharge, then incoming
@@ -324,18 +339,26 @@ uses the soft-warning style and Manual shows the number only. Dash is not modele
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` and `encounters/commandActions:execute` are internal. Every Encounter
-command enters through the Session room. The private `encounter-route` query
-(`liveSessions/encounterRoute:route`) names the room planner for the current pending occurrence —
-`ACTION`, `TURN`, `CONCENTRATION`, `MOVEMENT` or `NATIVE` — and returns only that enum. It applies
-the same native resume precedence as `commands.ts` through the one shared classifier,
-`encounters/occurrenceOwner.ts`: Disarm and Cleaving occurrences route `NATIVE`. A PLAYER may
-classify only an occurrence that `encounters/pendingReads` already shows them. The private
-`encounter-command` action (`liveSessions/encounterCommand:execute`) runs a forwarded command
-through the unchanged native implementation, including movement-response staging, as the forwarding
-user. Both routes require the Worker secret, the user's identity, the expected user and role, an
-ACTIVE Campaign, a `DO_ACTIVE` authority at the given epoch, and a Run in that Campaign
-(`liveSessions/encounterCommandAdmission.ts`). The admission check and native execution run as
-separate transactions, which Convex fences only by `DO_ACTIVE` authority. Current: room closure
+command enters through the Session room, and `roomEncounterPlanner`
+(`apps/session-worker/src/nativeRoomEncounterCommand.ts`) picks its planner before any read:
+`RESOLVE_ACTION` plans as `ACTION`, or `DISARM` when it carries an optional-combat intent (Disarm is
+the one contested action); `START` and `ADVANCE_TURN` plan as `TURN`; a decision answer or GM void
+asks the private `encounter-route` query (`liveSessions/encounterRoute:route`), which names the
+planner for the current pending occurrence — `ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`,
+`DISARM`, `MOVEMENT` or `VOID` — through the one shared classifier, `encounters/occurrenceOwner.ts`,
+and refuses an occurrence no planner owns. A PLAYER may classify only an occurrence that
+`encounters/pendingReads` already shows them. Only the GM commands in
+`CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` and `CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`
+(`packages/schema/src/api/liveSessionEncounterCommand.ts`) go to Convex as they are: the first list
+is bookkeeping with no dice, rules evaluation or derived mechanics; the second is the GM tool
+commands that still evaluate dice or derived actor rules in Convex (open R06.1 work). The private
+`encounter-command` action (`liveSessions/encounterCommand:execute`) runs those, and a movement
+decision on a Scene the room does not own (D29), through the native implementation as the
+forwarding user; its admission refuses every other command. Both routes require the Worker secret,
+the user's identity, the expected user and role, an ACTIVE Campaign, a `DO_ACTIVE` authority at the
+given epoch, and a Run in that Campaign (`liveSessions/encounterCommandAdmission.ts`). The admission
+check and native execution run as separate transactions, which Convex fences only by `DO_ACTIVE`
+authority. Current: room closure
 (`#closeRoom` in `apps/session-worker/src/nativeLiveSessionRoom.ts`) closes every socket, so no new
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
 before it sets the drain fence and releases authority.
@@ -362,10 +385,10 @@ Run.
 **Capture bundle (CURRENT, D32).** A room command's volatile reads arrive in one private query,
 `/live-sessions/encounter-bundle` (`liveSessions/encounterCaptureBundle.ts`,
 `packages/schema/src/api/liveSessionEncounterCaptureBundle.ts`). When a room planner makes its
-admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `TURN_COMMAND`, `CONCENTRATION_RESPONSE` or
-`MOVEMENT_INPUTS`),
+admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `CLEAVING_RESPONSE`, `DISARM`, `TURN_COMMAND`,
+`CONCENTRATION_RESPONSE` or `MOVEMENT_INPUTS`),
 `captureEncounterRules` sends the bundle instead. In one transaction the bundle runs the existing
-capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, one `ACTOR`
+capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, the `CLEAVING_BINDINGS` of a Cleaving answer, one `ACTOR`
 (first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
 Character actor's `INPUTS`. Each part is exactly the response its own capture returns, with its own
 read checksum and revisions, so commit fences are unchanged. The scope is admitted once for the
@@ -405,12 +428,14 @@ as initiator) for each actor's turn-effect and Concentration saves, and the issu
 `responderControlledActorIds`, so the planner can admit a player's turn-effect answer. All are read in the capture
 transaction and covered by its read checksum, so DO planners decide between a server roll and a
 pending prompt without a separate call. A GM `VOID_RULE_OCCURRENCE` that declines a movement
-decision routes `MOVEMENT` (the route input carries its `commandType`; see "Convex-first Scene
-commits"); every other void routes `NATIVE`:
-`encounters/commandActions.ts` asks `encounters/occurrenceVoid:prepare` (GM only) to cancel a paused
-action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE` receipt, one Run version) or
-returns a decline that runs through the same path as a GM answer, including movement staging;
-`occurrenceVoid:record` then adds the "Voided by the GM" receipt. When the declined turn or move
+decision routes `MOVEMENT` (see "Convex-first Scene commits"). A GM void that declines a Legendary
+Action choice or a Cleaving choice routes `TURN` or `CLEAVING` with the GM's decline
+(`voidDeclineCommand`, a deterministic command ID); the room plans that decline like any GM answer
+and then records the void through the private `encounter-void-record` route. Every other void routes
+`VOID`: the private `encounter-void-prepare` route (`liveSessions/encounterVoid.ts`, GM only, no rules
+evaluated) cancels a paused action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE`
+receipt, one Run version) or refuses. `occurrenceVoid:record` adds the "Voided by the GM" receipt
+after a decline. When the declined turn or move
 pauses again, the Run version cannot advance without breaking that flow's fences (each Run version
 has exactly one receipt), so the void returns the next decision and adds no timeline entry. Steps
 play cannot continue without (initiative, Concentration saves, Recharge, turn-effect saves,
@@ -507,7 +532,7 @@ auto-roll fills in dice only. Each prompt row is answered one of three ways:
   (`encounters/evidenceRolls.ts`), records the attempt (`encounterEvidenceRolls`), posts it to the
   table roll log ("Rolled by the app, attempt N", plus "Advantage, changed from Normal" when the roller
   overrides the rules-derived mode) unless the roller is hidden, and settles nothing. Rerolls add
-  attempts. It always routes `NATIVE`.
+  attempts. It is one of the GM tool commands Convex still evaluates (`CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`).
 - `SYSTEM_ROLL {requestId, rollId}` settles with the recorded faces of the responder's latest attempt
   for that request; anything else is refused `ROLL_UNAVAILABLE`. Captures return the verified
   `appRoll`, so the DO planner never sees a client-supplied app-roll value.
@@ -526,8 +551,8 @@ Worker for its proofs; its secrets must match the local Convex deployment's.
 
 **Worker-boundary validators.** The private rules captures and commits
 (`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,
-encounterCommand,encounterCommandAdmission,encounterConcentrationCommit,encounterMovement,
-encounterRoute,encounterTurn,encounterTurnCommit}.ts`) are internal
+encounterCleavingCommit,encounterCommand,encounterCommandAdmission,encounterConcentrationCommit,
+encounterDisarm,encounterMovement,encounterRoute,encounterTurn,encounterTurnCommit,encounterVoid}.ts`) are internal
 functions reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no
 `returns` validator; each handler takes `unknown` and parses it with its shared Zod contract before
 any read, and the Worker parses every response with the same contracts. Converting these large
@@ -858,8 +883,9 @@ Rule warnings (current, ADR 0034 decision 2) are the one rejection with a payloa
 `COMMAND_REJECTED` carries them in `warnings` (`null` for every other rejection). The DO action
 planner raises the same data itself as a `LiveSessionDomainRejectionError`, so both RESOLVE_ACTION
 paths reach the client identically. The web action drawer shows the warnings and resends the command
-with `acknowledgedWarnings` when the user chooses "Do it anyway". `REVERT_LAST_ACTION` routes
-`NATIVE`; its refusals use reason `REVERT_UNAVAILABLE` with a message naming what changed.
+with `acknowledgedWarnings` when the user chooses "Do it anyway". `REVERT_LAST_ACTION` still runs in
+Convex (`CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`); its refusals use reason `REVERT_UNAVAILABLE` with a
+message naming what changed.
 
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their

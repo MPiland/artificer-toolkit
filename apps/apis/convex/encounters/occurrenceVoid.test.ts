@@ -20,7 +20,7 @@ import {
   seedConcentration,
   setupConcentration
 } from '../../tests/fixtures/concentration'
-import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
+import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { api, internal } from '../_generated/api'
 import { classifyRuleOccurrenceVoid } from './occurrenceVoid'
 
@@ -116,17 +116,14 @@ describe('GM void command', () => {
   it('cancels a paused Disarm whole, records the void once and settles nothing', async () => {
     const base = await nativeDisarmFixture('PROMPT')
     const before = await disarmRecords(base)
-    const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
-      command: base.command
-    })
+    const started = await disarmInRoom(base, base.owner, base.command)
     const pending = started.occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE') throw new Error('Expected Disarm evidence.')
     const input = voidCommand({ encounterId: base.run.id, pending })
 
-    await expect(base.player.caller.action(executeCommand, input)).rejects.toThrow(
-      'Campaign not found.'
-    )
-    const voided = await base.owner.caller.action(executeCommand, input)
+    // Only the GM voids; the room sends a cancel straight to Convex to record.
+    await expect(disarmInRoom(base, base.player, input.command)).rejects.toThrow()
+    const voided = await disarmInRoom(base, base.owner, input.command)
     expect(voided.occurrence).toMatchObject({
       occurrenceId: pending.occurrenceId,
       status: 'VOIDED',

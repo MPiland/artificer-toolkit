@@ -35,7 +35,6 @@ import {
 } from './nativeEncounterTargets.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
-import { LivePlannerUnsupportedError } from './nativeRulesRuntime.js'
 import {
   callLiveSessionRoute,
   LiveSessionDomainRejectionError,
@@ -154,10 +153,10 @@ export async function planNativeLiveEncounterAction(
       (context.d20Policy !== null && resolution.kind === 'ENTER_INTEGER')
     )
       throw new Error('The pending action evidence is invalid.')
+    // Contests (Disarm) and deferred Cleaving have their own planners; their evidence never
+    // routes here.
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
-      throw new LivePlannerUnsupportedError(
-        'contested, Cleaving or optional-combat action evidence'
-      )
+      throw new Error('The pending action is not an ordinary action.')
   }
   const { autoRollByActorId } = admission
   const requireAutoRoll = (actorId: string) => {
@@ -179,7 +178,7 @@ export async function planNativeLiveEncounterAction(
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
-    throw new LivePlannerUnsupportedError('Manual-mode actions')
+    throw new Error('Native action execution requires an Assisted Encounter.')
 
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
@@ -250,8 +249,8 @@ export async function planNativeLiveEncounterAction(
         })
       }
     : null
-  if (command.optionalCombatIntent != null)
-    throw new LivePlannerUnsupportedError('optional-combat actions')
+  // An optional-combat intent routes to the Disarm planner.
+  if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const activation =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts.invocation.activation
@@ -366,7 +365,8 @@ export async function planNativeLiveEncounterAction(
           }
         }
       })
-      if (candidate) throw new LivePlannerUnsupportedError('Legendary Resistance decisions')
+      // A Legendary Resistance decision on an action save is not built yet (movement saves have it).
+      if (candidate) throw new Error('The action requires a Legendary Resistance decision.')
     }
   })
   const occurredAt = new Date().toISOString()
@@ -408,7 +408,7 @@ export async function planNativeLiveEncounterAction(
       targetActorId: prepared.target.id
     }).length
   )
-    throw new LivePlannerUnsupportedError('spatially interpreted actions')
+    throw new Error('Spatially interpreted actions are not available yet.')
   const mechanics = planNativeEncounterActionMechanics(
     {
       prepared,

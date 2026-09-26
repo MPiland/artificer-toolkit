@@ -14,13 +14,20 @@ import {
 import {
   liveSessionEncounterCommandInputSchema,
   liveSessionEncounterRouteInputSchema,
-  liveSessionEncounterRouteResponseSchema
+  liveSessionEncounterRouteResponseSchema,
+  liveSessionEncounterVoidInputSchema,
+  liveSessionEncounterVoidPreparedSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import {
   liveSessionEncounterCaptureBundleInputSchema,
   liveSessionEncounterCaptureBundleSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
+import { liveSessionEncounterCleavingCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterCleaving'
 import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
+import {
+  liveSessionEncounterDisarmCommitInputSchema,
+  liveSessionEncounterDisarmPendingInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
 import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -196,9 +203,29 @@ const liveSessionRoutes = {
     input: liveSessionEncounterConcentrationCommitInputSchema,
     output: encounterCommandResultDtoSchema
   },
+  encounterCleavingCommit: {
+    input: liveSessionEncounterCleavingCommitInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
+  encounterDisarmPending: {
+    input: liveSessionEncounterDisarmPendingInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
+  encounterDisarmCommit: {
+    input: liveSessionEncounterDisarmCommitInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
   encounterRoute: {
     input: liveSessionEncounterRouteInputSchema,
     output: liveSessionEncounterRouteResponseSchema
+  },
+  encounterVoidPrepare: {
+    input: liveSessionEncounterVoidInputSchema,
+    output: liveSessionEncounterVoidPreparedSchema
+  },
+  encounterVoidRecord: {
+    input: liveSessionEncounterVoidInputSchema,
+    output: encounterCommandResultDtoSchema
   },
   encounterCommand: {
     input: liveSessionEncounterCommandInputSchema,

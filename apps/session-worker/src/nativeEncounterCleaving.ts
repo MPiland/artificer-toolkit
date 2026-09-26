@@ -220,10 +220,16 @@ export async function planNativeLiveCleaving(input: {
   })
 }
 
-/** Rebuilds a sealed deferred choice from current captured facts after the parent proof is read. */
-export async function rebuildNativeLiveDeferredCleaving(
+/**
+ * One Cleaving step from current captured facts: its candidates, every loaded target, and the
+ * source's current action, which must still have the sealed range.
+ */
+export async function readNativeLiveCleavingStep(
   input: CleavingReads & {
-    context: CleavingContext
+    context: Pick<
+      CleavingContext,
+      'sourceActorId' | 'action' | 'scene' | 'originalAttack' | 'visitedTargetActorIds'
+    >
     system: SystemAuthoredDto
   }
 ) {
@@ -237,7 +243,7 @@ export async function rebuildNativeLiveDeferredCleaving(
     visitedTargetActorIds: context.visitedTargetActorIds
   })
   const sourceFacts = targets.get(context.sourceActorId)
-  if (!sourceFacts) throw new Error('Deferred Cleaving source is unavailable.')
+  if (!sourceFacts) throw new Error('Cleaving source is unavailable.')
   const character = sourceFacts.characterReactionSource
   const candidate = character?.mechanics.rulePolicyInput.actionCandidates.find(
     (entry) => entry.actionId === context.action.actionId
@@ -281,12 +287,29 @@ export async function rebuildNativeLiveDeferredCleaving(
       ? buildCompiledActionTargetPolicy(source.capability).range
       : source.entry.targetPolicy?.range
   if (checksumRuleDocument(range) !== checksumRuleDocument(context.action.range))
-    throw new Error('Deferred Cleaving action is stale.')
+    throw new Error('Cleaving action is stale.')
+  return {
+    candidates,
+    targets,
+    source,
+    sourceCurrentness: nativeCleavingSourceCurrentness(sourceFacts, source)
+  }
+}
+
+/** Rebuilds a sealed choice from current captured facts after its parent proof is read. */
+export async function rebuildNativeLiveDeferredCleaving(
+  input: CleavingReads & {
+    context: CleavingContext
+    system: SystemAuthoredDto
+  }
+) {
+  const { state, context } = input
+  const { candidates, sourceCurrentness } = await readNativeLiveCleavingStep(input)
   return createNativeCleavingChoice({
     ...state,
     ...context,
     optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum ?? '',
-    sourceCurrentness: nativeCleavingSourceCurrentness(sourceFacts, source),
+    sourceCurrentness,
     chainStep: context.chainStep - 1,
     candidates
   })

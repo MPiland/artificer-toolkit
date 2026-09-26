@@ -90,6 +90,46 @@ export function cleavingDamageEnvelope(application: {
   }
 }
 
+/** The chosen Cleaving target takes the retained damage: temporary hit points first, as usual. */
+export function cleavingDamageApplication(input: {
+  damage: CleavingContext['damage']
+  targetActorId: string
+  before: { current: number; temporary: number; maximum: number }
+}) {
+  const { damage, before } = input
+  const remaining = damage.remainingAmount
+  const temporaryLost = Math.min(before.temporary, remaining)
+  const currentLost = Math.min(before.current, remaining - temporaryLost)
+  return {
+    kind: 'DAMAGE' as const,
+    targetActorId: input.targetActorId,
+    sourceNodeId: damage.sourceNodeId,
+    sourceOperationKey: damage.sourceOperationKey,
+    damageTypeId: damage.damageTypeId,
+    requestedAmount: remaining,
+    resolvedAmount: remaining,
+    appliedAmount: temporaryLost + currentLost,
+    beforeCurrentHitPoints: before.current,
+    afterCurrentHitPoints: before.current - currentLost,
+    beforeTemporaryHitPoints: before.temporary,
+    afterTemporaryHitPoints: before.temporary - temporaryLost,
+    maximumHitPoints: before.maximum,
+    damageDisposition: 'NORMAL' as const,
+    authoredPath: null,
+    resolvedPath: null
+  }
+}
+
+/** An undamaged target reduced to 0 with damage to spare lets the attack carry on (overkill). */
+export function cleavingCarriesOn(application: ReturnType<typeof cleavingDamageApplication>) {
+  return (
+    application.beforeCurrentHitPoints === application.maximumHitPoints &&
+    application.beforeTemporaryHitPoints === 0 &&
+    application.afterCurrentHitPoints === 0 &&
+    application.resolvedAmount > application.appliedAmount
+  )
+}
+
 export function nativeCleavingSourceCurrentness(
   target: MovementTarget,
   source?: NativeEncounterActionSource

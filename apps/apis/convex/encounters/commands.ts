@@ -86,7 +86,7 @@ import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
 
 import { nextRollInt } from '../lib/rollRandom'
-import { readEncounterActorCore, readRunActor, readRunActors, readRunProjection } from './documents'
+import { readEncounterActorCore, readRunActor, readRunActors } from './documents'
 import { loadEncounterInitiativeSources } from './initiativeSources'
 import { loadInitiativeDeclarationSources } from './initiativeDeclarationSources'
 import { createEncounterInitiativeStore } from './initiativeStore'
@@ -103,7 +103,6 @@ import { reinforceEncounterActors } from './actorReinforcementCommand'
 import { revertLastEncounterAction } from './actionRevert'
 import { executeNativeEncounterAction } from './actionCommands'
 import { resumeNativeEncounterAction } from './actionResume'
-import { executeNativeDisarm, resumeNativeDisarm } from './actionDisarm.helper'
 import { settleNativeInitiativeTurn } from './turnCompletion'
 import { resolveNativeTurnResponse } from './turnResponses'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
@@ -116,7 +115,6 @@ import {
 import { restoreNativeInitiativeTurnActors } from './turnInitiative'
 import { readNativeTurnCommandPending } from './turnCommandPending'
 import { readNativeTurnResponseReplay } from './turnResponseReplay'
-import { resumeNativeCleaving } from './cleaving'
 import { resumeNativeConcentration } from './concentrationResponses'
 import { readNativeEncounterOccurrenceOwner } from './occurrenceOwner'
 import {
@@ -168,35 +166,8 @@ export const execute = internalMutation({
     const { userId } = await requireIdentity(ctx)
     const { command } = encounterExecuteInputSchema.parse(args)
     if (command.type === 'RESOLVE_ACTION') {
-      if (command.optionalCombatIntent) {
-        const run = await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
-          .unique()
-        if (!run) throw new Error('Encounter Run was not found.')
-        await requireCampaignAuthority(ctx, run.campaignId, userId)
-        const receipt = await ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_campaignId_commandId', (q) =>
-            q.eq('campaignId', run.campaignId).eq('commandId', command.commandId.toLowerCase())
-          )
-          .unique()
-        // A completed retry uses its original rule selection even if the Run's rules later change.
-        const projection =
-          receipt?.commandType === 'RESOLVE_ACTION'
-            ? encounterGmProjectionDtoSchema.parse(
-                encounterCommandResultDtoSchema.parse(JSON.parse(receipt.resultJson)).projection
-              )
-            : readRunProjection(run)
-        if (
-          projection.optionalCombatRules.some(
-            (definition) =>
-              definition.kind === 'DISARM' &&
-              definition.definitionId === command.optionalCombatIntent?.definitionId
-          )
-        )
-          return executeNativeDisarm(ctx, command, userId)
-      }
+      if (command.optionalCombatIntent)
+        throw new Error('Optional combat actions are planned in the Session room.')
       return executeNativeEncounterAction(ctx, command, userId)
     }
     if (command.type === 'ROLL_RULE_EVIDENCE')
@@ -325,9 +296,9 @@ export const execute = internalMutation({
         ? await readNativeEncounterOccurrenceOwner(ctx, row, input.occurrenceId)
         : null
     if (input.type === 'RESOLVE_RULE_OCCURRENCE') {
-      if (occurrenceOwner === 'DISARM') return resumeNativeDisarm(ctx, input, row, userId)
+      if (occurrenceOwner === 'DISARM' || occurrenceOwner === 'CLEAVING')
+        throw new Error('Disarm and Cleaving answers are planned in the Session room.')
       if (occurrenceOwner === 'CONCENTRATION') return resumeNativeConcentration(ctx, input, userId)
-      if (occurrenceOwner === 'CLEAVING') return resumeNativeCleaving(ctx, input, userId)
     }
     // Action evidence resumes authorize the member against the evidence's roller themselves.
     if (input.type === 'RESOLVE_RULE_OCCURRENCE' && occurrenceOwner === 'ACTION') {

@@ -149,7 +149,7 @@ async function admitCharacterCaptureScope(
     }
   }
   const actionCommand =
-    input.action?.kind === 'ACTION_COMMAND' ? input.action.command : input.action?.response
+    input.action && 'command' in input.action ? input.action.command : input.action?.response
   const actionAdmission =
     input.action && actionCommand
       ? await readLiveEncounterActionScope(ctx, {

@@ -134,6 +134,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * A player's door change is staged under their own actor, and the lock rule is checked at publish.
   * Recovering an uncertain commit as COMMITTED drops the room's Scene cache and re-challenges every socket.
   * A decision whose acknowledgement was lost in a crash replays as "already settled". The player already sees the result through their subscription.
+* **D41** Deciding what counts as "rules in the room" (S4B, R06.1):
+  * **Dice move to the room:** `ROLL_RULE_EVIDENCE`, `ROLL_ACTOR_INITIATIVE` and `ROLL_ENEMY_ACTION` are planned in the room, which has the secure random source.
+  * **Recording stays in Convex:** GM tools whose only derived work is the deterministic actor recalculation stay Convex-recorded, because Convex recalculates actors at every commit anyway. These are `ADJUST_FEATURE_RESOURCE`, `REPLACE_CREATURE_EQUIPMENT`, `REINFORCE`, `REVERT_LAST_ACTION` and `REMOVE_ACTOR`. `REMOVE_ACTOR`'s cleanup is shared with account deletion, which runs without a room.
+  * **Disarm sees what the initiator sees:** a GM's Disarm reads the Scene with the GM's view, and a player's with the player's.
+  * **Cards credit the answerer:** a Cleaving answer's Concentration cards are credited to whoever answered (D31).
+  * **Old Convex paths go now (S4-d):** the Convex-side action, turn and Concentration resume paths that tests still reach are deleted in this slice, with those fixtures moved to the room path. They are not kept as a second path.
+
 ## Resolved
 
 * **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).

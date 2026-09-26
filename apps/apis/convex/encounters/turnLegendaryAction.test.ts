@@ -71,6 +71,7 @@ import * as movementTargets from './movementTargets'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
+  executeRoomEncounterCommand,
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
   workerEnvironment
@@ -1532,5 +1533,67 @@ describe('private DO turn Legendary Action response', () => {
       )
     ).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(beforeReplay)
+  }, 60_000)
+  it('declines a Legendary choice the GM voids in the room, then records the void once', async () => {
+    const base = await setup('AUTO_ROLL', 2, false, 'EACH_ROUND')
+    const started = await start(base)
+    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version
+      }
+    })
+    const choice = result.occurrence?.pending
+    if (!choice || choice.kind !== 'LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected the first outgoing Legendary choice.')
+    const epoch = crypto.randomUUID()
+    await base.t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
+        campaignId: base.campaign.id,
+        epoch,
+        createdAt: base.campaign.createdAt
+      })
+    )
+    const before = await stored(base.t, base.run.id)
+    const voided = await executeRoomEncounterCommand({
+      caller: base.owner.caller,
+      actor: {
+        campaignId: base.campaign.id,
+        authorityEpoch: epoch,
+        expectedUserId: base.owner.userId,
+        expectedRole: 'OWNER'
+      },
+      command: {
+        type: 'VOID_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: choice.encounterVersion,
+        occurrenceId: choice.occurrenceId,
+        expectedOccurrenceVersion: choice.occurrenceVersion
+      },
+      random: () => {
+        throw new Error('Declining a Legendary choice rolls nothing.')
+      }
+    })
+    // The room planned the GM's decline, which finished the turn, then Convex recorded the void.
+    expect(voided.occurrence).toMatchObject({
+      occurrenceId: choice.occurrenceId,
+      status: 'COMPLETE'
+    })
+    const after = await stored(base.t, base.run.id)
+    expect(after).not.toEqual(before)
+    const commands = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+        .collect()
+    )
+    // The decline completed the turn, whose root receipt records it, then the void was recorded.
+    expect(commands.map((command) => command.commandType).slice(-2)).toEqual([
+      'ADVANCE_TURN',
+      'VOID_RULE_OCCURRENCE'
+    ])
   }, 60_000)
 })

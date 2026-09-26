@@ -1,0 +1,384 @@
+import type {
+  ResolveEncounterActionInputDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  liveSessionEncounterDisarmCommitInputSchema,
+  liveSessionEncounterDisarmPendingInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
+import {
+  liveSessionEncounterRulesInputSchema,
+  type LiveSessionEncounterRulesInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
+import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import {
+  disarmApplicationOutputs,
+  disarmSourceWins,
+  planEncounterDisarmSuccess,
+  prepareEncounterDisarmContest,
+  readEncounterDisarmSelection,
+  requireEncounterDisarmDefinition
+} from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import {
+  resolveEncounterD20Answer,
+  withEncounterAppRoll
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  LiveSessionDomainRejectionError,
+  type NativeLiveSessionEnvironment
+} from './liveSessionRoutes.js'
+import { liveEncounterCaptures, type LiveCaptureReads } from './nativeCaptureCache.js'
+import {
+  prepareNativeLiveMovementTarget,
+  readNativeLiveActorsAndEffects
+} from './nativeEncounterTargets.js'
+
+/**
+ * Plans a Disarm, or a participant's d20 for one, in the room: both contest d20s roll here with the
+ * room's randomness and each participant's auto-roll preference. Convex stores the paused contest or
+ * re-applies the settled item and ACTION changes; it never rolls.
+ */
+export async function planNativeLiveDisarm(
+  environment: NativeLiveSessionEnvironment,
+  accessToken: string,
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto,
+  executionOptions: {
+    runtime: RulesRuntimeService
+    random(maximum: number): number
+    captures?: LiveCaptureReads
+  }
+) {
+  const request = { kind: 'DISARM' as const, command }
+  const initial = liveSessionEncounterRulesInputSchema.parse({
+    ...scope,
+    // A player's admitted Disarm lets its follow-up captures read the rules inputs.
+    ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
+    request
+  })
+  if (
+    command.encounterId.toLowerCase() !== initial.encounterId ||
+    command.expectedVersion !== initial.expectedVersion
+  )
+    throw new Error('Live Disarm scope mismatch.')
+  const reads = liveEncounterCaptures(environment, accessToken, initial, executionOptions.captures)
+  const { capture } = reads
+  const admission = await capture(request)
+  if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
+  const ready = admission.ready
+  if (!ready) throw new Error('The Disarm is unavailable.')
+  const root = ready.command
+  const intent = root.optionalCombatIntent
+  if (!intent) throw new Error('Optional combat Disarm is unavailable.')
+  const { state, system } = await capture({ kind: 'INPUTS' })
+  if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
+    throw new Error('Disarm Run inputs changed during capture.')
+  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
+    state,
+    capture
+  })
+  const actor = actors.find((entry) => entry.id === root.actorId)
+  const target = actors.find((entry) => entry.id === root.targetActorId)
+  if (!actor || !target) throw new Error('Disarm actors are unavailable.')
+  const movementTargets = new Map(
+    await Promise.all(
+      [actor, target].map(async (entry) => {
+        const prepared = await prepareNativeLiveMovementTarget({
+          environment,
+          accessToken,
+          scope: initial,
+          state,
+          actor: entry,
+          activeEffectsByActorId,
+          captures: executionOptions.captures
+        })
+        reads.observe(prepared.revisions)
+        return [entry.id, prepared.target] as const
+      })
+    )
+  )
+  const definition = requireEncounterDisarmDefinition({
+    state,
+    actors,
+    actor,
+    target,
+    command: { ...root, definitionId: intent.definitionId }
+  })
+  const prepared = await prepareEncounterActionMechanics({
+    state,
+    actor,
+    target,
+    actors,
+    actionId: root.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: false,
+    movementTargets,
+    loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
+    loadRelationshipFacts: async (input) =>
+      lockedRelationshipActionFacts({
+        actionEffectId: input.actionEffectId,
+        sourceActorId: input.sourceActorId,
+        targetActorId: input.targetActorId,
+        targets: { activeEffectsByActorId }
+      })
+  })
+  const scene = root.sceneContext
+    ? (
+        await capture({
+          kind: 'ACTION_SCENE',
+          command: {
+            actorId: root.actorId,
+            targetActorId: root.targetActorId,
+            sceneContext: root.sceneContext
+          }
+        })
+      ).context
+    : null
+  const sceneContext = scene
+    ? {
+        sceneId: scene.sceneId,
+        sceneVersion: scene.sceneVersion,
+        sourceToken: scene.sourceToken,
+        targetToken: scene.targetToken,
+        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+          encounter: state,
+          sceneGrid: scene.sceneGrid
+        })
+      }
+    : null
+  const selection = readEncounterDisarmSelection({
+    actor,
+    target,
+    actionId: root.actionId,
+    definition,
+    prepared,
+    sceneContext,
+    rejectTarget: () => {
+      throw new LiveSessionDomainRejectionError(422, {
+        code: 'DOMAIN_REJECTED',
+        reason: 'TARGET_UNAVAILABLE',
+        message: 'Optional combat target is unavailable.'
+      })
+    }
+  })
+  const actionEconomy = await prepareEncounterActionEconomy({
+    actor,
+    state,
+    activation: { code: 'ACTION', amount: 1 },
+    target: prepared.sourceFacts,
+    loadTarget: async () => movementTargets.get(actor.id),
+    definitions: {
+      requireCurrent: async (definitionId) => {
+        const { definition: current } = await capture({ kind: 'DEFINITION', definitionId })
+        if (!current) throw new Error('Action-economy capability is unavailable.')
+        return current
+      }
+    }
+  })
+  const pending = ready.snapshot
+  const priorContext =
+    pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
+    pending.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+    pending.applicationContext.contest
+      ? { ...pending.applicationContext, contest: pending.applicationContext.contest }
+      : null
+  if (pending && !priorContext) throw new Error('The pending Disarm contest is unavailable.')
+  const preparation = prepareEncounterDisarmContest({
+    state,
+    actor,
+    target,
+    command: root,
+    definition,
+    prepared,
+    sceneContext,
+    selection,
+    actionEconomy,
+    ...(priorContext ? { priorContest: priorContext.contest } : {})
+  })
+  if (priorContext && preparation.currentnessChecksum !== priorContext.currentnessChecksum)
+    throw new Error('The pending Disarm source or target changed.')
+  let contest = preparation.contest
+  const response = command.type === 'RESOLVE_RULE_OCCURRENCE' ? command : null
+  const resumed =
+    response && pending && priorContext
+      ? (() => {
+          const participant =
+            pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
+          const policy = participant === 'INITIATOR' ? contest.initiator : contest.defender
+          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+          const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
+          if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
+            throw new Error('Disarm requires d20 evidence.')
+          const { faces: rawFaces, rollMode } = resolveEncounterD20Answer({
+            derivedRollMode: policy.rollMode,
+            answer,
+            rollD20: () => executionOptions.random(20) + 1
+          })
+          contest = {
+            ...contest,
+            rollEvidence: {
+              ...contest.rollEvidence,
+              [participant === 'INITIATOR' ? 'initiator' : 'defender']: {
+                requestId: answer.requestId,
+                rawFaces
+              }
+            }
+          }
+          const {
+            snapshotKind: _snapshotKind,
+            applicationContext: _applicationContext,
+            optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+            phaseReceipts: _phaseReceipts,
+            deferredCleaving: _deferredCleaving,
+            ...continuation
+          } = pending
+          return {
+            continuation,
+            resolution: {
+              kind: 'ENTER_DICE' as const,
+              requestId: answer.requestId,
+              rawFaces,
+              rollMode
+            }
+          }
+        })()
+      : null
+  if (response && !resumed) throw new Error('The Disarm answer is unavailable.')
+  const priorRolls = new Map<'INITIATOR' | 'DEFENDER', readonly number[]>()
+  if (contest.rollEvidence.initiator)
+    priorRolls.set('INITIATOR', contest.rollEvidence.initiator.rawFaces)
+  if (contest.rollEvidence.defender)
+    priorRolls.set('DEFENDER', contest.rollEvidence.defender.rawFaces)
+  const occurrenceId = pending?.occurrenceId ?? crypto.randomUUID()
+  const occurrenceVersion = ready.occurrenceVersion === null ? 0 : ready.occurrenceVersion + 1
+  const { checkDefinitionId: _checkDefinitionId, ...defender } = contest.defender
+  const execution = await executeEncounterOptionalContestAction({
+    runtime: executionOptions.runtime,
+    // Each participant's d20 goes to that actor's controllers; the initiator rolls their own.
+    autoRoll: ready.autoRollByActorId,
+    graph: preparation.graph,
+    initiator: { ...contest.initiator, requestNodeId: 'initiator_d20' },
+    defender: { ...defender, requestNodeId: 'target_d20' },
+    occurrenceId,
+    priorRolls,
+    rollD20: () => executionOptions.random(20) + 1,
+    ...(resumed ?? {})
+  })
+  const planned = { ...scope, command, revisions: reads.revisions() }
+  if (execution.kind === 'PENDING') {
+    const initiatorFaces = execution.rolls.get('INITIATOR')
+    // An auto-rolled initiator keeps its faces for the defender's prompted answer.
+    if (initiatorFaces && !contest.rollEvidence.initiator)
+      contest = {
+        ...contest,
+        rollEvidence: {
+          ...contest.rollEvidence,
+          initiator: { requestId: contest.initiator.requestNodeId, rawFaces: [...initiatorFaces] }
+        }
+      }
+    return {
+      kind: 'PENDING' as const,
+      input: liveSessionEncounterDisarmPendingInputSchema.parse({
+        ...planned,
+        snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
+          ...execution.continuation,
+          snapshotKind: 'KERNEL_EVIDENCE',
+          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+          applicationContext: {
+            kind: 'ENCOUNTER_ACTION',
+            schemaVersion: 1,
+            commandJson: JSON.stringify(root),
+            commandFingerprint: ready.fingerprint,
+            initiatorUserId: ready.initiatorUserId,
+            rollerActorId:
+              execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
+            currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
+            d20Policy: null,
+            twoPhase: null,
+            contest
+          }
+        })
+      })
+    }
+  }
+  if (!resumed)
+    contest = {
+      ...contest,
+      rollEvidence: {
+        initiator: {
+          requestId: contest.initiator.requestNodeId,
+          rawFaces: [...execution.initiator.rawFaces]
+        },
+        defender: {
+          requestId: contest.defender.requestNodeId,
+          rawFaces: [...execution.defender.rawFaces]
+        }
+      }
+    }
+  const characterFacts = prepared.targetFacts.characterFacts
+  const success = disarmSourceWins(execution)
+    ? planEncounterDisarmSuccess({
+        target,
+        contest,
+        character: characterFacts
+          ? {
+              id: characterFacts.active.id,
+              streamVersion: characterFacts.active.streamVersion,
+              document: characterFacts.character
+            }
+          : null
+      })
+    : null
+  const settledTarget = success?.kind === 'CREATURE' ? success.actor : target
+  const settledActor = actionEconomy
+    ? consumeEncounterActionEconomy({ actor, consumption: actionEconomy, overridden: false })
+    : actor
+  const nextActors = actors.map((entry) =>
+    entry.id === settledActor.id
+      ? settledActor
+      : entry.id === settledTarget.id
+        ? settledTarget
+        : entry
+  )
+  const nextFacts = buildEncounterActorRuleFacts({ actors: nextActors })
+  return {
+    kind: 'PLANNED' as const,
+    input: liveSessionEncounterDisarmCommitInputSchema.parse({
+      ...planned,
+      occurredAt: new Date().toISOString(),
+      contest,
+      execution: storedRuleExecutionResultDtoSchema.parse({
+        status: 'COMPLETE',
+        occurrenceId,
+        occurrenceVersion,
+        outputs: execution.execution.outputs,
+        evidence: execution.execution.evidence,
+        applicationOutputs: disarmApplicationOutputs({
+          occurrenceId,
+          contest,
+          rolls: execution,
+          stateTransition: success?.stateTransition ?? { kind: 'NONE' },
+          actionEconomy
+        })
+      }),
+      rules: reconcileEncounterActorRuleOutput(
+        evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
+        nextFacts,
+        { output: prepared.actorRules }
+      )
+    })
+  }
+}

@@ -1,46 +1,45 @@
 import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { contestedActionApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { applyCharacterSheetCommand } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
-  applyEncounterActorOptionalContestSuccess,
-  readEncounterActorOptionalContestContext
-} from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
-import type { EncounterOptionalContestActionExecution } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+  disarmApplicationOutputs,
+  disarmSourceWins,
+  planEncounterDisarmSuccess
+} from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx } from '../_generated/server'
-import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
+import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import type { prepareNativeDisarm } from './actionDisarmPreparation'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence'
 
-/** Persists terminal item and ACTION changes inside the coordinator's transaction. */
-export async function settleNativeDisarm(
+type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
+
+/**
+ * Persists a settled Disarm inside the caller's transaction: a won contest moves the held item to
+ * carried, and the source spends its ACTION. It re-derives every change from current state.
+ */
+export async function settleDisarm(
   ctx: MutationCtx,
-  input: {
-    preparation: Awaited<ReturnType<typeof prepareNativeDisarm>>
-    execution: Extract<EncounterOptionalContestActionExecution, { kind: 'COMPLETE' }>
-    occurrenceId: string
+  input: Omit<DisarmSettlementInput, 'stateTransition'> & {
+    state: EncounterRunState
+    actor: EncounterRunActorState
+    target: EncounterRunActorState
     commandId: string
     sourceCommandId: string
     userId: string
-    campaignOwnerUserId: string
     occurredAt: string
   }
 ) {
-  const { preparation, execution } = input
-  const { prepared, contest } = preparation
-  if (contest.actionKind !== 'DISARM' || contest.selection.kind !== 'DISARM')
-    throw new Error('Disarm settlement requires a Disarm contest.')
-  const sourceWon = execution.initiator.total > execution.defender.total
-  let target = prepared.target
-  let stateTransition: ReturnType<
-    typeof contestedActionApplicationOutputDtoSchema.parse
-  >['stateTransition'] = { kind: 'NONE' }
-  if (sourceWon) {
+  const { contest, rolls } = input
+  let target = input.target
+  let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
+  if (disarmSourceWins(rolls)) {
     const targetRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) =>
@@ -49,33 +48,23 @@ export async function settleNativeDisarm(
       .unique()
     if (!targetRow || targetRow.stateChecksum !== checksumCanonicalJson(target))
       throw new Error('Disarm target changed before settlement.')
-    const itemId = contest.selection.heldItemId
-    if (target.kind === 'CHARACTER') {
-      const facts = prepared.targetFacts.characterFacts
-      if (
-        !facts ||
-        contest.target.kind !== 'CHARACTER' ||
-        target.sourceId !== facts.active.id ||
-        contest.target.characterId !== facts.active.id ||
-        contest.target.streamVersion !== facts.active.streamVersion ||
-        !facts.character.state.equipment.equipped.includes(itemId) ||
-        contest.target.stateChecksum !==
-          checksumRuleDocument({
-            itemId,
-            streamVersion: facts.active.streamVersion,
-            equipped: facts.character.state.equipment.equipped
-          })
-      )
-        throw new Error('Disarm Character item changed before settlement.')
-      const active = await ctx.db.get(facts.active._id)
-      if (
-        !active ||
-        active.status !== 'ACTIVE' ||
-        active.id !== facts.active.id ||
-        active.checksum !== facts.active.checksum ||
-        active.streamVersion !== facts.active.streamVersion
-      )
-        throw new Error('Disarm Character changed before settlement.')
+    const active =
+      target.kind === 'CHARACTER' ? (await loadCharacterState(ctx, target.sourceId)).active : null
+    if (active && active.status !== 'ACTIVE')
+      throw new Error('Disarm Character changed before settlement.')
+    const planned = planEncounterDisarmSuccess({
+      target,
+      contest,
+      character: active
+        ? {
+            id: active.id,
+            streamVersion: active.streamVersion,
+            document: readCharacterRecord(active) as CharacterAuthored
+          }
+        : null
+    })
+    stateTransition = planned.stateTransition
+    if (planned.kind === 'CHARACTER' && active) {
       const priorReceipt = await ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) =>
@@ -83,31 +72,11 @@ export async function settleNativeDisarm(
         )
         .unique()
       if (priorReceipt) throw new Error('Disarm Character command already exists.')
-      const character = characterAuthoredDtoSchema.parse(
-        applyCharacterSheetCommand(
-          facts.character,
-          { type: 'UNEQUIP_ITEM', expectedVersion: active.streamVersion, itemId },
-          projectCharacterSheetFacts(facts).sheet
-        )
-      )
-      const streamVersion = active.streamVersion + 1
       await writeCharacterRecord(ctx, {
         current: active,
-        fields: { streamVersion, updatedAt: input.occurredAt },
-        document: JSON.parse(JSON.stringify(character)),
-        sourceContext: facts.sourceContext
+        fields: { streamVersion: active.streamVersion + 1, updatedAt: input.occurredAt },
+        document: JSON.parse(JSON.stringify(characterAuthoredDtoSchema.parse(planned.character)))
       })
-      stateTransition = {
-        kind: 'CHARACTER_ITEM_USE_STATE',
-        characterId: active.id,
-        itemInstanceId: itemId,
-        fromState: 'EQUIPPED',
-        toState: 'CARRIED',
-        beforeStreamVersion: active.streamVersion,
-        afterStreamVersion: streamVersion,
-        beforeStateChecksum: checksumRuleDocument(facts.character.state.equipment),
-        afterStateChecksum: checksumRuleDocument(character.state.equipment)
-      }
       const receiptId = crypto.randomUUID()
       const history = characterHistoryEntryDtoSchema.parse({
         eventId: receiptId,
@@ -124,7 +93,7 @@ export async function settleNativeDisarm(
           commandId: input.commandId,
           actorId: input.userId,
           commandFingerprint: checksumRuleDocument({
-            encounterId: prepared.state.id,
+            encounterId: input.state.id,
             occurrenceId: input.occurrenceId,
             sourceCommandId: input.sourceCommandId,
             targetActorId: target.id,
@@ -135,62 +104,24 @@ export async function settleNativeDisarm(
           historyChecksum: checksumRuleDocument(history)
         })
       )
-    } else if (target.kind === 'CREATURE') {
-      const context = readEncounterActorOptionalContestContext({
-        actor: target,
-        loadoutEntryId: itemId
+    } else if (planned.kind === 'CREATURE') {
+      target = planned.actor
+      await ctx.db.patch(targetRow._id, {
+        stateJson: JSON.stringify(target),
+        stateChecksum: checksumCanonicalJson(target)
       })
-      if (!context || context.stateChecksum !== contest.selection.heldItemStateChecksum)
-        throw new Error('Disarm Creature item changed before settlement.')
-      const applied = applyEncounterActorOptionalContestSuccess({ context, actor: target })
-      target = encounterRunActorStateSchema.parse(applied.actor)
-      stateTransition = {
-        kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
-        actorId: target.id,
-        loadoutEntryId: context.equipment.loadoutEntryId,
-        equipmentId: context.equipment.equipmentId,
-        fromState: 'HELD',
-        toState: 'CARRIED',
-        beforeStateChecksum: applied.beforeStateChecksum,
-        afterStateChecksum: applied.afterStateChecksum
-      }
-    } else {
-      throw new Error('Disarm target is unavailable.')
     }
-    await ctx.db.patch(targetRow._id, {
-      stateJson: JSON.stringify(target),
-      stateChecksum: checksumCanonicalJson(target)
-    })
   }
-  const actor = preparation.actionEconomy
+  const actor = input.actionEconomy
     ? await consumeNativeActionEconomy(ctx, {
-        actor: prepared.actor,
-        consumption: preparation.actionEconomy,
+        actor: input.actor,
+        consumption: input.actionEconomy,
         overridden: false
       })
-    : prepared.actor
-  const { definitionId, definitionVersion, definitionChecksum, moduleKey, moduleContractVersion } =
-    contest.optionalCombat
-  const applicationOutputs = contestedActionApplicationOutputDtoSchema.parse({
-    kind: 'CONTESTED_ACTION',
-    schemaVersion: 1,
-    occurrenceId: input.occurrenceId,
-    sourceActorId: contest.sourceActorId,
-    targetActorId: contest.targetActorId,
-    sealedContextChecksum: checksumRuleDocument(contest),
-    policy: {
-      definitionId,
-      definitionVersion,
-      definitionChecksum,
-      moduleKey,
-      moduleContractVersion
-    },
-    contestGraph: contest.contestGraph,
-    sourceRoll: execution.initiator,
-    targetRoll: execution.defender,
-    outcome: sourceWon ? 'SOURCE_WIN' : 'TARGET_WIN_OR_TIE',
-    stateTransition,
-    actionEconomyTransition: preparation.actionEconomy
-  })
-  return { actor, target, applicationOutputs }
+    : input.actor
+  return {
+    actor,
+    target,
+    applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition })
+  }
 }

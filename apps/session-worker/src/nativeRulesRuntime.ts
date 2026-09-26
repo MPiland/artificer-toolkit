@@ -19,17 +19,6 @@ export async function createNativeLiveRulesRuntime(secret: string): Promise<Rule
   })
 }
 
-/**
- * Thrown before any write when a live planner meets a flow it does not execute yet (S4B ports).
- * The room then forwards the command to its Convex implementation in the same room order.
- */
-export class LivePlannerUnsupportedError extends Error {
-  constructor(flow: string) {
-    super(`Live planning does not execute ${flow} yet.`)
-    this.name = 'LivePlannerUnsupportedError'
-  }
-}
-
 /** Unbiased integer in [0, maximum) from the platform CSPRNG; authoritative dice depend on it. */
 export function secureRandomInt(maximum: number): number {
   if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 2 ** 32)

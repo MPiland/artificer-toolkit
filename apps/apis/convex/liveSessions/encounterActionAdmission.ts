@@ -7,6 +7,8 @@ import { readNativeEncounterActionResponseAdmission } from '../encounters/action
 import { requireIdentity } from '../lib/identity'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { rejectDomain } from '../lib/domainRejections'
+import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
+import { readDisarmAdmission } from '../encounters/disarmAdmission'
 
 /** Shared authorization and replay fences for the pending and terminal action transactions. */
 export async function readLiveEncounterActionAdmission(
@@ -72,6 +74,7 @@ export async function readLiveEncounterActionScope(
   ctx: QueryCtx,
   input: {
     campaignId: string
+    authorityEpoch: string
     expectedUserId: string
     expectedRole: 'OWNER' | 'PLAYER'
     encounterId: string
@@ -79,6 +82,19 @@ export async function readLiveEncounterActionScope(
     action: LiveSessionActionCaptureScope
   }
 ) {
+  if (input.action.kind === 'CLEAVING_RESPONSE') {
+    const cleaving = await readCleavingResponseAdmission(ctx, {
+      ...input,
+      response: input.action.response
+    })
+    if (cleaving.kind !== 'READY') throw new Error('The admitted Cleaving answer is unavailable.')
+    return cleaving
+  }
+  if (input.action.kind === 'DISARM') {
+    const disarm = await readDisarmAdmission(ctx, { ...input, command: input.action.command })
+    if (disarm.kind !== 'READY') throw new Error('The admitted Disarm is unavailable.')
+    return disarm
+  }
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   const run = await ctx.db

@@ -39,6 +39,8 @@ export type EncounterOptionalContestActionExecution =
       kind: 'PENDING'
       continuation: ServerRuleExecutionContinuationDto
       participant: 'INITIATOR' | 'DEFENDER'
+      /** Faces settled so far, including an auto-rolled initiator before a prompted defender. */
+      rolls: ReadonlyMap<'INITIATOR' | 'DEFENDER', readonly number[]>
     }
   | {
       kind: 'COMPLETE'
@@ -198,7 +200,8 @@ export async function executeEncounterOptionalContestAction(input: {
     return {
       kind: 'PENDING',
       continuation: execution.continuation,
-      participant: requireRequest(execution.continuation)
+      participant: requireRequest(execution.continuation),
+      rolls
     }
   }
   return completeEncounterOptionalContestActionExecution({

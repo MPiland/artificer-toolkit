@@ -43,6 +43,8 @@ export async function readEncounterCaptureBundle(
     bundle.system = system
     bundle.inputs = runInputs
     if (scope.request.kind === 'TURN_COMMAND') await part({ kind: 'INITIATIVE_ROUND' })
+    // A Cleaving answer rebuilds its choice from the Scene's bound tokens.
+    if (scope.request.kind === 'CLEAVING_RESPONSE') await part({ kind: 'CLEAVING_BINDINGS' })
     const actors = []
     for (const actorId of inputs.state.actorIds) {
       const actor = await part({ kind: 'ACTOR', actorId })

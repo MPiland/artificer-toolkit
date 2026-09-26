@@ -17,6 +17,19 @@ export const liveSessionActionCaptureScopeSchema = z.discriminatedUnion('kind', 
   z.strictObject({
     kind: z.literal('ACTION_RESPONSE'),
     response: resolveRuleOccurrenceInputDtoSchema
+  }),
+  /** The source actor's controller choosing or declining the next Cleaving target. */
+  z.strictObject({
+    kind: z.literal('CLEAVING_RESPONSE'),
+    response: resolveRuleOccurrenceInputDtoSchema
+  }),
+  /** A Disarm, or a participant's d20 for one. */
+  z.strictObject({
+    kind: z.literal('DISARM'),
+    command: z.discriminatedUnion('type', [
+      resolveEncounterActionInputDtoSchema,
+      resolveRuleOccurrenceInputDtoSchema
+    ])
   })
 ])
 export type LiveSessionActionCaptureScope = z.infer<typeof liveSessionActionCaptureScopeSchema>

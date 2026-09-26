@@ -25,6 +25,7 @@ import {
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 import {
+  serverAggregateChoicePendingSnapshotDtoSchema,
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   serverRuleExecutionPendingSnapshotDtoSchema
 } from '../shared/ruleExecutionPendingSnapshots.js'
@@ -95,6 +96,17 @@ export const liveSessionEncounterRulesRequestSchema = z.discriminatedUnion('kind
   z.strictObject({
     kind: z.literal('ACTION_RESPONSE'),
     response: resolveRuleOccurrenceInputDtoSchema
+  }),
+  z.strictObject({
+    kind: z.literal('CLEAVING_RESPONSE'),
+    response: resolveRuleOccurrenceInputDtoSchema
+  }),
+  z.strictObject({
+    kind: z.literal('DISARM'),
+    command: z.discriminatedUnion('type', [
+      resolveEncounterActionInputDtoSchema,
+      resolveRuleOccurrenceInputDtoSchema
+    ])
   }),
   z.strictObject({ kind: z.literal('INPUTS') }),
   z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
@@ -346,6 +358,39 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     fingerprint: projectionChecksumSchema,
     result: z.nullable(encounterCommandResultDtoSchema),
     snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema)
+  }),
+  z.strictObject({
+    kind: z.literal('CLEAVING_RESPONSE'),
+    revisions: liveSessionRulesRevisionsSchema,
+    readChecksum: projectionChecksumSchema,
+    fingerprint: projectionChecksumSchema,
+    /** Each remaining Concentration check's roller preference, the responder as initiator (D23). */
+    autoRollByActorId: encounterAutoRollByActorIdSchema,
+    /** The sealed choice being answered; null only on replay. */
+    snapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema),
+    result: z.nullable(encounterCommandResultDtoSchema)
+  }),
+  z.strictObject({
+    kind: z.literal('DISARM'),
+    revisions: liveSessionRulesRevisionsSchema,
+    readChecksum: projectionChecksumSchema,
+    /** An admitted Disarm to plan; null when `result` replays a stored one. */
+    ready: z.nullable(
+      z.strictObject({
+        /** The normalized Disarm root and its fingerprint; a d20 answer continues it. */
+        command: resolveEncounterActionInputDtoSchema,
+        fingerprint: projectionChecksumSchema,
+        initiatorUserId: postgresUuidSchema,
+        /** Each participant's d20 goes to that actor's controllers (ADR 0034 decision 3). */
+        autoRollByActorId: encounterAutoRollByActorIdSchema,
+        /** The app roll a `SYSTEM_ROLL` answer settles with; null for any other answer. */
+        appRoll: z.nullable(encounterSettledAppRollDtoSchema),
+        /** The pending contest being answered and its version; null for a new Disarm. */
+        snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
+        occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative()))
+      })
+    ),
+    result: z.nullable(encounterCommandResultDtoSchema)
   }),
   liveSessionEncounterInputsResponseSchema,
   z.strictObject({

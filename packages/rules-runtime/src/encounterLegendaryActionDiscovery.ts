@@ -384,6 +384,7 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
   })
   const evaluated = await evaluateLegendaryActionEligibility({
     runtime: input.runtime,
+    definitions: input.definitions,
     occurrenceId: input.occurrenceId,
     candidates: candidateInputs.map((candidate) => {
       const capabilityState = capabilityStates.get(candidate.ownerActorId)

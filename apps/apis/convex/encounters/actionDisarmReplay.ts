@@ -13,12 +13,12 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
 import type { Doc } from '../_generated/dataModel'
-import type { MutationCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
 import { presentTimelineEntry } from './timelineEntries'
 
 /** Validates the original action and its terminal rule receipt without reevaluating changed facts. */
 export async function readNativeDisarmReplay(
-  ctx: MutationCtx,
+  ctx: QueryCtx,
   input: {
     run: Doc<'encounterRuns'>
     command: ResolveEncounterActionInputDto

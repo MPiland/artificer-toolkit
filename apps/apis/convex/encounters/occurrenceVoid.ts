@@ -107,6 +107,24 @@ export function voidDeclineCommandId(voidCommandId: string) {
   return uuidV5(`${voidCommandId}:decline`, voidNamespace)
 }
 
+/** The GM answer a declining void settles through, the same path a GM decline takes. */
+export function voidDeclineCommand(
+  input: VoidRuleOccurrenceInputDto,
+  occurrence: Pick<Doc<'encounterRuleOccurrences'>, 'id' | 'version'>,
+  resolution: Resolution
+): ResolveRuleOccurrenceInputDto {
+  return {
+    type: 'RESOLVE_RULE_OCCURRENCE',
+    encounterId: input.encounterId.toLowerCase(),
+    commandId: voidDeclineCommandId(input.commandId.toLowerCase()),
+    expectedVersion: input.expectedVersion,
+    correlationId: null,
+    occurrenceId: occurrence.id,
+    expectedOccurrenceVersion: occurrence.version,
+    resolution
+  }
+}
+
 type VoidScope = {
   input: VoidRuleOccurrenceInputDto
   userId: string
@@ -269,19 +287,7 @@ async function planRuleOccurrenceVoid(
   const outcome = classifyRuleOccurrenceVoid(snapshot.applicationContext)
   if (outcome.kind === 'REFUSE') rejectDomain('DECISION_REQUIRES_ANSWER', outcome.message)
   if (outcome.kind === 'DECLINE')
-    return {
-      kind: 'DECLINE',
-      command: {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        encounterId: input.encounterId,
-        commandId: voidDeclineCommandId(input.commandId),
-        expectedVersion: input.expectedVersion,
-        correlationId: null,
-        occurrenceId: occurrence.id,
-        expectedOccurrenceVersion: occurrence.version,
-        resolution: outcome.resolution
-      }
-    }
+    return { kind: 'DECLINE', command: voidDeclineCommand(input, occurrence, outcome.resolution) }
   return { kind: 'CANCEL', admission }
 }
 
@@ -299,39 +305,41 @@ export async function readRuleOccurrenceVoidDecline(
  * Settles a cancel atomically, or returns the decline the orchestrator runs through the same path
  * a GM answer takes. A void whose decline already committed only records its timeline entry.
  */
+export async function prepareRuleOccurrenceVoid(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<Exclude<RuleOccurrenceVoidPlan, { kind: 'CANCEL' }>> {
+  const plan = await planRuleOccurrenceVoid(ctx, args)
+  if (plan.kind !== 'CANCEL') return plan
+  const { admission } = plan
+  const { occurrence } = admission
+  // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
+  const updatedAt = new Date().toISOString()
+  const { _id, _creationTime, ...stored } = occurrence
+  const voided = encounterStoredRuleOccurrenceSchema.parse({
+    ...stored,
+    state: 'VOIDED',
+    version: occurrence.version + 1,
+    pendingSnapshotJson: null,
+    pendingSnapshotChecksum: null,
+    completedAt: updatedAt,
+    updatedAt
+  })
+  await ctx.db.patch(_id, voided)
+  return {
+    kind: 'COMPLETE',
+    result: await recordVoid(
+      ctx,
+      { ...admission, occurrence: { ...occurrence, ...voided } },
+      'VOIDED'
+    )
+  }
+}
+
 // Internal to the void orchestrator: the handler's Zod contract validates input, as at the Worker boundary.
 export const prepare = internalMutation({
   args: v.any(),
-  handler: async (
-    ctx,
-    args: unknown
-  ): Promise<Exclude<RuleOccurrenceVoidPlan, { kind: 'CANCEL' }>> => {
-    const plan = await planRuleOccurrenceVoid(ctx, args)
-    if (plan.kind !== 'CANCEL') return plan
-    const { admission } = plan
-    const { occurrence } = admission
-    // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
-    const updatedAt = new Date().toISOString()
-    const { _id, _creationTime, ...stored } = occurrence
-    const voided = encounterStoredRuleOccurrenceSchema.parse({
-      ...stored,
-      state: 'VOIDED',
-      version: occurrence.version + 1,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
-      completedAt: updatedAt,
-      updatedAt
-    })
-    await ctx.db.patch(_id, voided)
-    return {
-      kind: 'COMPLETE',
-      result: await recordVoid(
-        ctx,
-        { ...admission, occurrence: { ...occurrence, ...voided } },
-        'VOIDED'
-      )
-    }
-  }
+  handler: prepareRuleOccurrenceVoid
 })
 
 /**
@@ -449,28 +457,33 @@ async function declinedMovementDecision(
 }
 
 /**
- * Records a native void after its decline committed, and announces a skipped movement decision on
- * a Scene the room does not own (D29) exactly as the room does (D26, D39).
+ * Records a void after its decline committed, and announces a skipped movement decision on a Scene
+ * the room does not own (D29) exactly as the room does (D26, D39).
  */
+export async function recordDeclinedRuleOccurrenceVoid(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<EncounterCommandResultDto> {
+  const result = await recordRuleOccurrenceVoid(ctx, args)
+  const voidCommand = voidRuleOccurrenceInputDtoSchema.parse(args)
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', voidCommand.encounterId.toLowerCase()))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  if (await declinedMovementDecision(ctx, run, voidCommand)) {
+    const { userId } = await requireIdentity(ctx)
+    await postMovementDecisionSkipped(ctx, {
+      campaignId: run.campaignId,
+      gmUserId: userId,
+      voidCommand
+    })
+  }
+  return result
+}
+
 // Internal to the void orchestrator: the handler's Zod contract validates input.
 export const record = internalMutation({
   args: v.any(),
-  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
-    const result = await recordRuleOccurrenceVoid(ctx, args)
-    const voidCommand = voidRuleOccurrenceInputDtoSchema.parse(args)
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', voidCommand.encounterId.toLowerCase()))
-      .unique()
-    if (!run) throw new Error('Encounter is unavailable.')
-    if (await declinedMovementDecision(ctx, run, voidCommand)) {
-      const { userId } = await requireIdentity(ctx)
-      await postMovementDecisionSkipped(ctx, {
-        campaignId: run.campaignId,
-        gmUserId: userId,
-        voidCommand
-      })
-    }
-    return result
-  }
+  handler: recordDeclinedRuleOccurrenceVoid
 })

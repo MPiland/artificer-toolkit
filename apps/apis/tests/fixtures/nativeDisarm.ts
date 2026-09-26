@@ -3,6 +3,7 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
+  EncounterCommandInputDto,
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -33,8 +34,24 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal } from '../../convex/_generated/api'
-import { prepareNativeDisarm } from '../../convex/encounters/actionDisarmPreparation'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  prepareEncounterDisarmContest,
+  readEncounterDisarmSelection,
+  requireEncounterDisarmDefinition
+} from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import type { QueryCtx } from '../../convex/_generated/server'
+import { rejectDomain } from '../../convex/lib/domainRejections'
+import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
+import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
+import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'
 import { loadMovementTargets } from '../../convex/encounters/movementTargets'
+import * as rollRandom from '../../convex/lib/rollRandom'
+import { executeRoomEncounterCommand, insertActiveLiveAuthority } from './liveSessionWorker'
 import { seedActiveInitiative } from './activeInitiative'
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
@@ -280,7 +297,7 @@ export async function nativeDisarmFixture(
         })
       }
     }
-    const preparation = await prepareNativeDisarm(ctx, {
+    const preparation = await prepareStoredDisarm(ctx, {
       state,
       actors,
       actor: sourceState,
@@ -290,14 +307,42 @@ export async function nativeDisarmFixture(
     })
     return { command, contest: preparation.contest }
   })
+  const authorityEpoch = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: authorityEpoch,
+      createdAt: base.campaign.createdAt
+    })
+  )
   return {
     ...base,
     run,
     actor,
     target,
     heldItemId: characterTarget ? item.id : disarmHeldEntryId,
+    authorityEpoch,
     ...prepared
   }
+}
+
+/** Sends a command through the room as `member`; the room's dice come from `nextRollInt`. */
+export function disarmInRoom(
+  base: Awaited<ReturnType<typeof nativeDisarmFixture>>,
+  member: Awaited<ReturnType<typeof nativeDisarmFixture>>['player'],
+  command: EncounterCommandInputDto
+) {
+  return executeRoomEncounterCommand({
+    caller: member.caller,
+    actor: {
+      campaignId: base.campaign.id,
+      authorityEpoch: base.authorityEpoch,
+      expectedUserId: member.userId,
+      expectedRole: member.userId === base.owner.userId ? 'OWNER' : 'PLAYER'
+    },
+    command,
+    random: (maximum) => rollRandom.nextRollInt(maximum)
+  })
 }
 
 export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
@@ -331,4 +376,62 @@ export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarm
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
       .collect()
   }))
+}
+
+/** The sealed Disarm contest current stored facts produce, as the room plans it; rolls and writes nothing. */
+export async function prepareStoredDisarm(
+  ctx: QueryCtx,
+  input: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    actor: EncounterRunActorState
+    target: EncounterRunActorState
+    command: ResolveEncounterActionInputDto
+    campaignOwnerUserId: string
+    priorContest?: ServerOptionalCombatContestPendingApplicationContextDto
+  }
+) {
+  const { state, actor, target, command } = input
+  const intent = command.optionalCombatIntent
+  if (!intent) throw new Error('Optional combat Disarm is unavailable.')
+  const definition = requireEncounterDisarmDefinition({
+    ...input,
+    command: { ...command, definitionId: intent.definitionId }
+  })
+  const prepared = await prepareNativeEncounterActionMechanics(ctx, {
+    state,
+    actors: input.actors,
+    actor,
+    target,
+    actionId: command.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: false,
+    campaignOwnerUserId: input.campaignOwnerUserId
+  })
+  const sceneContext = await readNativeActionSceneContext(ctx, state, command, 'MEMBER')
+  const selection = readEncounterDisarmSelection({
+    actor,
+    target,
+    actionId: command.actionId,
+    definition,
+    prepared,
+    sceneContext,
+    rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
+  })
+  const actionEconomy = await prepareNativeActionEconomy(ctx, {
+    state,
+    actor,
+    userId: input.campaignOwnerUserId,
+    activation: { code: 'ACTION', amount: 1 },
+    target: prepared.sourceFacts
+  })
+  const { contest, graph, currentnessChecksum } = prepareEncounterDisarmContest({
+    ...input,
+    definition,
+    prepared,
+    sceneContext,
+    selection,
+    actionEconomy
+  })
+  return { prepared, contest, graph, actionEconomy, currentnessChecksum, sceneContext }
 }

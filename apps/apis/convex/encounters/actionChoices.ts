@@ -235,7 +235,7 @@ export const optional = query({
       readRunActor(ctx, state, input.targetActorId)
     ])
     if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
-    const { descriptor, definition, defenderFacts } = await readNativeDisarmSelection(ctx, {
+    const { descriptor, definition, targetCharacter } = await readNativeDisarmSelection(ctx, {
       state,
       actors,
       actor,
@@ -245,12 +245,12 @@ export const optional = query({
     })
     const system = await requireSystem(ctx, state.gameSystemId)
     const heldItems =
-      defenderFacts.ownerState === 'CHARACTER_SHEET'
-        ? defenderFacts.character.prepared.character.state.equipment.inventory.map((item) => ({
+      target.kind === 'CHARACTER' && targetCharacter
+        ? targetCharacter.prepared.character.state.equipment.inventory.map((item) => ({
             id: item.id,
             label:
               item.customName ??
-              defenderFacts.character.prepared.resolution.registry.equipment.find(
+              targetCharacter.prepared.resolution.registry.equipment.find(
                 (equipment) => equipment.id === item.equipmentId
               )?.label ??
               'Unknown item'

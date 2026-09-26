@@ -24,6 +24,11 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterTurnPending: '/live-sessions/encounter-turn-pending',
   encounterTurnCommit: '/live-sessions/encounter-turn',
   encounterConcentrationCommit: '/live-sessions/encounter-concentration',
+  encounterCleavingCommit: '/live-sessions/encounter-cleaving',
+  encounterDisarmPending: '/live-sessions/encounter-disarm-pending',
+  encounterDisarmCommit: '/live-sessions/encounter-disarm',
   encounterRoute: '/live-sessions/encounter-route',
+  encounterVoidPrepare: '/live-sessions/encounter-void-prepare',
+  encounterVoidRecord: '/live-sessions/encounter-void-record',
   encounterCommand: '/live-sessions/encounter-command'
 } as const

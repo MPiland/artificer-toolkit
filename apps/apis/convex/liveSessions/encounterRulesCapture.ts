@@ -40,6 +40,8 @@ import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { readLiveEncounterActionScope } from './encounterActionAdmission'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
+import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
+import { readDisarmAdmission } from '../encounters/disarmAdmission'
 
 type SemanticResponse = {
   [K in LiveSessionEncounterRulesResponse['kind']]: Omit<
@@ -123,9 +125,78 @@ export async function readEncounterRulesCapture(
     throw new Error('Turn capture requires owner or admitted response scope.')
   if (
     (input.concentrationResponse || input.movement || input.turnCommand) &&
-    (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE')
+    (input.request.kind === 'ACTION_COMMAND' ||
+      input.request.kind === 'ACTION_RESPONSE' ||
+      input.request.kind === 'CLEAVING_RESPONSE' ||
+      input.request.kind === 'DISARM')
   )
     throw new Error('Ordinary action capture cannot use another command scope.')
+  if (input.request.kind === 'DISARM') {
+    if (
+      input.expectedRole !== 'OWNER' &&
+      checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
+    )
+      throw new Error('Live Session action scope mismatch.')
+    const admission = await readDisarmAdmission(ctx, {
+      ...input,
+      command: input.request.command
+    })
+    const response = {
+      kind: 'DISARM' as const,
+      ready:
+        admission.kind === 'READY'
+          ? {
+              command: admission.root,
+              fingerprint: admission.fingerprint,
+              initiatorUserId: admission.initiatorUserId,
+              autoRollByActorId: admission.autoRollByActorId,
+              appRoll: admission.appRoll,
+              snapshot: admission.prior?.snapshot ?? null,
+              occurrenceVersion: admission.occurrence?.version ?? null
+            }
+          : null,
+      result: admission.kind === 'REPLAY' ? admission.result : null
+    }
+    return liveSessionEncounterRulesResponseSchema.parse({
+      ...response,
+      revisions: await readLiveSessionRulesRevisions(ctx, {
+        systemId: admission.state.gameSystemId,
+        campaignId: input.campaignId
+      }),
+      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+    })
+  }
+  if (input.request.kind === 'CLEAVING_RESPONSE') {
+    // A player's planner carries its admitted answer so the follow-up captures pass.
+    if (
+      input.expectedRole !== 'OWNER' &&
+      checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
+    )
+      throw new Error('Live Session action scope mismatch.')
+    const admission = await readCleavingResponseAdmission(ctx, {
+      ...input,
+      response: input.request.response
+    })
+    const response = {
+      kind: 'CLEAVING_RESPONSE' as const,
+      fingerprint: admission.fingerprint,
+      autoRollByActorId: admission.kind === 'READY' ? admission.autoRollByActorId : {},
+      snapshot: admission.kind === 'READY' ? admission.pending.snapshot : null,
+      result: admission.kind === 'REPLAY' ? admission.result : null
+    }
+    return liveSessionEncounterRulesResponseSchema.parse({
+      ...response,
+      revisions: await readLiveSessionRulesRevisions(ctx, {
+        systemId: admission.state.gameSystemId,
+        campaignId: input.campaignId
+      }),
+      readChecksum: checksumCanonicalJson({
+        input,
+        userId: input.expectedUserId,
+        response
+      })
+    })
+  }
   const scopeAdmission = await admitEncounterCaptureScope(ctx, input)
   const { userId, concentrationAdmission } = scopeAdmission
   if (input.request.kind === 'CONCENTRATION_RESPONSE') {
@@ -254,13 +325,21 @@ export async function readEncounterRulesCapture(
 /** Every request but the command admissions, which admit their own scope. */
 type OrdinaryEncounterRequest = Exclude<
   LiveSessionEncounterRulesRequest,
-  { kind: 'TURN_COMMAND' | 'CONCENTRATION_RESPONSE' | 'ACTION_COMMAND' | 'ACTION_RESPONSE' }
+  {
+    kind:
+      | 'TURN_COMMAND'
+      | 'CONCENTRATION_RESPONSE'
+      | 'ACTION_COMMAND'
+      | 'ACTION_RESPONSE'
+      | 'CLEAVING_RESPONSE'
+      | 'DISARM'
+  }
 >
 
 /** The request kinds a capture bundle reads after its admission, under the admission's scope. */
 type BundledEncounterRequest = Extract<
   LiveSessionEncounterRulesRequest,
-  { kind: 'INPUTS' | 'INITIATIVE_ROUND' | 'ACTOR' | 'MAINTENANCE_SLOT' }
+  { kind: 'INPUTS' | 'INITIATIVE_ROUND' | 'CLEAVING_BINDINGS' | 'ACTOR' | 'MAINTENANCE_SLOT' }
 >
 
 /**
@@ -284,7 +363,9 @@ export async function admitEncounterCaptureParts(
       parsed.kind === 'TURN_COMMAND' ||
       parsed.kind === 'CONCENTRATION_RESPONSE' ||
       parsed.kind === 'ACTION_COMMAND' ||
-      parsed.kind === 'ACTION_RESPONSE'
+      parsed.kind === 'ACTION_RESPONSE' ||
+      parsed.kind === 'CLEAVING_RESPONSE' ||
+      parsed.kind === 'DISARM'
     )
       throw new Error('A command admission admits its own scope.')
     return readOrdinaryEncounterCapture(ctx, { ...input, request: parsed }, admission)

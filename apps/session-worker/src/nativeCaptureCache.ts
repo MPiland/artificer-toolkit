@@ -17,6 +17,7 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { ROOM_LIMITS } from './roomLimits.js'
 
 /** One rules capture response, tagged with its route. */
@@ -174,6 +175,58 @@ export async function captureEncounterRules(
     : null
   if (written) captures?.write(written, { route: 'encounterRules', response })
   return { response, revisions: response.revisions }
+}
+
+/**
+ * One planner's Encounter captures under its admitted scope `initial`. Identical requests share
+ * one read, each response must answer its request's kind, and the observed revisions and read
+ * checksums accumulate for the commit fence.
+ */
+export function liveEncounterCaptures(
+  environment: NativeLiveSessionEnvironment,
+  accessToken: string,
+  initial: LiveSessionEncounterRulesInput,
+  captures: LiveCaptureReads | undefined
+) {
+  let revisions: LiveSessionRulesRevisions = []
+  const dependencies: Array<{ request: LiveSessionEncounterRulesRequest; readChecksum: string }> =
+    []
+  const reads = new Map<string, Promise<LiveSessionEncounterRulesResponse>>()
+  function capture<R extends LiveSessionEncounterRulesRequest>(
+    request: R
+  ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: R['kind'] }>> {
+    const key = checksumCanonicalJson(request)
+    let read = reads.get(key)
+    if (!read) {
+      read = (async () => {
+        const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
+        const captured = await captureEncounterRules(
+          environment,
+          accessToken,
+          input,
+          revisions,
+          captures
+        )
+        if (captured.response.kind !== request.kind)
+          throw new Error('Encounter capture kind mismatch.')
+        revisions = mergeNativeRulesRevisions(revisions, captured.revisions)
+        dependencies.push({ request: input.request, readChecksum: captured.response.readChecksum })
+        return captured.response
+      })()
+      reads.set(key, read)
+    }
+    // The kind check above narrows every stored read to its request's response.
+    return read as Promise<Extract<LiveSessionEncounterRulesResponse, { kind: R['kind'] }>>
+  }
+  return {
+    capture,
+    dependencies,
+    revisions: () => revisions,
+    /** Adds observations a planner read through another route (Character captures). */
+    observe(observed: LiveSessionRulesRevisions) {
+      revisions = mergeNativeRulesRevisions(revisions, observed)
+    }
+  }
 }
 
 async function captureBundle(

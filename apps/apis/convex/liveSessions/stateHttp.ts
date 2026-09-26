@@ -66,6 +66,21 @@ const encounterActionCommit = makeFunctionReference<'mutation', JsonObject, unkn
 const encounterConcentrationCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterConcentrationCommit:commit'
 )
+const encounterCleavingCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterCleavingCommit:commit'
+)
+const encounterDisarmPending = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterDisarm:commitPending'
+)
+const encounterDisarmCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterDisarm:commit'
+)
+const encounterVoidPrepare = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterVoid:prepare'
+)
+const encounterVoidRecord = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterVoid:record'
+)
 const encounterRoute = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/encounterRoute:route'
 )
@@ -155,6 +170,31 @@ export const encounterConcentrationCommitHttp = liveStateHttp(
   true,
   'Live Session concentration commit unavailable.',
   (ctx, input) => ctx.runMutation(encounterConcentrationCommit, input)
+)
+export const encounterCleavingCommitHttp = liveStateHttp(
+  true,
+  'Live Session Cleaving commit unavailable.',
+  (ctx, input) => ctx.runMutation(encounterCleavingCommit, input)
+)
+export const encounterDisarmPendingHttp = liveStateHttp(
+  true,
+  'Live Session pending Disarm unavailable.',
+  (ctx, input) => ctx.runMutation(encounterDisarmPending, input)
+)
+export const encounterDisarmCommitHttp = liveStateHttp(
+  true,
+  'Live Session Disarm commit unavailable.',
+  (ctx, input) => ctx.runMutation(encounterDisarmCommit, input)
+)
+export const encounterVoidPrepareHttp = liveStateHttp(
+  true,
+  'Live Session Encounter void unavailable.',
+  (ctx, input) => ctx.runMutation(encounterVoidPrepare, input)
+)
+export const encounterVoidRecordHttp = liveStateHttp(
+  true,
+  'Live Session Encounter void unavailable.',
+  (ctx, input) => ctx.runMutation(encounterVoidRecord, input)
 )
 export const encounterRouteHttp = liveStateHttp(
   true,

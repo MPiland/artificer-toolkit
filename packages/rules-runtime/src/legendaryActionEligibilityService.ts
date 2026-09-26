@@ -4,7 +4,14 @@ import {
 } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  serverPublishedRuleDefinitionDtoSchema,
+  type ServerPublishedRuleDefinitionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 export interface LegendaryActionEligibilitySource {
@@ -44,6 +51,8 @@ export interface LegendaryActionEligibilityAdapter {
   evaluate(input: {
     runtime: RulesRuntimeService
     occurrenceId: string
+    /** The source's pinned eligibility graph, read through the caller's authorized definitions. */
+    graph: ServerPublishedRuleDefinitionDto
     source: LegendaryActionEligibilitySource
     facts: LegendaryActionEligibilityFacts
   }): Promise<{
@@ -71,6 +80,7 @@ export function createLegendaryActionEligibilityService(
     TSource extends LegendaryActionEligibilitySource
   >(input: {
     runtime: RulesRuntimeService
+    definitions: CurrentReusableDefinitionSource
     occurrenceId: string
     candidates: readonly { source: TSource; facts: LegendaryActionEligibilityFacts }[]
   }): Promise<readonly EvaluatedLegendaryActionCandidate<TSource>[]> {
@@ -81,9 +91,29 @@ export function createLegendaryActionEligibilityService(
       }
       const adapter = adaptersBySystemId.get(entry.source.gameSystemId)
       if (!adapter) continue
+      const { lifecycle } = entry.source
+      const current = await input.definitions.requireCurrent(lifecycle.eligibilityGraphDefinitionId)
+      const graph = ruleGraphDefinitionDtoSchema.safeParse(current.document)
+      if (
+        !graph.success ||
+        current.id !== lifecycle.eligibilityGraphDefinitionId ||
+        current.gameSystemId !== entry.source.gameSystemId ||
+        current.version !== lifecycle.eligibilityGraphDefinitionVersion ||
+        current.checksum !== lifecycle.eligibilityGraphDefinitionChecksum ||
+        checksumRuleDocument(current.document) !== current.checksum
+      ) {
+        throw new Error('Legendary Action eligibility graph pin is stale.')
+      }
       const result = await adapter.evaluate({
         runtime: input.runtime,
         occurrenceId: input.occurrenceId,
+        graph: serverPublishedRuleDefinitionDtoSchema.parse({
+          id: current.id,
+          gameSystemId: current.gameSystemId,
+          definitionFamilyKey: current.definitionFamilyKey,
+          checksum: current.checksum,
+          definition: graph.data
+        }),
         ...entry
       })
       if (

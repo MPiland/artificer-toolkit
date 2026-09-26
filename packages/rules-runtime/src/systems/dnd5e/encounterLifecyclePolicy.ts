@@ -149,16 +149,21 @@ export const dnd5eLegendaryActionEligibilityAdapter: LegendaryActionEligibilityA
     if (!Number.isSafeInteger(input.facts.poolRemaining) || input.facts.poolRemaining < 0) {
       throw new Error('D&D Legendary Action pool is invalid.')
     }
-    const result = await input.runtime.execute({
-      definitionId: input.source.lifecycle.eligibilityGraphDefinitionId,
-      occurrenceId: input.occurrenceId,
-      facts: {
-        [DND5E_LEGENDARY_OUTGOING_ACTOR_DIFFERS_FACT_KEY]:
-          input.facts.outgoingActorId !== input.source.ownerActorId,
-        [DND5E_LEGENDARY_OWNER_CAN_ACT_FACT_KEY]: requireDnd5eActorActionAvailability(input.facts),
-        [DND5E_LEGENDARY_REMAINING_POOL_FACT_KEY]: input.facts.poolRemaining,
-        [DND5E_LEGENDARY_WINDOW_USED_FACT_KEY]: input.facts.windowUsed
-      }
+    const result = await input.runtime.executeResolved({
+      command: {
+        definitionId: input.source.lifecycle.eligibilityGraphDefinitionId,
+        occurrenceId: input.occurrenceId,
+        facts: {
+          [DND5E_LEGENDARY_OUTGOING_ACTOR_DIFFERS_FACT_KEY]:
+            input.facts.outgoingActorId !== input.source.ownerActorId,
+          [DND5E_LEGENDARY_OWNER_CAN_ACT_FACT_KEY]: requireDnd5eActorActionAvailability(
+            input.facts
+          ),
+          [DND5E_LEGENDARY_REMAINING_POOL_FACT_KEY]: input.facts.poolRemaining,
+          [DND5E_LEGENDARY_WINDOW_USED_FACT_KEY]: input.facts.windowUsed
+        }
+      },
+      published: input.graph
     })
     if (result.status !== 'COMPLETE') {
       throw new Error('Legendary Action eligibility policy may not request evidence.')

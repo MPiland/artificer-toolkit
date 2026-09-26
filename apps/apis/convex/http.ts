@@ -13,8 +13,13 @@ import {
   encounterTurnCommitHttp,
   encounterActionCommitHttp,
   encounterConcentrationCommitHttp,
+  encounterCleavingCommitHttp,
+  encounterDisarmPendingHttp,
+  encounterDisarmCommitHttp,
   encounterCommandHttp,
   encounterRouteHttp,
+  encounterVoidPrepareHttp,
+  encounterVoidRecordHttp,
   encounterRulesHttp,
   encounterBundleHttp,
   encounterMovementBeginHttp,
@@ -60,7 +65,12 @@ const liveSessionHandlers = {
   encounterTurnPending: encounterTurnPendingHttp,
   encounterTurnCommit: encounterTurnCommitHttp,
   encounterConcentrationCommit: encounterConcentrationCommitHttp,
+  encounterCleavingCommit: encounterCleavingCommitHttp,
+  encounterDisarmPending: encounterDisarmPendingHttp,
+  encounterDisarmCommit: encounterDisarmCommitHttp,
   encounterRoute: encounterRouteHttp,
+  encounterVoidPrepare: encounterVoidPrepareHttp,
+  encounterVoidRecord: encounterVoidRecordHttp,
   encounterCommand: encounterCommandHttp
 } satisfies Record<keyof typeof LIVE_SESSION_ROUTE_PATHS, PublicHttpAction>
 for (const [route, path] of Object.entries(LIVE_SESSION_ROUTE_PATHS))

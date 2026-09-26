@@ -1885,7 +1885,7 @@ it('sends a GM void of a presented movement decision through the room (D26)', as
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname !== '/live-sessions/encounter-route') return undefined
     routes.push(await request.json())
-    return Response.json({ route: 'MOVEMENT' })
+    return Response.json({ route: 'MOVEMENT', decline: null })
   })
   convex.begin = () =>
     Response.json(
@@ -1922,7 +1922,9 @@ it('sends a GM void of a presented movement decision through the room (D26)', as
     )
   )
   expect(routes).toEqual([
-    expect.objectContaining({ commandType: 'VOID_RULE_OCCURRENCE', encounterId })
+    expect.objectContaining({
+      command: expect.objectContaining({ type: 'VOID_RULE_OCCURRENCE', encounterId })
+    })
   ])
   expect(convex.begins).toEqual([expect.objectContaining({ command })])
 })
@@ -2920,7 +2922,7 @@ it('never hands a player an unredacted GM projection', async () => {
   expect(JSON.stringify(player.messages)).not.toContain('manualReminderMode')
 })
 
-it('asks Convex which planner owns a decision and follows a NATIVE route', async () => {
+it('asks Convex which planner owns a decision and records a GM void that declines nothing', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
   await vi.waitFor(() =>
@@ -2933,12 +2935,15 @@ it('asks Convex which planner owns a decision and follows a NATIVE route', async
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === '/live-sessions/encounter-route') {
       calls.push(pathname)
-      expect(await request.json()).toMatchObject({ encounterId, occurrenceId })
-      return Response.json({ route: 'NATIVE' })
+      expect(await request.json()).toMatchObject({ command: { encounterId, occurrenceId } })
+      return Response.json({ route: 'VOID', decline: null })
     }
-    if (pathname === '/live-sessions/encounter-command') {
+    if (pathname === '/live-sessions/encounter-void-prepare') {
       calls.push(pathname)
-      return Response.json(encounterResult(base.capture.campaignId, encounterId))
+      return Response.json({
+        kind: 'COMPLETE',
+        result: encounterResult(base.capture.campaignId, encounterId)
+      })
     }
     return undefined
   })
@@ -2949,14 +2954,12 @@ it('asks Convex which planner owns a decision and follows a NATIVE route', async
       command: {
         scope: 'ENCOUNTER',
         command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
+          type: 'VOID_RULE_OCCURRENCE',
           encounterId,
           commandId,
           expectedVersion: 3,
           occurrenceId,
-          expectedOccurrenceVersion: 1,
-          correlationId: null,
-          resolution: { kind: 'SYSTEM_ROLL', requestId: 'roll-1', rollId: crypto.randomUUID() }
+          expectedOccurrenceVersion: 1
         }
       }
     })
@@ -2968,9 +2971,8 @@ it('asks Convex which planner owns a decision and follows a NATIVE route', async
       )
     ).toBe(true)
   )
-  expect(calls).toEqual(['/live-sessions/encounter-route', '/live-sessions/encounter-command'])
+  expect(calls).toEqual(['/live-sessions/encounter-route', '/live-sessions/encounter-void-prepare'])
 })
-
 it('rejects a refused Encounter command with a generic code and no Convex detail', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))

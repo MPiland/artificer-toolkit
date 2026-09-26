@@ -403,8 +403,10 @@ remain with the calling backend; the wrapper does not introduce a store or anoth
 `rules-runtime/systems/dnd5e/optionalCombatActionSelection` owns the existing pure selection contract
 for optional actions. `rules-runtime/encounterActorOptionalContestContext` owns normalized Creature
 contest facts and the exact selected HELD-to-CARRIED transition. Functions keeps the existing locked
-target-map adapters; native Disarm uses these same pure helpers. Native preparation, participant
-authority, item/ACTION persistence and command replay remain in the Convex Encounter adapter.
+target-map adapters. `rules-runtime/encounterDisarmPreparation` owns Disarm's contest preparation
+(definition, selection facts, sealed contest), its success transition (`planEncounterDisarmSuccess`)
+and receipt outputs; the Session room plans with them and the Convex commit re-derives the item and
+ACTION changes with the same functions. Participant authority, persistence and replay stay in Convex.
 
 `rules-runtime/encounterCreatureEquipmentSources` owns the unchanged Equipment snapshot pinning,
 checksum validation and loadout binding checks. It accepts structural source/actor inputs without
@@ -1228,7 +1230,9 @@ exists only in a pending occurrence snapshot. Legendary Resistance and normalize
 pending. Legendary Action discovery is current: an immutable Creature Feature binds one exact
 Legendary lifecycle definition and eligibility graph, exact Feature-owned charge pool, and existing
 Feature action capabilities. The D&D adapter maps the generic UUID-backed actor-action capability state,
-completed-turn identity, remaining pool, and per-window usage through that pinned graph. Candidate
+completed-turn identity, remaining pool, and per-window usage through that pinned graph, which it reads
+through the caller's authorized definitions and executes resolved (the room's runtime has no definition
+source of its own). Candidate
 selection never branches on a Feature, condition, or action label, and retains deterministic
 actor/Feature/action order plus exact graph evidence.
 The first actor-neutral tracer is current: one reaction-neutral settlement core revalidates either a

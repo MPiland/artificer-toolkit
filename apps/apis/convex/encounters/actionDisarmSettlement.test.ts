@@ -12,8 +12,8 @@ import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-tool
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { createRulesRuntime } from '../rules/runtime'
-import { prepareNativeDisarm } from './actionDisarmPreparation'
-import { settleNativeDisarm } from './actionDisarmSettlement'
+import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
+import { settleDisarm } from './actionDisarmSettlement'
 
 async function settle(
   base: Awaited<ReturnType<typeof nativeDisarmFixture>>,
@@ -37,7 +37,7 @@ async function settle(
     const actor = actors.find((value) => value.id === base.actor.id)
     const target = actors.find((value) => value.id === base.target.id)
     if (!actor || !target) throw new Error('Missing Disarm participants.')
-    const preparation = await prepareNativeDisarm(ctx, {
+    const preparation = await prepareStoredDisarm(ctx, {
       state,
       actors,
       actor,
@@ -85,14 +85,17 @@ async function settle(
         }
       }
     })
-    const settled = await settleNativeDisarm(ctx, {
-      preparation: { ...preparation, contest },
-      execution,
+    const settled = await settleDisarm(ctx, {
+      state,
+      actor,
+      target,
+      contest,
+      rolls: execution,
+      actionEconomy: preparation.actionEconomy,
       occurrenceId,
       commandId: base.command.commandId,
       sourceCommandId: base.command.commandId,
       userId: base.owner.userId,
-      campaignOwnerUserId: base.owner.userId,
       occurredAt: new Date().toISOString()
     })
     expect(settled.applicationOutputs).toMatchObject({

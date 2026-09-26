@@ -45926,8 +45926,23 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          turnMovement: Array<{
+            actorId: string;
+            budget: number | null;
+            used: number;
+          }>;
           waitingOn: "GM" | "PLAYER" | null;
         }
+      >;
+      decisionSettlement: FunctionReference<
+        "query",
+        "public",
+        {
+          encounterId: string;
+          occurrenceId: string;
+          occurrenceVersion: number;
+        },
+        "ANSWER" | "GM_SKIP" | null
       >;
     };
     actorTokenBindings: {
@@ -73725,6 +73740,7 @@ export declare const internal: {
         "internal",
         {
           baseOrdinal: number | null;
+          movementCost?: number;
           perceptionEnvironments?: Array<{
             environment: {
               distance: number;
@@ -75364,6 +75380,7 @@ export declare const internal: {
         "internal",
         {
           baseOrdinal: number | null;
+          movementCost?: number;
           saveId: string;
           tokenOrdinals?: Array<{
             baseOrdinal: number | null;
@@ -75458,6 +75475,7 @@ export declare const internal: {
         "internal",
         {
           baseOrdinal: number | null;
+          movementCost?: number;
           saveId: string;
           tokenOrdinals?: Array<{
             baseOrdinal: number | null;
@@ -131597,6 +131615,7 @@ export declare const internal: {
         "internal",
         {
           baseOrdinal: number | null;
+          movementCost?: number;
           perceptionEnvironments?: Array<{
             environment: {
               distance: number;
