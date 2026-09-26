@@ -8,6 +8,14 @@
 
 _(none)_
 
+- **Q8: Encounter size cap.** Run creation allows at most 100 combatants (`MAX_ENCOUNTER_ACTORS`).
+  - **How it's tested:**
+    - One convex-test case proves the room's capture stays within Convex's limits at that cap. It runs in seconds and checks limits, not speed. It caught a failure that made every command in a large Encounter fail.
+    - Speed targets (V15) use the typical table: 5 players and 11 actors.
+  - **Recommendation:** keep 100 as the safety cap (Foundry and Roll20 have none; sieges and hordes happen) and keep testing at whatever the cap is.
+  - **Alternative:** lower the cap to 50. That's one constant, and the test follows it.
+  - **Answer:**
+
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
