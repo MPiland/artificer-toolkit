@@ -80,6 +80,9 @@ Next (8.2 core, in order):
      - A profiling and fix slice is running.
      - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
    - Test-suite speed (user-approved 2026-09-26, safest steps first). Each step must show identical coverage and results before the next begins.
+     0. Upgrade convex-test 0.0.56 → 0.0.60 as its own change. Skip 0.0.58, which lets Vitest stubs bypass the transaction guards.
+        - **Why:** accuracy, not speed. It adds real-backend guards (timers and `fetch` in transactions, args-validator shape), real request metadata (drop the `authJwks.test.ts` stub and test the 503 fallback), and fixes false scheduled-function hang errors.
+        - **Proof:** three suite runs per version (unshuffled, seeds 101 and 202) with identical test IDs and statuses; per-file counts of scheduled-function errors, "not supported in Convex queries or mutations", timer-restore and args-validator messages; and a per-file timing comparison.
      1. Measure per-file Convex suite timings (no code change). The suite is ~30 minutes because `apps/apis/vitest.config.ts` runs it serially: ~21 minutes of tests, ~8 minutes of per-file imports.
      2. Validation cadence: affected tests per slice; reset and reseed only when schema or seed data changes; full integration at checkpoints and the final R08 run.
      3. Parallelism.
