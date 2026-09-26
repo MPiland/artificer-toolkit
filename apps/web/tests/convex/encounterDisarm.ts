@@ -139,7 +139,7 @@ export async function verifyEncounterDisarmBrowser(
         ).toHaveCount(0)
         await expect(playerPage.getByLabel('Die 1', { exact: true })).toHaveCount(0)
         await expect(
-          playerPage.getByRole('button', { name: 'Submit physical roll', exact: true })
+          playerPage.getByRole('button', { name: 'Submit roll', exact: true })
         ).toHaveCount(0)
       },
       assertDefenderPending: async () => {
@@ -161,7 +161,7 @@ export async function verifyEncounterDisarmBrowser(
           await die.fill(String(face))
         }
         const count = commands.size
-        await page.getByRole('button', { name: 'Submit physical roll', exact: true }).click()
+        await page.getByRole('button', { name: 'Submit roll', exact: true }).click()
         const result = await waitForCommand(commands, count)
         if (result.command.type !== 'RESOLVE_RULE_OCCURRENCE')
           throw new Error('Decision drawer did not submit RESOLVE_RULE_OCCURRENCE.')

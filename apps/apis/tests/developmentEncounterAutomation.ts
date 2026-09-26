@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import type { ConvexHttpClient } from 'convex/browser'
 import {
   encounterCommandResultDtoSchema,
   encounterGmProjectionDtoSchema,
@@ -29,7 +30,7 @@ export async function verifyEncounterAutomation({
   policies,
   sceneFixture
 }: {
-  owner: DevelopmentClient
+  owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
   player: DevelopmentClient
   campaignId: string
   blueprint: EncounterBlueprintDto
@@ -75,7 +76,7 @@ export async function verifyEncounterAutomation({
   assert.equal(originalTokens.isDone, true)
   const previousPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.ok(previousPresentation)
-  await owner.mutation(api.scenes.presentations.set, {
+  await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,

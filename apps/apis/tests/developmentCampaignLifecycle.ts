@@ -1021,7 +1021,7 @@ export async function verifyCampaignLifecycle(input: {
     name: 'Native Campaign lifecycle Scene',
     options: sceneOptions
   })
-  const presentation = await owner.mutation(api.scenes.presentations.set, {
+  const presentation = await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId: campaign.id,

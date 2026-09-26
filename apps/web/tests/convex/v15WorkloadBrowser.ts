@@ -385,6 +385,13 @@ export async function openV15WorkloadBrowser(input: {
     }
     const [gm, ...peers] = clients
     if (!gm || peers.length !== 5) throw new Error('V15 browser cohort is incomplete.')
+    // GM previews are private by default; the workload measures previews the GM shares with players.
+    const sharePreviews = gm.page.getByRole('button', {
+      name: 'Show my previews to players',
+      exact: true
+    })
+    await sharePreviews.click()
+    await expect(sharePreviews).toHaveAttribute('aria-pressed', 'true')
     assert.equal(new Set(clients.map((client) => client.socketPath)).size, 1)
     const initialVersion = await sceneVersion(gm.page)
     for (const peer of peers) assert.equal(await sceneVersion(peer.page), initialVersion)
@@ -424,9 +431,10 @@ export async function openV15WorkloadBrowser(input: {
                 if (!synced()) return false
                 if (Date.now() >= nextPointerMoveAt) {
                   currentBounds = (await canvas.boundingBox()) ?? currentBounds
+                  // The room drops previews outside the Scene, so point at the fitted map's center.
                   await gm.page.mouse.move(
-                    currentBounds.x + 8 + (move++ % 2) * 8,
-                    currentBounds.y + 8
+                    currentBounds.x + currentBounds.width / 2 + (move++ % 2) * 8,
+                    currentBounds.y + currentBounds.height / 2
                   )
                   // Poll delivery between moves instead of blocking every poll on browser input.
                   nextPointerMoveAt = Date.now() + 1000
@@ -611,7 +619,8 @@ export async function openV15WorkloadBrowser(input: {
           'Preview must not commit a Scene move.'
         )
       },
-      async observeDurable(version: number, submittedAt: number): Promise<void> {
+      // From the committing command's acknowledgement to each peer's paint of the Scene version.
+      async observeDurable(version: number, committedAt: number): Promise<void> {
         const painted = await Promise.all(
           peers.map(async (peer) => {
             await expect(
@@ -628,7 +637,7 @@ export async function openV15WorkloadBrowser(input: {
             return (await timestamp())!
           })
         )
-        const perPeerMs = painted.map((value) => value - submittedAt)
+        const perPeerMs = painted.map((value) => value - committedAt)
         const slowestPeerMs = Math.max(...perPeerMs)
         durableMs.push(slowestPeerMs)
         durableSamples.push({ version, perPeerMs, slowestPeerMs })

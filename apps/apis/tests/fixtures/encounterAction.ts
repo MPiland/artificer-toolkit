@@ -1,5 +1,5 @@
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
-import { reactionBinding } from './movementReaction'
+import { reactionBinding } from './reactionBinding'
 
 export const automaticChargedCreatureId = '00000000-0000-4000-8000-0000000008a0'
 export const automaticChargedBiteFeatureId = '00000000-0000-4000-8000-0000000008a1'

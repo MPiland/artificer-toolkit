@@ -9,6 +9,9 @@ export async function verifyNotificationDelivery(input: {
   anonymous: ConvexHttpClient
   campaignId: string
   readDelivery: (sourcePublicIds: string[]) => Promise<unknown>
+  // The local deployment hands email to its loopback sink (MAIL_DELIVERY_MODE=local), which has no
+  // provider receipt; managed development queues it with Resend.
+  emailDelivery: 'LOCAL_SINK' | 'RESEND'
 }) {
   const { owner, recipient, anonymous, campaignId } = input
   const command = {
@@ -35,7 +38,7 @@ export async function verifyNotificationDelivery(input: {
         assert.ok('attemptCount' in state && state.attemptCount === (emailEnabled ? 1 : 0))
         assert.ok('feedRecorded' in state && state.feedRecorded === emailEnabled)
         assert.ok('providerEmailId' in state && 'providerStatus' in state)
-        if (emailEnabled) {
+        if (emailEnabled && input.emailDelivery === 'RESEND') {
           assert.equal(typeof state.providerEmailId, 'string')
           assert.ok(state.providerStatus === 'sent' || state.providerStatus === 'delivered')
         } else {

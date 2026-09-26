@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import type { ConvexHttpClient } from 'convex/browser'
 import type { FunctionReference } from 'convex/server'
 import {
   encounterCommandResultDtoSchema,
@@ -34,7 +35,7 @@ export async function verifyEncounterTransactions({
   rollback,
   concurrent
 }: {
-  owner: DevelopmentClient
+  owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
   player: DevelopmentClient
   ownerUserId: string
   playerUserId: string
@@ -134,7 +135,8 @@ export async function verifyEncounterTransactions({
   const bindings = await Promise.allSettled([
     concurrent('OWNER', bindScene, bindingInput),
     concurrent('OWNER', bindScene, competingBinding),
-    concurrent('OWNER', api.scenes.presentations.set, {
+    // A presentation change goes through the room while it is live, as the tabletop sends it.
+    owner.action(api.scenes.presentations.setLive, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
       campaignId,

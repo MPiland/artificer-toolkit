@@ -6,15 +6,14 @@ import {
   type Page
 } from '@playwright/test'
 import {
-  sceneGeometryExecuteInputSchema,
-  type SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import {
-  sceneUndoCommandResultSchema,
-  sceneUndoExecuteInputSchema,
-  type SceneUndoCommandResult,
-  type SceneUndoExecuteInput
-} from '@artificer-toolkit/schema/api/sceneUndo'
+  LIVE_SESSION_PATH_PREFIX,
+  liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema
+} from '@artificer-toolkit/schema/api/liveSessions'
+import type {
+  SceneCommandInputDto,
+  SceneCommandResultDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   captureDiagnostics,
@@ -61,7 +60,7 @@ export type EncounterMovementBrowserInput = {
   }
   reactor: { actorId: string; tokenId: string; actionId: string }
   evidenceDirectory: string
-  retryExactMovement: (command: SceneGeometryExecuteInput) => Promise<void>
+  retryExactMovement: (frame: RoomSceneCommandFrame) => Promise<void>
   retryExactUndo: (submission: EncounterMovementUndoSubmission) => Promise<void>
   readPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
   readPlayerPending: () => Promise<PendingEncounterRuleOccurrenceSummaryDto | null>
@@ -71,9 +70,15 @@ export type EncounterMovementBrowserInput = {
   revokePlayer: () => Promise<void>
 }
 
+/** A Scene command the tabletop sent through the Session room, with the sequence it carried. */
+export type RoomSceneCommandFrame = {
+  command: SceneCommandInputDto
+  expectedSessionSequence: number
+}
+
 export type EncounterMovementUndoSubmission = {
-  command: SceneUndoExecuteInput
-  result: SceneUndoCommandResult
+  command: RoomSceneCommandFrame
+  result: SceneCommandResultDto
 }
 
 type EncounterMovementBrowserResult = { globalDiagnostics: string[] }
@@ -90,9 +95,9 @@ export async function verifyEncounterMovementBrowser(
   let failure: string | undefined
   let owner: Page | undefined
   let player: Page | undefined
-  let movementCommand: SceneGeometryExecuteInput | undefined
-  let undoCommand: SceneUndoExecuteInput | undefined
-  let undoResult: SceneUndoCommandResult | undefined
+  let movementCommand: RoomSceneCommandFrame | undefined
+  let undoCommand: RoomSceneCommandFrame | undefined
+  let undoResult: SceneCommandResultDto | undefined
   let playerConvexSocketForDiagnostics: ConvexSocketTrace | undefined
   let pendingAtFailure: unknown
 
@@ -166,15 +171,19 @@ export async function verifyEncounterMovementBrowser(
         })
       })
     }
-    captureMovementCommand(player, (command) => {
-      movementCommand ??= command
+    // The tabletop sends moves and undo through the Session room (D42, D43).
+    captureRoomSceneCommands(player, {
+      command: (frame) => {
+        if (frame.command.type === 'MOVE_SCENE_TOKEN') movementCommand ??= frame
+      },
+      result: () => undefined
     })
-    captureUndoSubmission(owner, {
-      command: (command) => {
-        undoCommand ??= command
+    captureRoomSceneCommands(owner, {
+      command: (frame) => {
+        if (frame.command.type === 'UNDO_LAST_SCENE_MOVE') undoCommand ??= frame
       },
       result: (result) => {
-        undoResult ??= result
+        if (result.commandId === undoCommand?.command.commandId) undoResult ??= result
       }
     })
 
@@ -289,8 +298,8 @@ export async function verifyEncounterMovementBrowser(
     await expect.poll(() => undoResult).toBeDefined()
     if (!undoCommand || !undoResult)
       throw new Error('Browser did not expose the submitted undo command and result.')
-    expect(undoResult.commandId).toBe(undoCommand.input.commandId)
-    expect(undoResult.sceneId).toBe(undoCommand.input.sceneId)
+    expect(undoResult.commandId).toBe(undoCommand.command.commandId)
+    expect(undoResult.sceneId).toBe(undoCommand.command.sceneId)
     expect(undoResult.replayed).toBe(false)
     await Promise.all([
       expect(
@@ -466,10 +475,14 @@ async function resolveEvidence(
         await expect(secondDie).toBeVisible()
         await secondDie.fill(String(face))
       }
-      await page.getByRole('button', { name: 'Submit physical roll', exact: true }).click()
+      await page.getByRole('button', { name: 'Submit roll', exact: true }).click()
     } else if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
       await expect(page.getByLabel('Result', { exact: true })).toBeVisible()
-      await page.getByRole('button', { name: 'Roll in VTT', exact: true }).click()
+      // The app rolls the outcome; submitting keeps its faces.
+      await page.getByRole('button', { name: 'Roll dice', exact: true }).click()
+      const submit = page.getByRole('button', { name: 'Submit roll', exact: true })
+      await expect(submit).toBeEnabled()
+      await submit.click()
     } else {
       throw new Error(`Unexpected reaction evidence request: ${pending.kind}.`)
     }
@@ -541,91 +554,47 @@ async function traceConvexSocket(context: BrowserContext, page: Page): Promise<C
   return trace
 }
 
-function captureUndoSubmission(
+function captureRoomSceneCommands(
   page: Page,
   capture: {
-    command: (command: SceneUndoExecuteInput) => void
-    result: (result: SceneUndoCommandResult) => void
+    command: (frame: RoomSceneCommandFrame) => void
+    result: (result: SceneCommandResultDto) => void
   }
 ): void {
   page.on('websocket', (socket) => {
-    const url = new URL(socket.url())
-    if (url.origin === origin || !/^\/api\/[^/]+\/sync$/.test(url.pathname)) return
+    if (!new URL(socket.url()).pathname.startsWith(LIVE_SESSION_PATH_PREFIX)) return
     socket.on('framesent', ({ payload }) => {
-      const command = undoCommandFromFrame(payload.toString())
-      if (command) capture.command(command)
+      const message = liveSessionWebSocketClientMessageDtoSchema.safeParse(
+        parseFrame(payload.toString())
+      )
+      if (
+        message.success &&
+        message.data.type === 'COMMAND' &&
+        message.data.command.scope === 'SCENE'
+      )
+        capture.command({
+          command: message.data.command.command,
+          expectedSessionSequence: message.data.expectedSessionSequence
+        })
     })
     socket.on('framereceived', ({ payload }) => {
-      const result = undoResultFromFrame(payload.toString())
-      if (result) capture.result(result)
+      const message = liveSessionWebSocketServerMessageDtoSchema.safeParse(
+        parseFrame(payload.toString())
+      )
+      if (
+        message.success &&
+        message.data.type === 'COMMAND_COMMITTED' &&
+        message.data.delta?.scope === 'SCENE'
+      )
+        capture.result(message.data.delta.result)
     })
   })
 }
 
-function captureMovementCommand(
-  page: Page,
-  capture: (command: SceneGeometryExecuteInput) => void
-): void {
-  page.on('websocket', (socket) => {
-    const url = new URL(socket.url())
-    if (url.origin === origin || !/^\/api\/[^/]+\/sync$/.test(url.pathname)) return
-    socket.on('framesent', ({ payload }) => {
-      const command = movementCommandFromFrame(payload.toString())
-      if (command) capture(command)
-    })
-  })
-}
-
-function undoCommandFromFrame(frame: string): SceneUndoExecuteInput | null {
+function parseFrame(frame: string): unknown {
   try {
-    for (const value of nestedValues(JSON.parse(frame))) {
-      const parsed = sceneUndoExecuteInputSchema.safeParse(value)
-      if (parsed.success) return parsed.data
-    }
+    return JSON.parse(frame)
   } catch {
     return null
   }
-  return null
-}
-
-function undoResultFromFrame(frame: string): SceneUndoCommandResult | null {
-  try {
-    for (const value of nestedValues(JSON.parse(frame))) {
-      const parsed = sceneUndoCommandResultSchema.safeParse(value)
-      if (parsed.success) return parsed.data
-    }
-  } catch {
-    return null
-  }
-  return null
-}
-
-function movementCommandFromFrame(frame: string): SceneGeometryExecuteInput | null {
-  try {
-    for (const value of nestedValues(JSON.parse(frame))) {
-      const parsed = sceneGeometryExecuteInputSchema.safeParse(value)
-      if (parsed.success && parsed.data.input.type === 'MOVE_SCENE_TOKEN') return parsed.data
-    }
-  } catch {
-    return null
-  }
-  return null
-}
-
-function* nestedValues(value: unknown): Generator<unknown> {
-  yield value
-  if (typeof value === 'string') {
-    try {
-      yield* nestedValues(JSON.parse(value))
-    } catch {
-      return
-    }
-    return
-  }
-  if (Array.isArray(value)) {
-    for (const entry of value) yield* nestedValues(entry)
-    return
-  }
-  if (value && typeof value === 'object')
-    for (const entry of Object.values(value)) yield* nestedValues(entry)
 }

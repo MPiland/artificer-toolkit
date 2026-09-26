@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, resolve } from 'node:path'
@@ -136,27 +137,35 @@ function isExcluded(path) {
   return /\.(?:md|mdx)$/iu.test(path) || /\.(?:spec|stories|test)\.[^.]+$/iu.test(path)
 }
 
-async function collectFiles(path) {
-  const absolutePath = resolve(root, path)
-  if (!existsSync(absolutePath)) return []
-  const entries = await readdir(absolutePath, { withFileTypes: true })
-  const files = []
-  for (const entry of entries) {
-    const child = normalizePath(path + '/' + entry.name)
-    if (isExcluded(child)) continue
-    if (entry.isDirectory()) files.push(...(await collectFiles(child)))
-    else if (
-      entry.isFile() &&
-      (scannedExtensions.has(extname(entry.name)) ||
-        entry.name === '.dev.vars.example' ||
-        entry.name === '.env.example')
-    ) {
-      files.push(child)
+// The audited source is what git would ship (tracked and unignored untracked files), never ignored
+// local build or dev-server output such as apps/web/.netlify or storybook-static.
+function sourceInventory() {
+  const result = spawnSync(
+    'git',
+    ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024
     }
-  }
-  return files
+  )
+  if (result.status !== 0) throw new Error('Source inventory failed.')
+  return result.stdout.split('\0').filter(Boolean).map(normalizePath)
 }
 
+function collectFiles(inventory, path) {
+  return inventory.filter((child) => {
+    const name = child.slice(child.lastIndexOf('/') + 1)
+    return (
+      child.startsWith(path + '/') &&
+      !isExcluded(child) &&
+      existsSync(resolve(root, child)) &&
+      (scannedExtensions.has(extname(name)) ||
+        name === '.dev.vars.example' ||
+        name === '.env.example')
+    )
+  })
+}
 function sourceViolations(path, source) {
   const violations =
     extname(path) === '.sql'
@@ -253,12 +262,10 @@ async function audit() {
   const workspaceManifests = [...actualWorkspaces.keys()].map((path) => path + '/package.json')
   violations.push(...(await dependencyAudit(['package.json', ...workspaceManifests])))
 
+  const inventory = sourceInventory()
   const files = [
     ...rootConfigPaths.filter((path) => existsSync(resolve(root, path))),
-    ...(await collectFiles('apps')),
-    ...(await collectFiles('packages')),
-    ...(await collectFiles('netlify')),
-    ...(await collectFiles('scripts'))
+    ...['apps', 'packages', 'netlify', 'scripts'].flatMap((path) => collectFiles(inventory, path))
   ]
   const uniqueFiles = [...new Set(files)].sort()
   for (const path of uniqueFiles) {

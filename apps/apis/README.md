@@ -981,12 +981,25 @@ is server-only and read inside handlers. No staging variables were changed for t
 
 `tests/localR2.ts` provides the existing in-memory local protocol server. Its default binding is an
 ephemeral loopback port; a container may supply an explicit port and bind address while publishing
-that port only on host loopback. The local Convex container currently serves it on port 8026 so
+that port only on host loopback. The local Convex container serves it on port 8026 so
 Windows clients and backend Node actions reach the same fixture objects. Cloudflare enforcement
 and physical provider retention remain managed integration evidence.
 The test server permits browser CORS only from the two local app origins on port 3000; object
 operations retain the existing signature checks. Keep it running until scheduled fixture deletion
 passes the existing operation fence before restarting its in-memory storage.
+
+A container restart stops the fixture. Manage it with
+`pwsh -File scripts/localConvexFixtures.ps1 -Action start|status|stop`, which serves two container
+fixtures: this R2 substitute and an accept-and-discard email sink on container-only
+`127.0.0.1:8025/email`. The local deployment sets `MAIL_DELIVERY_MODE=local` and
+`LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`, so auth and notification email reach that sink
+from the backend's Node actions; it keeps no message. `start` is idempotent: it reuses fixtures that
+answer their health checks, otherwise copies `tests/localR2.ts` into `/tmp/artificer-local-fixtures`
+in `phase82-convex-local-linux` and runs both with the container's Node (type stripping) until
+healthy. `stop` ends only the process whose pid `start` recorded, which discards the in-memory
+objects. The script refuses a container that does not publish 8026 on `127.0.0.1` only, and reads no
+secret. `yarn validate:pre-staging:local` runs `start` before its first proof stage and leaves the
+fixtures running.
 
 The Sharp helper is Node-only and externalized in `convex.json`; the avatar save action uses it.
 Sharp must be called by a Node action, never a query/mutation or an HTTP action's
@@ -1035,7 +1048,14 @@ Worker health and browser CSP before creating fixtures.
 The existing `tests/developmentDrafts.ts` driver accepts `--encounter-action-contention` for the real
 native action transaction schedule; it reuses the existing account and Campaign fixture cleanup and its
 Campaign. Movement reaction response contention (V14.4) is proved in-process by
-`convex/scenes/movementResolution.test.ts`. These schedules are scoped V14 evidence.
+`convex/scenes/movementResolution.test.ts`, and on the real backend by
+`--encounter-reaction-contention` (`verifyEncounterReactionContention` in
+`tests/developmentEncounterCutover.ts`): the GM and the reacting actor's player answer each response
+step through the Session room at once, and the proof requires one winner and one refused loser per
+step, one reaction spend, one mechanics receipt and state-preserving retries of the winner, loser
+and root move. These schedules are scoped V14 evidence. The real-backend drivers send Encounter
+commands and Scene token moves, door changes and move undo through the Campaign's Session room
+(`DevelopmentHttpClient.executeSceneCommand`), never through `scenes/geometryActions:execute`.
 
 For the retained Windows backend setup,
 Its native dependency archive is renamed into local storage, so temporary files must use the same

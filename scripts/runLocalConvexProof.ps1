@@ -3,8 +3,8 @@ param(
   [Parameter(Mandatory)][ValidateSet(
     'encounter-blueprints', 'character-concurrency', 'notification-delivery', 'session-control',
     'campaign-inventory', 'equipment-capacity', 'equipment-character', 'publication', 'publication-class',
-    'publication-feat', 'publication-equipment', 'encounter-lifecycle',
-    'encounter-action-contention', 'campaign-item-producers', 'campaign-vehicle-producers',
+    'publication-feat', 'publication-equipment', 'encounter-lifecycle', 'encounter-action-contention',
+    'encounter-reaction-contention', 'campaign-item-producers', 'campaign-vehicle-producers',
     'campaign-inventory-read-probe', 'campaign-membership-custody', 'campaign-currency-lifecycle',
     'campaign-assignment-lifecycle', 'campaign-qualified-currency', 'campaign-custody-authored-delete',
     'auth-browser', 'profile-browser', 'recovery-browser', 'social-browser', 'account-entitlements',

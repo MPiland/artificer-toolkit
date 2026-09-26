@@ -45,14 +45,14 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   createDnd5eMovementReactionChoiceDefinition,
-  createDnd5eOpportunityReactionEligibilityDefinition,
-  DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
+  createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { api, components, internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { reactionBinding } from '../../tests/fixtures/reactionBinding'
 import {
   planMovementDecisionInRoom,
   planStagedMovementInRoom
@@ -83,14 +83,6 @@ const pendingRuleOccurrence = makeFunctionReference<
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
-
-const reactionBinding = {
-  kind: 'MOVEMENT' as const,
-  stage: 'BEFORE_LEAVE_REACH' as const,
-  perceptionRequirement: null,
-  eligibilityDefinitionId: DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
-  movementInterruption: null
-}
 
 async function addPlayer(base: Awaited<ReturnType<typeof readyCharacterFixture>>) {
   const user = await base.t.run(async (ctx) =>

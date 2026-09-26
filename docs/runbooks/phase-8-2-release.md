@@ -69,12 +69,20 @@ flowchart LR
    - The development drivers write their own browser output under
      `local-validation/local-convex-proofs/<topic>/`, for example
      `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder.
-   - The drivers send Encounter commands through the Session room, so the proof stages need the local
-     Worker. Before the first proof stage the runner starts the documented Worker once on
-     `127.0.0.1:8787` (refusing a port that is already in use), with its ticket, Worker and rules
-     continuation secrets read in memory from the local Convex deployment. It stops that Worker's
-     process tree before the VTT browser proof, which starts its own Worker, and after a failure.
-     Worker output goes to `local-session-worker.log` in the manifest folder.
+   - The drivers send Encounter commands, and Scene token moves, door changes and move undo, through
+     the Session room, as the tabletop does (D42, D43), so the proof stages need the local Worker.
+     Before the first proof stage the runner starts the documented Worker once on `127.0.0.1:8787`
+     (refusing a port that is already in use), with its ticket, Worker and rules continuation
+     secrets read in memory from the local Convex deployment. Before the first browser proof it
+     starts the web app on `localhost:3000` the same way, with the local application environment
+     and without the admin key. It stops both process trees before the VTT browser proof, which
+     starts its own Worker and web app, after a failure and at the end. Their output goes to
+     `local-session-worker.log` and `local-web-app.log` in the manifest folder.
+   - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action
+start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
+     (container-only) from the Convex container and leaves them running. The local deployment must
+     set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
+     [API README](../../apps/apis/README.md).
 
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only

@@ -952,6 +952,13 @@ complete browser journeys. The frozen V15 workload keeps the original thresholds
 at or below `150 ms`; durable browser p95 at or below `250 ms` and p99 at or below `500 ms`;
 authoritative completion at or below `1,000 ms`; Scene-only host p95 below `100 ms`; and rule-bound
 host p95 below `250 ms`. Managed verification runs only after the complete local lifecycle is green.
+The workload (`apps/apis/tests/developmentEncounterCutover.ts`) sends every command through the
+Session room from the member who controls its actor: the GM for the first actor, the five players for
+the rest (V15.3). Durable convergence runs from the committing command's acknowledgement (Convex has
+committed before the room acknowledges) to each player's Convex subscription delivery of that Run
+version, and in the browsers to each peer's paint of the Scene version. The last actor's turn
+provokes no reaction: eleven actors on two dispositions (D17) cannot each provoke a hostile reactor
+whose reaction resets before the next round needs it.
 The [Phase 8.2 acceptance ledger](../roadmap/08-2-convex-cutover-acceptance.md) controls acceptance.
 
 ## Historical boundary

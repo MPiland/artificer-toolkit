@@ -310,7 +310,7 @@ export async function verifyEncounterEffects({
         }
       })
       const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
-      await owner.mutation(api.scenes.presentations.set, {
+      await owner.action(api.scenes.presentations.setLive, {
         type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
         commandId: crypto.randomUUID(),
         campaignId,

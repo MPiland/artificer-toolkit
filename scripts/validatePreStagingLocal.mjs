@@ -27,6 +27,8 @@ const localSessionWorker = {
   ],
   selfManagedStage: 'r08-browser-vtt-browser'
 }
+// The browser proofs open the web app here; the VTT browser proof starts its own on the same port.
+const localWebApp = { port: 3000 }
 // Application secrets loaded from the local environment files; the Worker child does not receive them.
 const loadedEnvironmentNames = new Set()
 const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
@@ -425,44 +427,22 @@ function localPortInUse(host, port) {
   })
 }
 
-// Starts the documented local Worker once and returns a stop function that ends only its process tree.
-async function startLocalSessionWorker(artifactDirectory) {
-  const { allowedOrigins, host, port, secretNames } = localSessionWorker
-  if (await localPortInUse(host, port)) {
-    throw new Error(
-      `Port ${port} is in use; stop that process so the lifecycle can own the Worker.`
-    )
+// Starts a local dev server once on a free loopback port, waits for its health URL and returns a
+// stop function that ends only its process tree.
+async function startLocalService({
+  artifactDirectory,
+  environment,
+  healthUrl,
+  name,
+  port,
+  yarnArgs
+}) {
+  if ((await localPortInUse('127.0.0.1', port)) || (await localPortInUse('::1', port))) {
+    throw new Error(`Port ${port} is in use; stop that process so the lifecycle can own ${name}.`)
   }
-  const secrets = Object.fromEntries(
-    secretNames.map((name) => [name, localConvexEnvironmentValue(name)])
-  )
-  // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
-  const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
-  await writeFile(environmentFile, '')
-  const environment = { ...process.env }
-  for (const name of loadedEnvironmentNames) delete environment[name]
-  delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
-  delete environment.YARN_INJECT_ENVIRONMENT_FILES
-  Object.assign(environment, secrets, {
-    CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
-    CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
-    LIVE_SESSION_ALLOWED_ORIGINS: allowedOrigins
-  })
-  const logPath = resolve(artifactDirectory, 'local-session-worker.log')
+  const logPath = resolve(artifactDirectory, `local-${name}.log`)
   const log = createWriteStream(logPath, { flags: 'a' })
-  const [executable, args] = yarnSpawn([
-    'workspace',
-    '@artificer-toolkit/session-worker',
-    'dev',
-    '--env-file',
-    environmentFile,
-    '--ip',
-    host,
-    '--port',
-    String(port),
-    '--persist-to',
-    resolve(artifactDirectory, 'local-session-worker-state')
-  ])
+  const [executable, args] = yarnSpawn(yarnArgs)
   const child = spawn(executable, args, {
     cwd: root,
     env: environment,
@@ -487,7 +467,7 @@ async function startLocalSessionWorker(artifactDirectory) {
       })
     } else child.kill('SIGTERM')
   }
-  // A thrown lifecycle error must not leave the Worker running.
+  // A thrown lifecycle error must not leave the service running.
   process.once('exit', killTree)
   const stop = async () => {
     process.off('exit', killTree)
@@ -498,19 +478,101 @@ async function startLocalSessionWorker(artifactDirectory) {
   }
   const deadline = Date.now() + 5 * 60_000
   while (true) {
-    const ready = await fetch(`http://${host}:${port}/health`, {
-      signal: AbortSignal.timeout(2_000)
-    }).then(
+    const ready = await fetch(healthUrl, { signal: AbortSignal.timeout(2_000) }).then(
       (response) => response.ok,
       () => false
     )
-    if (ready) return { logPath, pid: child.pid, stop }
+    if (ready) return { log: basename(logPath), pid: child.pid, stop }
     if (!running || Date.now() > deadline) {
       await stop()
-      throw new Error(`The local Session Worker did not become ready; see ${logPath}.`)
+      throw new Error(`The local ${name} did not become ready; see ${logPath}.`)
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000))
   }
+}
+
+// The documented local Worker, with its secrets read in memory from the local Convex deployment.
+async function startLocalSessionWorker(artifactDirectory) {
+  const { allowedOrigins, host, port, secretNames } = localSessionWorker
+  const secrets = Object.fromEntries(
+    secretNames.map((name) => [name, localConvexEnvironmentValue(name)])
+  )
+  // Wrangler binds these from process.env; the empty env file keeps the ignored .dev.vars out.
+  const environmentFile = resolve(artifactDirectory, 'local-session-worker.env')
+  await writeFile(environmentFile, '')
+  const environment = { ...process.env }
+  for (const name of loadedEnvironmentNames) delete environment[name]
+  delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
+  delete environment.YARN_INJECT_ENVIRONMENT_FILES
+  Object.assign(environment, secrets, {
+    CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
+    CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
+    LIVE_SESSION_ALLOWED_ORIGINS: allowedOrigins
+  })
+  return startLocalService({
+    artifactDirectory,
+    environment,
+    healthUrl: `http://${host}:${port}/health`,
+    name: 'session-worker',
+    port,
+    yarnArgs: [
+      'workspace',
+      '@artificer-toolkit/session-worker',
+      'dev',
+      '--env-file',
+      environmentFile,
+      '--ip',
+      host,
+      '--port',
+      String(port),
+      '--persist-to',
+      resolve(artifactDirectory, 'local-session-worker-state')
+    ]
+  })
+}
+
+// The web app the browser proofs open at http://localhost:3000. Yarn injects the local application
+// environment, so Vite serves the local Convex, Worker and media URLs; it never sees the admin key.
+function startLocalWebApp(artifactDirectory) {
+  const environment = localChildEnvironment()
+  delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
+  return startLocalService({
+    artifactDirectory,
+    environment,
+    healthUrl: `http://localhost:${localWebApp.port}/`,
+    name: 'web-app',
+    port: localWebApp.port,
+    yarnArgs: [
+      'workspace',
+      '@artificer-toolkit/web',
+      'dev',
+      '--host',
+      'localhost',
+      '--port',
+      String(localWebApp.port),
+      '--strictPort'
+    ]
+  })
+}
+
+// Map uploads, browser proofs and local email delivery need the fixtures the Convex container serves
+// (scripts/localConvexFixtures.ps1: R2 substitute and email sink). Starting is idempotent; they stay
+// running afterwards because scheduled fixture deletions still reach them after the lifecycle ends.
+async function ensureLocalConvexFixtures(artifactDirectory) {
+  const logPath = resolve(artifactDirectory, 'local-convex-fixtures.log')
+  await run(
+    'pwsh.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-File',
+      'scripts/localConvexFixtures.ps1',
+      '-Action',
+      'start'
+    ],
+    { logPath }
+  )
+  return { log: basename(logPath), readyAt: new Date().toISOString() }
 }
 
 async function gitOutput(...args) {
@@ -666,6 +728,7 @@ const nativeProofModes = [
   'publication-equipment',
   'encounter-lifecycle',
   'encounter-action-contention',
+  'encounter-reaction-contention',
   'campaign-item-producers',
   'campaign-vehicle-producers',
   'campaign-inventory-read-probe',
@@ -1279,12 +1342,29 @@ async function main() {
     return null
   }
 
-  let sessionWorker = null
-  const stopSessionWorker = async () => {
-    if (!sessionWorker) return
-    await sessionWorker.stop()
-    sessionWorker = null
-    manifest.localSessionWorker.stoppedAt = new Date().toISOString()
+  // Proof stages need the local Worker, and browser proofs the web app. Each starts before the first
+  // stage that needs it and stops before the self-managed VTT proof, after a failure and at the end.
+  const localServices = [
+    {
+      key: 'localSessionWorker',
+      label: 'Session Worker',
+      needed: ({ proofName }) => Boolean(proofName),
+      start: startLocalSessionWorker
+    },
+    {
+      key: 'localWebApp',
+      label: 'web app',
+      needed: ({ name }) => name.startsWith('r08-browser-'),
+      start: startLocalWebApp
+    }
+  ]
+  const runningServices = new Map()
+  const stopLocalServices = async () => {
+    for (const [key, service] of runningServices) {
+      await service.stop()
+      manifest[key].stoppedAt = new Date().toISOString()
+    }
+    runningServices.clear()
   }
 
   for (let index = 0; index < selectedStages.length; ) {
@@ -1294,26 +1374,40 @@ async function main() {
       (current.name === 'convex-tests-1' && next?.name === 'convex-tests-2') ||
       (current.name === 'convex-tests-3' && next?.name === 'convex-tests-4')
     const batch = pair ? [current, next] : [current]
-    if (sessionWorker && batch.some(({ name }) => name === localSessionWorker.selfManagedStage)) {
-      await stopSessionWorker()
-    } else if (
-      !sessionWorker &&
-      batch.some(({ name, proofName }) => proofName && name !== localSessionWorker.selfManagedStage)
-    ) {
-      console.log('[pre-staging] Start the local Session Worker')
+    if (!manifest.localConvexFixtures && batch.some(({ proofName }) => proofName)) {
+      console.log('[pre-staging] Ensure the local Convex fixtures')
       try {
-        sessionWorker = await startLocalSessionWorker(artifactDirectory)
+        manifest.localConvexFixtures = await ensureLocalConvexFixtures(artifactDirectory)
       } catch (error) {
         manifest.completedAt = new Date().toISOString()
-        manifest.localSessionWorker = { error: error instanceof Error ? error.message : 'failed' }
+        manifest.localConvexFixtures = { error: error instanceof Error ? error.message : 'failed' }
         manifest.status = 'failed'
         await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
         throw error
       }
-      manifest.localSessionWorker = {
-        log: basename(sessionWorker.logPath),
-        pid: sessionWorker.pid,
-        startedAt: new Date().toISOString()
+    }
+    if (batch.some(({ name }) => name === localSessionWorker.selfManagedStage)) {
+      await stopLocalServices()
+    } else {
+      for (const service of localServices) {
+        if (runningServices.has(service.key) || !batch.some(service.needed)) continue
+        console.log(`[pre-staging] Start the local ${service.label}`)
+        try {
+          const started = await service.start(artifactDirectory)
+          runningServices.set(service.key, started)
+          manifest[service.key] = {
+            log: started.log,
+            pid: started.pid,
+            startedAt: new Date().toISOString()
+          }
+        } catch (error) {
+          await stopLocalServices()
+          manifest.completedAt = new Date().toISOString()
+          manifest[service.key] = { error: error instanceof Error ? error.message : 'failed' }
+          manifest.status = 'failed'
+          await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+          throw error
+        }
       }
     }
     const prepared = batch.map((stage) => {
@@ -1340,7 +1434,7 @@ async function main() {
     )
     const failures = results.filter(Boolean)
     if (failures.length > 0) {
-      await stopSessionWorker()
+      await stopLocalServices()
       manifest.completedAt = new Date().toISOString()
       manifest.status = 'failed'
     }
@@ -1356,7 +1450,7 @@ async function main() {
     }
     index += batch.length
   }
-  await stopSessionWorker()
+  await stopLocalServices()
 
   if (stopAfter) {
     try {

@@ -75,12 +75,10 @@ export async function verifyClassPublicationRaces({
               })
             )
           )
-    const results = await Promise.allSettled([publish(connected), parentOperation])
-    assert.equal(
-      results.filter((result) => result.status === 'fulfilled').length,
-      1,
-      `${mode}: exactly one conflicting mutation must commit.`
-    )
+    const [childPublication, parentResult] = await Promise.allSettled([
+      publish(connected),
+      parentOperation
+    ])
     const read = (draft: AuthoredDraftResult) =>
       owner.query(api.content.details.get, {
         subjectKind: 'CLASS',
@@ -88,7 +86,20 @@ export async function verifyClassPublicationRaces({
       })
     const childActive = authoredDetailResponseSchemas.CLASS.parse(await read(child))
     const baseActive = authoredDetailResponseSchemas.CLASS.parse(await read(base))
-    assert.equal(Boolean(childActive), baseActive?.item?.category === 'BASE')
+    assert.equal(Boolean(childActive?.item), childPublication.status === 'fulfilled')
+    if (mode === 'DELETE') {
+      // A published subclass cannot veto its parent's deletion; it keeps its parent reference and
+      // publishes only while that parent is live (ADR 0030).
+      assert.equal(parentResult.status, 'fulfilled', 'Parent deletion must commit.')
+      assert.equal(baseActive?.item ?? null, null)
+    } else {
+      assert.equal(
+        [childPublication, parentResult].filter((result) => result.status === 'fulfilled').length,
+        1,
+        'CONVERT: exactly one conflicting mutation must commit.'
+      )
+      assert.equal(Boolean(childActive?.item), baseActive?.item?.category === 'BASE')
+    }
 
     if (childActive) await owner.mutation(api.content.deletion.deleteActive, lookup(child))
     if (baseActive) await owner.mutation(api.content.deletion.deleteActive, lookup(base))
@@ -143,21 +154,9 @@ export async function verifyClassPublicationRaces({
         id: spell.publicId
       })
     )
-  const classBefore = await readClass()
   const spellBefore = await readSpell()
-  assert.ok(classBefore?.item)
   assert.ok(spellBefore?.item)
   assert.deepEqual(spellBefore.item.classIds, [base.subjectId])
-  await assert.rejects(
-    owner.mutation(api.content.deletion.deleteActive, {
-      subjectKind: 'CLASS',
-      subjectId: base.subjectId
-    }),
-    /referenced by published Spells/
-  )
-  assert.deepEqual(await readClass(), classBefore)
-  assert.deepEqual(await readSpell(), spellBefore)
-
   const workingSpell = authoredDraftDtoSchema.parse(
     await owner.mutation(api.content.drafts.save, {
       subjectKind: 'SPELL',
@@ -167,56 +166,39 @@ export async function verifyClassPublicationRaces({
       payload: { ...spell.payload, classIds: [base.subjectId] }
     })
   )
-  await owner.mutation(api.content.deletion.deleteActive, {
-    subjectKind: 'SPELL',
-    subjectId: spell.subjectId
-  })
-  const remainingSpell = authoredDraftDtoSchema.parse(
-    await owner.query(api.content.drafts.get, {
-      subjectKind: 'SPELL',
-      subjectId: spell.subjectId
-    })
-  )
-  if (!remainingSpell.updatedAt) throw new Error('Spell draft retention lost its revision.')
-  const publication = owner.mutation(
-    api.content.publication.publishDraft,
-    {
-      subjectKind: 'SPELL',
-      subjectId: workingSpell.subjectId,
-      expectedDraftUpdatedAt: remainingSpell.updatedAt
-    },
-    { skipQueue: true }
-  )
-  const deletion = owner.mutation(
-    api.content.deletion.deleteActive,
-    {
-      subjectKind: 'CLASS',
-      subjectId: base.subjectId
-    },
-    { skipQueue: true }
-  )
-  const race = await Promise.allSettled([publication, deletion])
+  if (!workingSpell.updatedAt)
+    throw new Error('Spell working draft save did not return its revision.')
+  // A published Spell cannot veto deleting its Class (ADR 0030): the deletion commits and the Spell
+  // keeps its reference. A republication racing it validates a live Class, so it commits only first.
+  const race = await Promise.allSettled([
+    owner.mutation(
+      api.content.publication.publishDraft,
+      {
+        subjectKind: 'SPELL',
+        subjectId: workingSpell.subjectId,
+        expectedDraftUpdatedAt: workingSpell.updatedAt
+      },
+      { skipQueue: true }
+    ),
+    owner.mutation(
+      api.content.deletion.deleteActive,
+      { subjectKind: 'CLASS', subjectId: base.subjectId },
+      { skipQueue: true }
+    )
+  ])
   assert.equal(
-    race[0]?.status,
+    race[1]?.status,
     'fulfilled',
-    'Spell publication must succeed when racing Class deletion.'
+    'Class deletion must commit despite a Spell reference.'
   )
-  const classAfter = await readClass()
+  assert.equal((await readClass())?.item ?? null, null)
   const spellAfter = await readSpell()
   assert.ok(spellAfter?.item)
-  const classExists = Boolean(classAfter?.item)
-  assert.equal(spellAfter.item.classIds.includes(base.subjectId), classExists)
-  assert.equal(race[1]?.status, classExists ? 'rejected' : 'fulfilled')
-  if (race[1]?.status === 'rejected')
-    assert.match(String(race[1].reason), /referenced by published Spells/)
+  assert.deepEqual(spellAfter.item.classIds, [base.subjectId])
+  if (race[0]?.status === 'rejected') assert.deepEqual(spellAfter, spellBefore)
   await owner.mutation(api.content.deletion.deleteActive, {
     subjectKind: 'SPELL',
     subjectId: spell.subjectId
   })
-  if (classAfter)
-    await owner.mutation(api.content.deletion.deleteActive, {
-      subjectKind: 'CLASS',
-      subjectId: base.subjectId
-    })
-  console.log('Managed Class parent races and Spell Class-reference deletion race passed.')
+  console.log('Managed Class parent races and retained Spell Class-reference deletion race passed.')
 }

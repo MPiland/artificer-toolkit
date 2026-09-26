@@ -140,7 +140,7 @@ const encounterBlueprintUpdate = makeFunctionReference<
 >('encounters/blueprints:update')
 const accounts: Array<{
   email: string
-  client?: ConvexHttpClient
+  client?: DevelopmentHttpClient
   session?: string
 }> = []
 const recoveryFixtures: string[] = []
@@ -1427,6 +1427,7 @@ try {
       recipient: recipient.client,
       anonymous: publicClient,
       campaignId: campaign.id,
+      emailDelivery: mode === 'local' ? 'LOCAL_SINK' : 'RESEND',
       readDelivery: (sourcePublicIds) =>
         cli(
           'notifications/development:readFixtureDelivery',
@@ -1689,7 +1690,7 @@ try {
           ]
         }
       })
-      const presentation = await gm.client.mutation(api.scenes.presentations.set, {
+      const presentation = await gm.client.action(api.scenes.presentations.setLive, {
         type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
         commandId: crypto.randomUUID(),
         campaignId: campaign.id,
@@ -2570,7 +2571,7 @@ try {
         ]
       }
     })
-    await owner.client.mutation(api.scenes.presentations.set, {
+    await owner.client.action(api.scenes.presentations.setLive, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
       campaignId: campaign.id,
@@ -2618,15 +2619,19 @@ try {
     process.argv.includes('--encounter-disarm') ||
     process.argv.includes('--encounter-disarm-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
-    process.argv.includes('--encounter-v15-preflight')
+    process.argv.includes('--encounter-v15-preflight') ||
+    process.argv.includes('--encounter-reaction-contention')
   ) {
     if (process.argv.includes('--encounter-v15-workload'))
       assert.equal(process.env.V15_BROWSER_PROOF, '1', 'Full V15 requires all six browser clients.')
     const owner = await createAuthor()
     const player = await createAuthor()
+    const reactionContention = process.argv.includes('--encounter-reaction-contention')
+    // The V15 workload and the V14.4 reaction race share the five-player, two-Campaign fixture.
     const workload =
       process.argv.includes('--encounter-v15-workload') ||
-      process.argv.includes('--encounter-v15-preflight')
+      process.argv.includes('--encounter-v15-preflight') ||
+      reactionContention
     const workloadPlayers = [player]
     if (workload) for (let index = 1; index < 5; index++) workloadPlayers.push(await createAuthor())
     const characterId = crypto.randomUUID()
@@ -3191,10 +3196,16 @@ try {
               import.meta.url
             )
           ),
-          retryExactMovement: async (command) => {
+          // Exact retries repeat the tabletop's room frame, whose receipt the room replays.
+          retryExactMovement: async (frame) => {
             const before = await readMovementState()
-            const replay = await player.client.action(api.scenes.geometryActions.execute, command)
-            assert.equal(replay.replayed, true)
+            const { result: replay } = await player.client.executeSceneCommand(
+              frame.command,
+              { expectedPresentationVersion: fixture.presentation.version },
+              frame.expectedSessionSequence
+            )
+            // The room answers an exact retry with its stored receipt.
+            assert.equal(replay?.commandId, frame.command.commandId)
             assert.deepEqual(
               await readMovementState(),
               before,
@@ -3203,8 +3214,12 @@ try {
           },
           retryExactUndo: async (submission) => {
             const before = await readMovementState()
-            const replay = await owner.client.action(api.scenes.undo.execute, submission.command)
-            assert.deepEqual(replay, { ...submission.result, replayed: true })
+            const { result: replay } = await owner.client.executeSceneCommand(
+              submission.command.command,
+              { expectedPresentationVersion: fixture.presentation.version },
+              submission.command.expectedSessionSequence
+            )
+            assert.deepEqual(replay, submission.result)
             assert.deepEqual(
               await readMovementState(),
               before,
@@ -3543,10 +3558,16 @@ try {
               throw new Error('Reaction geometry snapshot is unavailable.')
             if (!completedMovement) throw new Error('Completed movement snapshot is unavailable.')
             const after = await readMovementState()
-            assert.equal(submission.result.delta.tokenId, fixture.mover.tokenId)
+            const delta = submission.result.delta
+            const undone = (delta?.kind === 'BATCH' ? delta.deltas : [delta]).find(
+              (entry) => entry?.kind === 'TOKEN_MOVE_UNDONE'
+            )
+            if (undone?.kind !== 'TOKEN_MOVE_UNDONE')
+              throw new Error('The room undo result has no token move undo.')
+            assert.equal(undone.tokenId, fixture.mover.tokenId)
             assert.equal(submission.result.version, completedMovement.ownerToken.header.version + 1)
-            assert.deepEqual(after.ownerToken.token.position, submission.result.delta.position)
-            assert.deepEqual(after.playerToken.token.position, submission.result.delta.position)
+            assert.deepEqual(after.ownerToken.token.position, undone.position)
+            assert.deepEqual(after.playerToken.token.position, undone.position)
             assert.deepEqual(after.ownerToken.token, reactionIssuedMovement.ownerToken.token)
             assert.deepEqual(after.playerToken.token, reactionIssuedMovement.playerToken.token)
             assert.equal(after.ownerToken.header.version, submission.result.version)
@@ -3597,37 +3618,60 @@ try {
           subjectId: workloadDraft.subjectId,
           expectedDraftUpdatedAt: workloadDraft.updatedAt
         })
-        const workloadPeer = new DevelopmentHttpClient(deploymentUrl.origin, { logger: false })
-        const workloadToken = await owner.fetchToken()
-        owner.client.setAuth(workloadToken)
-        workloadPeer.setAuth(workloadToken)
-        const { verifyEncounterCutoverWorkload } = await import('./developmentEncounterCutover')
-        const workloadResult = await verifyEncounterCutoverWorkload({
-          owner: owner.client,
-          peer: workloadPeer,
-          deploymentUrl: deploymentUrl.origin,
-          playerFetchTokens: workloadPlayers.map(({ fetchToken }) => fetchToken),
-          playerUserIds: workloadPlayers.map(({ identity }) => identity.userId),
-          campaignId: campaign.id,
-          independentCampaignId,
-          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
-          creatureId: workloadDraft.subjectId,
-          browserAccounts:
-            process.env.V15_BROWSER_PROOF === '1'
-              ? {
-                  owner: { email: owner.email, password: owner.password, username: owner.username },
-                  players: workloadPlayers.map(({ email, password, username }) => ({
-                    email,
-                    password,
-                    username
-                  })),
-                  campaignPublicId: campaign.publicId,
-                  evidenceDirectory: process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY
-                }
-              : undefined,
-          preflightOnly: process.argv.includes('--encounter-v15-preflight')
-        })
-        console.log(`V15 native workload: ${JSON.stringify(workloadResult)}`)
+        // Each member keeps its Session rooms open for the whole workload, as a tabletop tab does.
+        const workloadClient = () =>
+          new DevelopmentHttpClient(deploymentUrl.origin, { logger: false, holdRooms: true })
+        const workloadMembers = {
+          gm: {
+            owner: workloadClient(),
+            peer: workloadClient(),
+            userId: owner.identity.userId,
+            fetchToken: owner.fetchToken
+          },
+          players: workloadPlayers.map(({ identity, fetchToken }) => ({
+            client: workloadClient(),
+            userId: identity.userId,
+            fetchToken
+          }))
+        }
+        const { verifyEncounterCutoverWorkload, verifyEncounterReactionContention } =
+          await import('./developmentEncounterCutover')
+        if (reactionContention)
+          await verifyEncounterReactionContention({
+            ...workloadMembers,
+            campaignId: campaign.id,
+            initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+            creatureId: workloadDraft.subjectId
+          })
+        else {
+          const workloadResult = await verifyEncounterCutoverWorkload({
+            ...workloadMembers,
+            deploymentUrl: deploymentUrl.origin,
+            campaignId: campaign.id,
+            independentCampaignId,
+            initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+            creatureId: workloadDraft.subjectId,
+            browserAccounts:
+              process.env.V15_BROWSER_PROOF === '1'
+                ? {
+                    owner: {
+                      email: owner.email,
+                      password: owner.password,
+                      username: owner.username
+                    },
+                    players: workloadPlayers.map(({ email, password, username }) => ({
+                      email,
+                      password,
+                      username
+                    })),
+                    campaignPublicId: campaign.publicId,
+                    evidenceDirectory: process.env.CAMPAIGN_CUSTODY_EVIDENCE_DIRECTORY
+                  }
+                : undefined,
+            preflightOnly: process.argv.includes('--encounter-v15-preflight')
+          })
+          console.log(`V15 native workload: ${JSON.stringify(workloadResult)}`)
+        }
       }
       if (process.argv.includes('--encounter-cutover')) {
         if (!result) throw new Error('Encounter cutover requires the lifecycle fixture.')
@@ -4090,7 +4134,7 @@ try {
     assert.ok(scopeCreatedAt >= start && scopeCreatedAt <= end)
     const roles = ['owner', 'player', 'outsider', 'invitee'] as const
     const restored: Array<{
-      client: ConvexHttpClient
+      client: DevelopmentHttpClient
       email: string
       session: string
       userId: string

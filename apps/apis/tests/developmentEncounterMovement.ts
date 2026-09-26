@@ -8,7 +8,7 @@ import { api } from '../convex/_generated/api.js'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { bindScene, bindToken } from './developmentEncounterLifecycle'
 import { createEncounterLifecycleScene } from './developmentEncounterScenes'
-import { reactionBinding } from './fixtures/movementReaction'
+import { reactionBinding } from './fixtures/reactionBinding'
 
 type ActionClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
 type MovementScenario = 'REACTION' | 'PASSAGE'
@@ -198,7 +198,7 @@ export async function prepareEncounterMovementFixture({
     characterId: playerCharacterId
   })
   const currentPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
-  const presentation = await owner.mutation(api.scenes.presentations.set, {
+  const presentation = await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,
@@ -223,6 +223,13 @@ export async function prepareEncounterMovementFixture({
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === playerCharacterId
   )
   if (!reactor || !mover) throw new Error('Movement reaction fixture actors are unavailable.')
+  // Bind before START opens the Session room: Convex refuses a binding to the presented Scene while
+  // the room owns it (sceneBindings:bind), and no room route binds one yet.
+  await owner.mutation(bindScene, {
+    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+    encounterId: created.id,
+    commandId: crypto.randomUUID()
+  })
   let started = await owner.mutation(executeEncounterCommand, {
     command: {
       type: 'START',
@@ -270,11 +277,6 @@ export async function prepareEncounterMovementFixture({
       }
     })
   }
-  await owner.mutation(bindScene, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    encounterId: created.id,
-    commandId: crypto.randomUUID()
-  })
   let run = await owner.query(api.encounters.projectionReads.get, { encounterId: created.id })
   for (const [actorId, tokenId] of [
     [reactor.id, reactorTokenId],

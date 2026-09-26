@@ -98,7 +98,7 @@ async function fixtureRun(ctx: QueryCtx | MutationCtx, args: z.infer<typeof fixt
   return { campaign, run, presentation }
 }
 
-/** Exact owner-only proof of a completed reaction in a reserved development fixture. */
+/** Owner-only proof of a completed reaction, issued by fixture members, in a reserved development fixture. */
 export const movementReactionDamage = query({
   args: {
     campaignId: v.string(),
@@ -139,13 +139,21 @@ export const movementReactionDamage = query({
       root.id === terminal.id ||
       root.campaignId !== campaign.id ||
       terminal.campaignId !== campaign.id ||
-      root.actorUserId !== userId ||
-      terminal.actorUserId !== userId ||
       root.commandType !== 'MOVE_SCENE_TOKEN' ||
       terminal.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
       root.occurrenceId !== terminal.occurrenceId
     )
       throw new Error('Fixture movement receipt lineage is unavailable.')
+    // Players issue the commands for the actors they control, so each actor is a fixture member.
+    for (const actorUserId of new Set([root.actorUserId, terminal.actorUserId])) {
+      const membership = await ctx.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', campaign.id).eq('userId', actorUserId)
+        )
+        .unique()
+      if (!membership) throw new Error('Fixture movement receipt lineage is unavailable.')
+    }
     const occurrence = await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_publicId', (q) => q.eq('id', root.occurrenceId))

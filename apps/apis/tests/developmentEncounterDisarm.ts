@@ -284,7 +284,7 @@ export async function verifyEncounterDisarm({
       }
     })
     const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
-    await owner.mutation(api.scenes.presentations.set, {
+    await owner.action(api.scenes.presentations.setLive, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
       campaignId,
@@ -448,7 +448,8 @@ export async function verifyEncounterDisarm({
       resolution: {
         kind: 'ENTER_DICE',
         requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face]
+        rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
+        rollMode: pending.request.rollMode
       }
     }
   }
@@ -483,7 +484,11 @@ export async function verifyEncounterDisarm({
         command: {
           ...first,
           commandId: crypto.randomUUID(),
-          resolution: { kind: 'SYSTEM_ROLL', requestId: 'stale-request' }
+          resolution: {
+            kind: 'SYSTEM_ROLL',
+            requestId: 'stale-request',
+            rollId: crypto.randomUUID()
+          }
         }
       }),
       /stale/

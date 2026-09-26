@@ -20,7 +20,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import {
   executeInRoom,
@@ -499,6 +499,12 @@ describe('room movement response publication', () => {
     const committed = final.runs[0]!.version - reactionStart.runs[0]!.version
     expect(committed).toBeGreaterThan(0)
     expect(final.commands.length - reactionStart.commands.length).toBe(committed)
+    // The timeline re-parses every stored receipt against its checksum.
+    const timeline = await owner.caller.query(api.encounters.timelineReads.timeline, {
+      encounterId: run.id,
+      limit: 100
+    })
+    expect(timeline.entries.map((entry) => entry.version)).toContain(final.runs[0]!.version)
     await expect(rootPlan.publish()).resolves.toMatchObject({
       occurrence: { status: 'COMPLETE', pending: null }
     })

@@ -53,17 +53,16 @@ export async function verifyEquipmentPublicationRaces({
     label: copied.label,
     payload: { ...copied.payload, parentEquipmentId: base.subjectId }
   })
-  const results = await Promise.allSettled([
+  // A variant cannot veto its parent's deletion (ADR 0030): the deletion commits, and the variant is
+  // published only if its publication, which requires a live parent, committed first.
+  const [publication, deletion] = await Promise.allSettled([
     publish(child),
     owner.mutation(api.content.deletion.deleteActive, lookup(base), { skipQueue: true })
   ])
-  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1)
+  assert.equal(deletion.status, 'fulfilled', 'Parent deletion must commit.')
   const [baseActive, childActive] = await Promise.all([read(base), read(child)])
-  assert.equal(
-    Boolean(baseActive),
-    Boolean(childActive),
-    'No published variant may outlive its deleted parent.'
-  )
+  assert.equal(baseActive?.item ?? null, null)
+  assert.equal(Boolean(childActive?.item), publication.status === 'fulfilled')
   if (childActive) await owner.mutation(api.content.deletion.deleteActive, lookup(child))
   if (baseActive) await owner.mutation(api.content.deletion.deleteActive, lookup(base))
   for (const draft of [child, base])
@@ -127,16 +126,21 @@ export async function verifyEquipmentPublicationRaces({
   })
   await assert.rejects(publish(cycle), /cycle/i)
   assert.deepEqual(await owner.query(api.content.drafts.get, lookup(cycle)), cycle)
-  await assert.rejects(
-    owner.mutation(api.content.deletion.deleteActive, lookup(parent)),
-    /published variants/
+  // Deleting the parent keeps its published variants unchanged.
+  await owner.mutation(api.content.deletion.deleteActive, lookup(parent))
+  assert.equal((await read(parent))?.item ?? null, null)
+  assert.deepEqual(
+    (await Promise.all(descendants.map(read))).map((detail) => detail?.item),
+    after.map((detail) => detail?.item)
   )
-  for (const draft of [...descendants].reverse().concat(parent)) {
+  if (await owner.query(api.content.drafts.get, lookup(parent)))
+    await owner.mutation(api.content.drafts.discard, lookup(parent))
+  for (const draft of [...descendants].reverse()) {
     await owner.mutation(api.content.deletion.deleteActive, lookup(draft))
     if (await owner.query(api.content.drafts.get, lookup(draft)))
       await owner.mutation(api.content.drafts.discard, lookup(draft))
   }
   console.log(
-    'Managed Equipment parent deletion race, variant chain, current-parent replacement, draft isolation and cycle rejection passed; derived mechanics are covered by the local compilation tests.'
+    'Managed Equipment parent deletion race, retained variant chain, current-parent replacement, draft isolation and cycle rejection passed; derived mechanics are covered by the local compilation tests.'
   )
 }

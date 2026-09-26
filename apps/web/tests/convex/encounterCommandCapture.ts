@@ -1,10 +1,13 @@
 import { expect as playwrightExpect, type Page } from '@playwright/test'
 import {
-  encounterCommandResultDtoSchema,
-  encounterExecuteInputSchema,
-  type EncounterCommandResultDto,
-  type ResolveEncounterActionInputDto,
-  type ResolveRuleOccurrenceInputDto
+  LIVE_SESSION_PATH_PREFIX,
+  liveSessionWebSocketClientMessageDtoSchema,
+  liveSessionWebSocketServerMessageDtoSchema
+} from '@artificer-toolkit/schema/api/liveSessions'
+import type {
+  EncounterCommandResultDto,
+  ResolveEncounterActionInputDto,
+  ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 
 const expect = playwrightExpect.configure({ timeout: 90_000 })
@@ -15,6 +18,11 @@ export type CapturedEncounterCommand = {
   error?: string
 }
 
+/**
+ * Records the Encounter actions and decision answers a page sends through its Session room socket
+ * (the only door for Encounter commands), with the room's result or refusal, and Convex query
+ * failures from its sync socket.
+ */
 export function captureEncounterCommands(
   page: Page,
   diagnostics: string[],
@@ -23,82 +31,68 @@ export function captureEncounterCommands(
   const commands = new Map<string, CapturedEncounterCommand>()
   page.on('websocket', (socket) => {
     const url = new URL(socket.url())
-    if (!/^\/api\/[^/]+\/sync$/.test(url.pathname)) return
-    const requests = new Map<string, CapturedEncounterCommand>()
-    socket.on('framesent', ({ payload }) => {
-      const message: unknown = JSON.parse(payload.toString())
-      if (
-        !message ||
-        typeof message !== 'object' ||
-        !('type' in message) ||
-        (message.type !== 'Mutation' && message.type !== 'Action') ||
-        !('udfPath' in message) ||
-        (message.type === 'Mutation'
-          ? message.udfPath !== 'encounters/commands:execute'
-          : message.udfPath !== 'encounters/commandActions:execute') ||
-        !('requestId' in message) ||
-        typeof message.requestId !== 'number' ||
-        !('args' in message) ||
-        !Array.isArray(message.args)
-      )
-        return
-      const parsed = encounterExecuteInputSchema.safeParse(message.args[0])
-      if (
-        !parsed.success ||
-        (parsed.data.command.type !== 'RESOLVE_ACTION' &&
-          parsed.data.command.type !== 'RESOLVE_RULE_OCCURRENCE')
-      )
-        return
-      if (
-        message.type === 'Mutation'
-          ? parsed.data.command.type !== 'RESOLVE_ACTION'
-          : parsed.data.command.type !== 'RESOLVE_RULE_OCCURRENCE'
-      )
-        return
-      const captured = commands.get(parsed.data.command.commandId) ?? {
-        command: parsed.data.command
-      }
-      commands.set(parsed.data.command.commandId, captured)
-      requests.set(message.type + 'Response:' + message.requestId, captured)
-    })
-    socket.on('framereceived', ({ payload }) => {
-      const message: unknown = JSON.parse(payload.toString())
-      if (!message || typeof message !== 'object') return
-      if (
-        'type' in message &&
-        (message.type === 'MutationResponse' || message.type === 'ActionResponse') &&
-        'requestId' in message &&
-        typeof message.requestId === 'number'
-      ) {
-        const captured = requests.get(message.type + ':' + message.requestId)
-        if (!captured || !('result' in message)) return
-        if ('success' in message && message.success === true) {
-          const parsed = encounterCommandResultDtoSchema.safeParse(message.result)
-          if (parsed.success) captured.result = parsed.data
-          else captured.error = 'Encounter response did not match its shared DTO.'
-        } else
-          captured.error =
-            typeof message.result === 'string' ? message.result : 'Encounter command failed.'
-      }
-      if ('modifications' in message && Array.isArray(message.modifications)) {
-        const modifications: unknown[] = message.modifications
-        for (const modification of modifications) {
-          if (
-            modification &&
-            typeof modification === 'object' &&
-            'type' in modification &&
-            modification.type === 'QueryFailed' &&
-            'errorMessage' in modification &&
-            typeof modification.errorMessage === 'string'
-          )
-            diagnostics.push(stage() + ': ' + modification.errorMessage)
+    if (url.pathname.startsWith(LIVE_SESSION_PATH_PREFIX)) {
+      socket.on('framesent', ({ payload }) => {
+        const message = liveSessionWebSocketClientMessageDtoSchema.safeParse(
+          parseFrame(payload.toString())
+        )
+        if (
+          !message.success ||
+          message.data.type !== 'COMMAND' ||
+          message.data.command.scope !== 'ENCOUNTER'
+        )
+          return
+        const command = message.data.command.command
+        if (command.type !== 'RESOLVE_ACTION' && command.type !== 'RESOLVE_RULE_OCCURRENCE') return
+        if (!commands.has(command.commandId)) commands.set(command.commandId, { command })
+      })
+      socket.on('framereceived', ({ payload }) => {
+        const message = liveSessionWebSocketServerMessageDtoSchema.safeParse(
+          parseFrame(payload.toString())
+        )
+        if (!message.success) return
+        if (
+          message.data.type === 'COMMAND_COMMITTED' &&
+          message.data.delta?.scope === 'ENCOUNTER'
+        ) {
+          const captured = commands.get(message.data.commandId)
+          if (captured) captured.result = message.data.delta.result
+        } else if (message.data.type === 'COMMAND_REJECTED') {
+          const captured = commands.get(message.data.commandId)
+          if (captured) captured.error = `${message.data.code}: ${message.data.message}`
         }
+      })
+      return
+    }
+    if (!/^\/api\/[^/]+\/sync$/.test(url.pathname)) return
+    socket.on('framereceived', ({ payload }) => {
+      const message = parseFrame(payload.toString())
+      if (!message || typeof message !== 'object' || !('modifications' in message)) return
+      if (!Array.isArray(message.modifications)) return
+      const modifications: unknown[] = message.modifications
+      for (const modification of modifications) {
+        if (
+          modification &&
+          typeof modification === 'object' &&
+          'type' in modification &&
+          modification.type === 'QueryFailed' &&
+          'errorMessage' in modification &&
+          typeof modification.errorMessage === 'string'
+        )
+          diagnostics.push(stage() + ': ' + modification.errorMessage)
       }
     })
   })
   return commands
 }
 
+function parseFrame(frame: string): unknown {
+  try {
+    return JSON.parse(frame)
+  } catch {
+    return null
+  }
+}
 export async function waitForCommand(
   commands: Map<string, CapturedEncounterCommand>,
   priorCount: number

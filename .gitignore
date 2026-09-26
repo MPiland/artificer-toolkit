@@ -17,6 +17,7 @@ storybook-static/
 # Local tool state and generated test artifacts
 .netlify/
 .codex/
+.claude/worktrees/
 /local-validation/
 .corepack/
 .impeccable/review/

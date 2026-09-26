@@ -30,10 +30,10 @@ import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/r
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   createDnd5eMovementReactionChoiceDefinition,
-  createDnd5eOpportunityReactionEligibilityDefinition,
-  DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
+  createDnd5eOpportunityReactionEligibilityDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { fixture } from './characters'
+import { reactionBinding } from './reactionBinding'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { api, internal } from '../../convex/_generated/api'
@@ -52,13 +52,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const reactionBinding = {
-  kind: 'MOVEMENT' as const,
-  stage: 'BEFORE_LEAVE_REACH' as const,
-  perceptionRequirement: null,
-  eligibilityDefinitionId: DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
-  movementInterruption: null
-}
 
 const conditionCreatureId = '00000000-0000-4000-8000-0000000009a0'
 const conditionFeatureId = '00000000-0000-4000-8000-0000000009a1'

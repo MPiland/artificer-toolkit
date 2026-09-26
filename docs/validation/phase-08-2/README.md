@@ -13,6 +13,11 @@ One summary per gate gives each case's status, acceptance date, proof tier, crit
 - [Gate 5 — Cutover and release](gate-5-cutover-release.md)
 - [Gate readiness review, 2026-09-25](gate-readiness-2026-09-25.md): four passes (2026-09-25 to 2026-09-26, last against `276ad42d1`) that leave 58 criteria and 10 cases READY_FOR_ACCEPTANCE, with the missing clause of every criterion still open
 
+## R08 preparation
+
+- [R08 preparation, 2026-09-26](r08-prep-2026-09-26.md): drivers through the Session room, scripted container fixtures, the V14.4 real-backend reaction race, lifecycle tooling fixes, the lifecycle run (stopped at Storybook tests) and open findings
+- [V15 local workload, 2026-09-26](v15-local-2026-09-26.md): the updated workload and why no run completed
+
 ## Local checkpoints
 
 Complete output and manifests are retained under ignored `local-validation/phase82-goal-20260923/` in the regular checkout; the copy from the detached worktree completed successfully (robocopy exit 3). `local-validation/phase82-relocation-20260924/transfer-result.json` records the checkout transfer. This durable summary intentionally excludes raw logs, payloads and secrets.

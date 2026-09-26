@@ -67,6 +67,11 @@ export async function startLocalR2(
     void (async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
       const prefix = '/artificer-local-media/'
+      // Identifies this fixture to scripts/localConvexFixtures.ps1; it exposes no object state.
+      if (url.pathname === '/health' && request.method === 'GET') {
+        response.writeHead(200, { 'Content-Type': 'text/plain' }).end('artificer-local-r2')
+        return
+      }
       if (!url.pathname.startsWith(prefix)) {
         response.writeHead(404).end()
         return

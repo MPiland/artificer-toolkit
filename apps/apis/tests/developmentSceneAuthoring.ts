@@ -187,7 +187,7 @@ export async function verifySceneAuthoring(input: {
     assert.equal(live.page.length, 1)
     const liveScene = live.page[0]!
     assert.equal(liveScene.definitionId, definitionId)
-    const presentation = await owner.client.mutation(api.scenes.presentations.set, {
+    const presentation = await owner.client.action(api.scenes.presentations.setLive, {
       type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
       commandId: crypto.randomUUID(),
       campaignId,

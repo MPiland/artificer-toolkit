@@ -225,7 +225,7 @@ export async function verifyEncounterLifecycle({
     encounterId: prepared.id
   }
   await assert.rejects(owner.mutation(bindScene, bindingInput), /not presenting/)
-  await owner.mutation(api.scenes.presentations.set, {
+  await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,
@@ -237,7 +237,7 @@ export async function verifyEncounterLifecycle({
   const bound = await owner.mutation(bindScene, bindingInput)
   assert.equal(bound.sceneId, scenes[0].liveSceneId)
   assert.equal(bound.replayed, false)
-  await owner.mutation(api.scenes.presentations.set, {
+  await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,

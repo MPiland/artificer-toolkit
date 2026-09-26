@@ -108,20 +108,7 @@ export async function verifyEncounterEffectsBrowser(
           ownerPage.getByText('Action paused for a required decision.', { exact: true })
         ).toBeVisible()
         await ownerPage.getByRole('button', { name: 'Close actions', exact: true }).click()
-        return {
-          command: {
-            type: 'RESOLVE_ACTION',
-            encounterId: result.command.encounterId,
-            commandId: result.command.commandId,
-            expectedVersion: result.command.expectedVersion,
-            actorId: result.command.actorId,
-            actionId: result.command.actionId,
-            targetActorId: result.command.targetActorId,
-            optionalCombatIntent: result.command.optionalCombatIntent,
-            sceneContext: result.command.sceneContext
-          },
-          result: result.result
-        }
+        return { command: result.command, result: result.result }
       },
       assertPendingPrivacy: async () => {
         stage = 'verify owner-only save evidence'
@@ -133,7 +120,7 @@ export async function verifyEncounterEffectsBrowser(
         ).toHaveCount(0)
         await expect(playerPage.getByLabel('Die 1', { exact: true })).toHaveCount(0)
         await expect(
-          playerPage.getByRole('button', { name: 'Submit physical roll', exact: true })
+          playerPage.getByRole('button', { name: 'Submit roll', exact: true })
         ).toHaveCount(0)
       },
       resolveEvidence: async (expected) => {
@@ -147,7 +134,7 @@ export async function verifyEncounterEffectsBrowser(
           await die.fill(String(face))
         }
         const count = ownerCommands.size
-        await ownerPage.getByRole('button', { name: 'Submit physical roll', exact: true }).click()
+        await ownerPage.getByRole('button', { name: 'Submit roll', exact: true }).click()
         const result = await waitForCommand(ownerCommands, count)
         if (result.command.type !== 'RESOLVE_RULE_OCCURRENCE')
           throw new Error('Decision drawer did not submit RESOLVE_RULE_OCCURRENCE.')

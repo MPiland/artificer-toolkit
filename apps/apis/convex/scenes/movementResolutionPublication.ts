@@ -698,6 +698,8 @@ async function insertMovementResponseCommand(
   occurredAt: string
 ) {
   const version = current.state.version + 1
+  // The stored result is the DTO the timeline re-parses, so its checksum covers defaulted fields.
+  const result = encounterCommandResultDtoSchema.parse({ projection, roll: null, occurrence })
   await insertRunCommand(
     ctx,
     encounterStoredRunCommandSchema.parse({
@@ -710,12 +712,8 @@ async function insertMovementResponseCommand(
       actorUserId: current.userId,
       version,
       commandJson: JSON.stringify(current.command),
-      resultJson: JSON.stringify({ projection, roll: null, occurrence }),
-      resultChecksum: checksumCanonicalJson({
-        projection,
-        roll: null,
-        occurrence
-      }),
+      resultJson: JSON.stringify(result),
+      resultChecksum: checksumCanonicalJson(result),
       ruleOccurrenceId: current.occurrence.id,
       ruleResultChecksum: resultChecksum,
       optionalCombatSnapshotChecksum: current.state.optionalCombatSnapshotChecksum,

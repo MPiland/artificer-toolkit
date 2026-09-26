@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { assertDomainRejection } from './developmentClient'
-import { openEncounterCommandRoom } from './developmentHttpClient'
+import { openCommandRoom } from './developmentHttpClient'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const encounterId = '00000000-0000-4000-8000-000000000002'
@@ -75,13 +75,14 @@ const result = {
     updatedAt: '2026-09-24T00:00:00.000Z'
   },
   roll: null,
-  occurrence: null
+  occurrence: null,
+  evidenceRoll: null
 }
 
 const sockets: FakeSocket[] = []
 let closedRooms = 0
 let accessToken: string | null = 'first-token'
-const room = openEncounterCommandRoom({
+const room = openCommandRoom({
   url: `ws://127.0.0.1:8787/live-session/${campaignId}`,
   origin,
   issueTicket: async () => ({ expiresAt: '2026-09-24T12:01:00.000Z', ticket: 'signed-ticket' }),
@@ -97,7 +98,7 @@ const room = openEncounterCommandRoom({
 })
 
 // The ticket rides in the subprotocol and the Origin header matches the browser's.
-const first = room.execute(command(commandIds[0]))
+const first = room.executeEncounter(command(commandIds[0]))
 await new Promise((resolve) => setImmediate(resolve))
 const socket = sockets[0]
 assert.ok(socket && sockets.length === 1)
@@ -132,7 +133,7 @@ socket.receive({
 assert.deepEqual(await first, result)
 
 // COMMAND_REJECTED rejects with the room's code and message.
-const second = room.execute(command(commandIds[1]))
+const second = room.executeEncounter(command(commandIds[1]))
 assert.deepEqual(socket.sent[4], commandMessage(commandIds[1], 5))
 socket.receive({
   code: 'STALE_STATE',
@@ -140,12 +141,13 @@ socket.receive({
   currentSequence: 5,
   message: 'The Encounter changed; review the current state and try again.',
   reason: null,
+  warnings: null,
   type: 'COMMAND_REJECTED'
 })
 await assert.rejects(second, /^Error: STALE_STATE: The Encounter changed/)
 
 // A domain rejection rejects with the same ConvexError data a direct Convex call throws.
-const domain = room.execute(command(commandIds[4]))
+const domain = room.executeEncounter(command(commandIds[4]))
 assert.deepEqual(socket.sent[5], commandMessage(commandIds[4], 5))
 socket.receive({
   code: 'DOMAIN_REJECTED',
@@ -153,15 +155,16 @@ socket.receive({
   currentSequence: 5,
   message: 'Encounter version is stale.',
   reason: 'VERSION_STALE',
+  warnings: null,
   type: 'COMMAND_REJECTED'
 })
 await assert.rejects(domain, (error) => assertDomainRejection(error, 'VERSION_STALE'))
 
 // A closed socket fails pending commands and releases the room for a fresh connection.
-const third = room.execute(command(commandIds[2]))
+const third = room.executeEncounter(command(commandIds[2]))
 socket.close(4001)
 await assert.rejects(third, /closed the connection \(4001/)
 assert.equal(closedRooms, 1)
-await assert.rejects(room.execute(command(commandIds[3])), /closed the connection/)
+await assert.rejects(room.executeEncounter(command(commandIds[3])), /closed the connection/)
 
 console.log(JSON.stringify({ encounterCommandRoom: 'PASS', socketMessages: socket.sent.length }))
