@@ -9,10 +9,6 @@ import type {
   DeletePreparedEncounterResultDto,
   EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import type {
-  EncounterCommandResultDto,
-  EncounterExecuteInput
-} from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionPresentationCommitInput } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   SceneGeometryCommandResult,
@@ -28,6 +24,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readRunProjection, readRunState } from '../encounters/documents'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const claim = makeFunctionReference<'mutation', { campaignId: string }, { epoch: string }>(
   'liveSessions/authority:claim'
@@ -40,9 +37,6 @@ const finishSession = makeFunctionReference<
   FinishCampaignSessionInput,
   CampaignSessionDto
 >('campaigns/sessionFinish:finish')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const activeEncounter = makeFunctionReference<
   'query',
   { campaignId: string },
@@ -186,7 +180,16 @@ it('leaves live authority, presentation and an ACTIVE Run untouched when a Sessi
   expect(
     (await base.other.caller.query(activeEncounter, { campaignId: base.campaign.id })).encounter
   ).toMatchObject({ id: base.run.id, status: 'ACTIVE' })
-  const reminder = await base.other.caller.mutation(execute, {
+  // The claimed room finishes activating before it runs an Encounter command.
+  await base.t.run(async (ctx) => {
+    const authority = await ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+      .unique()
+    if (!authority) throw new Error('Missing claimed live authority.')
+    await ctx.db.patch(authority._id, { phase: 'DO_ACTIVE' })
+  })
+  const reminder = await executeInRoom(base.other.caller, {
     command: {
       type: 'UPSERT_REMINDER',
       encounterId: base.run.id,

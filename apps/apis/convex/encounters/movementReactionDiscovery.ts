@@ -1,7 +1,4 @@
-import {
-  discoverEncounterMovementReactionChoices,
-  revalidateEncounterMovementReactionOption
-} from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import type { MutationCtx } from '../_generated/server'
 import type { MovementTarget } from './movementTargets'
 import { createRulesRuntime } from '../rules/runtime'
@@ -34,20 +31,5 @@ export async function discoverNativeMovementReactions(
   return discoverEncounterMovementReactionChoices({
     ...input,
     ...(await loadNativeMovementReactionFacts(ctx, input))
-  })
-}
-
-/** Reuses the issued contact while reloading current sources, capabilities, usage and relationships. */
-export async function revalidateNativeMovementReaction(
-  ctx: MutationCtx,
-  input: Pick<
-    Parameters<typeof revalidateEncounterMovementReactionOption>[0],
-    'movementKind' | 'occurrenceId' | 'option' | 'actorIdByTokenId' | 'tokens' | 'resolvePerception'
-  > & { encounterId: string; expectedEncounterVersion: number },
-  movementTargets?: ReadonlyMap<string, MovementTarget>
-) {
-  return revalidateEncounterMovementReactionOption({
-    ...input,
-    ...(await loadNativeMovementReactionFacts(ctx, input, movementTargets))
   })
 }

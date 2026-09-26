@@ -133,8 +133,9 @@ A command relying on that Convex transaction cannot report success before its re
 Integrate these commands with the existing room order and standalone Scene journal/publication lane;
 do not introduce a second unfenced Scene writer.
 
-Current source still calls `advanceNativeActionGraphs` inside `encounters/actionCommands.ts` and
-evaluates spatial movement during both preparation and commit. The Worker now depends on the existing
+Historical (before S4-d removed `encounters/actionCommands.ts`): source called
+`advanceNativeActionGraphs` inside that Convex action path and evaluated spatial movement during both
+preparation and commit. The Worker now depends on the existing
 rules-runtime and has authorized Character/Encounter capture and preparation, but live dispatch,
 execution and atomic commit remain disconnected. These are implementation gaps, not the intended final placement. The
 earlier proposed choices retaining heavy Encounter evaluation in Convex are superseded. The

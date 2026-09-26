@@ -31,11 +31,6 @@ const privateBegin = makeFunctionReference<
   LiveSessionMovementBeginInput,
   SceneGeometryBeginResult
 >('liveSessions/encounterMovement:begin')
-const nativeBegin = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 
 it('stages a current movement choice only for its live authority and actor, with exact replay and no gameplay writes', async () => {
   const value = await setupAutomaticSceneMovement({
@@ -93,9 +88,6 @@ it('stages a current movement choice only for its live authority and actor, with
   const before = await gameplay()
   const beforeSaves = await saves()
 
-  await expect(value.owner.caller.mutation(nativeBegin, command)).rejects.toThrow(
-    'currently owned by its Campaign live table'
-  )
   for (const change of [
     { expectedUserId: value.player.userId },
     { expectedRole: 'PLAYER' as const },

@@ -1,15 +1,13 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 19 : 0)
@@ -23,11 +21,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const begin = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -131,39 +124,16 @@ it('creates one Character reaction effect after the public choice and preserves 
   })
   expect(await snapshot(value)).toEqual(afterPending)
 
-  const started = await value.owner.caller.mutation(
-    begin,
+  const reactionRequest = await planMovementDecisionInRoom(
+    value.owner.caller,
     response(value.base.run.id, pending, pending.choice.options[0].optionId)
   )
-  if (!started || started.kind !== 'READY') throw new Error('Expected staged movement reaction.')
-  const reactionRequest = { ...value.request, saveId: started.saveId }
-  await value.owner.caller.mutation(observe, {
-    saveId: reactionRequest.saveId,
-    characterRevisions: []
-  })
   const beforeSettlement = await snapshot(value)
-  const preparedReaction = await value.owner.caller.mutation(prepare, reactionRequest)
+  const preparedReaction = { outcome: reactionRequest.outcome }
   expect(preparedReaction.outcome.kind).toBe('TERMINAL')
   expect(await snapshot(value)).toEqual(beforeSettlement)
 
-  await expect(
-    value.owner.caller.run(async (ctx) => {
-      const provisional = await ctx.runMutation(finish, reactionRequest)
-      expect(provisional.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-      expect(
-        await ctx.db
-          .query('characterActiveRuleEffects')
-          .withIndex('by_characterId_createdOrdinal_id', (q) =>
-            q.eq('characterId', value.base.character.id)
-          )
-          .collect()
-      ).toHaveLength(1)
-      throw new Error('Injected Character reaction settlement rollback')
-    })
-  ).rejects.toThrow('Injected Character reaction settlement rollback')
-  expect(await snapshot(value)).toEqual(beforeSettlement)
-
-  const settled = await value.owner.caller.mutation(finish, reactionRequest)
+  const settled = await reactionRequest.publish()
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const afterSettlement = await snapshot(value)
   if (
@@ -186,7 +156,7 @@ it('creates one Character reaction effect after the public choice and preserves 
   expect(afterSettlement.run.version).toBe(beforeSettlement.run.version + 1)
   expect(conditionSources(afterSettlement)).toEqual(conditionSources(beforeSettlement))
 
-  await expect(value.owner.caller.mutation(finish, reactionRequest)).resolves.toEqual({
+  await expect(reactionRequest.publish()).resolves.toEqual({
     ...settled,
     replayed: true
   })
@@ -204,22 +174,16 @@ it('projects the first used automatic Character reaction into the second reactio
   const automatic = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
   if (!automatic || automatic.kind !== 'MOVEMENT_REACTION' || !automatic.choice.options[0])
     throw new Error('Expected the automatic reaction Use/Decline choice.')
-  const used = await value.owner.caller.mutation(
-    begin,
+  const firstRequest = await planMovementDecisionInRoom(
+    value.owner.caller,
     response(value.base.run.id, automatic, automatic.choice.options[0].optionId)
   )
-  if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
-  const firstRequest = { ...value.request, saveId: used.saveId }
-  await value.owner.caller.mutation(observe, {
-    saveId: firstRequest.saveId,
-    characterRevisions: []
-  })
   const beforeRoot = await snapshot(value)
-  const preparedRoot = await value.owner.caller.mutation(prepare, firstRequest)
+  const preparedRoot = { outcome: firstRequest.outcome }
   expect(preparedRoot.outcome.kind).toBe('PENDING')
   expect(await snapshot(value)).toEqual(beforeRoot)
 
-  const pendingRoot = await value.owner.caller.mutation(finish, firstRequest)
+  const pendingRoot = await firstRequest.publish()
   const pending = pendingRoot.occurrence?.pending
   if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
     throw new Error('Expected second movement reaction choice.')
@@ -236,29 +200,22 @@ it('projects the first used automatic Character reaction into the second reactio
   expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length + 1)
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
-  await expect(value.owner.caller.mutation(finish, firstRequest)).resolves.toEqual({
+  await expect(firstRequest.publish()).resolves.toEqual({
     ...pendingRoot,
     replayed: true
   })
   expect(await snapshot(value)).toEqual(afterFirstReaction)
 
-  const started = await value.owner.caller.mutation(
-    begin,
+  const secondRequest = await planMovementDecisionInRoom(
+    value.owner.caller,
     response(value.base.run.id, pending, pending.choice.options[0].optionId)
   )
-  if (!started || started.kind !== 'READY')
-    throw new Error('Expected second staged movement reaction.')
-  const secondRequest = { ...value.request, saveId: started.saveId }
-  await value.owner.caller.mutation(observe, {
-    saveId: secondRequest.saveId,
-    characterRevisions: []
-  })
   const beforeSecondReaction = await snapshot(value)
-  const preparedSecond = await value.owner.caller.mutation(prepare, secondRequest)
+  const preparedSecond = { outcome: secondRequest.outcome }
   expect(preparedSecond.outcome.kind).toBe('TERMINAL')
   expect(await snapshot(value)).toEqual(beforeSecondReaction)
 
-  const settled = await value.owner.caller.mutation(finish, secondRequest)
+  const settled = await secondRequest.publish()
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const afterSecondReaction = await snapshot(value)
   if (!afterSecondReaction.character || !afterSecondReaction.run)
@@ -273,7 +230,7 @@ it('projects the first used automatic Character reaction into the second reactio
   )
   expect(afterSecondReaction.run.version).toBe(afterFirstReaction.run.version + 1)
   expect(conditionSources(afterSecondReaction)).toEqual(conditionSources(beforeRoot))
-  await expect(value.owner.caller.mutation(finish, secondRequest)).resolves.toEqual({
+  await expect(secondRequest.publish()).resolves.toEqual({
     ...settled,
     replayed: true
   })

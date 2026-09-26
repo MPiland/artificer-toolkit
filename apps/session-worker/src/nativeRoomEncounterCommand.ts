@@ -6,10 +6,11 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
-  CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES,
   CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES,
   type LiveSessionEncounterRoute
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
+import type { LiveSessionCommandRejectionCodeDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { liveSessionEncounterTurnPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 
@@ -40,8 +41,8 @@ export interface LiveEncounterActor {
 
 /**
  * Runs one Encounter command for the room: a DO planner evaluates the rules and Convex commits the
- * result atomically; only the listed GM commands go to Convex as they are (
-oomEncounterPlanner).
+ * result atomically; roll commands take the room's dice, and only the GM tools Convex records go to
+ * it as they are (`roomEncounterPlanner`).
  * The caller serializes commands and acknowledges only after this resolves.
  * Planners may reuse cached System-level captures; a refused commit (409) of a plan that reused any
  * drops those entries and replans once from fresh reads before the refusal surfaces. A movement
@@ -226,6 +227,26 @@ export async function executeLiveEncounterCommand(input: {
           ? prepared.result
           : callLiveSessionRoute(environment, accessToken, 'encounterVoidRecord', voided)
       }
+      case 'ROLL': {
+        if (
+          decision.type !== 'ROLL_RULE_EVIDENCE' &&
+          decision.type !== 'ROLL_ACTOR_INITIATIVE' &&
+          decision.type !== 'ROLL_ENEMY_ACTION'
+        )
+          throw new Error('Rolling received a command without dice.')
+        // Convex names the dice, the room draws them with its secure source, Convex records (D41).
+        const rolled = { ...actor, command: decision }
+        const { dice } = await callLiveSessionRoute(
+          environment,
+          accessToken,
+          'encounterRollDice',
+          rolled
+        )
+        return callLiveSessionRoute(environment, accessToken, 'encounterRollCommit', {
+          ...rolled,
+          draws: dice.map((size) => execution.random(size))
+        })
+      }
       case 'CONVEX':
         return forward()
     }
@@ -243,13 +264,45 @@ export async function executeLiveEncounterCommand(input: {
   }
 }
 
-/** A room planner, or Convex for the listed GM commands (CONVEX_*_ENCOUNTER_COMMAND_TYPES). */
-type RoomEncounterPlanner = LiveSessionEncounterRoute | 'CONVEX'
+/**
+ * The room owns Encounter movement only on its presented Scene (D42): a movement decision for an
+ * Encounter the presented Scene is not bound to is refused, never sent to Convex.
+ */
+export function sceneNotPresentedRejection(): LiveSessionDomainRejectionError {
+  return new LiveSessionDomainRejectionError(409, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'SCENE_NOT_PRESENTED',
+    message: DOMAIN_REJECTION_MESSAGES.SCENE_NOT_PRESENTED
+  })
+}
 
-const convexCommandTypes = new Set<string>([
-  ...CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES,
-  ...CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES
-])
+/**
+ * What a member is told when a private route refuses their Encounter command without a domain
+ * reason: Convex redacts the cause, so only the route's status is shown.
+ */
+export function encounterCommandRefusal(error: unknown): {
+  code: LiveSessionCommandRejectionCodeDto
+  message: string
+} {
+  const status = error instanceof LiveSessionRouteError ? error.status : 0
+  if (status === 409)
+    return {
+      code: 'STALE_STATE',
+      message: 'The Encounter changed; review the current state and try again.'
+    }
+  return {
+    code: status === 401 || status === 403 ? 'FORBIDDEN' : 'UNAVAILABLE',
+    message: 'The Encounter command could not be completed.'
+  }
+}
+
+/**
+ * A room planner, the room's dice for a roll command (ROLL), or Convex for the GM tools it records
+ * (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES).
+ */
+type RoomEncounterPlanner = LiveSessionEncounterRoute | 'ROLL' | 'CONVEX'
+
+const convexCommandTypes = new Set<string>(CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES)
 
 /**
  * Which planner runs a command before any read. A decision is routed by its pending occurrence
@@ -263,6 +316,12 @@ export function roomEncounterPlanner(command: {
   if (command.type === 'START' || command.type === 'ADVANCE_TURN') return 'TURN'
   if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE')
     return 'DECISION'
+  if (
+    command.type === 'ROLL_RULE_EVIDENCE' ||
+    command.type === 'ROLL_ACTOR_INITIATIVE' ||
+    command.type === 'ROLL_ENEMY_ACTION'
+  )
+    return 'ROLL'
   if (convexCommandTypes.has(command.type)) return 'CONVEX'
   throw new Error('The Encounter command has no planner.')
 }

@@ -33,8 +33,7 @@ import { api } from '../convex/_generated/api.js'
 import {
   assertDomainRejection,
   type DevelopmentClient,
-  executeEncounterCommand,
-  executeEncounterCommandAction
+  executeEncounterCommand
 } from './developmentClient'
 import { developmentCli } from './developmentCli'
 import { createDisarmCreature, createDisarmWeapon } from './fixtures/disarmCreature'
@@ -536,8 +535,8 @@ export async function verifyEncounterDisarm({
     else {
       const contenders = [second, { ...second, commandId: crypto.randomUUID() }] as const
       const raced = await Promise.allSettled([
-        player.action(executeEncounterCommandAction, { command: contenders[0] }),
-        player.action(executeEncounterCommandAction, { command: contenders[1] })
+        player.mutation(executeEncounterCommand, { command: contenders[0] }),
+        player.mutation(executeEncounterCommand, { command: contenders[1] })
       ])
       assert.equal(raced.filter((result) => result.status === 'fulfilled').length, 1)
       const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
@@ -595,7 +594,7 @@ export async function verifyEncounterDisarm({
       assert.equal(after.timeline.entries.length, before.timeline.entries.length + 1)
       // A persisted response receipt would replay before the stale-version check.
       await assert.rejects(
-        player.action(executeEncounterCommandAction, { command: staleSecond }),
+        player.mutation(executeEncounterCommand, { command: staleSecond }),
         (error) => assertDomainRejection(error, 'VERSION_STALE')
       )
       assert.deepEqual(await snapshot(), after)
@@ -657,7 +656,7 @@ export async function verifyEncounterDisarm({
     assert.deepEqual(
       browserSecond
         ? await player.mutation(executeEncounterCommand, { command: second })
-        : await player.action(executeEncounterCommandAction, { command: second }),
+        : await player.mutation(executeEncounterCommand, { command: second }),
       completed
     )
     assert.deepEqual(await snapshot(), after)

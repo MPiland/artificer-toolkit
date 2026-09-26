@@ -152,10 +152,8 @@ export async function verifyEncounterLifecycle({
     [0, 1]
   )
   const start = { ...commandBase(), type: 'START' as const }
-  await assert.rejects(
-    player.mutation(executeEncounterCommand, { command: start }),
-    /Campaign not found/
-  )
+  // A player's START is refused as the GM's, not as a changed Encounter (D42).
+  await assert.rejects(player.mutation(executeEncounterCommand, { command: start }), /GM_ONLY/)
   await assert.rejects(
     anonymous.mutation(executeEncounterCommand, { command: start }),
     /Unauthenticated/

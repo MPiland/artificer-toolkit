@@ -17,9 +17,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { api, components, internal } from '../_generated/api'
+import { api, components } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import { assertAbsent } from './developmentLifecycle'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const inspect = makeFunctionReference<
   'query',
@@ -153,7 +154,7 @@ describe('reserved native Campaign lifecycle proof', () => {
     expect(run.automationMode).toBe('MANUAL')
     expect(run.initiativePolicy).toBeNull()
     for (const [index, actor] of run.actors.entries()) {
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const result = await executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: run.id,
@@ -166,7 +167,7 @@ describe('reserved native Campaign lifecycle proof', () => {
       })
       run = encounterGmProjectionDtoSchema.parse(result.projection)
     }
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: run.id,

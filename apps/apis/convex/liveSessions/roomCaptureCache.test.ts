@@ -31,11 +31,11 @@ import {
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { input as characterInput } from '../../tests/fixtures/characters'
 import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, components, internal } from '../_generated/api'
 import { withSceneVisionTracking } from '../lib/mutations'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -345,7 +345,7 @@ it('reuses Character sources and System content for a Concentration answer', asy
     username: 'RoomCachePlayer',
     bio: null
   })
-  const rolled = await fixture.player.caller.mutation(executeEncounterCommand, {
+  const rolled = await executeInRoom(fixture.player.caller, {
     command: {
       type: 'ROLL_RULE_EVIDENCE',
       encounterId: fixture.run.id,

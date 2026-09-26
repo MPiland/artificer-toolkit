@@ -33,7 +33,7 @@ import {
 } from '../encounters/occurrenceOwner'
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -48,6 +48,12 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
+// The generated API still types this as an action until the next codegen push.
+const executeRoomCommand = makeFunctionReference<
+  'mutation',
+  LiveSessionEncounterCommandInput,
+  unknown
+>('liveSessions/encounterCommand:execute')
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
 )
@@ -199,7 +205,7 @@ async function setup() {
   }
   const forward = async (input: LiveSessionEncounterCommandInput) =>
     encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.action(internal.liveSessions.encounterCommand.execute, input)
+      await base.owner.caller.mutation(executeRoomCommand, input)
     )
   const start: LiveSessionEncounterCommandInput = {
     ...scope,
@@ -211,7 +217,7 @@ async function setup() {
     }
   }
   const started = encounterCommandResultDtoSchema.parse(
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: start.command
     })
   )
@@ -307,14 +313,14 @@ describe('Session room Encounter door', () => {
   it('refuses players outside the occurrence audience, forged scope and stale authority', async () => {
     const base = await setup()
     const route = internal.liveSessions.encounterRoute.route
-    const command = internal.liveSessions.encounterCommand.execute
+    const command = executeRoomCommand
     await expect(
       base.other.caller.query(route, {
         ...base.route,
         expectedUserId: base.other.userId,
         expectedRole: 'PLAYER'
       })
-    ).rejects.toThrow('Rule occurrence is unavailable.')
+    ).rejects.toMatchObject({ data: { reason: 'NOT_ACTOR_CONTROLLER' } })
     await expect(
       base.owner.caller.query(route, { ...base.route, expectedRole: 'PLAYER' })
     ).rejects.toThrow('Live Session role mismatch.')
@@ -322,7 +328,7 @@ describe('Session room Encounter door', () => {
       base.owner.caller.query(route, { ...base.route, expectedUserId: base.other.userId })
     ).rejects.toThrow('Live Session identity mismatch.')
     await expect(
-      base.other.caller.action(command, { ...base.start, expectedUserId: base.other.userId })
+      base.other.caller.mutation(command, { ...base.start, expectedUserId: base.other.userId })
     ).rejects.toThrow('Live Session role mismatch.')
     await expect(
       base.owner.caller.query(route, {
@@ -334,7 +340,7 @@ describe('Session room Encounter door', () => {
       base.owner.caller.query(route, { ...base.route, authorityEpoch: crypto.randomUUID() })
     ).rejects.toThrow('Live Session authority is stale.')
     await expect(
-      base.owner.caller.action(command, { ...base.start, authorityEpoch: crypto.randomUUID() })
+      base.owner.caller.mutation(command, { ...base.start, authorityEpoch: crypto.randomUUID() })
     ).rejects.toThrow('Live Session authority is stale.')
 
     await base.t.run(async (ctx) => {

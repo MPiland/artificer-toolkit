@@ -1,140 +1,30 @@
-import { settleNativeEncounterActionMechanics } from './actionMechanics'
 import type { MovementTarget } from './movementTargets'
-import {
-  prepareNativeActionMaintenance,
-  replaceNativeActionMaintenance,
-  finishNativeActionMaintenance,
-  type NativeMaintenanceProjection
-} from './actionMaintenance'
+import type { Doc } from '../_generated/dataModel'
+import { settleNativeEncounterActionMechanics } from './actionMechanics'
+import { replaceNativeActionMaintenance, finishNativeActionMaintenance } from './actionMaintenance'
 import { persistNativeMovementReactionEffects } from './movementReactionEffects'
 import {
   requireCompletedMovementReaction,
   reactionMechanicsInput,
   movementReactionActors,
   movementReactionSettlement,
-  planEncounterMovementReactionAction
+  planEncounterMovementReactionAction,
+  type MovementReactionSettlementInput
 } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPlan'
-import {
-  executeEncounterMovementReactionAction,
-  resumeEncounterMovementLegendaryResistance
-} from '@artificer-toolkit/rules-runtime/encounterMovementReactionExecution'
-import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { readCharacterRecord } from '../characters/documents'
-import { readDefinitionRoot } from '../content/definitionStore'
-import {
-  loadNativeMovementReactionFacts,
-  type revalidateNativeMovementReaction
-} from './movementReactionDiscovery'
-import { prepareEncounterMovementReactionAction } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPreparation'
 import { requireIdentity } from '../lib/identity'
-import { nextRollInt } from '../lib/rollRandom'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
-import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
 import { planEncounterMovementReactionEffects } from '@artificer-toolkit/rules-runtime/encounterMovementReactionEffects'
-import {
-  advanceNativeActionGraphs,
-  executeNativeActionGraphs
-} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
-import type { resolveNativeMovementLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterMovementLegendaryResistance'
-import type { EncounterAutoRollByActorId } from '@artificer-toolkit/rules-runtime/encounterEvidenceMode'
 
-type CompletedNativeReaction = Awaited<ReturnType<typeof executeNativeActionGraphs>> & {
-  kind: 'COMPLETE'
-  resistance?: Awaited<ReturnType<typeof resolveNativeMovementLegendaryResistance>> | null
-}
-
-/** Revalidates one issued movement reaction and binds it to current native mechanics facts. */
-export async function prepareNativeMovementReactionAction(
-  ctx: MutationCtx,
-  input: Parameters<typeof revalidateNativeMovementReaction>[1],
-  movementTargets?: ReadonlyMap<string, MovementTarget>,
-  maintenanceProjection?: NativeMaintenanceProjection
-) {
-  const facts = await loadNativeMovementReactionFacts(ctx, input, movementTargets)
-  return prepareEncounterMovementReactionAction({
-    facts,
-    revalidate: input,
-    maintenanceProjection,
-    prepareMechanics: (mechanicsInput) =>
-      prepareNativeEncounterActionMechanics(ctx, { ...mechanicsInput, overridable: false }),
-    prepareMaintenance: (prepared, userId, projection) =>
-      prepareNativeActionMaintenance(ctx, prepared, userId, projection)
-  })
-}
-
-/** Runs or resumes sealed action phases; the enclosing movement owns publication. */
-export async function executeNativeMovementReactionAction(
-  ctx: MutationCtx,
-  input: {
-    runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
-    occurrenceId: string
-    autoRoll: EncounterAutoRollByActorId
-    prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
-    random?: Parameters<typeof executeNativeActionGraphs>[0]['random']
-    resume?: Parameters<typeof advanceNativeActionGraphs>[0]['resume']
-  }
-) {
-  return executeEncounterMovementReactionAction({
-    ...input,
-    random: input.random ?? nextRollInt,
-    discoverResistance: () => discoverNativeMovementResistance(ctx, input.prepared)
-  })
-}
-
-export async function resumeNativeMovementLegendaryResistance(
-  ctx: MutationCtx,
-  input: {
-    runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
-    occurrenceId: string
-    autoRoll: EncounterAutoRollByActorId
-    prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
-    snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-    selection: Parameters<typeof resolveNativeMovementLegendaryResistance>[0]['selection']
-    retainedExecution?: Awaited<ReturnType<typeof executeNativeMovementReactionAction>>
-  }
-) {
-  return resumeEncounterMovementLegendaryResistance({
-    ...input,
-    random: nextRollInt,
-    discoverResistance: () => discoverNativeMovementResistance(ctx, input.prepared)
-  })
-}
-
-export async function discoverNativeMovementResistance(
-  ctx: MutationCtx,
-  prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
-) {
-  if (prepared.prepared.target.kind !== 'CREATURE') return null
-  const { userId } = await requireIdentity(ctx)
-  return discoverEncounterLegendaryResistanceCandidate({
-    encounter: prepared.prepared.state,
-    targetActor: prepared.prepared.target,
-    actorRules: prepared.prepared.actorRules,
-    definitions: {
-      requireCurrent: async (definitionId) => {
-        const root = await readDefinitionRoot(ctx, definitionId, userId)
-        if (!root?.current) throw new Error('Legendary Resistance definition is unavailable.')
-        return root.current
-      }
-    }
-  })
-}
-
-export type NativeMovementReactionSettlementInput = {
-  prepared: Awaited<ReturnType<typeof prepareNativeMovementReactionAction>>
-  occurrenceId: string
-  commandId: string
-  ordinal: number
-  occurredAt: string
-  execution:
-    | CompletedNativeReaction
-    | Extract<Awaited<ReturnType<typeof advanceNativeActionGraphs>>, { kind: 'PENDING' }>
-}
+/** A reaction the room planned against Convex's own Character facts and rows. */
+export type NativeMovementReactionSettlementInput = MovementReactionSettlementInput<
+  NonNullable<MovementTarget['characterFacts']>,
+  Doc<'characters'>
+>
 
 /** Predicts one completed reaction using the same resource, allowance and receipt calculation. */
-export function planNativeMovementReactionAction(
+function planNativeMovementReactionAction(
   input: NativeMovementReactionSettlementInput,
   userId: string
 ) {

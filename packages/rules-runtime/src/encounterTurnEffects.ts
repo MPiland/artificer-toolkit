@@ -263,7 +263,7 @@ function completeExecution(input: {
   }
 }
 
-export async function evaluateEncounterTurnEffects(input: {
+async function evaluateEncounterTurnEffects(input: {
   createRuntime: () => Promise<RulesRuntimeService>
   rollD20: () => number
   resolvePerception: (input: {
@@ -520,7 +520,7 @@ export async function evaluateEncounterTurnEffects(input: {
   }
 }
 
-export function turnEffectMechanicsBatch(input: {
+function turnEffectMechanicsBatch(input: {
   state: EncounterRunState
   occurrenceId: string
   rootCommandId: string

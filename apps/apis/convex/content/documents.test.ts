@@ -594,7 +594,8 @@ describe('authored chunk persistence', () => {
         label: 'Large persisted document',
         checksum,
         contentSourceId: sourceRoot.contentSourceId,
-        currentVersionId
+        currentVersionId,
+        currentVersionPublicId: versionId
       })
       return { currentVersionId, rootId }
     })

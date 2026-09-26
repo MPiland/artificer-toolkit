@@ -1,7 +1,13 @@
 import { z } from '../zod.js'
-import { encounterCommandResultDtoSchema, encounterCommandInputDtoSchema } from './encounters.js'
+import {
+  encounterCommandResultDtoSchema,
+  encounterCommandInputDtoSchema,
+  rollEncounterActorInitiativeInputDtoSchema,
+  rollEncounterEnemyActionInputDtoSchema
+} from './encounters.js'
 import {
   resolveRuleOccurrenceInputDtoSchema,
+  rollRuleEvidenceInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
@@ -40,13 +46,18 @@ export const liveSessionEncounterRouteResponseSchema = z.strictObject({
 type EncounterCommandType = z.infer<typeof encounterCommandInputDtoSchema>['type']
 
 /**
- * GM bookkeeping Convex records directly: no dice, no rules evaluation, no derived mechanics. A
- * Character's Sheet command inside `UPDATE_ACTOR` stays with the Sheet's owner (R06.3), and actor
- * removal is the lifecycle cleanup account deletion shares.
+ * GM tools Convex records directly (D41): no dice, and no derived mechanics beyond the
+ * deterministic actor recalculation every Convex commit runs anyway. A Character's Sheet command
+ * inside `UPDATE_ACTOR` stays with the Sheet's owner (R06.3), and actor removal is the lifecycle
+ * cleanup account deletion shares. Dice commands are rolled by the room (`liveSessionEncounterRoll*`).
  */
 export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
   'UPDATE_ACTOR',
   'REMOVE_ACTOR',
+  'REINFORCE',
+  'REPLACE_CREATURE_EQUIPMENT',
+  'ADJUST_FEATURE_RESOURCE',
+  'REVERT_LAST_ACTION',
   'SET_INITIATIVE',
   'REORDER',
   'PREVIOUS_TURN',
@@ -59,22 +70,28 @@ export const CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES = [
   'COMPLETE'
 ] as const satisfies readonly EncounterCommandType[]
 
-/**
- * GM tool commands with dice or derived actor rules that have no room planner yet, so Convex
- * still evaluates them (open R06.1 work, reported with this list).
- */
-export const CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES = [
-  'ROLL_RULE_EVIDENCE',
-  'ROLL_ACTOR_INITIATIVE',
-  'ROLL_ENEMY_ACTION',
-  'ADJUST_FEATURE_RESOURCE',
-  'REPLACE_CREATURE_EQUIPMENT',
-  'REINFORCE',
-  'REVERT_LAST_ACTION'
-] as const satisfies readonly EncounterCommandType[]
+/** A dice command the room rolls with its secure random source (D41); Convex records it. */
+export const liveSessionEncounterRollInputSchema = z.extend(liveSessionBootstrapInputSchema, {
+  command: z.discriminatedUnion('type', [
+    rollRuleEvidenceInputDtoSchema,
+    rollEncounterActorInitiativeInputDtoSchema,
+    rollEncounterEnemyActionInputDtoSchema
+  ])
+})
+
+/** The dice a roll command draws, in draw order, as each die's size; the room draws each once. */
+export const liveSessionEncounterRollDiceSchema = z.strictObject({
+  dice: z.array(z.number().check(z.int()).check(z.positive()))
+})
+
+/** A roll command with the room's draws: each in `[0, size)` for the die at its position. */
+export const liveSessionEncounterRollCommitInputSchema = z.extend(
+  liveSessionEncounterRollInputSchema,
+  { draws: z.array(z.number().check(z.int()).check(z.nonnegative())) }
+)
 
 /**
- * An Encounter command the room sends to Convex in room order: one of the lists above, or a
+ * An Encounter command the room sends to Convex in room order: a recorded GM tool, or a
  * movement decision on a Scene the room does not own (D29).
  */
 export const liveSessionEncounterCommandInputSchema = z.extend(liveSessionBootstrapInputSchema, {
@@ -100,3 +117,4 @@ export type LiveSessionEncounterCommandInput = z.infer<
   typeof liveSessionEncounterCommandInputSchema
 >
 export type LiveSessionEncounterVoidInput = z.infer<typeof liveSessionEncounterVoidInputSchema>
+export type LiveSessionEncounterRollInput = z.infer<typeof liveSessionEncounterRollInputSchema>

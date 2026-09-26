@@ -9,7 +9,6 @@ import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/
 import { characterBuilderResolveInputSchema } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { verifyCampaignMembershipLifecycle } from '../../tests/developmentCampaignMembershipLifecycle'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
@@ -25,6 +24,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { api, components, internal } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => vi.useRealTimers())
 
@@ -302,14 +302,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-      query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-    })
-    const anonymous: DevelopmentClient = {
-      query: (reference, ...args) => base.t.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => base.t.run((ctx) => ctx.runMutation(reference, ...args))
-    }
+    const client = inProcessDevelopmentClient
+    const anonymous = inProcessDevelopmentClient(base.t)
     const proof = await verifyCampaignCurrencyLifecycle(
       {
         owner: client(base.other.caller),
@@ -434,14 +428,8 @@ describe('development custody fixture cleanup', () => {
       mode: 'create',
       character: replacement.character
     })
-    const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-      query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-    })
-    const anonymous: DevelopmentClient = {
-      query: (reference, ...args) => base.t.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => base.t.run((ctx) => ctx.runMutation(reference, ...args))
-    }
+    const client = inProcessDevelopmentClient
+    const anonymous = inProcessDevelopmentClient(base.t)
     await verifyCampaignAssignmentLifecycle(
       {
         owner: client(base.other.caller),
@@ -535,14 +523,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-      query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-    })
-    const anonymous: DevelopmentClient = {
-      query: (reference, ...args) => base.t.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => base.t.run((ctx) => ctx.runMutation(reference, ...args))
-    }
+    const client = inProcessDevelopmentClient
+    const anonymous = inProcessDevelopmentClient(base.t)
     const proof = await verifyCampaignAuthoredCustodyDeletion(
       {
         owner: client(base.other.caller),
@@ -641,14 +623,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-      query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-    })
-    const anonymous: DevelopmentClient = {
-      query: (reference, ...args) => base.t.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => base.t.run((ctx) => ctx.runMutation(reference, ...args))
-    }
+    const client = inProcessDevelopmentClient
+    const anonymous = inProcessDevelopmentClient(base.t)
     await verifyCampaignCustody(
       {
         owner: client(base.other.caller),
@@ -890,10 +866,7 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-      query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-      mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-    })
+    const client = inProcessDevelopmentClient
     const lifecycle = await verifyCampaignMembershipLifecycle(
       {
         owner: client(base.other.caller),

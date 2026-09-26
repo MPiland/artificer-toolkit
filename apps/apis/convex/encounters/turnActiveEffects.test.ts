@@ -5,7 +5,6 @@ import {
   encounterGmProjectionDtoSchema,
   encounterPlayerProjectionDtoSchema,
   type CreateEncounterInputDto,
-  type EncounterCommandResultDto,
   type EncounterGmProjectionDto,
   type EncounterExecuteInput,
   type ResolveRuleOccurrenceInputDto
@@ -38,7 +37,6 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {
@@ -51,8 +49,11 @@ import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRou
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -194,7 +195,7 @@ async function appRollResponse(
   const { result, pending } = d20Pending(input)
   // App rolls post to the table chat, which needs a username.
   await base.owner.caller.mutation(api.account.updateProfile, { username: 'TurnGm', bio: null })
-  const rolled = await base.owner.caller.mutation(executeEncounterCommand, {
+  const rolled = await executeInRoom(base.owner.caller, {
     command: {
       type: 'ROLL_RULE_EVIDENCE',
       encounterId: base.run.id,
@@ -222,8 +223,8 @@ async function resolveInitiative(
   const pending = result.occurrence?.pending
   if (!pending || pending.kind !== 'INITIATIVE_EVIDENCE')
     throw new Error('Expected initiative before incoming turn effects.')
-  return base.owner.caller.mutation(
-    internal.encounters.commands.execute,
+  return executeInRoom(
+    base.owner.caller,
     response(base.run.id, result, {
       kind: 'ENTER_INTEGER',
       requestId: pending.request.requestId,
@@ -290,20 +291,6 @@ describe('private DO turn active-effect terminal', () => {
       expect(planned.prepared.root.outgoingTurn?.kind).toBe('STAGED')
       expect(planned.terminal.incomingTurn.kind).toBe('STAGED')
       expect(await stored(base)).toEqual(before)
-      const previews: EncounterCommandResultDto[] = []
-      await expect(
-        base.owner.caller.run(async (ctx) => {
-          previews.push(
-            encounterCommandResultDtoSchema.parse(
-              await ctx.runMutation(internal.encounters.commands.execute, { command })
-            )
-          )
-          throw new Error('Roll back native turn preview.')
-        })
-      ).rejects.toThrow('Roll back native turn preview.')
-      const native = previews[0]
-      if (!native) throw new Error('Missing native turn preview.')
-      expect(await stored(base)).toEqual(before)
       const badIncoming = planned.terminal.incomingTurn
       if (badIncoming.kind !== 'STAGED') throw new Error('Expected staged incoming effects.')
       const first = badIncoming.plan.executions[0]
@@ -338,10 +325,8 @@ describe('private DO turn active-effect terminal', () => {
         planned.terminal
       )
       expect(result.projection).toMatchObject({
-        status: native.projection.status,
-        round: native.projection.round,
-        currentActorId: native.projection.currentActorId,
-        version: native.projection.version
+        ...planned.prepared.root.proposedTerminalTransition,
+        version: before.run!.version + 1
       })
       const hp = encounterGmProjectionDtoSchema.parse(started.projection).actors[0]!
         .currentHitPoints
@@ -593,7 +578,7 @@ async function liveCharacterTurn(
   })
   const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!opponent) throw new Error('Expected the fixture opponent.')
-  const removed = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  const removed = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: created.id,
@@ -603,7 +588,7 @@ async function liveCharacterTurn(
     }
   })
   const base = { ...fixture, run: encounterGmProjectionDtoSchema.parse(removed.projection) }
-  let started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  let started = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: base.run.id,
@@ -721,7 +706,7 @@ describe('native public turn active-effect journeys', () => {
     })
     const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
     if (!opponent) throw new Error('Expected the fixture opponent.')
-    const removed = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+    const removed = await executeInRoom(fixture.owner.caller, {
       command: {
         type: 'REMOVE_ACTOR',
         encounterId: created.id,
@@ -733,7 +718,7 @@ describe('native public turn active-effect journeys', () => {
     const base = { ...fixture, run: encounterGmProjectionDtoSchema.parse(removed.projection) }
     const actor = base.run.actors[0]!
     if (actor.kind !== 'CHARACTER') throw new Error('Expected a Character turn owner.')
-    const starting = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const starting = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -757,13 +742,10 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: started.projection.version
       }
     }
-    const pendingOutgoing = await base.owner.caller.mutation(
-      internal.encounters.commands.execute,
-      advance
-    )
+    const pendingOutgoing = await executeInRoom(base.owner.caller, advance)
     unchangedMechanics(before, await pendingEffect(base, effect.id, 'END_OF_TURN'))
-    const pendingInitiative = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
+    const pendingInitiative = await executeInRoom(
+      base.owner.caller,
       diceResponse(base.run.id, pendingOutgoing)
     )
     expect(pendingInitiative.occurrence?.pending?.kind).toBe('INITIATIVE_EVIDENCE')
@@ -781,9 +763,7 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, advance)
-    ).resolves.toEqual(completed)
+    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(completed)
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
@@ -804,7 +784,7 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: base.run.version
       }
     }
-    const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, start)
+    const issued = await executeInRoom(base.owner.caller, start)
     const declaration = await base.player.caller.query(
       api.encounters.pendingReads.pendingRuleOccurrence,
       { encounterId: base.run.id }
@@ -820,16 +800,10 @@ describe('native public turn active-effect journeys', () => {
       primary: { kind: 'CHARACTER_ACTION', optionId: option.optionId },
       bonus: null
     })
-    const accepted = await base.player.caller.action(
-      internal.encounters.commandActions.execute,
-      declarationCommand
-    )
+    const accepted = await executeInRoom(base.player.caller, declarationCommand)
     expect(encounterPlayerProjectionDtoSchema.safeParse(accepted.projection).success).toBe(true)
     expect(accepted.occurrence?.pending).toBeNull()
-    const gmInitiative = await base.owner.caller.mutation(
-      internal.encounters.commands.execute,
-      start
-    )
+    const gmInitiative = await executeInRoom(base.owner.caller, start)
     const pendingIncoming = await resolveInitiative(base, gmInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
@@ -861,19 +835,16 @@ describe('native public turn active-effect journeys', () => {
         pending: playerPending
       }
     }
-    const replay = await base.player.caller.action(
-      internal.encounters.commandActions.execute,
-      declarationCommand
-    )
+    const replay = await executeInRoom(base.player.caller, declarationCommand)
     expect(replay).toEqual(expectedReplay)
     expect(replay.projection.actors.every((entry) => !('currentHitPoints' in entry))).toBe(true)
-    await expect(
-      base.player.caller.mutation(internal.encounters.commands.execute, declarationCommand)
-    ).resolves.toEqual(expectedReplay)
+    await expect(replayInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
+      expectedReplay
+    )
     const dice = diceResponse(base.run.id, pendingIncoming)
     expect(await stored(base)).toEqual(paused)
     // The GM may answer any prompt, including the player's save.
-    const settled = await base.owner.caller.action(internal.encounters.commandActions.execute, dice)
+    const settled = await executeInRoom(base.owner.caller, dice)
     expect(settled.occurrence?.status).toBe('COMPLETE')
     const terminal = await stored(base)
     const characterBefore = before.characters[0]
@@ -890,17 +861,14 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
-    const terminalReplay = await base.player.caller.action(
-      internal.encounters.commandActions.execute,
-      declarationCommand
-    )
+    const terminalReplay = await replayInRoom(base.player.caller, declarationCommand)
     expect(terminalReplay.occurrence?.pending).toBeNull()
     expect(encounterPlayerProjectionDtoSchema.safeParse(terminalReplay.projection).success).toBe(
       true
     )
-    await expect(
-      base.player.caller.action(internal.encounters.commandActions.execute, declarationCommand)
-    ).resolves.toEqual(terminalReplay)
+    await expect(replayInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
+      terminalReplay
+    )
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
@@ -920,10 +888,7 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: base.run.version
       }
     }
-    const pendingDeclaration = await base.owner.caller.mutation(
-      internal.encounters.commands.execute,
-      start
-    )
+    const pendingDeclaration = await executeInRoom(base.owner.caller, start)
     const declaration = pendingDeclaration.occurrence?.pending
     if (!declaration || declaration.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Expected a Creature initiative declaration.')
@@ -937,27 +902,22 @@ describe('native public turn active-effect journeys', () => {
       primary: { kind: 'CREATURE_FEATURE_ACTION', optionId: option.optionId },
       bonus: null
     })
-    const pendingInitiative = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
-      acceptedDeclaration
-    )
+    const pendingInitiative = await executeInRoom(base.owner.caller, acceptedDeclaration)
     const pendingIncoming = await resolveInitiative(base, pendingInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, acceptedDeclaration)
-    ).resolves.toEqual(pendingIncoming)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, start)
-    ).resolves.toEqual(pendingIncoming)
+    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual(
+      pendingIncoming
+    )
+    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(pendingIncoming)
     expect(await stored(base)).toEqual(paused)
     expect(
       await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
       })
     ).toBeNull()
-    const settled = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
+    const settled = await executeInRoom(
+      base.owner.caller,
       diceResponse(base.run.id, pendingIncoming)
     )
     expect(settled.occurrence?.status).toBe('COMPLETE')
@@ -966,9 +926,7 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(base.run.actors[0]!.currentHitPoints - 1)
     const terminal = await stored(base)
     expect(terminal.effects).toEqual([])
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, acceptedDeclaration)
-    ).resolves.toEqual(settled)
+    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual(settled)
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
@@ -997,7 +955,7 @@ describe('native public turn active-effect journeys', () => {
       return values
     })
     try {
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, start)
+      const result = await executeInRoom(base.owner.caller, start)
       expect(result).toMatchObject({
         projection: {
           status: 'ACTIVE',
@@ -1048,9 +1006,7 @@ describe('native public turn active-effect journeys', () => {
       expect(terminal.receipts).toHaveLength(1)
       expect(terminal.occurrences).toHaveLength(1)
       entropy.mockClear()
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, start)
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(result)
       expect(entropy).not.toHaveBeenCalled()
       expect(await stored(base)).toEqual(terminal)
     } finally {
@@ -1060,7 +1016,7 @@ describe('native public turn active-effect journeys', () => {
 
   it('ADVANCE_TURN applies outgoing then incoming effects to the same actor across the round boundary', async () => {
     const base = await turnActiveEffectFixture('AUTO_ROLL')
-    const started = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -1086,7 +1042,7 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: started.projection.version
       }
     }
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, advance)
+    const result = await executeInRoom(base.owner.caller, advance)
     const hp = encounterGmProjectionDtoSchema.parse(started.projection).actors[0]!.currentHitPoints
     expect(result).toMatchObject({
       projection: {
@@ -1133,15 +1089,13 @@ describe('native public turn active-effect journeys', () => {
       })
     ])
     expect(terminal.rounds.map((round) => round.round)).toEqual([1, 2])
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, advance)
-    ).resolves.toEqual(result)
+    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(result)
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
   it('retains outgoing effects through initiative, Recharge, and incoming dice; only terminal completion publishes the whole turn', async () => {
     const base = await turnActiveEffectFixture('PROMPT')
-    const starting = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const starting = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -1151,7 +1105,7 @@ describe('native public turn active-effect journeys', () => {
     })
     const started = await resolveInitiative(base, starting)
     expect(started.occurrence?.status).toBe('COMPLETE')
-    const spent = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const spent = await executeInRoom(base.owner.caller, {
       command: {
         type: 'ADJUST_FEATURE_RESOURCE',
         encounterId: base.run.id,
@@ -1182,27 +1136,21 @@ describe('native public turn active-effect journeys', () => {
       }
     }
     const before = await stored(base)
-    const pendingOutgoing = await base.owner.caller.mutation(
-      internal.encounters.commands.execute,
-      advance
-    )
+    const pendingOutgoing = await executeInRoom(base.owner.caller, advance)
     unchangedMechanics(before, await pendingEffect(base, outgoing.id, 'END_OF_TURN'))
     const outgoingResponse = diceResponse(base.run.id, pendingOutgoing)
-    const pendingInitiative = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
-      outgoingResponse
-    )
+    const pendingInitiative = await executeInRoom(base.owner.caller, outgoingResponse)
     expect(pendingInitiative.occurrence?.pending?.kind).toBe('INITIATIVE_EVIDENCE')
     unchangedMechanics(before, await stored(base))
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, outgoingResponse)
-    ).resolves.toEqual(pendingInitiative)
+    await expect(replayInRoom(base.owner.caller, outgoingResponse)).resolves.toEqual(
+      pendingInitiative
+    )
     const retainedInitiative = await stored(base)
     await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, {
+      executeInRoom(base.owner.caller, {
         command: { ...outgoingResponse.command, correlationId: crypto.randomUUID() }
       })
-    ).rejects.toThrow('Rule occurrence is unavailable.')
+    ).rejects.toThrow(LiveSessionRouteError)
     expect(await stored(base)).toEqual(retainedInitiative)
     const pendingRecharge = await resolveInitiative(base, pendingInitiative)
     const recharge = pendingRecharge.occurrence?.pending
@@ -1214,10 +1162,7 @@ describe('native public turn active-effect journeys', () => {
       requestId: recharge.request.requestId,
       value: 5
     })
-    const pendingIncoming = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
-      rechargeResponse
-    )
+    const pendingIncoming = await executeInRoom(base.owner.caller, rechargeResponse)
     unchangedMechanics(before, await pendingEffect(base, incoming.id, 'START_OF_TURN'))
     expect(
       await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -1235,10 +1180,7 @@ describe('native public turn active-effect journeys', () => {
     })
     try {
       const terminalResponse = await appRollResponse(base, pendingIncoming)
-      const result = await base.owner.caller.action(
-        internal.encounters.commandActions.execute,
-        terminalResponse
-      )
+      const result = await executeInRoom(base.owner.caller, terminalResponse)
       expect(result).toMatchObject({
         projection: { round: 2, version: spent.projection.version + 1 },
         occurrence: { status: 'COMPLETE', pending: null }
@@ -1273,12 +1215,8 @@ describe('native public turn active-effect journeys', () => {
         expect.objectContaining({ rawDie: 5, recharged: true })
       ])
       entropy.mockClear()
-      await expect(
-        base.owner.caller.action(internal.encounters.commandActions.execute, terminalResponse)
-      ).resolves.toEqual(result)
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, advance)
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, terminalResponse)).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(result)
       expect(entropy).not.toHaveBeenCalled()
       expect(await stored(base)).toEqual(terminal)
     } finally {
@@ -1299,7 +1237,7 @@ describe('native public turn active-effect journeys', () => {
       damage: 1
     })
     const before = await stored(base)
-    const start = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const start = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -1309,15 +1247,10 @@ describe('native public turn active-effect journeys', () => {
     })
     const pendingFirst = await resolveInitiative(base, start)
     const firstResponse = diceResponse(base.run.id, pendingFirst)
-    const pendingSecond = await base.owner.caller.action(
-      internal.encounters.commandActions.execute,
-      firstResponse
-    )
+    const pendingSecond = await executeInRoom(base.owner.caller, firstResponse)
     const paused = await pendingEffect(base, second.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, firstResponse)
-    ).resolves.toEqual(pendingSecond)
+    await expect(replayInRoom(base.owner.caller, firstResponse)).resolves.toEqual(pendingSecond)
     expect(await stored(base)).toEqual(paused)
     await base.t.run((ctx) =>
       createActiveRuleEffectStore(ctx).updateLifecycleCas({
@@ -1331,9 +1264,7 @@ describe('native public turn active-effect journeys', () => {
     const final = await appRollResponse(base, pendingSecond)
     const entropy = vi.spyOn(crypto, 'getRandomValues')
     try {
-      await expect(
-        base.owner.caller.action(internal.encounters.commandActions.execute, final)
-      ).rejects.toThrow()
+      await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
       expect(entropy).not.toHaveBeenCalled()
       expect(await stored(base)).toEqual(stale)
     } finally {
@@ -1348,7 +1279,7 @@ describe('native public turn active-effect journeys', () => {
       ticks: 1,
       damage: 1
     })
-    const start = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const start = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -1359,33 +1290,12 @@ describe('native public turn active-effect journeys', () => {
     const pending = await resolveInitiative(base, start)
     const final = diceResponse(base.run.id, pending)
     const before = await stored(base)
-    const rollback = makeFunctionReference<
-      'action',
-      {
-        ownerUserId: string
-        campaignId: string
-        encounterId: string
-        operation: { kind: 'COMMAND'; input: EncounterExecuteInput }
-      },
-      { rolledBack: true }
-    >('encounters/developmentLifecycle:verifyRollback')
-    await expect(
-      base.owner.caller.action(rollback, {
-        ownerUserId: base.owner.userId,
-        campaignId: base.campaign.id,
-        encounterId: base.run.id,
-        operation: { kind: 'COMMAND', input: final }
-      })
-    ).resolves.toEqual({ rolledBack: true })
-    expect(await stored(base)).toEqual(before)
     expect(
       await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
       })
     ).toBeNull()
-    await expect(
-      base.other.caller.action(internal.encounters.commandActions.execute, final)
-    ).rejects.toThrow()
+    await expect(executeInRoom(base.other.caller, final)).rejects.toThrow()
     const wrongRequest: EncounterExecuteInput = {
       command: {
         ...final.command,
@@ -1398,9 +1308,7 @@ describe('native public turn active-effect journeys', () => {
         }
       }
     }
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, wrongRequest)
-    ).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, wrongRequest)).rejects.toThrow()
     expect(await stored(base)).toEqual(before)
     const actorRow = before.actors[0]!
     const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
@@ -1416,9 +1324,7 @@ describe('native public turn active-effect journeys', () => {
       })
     )
     const staleTarget = await stored(base)
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, final)
-    ).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
     expect(await stored(base)).toEqual(staleTarget)
     await base.t.run(async (ctx) => {
       await ctx.db.patch(actorRow._id, {
@@ -1447,9 +1353,7 @@ describe('native public turn active-effect journeys', () => {
       })
     })
     const staleSource = await stored(base)
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, final)
-    ).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
     expect(await stored(base)).toEqual(staleSource)
   }, 30000)
 })

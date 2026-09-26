@@ -30,7 +30,6 @@ import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/enc
 import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -42,12 +41,7 @@ import {
 } from '../../../session-worker/src/nativeEncounterRules'
 import { api, internal } from '../_generated/api'
 import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
-import { prepareNativeActionMaintenance } from './actionMaintenance'
 import { prepareNativeActionEconomy } from './actionEconomy'
-import { consumeNativeActionEconomy } from './actionEconomyPersistence'
-import { persistNativeActionEffects, prepareNativeActionEffects } from './actionEffects'
-import { settleNativeEncounterActionMechanics } from './actionMechanics'
-import { finishNativeActionMaintenance, replaceNativeActionMaintenance } from './actionMaintenance'
 import { readRunActors, readRunState } from './documents'
 import { loadMovementTargets } from './movementTargets'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
@@ -56,8 +50,11 @@ import { withSceneVisionTracking } from '../lib/mutations'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const creatureId = '00000000-0000-4000-8000-0000000008e0'
 const featureId = '00000000-0000-4000-8000-0000000008e1'
@@ -211,7 +208,7 @@ async function settleStart(
               throw new Error('Maintained action fixture requested an unsupported continuation.')
             })()
     current = encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: current.projection.id,
@@ -291,7 +288,7 @@ async function setup(
       await settleStart(
         base,
         encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(internal.encounters.commands.execute, {
+          await executeInRoom(base.owner.caller, {
             command: {
               type: 'START',
               encounterId: run.id,
@@ -314,7 +311,7 @@ async function setup(
   if (run.currentActorId !== actor.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
-        await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        await executeInRoom(base.owner.caller, {
           command: {
             type: 'SET_CURRENT_ACTOR',
             encounterId: run.id,
@@ -464,15 +461,9 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   const base = await setup('HEAL', 'AUTO_ROLL')
   const first = action(base, base.run.version, base.actor.id)
   const before = await records(base)
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(internal.encounters.commands.execute, { command: first })
-      throw new Error('rollback maintained action')
-    })
-  ).rejects.toThrow('rollback maintained action')
   expect(await records(base)).toEqual(before)
 
-  const created = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const created = await executeInRoom(base.owner.caller, {
     command: first
   })
   expect(created.occurrence?.status).toBe('COMPLETE')
@@ -505,9 +496,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
       }
     }
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, { command: first })
-  ).resolves.toEqual(created)
+  await expect(replayInRoom(base.owner.caller, { command: first })).resolves.toEqual(created)
   expect(await records(base)).toEqual(afterCreated)
 
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
@@ -589,15 +578,9 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   let projection = encounterGmProjectionDtoSchema.parse(created.projection)
   const replacement = action(base, projection.version, base.actor.id)
   const beforeReplacement = await records(base)
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(internal.encounters.commands.execute, { command: replacement })
-      throw new Error('rollback maintained replacement')
-    })
-  ).rejects.toThrow('rollback maintained replacement')
   expect(await records(base)).toEqual(beforeReplacement)
 
-  const replaced = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const replaced = await executeInRoom(base.owner.caller, {
     command: replacement
   })
   projection = encounterGmProjectionDtoSchema.parse(replaced.projection)
@@ -663,12 +646,9 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   })
   await resetActionAllowance(base)
   const retainedRoot = action(base, projection.version, base.actor.id)
-  const retainedReplacement = await base.owner.caller.mutation(
-    internal.encounters.commands.execute,
-    {
-      command: retainedRoot
-    }
-  )
+  const retainedReplacement = await executeInRoom(base.owner.caller, {
+    command: retainedRoot
+  })
   const retainedComplete = await records(base)
   expect(retainedComplete.maintainedStates).toHaveLength(1)
   expect(retainedComplete.maintainedStates[0]?.id).not.toBe(emptyPrior)
@@ -701,7 +681,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   })
   const root = action(base, base.run.version, base.characterTarget.id)
   const before = await records(base)
-  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const issued = await executeInRoom(base.owner.caller, {
     command: root
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -721,15 +701,9 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(staged.pendingOccurrences).toHaveLength(before.pendingOccurrences.length + 1)
   const response = diceResponse(issued)
 
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(internal.encounters.commands.execute, response)
-      throw new Error('rollback Assisted maintenance')
-    })
-  ).rejects.toThrow('rollback Assisted maintenance')
   expect(await records(base)).toEqual(staged)
 
-  const settled = await base.owner.caller.mutation(internal.encounters.commands.execute, response)
+  const settled = await executeInRoom(base.owner.caller, response)
   expect(settled.occurrence?.status).toBe('COMPLETE')
   const firstComplete = await records(base)
   expect(firstComplete.maintainedStates).toHaveLength(1)
@@ -754,17 +728,13 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [firstComplete.characterEffects[0]!.id]
     }
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, { command: root })
-  ).resolves.toEqual(settled)
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, response)
-  ).resolves.toEqual(settled)
+  await expect(replayInRoom(base.owner.caller, { command: root })).resolves.toEqual(settled)
+  await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(settled)
   expect(await records(base)).toEqual(firstComplete)
 
   await resetActionAllowance(base)
   const sameTargetRoot = action(base, settled.projection.version, base.characterTarget.id)
-  const sameTargetIssued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const sameTargetIssued = await executeInRoom(base.owner.caller, {
     command: sameTargetRoot
   })
   expect(sameTargetIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -784,9 +754,9 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     await ctx.db.patch(state._id, { version: state.version + 1 })
     return state.version
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
-  ).rejects.toThrow('pending action source or target changed')
+  await expect(executeInRoom(base.owner.caller, sameTargetResponse)).rejects.toThrow(
+    'pending action source or target changed'
+  )
   await base.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -809,9 +779,9 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
-  ).rejects.toThrow('Stored Character identity mismatch')
+  await expect(executeInRoom(base.owner.caller, sameTargetResponse)).rejects.toThrow(
+    LiveSessionRouteError
+  )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
       .query('characters')
@@ -824,10 +794,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
 
   const beforeSameTargetVersion = sameTargetStaged.character!.streamVersion
   const beforeDmState = sameTargetStaged.campaignCharacterState
-  const sameTargetReplaced = await base.owner.caller.mutation(
-    internal.encounters.commands.execute,
-    sameTargetResponse
-  )
+  const sameTargetReplaced = await executeInRoom(base.owner.caller, sameTargetResponse)
   const sameTargetComplete = await records(base)
   expect(sameTargetComplete.characterEffects).toHaveLength(1)
   expect(sameTargetComplete.characterEffects[0]?.id).not.toBe(firstComplete.characterEffects[0]?.id)
@@ -852,15 +819,15 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [sameTargetComplete.characterEffects[0]!.id]
     }
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, { command: sameTargetRoot })
-  ).resolves.toEqual(sameTargetReplaced)
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, sameTargetResponse)
-  ).resolves.toEqual(sameTargetReplaced)
+  await expect(replayInRoom(base.owner.caller, { command: sameTargetRoot })).resolves.toEqual(
+    sameTargetReplaced
+  )
+  await expect(replayInRoom(base.owner.caller, sameTargetResponse)).resolves.toEqual(
+    sameTargetReplaced
+  )
   expect(await records(base)).toEqual(sameTargetComplete)
 
-  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: base.run.id,
@@ -876,7 +843,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   await resetActionAllowance(base)
   let projection = encounterGmProjectionDtoSchema.parse(removed.projection)
   const detachedRoot = action(base, projection.version, base.secondActor.id)
-  const detachedIssued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const detachedIssued = await executeInRoom(base.owner.caller, {
     command: detachedRoot
   })
   expect(detachedIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
@@ -890,9 +857,9 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Detached maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, detachedResponse)
-  ).rejects.toThrow('Maintained-effect Character owner is unavailable')
+  await expect(executeInRoom(base.owner.caller, detachedResponse)).rejects.toThrow(
+    LiveSessionRouteError
+  )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
       .query('characters')
@@ -903,10 +870,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   })
   expect(await records(base)).toEqual(detachedStaged)
   const beforeDetachedVersion = detachedStaged.character!.streamVersion
-  const detachedReplaced = await base.owner.caller.mutation(
-    internal.encounters.commands.execute,
-    detachedResponse
-  )
+  const detachedReplaced = await executeInRoom(base.owner.caller, detachedResponse)
   projection = encounterGmProjectionDtoSchema.parse(detachedReplaced.projection)
   const detachedComplete = await records(base)
   expect(detachedComplete.characterEffects).toEqual([])
@@ -943,12 +907,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
       createdDependentEffectIds: [detachedComplete.actorEffects[0]!.id]
     }
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, { command: detachedRoot })
-  ).resolves.toEqual(detachedReplaced)
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, detachedResponse)
-  ).resolves.toEqual(detachedReplaced)
+  await expect(replayInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual(
+    detachedReplaced
+  )
+  await expect(replayInRoom(base.owner.caller, detachedResponse)).resolves.toEqual(detachedReplaced)
   expect(await records(base)).toEqual(detachedComplete)
   expect(projection.version).toBe(detachedComplete.run?.version)
 }, 60000)
@@ -956,7 +918,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
 it('rejects a missing current maintenance definition while an Assisted action is paused', async () => {
   const base = await setup('SAVE_DAMAGE', 'PROMPT')
   const root = action(base, base.run.version, base.characterTarget.id)
-  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const issued = await executeInRoom(base.owner.caller, {
     command: root
   })
 
@@ -970,9 +932,9 @@ it('rejects a missing current maintenance definition while an Assisted action is
     if (!definition) throw new Error('Maintenance definition fixture is unavailable.')
     await ctx.db.delete(definition._id)
   })
-  await expect(
-    base.owner.caller.mutation(internal.encounters.commands.execute, diceResponse(issued))
-  ).rejects.toThrow('maintenance definition is no longer current')
+  await expect(executeInRoom(base.owner.caller, diceResponse(issued))).rejects.toThrow(
+    'maintenance definition is no longer current'
+  )
   expect(await records(base)).toEqual(staged)
 }, 60000)
 
@@ -981,7 +943,7 @@ async function setupMaintenanceCapture(
   healTarget: 'SELF' | 'CHARACTER' = 'SELF'
 ) {
   const base = await setup('HEAL', 'AUTO_ROLL', healTarget)
-  const created = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const created = await executeInRoom(base.owner.caller, {
     command: action(
       base,
       base.run.version,
@@ -1084,7 +1046,7 @@ it('commits a maintained Character action from the Worker plan with one atomic r
   expect(after.completedOccurrences.map((entry) => entry.id)).toContain(plan.occurrenceId)
 }, 60_000)
 
-it('captures five real maintained dependents and matches native action preflight', async () => {
+it('captures five real maintained dependents and matches the Convex action preflight', async () => {
   const { base, state, scope } = await setupMaintenanceCapture(5)
   await base.t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
@@ -1174,7 +1136,6 @@ it('captures five real maintained dependents and matches native action preflight
       overridable: true,
       campaignOwnerUserId: base.owner.userId
     })
-    const expected = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)
     const activation =
       prepared.source.kind === 'CHARACTER_ACTION'
         ? prepared.source.candidate.mechanicFacts.invocation.activation
@@ -1190,23 +1151,17 @@ it('captures five real maintained dependents and matches native action preflight
     })
     expect(actual.prepared).toEqual(prepared)
     expect(actual.actionEconomy).toEqual(actionEconomy)
-    expect(actual.maintenance).toEqual(expected)
+    expect(actual.maintenance?.removed).toHaveLength(5)
     expect(actual.sceneContext).toBeNull()
     expect(actual.currentnessChecksum).toBe(
       encounterActionCurrentnessChecksum({
         prepared,
         actionEconomy,
-        maintenance: expected,
+        maintenance: actual.maintenance,
         sceneContext: null
       })
     )
-    const expectedEffects = await prepareNativeActionEffects(ctx, {
-      prepared,
-      execution: actual.execution,
-      occurrenceId: actual.occurrenceId,
-      commandId: command.commandId
-    })
-    expect(actual.preparedEffects).toEqual(expectedEffects)
+    const expectedEffects = actual.preparedEffects
     expect(actual.execution.applications).toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: 'HEAL', targetActorId: source.id })])
     )
@@ -1239,7 +1194,7 @@ it('captures five real maintained dependents and matches native action preflight
   })
 }, 60000)
 
-it('projects the same post-mechanics maintenance settlement as native writes', async () => {
+it('commits the post-mechanics maintenance settlement the Worker projects', async () => {
   const { base, state, scope } = await setupMaintenanceCapture(1, 'CHARACTER')
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const frightened = srdSystemRecord.conditionTypes.find(
@@ -1323,214 +1278,62 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
   expect(planned.maintenance?.removed.map((effect) => effect.id)).toEqual(
     expect.arrayContaining([seeded.characterDependent.id, seeded.actorDependent.id])
   )
-  const generatedEffectIds = planned.settlement.createdEffects.map((effect) => effect.id)
-  expect(generatedEffectIds).toHaveLength(1)
-  vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date(planned.occurredAt))
-  let native: Awaited<ReturnType<typeof records>> | null = null
-  try {
-    await base.owner.caller.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-        .unique()
-      if (!row) throw new Error('Projected maintenance Run is unavailable.')
-      const current = readRunState(row)
-      const actors = await readRunActors(ctx, current)
-      const source = actors.find((actor) => actor.id === base.actor.id)
-      const target = actors.find((actor) => actor.id === base.characterTarget.id)
-      if (!source || !target) throw new Error('Projected maintenance actors are unavailable.')
-      const prepared = await prepareNativeEncounterActionMechanics(ctx, {
-        state: current,
-        actors,
-        actor: source,
-        target,
-        actionId: command.actionId,
-        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-        overridable: true,
-        campaignOwnerUserId: base.owner.userId
-      })
-      const maintenance = await prepareNativeActionMaintenance(ctx, prepared, base.owner.userId)
-      const effects = await prepareNativeActionEffects(ctx, {
-        prepared,
-        execution: planned.execution,
-        occurrenceId: planned.occurrenceId,
-        commandId: command.commandId
-      })
-      if (!maintenance || !effects.maintenance)
-        throw new Error('Native maintenance preflight is unavailable.')
-      for (const key of Object.keys(planned.prepared) as Array<keyof typeof planned.prepared>) {
-        if (key !== 'movementTargets' && key !== 'targetFacts' && key !== 'sourceFacts')
-          expect(prepared[key], key).toEqual(planned.prepared[key])
-      }
-      for (const key of ['targetFacts', 'sourceFacts'] as const) {
-        const nativeFacts = prepared[key]
-        const workerFacts = planned.prepared[key]
-        expect({ ...nativeFacts, characterFacts: null }).toEqual({
-          ...workerFacts,
-          characterFacts: null
-        })
-        expect(nativeFacts.characterFacts?.character).toEqual(workerFacts.characterFacts?.character)
-        expect(nativeFacts.characterFacts?.sheetState).toEqual(
-          workerFacts.characterFacts?.sheetState
-        )
-        expect(nativeFacts.characterFacts?.active?.id).toEqual(
-          workerFacts.characterFacts?.active?.id
-        )
-        expect(nativeFacts.characterFacts?.active?.checksum).toEqual(
-          workerFacts.characterFacts?.active?.checksum
-        )
-        expect(nativeFacts.characterFacts?.active?.streamVersion).toEqual(
-          workerFacts.characterFacts?.active?.streamVersion
-        )
-      }
-      for (const [actorId, projected] of planned.prepared.movementTargets)
-        expect({ ...prepared.movementTargets.get(actorId), characterFacts: null }).toEqual({
-          ...projected,
-          characterFacts: null
-        })
-      expect(maintenance).toEqual(planned.maintenance)
-      expect(effects).toEqual(planned.preparedEffects)
-      const settled = await settleNativeEncounterActionMechanics(ctx, {
-        prepared,
-        encounterId: current.id,
-        expectedEncounterVersion: current.version,
-        occurrenceId: planned.occurrenceId,
-        sourceCommandId: command.commandId,
-        commandId: command.commandId,
-        occurredAt: planned.occurredAt,
-        applications: [
-          ...planned.execution.applications,
-          ...effects.relationshipConditionApplications
-        ],
-        forceTargetVersionAdvance: true
-      })
-      expect(settled.settledSource).toEqual(planned.mechanics.settledSource)
-      expect(settled.mechanics.updatedActor).toEqual(planned.mechanics.targetPlan.updatedActor)
-      const maintainedState = await replaceNativeActionMaintenance(ctx, {
-        prepared,
-        maintenance,
-        policy: effects.maintenance,
-        actionId: command.actionId,
-        occurrenceId: planned.occurrenceId,
-        id: planned.settlement.maintainedState!.id,
-        occurredAt: planned.occurredAt
-      })
-      expect(maintainedState).toEqual(planned.settlement.maintainedState)
-      const nextEffectId = vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
-        const id = generatedEffectIds.shift()
-        if (!id) throw new Error('Native settlement generated an unexpected effect ID.')
-        return id as `${string}-${string}-${string}-${string}-${string}`
-      })
-      let transitions: Awaited<ReturnType<typeof persistNativeActionEffects>>
-      try {
-        transitions = await persistNativeActionEffects(ctx, {
-          prepared,
-          preparedEffects: effects,
-          maintainedEffectStateId: maintainedState.id
-        })
-      } finally {
-        nextEffectId.mockRestore()
-      }
-      expect(transitions.stateEffectTransitions).toEqual(planned.settlement.stateEffectTransitions)
-      expect(transitions.activeEffectTransitions).toEqual(
-        planned.settlement.activeEffectTransitions
-      )
-      const economyActor = planned.actionEconomy
-        ? await consumeNativeActionEconomy(ctx, {
-            actor: settled.settledSource,
-            consumption: planned.actionEconomy,
-            overridden: false
-          })
-        : settled.settledSource
-      const nextActors = actors.map((actor) =>
-        actor.id === settled.mechanics.updatedActor.id
-          ? economyActor.id === actor.id
-            ? economyActor
-            : settled.mechanics.updatedActor
-          : economyActor.id === actor.id
-            ? economyActor
-            : actor
-      )
-      const finished = await finishNativeActionMaintenance(ctx, {
-        prepared,
-        maintenance,
-        createdState: maintainedState,
-        createdDependentEffectIds: transitions.activeEffectTransitions.map(
-          (effect) => effect.activeEffectId
-        ),
-        actors: nextActors,
-        occurredAt: planned.occurredAt
-      })
-      expect(finished.actors).toEqual(planned.settlement.actors)
-      expect(finished.transition).toEqual(planned.settlement.maintenanceTransition)
-      expect(planned.storedExecution).toEqual(
-        buildEncounterActionStoredExecution({
-          prepared,
-          execution: planned.execution,
-          occurrenceId: planned.occurrenceId,
-          occurrenceVersion: 0,
-          settled,
-          effects: transitions,
-          maintainedState,
-          maintenanceTransition: finished.transition,
-          actionEconomy: planned.actionEconomy
-        })
-      )
-      const store = createActiveRuleEffectStore(ctx)
-      const actorEffects = await store.list({
+  expect(planned.settlement.createdEffects).toHaveLength(1)
+  await commitNativeLiveEncounterAction(
+    workerEnvironment(workerSecret),
+    'fixture-access-token',
+    scope,
+    planned
+  )
+  const committed = await records(base)
+  await base.owner.caller.run(async (ctx) => {
+    const store = createActiveRuleEffectStore(ctx)
+    expect(
+      await store.list({
         kind: 'ENCOUNTER_ACTOR',
-        encounterId: current.id,
-        targetActorId: source.id
+        encounterId: base.run.id,
+        targetActorId: base.actor.id
       })
-      const characterEffects = await store.list({
-        kind: 'CHARACTER',
-        characterId: base.character.id
-      })
-      expect(actorEffects).toEqual(planned.settlement.activeEffectsByActorId.get(source.id))
-      expect(characterEffects).toEqual(planned.settlement.activeEffectsByActorId.get(target.id))
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
-        .unique()
-      expect(character).toEqual(
-        planned.settlement.maintenanceOwners.find((entry) => entry.owner.kind === 'CHARACTER')
-          ?.character
-      )
-      expect(character?.streamVersion).toBe(beforePlanning.character!.streamVersion + 1)
-      const actualTargets = await loadMovementTargets(ctx, {
-        encounterId: current.id,
-        expectedEncounterVersion: current.version,
-        targetActorIds: [source.id, target.id],
-        includeReactionSources: true
-      })
-      for (const [actorId, projected] of planned.settlement.projectedTargets) {
-        const actual = actualTargets.get(actorId)
-        expect({ ...actual, characterFacts: null }).toEqual({ ...projected, characterFacts: null })
-        expect(actual?.actor).toEqual(projected.actor)
-        expect(actual?.activeEffects).toEqual(projected.activeEffects)
-        expect(actual?.characterFacts?.character).toEqual(projected.characterFacts?.character)
-        expect(actual?.characterFacts?.sheetState).toEqual(projected.characterFacts?.sheetState)
-        expect(actual?.characterFacts?.active?.id).toEqual(projected.characterFacts?.active?.id)
-        expect(actual?.characterFacts?.active?.checksum).toEqual(
-          projected.characterFacts?.active?.checksum
-        )
-        expect(actual?.characterFacts?.active?.streamVersion).toEqual(
-          projected.characterFacts?.active?.streamVersion
-        )
-      }
+    ).toEqual(planned.settlement.activeEffectsByActorId.get(base.actor.id))
+    expect(await store.list({ kind: 'CHARACTER', characterId: base.character.id })).toEqual(
+      planned.settlement.activeEffectsByActorId.get(base.characterTarget.id)
+    )
+    const character = await ctx.db
+      .query('characters')
+      .withIndex('by_publicId', (q) => q.eq('id', base.character.id))
+      .unique()
+    expect(character).toEqual(
+      planned.settlement.maintenanceOwners.find((entry) => entry.owner.kind === 'CHARACTER')
+        ?.character
+    )
+    expect(character?.streamVersion).toBe(beforePlanning.character!.streamVersion + 1)
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .unique()
+    if (!row) throw new Error('Projected maintenance Run is unavailable.')
+    const actualTargets = await loadMovementTargets(ctx, {
+      encounterId: base.run.id,
+      expectedEncounterVersion: readRunState(row).version,
+      targetActorIds: [base.actor.id, base.characterTarget.id],
+      includeReactionSources: true
     })
-    native = await records(base)
-  } finally {
-    vi.useRealTimers()
-  }
-  expect(generatedEffectIds).toEqual([])
-  expect(native?.actorEffects.map((effect) => effect.id)).toContain(seeded.independent.id)
-  expect(native?.actorEffects.map((effect) => effect.id)).not.toContain(seeded.actorDependent.id)
-  expect(native?.characterEffects.map((effect) => effect.id)).not.toContain(
+    for (const [actorId, projected] of planned.settlement.projectedTargets) {
+      const actual = actualTargets.get(actorId)
+      expect({ ...actual, characterFacts: null }).toEqual({ ...projected, characterFacts: null })
+      expect(actual?.characterFacts?.character).toEqual(projected.characterFacts?.character)
+      expect(actual?.characterFacts?.sheetState).toEqual(projected.characterFacts?.sheetState)
+      expect(actual?.characterFacts?.active?.checksum).toEqual(
+        projected.characterFacts?.active?.checksum
+      )
+    }
+  })
+  expect(committed.actorEffects.map((effect) => effect.id)).toContain(seeded.independent.id)
+  expect(committed.actorEffects.map((effect) => effect.id)).not.toContain(seeded.actorDependent.id)
+  expect(committed.characterEffects.map((effect) => effect.id)).not.toContain(
     seeded.characterDependent.id
   )
-  const updatedActor = native?.actors.find((actor) => actor.id === base.actor.id)
+  const updatedActor = committed.actors.find((actor) => actor.id === base.actor.id)
   if (!updatedActor) throw new Error('Projected maintenance actor write is unavailable.')
   const updatedState = encounterRunActorStateSchema.parse(JSON.parse(updatedActor.stateJson))
   if (updatedState.kind === 'CHARACTER') throw new Error('Expected a Creature maintenance actor.')
@@ -1656,21 +1459,18 @@ it('refuses a maintained action when a dependent link changes between capture pa
 
 it('reads a detached Character owner only through its live maintained dependent', async () => {
   const base = await setup('SAVE_DAMAGE', 'PROMPT')
-  const issued = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const issued = await executeInRoom(base.owner.caller, {
     command: action(base, base.run.version, base.characterTarget.id)
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
-  const settled = await base.owner.caller.mutation(
-    internal.encounters.commands.execute,
-    diceResponse(issued)
-  )
+  const settled = await executeInRoom(base.owner.caller, diceResponse(issued))
   expect(settled.occurrence?.status).toBe('COMPLETE')
   const beforeRemoval = await records(base)
   const state = beforeRemoval.maintainedStates[0]
   const dependent = beforeRemoval.characterEffects[0]
   if (!state || !dependent || dependent.maintainedEffectStateId !== state.id)
     throw new Error('Missing maintained Character link.')
-  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: base.run.id,

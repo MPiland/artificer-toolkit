@@ -12,7 +12,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterSheetState } from '../characters/documents'
-import { readDefinitionRoot } from '../content/definitionStore'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import type { MovementTarget } from './movementTargets'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence'
@@ -36,44 +35,6 @@ export type NativeMaintenanceProjection = {
     }
   >
   owners: ReadonlyMap<string, NativeMaintenanceOwner>
-}
-
-/** The pending action binds the current slot and every affected owner before any dice are consumed. */
-export async function prepareNativeActionMaintenance(
-  ctx: MutationCtx,
-  prepared: Prepared,
-  userId: string,
-  projection?: NativeMaintenanceProjection
-) {
-  return prepareEncounterActionMaintenance({
-    prepared,
-    readDefinition: async (definitionId) =>
-      (await readDefinitionRoot(ctx, definitionId, userId))?.current ?? null,
-    readSlot: async (definitionId) => {
-      const projectedSlot = projection?.slots.get(`${prepared.actor.id}:${definitionId}`)
-      if (projectedSlot)
-        return { state: projectedSlot.state, dependents: [...projectedSlot.dependents] }
-      const store = createActiveRuleEffectStore(ctx)
-      const state = await store.findMaintainedState({
-        encounterId: prepared.state.id,
-        ownerActorId: prepared.actor.id,
-        maintenanceDefinitionId: definitionId
-      })
-      return {
-        state,
-        dependents: state
-          ? await store.listDependentEffects({ encounterId: prepared.state.id, stateId: state.id })
-          : []
-      }
-    },
-    readOwners: (removed) =>
-      prepareNativeMaintenanceOwners(ctx, {
-        gameSystemId: prepared.state.gameSystemId,
-        removed,
-        targets: prepared.movementTargets,
-        projection
-      })
-  })
 }
 
 /** Reads each affected owner once, including changes staged by earlier movement contacts. */
@@ -128,7 +89,13 @@ export async function prepareNativeMaintenanceOwners(
 }
 
 export type PreparedMaintenance = NonNullable<
-  Awaited<ReturnType<typeof prepareNativeActionMaintenance>>
+  Awaited<
+    ReturnType<
+      typeof prepareEncounterActionMaintenance<
+        Awaited<ReturnType<typeof prepareNativeMaintenanceOwners>>
+      >
+    >
+  >
 >
 
 /** Replacement and its new dependent remain inside the action's owning mutation. */

@@ -19,6 +19,7 @@ import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { turnCharacterEffectFixture } from './turnActiveEffectFixtures'
 import { api, components, internal } from '../../convex/_generated/api'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
+import { executeInRoom } from './liveSessionWorker'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -163,7 +164,7 @@ export async function turnConcentrationFixture(rolls: FixtureRolls) {
   })
   const observer = run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!observer) throw new Error('Turn concentration observer is unavailable.')
-  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: run.id,

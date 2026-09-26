@@ -77,7 +77,8 @@ export async function verifyEncounterCharacterCommands({
     }
   }
   await assert.rejects(anonymous.mutation(executeEncounterCommand, damage), /Unauthenticated/)
-  await assert.rejects(player.mutation(executeEncounterCommand, damage), /Campaign not found/)
+  // A player's GM command is refused as the GM's, not as a changed Encounter (D42).
+  await assert.rejects(player.mutation(executeEncounterCommand, damage), /GM_ONLY/)
   const damaged = await measure('nestedCharacterDamage', () =>
     owner.mutation(executeEncounterCommand, damage)
   )

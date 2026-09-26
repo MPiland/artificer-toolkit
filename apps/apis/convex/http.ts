@@ -20,6 +20,8 @@ import {
   encounterRouteHttp,
   encounterVoidPrepareHttp,
   encounterVoidRecordHttp,
+  encounterRollDiceHttp,
+  encounterRollCommitHttp,
   encounterRulesHttp,
   encounterBundleHttp,
   encounterMovementBeginHttp,
@@ -71,6 +73,8 @@ const liveSessionHandlers = {
   encounterRoute: encounterRouteHttp,
   encounterVoidPrepare: encounterVoidPrepareHttp,
   encounterVoidRecord: encounterVoidRecordHttp,
+  encounterRollDice: encounterRollDiceHttp,
+  encounterRollCommit: encounterRollCommitHttp,
   encounterCommand: encounterCommandHttp
 } satisfies Record<keyof typeof LIVE_SESSION_ROUTE_PATHS, PublicHttpAction>
 for (const [route, path] of Object.entries(LIVE_SESSION_ROUTE_PATHS))

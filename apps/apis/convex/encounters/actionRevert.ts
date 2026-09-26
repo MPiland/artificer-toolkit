@@ -81,7 +81,7 @@ export async function revertLastEncounterAction(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   const fingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db

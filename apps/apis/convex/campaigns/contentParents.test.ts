@@ -70,9 +70,10 @@ async function setup() {
         checksum: checksumRuleDocument(document),
         contentSourceId
       }
+      const publicVersionId = crypto.randomUUID()
       const currentVersionId = await ctx.db.insert('authoredVersions', {
         ...metadata,
-        versionId: crypto.randomUUID(),
+        versionId: publicVersionId,
         version: 1,
         documentSchemaVersion: 1,
         documentJson: JSON.stringify(document)
@@ -81,6 +82,7 @@ async function setup() {
         ...metadata,
         ownerUserId: base.owner.userId,
         currentVersionId,
+        currentVersionPublicId: publicVersionId,
         parentClassId:
           publication.subjectKind === 'CLASS' && publication.document.category === 'SUBCLASS'
             ? publication.document.parentClassId

@@ -4,10 +4,7 @@ import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
@@ -40,10 +37,11 @@ import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 import * as rollRandom from '../lib/rollRandom'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
-import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
-import { readResponse } from './movementResolutionDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  insertActiveLiveAuthority,
+  planMovementDecisionInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
 afterEach(() => {
@@ -60,11 +58,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const begin = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -219,11 +212,10 @@ it('settles a used automatic reaction Concentration check once with its damage r
   })
   const seeded = await installConcentration(value)
   await refreshMovementSaveVision(value)
-  const { request, responseCommandId, geometry } = await useMovementReactions(value)
+  const { publish, prepared, responseCommandId } = await useMovementReactions(value)
   const before = await records(value)
   if (!before.character) throw new Error('Concentrating Character is unavailable.')
 
-  const prepared = await value.owner.caller.mutation(prepare, request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected Automatic terminal movement.')
   const reaction = prepared.outcome.result.reactionExecutions[0]
@@ -247,19 +239,7 @@ it('settles a used automatic reaction Concentration check once with its damage r
   expect(random).toHaveBeenCalledTimes(3)
   expect(await records(value)).toEqual(before)
 
-  await expect(
-    value.owner.caller.run(async (ctx) => {
-      await commitPreparedMovementResponse(
-        ctx,
-        request,
-        await readResponse(ctx, request.saveId, geometry)
-      )
-      throw new Error('Rollback movement Concentration publication.')
-    })
-  ).rejects.toThrow('Rollback movement Concentration publication.')
-  expect(await records(value)).toEqual(before)
-
-  const published = await value.owner.caller.mutation(finish, request)
+  const published = await publish()
   const after = await records(value)
   expect(random).toHaveBeenCalledTimes(3)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
@@ -271,7 +251,7 @@ it('settles a used automatic reaction Concentration check once with its damage r
   expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))).toEqual(
     prepared.outcome.result
   )
-  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
+  await expect(publish()).resolves.toEqual({
     ...published,
     replayed: true
   })
@@ -293,10 +273,9 @@ it('consumes a moving one-shot effect once across a Concentration pause and late
   )
   const effect = await seedMovingSpatialEffect(value, { activation: 'ONE_SHOT', hidden: false })
   await refreshMovementSaveVision(value)
-  const { request, geometry } = await useMovementReactions(value)
+  const { publish, prepared } = await useMovementReactions(value)
   const before = await records(value)
 
-  const prepared = await value.owner.caller.mutation(prepare, request)
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (
     prepared.outcome.kind !== 'TERMINAL' ||
@@ -328,26 +307,14 @@ it('consumes a moving one-shot effect once across a Concentration pause and late
   expect(laterTarget?.concentrationChecks).toBeUndefined()
   expect(await records(value)).toEqual(before)
 
-  await expect(
-    value.owner.caller.run(async (ctx) => {
-      await commitPreparedMovementResponse(
-        ctx,
-        request,
-        await readResponse(ctx, request.saveId, geometry)
-      )
-      throw new Error('Rollback shared one-shot movement publication.')
-    })
-  ).rejects.toThrow('Rollback shared one-shot movement publication.')
-  expect(await records(value)).toEqual(before)
-
-  const published = await value.owner.caller.mutation(finish, request)
+  const published = await publish()
   const after = await records(value)
   expect(after.spatialEffects).toEqual([])
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.allCharacterEffects.map((entry) => entry.id)).not.toContain(seeded.dependent.id)
   expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(published)).not.toContain('frozenGraph')
-  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
+  await expect(publish()).resolves.toEqual({
     ...published,
     replayed: true
   })
@@ -369,9 +336,8 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
   const effect = await seedMovingSpatialEffect(value, { activation: 'REPEATABLE', hidden: true })
   await refreshMovementSaveVision(value)
   const hidden = await records(value)
-  const { request } = await useMovementReactions(value)
+  const { publish, prepared } = await useMovementReactions(value)
 
-  const prepared = await value.owner.caller.mutation(prepare, request)
   if (
     prepared.outcome.kind !== 'TERMINAL' ||
     prepared.outcome.result.status !== 'BATCH_COMPLETE' ||
@@ -383,7 +349,7 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
       (execution) => execution.candidate.candidate.effectId === effect.id
     )
   ).toHaveLength(2)
-  const published = await value.owner.caller.mutation(finish, request)
+  const published = await publish()
   const after = await records(value)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   // The first crossing, before the reactions paused the movement, revealed the effect once.
@@ -392,7 +358,7 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
   ])
   expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(published)).not.toContain('frozenGraph')
-  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
+  await expect(publish()).resolves.toEqual({
     ...published,
     replayed: true
   })
@@ -441,7 +407,7 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
       rollMode: pending.request.rollMode
     }
   })
-  await expect(value.player.caller.mutation(begin, answer)).rejects.toThrow('another controller')
+  await expect(planMovementDecisionInRoom(value.player.caller, answer)).rejects.toThrow()
   expect(
     await value.player.caller.query(pendingOccurrence, { encounterId: value.base.run.id })
   ).toBeNull()
@@ -457,16 +423,8 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   expect(wire).not.toContain('consumedSpatialEffects')
   expect(wire).not.toContain('frozenGraph')
 
-  const started = await value.additionalPlayer.caller.mutation(begin, answer)
-  if (!started || started.kind !== 'READY')
-    throw new Error('Expected Concentration response staging.')
-  let request: Request = { ...value.request, saveId: started.saveId }
-  await value.additionalPlayer.caller.mutation(observe, {
-    saveId: request.saveId,
-    characterRevisions: []
-  })
-  await value.additionalPlayer.caller.mutation(prepare, request)
-  const concentrationResponse = await value.additionalPlayer.caller.mutation(finish, request)
+  let plan = await planMovementDecisionInRoom(value.additionalPlayer.caller, answer)
+  const concentrationResponse = await plan.publish()
   let completed = concentrationResponse
   let sawHazardPause = false
   for (let index = 0; completed.occurrence?.status === 'PENDING'; index += 1) {
@@ -537,14 +495,7 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
               }
             : null
     if (!resolution) throw new Error('Unexpected shared-effect continuation request.')
-    const staged = await value.owner.caller.mutation(
-      begin,
-      response({ encounterId: value.base.run.id, pending: next, resolution })
-    )
-    if (!staged || staged.kind !== 'READY')
-      throw new Error('Expected continuation response staging.')
-    request = { ...request, saveId: staged.saveId }
-    await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
+    const nextAnswer = response({ encounterId: value.base.run.id, pending: next, resolution })
     if (respondingToHazard) {
       await value.base.t.run(async (ctx) => {
         const scope = await createSpatialRuleEffectStore(ctx).scope({
@@ -561,9 +512,7 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
         })
       })
       const beforeRejectedPreparation = await records(value)
-      await expect(value.owner.caller.mutation(prepare, request)).rejects.toThrow(
-        'The recorded spatial lifecycle transition is no longer current.'
-      )
+      await expect(planMovementDecisionInRoom(value.owner.caller, nextAnswer)).rejects.toThrow()
       expect(await records(value)).toEqual(beforeRejectedPreparation)
       await value.base.t.run(async (ctx) => {
         const scope = await createSpatialRuleEffectStore(ctx).scope({
@@ -575,33 +524,8 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
         await scope.deleteCas({ id: recreated.id, expectedVersion: recreated.version })
       })
     }
-    await value.owner.caller.mutation(prepare, request)
-    if (respondingToHazard) {
-      const beforeHazardFinish = await records(value)
-      const position =
-        completed.delta?.kind === 'TOKEN_MOVED' && completed.delta.tokenId === value.moverTokenId
-          ? completed.delta.position
-          : null
-      if (!position) throw new Error('Expected published E/H hazard boundary position.')
-      const rollbackGeometry = {
-        ...value.geometry,
-        sceneTokens: value.geometry.sceneTokens.map((token) =>
-          token.id === value.moverTokenId ? { ...token, position } : token
-        )
-      }
-      await expect(
-        value.owner.caller.run(async (ctx) => {
-          await commitPreparedMovementResponse(
-            ctx,
-            request,
-            await readResponse(ctx, request.saveId, rollbackGeometry)
-          )
-          throw new Error('Rollback retained E/H continuation.')
-        })
-      ).rejects.toThrow('Rollback retained E/H continuation.')
-      expect(await records(value)).toEqual(beforeHazardFinish)
-    }
-    completed = await value.owner.caller.mutation(finish, request)
+    plan = await planMovementDecisionInRoom(value.owner.caller, nextAnswer)
+    completed = await plan.publish()
   }
   if (completed.occurrence?.status !== 'COMPLETE')
     throw new Error('Expected the shared-effect suffix to settle after Concentration.')
@@ -625,17 +549,17 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(JSON.stringify(completed)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(completed)).not.toContain('frozenGraph')
-  await expect(value.owner.caller.mutation(finish, request)).resolves.toEqual({
+  await expect(plan.publish()).resolves.toEqual({
     ...completed,
     replayed: true
   })
-  await expect(value.additionalPlayer.caller.mutation(begin, answer)).resolves.toEqual({
-    kind: 'REPLAY',
-    result: { ...concentrationResponse, replayed: true }
-  })
+  // Settled decisions are no longer routable.
   await expect(
-    value.additionalPlayer.caller.mutation(begin, { ...answer, commandId: crypto.randomUUID() })
-  ).resolves.toBeNull()
+    planMovementDecisionInRoom(value.additionalPlayer.caller, {
+      ...answer,
+      commandId: crypto.randomUUID()
+    })
+  ).rejects.toThrow()
   expect(await records(value)).toEqual(after)
 }, 60_000)
 
@@ -700,7 +624,7 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
   expect(await records(value)).toEqual(after)
 }, 60_000)
 
-it.each(['native', 'private'] as const)(
+it.each(['room', 'private'] as const)(
   'keeps the Assisted Concentration child sealed under one movement root via %s',
   async (route) => {
     const authSecret = 'private-concentration-child-continuation-secret-at-least-32-bytes'
@@ -713,8 +637,7 @@ it.each(['native', 'private'] as const)(
     await refreshMovementSaveVision(value)
     // The GM uses the authored automatic reaction; its dice pause as evidence.
     const used = await useMovementReactions(value)
-    const actionEvidence = (await value.owner.caller.mutation(finish, used.request)).occurrence
-      ?.pending
+    const actionEvidence = (await used.publish()).occurrence?.pending
     if (!actionEvidence || actionEvidence.kind !== 'D20_EVIDENCE')
       throw new Error('Expected reaction d20 evidence after its Use.')
     const action = response({
@@ -727,32 +650,23 @@ it.each(['native', 'private'] as const)(
         rollMode: actionEvidence.request.rollMode
       }
     })
-    await expect(value.player.caller.mutation(begin, action)).rejects.toThrow('another controller')
-    const actionStarted = await value.owner.caller.mutation(begin, action)
-    if (!actionStarted || actionStarted.kind !== 'READY')
-      throw new Error('Expected reaction evidence staging.')
-    let request: Request = { ...value.request, saveId: actionStarted.saveId }
+    await expect(planMovementDecisionInRoom(value.player.caller, action)).rejects.toThrow()
+    let answer = action
     let pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
     for (;;) {
-      await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-      await value.owner.caller.mutation(prepare, request)
-      pending = (await value.owner.caller.mutation(finish, request)).occurrence?.pending
+      pending = (await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish())
+        .occurrence?.pending
       // The GM enters the reaction's damage before its target's Concentration check.
       if (pending?.kind !== 'ACTION_OUTCOME_EVIDENCE') break
-      const damage = await value.owner.caller.mutation(
-        begin,
-        response({
-          encounterId: value.base.run.id,
-          pending,
-          resolution: {
-            kind: 'ENTER_INTEGER',
-            requestId: pending.request.requestId,
-            value: pending.request.min
-          }
-        })
-      )
-      if (!damage || damage.kind !== 'READY') throw new Error('Expected damage evidence staging.')
-      request = { ...request, saveId: damage.saveId }
+      answer = response({
+        encounterId: value.base.run.id,
+        pending,
+        resolution: {
+          kind: 'ENTER_INTEGER',
+          requestId: pending.request.requestId,
+          value: pending.request.min
+        }
+      })
     }
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the sealed Concentration evidence.')
@@ -789,6 +703,7 @@ it.each(['native', 'private'] as const)(
     })
     let completed: SceneGeometryCommandResult
     let beforeFinish: Awaited<ReturnType<typeof records>>
+    let republish: (() => Promise<SceneGeometryCommandResult>) | null = null
     let privateCommit:
       | Awaited<ReturnType<typeof preparePrivateMovementResponse>>['commitInput']
       | null = null
@@ -847,7 +762,8 @@ it.each(['native', 'private'] as const)(
           command: concentration
         })
       })
-      expect(revoked.status).toBe(409)
+      expect(revoked.status).toBe(422)
+      expect(await revoked.json()).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
       expect(await records(value)).toEqual(staged)
       await value.base.t.run((ctx) => {
         const { _id: _assignmentId, _creationTime: _assignmentTime, ...saved } = assignment
@@ -875,18 +791,12 @@ it.each(['native', 'private'] as const)(
       )
       completed = committed.scene
     } else {
-      const started = await value.player.caller.mutation(begin, concentration)
-      if (!started || started.kind !== 'READY')
-        throw new Error('Expected Concentration response staging.')
-      request = { ...request, saveId: started.saveId }
-      await value.player.caller.mutation(observe, {
-        saveId: request.saveId,
-        characterRevisions: []
-      })
       beforeFinish = await records(value)
-      expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('TERMINAL')
+      const plan = await planMovementDecisionInRoom(value.player.caller, concentration)
+      expect(plan.outcome.kind).toBe('TERMINAL')
       expect(await records(value)).toEqual(beforeFinish)
-      completed = await value.player.caller.mutation(finish, request)
+      republish = plan.publish
+      completed = await plan.publish()
     }
     const after = await records(value)
     expect(await moverHitPoints()).toBe(damagedHitPoints)
@@ -927,7 +837,7 @@ it.each(['native', 'private'] as const)(
         )
       ).resolves.toMatchObject({ scene: { ...completed, replayed: true } })
     else
-      await expect(value.player.caller.mutation(finish, request)).resolves.toEqual({
+      await expect(republish?.()).resolves.toEqual({
         ...completed,
         replayed: true
       })

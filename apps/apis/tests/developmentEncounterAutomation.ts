@@ -232,9 +232,10 @@ export async function verifyEncounterAutomation({
           }
           const expectedOccurrenceVersion = result.occurrence.occurrenceVersion
           operation = `player denial responseIndex=${responseIndex} expectedOccurrenceVersion=${expectedOccurrenceVersion}`
+          // A member may answer only their own decisions; another's is a permission refusal.
           await assert.rejects(
             player.mutation(executeEncounterCommand, continuation),
-            /Campaign not found/
+            /NOT_ACTOR_CONTROLLER/
           )
           const previousOccurrenceVersion = result.occurrence.occurrenceVersion
           operation = `continuation responseIndex=${responseIndex} expectedOccurrenceVersion=${expectedOccurrenceVersion}`
@@ -305,10 +306,7 @@ export async function verifyEncounterAutomation({
     for (const removed of wolves) {
       const command = { ...commandBase(), type: 'REMOVE_ACTOR' as const, actorId: removed.id }
       const beforeRemoval = projection
-      await assert.rejects(
-        player.mutation(executeEncounterCommand, { command }),
-        /Campaign not found/
-      )
+      await assert.rejects(player.mutation(executeEncounterCommand, { command }), /GM_ONLY/)
       await assert.rejects(
         owner.mutation(executeEncounterCommand, {
           command: { ...command, expectedVersion: command.expectedVersion - 1 }
@@ -436,11 +434,11 @@ export async function verifyEncounterAutomation({
     for (const { input, result } of terminalRoots) {
       assert.deepEqual(await owner.mutation(executeEncounterCommand, input), result)
     }
-    for (const input of resolutionInputs) {
-      const replay = await owner.mutation(executeEncounterCommand, input)
-      assert.deepEqual(replay.projection, projection)
-      assert.equal(replay.occurrence?.status, 'COMPLETE')
-    }
+    // A settled decision is no longer routable: the room refuses its retry as stale.
+    for (const input of resolutionInputs)
+      await assert.rejects(owner.mutation(executeEncounterCommand, input), (error) =>
+        assertDomainRejection(error, 'VERSION_STALE')
+      )
     assert.deepEqual(
       await owner.query(api.encounters.timelineReads.timeline, {
         encounterId: prepared.id,

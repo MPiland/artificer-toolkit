@@ -5,6 +5,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { verifyEncounterCharacterCommands } from '../../tests/developmentEncounterCharacter'
 import { api, components, internal } from '../_generated/api'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 it('runs the actual-backend Character/Encounter assertions against local transactions', async () => {
   const { t, owner: player, other: owner, character } = await readySheetFixture()
@@ -48,19 +49,9 @@ it('runs the actual-backend Character/Encounter assertions against local transac
     characterId: character.id
   })
   await verifyEncounterCharacterCommands({
-    owner: {
-      query: (query, ...args) => owner.caller.run((ctx) => ctx.runQuery(query, ...args)),
-      mutation: (mutation, ...args) => owner.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-    },
-    player: {
-      query: (query, ...args) => player.caller.run((ctx) => ctx.runQuery(query, ...args)),
-      mutation: (mutation, ...args) =>
-        player.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-    },
-    anonymous: {
-      query: (query, ...args) => t.run((ctx) => ctx.runQuery(query, ...args)),
-      mutation: (mutation, ...args) => t.run((ctx) => ctx.runMutation(mutation, ...args))
-    },
+    owner: inProcessDevelopmentClient(owner.caller),
+    player: inProcessDevelopmentClient(player.caller),
+    anonymous: inProcessDevelopmentClient(t),
     campaignId: campaign.id,
     characterId: character.id
   })

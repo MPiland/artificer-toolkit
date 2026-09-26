@@ -17,8 +17,8 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { fixture } from '../../tests/fixtures/characters'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { api, internal } from '../_generated/api'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 it('proves V14 native RESOLVE_ACTION contention through public commands', async () => {
   const base = await fixture()
@@ -73,11 +73,7 @@ it('proves V14 native RESOLVE_ACTION contention through public commands', async 
     api.campaigns.create.create,
     campaignInput
   )
-  const owner: DevelopmentClient = {
-    query: (query, ...args) => base.owner.caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) =>
-      base.owner.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
+  const owner = inProcessDevelopmentClient(base.owner.caller)
   await verifyEncounterActionTransactions({
     owner,
     peer: { ...owner },

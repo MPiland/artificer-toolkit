@@ -69,7 +69,7 @@ export async function captureAcquiredEquipmentRules(
     sources.push({
       subjectKind: 'EQUIPMENT',
       subjectId: id,
-      versionId: root.currentVersionId,
+      versionId: root.currentVersionPublicId,
       version: version.version,
       checksum: root.checksum,
       documentJson: canonicalizeRuleDocument(sourceDocument)
@@ -107,7 +107,7 @@ export async function captureAcquiredEquipmentRules(
     sources.push({
       subjectKind: 'SPELL',
       subjectId: id,
-      versionId: root.currentVersionId,
+      versionId: root.currentVersionPublicId,
       version: version.version,
       checksum: root.checksum,
       documentJson: canonicalizeRuleDocument(raw)

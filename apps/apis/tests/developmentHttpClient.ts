@@ -3,8 +3,7 @@ import {
   getFunctionName,
   type ArgsAndOptions,
   type FunctionReference,
-  type FunctionReturnType,
-  type OptionalRestArgs
+  type FunctionReturnType
 } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import type { DomainRejectionErrorData } from '@artificer-toolkit/schema/api/domainRejections'
@@ -22,7 +21,7 @@ import {
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import { api } from '../convex/_generated/api.js'
-import { executeEncounterCommand, executeEncounterCommandAction } from './developmentClient'
+import { executeEncounterCommand } from './developmentClient'
 
 type RoomSocket = Pick<WebSocket, 'addEventListener' | 'close' | 'send'>
 type RoomSocketInit = { headers: { origin: string }; protocols: string[] }
@@ -236,15 +235,6 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     if (getFunctionName(mutation) !== getFunctionName(executeEncounterCommand))
       return super.mutation(mutation, ...args)
     return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Mutation>>
-  }
-
-  override action<Action extends FunctionReference<'action'>>(
-    action: Action,
-    ...args: OptionalRestArgs<Action>
-  ): Promise<FunctionReturnType<Action>> {
-    if (getFunctionName(action) !== getFunctionName(executeEncounterCommandAction))
-      return super.action(action, ...args)
-    return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Action>>
   }
 
   async #executeEncounterCommand(input: unknown): Promise<EncounterCommandResultDto> {

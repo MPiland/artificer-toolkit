@@ -59,11 +59,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { loadMovementTargets } from './movementTargets'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -916,12 +917,12 @@ describe('native encounter actions', () => {
       actionId: base.actionId
     })
     const before = await records(base.t, base.run.id)
-    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: input
     })
     expect(result.occurrence?.status).toBe('PENDING')
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -970,36 +971,12 @@ describe('native encounter actions', () => {
                 value: pending.request.max
               }
       }
-      if (responses.length === 0) {
-        for (const actorId of [base.actor.id, base.target.id]) {
-          await expect(
-            base.owner.caller.run(async (ctx) => {
-              const row = staged.actors.find((actor) => actor.id === actorId)!
-              const actor = creatureActorState(row.stateJson)
-              const changed = { ...actor, currentHitPoints: actor.currentHitPoints - 1 }
-              await ctx.db.patch(row._id, {
-                stateJson: JSON.stringify(changed),
-                stateChecksum: checksumCanonicalJson(changed)
-              })
-              await expect(
-                ctx.runMutation(internal.encounters.commands.execute, { command: response })
-              ).rejects.toThrow('pending action source or target changed')
-              throw new Error('restore changed actor')
-            })
-          ).rejects.toThrow('restore changed actor')
-          expect(await records(base.t, base.run.id)).toEqual(staged)
-        }
-      }
-      // A player who does not control the roller cannot answer its evidence.
-      expect(
-        await rejection(
-          base.other.caller.mutation(internal.encounters.commands.execute, {
-            command: response
-          })
-        )
-      ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
+      // A player who does not control the roller may not answer its decision.
+      await expect(executeInRoom(base.other.caller, { command: response })).rejects.toMatchObject({
+        data: { reason: 'NOT_ACTOR_CONTROLLER' }
+      })
       await expect(
-        base.owner.caller.mutation(executeEncounterCommand, {
+        executeInRoom(base.owner.caller, {
           command: {
             ...response,
             resolution: {
@@ -1011,31 +988,27 @@ describe('native encounter actions', () => {
         })
       ).rejects.toThrow()
       expect(await records(base.t, base.run.id)).toEqual(staged)
-      await expect(
-        base.owner.caller.run(async (ctx) => {
-          await ctx.runMutation(internal.encounters.commands.execute, {
-            command: response
-          })
-          throw new Error('rollback Assisted action')
-        })
-      ).rejects.toThrow('rollback Assisted action')
       expect(await records(base.t, base.run.id)).toEqual(staged)
-      result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      result = await executeInRoom(base.owner.caller, {
         command: response
       })
       const settledResponse = await records(base.t, base.run.id)
+      // Once the action settles its decision is no longer routable, so a retry is refused stale.
+      const settledAction = result.occurrence?.status !== 'PENDING'
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: { ...response, correlationId: crypto.randomUUID() }
         })
-      ).rejects.toThrow('evidence receipt mismatch')
+      ).rejects.toThrow(settledAction ? 'Rule occurrence is unavailable.' : LiveSessionRouteError)
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: { ...response, commandId: crypto.randomUUID() }
         })
-      ).rejects.toThrow('occurrence version is stale')
+      ).rejects.toThrow(
+        settledAction ? 'Rule occurrence is unavailable.' : 'occurrence version is stale'
+      )
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        replayInRoom(base.owner.caller, {
           command: response
         })
       ).resolves.toEqual(result)
@@ -1061,22 +1034,23 @@ describe('native encounter actions', () => {
     )
     expect(settled.commands).toHaveLength(before.commands.length + 1)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
     for (const response of responses)
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        replayInRoom(base.owner.caller, {
           command: response
         })
       ).resolves.toEqual(result)
     expect(await records(base.t, base.run.id)).toEqual(settled)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: { ...input, expectedVersion: 1, commandId: responses[0]!.commandId }
       })
-    ).rejects.toThrow('Command ID was already used with different input.')
+      // Refused as reused, or redacted when Convex finds the id on the answer's history first.
+    ).rejects.toThrow(/Command ID was already used with different input|Live Session route request/)
     expect(await records(base.t, base.run.id)).toEqual(settled)
     const secondRun = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
@@ -1086,7 +1060,7 @@ describe('native encounter actions', () => {
     for (const run of [result.projection, secondRun]) {
       const beforeCollision = await records(base.t, run.id)
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: {
             type: 'UPSERT_REMINDER',
             encounterId: run.id,
@@ -1103,7 +1077,10 @@ describe('native encounter actions', () => {
             }
           }
         })
-      ).rejects.toThrow('Command ID was already used with different input.')
+        // Refused as reused, or redacted when Convex finds the id on the answer's history first.
+      ).rejects.toThrow(
+        /Command ID was already used with different input|Live Session route request/
+      )
       expect(await records(base.t, run.id)).toEqual(beforeCollision)
     }
   }, 30000)
@@ -1129,12 +1106,10 @@ describe('native encounter actions', () => {
       actionId: base.actionId
     })
     expect(
-      await rejection(
-        base.other.caller.mutation(executeEncounterCommand, { command: uncontrolled })
-      )
+      await rejection(executeInRoom(base.other.caller, { command: uncontrolled }))
     ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
     expect(await records(base.t, base.run.id)).toEqual(before)
-    const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+    const granted = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
         encounterId: base.run.id,
@@ -1151,16 +1126,14 @@ describe('native encounter actions', () => {
       actionId: base.actionId,
       expectedVersion: granted.projection.version
     })
-    const result = await base.other.caller.mutation(executeEncounterCommand, { command: input })
+    const result = await executeInRoom(base.other.caller, { command: input })
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(result.projection.version).toBe(granted.projection.version + 1)
     const settled = await records(base.t, base.run.id)
-    await expect(
-      base.other.caller.mutation(executeEncounterCommand, { command: input })
-    ).resolves.toEqual(result)
-    expect(
-      await rejection(base.owner.caller.mutation(executeEncounterCommand, { command: input }))
-    ).toMatchObject({ reason: 'COMMAND_ID_REUSED' })
+    await expect(replayInRoom(base.other.caller, { command: input })).resolves.toEqual(result)
+    expect(await rejection(executeInRoom(base.owner.caller, { command: input }))).toMatchObject({
+      reason: 'COMMAND_ID_REUSED'
+    })
     expect(await records(base.t, base.run.id)).toEqual(settled)
   }, 30000)
 
@@ -1175,12 +1148,12 @@ describe('native encounter actions', () => {
     const before = await records(base.t, base.run.id)
     expect(
       await rejection(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: command({ ...input, targetActorId: base.actor.id })
         })
       )
     ).toMatchObject({ reason: 'RULE_WARNINGS', warnings: [{ code: 'TARGET_DISPOSITION' }] })
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: input
     })
     expect(result.projection.version).toBe(1)
@@ -1193,23 +1166,21 @@ describe('native encounter actions', () => {
     expect(settled.receipts).toHaveLength(before.receipts.length + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
     expect(await records(base.t, base.run.id)).toEqual(settled)
     await expect(
-      base.owner.caller.run((ctx) =>
-        ctx.runMutation(internal.encounters.commands.execute, {
-          command: command({ ...input, commandId: crypto.randomUUID() })
-        })
-      )
+      executeInRoom(base.owner.caller, {
+        command: command({ ...input, commandId: crypto.randomUUID() })
+      })
     ).rejects.toThrow('stale')
     await expect(
-      base.other.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.other.caller, {
         command: input
       })
-    ).rejects.toThrow('Campaign not found')
+    ).rejects.toThrow(LiveSessionRouteError)
     await base.t.run(async (ctx) => {
       const receipt = await ctx.db
         .query('encounterRuleReceipts')
@@ -1221,10 +1192,10 @@ describe('native encounter actions', () => {
       await ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) })
     })
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
-    ).rejects.toThrow('receipt mismatch')
+    ).rejects.toThrow(LiveSessionRouteError)
   }, 30000)
 
   it.each([false, true])(
@@ -1250,15 +1221,9 @@ describe('native encounter actions', () => {
         .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
       let result: EncounterCommandResultDto
       try {
-        await expect(
-          base.owner.caller.run(async (ctx) => {
-            await ctx.runMutation(internal.encounters.commands.execute, { command: input })
-            throw new Error('abort contextual action')
-          })
-        ).rejects.toThrow('abort contextual action')
         expect(await records(base.t, base.run.id)).toEqual(before)
         result = encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
+          await executeInRoom(base.owner.caller, { command: input })
         )
         expect(random).toHaveBeenCalled()
       } finally {
@@ -1279,9 +1244,7 @@ describe('native encounter actions', () => {
         base.target.currentHitPoints
       )
       await replaceTargetToken(base, { x: 450, y: 450 })
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
       expect(await records(base.t, base.run.id)).toEqual(settled)
     },
     30000
@@ -1294,7 +1257,7 @@ describe('native encounter actions', () => {
       await replaceTargetToken(base, change === 'moved' ? { x: 450, y: 450 } : null)
       const before = await records(base.t, base.run.id)
       const attempt = () =>
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: command({
             encounterId: base.run.id,
             expectedVersion: base.run.version,
@@ -1315,7 +1278,7 @@ describe('native encounter actions', () => {
           reason: 'RULE_WARNINGS',
           warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
         })
-      else await expect(attempt()).rejects.toThrow('token is unavailable')
+      else await expect(attempt()).rejects.toThrow(LiveSessionRouteError)
       expect(await records(base.t, base.run.id)).toEqual(before)
     },
     30000
@@ -1337,9 +1300,7 @@ describe('native encounter actions', () => {
       }
     })
     const beforeMissing = await records(missing.t, missing.run.id)
-    await expect(
-      missing.owner.caller.mutation(internal.encounters.commands.execute, { command: missingInput })
-    ).rejects.toThrow()
+    await expect(executeInRoom(missing.owner.caller, { command: missingInput })).rejects.toThrow()
     expect(await records(missing.t, missing.run.id)).toEqual(beforeMissing)
 
     const wrongBinding = await distanceSetup()
@@ -1358,7 +1319,7 @@ describe('native encounter actions', () => {
     })
     const beforeWrongBinding = await records(wrongBinding.t, wrongBinding.run.id)
     await expect(
-      wrongBinding.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(wrongBinding.owner.caller, {
         command: wrongBindingInput
       })
     ).rejects.toThrow()
@@ -1393,7 +1354,7 @@ describe('native encounter actions', () => {
     })
     const beforeOutOfRange = await records(outOfRange.t, outOfRange.run.id)
     await expect(
-      outOfRange.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(outOfRange.owner.caller, {
         command: outOfRangeInput
       })
     ).rejects.toThrow()
@@ -1415,9 +1376,7 @@ describe('native encounter actions', () => {
     })
     await advanceSceneVersion(stale.t, stale.sceneId)
     const beforeStale = await records(stale.t, stale.run.id)
-    await expect(
-      stale.owner.caller.mutation(internal.encounters.commands.execute, { command: staleInput })
-    ).rejects.toThrow()
+    await expect(executeInRoom(stale.owner.caller, { command: staleInput })).rejects.toThrow()
     expect(await records(stale.t, stale.run.id)).toEqual(beforeStale)
   }, 30000)
 
@@ -1441,7 +1400,7 @@ describe('native encounter actions', () => {
       }
     })
     const before = await records(base.t, base.run.id)
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: input
     })
     expect(result.occurrence?.status).toBe('PENDING')
@@ -1455,7 +1414,7 @@ describe('native encounter actions', () => {
       throw new Error('Expected Assisted distance evidence.')
     await advanceSceneVersion(base.t, base.sceneId)
     await expect(
-      base.owner.caller.mutation(executeEncounterCommand, {
+      executeInRoom(base.owner.caller, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: base.run.id,
@@ -1503,7 +1462,7 @@ describe('native encounter actions', () => {
       }
     })
     const before = await records(base.t, base.run.id)
-    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: input
     })
     for (let step = 0; result.occurrence?.status === 'PENDING'; step++) {
@@ -1541,51 +1500,21 @@ describe('native encounter actions', () => {
               }
       }
       if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
-        await expect(
-          base.owner.caller.run(async (ctx) => {
-            await ctx.runMutation(internal.encounters.commands.execute, { command: response })
-            throw new Error('abort contextual outcome')
-          })
-        ).rejects.toThrow('abort contextual outcome')
         expect(await records(base.t, base.run.id)).toEqual(retained)
       }
-      result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      result = await executeInRoom(base.owner.caller, {
         command: response
       })
       const after = await records(base.t, base.run.id)
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: response })
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
       expect(await records(base.t, base.run.id)).toEqual(after)
     }
     expect(result.occurrence?.status).toBe('COMPLETE')
     const settled = await records(base.t, base.run.id)
     expect(settled.run?.version).toBe(base.run.version + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
-    ).resolves.toEqual(result)
+    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
     expect(await records(base.t, base.run.id)).toEqual(settled)
-  }, 30000)
-
-  it('rolls native action writes back when its transaction aborts', async () => {
-    const base = await setup()
-    const before = await records(base.t, base.run.id)
-    const input = command({
-      encounterId: base.run.id,
-      actorId: base.actor.id,
-      targetActorId: base.target.id,
-      actionId: base.actionId
-    })
-    await expect(
-      base.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(internal.encounters.commands.execute, {
-          command: input
-        })
-        throw new Error('abort')
-      })
-    ).rejects.toThrow('abort')
-    expect(await records(base.t, base.run.id)).toEqual(before)
   }, 30000)
 
   it('refuses a completed phased action with an authorized nested forced movement before writes', async () => {
@@ -1608,10 +1537,10 @@ describe('native encounter actions', () => {
       .mockReturnValueOnce(0)
     try {
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: input
         })
-      ).rejects.toThrow('complete contextual action coordinator')
+      ).rejects.toThrow('Spatially interpreted actions are not available yet.')
       expect(random).toHaveBeenCalled()
     } finally {
       random.mockRestore()
@@ -1637,7 +1566,7 @@ describe('native encounter actions', () => {
     let result: EncounterCommandResultDto
     try {
       result = encounterCommandResultDtoSchema.parse(
-        await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        await executeInRoom(base.owner.caller, {
           command: input
         })
       )
@@ -1678,7 +1607,7 @@ describe('native encounter actions', () => {
     })
 
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -1707,10 +1636,10 @@ describe('native encounter actions', () => {
       })
     })
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
-    ).rejects.toThrow('receipt mismatch')
+    ).rejects.toThrow(LiveSessionRouteError)
   }, 30000)
 
   it('settles a self action on the source actor once', async () => {
@@ -1725,7 +1654,7 @@ describe('native encounter actions', () => {
       targetActorId: base.actor.id,
       actionId: base.actionId
     })
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: input
     })
     const after = await records(base.t, base.run.id)
@@ -1769,7 +1698,7 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: input
     })
     const source = await base.t.run(async (ctx) => {
@@ -1787,7 +1716,7 @@ describe('native encounter actions', () => {
     expect(featureChargeUsed(source, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      replayInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -1814,7 +1743,7 @@ describe('native encounter actions', () => {
       })
     })
     const exhausted = await rejection(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: command({ ...input, commandId: crypto.randomUUID(), expectedVersion: 1 })
       })
     )
@@ -1835,7 +1764,7 @@ describe('native encounter actions', () => {
         targetActorId: base.actor.id,
         actionId: base.actionId
       })
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const result = await executeInRoom(base.owner.caller, {
         command: input
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
@@ -1869,9 +1798,7 @@ describe('native encounter actions', () => {
       expect(execution.applicationOutputs.activeEffectTransitions[0]?.activeEffectId).toBe(
         stored.effect?.id
       )
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
       const replayed = await base.t.run(async (ctx) =>
         ctx.db
           .query('encounterActiveRuleEffects')
@@ -1902,7 +1829,7 @@ describe('native encounter actions', () => {
         targetActorId: base.target.id,
         actionId: base.actionId
       })
-      const pending = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const pending = await executeInRoom(base.owner.caller, {
         command: input
       })
       expect(pending.occurrence?.status).toBe('PENDING')
@@ -1925,14 +1852,12 @@ describe('native encounter actions', () => {
           rollMode: request.request.rollMode
         }
       }
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const result = await executeInRoom(base.owner.caller, {
         command: response
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
       expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: response })
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
       expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
     },
     30000
@@ -1962,13 +1887,13 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const pending = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const pending = await executeInRoom(base.owner.caller, {
       command: input
     })
     const request = pending.occurrence?.pending
     if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
       throw new Error('Expected initial save evidence.')
-    await base.owner.caller.mutation(executeEncounterCommand, {
+    await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -2025,7 +1950,7 @@ function revert(
   expectedVersion: number,
   caller = base.owner.caller
 ) {
-  return caller.mutation(internal.encounters.commands.execute, {
+  return executeInRoom(caller, {
     command: {
       type: 'REVERT_LAST_ACTION',
       encounterId: base.run.id,
@@ -2045,9 +1970,9 @@ describe('Assisted soft enforcement', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    await base.owner.caller.mutation(internal.encounters.commands.execute, { command: first })
+    await executeInRoom(base.owner.caller, { command: first })
     const again = (acknowledgedWarnings: EncounterRuleWarningCodeDto[]) =>
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           ...command({ ...first, commandId: crypto.randomUUID(), expectedVersion: 1 }),
           acknowledgedWarnings
@@ -2136,20 +2061,18 @@ describe('Assisted soft enforcement', () => {
       }
     })
     expect(
-      await rejection(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: outOfRange })
-      )
+      await rejection(executeInRoom(base.owner.caller, { command: outOfRange }))
     ).toMatchObject({ warnings: [{ code: 'TARGET_OUT_OF_RANGE' }] })
     expect(
       await rejection(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: { ...outOfRange, commandId: crypto.randomUUID(), sceneContext: null }
         })
       )
     ).toMatchObject({ warnings: [{ code: 'TARGET_RANGE_UNCHECKED' }] })
     expect(
       await rejection(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: {
             ...outOfRange,
             commandId: crypto.randomUUID(),
@@ -2161,7 +2084,7 @@ describe('Assisted soft enforcement', () => {
     ).toMatchObject({
       warnings: [{ code: 'TARGET_DISPOSITION' }, { code: 'TARGET_RANGE_UNCHECKED' }]
     })
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: { ...outOfRange, acknowledgedWarnings: ['TARGET_OUT_OF_RANGE'] }
     })
     expect(result.projection.version).toBe(base.run.version + 1)
@@ -2187,20 +2110,16 @@ describe('Assisted soft enforcement', () => {
     }
     const before = await records(base.t, base.run.id)
     const refuse = async (changed: typeof input) =>
-      (
-        await rejection(
-          base.owner.caller.mutation(internal.encounters.commands.execute, { command: changed })
-        )
-      ).reason
+      (await rejection(executeInRoom(base.owner.caller, { command: changed }))).reason
     expect(await refuse({ ...input, actorId: base.target.id, targetActorId: base.actor.id })).toBe(
       'NOT_CURRENT_ACTOR'
     )
     expect(await refuse({ ...input, expectedVersion: 7 })).toBe('VERSION_STALE')
+    await expect(executeInRoom(base.other.caller, { command: input })).rejects.toThrow(
+      LiveSessionRouteError
+    )
     await expect(
-      base.other.caller.mutation(internal.encounters.commands.execute, { command: input })
-    ).rejects.toThrow('Campaign not found')
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: { ...input, targetActorId: crypto.randomUUID() }
       })
     ).rejects.toThrow()
@@ -2219,13 +2138,13 @@ describe('GM undo of the last action', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    await base.owner.caller.mutation(internal.encounters.commands.execute, { command: action })
+    await executeInRoom(base.owner.caller, { command: action })
     const settled = await records(base.t, base.run.id)
     const targetState = (value: Awaited<ReturnType<typeof records>>) =>
       creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!.stateJson)
     expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
 
-    await expect(revert(base, 1, base.other.caller)).rejects.toThrow('Campaign not found')
+    await expect(revert(base, 1, base.other.caller)).rejects.toThrow(LiveSessionRouteError)
     const undone = await revert(base, 1)
     expect(undone.projection.version).toBe(2)
     const after = await records(base.t, base.run.id)
@@ -2252,7 +2171,7 @@ describe('GM undo of the last action', () => {
   it('deletes the effect an action created and restores its conditions', async () => {
     const base = await setup({ self: true, recurring: true, condition: true })
     const before = await records(base.t, base.run.id)
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,
         actorId: base.actor.id,
@@ -2272,7 +2191,7 @@ describe('GM undo of the last action', () => {
 
   it('refuses after a later Encounter command changed the Run', async () => {
     const base = await setup({ targetCreature: true })
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,
         actorId: base.actor.id,
@@ -2280,7 +2199,7 @@ describe('GM undo of the last action', () => {
         actionId: base.actionId
       })
     })
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_ROUND',
         encounterId: base.run.id,

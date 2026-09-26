@@ -1,21 +1,9 @@
-import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
-
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 
 it.each([false, true])(
   'stops native Character movement at a used automatic reaction with spatial prefix %s and replays without writes',
@@ -29,7 +17,7 @@ it.each([false, true])(
       : null
     // Assisted play offers the authored automatic reaction as Use/Decline; the GM uses it, and the
     // root publication at that choice already settled any spatial prefix.
-    const { request } = await useMovementReactions(value, value.request, 1)
+    const { publish, prepared } = await useMovementReactions(value, 1)
     const snapshot = () =>
       value.base.t.run(async (ctx) => ({
         characters: await ctx.db.query('characters').collect(),
@@ -50,7 +38,6 @@ it.each([false, true])(
     const beforeRun = before.runs.find((row) => row.id === value.base.run.id)
     if (!beforeCharacter || !beforeRun) throw new Error('Automatic Character state is unavailable.')
 
-    const prepared = await value.owner.caller.mutation(prepare, request)
     expect(prepared.outcome.kind).toBe('TERMINAL')
     if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected automatic STOP terminal.')
     const reaction = prepared.outcome.result.reactionExecutions[0]
@@ -84,7 +71,7 @@ it.each([false, true])(
     expect(prepared.outcome.result.terminalPosition).not.toEqual(destination)
     expect(await snapshot()).toEqual(before)
 
-    const result = await value.owner.caller.mutation(finish, request)
+    const result = await publish()
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     const after = await snapshot()
     const characterCommands = 1
@@ -103,7 +90,7 @@ it.each([false, true])(
       { entityId: value.moverTokenId, value: { entity: { position: contact } } }
     ])
 
-    await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
+    await expect(publish()).resolves.toMatchObject({
       replayed: true
     })
     expect(await snapshot()).toEqual(after)

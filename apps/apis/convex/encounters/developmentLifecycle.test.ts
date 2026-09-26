@@ -4,10 +4,7 @@ import type {
   EncounterExecuteInput,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
@@ -30,6 +27,8 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 13 : 0) }))
 
@@ -48,9 +47,6 @@ const verifyRollback = makeFunctionReference<'action', RollbackInput, { rolledBa
 )
 const bindScene = makeFunctionReference<'mutation', BindEncounterToPresentedSceneInputDto, unknown>(
   'encounters/sceneBindings:bind'
-)
-const executeCommand = makeFunctionReference<'mutation', EncounterExecuteInput, unknown>(
-  'encounters/commands:execute'
 )
 const movementReactionDamage = makeFunctionReference<
   'query',
@@ -75,11 +71,6 @@ const finishMovement = makeFunctionReference<
   MovementRequest,
   SceneGeometryCommandResult
 >('scenes/geometryCommands:finish')
-const beginMovementResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observeMovement = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -245,7 +236,7 @@ describe('development lifecycle rollback proof', () => {
     const base = await setup()
     const operation = commandOperation(base)
     if (operation.kind !== 'COMMAND') throw new Error('Expected command operation.')
-    await base.other.caller.mutation(executeCommand, operation.input)
+    await executeInRoom(base.other.caller, operation.input)
     const replayBefore = await read(base)
     await expect(verify(base, operation)).rejects.toThrow(
       'Fixture lifecycle operation did not change persisted state.'
@@ -416,17 +407,10 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     correlationId: null,
     resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
   }
-  const staged = await scene.owner.caller.mutation(beginMovementResponse, command)
-  if (!staged || staged.kind !== 'READY') throw new Error('Expected movement response staging.')
-  const request = { ...scene.request, saveId: staged.saveId }
-  await scene.owner.caller.mutation(observeMovement, {
-    saveId: request.saveId,
-    characterRevisions: []
-  })
-  const prepared = await scene.owner.caller.mutation(prepareMovement, request)
-  if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal reaction damage.')
-  expect(prepared.outcome.result.reactionExecutions).toHaveLength(1)
-  const terminal = await scene.owner.caller.mutation(finishMovement, request)
+  const { outcome, publish } = await planMovementDecisionInRoom(scene.owner.caller, command)
+  if (outcome?.kind !== 'TERMINAL') throw new Error('Expected terminal reaction damage.')
+  expect(outcome.result.reactionExecutions).toHaveLength(1)
+  const terminal = await publish()
   expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
 
   const rows = await base.t.run(async (ctx) => ({

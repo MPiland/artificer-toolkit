@@ -11,10 +11,10 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { verifyCampaignInventory } from '../../tests/developmentCampaignInventory'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 const removeFixtureState = makeFunctionReference<
   'mutation',
@@ -89,14 +89,8 @@ it('proves the authenticated Campaign inventory subset through public handlers',
       leftAt: null
     })
   )
-  const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-    query: (query, ...args) => caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) => caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  })
-  const anonymous: DevelopmentClient = {
-    query: (query, ...args) => base.t.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) => base.t.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
+  const client = inProcessDevelopmentClient
+  const anonymous = inProcessDevelopmentClient(base.t)
   await verifyCampaignInventory({
     owner: client(base.other.caller),
     player: client(base.owner.caller),

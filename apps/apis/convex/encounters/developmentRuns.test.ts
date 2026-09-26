@@ -18,9 +18,6 @@ import {
   encounterStoredRuleReceiptSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -66,17 +63,6 @@ const bindToken = makeFunctionReference<
   { input: EncounterActorTokenBindingCommandInputDto },
   unknown
 >('encounters/actorTokenBindings:execute')
-type SceneMovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepareSpatialMovement = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const finishSpatialMovement = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 async function setup() {
   const base = await createEncounterSceneFixture()
   await base.t.run(async (ctx) => {
@@ -422,11 +408,10 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
 async function settleNativeMovementFixture() {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
   // Assisted mode turns the authored automatic reaction into the GM's Use choice.
-  const { request } = await useMovementReactions(value)
-  const prepared = await value.owner.caller.mutation(prepareSpatialMovement, request)
+  const { publish, prepared } = await useMovementReactions(value)
   if (prepared.outcome.kind !== 'TERMINAL')
     throw new Error('Expected native movement reaction terminal.')
-  await value.owner.caller.mutation(finishSpatialMovement, request)
+  await publish()
   // The Use response settles the movement, so its receipt, not the paused root's, is terminal.
   const terminal = (
     await value.base.t.run((ctx) =>

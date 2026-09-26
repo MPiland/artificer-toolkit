@@ -298,6 +298,23 @@ export const commit = internalMutation({
       version: state.version + 1,
       updatedAt: input.occurredAt
     })
+    // A resumed action settles its own occurrence first, so a child opens as the only pending one.
+    const completedOccurrence = encounterStoredRuleOccurrenceSchema.parse({
+      id: execution.occurrenceId,
+      campaignId: state.campaignId,
+      encounterId: state.id,
+      rootCommandId: command.commandId,
+      state: 'COMPLETED',
+      version: occurrenceVersion,
+      expectedEncounterVersion: nextState.version,
+      pendingSnapshotJson: null,
+      pendingSnapshotChecksum: null,
+      completedAt: input.occurredAt,
+      createdAt: resume?.occurrence.createdAt ?? input.occurredAt,
+      updatedAt: input.occurredAt
+    })
+    if (resume) await ctx.db.patch(resume.occurrence._id, completedOccurrence)
+    else await ctx.db.insert('encounterRuleOccurrences', completedOccurrence)
     nextActors = await persistLiveEncounterActionChildren(ctx, {
       input,
       state: nextState,
@@ -338,22 +355,6 @@ export const commit = internalMutation({
       projectionChecksum: checksumCanonicalJson(projection),
       updatedAt: input.occurredAt
     })
-    const completedOccurrence = encounterStoredRuleOccurrenceSchema.parse({
-      id: execution.occurrenceId,
-      campaignId: state.campaignId,
-      encounterId: state.id,
-      rootCommandId: command.commandId,
-      state: 'COMPLETED',
-      version: occurrenceVersion,
-      expectedEncounterVersion: nextState.version,
-      pendingSnapshotJson: null,
-      pendingSnapshotChecksum: null,
-      completedAt: input.occurredAt,
-      createdAt: resume?.occurrence.createdAt ?? input.occurredAt,
-      updatedAt: input.occurredAt
-    })
-    if (resume) await ctx.db.patch(resume.occurrence._id, completedOccurrence)
-    else await ctx.db.insert('encounterRuleOccurrences', completedOccurrence)
     await ctx.db.insert(
       'encounterRuleReceipts',
       encounterStoredRuleReceiptSchema.parse({

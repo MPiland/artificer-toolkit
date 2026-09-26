@@ -67,8 +67,8 @@ Character's next write; a publish-time recompute is a follow-up.
 ### Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 
 `RESOLVE_ACTION` evaluates its overridable rule checks once, through
-`rules-runtime/encounterActionRuleWarnings`, in both the DO planner (`nativeEncounterRules.ts`) and
-the Convex fallback (`encounters/actionCommands.ts`):
+`rules-runtime/encounterActionRuleWarnings`, in the DO planner (`nativeEncounterRules.ts`); the
+Convex action fallback was removed in S4-d:
 
 - `prepareEncounterActionMechanics({ overridable: true })` reports an unequipped source
   (`SOURCE_NOT_EQUIPPED`) and an exhausted Character resource or Creature charge

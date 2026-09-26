@@ -9,8 +9,6 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
-  EncounterCommandResultDto,
-  EncounterExecuteInput,
   EncounterGmProjectionDto,
   EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -24,6 +22,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -38,9 +37,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const timeline = makeFunctionReference<
   'query',
   { encounterId: string; cursor?: string; limit?: number },
@@ -94,7 +90,7 @@ async function writeHistory(
   owner: Awaited<ReturnType<typeof fixture>>['owner'],
   run: EncounterGmProjectionDto
 ) {
-  await owner.caller.mutation(execute, {
+  await executeInRoom(owner.caller, {
     command: {
       type: 'SET_INITIATIVE',
       encounterId: run.id,
@@ -105,7 +101,7 @@ async function writeHistory(
       manualOrder: 0
     }
   })
-  await owner.caller.mutation(execute, {
+  await executeInRoom(owner.caller, {
     command: {
       type: 'SET_INITIATIVE',
       encounterId: run.id,

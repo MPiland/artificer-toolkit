@@ -55,7 +55,7 @@ it('returns an expected Encounter rejection as structured data and redacts other
       })
     })
 
-  // The rejection crosses the forwarding action and its nested admission query as ConvexError data.
+  // The rejection crosses the private route as ConvexError data.
   const archived = await forward(base.owner.userId)
   expect(archived.status).toBe(422)
   expect(await archived.json()).toEqual({

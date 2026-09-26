@@ -1,10 +1,6 @@
 // @vitest-environment node
-import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterExecuteInput
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterPlayerProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -12,7 +8,7 @@ import {
   createPlatformRulesRuntime,
   deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 import { consumeUserRateLimit } from '../lib/rateLimits'
 import { seedConcentration } from '../../tests/fixtures/concentration'
@@ -25,7 +21,9 @@ import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRou
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof turnConcentrationFixture>>
@@ -131,7 +129,7 @@ async function start(base: Fixture, preferredActorId?: string) {
       expectedVersion: base.run.version
     }
   }
-  let result = await base.owner.caller.mutation(internal.encounters.commands.execute, command)
+  let result = await executeInRoom(base.owner.caller, command)
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
     if (
@@ -160,7 +158,7 @@ async function start(base: Fixture, preferredActorId?: string) {
                 pending.optionIds.find((optionId) => optionId === preferredActorId) ??
                 pending.optionIds[0]!
             }
-    result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -242,7 +240,7 @@ async function prepareTurn(base: Fixture) {
 }
 
 async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) {
-  let result = await base.owner.caller.mutation(internal.encounters.commands.execute, command)
+  let result = await executeInRoom(base.owner.caller, command)
   const responses: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -250,7 +248,7 @@ async function finishTurnEffects(base: Fixture, command: EncounterExecuteInput) 
       throw new Error('Expected original turn-effect evidence before concentration.')
     const input = response(base.run.id, pending, 1)
     responses.push(input)
-    result = await base.owner.caller.action(internal.encounters.commandActions.execute, input)
+    result = await executeInRoom(base.owner.caller, input)
   }
   return { result: encounterCommandResultDtoSchema.parse(result), responses }
 }
@@ -363,9 +361,7 @@ describe('turn damage concentration ordering', () => {
         throw new Error('Expected the next controller concentration check.')
       expect(pending.encounterVersion).toBe(parent.projection.version + check.versionDelta)
       const input = response(base.run.id, pending, check.face)
-      const result = encounterCommandResultDtoSchema.parse(
-        await check.caller.action(internal.encounters.commandActions.execute, input)
-      )
+      const result = encounterCommandResultDtoSchema.parse(await executeInRoom(check.caller, input))
       expect(result.occurrence).toMatchObject({ status: 'COMPLETE', outcome: check.outcome })
       completed.push({ caller: check.caller, input, result })
     }
@@ -379,23 +375,16 @@ describe('turn damage concentration ordering', () => {
     expect(parentReceipt(before)).toBeDefined()
     expect(parentReceipt(terminal)).toEqual(parentReceipt(before))
     for (const check of completed) {
-      await expect(
-        check.caller.action(internal.encounters.commandActions.execute, check.input)
-      ).resolves.toEqual(check.result)
+      await expect(replayInRoom(check.caller, check.input)).resolves.toEqual(check.result)
     }
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, responses.at(-1)!)
-    ).resolves.toEqual(parent)
+    await expect(replayInRoom(base.owner.caller, responses.at(-1)!)).resolves.toEqual(parent)
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 
   it("routes a Character's turn-effect save to that Character's controller", async () => {
     const base = await turnConcentrationFixture('PROMPT')
     const prepared = await prepareTurn(base)
-    const paused = await base.owner.caller.mutation(
-      internal.encounters.commands.execute,
-      prepared.advance
-    )
+    const paused = await executeInRoom(base.owner.caller, prepared.advance)
     const pending = paused.occurrence?.pending
     if (paused.occurrence?.status !== 'PENDING' || pending?.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the outgoing turn-effect save.')
@@ -409,18 +398,11 @@ describe('turn damage concentration ordering', () => {
     })
     const answer = response(base.run.id, pending, 1)
     const before = await records(base)
-    await expect(
-      prepared.bOwner.controller.caller.action(internal.encounters.commandActions.execute, answer)
-    ).rejects.toThrow()
+    await expect(executeInRoom(prepared.bOwner.controller.caller, answer)).rejects.toThrow()
     expect(await records(base)).toEqual(before)
-    const answered = await prepared.aOwner.controller.caller.action(
-      internal.encounters.commandActions.execute,
-      answer
-    )
+    const answered = await executeInRoom(prepared.aOwner.controller.caller, answer)
     expect(encounterPlayerProjectionDtoSchema.safeParse(answered.projection).success).toBe(true)
-    await expect(
-      prepared.aOwner.controller.caller.action(internal.encounters.commandActions.execute, answer)
-    ).resolves.toEqual(answered)
+    await expect(replayInRoom(prepared.aOwner.controller.caller, answer)).resolves.toEqual(answered)
   }, 60_000)
 
   it('settles Automatic Concentration after a positive incoming START damage batch', async () => {
@@ -468,9 +450,7 @@ describe('turn damage concentration ordering', () => {
       expect(after.states.map((state) => state.id)).toContain(seeded.state.id)
       expect(after.run?.version).toBe(before.run!.version + 1)
       random.mockClear()
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, command)
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, command)).resolves.toEqual(result)
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(after)
     } finally {
@@ -486,10 +466,7 @@ describe('turn damage concentration ordering', () => {
       const before = await records(base)
       random.mockReset()
       for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
-      const result = await base.owner.caller.mutation(
-        internal.encounters.commands.execute,
-        prepared.advance
-      )
+      const result = await executeInRoom(base.owner.caller, prepared.advance)
       expect(result.occurrence?.status).toBe('COMPLETE')
       const after = await records(base)
       const children = after.receipts
@@ -523,9 +500,7 @@ describe('turn damage concentration ordering', () => {
       )
       expect(after.run?.version).toBe(before.run!.version + 1)
       random.mockClear()
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual(result)
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(after)
     } finally {
@@ -559,41 +534,14 @@ describe('turn damage concentration ordering', () => {
     const unauthorized = response(base.run.id, first, 1, crypto.randomUUID())
     const random = vi.spyOn(rollRandom, 'nextRollInt')
     try {
-      await expect(
-        prepared.bOwner.controller.caller.action(
-          internal.encounters.commandActions.execute,
-          unauthorized
-        )
-      ).rejects.toThrow()
+      await expect(executeInRoom(prepared.bOwner.controller.caller, unauthorized)).rejects.toThrow()
       expect(random).not.toHaveBeenCalled()
       expect(await records(base)).toEqual(afterParent)
     } finally {
       random.mockRestore()
     }
     const firstResponse = response(base.run.id, first, 1)
-    const rollback = makeFunctionReference<
-      'action',
-      {
-        ownerUserId: string
-        campaignId: string
-        encounterId: string
-        operation: { kind: 'COMMAND'; input: EncounterExecuteInput }
-      },
-      { rolledBack: true }
-    >('encounters/developmentLifecycle:verifyRollback')
-    await expect(
-      base.owner.caller.action(rollback, {
-        ownerUserId: base.owner.userId,
-        campaignId: base.campaign.id,
-        encounterId: base.run.id,
-        operation: { kind: 'COMMAND', input: firstResponse }
-      })
-    ).resolves.toEqual({ rolledBack: true })
-    expect(await records(base)).toEqual(afterParent)
-    const failed = await prepared.aOwner.controller.caller.action(
-      internal.encounters.commandActions.execute,
-      firstResponse
-    )
+    const failed = await executeInRoom(prepared.aOwner.controller.caller, firstResponse)
     expect(failed.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
     const afterFailure = await records(base)
     expect(afterFailure.run?.version).toBe(afterParent.run!.version + 1)
@@ -604,9 +552,7 @@ describe('turn damage concentration ordering', () => {
     ).toBe(parentReceipt.resultJson)
     const finalTurnResponse = responses.at(-1)
     if (!finalTurnResponse) throw new Error('Missing final turn-effect response.')
-    await expect(
-      base.owner.caller.action(internal.encounters.commandActions.execute, finalTurnResponse)
-    ).resolves.toEqual(parent)
+    await expect(replayInRoom(base.owner.caller, finalTurnResponse)).resolves.toEqual(parent)
     expect(await records(base)).toEqual(afterFailure)
     const second = await prepared.bOwner.controller.caller.query(
       api.encounters.pendingReads.pendingRuleOccurrence,
@@ -621,28 +567,17 @@ describe('turn damage concentration ordering', () => {
       })
     ).resolves.toBeNull()
     const secondResponse = response(base.run.id, second, 20)
-    const success = await prepared.bOwner.controller.caller.action(
-      internal.encounters.commandActions.execute,
-      secondResponse
-    )
+    const success = await executeInRoom(prepared.bOwner.controller.caller, secondResponse)
     expect(success.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
     const terminal = await records(base)
     expect(terminal.run?.version).toBe(afterFailure.run!.version)
-    await expect(
-      prepared.aOwner.controller.caller.action(
-        internal.encounters.commandActions.execute,
-        firstResponse
-      )
-    ).resolves.toEqual(failed)
-    await expect(
-      prepared.bOwner.controller.caller.action(
-        internal.encounters.commandActions.execute,
-        secondResponse
-      )
-    ).resolves.toEqual(success)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
-    ).resolves.toEqual(parent)
+    await expect(replayInRoom(prepared.aOwner.controller.caller, firstResponse)).resolves.toEqual(
+      failed
+    )
+    await expect(replayInRoom(prepared.bOwner.controller.caller, secondResponse)).resolves.toEqual(
+      success
+    )
+    await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual(parent)
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 
@@ -754,9 +689,9 @@ describe('turn damage concentration ordering', () => {
     await setAutoRollDice(base.t, prepared.aOwner.controller.userId, true)
     const firstResponse = response(base.run.id, first, 20)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(0)
-    const answered = await prepared.aOwner.controller.caller
-      .action(internal.encounters.commandActions.execute, firstResponse)
-      .finally(() => random.mockRestore())
+    const answered = await executeInRoom(prepared.aOwner.controller.caller, firstResponse).finally(
+      () => random.mockRestore()
+    )
     expect(answered.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
     const afterFirst = await records(base)
     // The auto-rolled failure advances the Run once, inside the answering commit.
@@ -783,26 +718,17 @@ describe('turn damage concentration ordering', () => {
       encounterVersion: parent.projection.version + 1
     })
     const secondResponse = response(base.run.id, second, 20)
-    const success = await prepared.bOwner.controller.caller.action(
-      internal.encounters.commandActions.execute,
-      secondResponse
-    )
+    const success = await executeInRoom(prepared.bOwner.controller.caller, secondResponse)
     expect(success.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
     const terminal = await records(base)
     expect(terminal.run?.version).toBe(parent.projection.version + 1)
     expect(terminal.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
-    await expect(
-      prepared.aOwner.controller.caller.action(
-        internal.encounters.commandActions.execute,
-        firstResponse
-      )
-    ).resolves.toEqual(answered)
-    await expect(
-      prepared.bOwner.controller.caller.action(
-        internal.encounters.commandActions.execute,
-        secondResponse
-      )
-    ).resolves.toEqual(success)
+    await expect(replayInRoom(prepared.aOwner.controller.caller, firstResponse)).resolves.toEqual(
+      answered
+    )
+    await expect(replayInRoom(prepared.bOwner.controller.caller, secondResponse)).resolves.toEqual(
+      success
+    )
     expect(await records(base)).toEqual(terminal)
     // Answered and automatic checks each get one entry, and replays add none.
     const logged = await ruleCheckRolls(base)
@@ -830,9 +756,9 @@ describe('turn damage concentration ordering', () => {
     await setAutoRollDice(base.t, prepared.bOwner.controller.userId, true)
     const firstResponse = response(base.run.id, first, 1)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
-    const answered = await prepared.aOwner.controller.caller
-      .action(internal.encounters.commandActions.execute, firstResponse)
-      .finally(() => random.mockRestore())
+    const answered = await executeInRoom(prepared.aOwner.controller.caller, firstResponse).finally(
+      () => random.mockRestore()
+    )
     expect(answered.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
     const terminal = await records(base)
     expect(terminal.run?.version).toBe(parent.projection.version + 1)
@@ -850,12 +776,9 @@ describe('turn damage concentration ordering', () => {
         application: { targetActorId: prepared.b.id }
       }
     })
-    await expect(
-      prepared.aOwner.controller.caller.action(
-        internal.encounters.commandActions.execute,
-        firstResponse
-      )
-    ).resolves.toEqual(answered)
+    await expect(replayInRoom(prepared.aOwner.controller.caller, firstResponse)).resolves.toEqual(
+      answered
+    )
     expect(await records(base)).toEqual(terminal)
   }, 60_000)
 
@@ -949,10 +872,7 @@ describe('turn damage concentration ordering', () => {
         )
       random.mockReset()
       for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
-      const result = await base.owner.caller.mutation(
-        internal.encounters.commands.execute,
-        prepared.advance
-      )
+      const result = await executeInRoom(base.owner.caller, prepared.advance)
       expect(result.occurrence?.status).toBe('COMPLETE')
       const logged = await ruleCheckRolls(base)
       expect(logged.gm).toEqual([])
@@ -991,9 +911,7 @@ describe('turn damage concentration ordering', () => {
         }
       ])
       for (const roll of logged.table) expect(roll.characterLabel).toBe(roll.ruleCheck?.actorLabel)
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, prepared.advance)
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, prepared.advance)).resolves.toEqual(result)
       expect(await ruleCheckRolls(base)).toEqual(logged)
     } finally {
       random.mockRestore()
@@ -1005,7 +923,7 @@ describe('turn damage concentration ordering', () => {
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(19)
     try {
       const prepared = await prepareTurn(base)
-      const hidden = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const hidden = await executeInRoom(base.owner.caller, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: base.run.id,
@@ -1017,7 +935,7 @@ describe('turn damage concentration ordering', () => {
       })
       random.mockReset()
       for (const value of [0, 0, 0, 0, 19]) random.mockReturnValueOnce(value)
-      await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'ADVANCE_TURN',
           encounterId: base.run.id,
@@ -1110,27 +1028,6 @@ it('commits ordered Automatic turn concentration through the private DO terminal
     expect(planned.terminal.concentration).toHaveLength(2)
     expect(await records(base)).toEqual(before)
 
-    const nativeRolls = vi.spyOn(rollRandom, 'nextRollInt')
-    for (const value of [0, 0, 0, 0, 19]) nativeRolls.mockReturnValueOnce(value)
-    const previews: EncounterCommandResultDto[] = []
-    try {
-      await expect(
-        base.owner.caller.run(async (ctx) => {
-          previews.push(
-            encounterCommandResultDtoSchema.parse(
-              await ctx.runMutation(internal.encounters.commands.execute, prepared.advance)
-            )
-          )
-          throw new Error('Roll back native concentration preview.')
-        })
-      ).rejects.toThrow('Roll back native concentration preview.')
-    } finally {
-      nativeRolls.mockRestore()
-    }
-    const native = previews[0]
-    if (!native) throw new Error('Missing native concentration preview.')
-    expect(await records(base)).toEqual(before)
-
     const lastIndex = planned.terminal.concentration.length - 1
     const altered = {
       ...planned.terminal,
@@ -1153,11 +1050,8 @@ it('commits ordered Automatic turn concentration through the private DO terminal
       planned.terminal
     )
     expect(result.projection).toMatchObject({
-      status: native.projection.status,
-      round: native.projection.round,
-      currentActorId: native.projection.currentActorId,
-      version: native.projection.version,
-      actors: native.projection.actors
+      ...planned.prepared.root.proposedTerminalTransition,
+      version: before.run!.version + 1
     })
     const after = await records(base)
     const children = after.receipts

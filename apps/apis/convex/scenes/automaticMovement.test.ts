@@ -1,6 +1,5 @@
 import { expect, it, vi } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import {
@@ -8,8 +7,6 @@ import {
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
-import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
-import { readResponse } from './movementResolutionDocuments'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -18,17 +15,12 @@ const prepare = makeFunctionReference<
   ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
   SceneSpatialPreparation
 >('scenes/spatialPreparation:prepare')
-const finish = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 
 // Assisted play offers each authored automatic reaction to its controller as Use/Decline; these
 // tests use them as the GM (the reactors are Creatures).
 it('prepares and publishes used authored automatic movement reactions once', async () => {
   const value = await setupAutomaticSceneMovement()
-  const { request, prepared } = await useMovementReactions(value)
+  const { publish, prepared } = await useMovementReactions(value)
   const before = await value.owner.caller.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
@@ -39,8 +31,8 @@ it('prepares and publishes used authored automatic movement reactions once', asy
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Automatic terminal was not prepared.')
   expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
-  const first = await value.owner.caller.mutation(finish, request)
-  const replay = await value.owner.caller.mutation(finish, request)
+  const first = await publish()
+  const replay = await publish()
   expect(replay).toEqual({ ...first, replayed: true })
   const after = await value.owner.caller.run(async (ctx) => {
     const run = await ctx.db
@@ -81,7 +73,7 @@ it('publishes used automatic mechanics once before the next controller choice', 
       { x: 600, y: 50 }
     ]
   })
-  const { request, prepared } = await useMovementReactions(value, value.request, 1)
+  const { publish, prepared } = await useMovementReactions(value, 1)
   expect(prepared.outcome.kind).toBe('PENDING')
   const before = await value.owner.caller.run(async (ctx) => {
     const run = await ctx.db
@@ -90,7 +82,7 @@ it('publishes used automatic mechanics once before the next controller choice', 
       .unique()
     return run?.version
   })
-  await value.owner.caller.mutation(finish, request)
+  await publish()
   const after = await value.owner.caller.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
@@ -112,7 +104,7 @@ it('retains sequential used automatic reactions at distinct boundaries', async (
   expect(prepared.outcome.result.reactionExecutions.map((entry) => entry.ordinal)).toEqual([0, 1])
 })
 
-it('settles a crossed spatial prefix before its used automatic reaction, with replay and rollback', async () => {
+it('settles a crossed spatial prefix before its used automatic reaction, with replay', async () => {
   const value = await setupAutomaticSceneMovement({
     reactorPositions: [150, 150],
     path: [
@@ -130,7 +122,7 @@ it('settles a crossed spatial prefix before its used automatic reaction, with re
     { x: 475, y: 50 },
     5
   )
-  const { request, prepared, responseCommandId } = await useMovementReactions(value)
+  const { publish, prepared, responseCommandId } = await useMovementReactions(value)
   const snapshot = async () =>
     value.owner.caller.run(async (ctx) => ({
       actors: await ctx.db
@@ -174,56 +166,16 @@ it('settles a crossed spatial prefix before its used automatic reaction, with re
   )
   expect(prepared.outcome.result.terminalPosition).toEqual({ x: 600, y: 50 })
   expect(await snapshot()).toEqual(before)
-  const first = await value.owner.caller.mutation(finish, request)
+  const first = await publish()
   const after = await snapshot()
   expect(after.effects.find((entry) => entry.id === effect.id)).toBeUndefined()
   expect(after.effects.find((entry) => entry.id === suffixEffect.id)).toBeUndefined()
   expect(after.receipts).toHaveLength(1)
   expect(JSON.parse(after.receipts[0]!.resultJson)).toEqual(prepared.outcome.result)
-  expect(await value.owner.caller.mutation(finish, request)).toEqual({
+  expect(await publish()).toEqual({
     ...first,
     replayed: true
   })
-
-  const rollback = await setupAutomaticSceneMovement({
-    reactorPositions: [150, 150],
-    path: [
-      { x: 150, y: 50 },
-      { x: 600, y: 50 }
-    ]
-  })
-  await seedSpatialEffect({ ...rollback.base, sceneId: rollback.sceneId }, { x: 275, y: 50 }, 5)
-  await seedSpatialEffect({ ...rollback.base, sceneId: rollback.sceneId }, { x: 450, y: 50 }, 5)
-  const { request: rollbackRequest, geometry: rollbackGeometry } =
-    await useMovementReactions(rollback)
-  const rollbackBefore = await rollback.owner.caller.run(async (ctx) =>
-    ctx.db
-      .query('encounterSpatialRuleEffects')
-      .withIndex('by_encounterId_sceneId_id', (q) =>
-        q.eq('encounterId', rollback.base.run.id).eq('sceneId', rollback.sceneId)
-      )
-      .collect()
-  )
-  await expect(
-    rollback.owner.caller.run(async (ctx) => {
-      await commitPreparedMovementResponse(
-        ctx,
-        rollbackRequest,
-        await readResponse(ctx, rollbackRequest.saveId, rollbackGeometry)
-      )
-      throw new Error('parent publication failed')
-    })
-  ).rejects.toThrow('parent publication failed')
-  expect(
-    await rollback.owner.caller.run(async (ctx) =>
-      ctx.db
-        .query('encounterSpatialRuleEffects')
-        .withIndex('by_encounterId_sceneId_id', (q) =>
-          q.eq('encounterId', rollback.base.run.id).eq('sceneId', rollback.sceneId)
-        )
-        .collect()
-    )
-  ).toEqual(rollbackBefore)
 }, 30_000)
 
 it('settles a spatial prefix between a used automatic reaction and later controller choice', async () => {
@@ -240,7 +192,7 @@ it('settles a spatial prefix between a used automatic reaction and later control
     { x: 450, y: 50 },
     5
   )
-  const { request, prepared } = await useMovementReactions(value, value.request, 1)
+  const { publish, prepared } = await useMovementReactions(value, 1)
   const before = await value.owner.caller.run(async (ctx) => ({
     effects: await ctx.db
       .query('encounterSpatialRuleEffects')
@@ -270,7 +222,7 @@ it('settles a spatial prefix between a used automatic reaction and later control
     execution.candidate.candidate.pathDistance
   )
   expect(execution.candidate.candidate.pathDistance).toBeLessThan(choice.group.pathDistance)
-  expect(await value.owner.caller.mutation(finish, request)).toMatchObject({
+  expect(await publish()).toMatchObject({
     occurrence: { status: 'PENDING' }
   })
   const after = await value.owner.caller.run(async (ctx) => ({

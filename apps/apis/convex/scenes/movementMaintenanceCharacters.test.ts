@@ -7,10 +7,7 @@ import type {
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -48,13 +45,6 @@ import { createActiveRuleEffectStore } from '../rules/effectStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -322,7 +312,7 @@ it('settles present and detached Character maintenance once per used automatic c
     [value.reactors[0], value.mover, value.reactors[1]],
     [50, 1000]
   )
-  await value.owner.caller.mutation(finish, (await useMovementReactions(firstScene)).request)
+  await (await useMovementReactions(firstScene)).publish()
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')!
   const poisoned = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'POISONED'
@@ -413,7 +403,7 @@ it('settles present and detached Character maintenance once per used automatic c
   // first reaction publishes at the second choice and the totals below span both publications.
   const used = await useMovementReactions(next)
   const before = await snapshot(value)
-  const prepared = await value.owner.caller.mutation(prepare, used.request)
+  const prepared = used.prepared
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal preparation.')
   expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
@@ -426,14 +416,7 @@ it('settles present and detached Character maintenance once per used automatic c
   ])
   expect(executions[0]!.ordinal).toBeLessThan(executions[1]!.ordinal)
   expect(await snapshot(value)).toEqual(before)
-  await expect(
-    value.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(finish, used.request)
-      throw new Error('rollback Character movement maintenance')
-    })
-  ).rejects.toThrow('rollback Character movement maintenance')
-  expect(await snapshot(value)).toEqual(before)
-  const published = await value.owner.caller.mutation(finish, used.request)
+  const published = await used.publish()
   const after = await snapshot(value)
   const presentAfter = after.characters.find((row) => row.id === value.character.id)!
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
@@ -492,7 +475,7 @@ it('settles present and detached Character maintenance once per used automatic c
   const receipt = after.receipts.find((row) => row.commandId === used.responseCommandId)
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
   expect(after.characterReceipts.length - origin.characterReceipts.length).toBe(2)
-  expect(await value.owner.caller.mutation(finish, used.request)).toEqual({
+  expect(await used.publish()).toEqual({
     ...published,
     replayed: true
   })

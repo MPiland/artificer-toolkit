@@ -24,24 +24,19 @@ export type DevelopmentClient = Pick<ConvexHttpClient, 'query'> & {
   ): Promise<FunctionReturnType<Reference>>
 }
 
-// Native Encounter commands are internal: browsers reach them only through the Session room. The
-// transactional test adapter calls these references directly; DevelopmentHttpClient
-// (developmentHttpClient.ts) sends them through the Campaign's Session room like the browser.
+// Names an Encounter command a development client sends through the Campaign's Session room,
+// as a browser does: DevelopmentHttpClient (developmentHttpClient.ts) over its socket, and the
+// in-process test client (`inProcessDevelopmentClient`) through the room's dispatcher.
 export const executeEncounterCommand = makeFunctionReference<
   'mutation',
   EncounterExecuteInput,
   EncounterCommandResultDto
 >('encounters/commands:execute')
-export const executeEncounterCommandAction = makeFunctionReference<
-  'action',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commandActions:execute')
 
 /**
- * Asserts an expected Encounter domain rejection by reason. Both clients surface it as `ConvexError`
- * data: the test adapter directly, DevelopmentHttpClient from the room's `COMMAND_REJECTED`. Returns
- * `true` so it also serves as an `assert.rejects` validator.
+ * Asserts an expected Encounter domain rejection by reason. Both clients surface it as
+ * `ConvexError` data: the in-process client from the room's dispatcher, DevelopmentHttpClient from
+ * the room's `COMMAND_REJECTED`. Returns `true` so it also serves as an `assert.rejects` validator.
  */
 export function assertDomainRejection(error: unknown, reason: DomainRejectionReasonDto): true {
   assert.ok(error instanceof ConvexError, String(error))

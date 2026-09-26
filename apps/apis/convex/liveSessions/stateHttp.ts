@@ -81,10 +81,16 @@ const encounterVoidPrepare = makeFunctionReference<'mutation', JsonObject, unkno
 const encounterVoidRecord = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterVoid:record'
 )
+const encounterRollDice = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/encounterRoll:dice'
+)
+const encounterRollCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterRoll:commit'
+)
 const encounterRoute = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/encounterRoute:route'
 )
-const encounterCommand = makeFunctionReference<'action', JsonObject, unknown>(
+const encounterCommand = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterCommand:execute'
 )
 const jsonObjectSchema = z.record(z.string(), z.json())
@@ -196,6 +202,16 @@ export const encounterVoidRecordHttp = liveStateHttp(
   'Live Session Encounter void unavailable.',
   (ctx, input) => ctx.runMutation(encounterVoidRecord, input)
 )
+export const encounterRollDiceHttp = liveStateHttp(
+  true,
+  'Live Session Encounter roll unavailable.',
+  (ctx, input) => ctx.runQuery(encounterRollDice, input)
+)
+export const encounterRollCommitHttp = liveStateHttp(
+  true,
+  'Live Session Encounter roll unavailable.',
+  (ctx, input) => ctx.runMutation(encounterRollCommit, input)
+)
 export const encounterRouteHttp = liveStateHttp(
   true,
   'Live Session Encounter route unavailable.',
@@ -204,7 +220,7 @@ export const encounterRouteHttp = liveStateHttp(
 export const encounterCommandHttp = liveStateHttp(
   true,
   'Live Session Encounter command unavailable.',
-  (ctx, input) => ctx.runAction(encounterCommand, input)
+  (ctx, input) => ctx.runMutation(encounterCommand, input)
 )
 export const activateHttp = liveStateHttp(
   false,

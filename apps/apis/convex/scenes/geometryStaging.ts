@@ -45,8 +45,10 @@ import { readPresentedVisionScene, readSessionVisionScope } from './sessionVisio
 import { assertSceneVisionCharacters } from './visionFreshness'
 import {
   assertConvexOwnsSceneLiveState,
+  readLiveCampaignAuthority,
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
+import { rejectDomain } from '../lib/domainRejections'
 import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
@@ -99,8 +101,12 @@ export async function beginSceneGeometry(
     if (!liveSceneChange || liveAuthority.campaignId !== campaign.id)
       throw new Error('Live movement authority scope is inconsistent.')
     await requireActiveCampaignLiveAuthority(ctx, liveAuthority)
-  } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN')
+  } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN') {
     await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+    // While a room is live it owns Encounter movement, only on its presented Scene (D42).
+    if (bound && (await readLiveCampaignAuthority(ctx, campaign.id)))
+      rejectDomain('SCENE_NOT_PRESENTED')
+  }
   const sceneBinding = await ctx.db
     .query('encounterSceneBindings')
     .withIndex('by_sceneId', (q) => q.eq('sceneId', header.id))

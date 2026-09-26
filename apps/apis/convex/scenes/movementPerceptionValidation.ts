@@ -1,10 +1,6 @@
 import type { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneMovementPerceptionEnvironment } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { MovementReactionChoiceGroupDto } from '@artificer-toolkit/schema/shared/reaction'
-import {
-  discoverEncounterMovementReactionChoices,
-  revalidateEncounterMovementReactionOption
-} from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import type { MutationCtx } from '../_generated/server'
 import { loadNativeMovementReactionFacts } from '../encounters/movementReactionDiscovery'
 import type { MovementTarget } from '../encounters/movementTargets'
@@ -93,33 +89,4 @@ export async function discoverSceneMovementReactions(
     resolvePerception
   })
   return { ...choices, movementTargets: facts.targets }
-}
-
-/** Revalidate issued contacts directly after the mover has reached a prior boundary. */
-export async function revalidateSceneMovementReactionChoice(
-  ctx: MutationCtx,
-  request: Request,
-  occurrenceId: string,
-  group: MovementReactionChoiceGroupDto,
-  environments: readonly SceneMovementPerceptionEnvironment[],
-  currentTargets?: ReadonlyMap<string, MovementTarget>
-) {
-  const current = await readSceneMovementReactionPerception(
-    ctx,
-    request,
-    environments,
-    currentTargets
-  )
-  if (!current) throw new Error('The next movement reaction choice is stale.')
-  const { movement, geometry, facts, resolvePerception } = current
-  for (const option of group.options)
-    await revalidateEncounterMovementReactionOption({
-      ...facts,
-      movementKind: movement.movementKind,
-      occurrenceId,
-      option,
-      actorIdByTokenId: geometry.actorIdByTokenId,
-      tokens: geometry.sceneTokens,
-      resolvePerception
-    })
 }

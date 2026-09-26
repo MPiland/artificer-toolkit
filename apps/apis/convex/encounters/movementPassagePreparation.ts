@@ -1,12 +1,6 @@
-import type {
-  OptionalCombatPassageChoicePendingContextDto,
-  ServerOptionalCombatContestPendingApplicationContextDto
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { OptionalCombatPassageChoicePendingContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  availableEncounterMovementPassageChoice,
-  prepareEncounterMovementPassageContest
-} from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
+import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { MutationCtx } from '../_generated/server'
 import { requireSystem } from '../content/systemDocuments'
 import { prepareNativeActionEconomy } from './actionEconomy'
@@ -18,33 +12,6 @@ type PassagePreparationInput = {
   sourceActorId: string
   userId: string
   targets: ReadonlyMap<string, MovementTarget>
-}
-
-/** Creates one sealed contest from an issued passage option without changing Encounter state. */
-export async function prepareNativeMovementPassageContest(
-  ctx: MutationCtx,
-  input: {
-    state: EncounterRunState
-    choice: OptionalCombatPassageChoicePendingContextDto
-    optionId: string
-    userId: string
-    targets: ReadonlyMap<string, MovementTarget>
-  }
-): Promise<ServerOptionalCombatContestPendingApplicationContextDto> {
-  return prepareEncounterMovementPassageContest(
-    {
-      loadSystem: () => requireSystem(ctx, input.state.gameSystemId),
-      prepareEconomy: ({ actor, state, activation, target }) =>
-        prepareNativeActionEconomy(ctx, {
-          actor,
-          state,
-          userId: input.userId,
-          activation,
-          target
-        })
-    },
-    input
-  )
 }
 
 /** Issues only optional-passage choices that can be prepared from current actor facts. */

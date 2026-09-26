@@ -93,7 +93,9 @@ export const contentTables = {
     equipmentOptions: v.optional(zodToConvex(authoredEquipmentOptionFactsSchema)),
     authoringSources: v.optional(zodToConvex(authoredNodeRuntimeSourceFactsSchema)),
     activeNameKey: v.optional(v.string()),
-    currentVersionId: v.id('authoredVersions')
+    currentVersionId: v.id('authoredVersions'),
+    // The current version's public `versionId`: persisted contracts pin it, never `currentVersionId`.
+    currentVersionPublicId: v.string()
   })
     .index('by_publicId', ['id'])
     .index('by_importJobId_id', ['importJobId', 'id'])

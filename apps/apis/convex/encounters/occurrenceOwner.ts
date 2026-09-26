@@ -37,7 +37,7 @@ export function isNativeActionOccurrence(input: {
   return input.rootCommandType === 'RESOLVE_ACTION' || input.context?.kind === 'ENCOUNTER_ACTION'
 }
 
-/** The pending contexts `scenes/movementResolutionStaging:begin` resumes through Scene geometry. */
+/** The pending contexts the Session room resumes through Scene geometry. */
 export function isEncounterMovementContext(
   context: NativeEncounterOccurrenceFacts['context'] | undefined
 ) {

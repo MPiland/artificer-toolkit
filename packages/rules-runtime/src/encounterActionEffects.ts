@@ -18,7 +18,7 @@ type CompleteExecution = Extract<
   { kind: 'COMPLETE' }
 >
 
-export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
+function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
   execution: CompleteExecution
 ) {

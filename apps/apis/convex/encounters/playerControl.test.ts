@@ -9,7 +9,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import {
   domainRejection,
-  executeEncounterCommand,
   playerControlFixture,
   setActorControllers,
   type PlayerControlFixture
@@ -20,6 +19,8 @@ import {
   requireBoundTokenMoveControl
 } from './actorController'
 import { readRunActor, readRunState } from './documents'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const leaveCampaign = makeFunctionReference<
   'mutation',
@@ -123,11 +124,11 @@ describe('Encounter actor control', () => {
 
     // Only current players may be granted control, as a sorted list of unique user IDs.
     await expect(setActorControllers(base, base.companion.id, [base.owner.userId])).rejects.toThrow(
-      'Actor controllers must be current Campaign players.'
+      LiveSessionRouteError
     )
     await expect(
       setActorControllers(base, base.companion.id, [crypto.randomUUID()])
-    ).rejects.toThrow('Actor controllers must be current Campaign players.')
+    ).rejects.toThrow(LiveSessionRouteError)
     const controllers = [base.other.userId, base.player.userId].sort()
     await expect(
       setActorControllers(base, base.companion.id, [...controllers].reverse())
@@ -138,7 +139,7 @@ describe('Encounter actor control', () => {
         ?.controllerUserIds
     ).toEqual(controllers)
     await expect(
-      base.other.caller.mutation(executeEncounterCommand, {
+      executeInRoom(base.other.caller, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: base.run.id,
@@ -194,7 +195,7 @@ describe('Encounter actor control', () => {
     const act = (
       member: Pick<PlayerControlFixture['owner'], 'caller'>,
       command: Awaited<ReturnType<typeof bite>>
-    ) => member.caller.mutation(executeEncounterCommand, { command })
+    ) => executeInRoom(member.caller, { command })
 
     // Nobody but the GM controls the companion yet.
     for (const member of [base.player, base.other])
@@ -231,7 +232,7 @@ describe('Encounter actor control', () => {
     })
 
     // The player ends the companion's turn, and then it is no longer theirs to act or end.
-    const advanced = await base.other.caller.mutation(executeEncounterCommand, {
+    const advanced = await executeInRoom(base.other.caller, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -243,7 +244,7 @@ describe('Encounter actor control', () => {
     expect(advanced.projection.currentActorId).toBe(base.character.id)
     await expect(
       domainRejection(
-        base.other.caller.mutation(executeEncounterCommand, {
+        executeInRoom(base.other.caller, {
           command: {
             type: 'ADVANCE_TURN',
             encounterId: base.run.id,
@@ -268,7 +269,7 @@ describe('Encounter actor control', () => {
     const base = await playerControlFixture()
     await hide(base, base.lurker.id)
     const advance = async (member: PlayerControlFixture['player']) =>
-      member.caller.mutation(executeEncounterCommand, {
+      executeInRoom(member.caller, {
         command: {
           type: 'ADVANCE_TURN',
           encounterId: base.run.id,
@@ -284,7 +285,7 @@ describe('Encounter actor control', () => {
     expectPlayerProjection(ended, base.lurker.id)
     expect(ended.projection.currentActorId).toBe(base.enemy.id)
     await expect(
-      base.player.caller.mutation(executeEncounterCommand, {
+      executeInRoom(base.player.caller, {
         command: {
           type: 'SET_ROUND',
           encounterId: base.run.id,
@@ -293,13 +294,15 @@ describe('Encounter actor control', () => {
           round: 3
         }
       })
-    ).rejects.toThrow('Campaign not found.')
+    ).rejects.toMatchObject({
+      data: { reason: 'GM_ONLY', message: 'Only the GM can do that.' }
+    })
   })
 
   it('defaults dispositions by actor kind and lets only the GM change them', async () => {
     const base = await playerControlFixture()
     const update = async (member: Pick<PlayerControlFixture['owner'], 'caller'>) =>
-      member.caller.mutation(executeEncounterCommand, {
+      executeInRoom(member.caller, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: base.run.id,
@@ -317,7 +320,9 @@ describe('Encounter actor control', () => {
       [base.enemy.id]: 'HOSTILE',
       [base.lurker.id]: 'HOSTILE'
     })
-    await expect(update(base.player)).rejects.toThrow('Campaign not found.')
+    await expect(update(base.player)).rejects.toMatchObject({
+      data: { reason: 'GM_ONLY' }
+    })
     expect(
       gmProjection(await update(base.owner)).actors.find((actor) => actor.id === base.enemy.id)
         ?.disposition

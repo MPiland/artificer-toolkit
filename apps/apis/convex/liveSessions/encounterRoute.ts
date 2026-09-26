@@ -35,7 +35,7 @@ export const route = internalQuery({
       membership.role !== 'OWNER' &&
       (await readPendingRunDecision(ctx, run, campaign, membership))?.occurrenceId !== occurrenceId
     )
-      throw new Error('Rule occurrence is unavailable.')
+      rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
     const owner = await readNativeEncounterOccurrenceOwner(ctx, run, occurrenceId)
     if (command.type === 'VOID_RULE_OCCURRENCE') {
       const voided =

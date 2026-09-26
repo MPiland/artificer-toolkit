@@ -1,14 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
-import type {
-  EncounterGmProjectionDto,
-  ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type {
@@ -25,6 +19,7 @@ import {
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { setupCreatureReactionRun } from './movementReaction'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
+import { planMovementDecisionInRoom } from './liveSessionWorker'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -299,42 +294,37 @@ const observeMovement = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-const beginMovementResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
-
 /**
  * Assisted play offers every authored reaction, "automatic" ones included, to its controller as a
- * Use/Decline choice. Drives the movement from `request` (default: the root movement) through each
- * reaction choice, answering Use with the first option as the GM (the fixture reactors are
- * Creatures). Stops after `maxUses` Uses or at the first preparation that is not a reaction choice,
- * and returns that request and preparation; `prepare` is idempotent per save, so callers may prepare
- * that request again.
+ * Use/Decline choice. Prepares the root movement (natively, before any room) or continues from a
+ * planned decision (`start`), publishes its reaction choice, then answers Use with the first option as the GM through the room (the fixture
+ * reactors are Creatures) for each further choice. Stops after `maxUses` Uses or at the first plan
+ * that is not a reaction choice, and returns that plan's outcome with `publish` to commit it. Once a
+ * Use is answered the Campaign stays live (`planMovementDecisionInRoom`).
  */
 export async function useMovementReactions(
-  value: Pick<
-    Awaited<ReturnType<typeof setupReactionMovementScene>>,
-    'base' | 'owner' | 'request' | 'geometry' | 'moverTokenId'
-  >,
-  request: SceneMovementRequest = value.request,
-  maxUses = 10
+  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'request'>,
+  maxUses = 10,
+  /** A planned decision to continue from instead of the root movement. */
+  start?: Awaited<ReturnType<typeof planMovementDecisionInRoom>>
 ): Promise<{
-  request: SceneMovementRequest
-  prepared: SceneSpatialPreparation
+  prepared: Pick<SceneSpatialPreparation, 'outcome'>
+  publish: () => Promise<SceneGeometryCommandResult>
   /** The last Use response command, which sources the continued movement's mechanics. */
   responseCommandId: string | null
-  /** The Scene geometry with the mover where the published choices left it. */
-  geometry: typeof value.geometry
 }> {
   const { owner } = value
-  let current = request
-  let geometry = value.geometry
+  if (!start)
+    await owner.caller.mutation(observeMovement, {
+      saveId: value.request.saveId,
+      characterRevisions: []
+    })
+  let prepared: Pick<SceneSpatialPreparation, 'outcome'> = start
+    ? { outcome: start.outcome }
+    : await owner.caller.mutation(prepareMovement, value.request)
+  let publish = start?.publish ?? (() => owner.caller.mutation(finishMovement, value.request))
   let responseCommandId: string | null = null
   for (let uses = 0; ; uses++) {
-    await owner.caller.mutation(observeMovement, { saveId: current.saveId, characterRevisions: [] })
-    const prepared = await owner.caller.mutation(prepareMovement, current)
     const context =
       prepared.outcome.kind === 'PENDING'
         ? prepared.outcome.pendingSnapshot.applicationContext
@@ -344,21 +334,13 @@ export async function useMovementReactions(
       context?.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
       context.phase.kind !== 'CHOICE'
     )
-      return { request: current, prepared, responseCommandId, geometry }
-    const published = await owner.caller.mutation(finishMovement, current)
-    const delta = published.delta
-    if (delta?.kind === 'TOKEN_MOVED' && delta.tokenId === value.moverTokenId)
-      geometry = {
-        ...geometry,
-        sceneTokens: geometry.sceneTokens.map((token) =>
-          token.id === value.moverTokenId ? { ...token, position: delta.position } : token
-        )
-      }
+      return { prepared, publish, responseCommandId }
+    const published = await publish()
     const pending = published.occurrence?.pending
     if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
       throw new Error('Expected the Assisted Use/Decline reaction choice.')
     responseCommandId = crypto.randomUUID()
-    const used = await owner.caller.mutation(beginMovementResponse, {
+    const plan = await planMovementDecisionInRoom(owner.caller, {
       type: 'RESOLVE_RULE_OCCURRENCE',
       commandId: responseCommandId,
       encounterId: value.base.run.id,
@@ -368,8 +350,8 @@ export async function useMovementReactions(
       correlationId: null,
       resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
     })
-    if (!used || used.kind !== 'READY') throw new Error('Expected the reaction Use staging.')
-    current = { ...request, saveId: used.saveId }
+    prepared = { outcome: plan.outcome }
+    publish = plan.publish
   }
 }
 

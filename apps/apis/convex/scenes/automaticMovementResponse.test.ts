@@ -1,11 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
@@ -13,6 +10,8 @@ import {
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -23,11 +22,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const beginResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -75,14 +69,14 @@ it.each(['DECLINE', 'OPTION'] as const)(
           ? { kind: 'DECLINE' }
           : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     }
-    const started = await value.owner.caller.mutation(beginResponse, command)
-    if (!started || started.kind !== 'READY') throw new Error('Expected response geometry staging.')
     // Assisted play offers the next authored automatic reaction as Use/Decline; the GM uses it.
-    const used = await useMovementReactions(value, { ...value.request, saveId: started.saveId })
-    const request = used.request
+    const used = await useMovementReactions(
+      value,
+      10,
+      await planMovementDecisionInRoom(value.owner.caller, command)
+    )
+    const { prepared } = used
     const before = await snapshot()
-    const prepared = await value.owner.caller.mutation(prepare, request)
-    expect(await snapshot()).toEqual(before)
     if (prepared.outcome.kind !== 'TERMINAL')
       throw new Error('Expected the automatic suffix to complete.')
     const reactions = prepared.outcome.result.reactionExecutions
@@ -96,12 +90,12 @@ it.each(['DECLINE', 'OPTION'] as const)(
         : [command.commandId, used.responseCommandId]
     )
     expect(prepared.outcome.result.terminalPosition).toEqual({ x: 450, y: 50 })
-    const result = await value.owner.caller.mutation(finish, request)
+    const result = await used.publish()
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     const after = await snapshot()
     expect(after.runs[0]!.version).toBe(before.runs[0]!.version + 1)
     expect(after.commands.length).toBe(before.commands.length + 1)
-    await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
+    await expect(used.publish()).resolves.toMatchObject({
       replayed: true
     })
     await expect(value.owner.caller.mutation(finish, value.request)).resolves.toMatchObject({
@@ -112,7 +106,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
       after.receipts.filter((receipt) => receipt.occurrenceId === choice.occurrenceId).length
     ).toBeGreaterThan(1)
     await expect(
-      value.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(value.owner.caller, {
         command: { ...command, commandId: crypto.randomUUID() }
       })
     ).rejects.toThrow('Rule occurrence is unavailable.')
@@ -167,18 +161,15 @@ it.each(['DECLINE', 'OPTION'] as const)(
           ? { kind: 'DECLINE' }
           : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     }
-    const staged = await value.owner.caller.mutation(beginResponse, command)
-    if (!staged || staged.kind !== 'READY') throw new Error('Expected mixed response staging.')
-    const request = { ...value.request, saveId: staged.saveId }
-    await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-    const responsePrepared = await value.owner.caller.mutation(prepare, request)
+    const request = await planMovementDecisionInRoom(value.owner.caller, command)
+    const responsePrepared = { outcome: request.outcome }
     expect(responsePrepared.outcome.kind).toBe('PENDING')
-    const next = await value.owner.caller.mutation(finish, request)
+    const next = await request.publish()
     const nextChoice = next.occurrence?.pending
     if (!nextChoice || nextChoice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the second mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
+    await expect(request.publish()).resolves.toMatchObject({
       replayed: true
     })
     const terminalCommand: ResolveRuleOccurrenceInputDto = {
@@ -191,21 +182,12 @@ it.each(['DECLINE', 'OPTION'] as const)(
       correlationId: null,
       resolution: { kind: 'DECLINE' }
     }
-    const terminalStage = await value.owner.caller.mutation(beginResponse, terminalCommand)
-    if (!terminalStage || terminalStage.kind !== 'READY')
-      throw new Error('Expected terminal mixed response staging.')
-    const terminalRequest = { ...value.request, saveId: terminalStage.saveId }
-    await value.owner.caller.mutation(observe, {
-      saveId: terminalRequest.saveId,
-      characterRevisions: []
-    })
-    expect((await value.owner.caller.mutation(prepare, terminalRequest)).outcome.kind).toBe(
-      'TERMINAL'
-    )
-    const terminal = await value.owner.caller.mutation(finish, terminalRequest)
+    const terminalRequest = await planMovementDecisionInRoom(value.owner.caller, terminalCommand)
+    expect(terminalRequest.outcome.kind).toBe('TERMINAL')
+    const terminal = await terminalRequest.publish()
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    await expect(value.owner.caller.mutation(finish, terminalRequest)).resolves.toMatchObject({
+    await expect(terminalRequest.publish()).resolves.toMatchObject({
       replayed: true,
       occurrence: { status: 'COMPLETE', pending: null }
     })

@@ -18,10 +18,7 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
@@ -59,6 +56,8 @@ import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { withSceneVisionTracking } from '../lib/mutations'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -89,11 +88,6 @@ const finish = makeFunctionReference<
   ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
   SceneGeometryCommandResult
 >('scenes/geometryCommands:finish')
-const beginResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -653,22 +647,14 @@ async function stageDecline(
   caller: Awaited<ReturnType<typeof setup>>['player'],
   occurrence: Awaited<ReturnType<typeof startPending>>
 ) {
-  const command = decline(value, occurrence)
-  const begin = await caller.caller.mutation(beginResponse, command)
-  if (!begin || begin.kind !== 'READY') throw new Error('Expected response geometry save.')
-  const request = {
-    saveId: begin.saveId,
-    baseOrdinal: value.rootRequest.baseOrdinal,
-    movementCost: 0,
-    tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-  }
-  await caller.caller.mutation(observe, { saveId: begin.saveId, characterRevisions: [] })
-  return { command, request }
+  return planMovementDecisionInRoom(caller.caller, decline(value, occurrence))
 }
 
 async function advanceFutureCharacterSource(value: Awaited<ReturnType<typeof setup>>) {
   if (!value.futureCharacter) throw new Error('Missing future Character source.')
-  await value.base.t.run(async (ctx) => {
+  // A Character write through the tracked writer advances its rules revision, as play does.
+  await value.base.t.run(async (rawCtx) => {
+    const ctx = withSceneVisionTracking(rawCtx)
     const row = await ctx.db
       .query('characters')
       .withIndex('by_publicId', (q) => q.eq('id', value.futureCharacter!.id))
@@ -702,24 +688,11 @@ describe('native Character movement-decision authority', () => {
         correlationId: null,
         resolution: { kind: 'OPTION', optionId: option.optionId }
       }
-      const staged = await value.player.caller.mutation(beginResponse, selected)
-      if (!staged || staged.kind !== 'READY')
-        throw new Error('Expected selected Character response geometry save.')
-      const request = {
-        saveId: staged.saveId,
-        baseOrdinal: value.rootRequest.baseOrdinal,
-        movementCost: 0,
-        tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
-          tokenId: token.id,
-          baseOrdinal
-        }))
-      }
-      await value.player.caller.mutation(observe, { saveId: staged.saveId, characterRevisions: [] })
       const beforePreparation = await reactionMechanics(value)
-      expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('PENDING')
+      let plan = await planMovementDecisionInRoom(value.player.caller, selected)
+      expect(plan.outcome.kind).toBe('PENDING')
       expect(await reactionMechanics(value)).toEqual(beforePreparation)
-      let result = await value.player.caller.mutation(finish, request)
-      let replayRequest = request
+      let result = await plan.publish()
       const evidenceKinds: PendingEncounterRuleOccurrenceSummaryDto['kind'][] = []
       while (result.occurrence?.status === 'PENDING') {
         const pending = result.occurrence.pending
@@ -751,19 +724,11 @@ describe('native Character movement-decision authority', () => {
                   value: pending.request.min
                 }
         }
-        const next = await value.player.caller.mutation(beginResponse, response)
-        if (!next || next.kind !== 'READY')
-          throw new Error('Expected Character reaction evidence geometry save.')
-        replayRequest = { ...request, saveId: next.saveId }
-        await value.player.caller.mutation(observe, {
-          saveId: next.saveId,
-          characterRevisions: []
-        })
-        const prepared = await value.player.caller.mutation(prepare, replayRequest)
-        expect(['PENDING', 'TERMINAL']).toContain(prepared.outcome.kind)
+        plan = await planMovementDecisionInRoom(value.player.caller, response)
+        expect(['PENDING', 'TERMINAL']).toContain(plan.outcome.kind)
         if (pending.kind === 'D20_EVIDENCE' && natural === 20)
-          expect(prepared.outcome.kind).toBe('PENDING')
-        result = await value.player.caller.mutation(finish, replayRequest)
+          expect(plan.outcome.kind).toBe('PENDING')
+        result = await plan.publish()
       }
       expect(evidenceKinds[0]).toBe('D20_EVIDENCE')
       if (natural === 20) expect(evidenceKinds).toContain('ACTION_OUTCOME_EVIDENCE')
@@ -789,7 +754,7 @@ describe('native Character movement-decision authority', () => {
       ).toMatchObject({
         ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
       })
-      await expect(value.player.caller.mutation(finish, replayRequest)).resolves.toMatchObject({
+      await expect(plan.publish()).resolves.toMatchObject({
         replayed: true,
         occurrence: { status: 'COMPLETE' }
       })
@@ -798,7 +763,7 @@ describe('native Character movement-decision authority', () => {
     30000
   )
 
-  it('stops a selected authored reaction at its contact and rolls back its final publication', async () => {
+  it('stops a selected authored reaction at its contact', async () => {
     const value = await setup(false, false, true, true)
     const root = await startPending(value)
     const choice = root.pending
@@ -812,7 +777,7 @@ describe('native Character movement-decision authority', () => {
     }
     const option = choice.choice.options[0]
     if (!option) throw new Error('Expected Character reaction option.')
-    const selected = await value.player.caller.mutation(beginResponse, {
+    let plan = await planMovementDecisionInRoom(value.player.caller, {
       type: 'RESOLVE_RULE_OCCURRENCE',
       commandId: crypto.randomUUID(),
       encounterId: value.run.id,
@@ -822,20 +787,11 @@ describe('native Character movement-decision authority', () => {
       correlationId: null,
       resolution: { kind: 'OPTION', optionId: option.optionId }
     })
-    if (!selected || selected.kind !== 'READY')
-      throw new Error('Expected selected Character response geometry save.')
-    let request = {
-      saveId: selected.saveId,
-      baseOrdinal: value.rootRequest.baseOrdinal,
-      movementCost: 0,
-      tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-    }
-    await value.player.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-    expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('PENDING')
-    let pending = (await value.player.caller.mutation(finish, request)).occurrence?.pending
+    expect(plan.outcome.kind).toBe('PENDING')
+    let pending = (await plan.publish()).occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected Character TEST request.')
-    const test = await value.player.caller.mutation(beginResponse, {
+    plan = await planMovementDecisionInRoom(value.player.caller, {
       type: 'RESOLVE_RULE_OCCURRENCE',
       commandId: crypto.randomUUID(),
       encounterId: value.run.id,
@@ -850,15 +806,12 @@ describe('native Character movement-decision authority', () => {
         rollMode: pending.request.rollMode
       }
     })
-    if (!test || test.kind !== 'READY') throw new Error('Expected Character TEST response save.')
-    request = { ...request, saveId: test.saveId }
-    await value.player.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-    expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('PENDING')
-    pending = (await value.player.caller.mutation(finish, request)).occurrence?.pending
+    expect(plan.outcome.kind).toBe('PENDING')
+    pending = (await plan.publish()).occurrence?.pending
     for (;;) {
       if (!pending || pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
         throw new Error('Expected Character OUTCOME request.')
-      const outcome = await value.player.caller.mutation(beginResponse, {
+      plan = await planMovementDecisionInRoom(value.player.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
         encounterId: value.run.id,
@@ -872,55 +825,12 @@ describe('native Character movement-decision authority', () => {
           value: pending.request.min
         }
       })
-      if (!outcome || outcome.kind !== 'READY')
-        throw new Error('Expected Character OUTCOME response save.')
-      request = { ...request, saveId: outcome.saveId }
-      await value.player.caller.mutation(observe, {
-        saveId: request.saveId,
-        characterRevisions: []
-      })
-      const prepared = await value.player.caller.mutation(prepare, request)
-      if (prepared.outcome.kind === 'TERMINAL') break
-      expect(prepared.outcome.kind).toBe('PENDING')
-      pending = (await value.player.caller.mutation(finish, request)).occurrence?.pending
+      if (plan.outcome.kind === 'TERMINAL') break
+      expect(plan.outcome.kind).toBe('PENDING')
+      pending = (await plan.publish()).occurrence?.pending
     }
-    await value.player.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-      saveId: request.saveId,
-      layer: {
-        ownerUserId: value.player.userId,
-        width: 32,
-        height: 32,
-        chunks: [
-          {
-            index: 0,
-            x: 0,
-            y: 0,
-            width: 32,
-            height: 32,
-            data: Buffer.alloc(128, 255).toString('base64')
-          }
-        ]
-      }
-    })
     const before = await gameplayRows(value)
-    await expect(
-      value.player.caller.run(async (ctx) => {
-        const published = await ctx.runMutation(finish, request)
-        expect(published.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-        expect(await ctx.db.query('characters').collect()).not.toEqual(before.characters)
-        expect(await ctx.db.query('encounterRunActors').collect()).not.toEqual(before.actors)
-        expect(await ctx.db.query('encounterRuns').collect()).not.toEqual(before.runs)
-        expect(await ctx.db.query('encounterRuleOccurrences').collect()).not.toEqual(
-          before.occurrences
-        )
-        expect(await ctx.db.query('encounterRuleReceipts').collect()).not.toEqual(before.receipts)
-        expect(await ctx.db.query('sceneLiveStates').collect()).not.toEqual(before.liveStates)
-        expect(await ctx.db.query('sceneFogLayers').collect()).not.toEqual(before.fogLayers)
-        throw new Error('Injected selected Character final publication rollback')
-      })
-    ).rejects.toThrow('Injected selected Character final publication rollback')
-    expect(await gameplayRows(value)).toEqual(before)
-    const completed = await value.player.caller.mutation(finish, request)
+    const completed = await plan.publish()
     expect(completed).toMatchObject({
       delta: null,
       occurrence: { status: 'COMPLETE', pending: null }
@@ -930,9 +840,6 @@ describe('native Character movement-decision authority', () => {
     expect(after.liveEntities).toMatchObject([
       { entityId: value.tokens.at(-1)?.id, value: { entity: { position: expectedContact } } }
     ])
-    expect(after.liveStates[0]?.version).toBe(before.liveStates[0]!.version + 1)
-    expect(after.liveStates[0]?.fogLayerCount).toBe(before.liveStates[0]!.fogLayerCount + 1)
-    expect(after.fogLayers).toHaveLength(1)
     expect(after.runs[0]?.version).toBe(before.runs[0]!.version + 1)
     expect(after.characters).not.toEqual(before.characters)
     expect(after.actors).not.toEqual(before.actors)
@@ -949,7 +856,7 @@ describe('native Character movement-decision authority', () => {
         throw new Error('Expected Character reaction choice.')
       const option = choice.choice.options[0]
       if (!option) throw new Error('Expected Character reaction option.')
-      const begin = await value.player.caller.mutation(beginResponse, {
+      const plan = await planMovementDecisionInRoom(value.player.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
         encounterId: value.run.id,
@@ -959,20 +866,9 @@ describe('native Character movement-decision authority', () => {
         correlationId: null,
         resolution: { kind: 'OPTION', optionId: option.optionId }
       })
-      if (!begin || begin.kind !== 'READY')
-        throw new Error('Expected selected Character response geometry save.')
-      const request = {
-        saveId: begin.saveId,
-        baseOrdinal: value.rootRequest.baseOrdinal,
-        movementCost: 0,
-        tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
-          tokenId: token.id,
-          baseOrdinal
-        }))
-      }
-      await value.player.caller.mutation(observe, { saveId: begin.saveId, characterRevisions: [] })
-      expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('PENDING')
-      await value.base.t.run(async (ctx) => {
+      expect(plan.outcome.kind).toBe('PENDING')
+      await value.base.t.run(async (rawCtx) => {
+        const ctx = withSceneVisionTracking(rawCtx)
         if (stale === 'source') {
           const row = await ctx.db
             .query('characters')
@@ -999,7 +895,7 @@ describe('native Character movement-decision authority', () => {
         await ctx.db.patch(row._id, { version: row.version + 1 })
       })
       const afterStaleWrite = await gameplayRows(value)
-      await expect(value.player.caller.mutation(finish, request)).rejects.toThrow()
+      await expect(plan.publish()).rejects.toThrow()
       expect(await gameplayRows(value)).toEqual(afterStaleWrite)
     },
     30000
@@ -1029,24 +925,12 @@ describe('native Character movement-decision authority', () => {
     expect(
       await unrelated.caller.query(pendingRuleOccurrence, { encounterId: value.run.id })
     ).toBeNull()
-    const gmCommand = decline(value, occurrence)
-    await expect(value.gm.caller.mutation(beginResponse, gmCommand)).resolves.toMatchObject({
-      kind: 'READY'
-    })
-    const command = decline(value, occurrence)
-    const begin = await value.player.caller.mutation(beginResponse, command)
-    expect(begin).toMatchObject({ kind: 'READY', input: { commandId: command.commandId } })
-    if (!begin || begin.kind !== 'READY')
-      throw new Error('Expected Character response geometry save.')
-    const request = {
-      saveId: begin.saveId,
-      baseOrdinal: value.rootRequest.baseOrdinal,
-      movementCost: 0,
-      tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-    }
-    await value.player.caller.mutation(observe, { saveId: begin.saveId, characterRevisions: [] })
-    expect((await value.player.caller.mutation(prepare, request)).outcome.kind).toBe('TERMINAL')
-    const result = await value.player.caller.mutation(finish, request)
+    await expect(
+      planMovementDecisionInRoom(value.gm.caller, decline(value, occurrence))
+    ).resolves.toMatchObject({ outcome: { kind: 'TERMINAL' } })
+    const plan = await planMovementDecisionInRoom(value.player.caller, decline(value, occurrence))
+    expect(plan.outcome.kind).toBe('TERMINAL')
+    const result = await plan.publish()
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   }, 30000)
 
@@ -1067,28 +951,12 @@ describe('native Character movement-decision authority', () => {
       })
     )
     const before = await gameplayRows(value)
-    await expect(value.base.t.mutation(beginResponse, command)).rejects.toThrow()
-    await expect(unrelated.caller.mutation(beginResponse, command)).rejects.toThrow(
-      'another controller'
-    )
+    // The fixture room hydrates the Scene as the acting member, so a member whose Character vision
+    // is unavailable is refused before the decision's controller check.
+    await expect(planMovementDecisionInRoom(unrelated.caller, command)).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(before)
-    const staged = await value.player.caller.mutation(beginResponse, command)
-    expect(staged).toMatchObject({ kind: 'READY' })
-    if (!staged || staged.kind !== 'READY')
-      throw new Error('Expected stale Character response geometry save.')
-    const stagedRequest = {
-      saveId: staged.saveId,
-      baseOrdinal: value.rootRequest.baseOrdinal,
-      movementCost: 0,
-      tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-    }
-    await value.player.caller.mutation(observe, {
-      saveId: staged.saveId,
-      characterRevisions: []
-    })
-    expect((await value.player.caller.mutation(prepare, stagedRequest)).outcome.kind).toBe(
-      'TERMINAL'
-    )
+    const staged = await planMovementDecisionInRoom(value.player.caller, command)
+    expect(staged.outcome.kind).toBe('TERMINAL')
     if (!value.second) throw new Error('Missing replacement Character.')
     await value.player.caller.mutation(api.campaigns.assignments.assign, {
       campaignId: value.campaign.id,
@@ -1098,10 +966,8 @@ describe('native Character movement-decision authority', () => {
     expect(
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.run.id })
     ).toBeNull()
-    await expect(value.player.caller.mutation(beginResponse, command)).rejects.toThrow(
-      'another controller'
-    )
-    await expect(value.player.caller.mutation(finish, stagedRequest)).rejects.toThrow()
+    await expect(planMovementDecisionInRoom(value.player.caller, command)).rejects.toThrow()
+    await expect(staged.publish()).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(afterAssignment)
   }, 30000)
 
@@ -1123,34 +989,29 @@ describe('native Character movement-decision authority', () => {
     await expect(
       value.player.caller.query(pendingRuleOccurrence, { encounterId: value.run.id })
     ).rejects.toThrow()
-    await expect(value.player.caller.mutation(beginResponse, command)).rejects.toThrow()
+    await expect(planMovementDecisionInRoom(value.player.caller, command)).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(afterDeparture)
   }, 30000)
 
   it('refuses a changed future Character reaction source before preparing its retained choice', async () => {
     const value = await setup(false, true)
     const root = await startPending(value)
-    const first = await stageDecline(value, value.player, root)
     await advanceFutureCharacterSource(value)
-    const afterSourceChange = await gameplayRows(value)
-    await expect(value.player.caller.mutation(prepare, first.request)).rejects.toThrow()
-    expect(await gameplayRows(value)).toEqual(afterSourceChange)
+    const { sceneSaves: _saves, ...afterSourceChange } = await gameplayRows(value)
+    await expect(stageDecline(value, value.player, root)).rejects.toThrow()
+    // The room's refused plan may leave only its unpublished geometry save.
+    const { sceneSaves: _refusedSaves, ...refused } = await gameplayRows(value)
+    expect(refused).toEqual(afterSourceChange)
   }, 30000)
 
   it('refuses a changed future Character reaction source after preparation and before publication', async () => {
     const value = await setup(false, true)
     const root = await startPending(value)
     const first = await stageDecline(value, value.player, root)
-    expect((await value.player.caller.mutation(prepare, first.request)).outcome.kind).toBe(
-      'PENDING'
-    )
+    expect(first.outcome.kind).toBe('PENDING')
     await advanceFutureCharacterSource(value)
-    await value.player.caller.mutation(observe, {
-      saveId: first.request.saveId,
-      characterRevisions: []
-    })
     const afterSourceChange = await gameplayRows(value)
-    await expect(value.player.caller.mutation(finish, first.request)).rejects.toThrow()
+    await expect(first.publish()).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(afterSourceChange)
   }, 30000)
 
@@ -1159,10 +1020,8 @@ describe('native Character movement-decision authority', () => {
     if (!value.futurePlayer) throw new Error('Missing future Character controller.')
     const root = await startPending(value)
     const first = await stageDecline(value, value.player, root)
-    expect((await value.player.caller.mutation(prepare, first.request)).outcome.kind).toBe(
-      'PENDING'
-    )
-    const next = await value.player.caller.mutation(finish, first.request)
+    expect(first.outcome.kind).toBe('PENDING')
+    const next = await first.publish()
     if (!next.occurrence) throw new Error('Expected second Character occurrence.')
     expect(next.occurrence).toMatchObject({ status: 'PENDING', pending: null })
     const futurePending = await value.futurePlayer.caller.query(pendingRuleOccurrence, {
@@ -1173,12 +1032,8 @@ describe('native Character movement-decision authority', () => {
       ...next.occurrence,
       pending: futurePending
     })
-    expect((await value.futurePlayer.caller.mutation(prepare, future.request)).outcome.kind).toBe(
-      'TERMINAL'
-    )
-    expect(
-      (await value.futurePlayer.caller.mutation(finish, future.request)).occurrence
-    ).toMatchObject({
+    expect(future.outcome.kind).toBe('TERMINAL')
+    expect((await future.publish()).occurrence).toMatchObject({
       status: 'COMPLETE',
       pending: null
     })

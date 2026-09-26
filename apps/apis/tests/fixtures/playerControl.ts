@@ -7,7 +7,6 @@ import type {
   EncounterBlueprintDto,
   EncounterCommandResultDto,
   EncounterCommandInputDto,
-  EncounterExecuteInput,
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -31,6 +30,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { createPartyPlayer } from './partyPlayer'
 import { importedSubject } from './publication'
 import { setAutoRollDice } from './rollPreferences'
+import { executeInRoom } from './liveSessionWorker'
 
 /**
  * How the companion's Bite resolves: `ACTIVATED` deals fixed damage with no roll, `ATTACK` needs the
@@ -121,16 +121,6 @@ function companionCreature(bite: PlayerControlBite) {
     )
   }
 }
-
-/**
- * Typed from the shared contract rather than the generated API, which predates `ROLL_RULE_EVIDENCE`
- * until the next codegen.
- */
-export const executeEncounterCommand = makeFunctionReference<
-  'mutation',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commands:execute')
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -254,8 +244,7 @@ export async function playerControlFixture(
     /** The Run's current version, read fresh for each command. */
     version: () => readRunVersion(fixture),
     /** A GM command against the Run; returns the GM result. */
-    gm: (command: EncounterCommandInputDto) =>
-      base.owner.caller.mutation(executeEncounterCommand, { command }),
+    gm: (command: EncounterCommandInputDto) => executeInRoom(base.owner.caller, { command }),
     /** A Bite from `actorId` at `targetActorId` at the Run's current version. */
     bite: async (
       actorId: string,

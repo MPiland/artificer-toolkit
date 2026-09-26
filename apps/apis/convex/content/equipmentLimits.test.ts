@@ -127,6 +127,7 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
         category: 'ADVENTURING_GEAR' as const,
         properties: []
       }
+      const publicVersionId = crypto.randomUUID()
       const versionId = await ctx.db.insert('authoredVersions', {
         subjectKind: 'EQUIPMENT',
         id: child.id,
@@ -134,7 +135,7 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
         label: child.label,
         checksum,
         contentSourceId: base.contentSourceId,
-        versionId: crypto.randomUUID(),
+        versionId: publicVersionId,
         version: 1,
         documentSchemaVersion: 1,
         documentJson: canonicalizeRuleDocument(child),
@@ -153,6 +154,7 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
         ownerUserId: first.userId,
         activeNameKey: activePublicationNameKey(child.label),
         currentVersionId: versionId,
+        currentVersionPublicId: publicVersionId,
         parentEquipmentId: parentId,
         equipmentOptions: equipmentOptionFacts(child, checksum),
         authoringSources: authoredSourceFacts({

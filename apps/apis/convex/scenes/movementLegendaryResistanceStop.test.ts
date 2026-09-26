@@ -1,14 +1,12 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -19,11 +17,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const begin = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -65,25 +58,21 @@ it.each(['USE', 'DECLINE'] as const)(
       !reactionChoice.choice.options[0]
     )
       throw new Error('Expected issued Scene reaction choice.')
-    const selected = await value.owner.caller.mutation(
-      begin,
-      command({
-        encounterId: base.run.id,
-        pending: reactionChoice,
-        resolution: { kind: 'OPTION', optionId: reactionChoice.choice.options[0].optionId }
-      })
-    )
-    if (!selected || selected.kind !== 'READY')
-      throw new Error('Expected selected reaction staging.')
-    const selectedRequest = { ...value.request, saveId: selected.saveId }
-    await value.owner.caller.mutation(observe, { saveId: selected.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, selectedRequest)
-    const resisted = await value.owner.caller.mutation(finish, selectedRequest)
+    const resisted = await (
+      await planMovementDecisionInRoom(
+        value.owner.caller,
+        command({
+          encounterId: base.run.id,
+          pending: reactionChoice,
+          resolution: { kind: 'OPTION', optionId: reactionChoice.choice.options[0].optionId }
+        })
+      )
+    ).publish()
     const resistance = resisted.occurrence?.pending
     if (!resistance || resistance.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
       throw new Error('Expected issued Scene LR choice.')
-    const resolved = await value.owner.caller.mutation(
-      begin,
+    const { outcome, publish } = await planMovementDecisionInRoom(
+      value.owner.caller,
       command({
         encounterId: base.run.id,
         pending: resistance,
@@ -93,15 +82,10 @@ it.each(['USE', 'DECLINE'] as const)(
             : { kind: 'DECLINE' }
       })
     )
-    if (!resolved || resolved.kind !== 'READY') throw new Error('Expected LR response staging.')
-    const request = { ...value.request, saveId: resolved.saveId }
-    await value.owner.caller.mutation(observe, { saveId: resolved.saveId, characterRevisions: [] })
-    const prepared = await value.owner.caller.mutation(prepare, request)
-    expect(prepared.outcome.kind).toBe('TERMINAL')
-    if (prepared.outcome.kind !== 'TERMINAL')
-      throw new Error('Expected LR to complete Scene movement.')
-    expect(prepared.outcome.result.reactionExecutions).toHaveLength(1)
-    const reaction = prepared.outcome.result.reactionExecutions[0]!
+    expect(outcome?.kind).toBe('TERMINAL')
+    if (outcome?.kind !== 'TERMINAL') throw new Error('Expected LR to complete Scene movement.')
+    expect(outcome.result.reactionExecutions).toHaveLength(1)
+    const reaction = outcome.result.reactionExecutions[0]!
     expect(reaction.option.binding.movementInterruption).toEqual({
       kind: 'STOP',
       whenResultPath: 'ON_SAVE_FAIL'
@@ -113,14 +97,12 @@ it.each(['USE', 'DECLINE'] as const)(
         selection === 'USE' ? expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }) : null
     })
     expect(reaction.option.candidate.contact).toEqual({ x: 300, y: 50 })
-    expect(prepared.outcome.result.terminalPosition).toEqual(
+    expect(outcome.result.terminalPosition).toEqual(
       selection === 'USE' ? { x: 450, y: 50 } : reaction.option.candidate.contact
     )
-    const completed = await value.owner.caller.mutation(finish, request)
+    const completed = await publish()
     expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
-      replayed: true
-    })
+    await expect(publish()).resolves.toMatchObject({ replayed: true })
   },
   30_000
 )

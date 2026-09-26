@@ -78,6 +78,9 @@ export function importRowIdentity(
     ...('checksum' in row ? { checksum: row.checksum } : {}),
     ...('payloadId' in row ? { payloadId: row.payloadId } : {}),
     ...('currentVersionId' in row ? { currentVersionId: row.currentVersionId } : {}),
+    ...('currentVersionPublicId' in row
+      ? { currentVersionPublicId: row.currentVersionPublicId }
+      : {}),
     ...('contentSourceId' in row ? { contentSourceId: row.contentSourceId } : {}),
     ...('importJobId' in row ? { importJobId: row.importJobId } : {})
   }

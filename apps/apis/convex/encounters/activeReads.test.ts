@@ -9,13 +9,11 @@ import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaignSettings'
-import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterGmProjectionDtoSchema,
   type CreateEncounterBlueprintInputDto,
   type CreateEncounterInputDto,
   type EncounterBlueprintDto,
-  type EncounterCommandResultDto,
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto,
   type EncounterSessionStateDto,
@@ -34,6 +32,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunState } from './documents'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -56,9 +55,6 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const active = makeFunctionReference<
   'query',
   { campaignId: string },
@@ -142,7 +138,7 @@ it('reads the active projection and pending decision together with existing visi
     })
   )
 
-  let result = await base.owner.caller.mutation(execute, {
+  let result = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: run.id,
@@ -155,7 +151,7 @@ it('reads the active projection and pending decision together with existing visi
     const request = occurrence?.pending
     if (!occurrence || request?.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Expected assisted initiative evidence.')
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: run.id,
@@ -169,7 +165,7 @@ it('reads the active projection and pending decision together with existing visi
     })
   }
   expect(result.projection.status).toBe('ACTIVE')
-  const first = await base.owner.caller.mutation(execute, {
+  const first = await executeInRoom(base.owner.caller, {
     command: {
       type: 'ADVANCE_TURN',
       encounterId: run.id,
@@ -177,7 +173,7 @@ it('reads the active projection and pending decision together with existing visi
       expectedVersion: 1
     }
   })
-  const paused = await base.owner.caller.mutation(execute, {
+  const paused = await executeInRoom(base.owner.caller, {
     command: {
       type: 'ADVANCE_TURN',
       encounterId: run.id,

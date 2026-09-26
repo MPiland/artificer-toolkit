@@ -325,7 +325,7 @@ export function foldCharacterMechanicsApplications(input: {
     current = application.afterCurrentHitPoints
     temporary = application.afterTemporaryHitPoints
     const { targetActorId: _targetActorId, ...receiptApplication } = application
-    receipt.push({ ordinal, ...receiptApplication })
+    receipt.push({ ...receiptApplication, ordinal })
   }
   const after: TargetState = {
     currentHitPoints: current,

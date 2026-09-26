@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/encounters'
-import {
-  CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES,
-  CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES
-} from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
+import { CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { roomEncounterPlanner } from './nativeRoomEncounterCommand.js'
 
 const commandTypes = [
@@ -40,24 +37,28 @@ const everyType: [
   : never = true
 
 describe('room Encounter command planners', () => {
-  it('sends only the listed GM commands to Convex and plans every other command in the room', () => {
+  it('sends only the GM tools Convex records to it and plans or rolls every other command in the room', () => {
     expect(everyType).toBe(true)
     const convex = commandTypes.filter((type) => roomEncounterPlanner({ type }) === 'CONVEX')
-    expect(convex.sort()).toEqual(
-      [
-        ...CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES,
-        ...CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES
-      ].sort()
-    )
-    // The only commands Convex still evaluates are the GM tool commands without a room planner.
-    expect([...CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES].sort()).toEqual([
+    expect(convex.sort()).toEqual([...CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES].sort())
+    // Convex records GM tools with no dice and no derived mechanics beyond actor recalculation (D41).
+    expect(convex.sort()).toEqual([
       'ADJUST_FEATURE_RESOURCE',
+      'COMPLETE',
+      'PREVIOUS_TURN',
       'REINFORCE',
+      'REMOVE_ACTOR',
+      'REMOVE_REMINDER',
+      'REORDER',
       'REPLACE_CREATURE_EQUIPMENT',
+      'REPLACE_OPTIONAL_COMBAT_RULES',
       'REVERT_LAST_ACTION',
-      'ROLL_ACTOR_INITIATIVE',
-      'ROLL_ENEMY_ACTION',
-      'ROLL_RULE_EVIDENCE'
+      'SET_CURRENT_ACTOR',
+      'SET_HEALTH_DISPLAY_DEFAULT',
+      'SET_INITIATIVE',
+      'SET_ROUND',
+      'UPDATE_ACTOR',
+      'UPSERT_REMINDER'
     ])
     expect(
       Object.fromEntries(
@@ -69,6 +70,9 @@ describe('room Encounter command planners', () => {
       START: 'TURN',
       ADVANCE_TURN: 'TURN',
       RESOLVE_ACTION: 'ACTION',
+      ROLL_ACTOR_INITIATIVE: 'ROLL',
+      ROLL_ENEMY_ACTION: 'ROLL',
+      ROLL_RULE_EVIDENCE: 'ROLL',
       RESOLVE_RULE_OCCURRENCE: 'DECISION',
       VOID_RULE_OCCURRENCE: 'DECISION'
     })

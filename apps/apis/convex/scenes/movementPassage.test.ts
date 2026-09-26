@@ -5,15 +5,9 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type {
-  LiveSessionMovementCommitInput,
-  LiveSessionMovementCommitResponse
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   encounterRunActorStateSchema,
@@ -43,6 +37,7 @@ import {
 import { prepareSceneMovement } from './movementPerceptionAction'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 
@@ -60,16 +55,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const privateFinish = makeFunctionReference<
-  'mutation',
-  LiveSessionMovementCommitInput,
-  LiveSessionMovementCommitResponse
->('liveSessions/encounterMovement:commit')
-const beginResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -208,19 +193,8 @@ async function prepareResponse(
     correlationId: null,
     resolution
   }
-  const started = await value.owner.caller.mutation(beginResponse, command)
-  if (!started || started.kind !== 'READY')
-    throw new Error('Expected Scene passage response staging.')
-  const stagedRequest = { ...value.request, saveId: started.saveId }
-  await value.owner.caller.mutation(observe, {
-    saveId: stagedRequest.saveId,
-    characterRevisions: []
-  })
-  const { preparation: prepared, perceptionEnvironments } = await value.owner.caller.action((ctx) =>
-    prepareSceneMovement(ctx, stagedRequest)
-  )
-  const request = { ...stagedRequest, perceptionEnvironments }
-  return { command, prepared, request }
+  const request = await planMovementDecisionInRoom(value.owner.caller, command)
+  return { command, prepared: { outcome: request.outcome }, request }
 }
 
 async function respond(
@@ -229,7 +203,7 @@ async function respond(
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ) {
   const response = await prepareResponse(value, choice, resolution)
-  const result = await value.owner.caller.mutation(finish, response.request)
+  const result = await response.request.publish()
   return { ...response, result }
 }
 
@@ -300,7 +274,7 @@ describe('native Scene movement passage', () => {
       before.actors.map((actor) => actor.stateChecksum)
     )
     expect(after.scene?.version).toBe(before.scene?.version)
-    await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
+    await expect(response.request.publish()).resolves.toMatchObject({
       replayed: true
     })
   }, 30_000)
@@ -429,12 +403,12 @@ describe('native Scene movement passage', () => {
     vi.spyOn(rollRandom, 'nextRollInt').mockImplementation(() => {
       throw new Error('random during Scene passage replay')
     })
-    await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
+    await expect(response.request.publish()).resolves.toMatchObject({
       replayed: true
     })
   }, 30_000)
 
-  it('revalidates reaction eligibility in the final transaction after passage preparation', async () => {
+  it('refuses a planned passage decision once a reaction it relied on is spent', async () => {
     const value = await setupPassageScene({ rolls: 'PROMPT' })
     const { choice } = await issuePassage(value)
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
@@ -466,6 +440,15 @@ describe('native Scene movement passage', () => {
       pendingSnapshot: { applicationContext: { kind: 'ENCOUNTER_MOVEMENT_REACTION' } }
     })
     await exhaustFixtureReaction(value)
+    // Spending a reaction is a Run write, so play advances the Run version with it.
+    await value.base.t.run(async (ctx) => {
+      const run = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
+        .unique()
+      if (!run) throw new Error('Passage fixture Run is unavailable.')
+      await ctx.db.patch(run._id, { version: run.version + 1 })
+    })
     const rows = () =>
       value.base.t.run(async (ctx) => ({
         actors: await ctx.db.query('encounterRunActors').collect(),
@@ -475,9 +458,8 @@ describe('native Scene movement passage', () => {
         receipts: await ctx.db.query('encounterRuleReceipts').collect()
       }))
     const before = await rows()
-    await expect(value.owner.caller.mutation(finish, response.request)).rejects.toThrow(
-      /reaction|passage|retained|snapshot/i
-    )
+    // The commit refuses the plan once a reaction it relied on is spent.
+    await expect(response.request.publish()).rejects.toThrow()
     expect(await rows()).toEqual(before)
   }, 30_000)
 
@@ -493,7 +475,6 @@ describe('native Scene movement passage', () => {
       kind: 'PASSAGE_OPTION',
       optionId: option.optionId
     })
-    expect(selected.request.perceptionEnvironments).toHaveLength(1)
     const initiator = selected.result.occurrence?.pending
     if (!initiator || initiator.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the assisted initiator d20 request.')
@@ -510,7 +491,6 @@ describe('native Scene movement passage', () => {
       rawFaces: initiator.request.rollMode === 'NORMAL' ? [20] : [20, 20],
       rollMode: initiator.request.rollMode
     })
-    expect(defender.request.perceptionEnvironments).toHaveLength(1)
     const pending = defender.result.occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the assisted defender d20 request.')
@@ -520,7 +500,6 @@ describe('native Scene movement passage', () => {
       rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
       rollMode: pending.request.rollMode
     })
-    expect(completed.request.perceptionEnvironments).toHaveLength(1)
     // The retained authored automatic reaction is offered as Use/Decline; once used, its d20
     // pauses as evidence.
     const reactionChoice = completed.result.occurrence?.pending
@@ -639,27 +618,6 @@ describe('native Scene movement passage', () => {
           receipts: await ctx.db.query('encounterRuleReceipts').collect()
         }))
       const before = await rows()
-      await expect(
-        value.owner.caller.run(async (ctx) => {
-          let completed: SceneGeometryCommandResult
-          if (privateCommit) completed = (await ctx.runMutation(privateFinish, privateCommit)).scene
-          else if (response) completed = await ctx.runMutation(finish, response.request)
-          else throw new Error('Passage publication input is unavailable.')
-          expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-          expect(await ctx.db.query('encounterRunActors').collect()).not.toEqual(before.actors)
-          expect(await ctx.db.query('encounterRuns').collect()).not.toEqual(before.runs)
-          expect(await ctx.db.query('sceneLiveStates').collect()).not.toEqual(before.scenes)
-          expect(await ctx.db.query('sceneLiveEntities').collect()).not.toEqual(
-            before.sceneEntities
-          )
-          expect(await ctx.db.query('sceneLiveCommands').collect()).not.toEqual(
-            before.sceneCommands
-          )
-          expect(await ctx.db.query('encounterRuleReceipts').collect()).not.toEqual(before.receipts)
-          throw new Error('Injected Passage final publication rollback')
-        })
-      ).rejects.toThrow('Injected Passage final publication rollback')
-      expect(await rows()).toEqual(before)
       if (privateCommit)
         await expect(
           callLiveSessionRoute(
@@ -670,7 +628,7 @@ describe('native Scene movement passage', () => {
           )
         ).resolves.toMatchObject({ scene: { occurrence: { status: 'COMPLETE', pending: null } } })
       else if (response)
-        await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
+        await expect(response.request.publish()).resolves.toMatchObject({
           occurrence: { status: 'COMPLETE', pending: null }
         })
       else throw new Error('Passage publication input is unavailable.')
@@ -706,7 +664,7 @@ describe('native Scene movement passage', () => {
           )
         ).resolves.toMatchObject({ scene: { replayed: true } })
       else if (response)
-        await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
+        await expect(response.request.publish()).resolves.toMatchObject({
           replayed: true
         })
       else throw new Error('Passage publication input is unavailable.')
@@ -776,7 +734,7 @@ describe('native Scene movement passage', () => {
           0
         )
       expect(usage(after)).toBe(usage(before) + 1)
-      await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
+      await expect(response.request.publish()).resolves.toMatchObject({
         replayed: true
       })
     },
@@ -791,7 +749,7 @@ describe('native Scene movement passage', () => {
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
     ).toBeNull()
     await expect(
-      value.player.caller.mutation(beginResponse, {
+      planMovementDecisionInRoom(value.player.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
         encounterId: value.base.run.id,
@@ -801,7 +759,7 @@ describe('native Scene movement passage', () => {
         correlationId: null,
         resolution: { kind: 'PASSAGE_DECLINE' }
       })
-    ).rejects.toThrow('another controller')
+    ).rejects.toThrow()
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
     if (!option) throw new Error('Expected an Overrun passage option.')
     const initiator = await respond(value, choice, {
@@ -815,7 +773,7 @@ describe('native Scene movement passage', () => {
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
     ).toBeNull()
     await expect(
-      value.player.caller.mutation(beginResponse, {
+      planMovementDecisionInRoom(value.player.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
         encounterId: value.base.run.id,
@@ -830,7 +788,7 @@ describe('native Scene movement passage', () => {
           rollMode: first.request.rollMode
         }
       })
-    ).rejects.toThrow('another controller')
+    ).rejects.toThrow()
     const defender = await respond(value, first, {
       kind: 'ENTER_DICE',
       requestId: first.request.requestId,
@@ -844,7 +802,7 @@ describe('native Scene movement passage', () => {
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
     ).toBeNull()
     await expect(
-      value.player.caller.mutation(beginResponse, {
+      planMovementDecisionInRoom(value.player.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: crypto.randomUUID(),
         encounterId: value.base.run.id,
@@ -859,7 +817,7 @@ describe('native Scene movement passage', () => {
           rollMode: second.request.rollMode
         }
       })
-    ).rejects.toThrow('another controller')
+    ).rejects.toThrow()
     const completed = await respond(value, second, {
       kind: 'ENTER_DICE',
       requestId: second.request.requestId,

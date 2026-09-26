@@ -8,6 +8,8 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { reinforceEncounterActors } from './actorReinforcementCommand'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
   'encounters/commands:execute'
@@ -45,7 +47,7 @@ async function manualFixture() {
     commandId: crypto.randomUUID()
   })) as EncounterGmProjectionDto
   const executeCommand = async (command: EncounterExecuteInput['command']) => {
-    const result = await base.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(base.owner.caller, { command })
     projection = result.projection as EncounterGmProjectionDto
     return result
   }
@@ -74,9 +76,9 @@ describe('native actor reinforcement transaction', () => {
       public: false
     }
     const before = await capture(base)
-    await expect(base.player.caller.mutation(execute, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
     expect(await capture(base)).toEqual(before)
-    const result = await base.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(base.owner.caller, { command })
     const actor = result.projection.actors.find((candidate) => candidate.label === 'Late scout')
     expect(actor).toMatchObject({
       kind: 'CUSTOM',
@@ -113,8 +115,8 @@ describe('native actor reinforcement transaction', () => {
       enemy: { kind: 'CUSTOM' as const, label: 'Late scout', maxHitPoints: 7 }
     }
     const before = await capture(base)
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-      'version is stale'
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      'Encounter version is stale.'
     )
     expect(await capture(base)).toEqual(before)
     await base.t.run(async (ctx) => {
@@ -135,14 +137,14 @@ describe('native actor reinforcement transaction', () => {
     })
     const pending = await capture(base)
     await expect(
-      base.owner.caller.mutation(execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           ...command,
           expectedVersion: base.run.version,
           commandId: crypto.randomUUID()
         }
       })
-    ).rejects.toThrow('pending Encounter occurrence')
+    ).rejects.toThrow(LiveSessionRouteError)
     expect(await capture(base)).toEqual(pending)
   }, 30_000)
   it('inserts before and after the current actor while preserving settled manual participants', async () => {
@@ -255,7 +257,7 @@ describe('native actor reinforcement transaction', () => {
       },
       public: true
     }
-    const result = await base.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(base.owner.caller, { command })
     await base.t.run(async (ctx) => {
       const receipt = await ctx.db
         .query('encounterRunCommands')
@@ -270,8 +272,8 @@ describe('native actor reinforcement transaction', () => {
       })
     })
     const tampered = await capture(base)
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-      'receipt mismatch'
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      LiveSessionRouteError
     )
     expect(await capture(base)).toEqual(tampered)
     const rollback = {

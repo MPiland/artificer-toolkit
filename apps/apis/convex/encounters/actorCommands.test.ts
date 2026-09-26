@@ -13,7 +13,6 @@ import {
   type CreateEncounterBlueprintInputDto,
   type CreateEncounterInputDto,
   type EncounterBlueprintDto,
-  type EncounterCommandResultDto,
   type EncounterExecuteInput,
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -29,6 +28,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as sheetCommands from '../characters/sheetCommands'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -43,9 +44,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const personalExecute = makeFunctionReference<
   'mutation',
   CharacterSheetExecuteInput,
@@ -158,8 +156,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     })
     const before = await stored(t, run.id, customActor.id)
     const sideId = encounterRunStateSchema.parse(JSON.parse(before.run!.stateJson)).sides[0]!.id
-    const result = await gm.caller.mutation(
-      execute,
+    const result = await executeInRoom(
+      gm.caller,
       update({
         type: 'UPDATE_ACTOR',
         encounterId: run.id.toUpperCase(),
@@ -241,7 +239,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
         amount: 3
       }
     })
-    const first = await gm.caller.mutation(execute, command)
+    const first = await executeInRoom(gm.caller, command)
     expect(first.projection.actors.find((actor) => actor.id === characterActor.id)).toMatchObject({
       currentHitPoints: 9,
       maxHitPoints: 15,
@@ -269,8 +267,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     )
     expect(receipt.characterReceiptId).toBe(nestedReceipt?.id)
     expect((await readState()).receipts).toHaveLength(3)
-    await gm.caller.mutation(
-      execute,
+    await executeInRoom(
+      gm.caller,
       update({
         type: 'UPDATE_ACTOR',
         encounterId: run.id,
@@ -280,7 +278,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       })
     )
     expect(
-      await gm.caller.mutation(execute, {
+      await replayInRoom(gm.caller, {
         command: { ...command.command, encounterId: run.id, commandId }
       })
     ).toEqual(first)
@@ -296,8 +294,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       }
     })
     const currentOuterCommandId = crypto.randomUUID()
-    const replayedSheet = await gm.caller.mutation(
-      execute,
+    const replayedSheet = await executeInRoom(
+      gm.caller,
       update({
         ...command.command,
         encounterId: run.id,
@@ -333,8 +331,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       return parseActor(...args)
     })
     await expect(
-      gm.caller.mutation(
-        execute,
+      executeInRoom(
+        gm.caller,
         update({
           type: 'UPDATE_ACTOR',
           encounterId: run.id,
@@ -350,7 +348,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
           }
         })
       )
-    ).rejects.toThrow('Injected post-Sheet bridge failure')
+    ).rejects.toThrow(LiveSessionRouteError)
     expect(sheetCompleted).toBe(true)
     vi.restoreAllMocks()
     expect(await stored(t, run.id, characterActor.id)).toEqual(before)
@@ -394,7 +392,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       })
     ]
     for (const request of rejected)
-      await expect(gm.caller.mutation(execute, request)).rejects.toThrow()
+      await expect(executeInRoom(gm.caller, request)).rejects.toThrow()
     expect(await stored(t, run.id, characterActor.id)).toEqual(before)
     expect(await readState()).toEqual(beforeSheet)
     await t.run(async (ctx) => {
@@ -406,8 +404,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       await ctx.db.patch(actor._id, { stateChecksum: '0'.repeat(64) })
     })
     await expect(
-      gm.caller.mutation(
-        execute,
+      executeInRoom(
+        gm.caller,
         update({
           type: 'UPDATE_ACTOR',
           encounterId: run.id,
@@ -416,6 +414,6 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
           actorId: customActor.id
         })
       )
-    ).rejects.toThrow('Stored Encounter actor mismatch.')
+    ).rejects.toThrow(LiveSessionRouteError)
   }, 30000)
 })

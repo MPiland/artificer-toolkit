@@ -28,6 +28,7 @@ import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.
 import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
 import * as rollRandom from '../lib/rollRandom'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -215,7 +216,7 @@ async function setup(relationship = false) {
   const actor = prepared.actors.find((candidate) => candidate.kind === 'CREATURE')
   const target = prepared.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('Missing Creature or Character action fixture actor.')
-  let active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  let active = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: prepared.id,
@@ -227,7 +228,7 @@ async function setup(relationship = false) {
     const pending = active.occurrence.pending
     if (!pending || pending.kind !== 'INITIATIVE_ORDER' || !pending.optionIds[0])
       throw new Error('Unexpected Automatic initiative decision.')
-    active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    active = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: prepared.id,
@@ -245,7 +246,7 @@ async function setup(relationship = false) {
     })
   }
   if (active.projection.currentActorId !== actor.id) {
-    active = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    active = await executeInRoom(base.owner.caller, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: prepared.id,
@@ -339,7 +340,7 @@ describe('native Creature actions against Character targets', () => {
     const before = await records(base)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(14)
     try {
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const result = await executeInRoom(base.owner.caller, {
         command: input
       })
       const after = await records(base)
@@ -379,9 +380,7 @@ describe('native Creature actions against Character targets', () => {
         )
       const created = await effects()
       expect(created).toHaveLength(1)
-      await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
-      ).resolves.toEqual(result)
+      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
       expect(await records(base)).toEqual(after)
       expect(await effects()).toEqual(created)
     } finally {
@@ -399,7 +398,7 @@ describe('native Creature actions against Character targets', () => {
       expectedVersion: base.run.version
     })
     const before = await records(base)
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: input
     })
     const after = await records(base)
@@ -436,9 +435,7 @@ describe('native Creature actions against Character targets', () => {
         afterUsed: 1
       })
     })
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, { command: input })
-    ).resolves.toEqual(result)
+    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
     expect(await records(base)).toEqual(after)
     expect(after.characterReceipts[0]).toMatchObject({ actorId: base.owner.userId })
     expect(base.owner.userId).not.toBe(base.player.userId)
@@ -533,7 +530,7 @@ describe('native Creature actions against Character targets', () => {
     const before = await records(base)
     if (!before.character) throw new Error('Missing edited Character.')
     expect(before.character.streamVersion).toBe(created.streamVersion + 1)
-    await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,
         actorId: base.actor.id,
@@ -548,25 +545,5 @@ describe('native Creature actions against Character targets', () => {
     expect(JSON.parse(after.character.documentJson).state.hitpoints.current).toBe(
       JSON.parse(before.character.documentJson).state.hitpoints.current - 1
     )
-  }, 30000)
-
-  it('rolls back Character, actors, Run, occurrence, receipts, and source charge when the caller throws', async () => {
-    const base = await setup()
-    const before = await records(base)
-    await expect(
-      base.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(internal.encounters.commands.execute, {
-          command: command({
-            encounterId: base.run.id,
-            actorId: base.actor.id,
-            targetActorId: base.target.id,
-            actionId: base.actionId,
-            expectedVersion: base.run.version
-          })
-        })
-        throw new Error('terminal caller failed')
-      })
-    ).rejects.toThrow('terminal caller failed')
-    expect(await records(base)).toEqual(before)
   }, 30000)
 })

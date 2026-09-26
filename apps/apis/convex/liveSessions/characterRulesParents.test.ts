@@ -233,6 +233,7 @@ it('uses every paged Class catalogue candidate and rejects a share revision betw
     if (!version) throw new Error('Missing inactive Class version.')
     const document = { ...(await deleteAuthoredVersion(ctx, version)), status: 'DRAFT' as const }
     const checksum = checksumRuleDocument(document)
+    const currentVersionPublicId = crypto.randomUUID()
     const currentVersionId = await insertAuthoredVersion(
       ctx,
       {
@@ -242,14 +243,14 @@ it('uses every paged Class catalogue candidate and rejects a share revision betw
         label: version.label,
         checksum,
         contentSourceId: version.contentSourceId,
-        versionId: crypto.randomUUID(),
+        versionId: currentVersionPublicId,
         version: version.version,
         documentSchemaVersion: version.documentSchemaVersion,
         compilation: version.compilation
       },
       canonicalizeRuleDocument(document)
     )
-    await ctx.db.patch(root._id, { checksum, currentVersionId })
+    await ctx.db.patch(root._id, { checksum, currentVersionId, currentVersionPublicId })
     const active = await ctx.db
       .query('characters')
       .withIndex('by_publicId', (q) => q.eq('id', fixture.character.id))
@@ -309,6 +310,7 @@ it('rejects 501 direct Class headers before loading catalogue bodies', async () 
       for (const [index, id] of addedIds.slice(offset, offset + 50).entries()) {
         const document = { ...fixture.baseClass, id, label: `Bound Class ${offset + index}` }
         const checksum = checksumRuleDocument(document)
+        const currentVersionPublicId = crypto.randomUUID()
         const currentVersionId = await insertAuthoredVersion(
           ctx,
           {
@@ -318,7 +320,7 @@ it('rejects 501 direct Class headers before loading catalogue bodies', async () 
             label: document.label,
             checksum,
             contentSourceId: template.contentSourceId,
-            versionId: crypto.randomUUID(),
+            versionId: currentVersionPublicId,
             version: version.version,
             documentSchemaVersion: version.documentSchemaVersion
           },
@@ -330,6 +332,7 @@ it('rejects 501 direct Class headers before loading catalogue bodies', async () 
           label: document.label,
           checksum,
           currentVersionId,
+          currentVersionPublicId,
           ...(root.authoringSources
             ? { authoringSources: { ...root.authoringSources, checksum } }
             : {})

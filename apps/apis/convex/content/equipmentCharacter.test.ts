@@ -12,6 +12,7 @@ import { populateCampaignLifecycleCharacter } from '../../tests/developmentCampa
 import { api, internal } from '../_generated/api'
 import { verifyEquipmentCharacterDeletion } from '../../tests/developmentEquipmentCharacter'
 import type { DevelopmentClient } from '../../tests/developmentClient'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -36,14 +37,8 @@ it('reconciles Equipment loss through public authoring, Builder and Sheet comman
       ),
     mutation: (mutation, ...args) => first.caller.run((ctx) => ctx.runMutation(mutation, ...args))
   }
-  const other: DevelopmentClient = {
-    query: (query, ...args) => second.caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) => second.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
-  const anonymous: DevelopmentClient = {
-    query: (query, ...args) => t.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) => t.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
+  const other = inProcessDevelopmentClient(second.caller)
+  const anonymous = inProcessDevelopmentClient(t)
   const characterId = crypto.randomUUID()
   await verifyEquipmentCharacterDeletion({
     owner,
@@ -151,10 +146,7 @@ it('publishes two Campaign lifecycle Background fixtures for one owner', async (
       ]
     ]
   )
-  const baseOwner: DevelopmentClient = {
-    query: (query, ...args) => first.caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) => first.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
+  const baseOwner = inProcessDevelopmentClient(first.caller)
   const firstCharacterId = crypto.randomUUID()
   const secondCharacterId = crypto.randomUUID()
 

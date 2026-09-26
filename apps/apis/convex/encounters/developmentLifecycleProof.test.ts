@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
@@ -100,26 +101,21 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
   const clients: Pick<Parameters<typeof verifySceneEntities>[0], 'owner' | 'player' | 'anonymous'> =
     {
       owner: {
-        query: (query, ...args) => owner.caller.run((ctx) => ctx.runQuery(query, ...args)),
-        mutation: (mutation, ...args) =>
-          owner.caller.run((ctx) => ctx.runMutation(mutation, ...args)),
+        ...inProcessDevelopmentClient(owner.caller),
         action: (action, ...args) => {
           const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
           return owner.caller.action<typeof invoke>(invoke)
         }
       },
       player: {
-        query: (query, ...args) => player.caller.run((ctx) => ctx.runQuery(query, ...args)),
-        mutation: (mutation, ...args) =>
-          player.caller.run((ctx) => ctx.runMutation(mutation, ...args)),
+        ...inProcessDevelopmentClient(player.caller),
         action: (action, ...args) => {
           const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
           return player.caller.action<typeof invoke>(invoke)
         }
       },
       anonymous: {
-        query: (query, ...args) => t.run((ctx) => ctx.runQuery(query, ...args)),
-        mutation: (mutation, ...args) => t.run((ctx) => ctx.runMutation(mutation, ...args)),
+        ...inProcessDevelopmentClient(t),
         action: (action, ...args) => {
           const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
           return t.action<typeof invoke>(invoke)
@@ -164,9 +160,7 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     campaignId: campaign.id,
     fixture: result,
     concurrent: (actor, reference, args) =>
-      (actor === 'OWNER' ? owner.caller : player.caller).run((ctx) =>
-        ctx.runMutation(reference, args)
-      ),
+      (actor === 'OWNER' ? clients.owner : clients.player).mutation(reference, args),
     rollback: (input) => {
       const args = { ...input, ownerUserId: owner.userId, campaignId: campaign.id }
       const reference = makeFunctionReference<'action', typeof args, { rolledBack: true }>(

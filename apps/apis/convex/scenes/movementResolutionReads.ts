@@ -1,14 +1,12 @@
-import type { Validator } from 'convex/values'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { z } from 'zod'
-import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
-import { internalQuery, type QueryCtx } from '../_generated/server'
+import { type QueryCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
 import { requireCampaignAuthority } from '../campaigns/authority'
@@ -80,12 +78,3 @@ export async function readMovementResponseResult(
     })
   })
 }
-
-/** Return current-role projections after publication; never return the private preparation. */
-export const result = internalQuery({
-  args: zodToConvexFields(resolveRuleOccurrenceInputDtoSchema.shape),
-  get returns(): Validator<EncounterCommandResultDto, 'required', string> {
-    return zodToConvex<z.core.$ZodType<EncounterCommandResultDto>>(encounterCommandResultDtoSchema)
-  },
-  handler: readMovementResponseResult
-})

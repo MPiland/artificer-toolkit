@@ -26,7 +26,11 @@ import {
   type SceneExplorationState
 } from '@artificer-toolkit/shared/vtt'
 import { api } from '../convex/_generated/api.js'
-import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
+import {
+  assertDomainRejection,
+  type DevelopmentClient,
+  executeEncounterCommand
+} from './developmentClient'
 import { encounterEffectFeatureId, encounterEffectId } from './fixtures/encounterEffects'
 
 const actionChoices = makeFunctionReference<
@@ -495,6 +499,7 @@ export async function verifyEncounterEffects({
           rollMode: pending.request.rollMode
         }
       }
+      // A member may answer only their own decisions; another's is a permission refusal.
       await assert.rejects(
         () => player.mutation(executeEncounterCommand, { command: response }),
         /NOT_ACTOR_CONTROLLER/
@@ -538,10 +543,10 @@ export async function verifyEncounterEffects({
         terminal,
         'Exact root replay must retain the completed action receipt.'
       )
-      assert.deepEqual(
-        await owner.mutation(executeEncounterCommand, { command: response }),
-        terminal,
-        'Exact terminal replay must retain the completed receipt.'
+      // A settled decision is no longer routable: the room refuses its retry as stale.
+      await assert.rejects(
+        owner.mutation(executeEncounterCommand, { command: response }),
+        (error) => assertDomainRejection(error, 'VERSION_STALE')
       )
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),

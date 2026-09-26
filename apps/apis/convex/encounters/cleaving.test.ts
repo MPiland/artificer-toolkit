@@ -72,13 +72,14 @@ import {
 } from '../../../session-worker/src/nativeEncounterRules'
 import { planNativeLiveConcentrationResponse } from '../../../session-worker/src/nativeConcentrationResponse'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { executeNativeEncounterAction } from './actionCommands'
 import {
   executeRoomEncounterCommand,
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
   withRoomConvex,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { planNativeLiveCleavingResponse } from '../../../session-worker/src/nativeCleavingResponse'
 
@@ -385,7 +386,7 @@ async function setup(
       ? [creatureActors[0]!, characterActor!, ...creatureActors.slice(1)]
       : createdRun.actors
   const run = { ...createdRun, actors: orderedActors }
-  await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  await executeInRoom(base.owner.caller, {
     command: {
       type: 'REPLACE_OPTIONAL_COMBAT_RULES',
       encounterId: run.id,
@@ -717,10 +718,7 @@ function response(
 }
 
 async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
-  let result = await base.owner.caller.action(
-    internal.encounters.commandActions.execute,
-    base.command
-  )
+  let result = await executeInRoom(base.owner.caller, base.command)
   const evidence: EncounterExecuteInput[] = []
   while (result.occurrence?.status === 'PENDING') {
     const pending = result.occurrence.pending
@@ -751,7 +749,7 @@ async function completeParent(base: Awaited<ReturnType<typeof setup>>) {
       }
     }
     evidence.push(input)
-    result = await base.owner.caller.action(internal.encounters.commandActions.execute, input)
+    result = await executeInRoom(base.owner.caller, input)
   }
   return { result, evidence }
 }
@@ -761,7 +759,7 @@ describe('native Cleaving action settlement', () => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
   })
-  it('commits the selected Character Cleaving choice with native root and child parity', async () => {
+  it('commits the selected Character Cleaving choice from the Worker plan', async () => {
     const base = await setup('AUTO_ROLL', false, true)
     const command = base.command.command
     if (command.type !== 'RESOLVE_ACTION') throw new Error('Missing Cleaving action command.')
@@ -825,55 +823,6 @@ describe('native Cleaving action settlement', () => {
       expect(planned.prepared.target.kind).toBe('CHARACTER')
       expect(planned.concentration.pending).toBeNull()
       expect(planned.cleaving).not.toBeNull()
-      const nativeProbe: {
-        result?: Awaited<ReturnType<typeof executeNativeEncounterAction>>
-        projection?: unknown
-        rootExecution?: unknown
-        child?: unknown
-      } = {}
-      vi.useFakeTimers({ toFake: ['Date'] })
-      vi.setSystemTime(new Date(planned.occurredAt))
-      const uuid = vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(occurrenceId)
-      const random = vi
-        .spyOn(rollRandom, 'nextRollInt')
-        .mockImplementation((maximum) => (maximum === 20 ? 19 : 0))
-      try {
-        await expect(
-          base.owner.caller.run(async (ctx) => {
-            nativeProbe.result = await executeNativeEncounterAction(ctx, command, base.owner.userId)
-            const nativeRun = await ctx.db
-              .query('encounterRuns')
-              .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-              .unique()
-            const nativeReceipt = await ctx.db
-              .query('encounterRuleReceipts')
-              .withIndex('by_encounterId_commandId', (q) =>
-                q.eq('encounterId', base.run.id).eq('commandId', command.commandId)
-              )
-              .unique()
-            const nativePending = await ctx.db
-              .query('encounterRuleOccurrences')
-              .withIndex('by_encounterId_state', (q) =>
-                q.eq('encounterId', base.run.id).eq('state', 'PENDING')
-              )
-              .unique()
-            if (!nativeRun?.projectionJson || !nativeReceipt || !nativePending?.pendingSnapshotJson)
-              throw new Error('Native Cleaving terminal records are incomplete.')
-            nativeProbe.projection = JSON.parse(nativeRun.projectionJson)
-            nativeProbe.rootExecution = storedRuleExecutionResultDtoSchema.parse(
-              JSON.parse(nativeReceipt.resultJson)
-            )
-            nativeProbe.child = serverAggregateChoicePendingSnapshotDtoSchema.parse(
-              JSON.parse(nativePending.pendingSnapshotJson)
-            )
-            throw new Error('Roll back native Cleaving terminal parity probe.')
-          })
-        ).rejects.toThrow('Roll back native Cleaving terminal parity probe.')
-      } finally {
-        random.mockRestore()
-        uuid.mockRestore()
-        vi.useRealTimers()
-      }
       expect(await records(base)).toEqual(before)
       const committed = await commitNativeLiveEncounterAction(
         workerEnvironment(workerSecret),
@@ -881,19 +830,14 @@ describe('native Cleaving action settlement', () => {
         scope,
         planned
       )
-      expect(committed).toEqual(nativeProbe.result)
       const after = await records(base)
       expect(after.run?.version).toBe(before.run!.version + 1)
       expect(JSON.parse(after.run!.projectionJson!)).toEqual(committed.projection)
-      expect(JSON.parse(after.run!.projectionJson!)).toEqual(nativeProbe.projection)
       expect(after.run?.projectionChecksum).toBe(checksumCanonicalJson(committed.projection))
       const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
-      if (!rootReceipt) throw new Error('Missing native Cleaving root receipt.')
+      if (!rootReceipt) throw new Error('Missing Cleaving root receipt.')
       expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))).toEqual(
         planned.storedExecution
-      )
-      expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson))).toEqual(
-        nativeProbe.rootExecution
       )
       const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
       expect(pending).toHaveLength(1)
@@ -902,11 +846,6 @@ describe('native Cleaving action settlement', () => {
           JSON.parse(pending[0]!.pendingSnapshotJson!)
         )
       ).toEqual(planned.cleaving)
-      expect(
-        serverAggregateChoicePendingSnapshotDtoSchema.parse(
-          JSON.parse(pending[0]!.pendingSnapshotJson!)
-        )
-      ).toEqual(nativeProbe.child)
       if (planned.cleaving?.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING') {
         throw new Error('Missing planned Cleaving choice.')
       }
@@ -920,10 +859,10 @@ describe('native Cleaving action settlement', () => {
   }, 60_000)
 
   it.each([
-    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'native' as const },
-    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'native' as const },
-    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'DO' as const },
-    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'DO' as const }
+    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'room' as const },
+    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'room' as const },
+    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'planner' as const },
+    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'planner' as const }
   ])(
     'orders an Assisted concentration $outcome before the deferred Cleaving choice via $transport',
     async ({ face, outcome, transport }) => {
@@ -982,7 +921,7 @@ describe('native Cleaving action settlement', () => {
       })
       const workerSecret = 'private-cleaving-child-response-test-secret-at-least-32-bytes'
       const authSecret = 'private-cleaving-child-continuation-test-secret-at-least-32-bytes'
-      if (transport === 'DO') {
+      if (transport === 'planner') {
         vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
         vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
       }
@@ -1029,19 +968,9 @@ describe('native Cleaving action settlement', () => {
       const responseCommand = input.command
       if (responseCommand.type !== 'RESOLVE_RULE_OCCURRENCE')
         throw new Error('Expected concentration evidence response.')
-      const rollback = makeFunctionReference<
-        'action',
-        {
-          ownerUserId: string
-          campaignId: string
-          encounterId: string
-          operation: { kind: 'COMMAND'; input: EncounterExecuteInput }
-        },
-        { rolledBack: true }
-      >('encounters/developmentLifecycle:verifyRollback')
       let concentration: EncounterCommandResultDto
       let retryConcentration: () => Promise<EncounterCommandResultDto>
-      if (transport === 'DO') {
+      if (transport === 'planner') {
         const { authorityEpoch } = base
         const environment = workerEnvironment(workerSecret)
         const scope = {
@@ -1112,22 +1041,11 @@ describe('native Cleaving action settlement', () => {
           return replay.result
         }
       } else {
-        await expect(
-          base.owner.caller.action(rollback, {
-            ownerUserId: base.owner.userId,
-            campaignId: base.campaign.id,
-            encounterId: base.run.id,
-            operation: { kind: 'COMMAND', input }
-          })
-        ).resolves.toEqual({ rolledBack: true })
-        expect(await records(base)).toEqual(afterParent)
         concentration = encounterCommandResultDtoSchema.parse(
-          await base.other.caller.action(internal.encounters.commandActions.execute, input)
+          await executeInRoom(base.other.caller, input)
         )
         retryConcentration = async () =>
-          encounterCommandResultDtoSchema.parse(
-            await base.other.caller.action(internal.encounters.commandActions.execute, input)
-          )
+          encounterCommandResultDtoSchema.parse(await replayInRoom(base.other.caller, input))
       }
       expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
       const afterConcentration = await records(base)
@@ -1336,11 +1254,8 @@ describe('native Cleaving action settlement', () => {
             .map((payload) => payload.applicationOutputs.damage.requestedAmount)
             .sort((left, right) => right - left)
         ).toEqual([29, 18])
-        await expect(
-          base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
-        ).resolves.toEqual(result)
-        for (const retained of evidence)
-          await base.owner.caller.action(internal.encounters.commandActions.execute, retained)
+        await expect(replayInRoom(base.owner.caller, base.command)).resolves.toEqual(result)
+        for (const retained of evidence) await replayInRoom(base.owner.caller, retained)
         expect(await records(base)).toEqual(final)
       } finally {
         random.mockRestore()
@@ -1353,9 +1268,9 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await expect(
-        base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
-      ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE' } })
+      await expect(executeInRoom(base.owner.caller, base.command)).resolves.toMatchObject({
+        occurrence: { status: 'COMPLETE' }
+      })
     } finally {
       random.mockRestore()
     }
@@ -1457,7 +1372,7 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
+      await executeInRoom(base.owner.caller, base.command)
     } finally {
       random.mockRestore()
     }
@@ -1494,7 +1409,7 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
+      await executeInRoom(base.owner.caller, base.command)
     } finally {
       random.mockRestore()
     }
@@ -1599,7 +1514,7 @@ describe('native Cleaving action settlement', () => {
         })
       const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(reason === 'miss' ? 0 : 18)
       try {
-        await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
+        await executeInRoom(base.owner.caller, base.command)
       } finally {
         random.mockRestore()
       }
@@ -1617,7 +1532,7 @@ describe('native Cleaving action settlement', () => {
     const base = await setup()
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(18)
     try {
-      await base.owner.caller.action(internal.encounters.commandActions.execute, base.command)
+      await executeInRoom(base.owner.caller, base.command)
     } finally {
       random.mockRestore()
     }

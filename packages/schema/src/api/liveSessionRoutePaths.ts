@@ -30,5 +30,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterRoute: '/live-sessions/encounter-route',
   encounterVoidPrepare: '/live-sessions/encounter-void-prepare',
   encounterVoidRecord: '/live-sessions/encounter-void-record',
+  encounterRollDice: '/live-sessions/encounter-roll-dice',
+  encounterRollCommit: '/live-sessions/encounter-roll',
   encounterCommand: '/live-sessions/encounter-command'
 } as const

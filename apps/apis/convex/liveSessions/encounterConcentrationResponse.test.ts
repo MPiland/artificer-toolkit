@@ -27,12 +27,11 @@ import {
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, components, internal } from '../_generated/api'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
-import { resumeNativeConcentration } from '../encounters/concentrationResponses'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
@@ -180,7 +179,7 @@ it.each([
   { face: 20, outcome: 'SAVE_SUCCESS' as const, responder: 'OWNER' as const },
   { face: 1, outcome: 'SAVE_FAILURE' as const, responder: 'PLAYER' as const }
 ])(
-  'commits and replays an Assisted concentration $outcome for $responder with native parity',
+  'commits and replays an Assisted concentration $outcome for $responder',
   async ({ face, outcome, responder }) => {
     const { fixture, seeded, staged, pending } = await pendingFixture()
     const actor = responder === 'OWNER' ? fixture.owner : fixture.player
@@ -192,7 +191,7 @@ it.each([
       username: responder === 'OWNER' ? 'ConcentrationGm' : 'ConcentrationPlayer',
       bio: null
     })
-    const rolled = await actor.caller.mutation(executeEncounterCommand, {
+    const rolled = await executeInRoom(actor.caller, {
       command: {
         type: 'ROLL_RULE_EVIDENCE',
         encounterId: fixture.run.id,
@@ -253,22 +252,6 @@ it.each([
     })
     expect(await concentrationRecords(fixture)).toEqual(staged)
 
-    const native: { result?: Awaited<ReturnType<typeof resumeNativeConcentration>> } = {}
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(plan.input.occurredAt))
-    try {
-      await expect(
-        actor.caller.run(async (ctx) => {
-          native.result = await resumeNativeConcentration(ctx, response, actor.userId)
-          throw new Error('Roll back native concentration parity probe.')
-        })
-      ).rejects.toThrow('Roll back native concentration parity probe.')
-    } finally {
-      vi.useRealTimers()
-    }
-    if (!native.result) throw new Error('Native concentration response did not complete.')
-    expect(await concentrationRecords(fixture)).toEqual(staged)
-
     if (outcome === 'SAVE_FAILURE') {
       const revision = plan.input.revisions[0]
       if (!revision) throw new Error('Concentration revision was not captured.')
@@ -326,7 +309,6 @@ it.each([
       'encounterConcentrationCommit',
       plan.input
     )
-    expect(committed).toEqual(native.result)
     expect(committed.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
     const after = await concentrationRecords(fixture)
     expect(after.run?.version).toBe(staged.run!.version + (outcome === 'SAVE_FAILURE' ? 1 : 0))

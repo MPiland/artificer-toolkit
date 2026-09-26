@@ -30,12 +30,12 @@ import * as deletionState from './deletionState'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { populateCampaignLifecycleInventory } from '../../tests/developmentCampaignLifecycleInventory'
 import {
   populateCampaignLifecycleCharacter,
   reconcileCampaignDeletionPersonalExpected
 } from '../../tests/developmentCampaignLifecycleCharacter'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -563,10 +563,7 @@ describe('native Campaign custody deletion', () => {
           leftAt: null
         })
       )
-      const client = (caller: typeof base.owner.caller): DevelopmentClient => ({
-        query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-        mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-      })
+      const client = inProcessDevelopmentClient
       const produced = await populateCampaignLifecycleInventory(
         client(base.other.caller),
         target.id

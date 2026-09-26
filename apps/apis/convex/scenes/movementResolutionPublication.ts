@@ -36,13 +36,31 @@ import {
   type Geometry,
   type assertMovementResolutionCurrent
 } from './movementResolutionDocuments'
-import type { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
+import type { settleSceneMovementSettlements } from './movementSettlements'
 import type { SpatialTerminalPublicationCallbacks } from './spatialTerminalPublication'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { rejectDomain } from '../lib/domainRejections'
 
+type MovementSettlement = Awaited<ReturnType<typeof settleSceneMovementSettlements>>
+
+/** The room's frozen response outcome, its decision history, and the settled mechanics. */
+type MovementResponseCommit = MovementSettlement & {
+  outcome: Exclude<
+    NonNullable<ReturnType<typeof readSpatialPreparation>>['outcome'],
+    { kind: 'UNINTERRUPTED' }
+  >
+  resolutionCommands: ReturnType<
+    typeof readEncounterMovementPendingContext
+  >['root']['resolutionCommands']
+  commandCharacterTransitions: MovementSettlement['characterTransitions']
+}
+
 type MovementResponsePublicationCallbacks = {
-  commit: typeof commitPreparedMovementResponse
+  commit: (
+    ctx: MutationCtx,
+    request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
+    response: Awaited<ReturnType<typeof readResponse>>
+  ) => Promise<MovementResponseCommit>
   project: SpatialTerminalPublicationCallbacks['project']
 }
 
@@ -138,9 +156,7 @@ function responseMetadata(input: {
     NonNullable<ReturnType<typeof readSpatialPreparation>>['outcome'],
     { kind: 'UNINTERRUPTED' }
   >
-  resolutionCommands: Awaited<
-    ReturnType<typeof commitPreparedMovementResponse>
-  >['resolutionCommands']
+  resolutionCommands: MovementResponseCommit['resolutionCommands']
   changedAggregates: ReturnType<typeof terminalMovementChangedAggregates>
   encounterVersionTransition: 'UNCHANGED' | 'ADVANCED'
   sceneVersionTransition: 'UNCHANGED' | 'ADVANCED'

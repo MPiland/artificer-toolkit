@@ -38,6 +38,7 @@ import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
+import { executeInRoom } from './liveSessionWorker'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -183,7 +184,7 @@ async function settleStart(
               )
             })()
     current = encounterCommandResultDtoSchema.parse(
-      await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: current.projection.id,
@@ -383,7 +384,7 @@ export async function setupCreatureReactionRun(
       await settleStart(
         base,
         encounterCommandResultDtoSchema.parse(
-          await base.owner.caller.mutation(internal.encounters.commands.execute, {
+          await executeInRoom(base.owner.caller, {
             command: {
               type: 'START',
               encounterId: run.id,

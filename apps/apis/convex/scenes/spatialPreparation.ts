@@ -1,4 +1,3 @@
-import { prepareMovementResponse } from './movementResolutionPreparation.helper'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 // eslint-disable-next-line no-restricted-imports -- The native builder preserves the metadata getter; the handler applies withSceneVisionTracking explicitly.
@@ -35,7 +34,9 @@ export const prepare = internalMutation({
     const request = sceneSpatialPrepareInputSchema.parse(args)
     const currentSave = await readGeometrySave(ctx, request.saveId)
     const { save, header, membership, userId } = currentSave
-    if (save.movementResolution) return prepareMovementResponse(ctx, request)
+    // Movement decisions are prepared only by the room with its presented Scene (D42).
+    if (save.movementResolution)
+      throw new Error('A movement decision is prepared by the Session room.')
     assertGeometryReceiving(save, header.version, userId)
     if (
       save.input.type !== 'MOVE_SCENE_TOKEN' ||

@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { api, internal } from '../_generated/api'
 import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
-import {
-  executeEncounterCommand,
-  playerControlFixture,
-  setActorControllers
-} from '../../tests/fixtures/playerControl'
+import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const page = { cursor: null, numItems: 16 }
 
@@ -16,7 +13,7 @@ describe('deleted member Campaign history', () => {
     const { t, owner: gm, other: departing, campaign, run } = base
     await departing.caller.mutation(api.account.updateProfile, { username: 'Mira', bio: null })
     await setActorControllers(base, base.companion.id, [departing.userId])
-    await departing.caller.mutation(executeEncounterCommand, {
+    await executeInRoom(departing.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
     const session = await gm.caller.mutation(api.campaigns.sessions.create, {

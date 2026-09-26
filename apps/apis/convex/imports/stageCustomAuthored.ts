@@ -539,6 +539,7 @@ async function stageActive(
     contentSourceId: source.contentSource.id,
     importJobId: args.jobId,
     currentVersionId: storedVersionId,
+    currentVersionPublicId: version.versionId,
     authoringSources: prepared.authoringSources,
     activeNameKey: activePublicationNameKey(args.label),
     ...(prepared.subject.subjectKind === 'CLASS'

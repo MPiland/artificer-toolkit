@@ -25,6 +25,8 @@ import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPre
 import { internal } from '../_generated/api'
 import { readRunActors, readRunState } from './documents'
 import { removeAccountCharacterActors, removeEncounterActor } from './actorRemovalCommand'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
   'encounters/commands:execute'
@@ -134,7 +136,7 @@ describe('native actor removal transaction', () => {
     const other = base.run.actors.find((candidate) => candidate.id !== actor.id)!
     let version = base.run.version
     for (const actorId of [actor.id, other.id, null]) {
-      await base.owner.caller.mutation(execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'UPSERT_REMINDER',
           encounterId: base.run.id,
@@ -184,8 +186,8 @@ describe('native actor removal transaction', () => {
       actorId: actor.id
     }
     const before = await capture(base)
-    await expect(base.player.caller.mutation(execute, { command })).rejects.toThrow()
-    await expect(base.t.mutation(execute, { command })).rejects.toThrow('Unauthenticated')
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.t, { command })).rejects.toThrow('Unauthenticated')
     await expect(
       base.player.caller.run(async (ctx) => {
         const membership = await ctx.db
@@ -201,7 +203,7 @@ describe('native actor removal transaction', () => {
       })
     ).rejects.toThrow('Restore the authenticated outsider fixture')
     expect(await capture(base)).toEqual(before)
-    const result = await base.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(base.owner.caller, { command })
     expect(result.projection.actors.map((candidate) => candidate.id)).not.toContain(actor.id)
     expect(encounterGmProjectionDtoSchema.parse(result.projection).reminders).toHaveLength(2)
     const after = await capture(base)
@@ -210,7 +212,7 @@ describe('native actor removal transaction', () => {
     expect(after.sceneBindings).toEqual(before.sceneBindings)
     expect(after.characters).toEqual(before.characters)
     expect(after.characterReceipts).toEqual(before.characterReceipts)
-    await base.owner.caller.mutation(execute, {
+    await executeInRoom(base.owner.caller, {
       command: {
         type: 'REMOVE_ACTOR',
         encounterId: base.run.id,
@@ -221,7 +223,7 @@ describe('native actor removal transaction', () => {
     })
     const later = await capture(base)
     expect(
-      await base.owner.caller.mutation(execute, {
+      await replayInRoom(base.owner.caller, {
         command: {
           ...command,
           encounterId: command.encounterId.toUpperCase(),
@@ -232,8 +234,8 @@ describe('native actor removal transaction', () => {
     ).toEqual(result)
     expect(await capture(base)).toEqual(later)
     await expect(
-      base.owner.caller.mutation(execute, { command: { ...command, actorId: other.id } })
-    ).rejects.toThrow('different input')
+      executeInRoom(base.owner.caller, { command: { ...command, actorId: other.id } })
+    ).rejects.toThrow('Command ID was already used with different input.')
     await base.t.run(async (ctx) => {
       const membership = await ctx.db
         .query('campaignMemberships')
@@ -244,14 +246,14 @@ describe('native actor removal transaction', () => {
       if (!membership) throw new Error('Missing fixture membership')
       await ctx.db.patch(membership._id, { status: 'LEFT' })
     })
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow()
   })
 
   it('reconciles active initiative across historical rounds and permits an empty Run to change round', async () => {
     const base = await setup()
     let version = base.run.version
     for (const [index, actor] of base.run.actors.entries())
-      await base.owner.caller.mutation(execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: base.run.id,
@@ -262,7 +264,7 @@ describe('native actor removal transaction', () => {
           manualOrder: index
         }
       })
-    let result = await base.owner.caller.mutation(execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -271,7 +273,7 @@ describe('native actor removal transaction', () => {
       }
     })
     const retainedCurrent = result.projection.currentActorId
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_ROUND',
         encounterId: base.run.id,
@@ -281,7 +283,7 @@ describe('native actor removal transaction', () => {
       }
     })
     const noncurrent = base.run.actors.find((actor) => actor.id !== retainedCurrent)!
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'REMOVE_ACTOR',
         encounterId: base.run.id,
@@ -293,7 +295,7 @@ describe('native actor removal transaction', () => {
     expect(result.projection.currentActorId).toBe(retainedCurrent)
     expect((await capture(base)).participants.some((p) => p.actorId === noncurrent.id)).toBe(false)
     for (const actor of result.projection.actors) {
-      result = await base.owner.caller.mutation(execute, {
+      result = await executeInRoom(base.owner.caller, {
         command: {
           type: 'REMOVE_ACTOR',
           encounterId: base.run.id,
@@ -305,7 +307,7 @@ describe('native actor removal transaction', () => {
     }
     expect(result.projection.actors).toEqual([])
     expect(result.projection.currentActorId).toBeNull()
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_ROUND',
         encounterId: base.run.id,
@@ -322,7 +324,7 @@ describe('native actor removal transaction', () => {
 
   it('supersedes a frozen Assisted initiative and preserves its maintenance receipt on retry', async () => {
     const base = await setup('PROMPT')
-    const started = await base.owner.caller.mutation(execute, {
+    const started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -339,7 +341,7 @@ describe('native actor removal transaction', () => {
       expectedVersion: started.projection.version,
       actorId
     }
-    const result = await base.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(base.owner.caller, { command })
     const after = await capture(base)
     const occurrence = after.occurrences.find((row) => row.id === started.occurrence!.occurrenceId)!
     expect(occurrence.state).toBe('COMPLETED')
@@ -349,13 +351,13 @@ describe('native actor removal transaction', () => {
       status: 'MAINTENANCE_COMPLETE',
       removedActorId: actorId
     })
-    expect(await base.owner.caller.mutation(execute, { command })).toEqual(result)
+    expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
     expect(await capture(base)).toEqual(after)
     await base.t.run(async (ctx) => {
       await ctx.db.patch(receipt._id, { resultChecksum: 'b'.repeat(64) })
     })
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-      'maintenance receipt mismatch'
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      LiveSessionRouteError
     )
   })
 
@@ -380,7 +382,7 @@ describe('native actor removal transaction', () => {
       [0, firstSurvivor.id],
       [1, secondSurvivor.id]
     ] as const)
-      await base.owner.caller.mutation(execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: base.run.id,
@@ -390,7 +392,7 @@ describe('native actor removal transaction', () => {
           sideId: firstSide.id
         }
       })
-    let started = await base.owner.caller.mutation(execute, {
+    let started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -403,7 +405,7 @@ describe('native actor removal transaction', () => {
       const pending = started.occurrence.pending
       if (pending?.kind !== 'INITIATIVE_ORDER')
         throw new Error('Expected automatic side order choice')
-      started = await base.owner.caller.mutation(execute, {
+      started = await executeInRoom(base.owner.caller, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           encounterId: base.run.id,
@@ -421,7 +423,7 @@ describe('native actor removal transaction', () => {
       })
     }
     expect(started.projection.status).toBe('ACTIVE')
-    started = await base.owner.caller.mutation(execute, {
+    started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: base.run.id,
@@ -438,9 +440,9 @@ describe('native actor removal transaction', () => {
       actorId: removed.id
     }
     const before = await capture(base)
-    await expect(base.player.caller.mutation(execute, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
     expect(await capture(base)).toEqual(before)
-    const removedResult = await base.owner.caller.mutation(execute, { command })
+    const removedResult = await executeInRoom(base.owner.caller, { command })
     const afterRemoval = await capture(base)
     const survivingParticipants = afterRemoval.participants
       .filter((participant) => participant.actorId !== removed.id)
@@ -455,7 +457,7 @@ describe('native actor removal transaction', () => {
     ])
     const otherActorId = survivingParticipants[0]?.actorId
     if (!otherActorId) throw new Error('Missing surviving Actor for cursor correction.')
-    const corrected = await base.owner.caller.mutation(execute, {
+    const corrected = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: base.run.id,
@@ -464,7 +466,7 @@ describe('native actor removal transaction', () => {
         actorId: otherActorId
       }
     })
-    const advanced = await base.owner.caller.mutation(execute, {
+    const advanced = await executeInRoom(base.owner.caller, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: base.run.id,
@@ -475,7 +477,7 @@ describe('native actor removal transaction', () => {
     expect(advanced.projection).toMatchObject({ status: 'ACTIVE', round: 1 })
     const afterLaterCommands = await capture(base)
     await expect(
-      base.owner.caller.mutation(execute, {
+      replayInRoom(base.owner.caller, {
         command: {
           ...command,
           encounterId: command.encounterId.toUpperCase(),
@@ -516,8 +518,8 @@ describe('native actor removal transaction', () => {
     ).rejects.toThrow('Abort after actor deletion')
     expect(await capture(base)).toEqual(before)
     await expect(
-      base.owner.caller.mutation(execute, { command: { ...command, expectedVersion: 99 } })
-    ).rejects.toThrow('version is stale')
+      executeInRoom(base.owner.caller, { command: { ...command, expectedVersion: 99 } })
+    ).rejects.toThrow('Encounter version is stale.')
     expect(await capture(base)).toEqual(before)
     await base.t.run(async (ctx) => {
       const actor = await ctx.db
@@ -530,8 +532,8 @@ describe('native actor removal transaction', () => {
       await ctx.db.patch(actor._id, { stateChecksum: checksumCanonicalJson('corrupt') })
     })
     const corrupt = await capture(base)
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-      'checksum mismatch'
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      LiveSessionRouteError
     )
     expect(await capture(base)).toEqual(corrupt)
   })
@@ -542,7 +544,7 @@ describe('native actor removal transaction', () => {
     if (!characterActor) throw new Error('Missing Character actor fixture.')
     let version = base.run.version
     for (const [index, actor] of base.run.actors.entries())
-      await base.owner.caller.mutation(execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: base.run.id,
@@ -553,7 +555,7 @@ describe('native actor removal transaction', () => {
           manualOrder: index
         }
       })
-    let result = await base.owner.caller.mutation(execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -561,7 +563,7 @@ describe('native actor removal transaction', () => {
         expectedVersion: version++
       }
     })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: base.run.id,
@@ -570,7 +572,7 @@ describe('native actor removal transaction', () => {
         actorId: characterActor.id
       }
     })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPSERT_REMINDER',
         encounterId: base.run.id,
@@ -661,10 +663,10 @@ describe('native actor removal transaction', () => {
       expectedVersion: base.run.version,
       actorId: characterActor.id
     }
-    await expect(base.player.caller.mutation(execute, { command })).rejects.toThrow(
-      'Campaign not found'
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(
+      LiveSessionRouteError
     )
-    await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
       'Archived Campaigns are read-only'
     )
     const before = await capture(base)

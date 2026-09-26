@@ -3,8 +3,7 @@ import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   liveSessionEncounterRulesInputSchema,
-  type LiveSessionEncounterRulesInput,
-  type LiveSessionEncounterRulesResponse
+  type LiveSessionEncounterRulesInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { liveSessionCharacterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import type {
@@ -17,13 +16,9 @@ import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/s
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  createPlatformRulesRuntime,
-  deriveRulesContinuationKey
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
 import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -293,32 +288,8 @@ it.each([
       expectedVersion: choice.encounterVersion,
       movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
     }
-    const runtime = createPlatformRulesRuntime({
-      continuationIntegrityKey: await deriveRulesContinuationKey(
-        process.env.RULES_CONTINUATION_SECRET
-      ),
-      definitions: {
-        async requireCurrent(definitionId: string) {
-          const response: LiveSessionEncounterRulesResponse = await initiator.caller.query(
-            makeFunctionReference<
-              'query',
-              LiveSessionEncounterRulesInput,
-              LiveSessionEncounterRulesResponse
-            >('liveSessions/encounterRulesCapture:capture'),
-            { ...scope, request: { kind: 'DEFINITION', definitionId } }
-          )
-          if (response.kind !== 'DEFINITION' || !response.definition)
-            throw new Error('Captured movement definition is unavailable.')
-          return serverPublishedRuleDefinitionDtoSchema.parse({
-            id: response.definition.id,
-            gameSystemId: response.definition.gameSystemId,
-            definitionFamilyKey: response.definition.definitionFamilyKey,
-            checksum: response.definition.checksum,
-            definition: response.definition.document
-          })
-        }
-      }
-    })
+    // The room's own runtime: it reads no definition itself, so eligibility must use the capture.
+    const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
     const records = () =>
       value.base.t.run(async (ctx) => ({
         run: await ctx.db
@@ -757,7 +728,7 @@ it.each([
           'encounterMovementCommit',
           commitInput
         )
-      ).rejects.toMatchObject({ status: 409 })
+      ).rejects.toMatchObject({ status: 422, rejection: { reason: 'NOT_ACTOR_CONTROLLER' } })
       expect(await records()).toEqual(revoked)
       expect(await geometrySave()).toEqual(observedSave)
       await setReactorControl([initiator.userId])

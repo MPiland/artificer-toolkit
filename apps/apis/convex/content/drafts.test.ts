@@ -431,6 +431,7 @@ describe('Convex owned working drafts', () => {
         kind: 'USER',
         ownerUserId: first.identity.userId
       })
+      const publicVersionId = crypto.randomUUID()
       const currentVersionId = await ctx.db.insert('authoredVersions', {
         subjectKind: 'BACKGROUND',
         id: copy.subjectId,
@@ -438,7 +439,7 @@ describe('Convex owned working drafts', () => {
         label: copy.label,
         checksum,
         contentSourceId: userSourceId,
-        versionId: crypto.randomUUID(),
+        versionId: publicVersionId,
         version: 1,
         documentSchemaVersion: 1,
         documentJson: JSON.stringify(published)
@@ -451,7 +452,8 @@ describe('Convex owned working drafts', () => {
         checksum,
         contentSourceId: userSourceId,
         ownerUserId: first.identity.userId,
-        currentVersionId
+        currentVersionId,
+        currentVersionPublicId: publicVersionId
       })
       const initialDraft = await ctx.db
         .query('authoredDrafts')

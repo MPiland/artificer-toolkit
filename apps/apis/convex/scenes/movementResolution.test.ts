@@ -1,8 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
-  EncounterCommandResultDto,
-  EncounterExecuteInput,
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -10,10 +8,7 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
@@ -30,6 +25,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readSessionVisionScope } from './sessionVisionDocuments'
+import { executeInRoom, planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 // Keep handler compilation outside the per-operation test timer.
 import '../content/import'
 import '../betterAuth/adapter'
@@ -60,24 +56,10 @@ const finish = makeFunctionReference<
   ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
   SceneGeometryCommandResult
 >('scenes/geometryCommands:finish')
-const beginResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
-const responseResult = makeFunctionReference<
-  'query',
-  ResolveRuleOccurrenceInputDto,
-  EncounterCommandResultDto
->('scenes/movementResolutionReads:result')
-const executeResponse = makeFunctionReference<
-  'action',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commandActions:execute')
-// A loser reads the winner's occurrence version, Encounter scope, published Scene or vision.
+// A loser reads the winner's occurrence version, Encounter scope, published Scene or vision; the
+// room reports a redacted Convex refusal as a failed route.
 const staleResponse =
-  /Movement response (?:occurrence|Encounter scope) is stale\.|Scene changed before geometry publication\.|Rule occurrence is unavailable\.|Scene vision dependencies changed; capture a fresh play snapshot\./
+  /Movement response (?:occurrence|Encounter scope) is stale\.|Scene changed before geometry publication\.|Rule occurrence is unavailable\.|Scene vision dependencies changed; capture a fresh play snapshot\.|Live Session route request failed\./
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -316,22 +298,6 @@ describe('native movement response publication', () => {
       correlationId: null,
       resolution: { kind: 'OPTION', optionId: option.optionId }
     }
-    const start = await value.base.owner.caller.mutation(beginResponse, selected)
-    if (!start || start.kind !== 'READY')
-      throw new Error('Expected selected response geometry save.')
-    const request = {
-      saveId: start.saveId,
-      baseOrdinal: 1,
-      movementCost: 0,
-      tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
-        tokenId: token.id,
-        baseOrdinal
-      }))
-    }
-    await value.base.owner.caller.mutation(observe, {
-      saveId: start.saveId,
-      characterRevisions: []
-    })
     const beforePreparation = await value.base.t.run(async (ctx) => ({
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
@@ -339,8 +305,8 @@ describe('native movement response publication', () => {
       commands: await ctx.db.query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
     }))
-    const prepared = await value.base.owner.caller.mutation(prepare, request)
-    expect(prepared.outcome.kind).toBe('PENDING')
+    let plan = await planMovementDecisionInRoom(value.base.owner.caller, selected)
+    expect(plan.outcome.kind).toBe('PENDING')
     expect(
       await value.base.t.run(async (ctx) => ({
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -350,8 +316,7 @@ describe('native movement response publication', () => {
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
       }))
     ).toEqual(beforePreparation)
-    let result = await value.base.owner.caller.mutation(finish, request)
-    let replayRequest = request
+    let result = await plan.publish()
     const beforeCompletion = beforePreparation.runs[0]
     if (!beforeCompletion) throw new Error('Expected encounter Run.')
     const evidenceKinds: PendingEncounterRuleOccurrenceSummaryDto['kind'][] = []
@@ -391,21 +356,9 @@ describe('native movement response publication', () => {
                   value: pending.request.max
                 }
       }
-      const next = await value.base.owner.caller.mutation(beginResponse, command)
-      if (!next || next.kind !== 'READY')
-        throw new Error('Expected reaction evidence geometry save.')
-      replayRequest = {
-        ...request,
-        saveId: next.saveId
-      }
-      await value.base.owner.caller.mutation(observe, {
-        saveId: next.saveId,
-        characterRevisions: []
-      })
-      expect((await value.base.owner.caller.mutation(prepare, replayRequest)).outcome.kind).toBe(
-        pending.kind === 'MOVEMENT_REACTION' ? 'TERMINAL' : 'PENDING'
-      )
-      result = await value.base.owner.caller.mutation(finish, replayRequest)
+      plan = await planMovementDecisionInRoom(value.base.owner.caller, command)
+      expect(plan.outcome.kind).toBe(pending.kind === 'MOVEMENT_REACTION' ? 'TERMINAL' : 'PENDING')
+      result = await plan.publish()
     }
     expect(evidenceKinds).toEqual([
       'D20_EVIDENCE',
@@ -437,7 +390,7 @@ describe('native movement response publication', () => {
     if (targetState.kind === 'CHARACTER' || priorTargetState.kind === 'CHARACTER')
       throw new Error('Expected a Creature reaction target.')
     expect(targetState.currentHitPoints).toBeLessThan(priorTargetState.currentHitPoints)
-    await expect(value.base.owner.caller.mutation(finish, replayRequest)).resolves.toMatchObject({
+    await expect(plan.publish()).resolves.toMatchObject({
       replayed: true,
       occurrence: { status: 'COMPLETE' }
     })
@@ -517,7 +470,7 @@ describe('native movement response publication', () => {
         }
       }))
       const raced = await Promise.allSettled(
-        contenders.map((input) => owner.caller.action(executeResponse, input))
+        contenders.map((input) => executeInRoom(owner.caller, input))
       )
       const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
       const winner = raced[winnerIndex]
@@ -527,12 +480,13 @@ describe('native movement response publication', () => {
       expect(String(loser.reason)).toMatch(staleResponse)
       losers.push(contenders[1 - winnerIndex]!.command.commandId)
       const settled = await stored()
-      await expect(owner.caller.action(executeResponse, contenders[winnerIndex]!)).resolves.toEqual(
-        winner.value
+      // The room commits a movement decision with its Scene and refuses a settled one's retry.
+      await expect(executeInRoom(owner.caller, contenders[winnerIndex]!)).rejects.toThrow(
+        staleResponse
       )
-      await expect(
-        owner.caller.action(executeResponse, contenders[1 - winnerIndex]!)
-      ).rejects.toThrow(staleResponse)
+      await expect(executeInRoom(owner.caller, contenders[1 - winnerIndex]!)).rejects.toThrow(
+        staleResponse
+      )
       expect(await stored()).toEqual(settled)
       pending =
         winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
@@ -559,7 +513,7 @@ describe('native movement response publication', () => {
     expect(await stored()).toEqual(final)
   }, 90_000)
 
-  it('publishes repeated GM declines with fog and replays the current complete occurrence', async () => {
+  it('publishes repeated GM declines and replays the current complete occurrence', async () => {
     const value = await setup()
     await value.base.owner.caller.mutation(observe, {
       saveId: value.rootRequest.saveId,
@@ -584,53 +538,16 @@ describe('native movement response publication', () => {
       correlationId: null,
       resolution: { kind: 'DECLINE' }
     }
-    await expect(value.base.other.caller.mutation(beginResponse, command)).rejects.toThrow(
-      'another controller'
-    )
-    const begin = await value.base.owner.caller.mutation(beginResponse, command)
-    expect(begin).toMatchObject({
-      kind: 'READY',
-      input: { commandId: command.commandId }
-    })
-    if (!begin || begin.kind !== 'READY') throw new Error('Expected response geometry save.')
-    await value.base.owner.caller.mutation(observe, {
-      saveId: begin.saveId,
-      characterRevisions: []
-    })
-    const request = {
-      saveId: begin.saveId,
-      baseOrdinal: 1,
-      movementCost: 0,
-      tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
-        tokenId: token.id,
-        baseOrdinal
-      }))
-    }
-    const prepared = await value.base.owner.caller.mutation(prepare, request)
-    expect(prepared.outcome.kind).toBe('PENDING')
-    await value.base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-      saveId: begin.saveId,
-      layer: {
-        ownerUserId: value.base.owner.userId,
-        width: 32,
-        height: 32,
-        chunks: [
-          {
-            index: 0,
-            x: 0,
-            y: 0,
-            width: 32,
-            height: 32,
-            data: Buffer.alloc(128, 255).toString('base64')
-          }
-        ]
-      }
-    })
+    await expect(
+      planMovementDecisionInRoom(value.base.other.caller, command)
+    ).rejects.toMatchObject({ data: { reason: 'NOT_ACTOR_CONTROLLER' } })
+    const plan = await planMovementDecisionInRoom(value.base.owner.caller, command)
+    expect(plan.outcome.kind).toBe('PENDING')
     const before = await value.base.t.run((ctx) => ctx.db.query('encounterRuns').collect())
-    const first = await value.base.owner.caller.mutation(finish, request)
+    const first = await plan.publish()
     expect(first).toMatchObject({
       replayed: false,
-      version: root.version + 1,
+      version: root.version,
       delta: null,
       occurrence: { status: 'PENDING', occurrenceVersion: 1 }
     })
@@ -643,18 +560,9 @@ describe('native movement response publication', () => {
       expectedVersion: first.occurrence.pending.encounterVersion,
       expectedOccurrenceVersion: first.occurrence.occurrenceVersion
     }
-    const secondBegin = await value.base.owner.caller.mutation(beginResponse, secondCommand)
-    if (!secondBegin || secondBegin.kind !== 'READY')
-      throw new Error('Expected second response save.')
-    await value.base.owner.caller.mutation(observe, {
-      saveId: secondBegin.saveId,
-      characterRevisions: []
-    })
-    const secondRequest = { ...request, saveId: secondBegin.saveId }
-    expect((await value.base.owner.caller.mutation(prepare, secondRequest)).outcome.kind).toBe(
-      'TERMINAL'
-    )
-    const result = await value.base.owner.caller.mutation(finish, secondRequest)
+    const second = await planMovementDecisionInRoom(value.base.owner.caller, secondCommand)
+    expect(second.outcome.kind).toBe('TERMINAL')
+    const result = await second.publish()
     expect(result).toMatchObject({
       delta: null,
       version: first.version,
@@ -673,7 +581,7 @@ describe('native movement response publication', () => {
       fogSaves: await ctx.db.query('sceneFogSaves').collect(),
       fogRows: await ctx.db.query('sceneFogLayers').collect()
     }))
-    const replay = await value.base.owner.caller.mutation(finish, request)
+    const replay = await plan.publish()
     expect(replay.occurrence).toMatchObject({
       status: 'COMPLETE',
       occurrenceVersion: 2,
@@ -722,11 +630,5 @@ describe('native movement response publication', () => {
         fogRows: await ctx.db.query('sceneFogLayers').collect()
       }))
     ).toEqual(retryState)
-    const response = await value.base.owner.caller.query(responseResult, command)
-    expect(response.occurrence).toMatchObject({
-      status: 'COMPLETE',
-      occurrenceVersion: 2,
-      pending: null
-    })
   })
 })

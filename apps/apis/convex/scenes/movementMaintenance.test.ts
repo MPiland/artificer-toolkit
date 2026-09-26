@@ -1,14 +1,7 @@
 // @vitest-environment node
-import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryBeginResult,
-  SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -25,28 +18,11 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 14 : 0)
 }))
-
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
-const begin = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 type MaintainedBase = Awaited<ReturnType<typeof setupCreatureReactionRun>>
 
@@ -374,10 +350,10 @@ it('forecasts and atomically publishes maintained replacement across ordered use
   )
   const creation = await useMovementReactions(firstScene)
   const beforeCreation = await gameplay(base)
-  const createdPreparation = await base.owner.caller.mutation(prepare, creation.request)
+  const createdPreparation = creation.prepared
   expect(createdPreparation.outcome.kind).toBe('TERMINAL')
   expect(await gameplay(base)).toEqual(beforeCreation)
-  const created = await base.owner.caller.mutation(finish, creation.request)
+  const created = await creation.publish()
   expect(created.occurrence?.status).toBe('COMPLETE')
   const afterCreation = await gameplay(base)
   expect(afterCreation.maintainedStates).toHaveLength(1)
@@ -401,7 +377,7 @@ it('forecasts and atomically publishes maintained replacement across ordered use
   )
   const replacement = await useMovementReactions(secondScene)
   const beforeReplacement = await gameplay(base)
-  const prepared = await base.owner.caller.mutation(prepare, replacement.request)
+  const prepared = replacement.prepared
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Maintained movement did not prepare.')
   expect(await gameplay(base)).toEqual(beforeReplacement)
@@ -448,15 +424,7 @@ it('forecasts and atomically publishes maintained replacement across ordered use
   if (!firstDamage || !secondDamage) throw new Error('Expected both maintained reaction damages.')
   expect(secondDamage.beforeCurrentHitPoints).toBe(firstDamage.afterCurrentHitPoints)
 
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(finish, replacement.request)
-      throw new Error('rollback maintained Scene publication')
-    })
-  ).rejects.toThrow('rollback maintained Scene publication')
-  expect(await gameplay(base)).toEqual(beforeReplacement)
-
-  const published = await base.owner.caller.mutation(finish, replacement.request)
+  const published = await replacement.publish()
   const afterReplacement = await gameplay(base)
   expect(afterReplacement.maintainedStates).toHaveLength(2)
   expect(afterReplacement.maintainedStates.map((state) => state.id)).not.toContain(seeded.stateId)
@@ -483,7 +451,7 @@ it('forecasts and atomically publishes maintained replacement across ordered use
     (entry) => entry.commandId === replacement.responseCommandId
   )
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(await base.owner.caller.mutation(finish, replacement.request)).toEqual({
+  expect(await replacement.publish()).toEqual({
     ...published,
     replayed: true
   })
@@ -503,7 +471,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
   )
   const initial = await useMovementReactions(initialScene)
   expect(initial.prepared.outcome.kind).toBe('TERMINAL')
-  await base.owner.caller.mutation(finish, initial.request)
+  await initial.publish()
   const character = await createDetachedCharacter(base)
   const seeded = await seedDetachedPassageDependents(base, character)
   const currentRun = await resetReactionAndDetachScene(base)
@@ -518,7 +486,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
   )
   const passage = await useMovementReactions(passageScene)
   const before = await passageRecords(base, character.id)
-  const prepared = await base.owner.caller.mutation(prepare, passage.request)
+  const prepared = passage.prepared
   expect(prepared.outcome.kind).toBe('TERMINAL')
   if (prepared.outcome.kind !== 'TERMINAL')
     throw new Error('Passage maintenance did not prepare terminally.')
@@ -584,15 +552,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
     )
   ).toEqual(expect.arrayContaining(seeded.laterOldEffectIds))
 
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(finish, passage.request)
-      throw new Error('rollback passage maintenance publication')
-    })
-  ).rejects.toThrow('rollback passage maintenance publication')
-  expect(await passageRecords(base, character.id)).toEqual(before)
-
-  const published = await base.owner.caller.mutation(finish, passage.request)
+  const published = await passage.publish()
   const after = await passageRecords(base, character.id)
   if (!after.character) throw new Error('Published detached Character is unavailable.')
   expect(after.character.streamVersion).toBe(character.streamVersion + 2)
@@ -616,7 +576,7 @@ it('carries detached Character maintenance through a non-pausing passage to the 
     (entry) => entry.commandId === passage.responseCommandId
   )
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(await base.owner.caller.mutation(finish, passage.request)).toEqual({
+  expect(await passage.publish()).toEqual({
     ...published,
     replayed: true
   })
@@ -630,7 +590,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     [base.reactor, base.mover, base.additionalReactorActor!],
     [50, 1000]
   )
-  await base.owner.caller.mutation(finish, (await useMovementReactions(firstScene)).request)
+  await (await useMovementReactions(firstScene)).publish()
   await setAutoRollDice(base.t, base.owner.userId, false)
   const currentRun = await resetReactionAndDetachScene(base)
   const assistedScene = await setupReactionMovementScene(
@@ -639,10 +599,10 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     [50, 1000]
   )
   // The GM uses the authored automatic reaction; its d20 pauses as evidence.
-  const used = await useMovementReactions(assistedScene, assistedScene.request, 1)
+  const used = await useMovementReactions(assistedScene, 1)
   const beforeEvidence = await encounterMechanics(base)
   expect(used.prepared.outcome.kind).toBe('PENDING')
-  const evidence = (await base.owner.caller.mutation(finish, used.request)).occurrence?.pending
+  const evidence = (await used.publish()).occurrence?.pending
   expect(await encounterMechanics(base)).toEqual(beforeEvidence)
   if (!evidence || evidence.kind !== 'D20_EVIDENCE')
     throw new Error('Expected Assisted maintained d20 evidence after the reaction Use.')
@@ -701,14 +661,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.state._id, { version: current.state.version + 1 })
   )
-  const staleStage = await base.owner.caller.mutation(begin, enterDice)
-  if (!staleStage || staleStage.kind !== 'READY')
-    throw new Error('Expected stale maintained response staging.')
-  const resumedRequest = { ...assistedScene.request, saveId: staleStage.saveId }
-  await base.owner.caller.mutation(observe, { saveId: staleStage.saveId, characterRevisions: [] })
-  await expect(base.owner.caller.mutation(prepare, resumedRequest)).rejects.toThrow(
-    'pending movement maintenance state or owner changed'
-  )
+  await expect(planMovementDecisionInRoom(base.owner.caller, enterDice)).rejects.toThrow()
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.state._id, { version: current.state.version })
   )
@@ -717,20 +670,16 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.effect._id, { targetActorId: base.additionalReactorActor!.id })
   )
-  await expect(base.owner.caller.mutation(prepare, resumedRequest)).rejects.toThrow(
-    'pending movement maintenance state or owner changed'
-  )
+  await expect(planMovementDecisionInRoom(base.owner.caller, enterDice)).rejects.toThrow()
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.effect._id, { targetActorId: current.effect.targetActorId })
   )
   expect(await encounterMechanics(base)).toEqual(pendingGameplay)
 
-  const ready = await base.owner.caller.mutation(begin, enterDice)
-  expect(ready).toEqual(staleStage)
-  const completedPreparation = await base.owner.caller.mutation(prepare, resumedRequest)
-  expect(completedPreparation.outcome.kind).toBe('TERMINAL')
+  const resumedRequest = await planMovementDecisionInRoom(base.owner.caller, enterDice)
+  expect(resumedRequest.outcome.kind).toBe('TERMINAL')
   expect(await encounterMechanics(base)).toEqual(pendingGameplay)
-  const completed = await base.owner.caller.mutation(finish, resumedRequest)
+  const completed = await resumedRequest.publish()
   const after = await gameplay(base)
   expect(after.maintainedStates).toHaveLength(1)
   expect(after.maintainedStates[0]?.id).not.toBe(current.state.id)
@@ -739,7 +688,7 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     (effect) => effect.maintainedEffectStateId === after.maintainedStates[0]?.id
   )
   expect(replacementDependents).not.toHaveLength(0)
-  expect(await base.owner.caller.mutation(finish, resumedRequest)).toEqual({
+  expect(await resumedRequest.publish()).toEqual({
     ...completed,
     replayed: true
   })

@@ -54,6 +54,7 @@ import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
 import { createRulesRuntime } from '../../convex/rules/runtime'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
+import { executeInRoom } from './liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -219,7 +220,7 @@ export async function turnCharacterEffectFixture() {
   })
   const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!opponent) throw new Error('Expected the fixture opponent.')
-  const removed = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+  const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',
       encounterId: created.id,

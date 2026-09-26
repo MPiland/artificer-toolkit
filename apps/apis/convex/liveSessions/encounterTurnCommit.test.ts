@@ -13,7 +13,6 @@ import type {
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterCommandResultDto,
-  EncounterExecuteInput,
   EncounterGmProjectionDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -47,7 +46,8 @@ import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRou
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 const secret = 'private-turn-commit-test-secret-at-least-32-bytes'
@@ -82,9 +82,6 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 
 async function setup() {
   const base = await fixture()
@@ -133,7 +130,7 @@ async function setup() {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  let started = await base.owner.caller.mutation(execute, {
+  let started = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: run.id,
@@ -145,7 +142,7 @@ async function setup() {
     const pending = started.occurrence?.pending
     if (!started.occurrence || !pending || pending.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing Assisted initiative evidence.')
-    started = await base.owner.caller.mutation(execute, {
+    started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: run.id,
@@ -259,19 +256,6 @@ async function storedTurnState(base: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-async function nativePreview(base: Awaited<ReturnType<typeof setup>>) {
-  const previews: EncounterCommandResultDto[] = []
-  await expect(
-    base.owner.caller.run(async (ctx) => {
-      previews.push(await ctx.runMutation(execute, { command: base.command }))
-      throw new Error('Roll back native turn preview.')
-    })
-  ).rejects.toThrow('Roll back native turn preview.')
-  const preview = previews[0]
-  if (!preview) throw new Error('Missing native turn preview.')
-  return preview
-}
-
 async function plan(base: Awaited<ReturnType<typeof setup>>) {
   const planned = await planNativeLiveEncounterTurn(
     environment,
@@ -282,7 +266,7 @@ async function plan(base: Awaited<ReturnType<typeof setup>>) {
   )
   if (planned.kind !== 'PLANNED' || planned.prepared.kind !== 'COMPLETE' || !planned.terminal)
     throw new Error('Expected a complete same-round DO turn plan.')
-  return { ...planned, terminal: planned.terminal }
+  return { ...planned, prepared: planned.prepared, terminal: planned.terminal }
 }
 
 it('commits a complete DO turn through private HTTP and replays its original receipt', async () => {
@@ -290,8 +274,6 @@ it('commits a complete DO turn through private HTTP and replays its original rec
   const requests = bridge(base)
   const before = await storedTurnState(base)
   const planned = await plan(base)
-  expect(await storedTurnState(base)).toEqual(before)
-  const native = await nativePreview(base)
   expect(await storedTurnState(base)).toEqual(before)
   const result = await callLiveSessionRoute(
     environment,
@@ -301,13 +283,9 @@ it('commits a complete DO turn through private HTTP and replays its original rec
   )
   expect(requests.at(-1)).toBe(commitPath)
   expect(result.projection).toMatchObject({
-    status: native.projection.status,
-    round: native.projection.round,
-    currentActorId: native.projection.currentActorId,
-    version: native.projection.version
+    ...planned.prepared.root.proposedTerminalTransition,
+    version: base.command.expectedVersion + 1
   })
-  expect(result.projection.actors).toEqual(native.projection.actors)
-  expect(result.projection.version).toBe(base.command.expectedVersion + 1)
   const after = await storedTurnState(base)
   expect(after.run).not.toEqual(before.run)
   expect(after.command).not.toBeNull()
@@ -499,7 +477,7 @@ it('settles a private round-wrap initiative tie through retained responses and o
       return values
     })
     try {
-      const rolled = await base.owner.caller.mutation(execute, {
+      const rolled = await executeInRoom(base.owner.caller, {
         command: {
           type: 'ROLL_RULE_EVIDENCE',
           encounterId: base.run.id,

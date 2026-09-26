@@ -2,10 +2,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesResponse
-} from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type {
   LiveSessionMovementCommitInput,
   LiveSessionMovementPrepareInput
@@ -14,12 +11,8 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
-import {
-  createPlatformRulesRuntime,
-  deriveRulesContinuationKey
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { createNativeLiveRulesRuntime } from '../../../session-worker/src/nativeRulesRuntime'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { readCurrentEntities } from '../scenes/currentEntities'
@@ -51,11 +44,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const capture = makeFunctionReference<
-  'query',
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesResponse
->('liveSessions/encounterRulesCapture:capture')
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -261,29 +249,8 @@ it('publishes a sealed movement response through the private DO path without rep
     expectedVersion: choice.encounterVersion,
     movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 }
   }
-  let captureScope = scope
-  const runtime = createPlatformRulesRuntime({
-    continuationIntegrityKey: await deriveRulesContinuationKey(
-      process.env.RULES_CONTINUATION_SECRET
-    ),
-    definitions: {
-      async requireCurrent(definitionId: string) {
-        const response = await value.owner.caller.query(capture, {
-          ...captureScope,
-          request: { kind: 'DEFINITION', definitionId }
-        })
-        if (response.kind !== 'DEFINITION' || !response.definition)
-          throw new Error('Movement definition unavailable.')
-        return serverPublishedRuleDefinitionDtoSchema.parse({
-          id: response.definition.id,
-          gameSystemId: response.definition.gameSystemId,
-          definitionFamilyKey: response.definition.definitionFamilyKey,
-          checksum: response.definition.checksum,
-          definition: response.definition.document
-        })
-      }
-    }
-  })
+  // The room's own runtime: it reads no definition itself, so eligibility must use the capture.
+  const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
   const occurrenceId = choice.occurrenceId
   const occurredAt = '2026-09-24T00:00:00.000Z'
   const planned = await prepareNativeLiveMovement({
@@ -414,7 +381,6 @@ it('publishes a sealed movement response through the private DO path without rep
     expectedVersion: secondChoice.encounterVersion,
     movement: { ...scope.movement, saveId: secondStaged.saveId }
   }
-  captureScope = secondScope
   const secondPlanned = await prepareNativeLiveMovement({
     environment,
     accessToken: 'fixture-access-token',

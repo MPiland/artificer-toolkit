@@ -64,7 +64,11 @@ import {
   LiveSessionDomainRejectionError,
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
-import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
+import {
+  encounterCommandRefusal,
+  executeLiveEncounterCommand,
+  sceneNotPresentedRejection
+} from './nativeRoomEncounterCommand.js'
 import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   commitExternalSceneCommit,
@@ -1129,19 +1133,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         })
         return
       }
-      const status = error instanceof LiveSessionRouteError ? error.status : 0
-      this.#rejectCommand(
-        socket,
-        command.commandId,
-        status === 401 || status === 403
-          ? 'FORBIDDEN'
-          : status === 409
-            ? 'STALE_STATE'
-            : 'UNAVAILABLE',
-        status === 409
-          ? 'The Encounter changed; review the current state and try again.'
-          : 'The Encounter command could not be completed.'
-      )
+      const refusal = encounterCommandRefusal(error)
+      this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
       return
     }
     // Only the room's own movement commits settle a held Scene's decision without a new read.
@@ -1158,8 +1151,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * A movement decision's answer or GM void on the presented Scene commits through the room with
-   * that Scene (D27); a decision on any other Scene keeps its native Convex path (D29).
+   * A movement decision's answer or GM void commits through the room with its presented Scene
+   * (D27); a decision off the presented Scene is refused (D42).
    */
   async #commitMovementDecision(
     socket: WebSocket,
@@ -1169,14 +1162,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     fingerprint: string,
     captures: LiveCaptureReads | undefined
   ): Promise<EncounterCommandResultDto> {
-    if (!this.#cache?.synchronized || this.#cache.encounterId !== command.encounterId.toLowerCase())
-      return callLiveSessionRoute(this.env, admission.accessToken, 'encounterCommand', {
-        campaignId: value.campaignId,
-        authorityEpoch: value.authorityEpoch,
-        expectedUserId: admission.userId,
-        expectedRole: admission.role,
-        command
-      })
+    if (this.#cache?.synchronized && this.#cache.encounterId !== command.encounterId.toLowerCase())
+      throw sceneNotPresentedRejection()
     const { encounter } = await this.#commitExternal(
       socket,
       admission,

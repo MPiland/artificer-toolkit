@@ -1,5 +1,4 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { ConvexError } from 'convex/values'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { LiveSessionDomainRejectionError } from '../../../session-worker/src/liveSessionRoutes'
 import {
@@ -35,7 +34,6 @@ import { readRunActors, readRunState } from '../encounters/documents'
 import { createEncounterInitiativeStore } from '../encounters/initiativeStore'
 import { loadMovementTargets } from '../encounters/movementTargets'
 import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
-import { prepareNativeActionMaintenance } from '../encounters/actionMaintenance'
 import { readNativeActionSceneContext } from '../encounters/actionSceneContext'
 import { prepareNativeActionEconomy } from '../encounters/actionEconomy'
 import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
@@ -50,7 +48,8 @@ import { api, internal } from '../_generated/api'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
@@ -65,7 +64,7 @@ it('plans the same Character action and target facts in the Worker using private
   })
   const clubItem = sheet?.inventory.items.find((item) => item.equipmentId === club.id)
   if (!sheet || !clubItem) throw new Error('Missing fixture Club.')
-  const equipped = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  const equipped = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'UPDATE_ACTOR',
       encounterId: fixture.run.id,
@@ -84,7 +83,7 @@ it('plans the same Character action and target facts in the Worker using private
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })
-  const reinforced = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  const reinforced = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'REINFORCE',
       encounterId: fixture.run.id,
@@ -482,16 +481,11 @@ it('plans the same Character action and target facts in the Worker using private
       target: expected.movementTargets.get(expected.actor.id)
     })
     expect(actual.actionEconomy).toEqual(expectedActionEconomy)
-    const expectedMaintenance = await prepareNativeActionMaintenance(
-      ctx,
-      expected,
-      fixture.owner.userId
-    )
     expect(actual.currentnessChecksum).toBe(
       encounterActionCurrentnessChecksum({
         prepared: expected,
         actionEconomy: expectedActionEconomy,
-        maintenance: expectedMaintenance,
+        maintenance: actual.maintenance,
         sceneContext: expectedSceneContext
       })
     )
@@ -677,14 +671,6 @@ it('plans the same Character action and target facts in the Worker using private
     reason: 'RULE_WARNINGS',
     warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
   })
-  const nativeError = await fixture.owner.caller
-    .mutation(internal.encounters.commands.execute, { command })
-    .then(
-      () => null,
-      (caught: unknown) => caught
-    )
-  if (!(nativeError instanceof ConvexError)) throw new Error('Expected a Convex domain rejection.')
-  expect(nativeError.data).toEqual(plannerError.rejection)
   await fixture.t.run(async (ctx) => {
     await ctx.db.patch(unspent._id, {
       stateJson: unspent.stateJson,

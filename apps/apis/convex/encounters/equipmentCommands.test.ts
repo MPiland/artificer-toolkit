@@ -12,7 +12,6 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
-  EncounterCommandResultDto,
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -30,6 +29,8 @@ import { fixture } from '../../tests/fixtures/characters'
 import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEffects'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -44,9 +45,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const getPlaySettings = makeFunctionReference<
   'query',
   { campaignId: string },
@@ -192,7 +190,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       equipmentId: compatibleClub.id.toUpperCase(),
       commandId: crypto.randomUUID().toUpperCase()
     })
-    const first = await owner.caller.mutation(execute, command)
+    const first = await executeInRoom(owner.caller, command)
     expect(first.projection).toMatchObject({ id: run.id, version: 1, currentActorId: null })
     const after = await stored(t, run.id)
     const beforeCreature = before.actors.find((actor) => actor.id === creatureActor.id)
@@ -264,11 +262,11 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       ]
     })
     await expect(
-      owner.caller.mutation(execute, {
+      executeInRoom(owner.caller, {
         command: { ...command.command, equipmentId: dagger.id }
       })
-    ).rejects.toThrow('different input')
-    await owner.caller.mutation(execute, {
+    ).rejects.toThrow('Command ID was already used with different input.')
+    await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
         encounterId: run.id,
@@ -279,7 +277,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
         manualOrder: 0
       }
     })
-    const started = await owner.caller.mutation(execute, {
+    const started = await executeInRoom(owner.caller, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -292,8 +290,8 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       sides: await ctx.db.query('encounterInitiativeSides').collect()
     }))
-    const active = await owner.caller.mutation(
-      execute,
+    const active = await executeInRoom(
+      owner.caller,
       replace({
         encounterId: run.id,
         actorId: creatureActor.id,
@@ -323,7 +321,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       await ctx.db.patch(root._id, { ownerUserId: other.userId })
     })
     await expect(
-      owner.caller.mutation(execute, {
+      replayInRoom(owner.caller, {
         command: {
           ...command.command,
           encounterId: run.id,
@@ -338,40 +336,42 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
   it('rejects invalid, stale, wrong-kind, and incompatible replacement requests without writes', async () => {
     const { t, owner, run, creatureActor, customActor } = await setup()
     const before = await stored(t, run.id)
-    const rejected: readonly [ReturnType<typeof replace>, string][] = [
+    // Convex redacts its refusals to the room; only a domain rejection keeps its message.
+    const rejected: readonly [ReturnType<typeof replace>, string | typeof LiveSessionRouteError][] =
       [
-        replace({
-          encounterId: run.id,
-          actorId: creatureActor.id,
-          equipmentId: compatibleClub.id,
-          loadoutId: crypto.randomUUID()
-        }),
-        'Creature Equipment loadout entry was not found.'
-      ],
-      [
-        replace({
-          encounterId: run.id,
-          actorId: customActor.id,
-          equipmentId: compatibleClub.id
-        }),
-        'Only a Creature with a frozen source can replace Equipment.'
-      ],
-      [
-        replace({ encounterId: run.id, actorId: creatureActor.id, equipmentId: dagger.id }),
-        'Replacement Equipment is incompatible with the Creature Feature actions.'
-      ],
-      [
-        replace({
-          encounterId: run.id,
-          actorId: creatureActor.id,
-          equipmentId: compatibleClub.id,
-          expectedVersion: 1
-        }),
-        'Encounter version is stale.'
+        [
+          replace({
+            encounterId: run.id,
+            actorId: creatureActor.id,
+            equipmentId: compatibleClub.id,
+            loadoutId: crypto.randomUUID()
+          }),
+          LiveSessionRouteError
+        ],
+        [
+          replace({
+            encounterId: run.id,
+            actorId: customActor.id,
+            equipmentId: compatibleClub.id
+          }),
+          LiveSessionRouteError
+        ],
+        [
+          replace({ encounterId: run.id, actorId: creatureActor.id, equipmentId: dagger.id }),
+          LiveSessionRouteError
+        ],
+        [
+          replace({
+            encounterId: run.id,
+            actorId: creatureActor.id,
+            equipmentId: compatibleClub.id,
+            expectedVersion: 1
+          }),
+          'Encounter version is stale.'
+        ]
       ]
-    ]
     for (const [input, message] of rejected)
-      await expect(owner.caller.mutation(execute, input)).rejects.toThrow(message)
+      await expect(executeInRoom(owner.caller, input)).rejects.toThrow(message)
     expect(await stored(t, run.id)).toEqual(before)
   }, 30000)
 
@@ -383,7 +383,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       actorId: creatureActor.id,
       equipmentId: compatibleClub.id
     })
-    await expect(other.caller.mutation(execute, command)).rejects.toThrow('Campaign not found.')
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow(LiveSessionRouteError)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -392,9 +392,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       if (!root) throw new Error('Missing compatible Equipment root.')
       await ctx.db.patch(root._id, { ownerUserId: other.userId })
     })
-    await expect(owner.caller.mutation(execute, command)).rejects.toThrow(
-      'Encounter source is unavailable in the selected Game System.'
-    )
+    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(LiveSessionRouteError)
     expect(await stored(t, run.id)).toEqual(before)
   }, 30000)
 })

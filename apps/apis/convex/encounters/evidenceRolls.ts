@@ -30,7 +30,6 @@ import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { requireSystem } from '../content/systemDocuments'
 import { rejectDomain } from '../lib/domainRejections'
 import { requireIdentity } from '../lib/identity'
-import { nextRollInt } from '../lib/rollRandom'
 import { readRunProjection } from './documents'
 import { readPendingRunDecision } from './pendingReads'
 import { presentEncounterResultForMember } from './resultPresentation'
@@ -78,15 +77,10 @@ async function readAttempts(
 }
 
 /**
- * "Roll dice" for one prompt row (ADR 0034 decision 3): rolls the request with secure randomness,
- * records the attempt and posts it to the table roll log, and settles nothing. Only a member who may
- * answer the request (it is in their pending decision) can roll it; rerolls are further attempts.
+ * Admits one "Roll dice" (ADR 0034 decision 3): only a member who may answer the request (it is in
+ * their pending decision) can roll it. A repeated command id is its stored attempt (`REPLAY`).
  */
-export async function rollEncounterRuleEvidence(
-  ctx: MutationCtx,
-  command: RollRuleEvidenceInputDto,
-  userId: string
-): Promise<EncounterCommandResultDto> {
+async function admitEvidenceRoll(ctx: QueryCtx, command: RollRuleEvidenceInputDto, userId: string) {
   const input = {
     ...command,
     encounterId: command.encounterId.toLowerCase(),
@@ -111,15 +105,18 @@ export async function rollEncounterRuleEvidence(
   if (prior) {
     if (prior.userId !== userId || prior.commandFingerprint !== fingerprint)
       rejectDomain('COMMAND_ID_REUSED')
-    return presentEncounterResultForMember(ctx, {
-      campaign,
-      membership,
-      result: encounterCommandResultDtoSchema.parse({
-        projection: readRunProjection(run),
-        roll: null,
-        evidenceRoll: presentEvidenceRoll(readStoredRoll(prior))
+    return {
+      kind: 'REPLAY' as const,
+      result: await presentEncounterResultForMember(ctx, {
+        campaign,
+        membership,
+        result: encounterCommandResultDtoSchema.parse({
+          projection: readRunProjection(run),
+          roll: null,
+          evidenceRoll: presentEvidenceRoll(readStoredRoll(prior))
+        })
       })
-    })
+    }
   }
   await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
   const usedCommand = await ctx.db
@@ -142,17 +139,53 @@ export async function rollEncounterRuleEvidence(
   if (!derivedRollMode && input.rollMode !== null)
     throw new Error('Only a d20 roll takes a roll mode.')
   const rollMode = derivedRollMode ? (input.rollMode ?? derivedRollMode) : null
-  const die = request.min === 1 && LOGGED_DICE.has(request.max) ? request.max : null
+  return {
+    kind: 'ROLL' as const,
+    input,
+    run,
+    authority,
+    fingerprint,
+    pending,
+    request,
+    derivedRollMode,
+    rollMode,
+    die: request.min === 1 && LOGGED_DICE.has(request.max) ? request.max : null
+  }
+}
+
+/** The dice a "Roll dice" draws, as die sizes: none for a replay, two for a d20 with a mode. */
+export async function readEvidenceRollDice(
+  ctx: QueryCtx,
+  command: RollRuleEvidenceInputDto,
+  userId: string
+): Promise<number[]> {
+  const admitted = await admitEvidenceRoll(ctx, command, userId)
+  if (admitted.kind === 'REPLAY') return []
+  const { die, rollMode, request } = admitted
+  if (!die) return [request.max - request.min + 1]
+  return rollMode && rollMode !== 'NORMAL' ? [die, die] : [die]
+}
+
+/**
+ * Records one "Roll dice" with the room's draws (`nextInt`, D41) and posts it to the table roll
+ * log. It settles nothing; rerolls are further attempts.
+ */
+export async function rollEncounterRuleEvidence(
+  ctx: MutationCtx,
+  command: RollRuleEvidenceInputDto,
+  userId: string,
+  nextInt: (size: number) => number
+): Promise<EncounterCommandResultDto> {
+  const admitted = await admitEvidenceRoll(ctx, command, userId)
+  if (admitted.kind === 'REPLAY') return admitted.result
+  const { input, run, authority, fingerprint, pending, derivedRollMode, rollMode, die } = admitted
+  const { campaign, membership } = authority
   const evaluated = die
-    ? evaluateRollExpression(
-        parseRollExpression(`1d${die}`),
-        { nextInt: nextRollInt },
-        rollMode ?? 'NORMAL'
-      )
+    ? evaluateRollExpression(parseRollExpression(`1d${die}`), { nextInt }, rollMode ?? 'NORMAL')
     : null
   const faces = evaluated
     ? evaluated.evidence.terms[0]!.rolls
-    : [request.min + nextRollInt(request.max - request.min + 1)]
+    : [admitted.request.min + nextInt(admitted.request.max - admitted.request.min + 1)]
   const value = rollMode ? selectEncounterActionD20Natural(rollMode, faces) : faces[0]!
   const latest = await readAttempts(ctx, {
     occurrenceId: input.occurrenceId,

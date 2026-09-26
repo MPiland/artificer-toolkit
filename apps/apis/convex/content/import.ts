@@ -222,7 +222,8 @@ export const importSubjects: RegisteredMutation<
         systemId: subject.systemId,
         label: subject.label,
         checksum: subject.checksum,
-        contentSourceId
+        contentSourceId,
+        currentVersionPublicId: versionId
       }
       const equipmentOptions =
         parsed.subjectKind === 'EQUIPMENT'

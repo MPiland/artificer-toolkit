@@ -506,10 +506,7 @@ Movement response publication checks the complete save, current authority, pendi
 control once before any staging or gameplay writes, then passes that checked response to the private
 commit helper in the same mutation. It cannot be reused across mutations; retained outcome reconstruction,
 next-choice currentness, exact receipts and atomic rollback remain required.
-Current-role response projection runs in `scenes/movementResolutionReads:result`, apart from the
-geometry writers' registration imports. It rechecks current identity/Campaign authority, complete
-receipt fingerprints/checksums and occurrence checksums before returning the same validated
-Encounter result DTO. Query and geometry-begin return metadata keep the complete shared schema and are converted at
+Query and geometry-begin return metadata keep the complete shared schema and are converted at
 metadata export through the existing getter pattern. Geometry begin applies the same Scene-vision
 tracked context in its handler. Recipient readers import the focused Encounter
 read/response contracts and player projection rather than initializing unrelated Sheet-command or
@@ -567,7 +564,9 @@ Session requires the Encounter version; finished-Session bindings do not block o
 Scene undo walks movement history with opaque database continuation cursors so equal-version rows
 cannot hide an older movement. It skips only null-delta/no-fog receipts; a latest fog-only event
 refuses token undo, preserving the existing reversal boundary.
-The native response path is implemented locally through `encounters/commandActions:execute`.
+Movement decisions are planned only by the Session room on its presented Scene and committed through
+the private movement routes (D42, superseding D29); Convex has no other decision staging path. A bound
+move on a live Campaign's non-presented Scene is refused with `SCENE_NOT_PRESENTED`.
 The server classifies movement decisions and retains the exact response plus prior pending snapshot
 in the existing private geometry save. The original path remains immutable; Node derives its
 remaining segment from the stored boundary, including a one-point segment at the final boundary.
@@ -905,6 +904,15 @@ mutation through `MutationCtx.runMutation`. Convex runs that nested call in the 
 its isolated JavaScript context keeps the movement preparation/response module out of new begin.
 Finish retains the complete stored replay comparisons, current authority and Scene vision tracking.
 The parent still parses the complete begin result, and an unhandled nested failure aborts the parent.
+
+### Public authored version identity (CURRENT, D42)
+
+Persisted contracts and checksums pin an authored version by its public `versionId` UUID, never by a
+Convex document `_id`, which changes across import and export and leaks storage identity.
+`authoredRoots.currentVersionPublicId` denormalizes the current version's public `versionId` beside
+`currentVersionId` (the internal pointer); every writer that moves the current version sets both.
+Character source identities (`recordCharacterSourceIdentity`) and acquired Equipment rules read the
+public field.
 
 ### Complete Character selector catalogues — locally validated
 

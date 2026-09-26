@@ -144,7 +144,7 @@ export function recordCharacterSourceIdentity(
     subjectId: root.id,
     systemId: root.systemId,
     contentSourceId: root.contentSourceId,
-    versionId: root.currentVersionId,
+    versionId: root.currentVersionPublicId,
     checksum: root.checksum
   })
 }

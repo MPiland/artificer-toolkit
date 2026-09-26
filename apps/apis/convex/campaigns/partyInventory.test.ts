@@ -182,6 +182,7 @@ async function ownedEquipment(
       label
     })
     const checksum = checksumRuleDocument(document)
+    const publicVersionId = crypto.randomUUID()
     const versionId = await insertAuthoredVersion(
       ctx,
       {
@@ -191,7 +192,7 @@ async function ownedEquipment(
         label: document.label,
         checksum,
         contentSourceId,
-        versionId: crypto.randomUUID(),
+        versionId: publicVersionId,
         version: current.version,
         documentSchemaVersion: current.documentSchemaVersion,
         compilation: current.compilation
@@ -207,7 +208,8 @@ async function ownedEquipment(
       checksum,
       contentSourceId,
       ownerUserId: userId,
-      currentVersionId: versionId
+      currentVersionId: versionId,
+      currentVersionPublicId: publicVersionId
     })
     await ctx.db.insert('contentSources', {
       ...SRD_CONTENT_SOURCE,

@@ -242,6 +242,7 @@ export async function commitPublication(
   }
   const publicId = await ensureAuthoredRouteId(ctx, input.subjectKind, input.subjectId)
   if (publicId !== draft.publicId) throw new Error('Stored draft route mismatch.')
+  const currentVersionPublicId = crypto.randomUUID()
   const currentVersionId = await insertAuthoredVersion(
     ctx,
     {
@@ -251,7 +252,7 @@ export async function commitPublication(
       label: document.label,
       checksum,
       contentSourceId,
-      versionId: crypto.randomUUID(),
+      versionId: currentVersionPublicId,
       version: (previous?.version ?? 0) + 1,
       documentSchemaVersion: 1,
       compilation
@@ -267,6 +268,7 @@ export async function commitPublication(
     checksum,
     contentSourceId,
     currentVersionId,
+    currentVersionPublicId,
     authoringSources,
     activeNameKey: activePublicationNameKey(document.label),
     ...(subject.subjectKind === 'EQUIPMENT'

@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
@@ -9,18 +8,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   createPlatformRulesRuntime,
-  deriveRulesContinuationKey,
-  evaluateInstalledEncounterActors
+  deriveRulesContinuationKey
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import {
-  nativeConcentrationDamageApplications,
-  nativeConcentrationDamageSourceLabels
-} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import {
   commitNativeLiveEncounterAction,
   planNativeLiveEncounterAction
@@ -32,23 +21,14 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { readRunActors, readRunState } from '../encounters/documents'
+import { readRunState } from '../encounters/documents'
 import { loadMovementTargets } from '../encounters/movementTargets'
-import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
-import { prepareNativeActionMaintenance } from '../encounters/actionMaintenance'
-import { prepareNativeActionEffects } from '../encounters/actionEffects'
-import { settleNativeEncounterActionMechanics } from '../encounters/actionMechanics'
-import { executeNativeEncounterAction } from '../encounters/actionCommands'
-import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
-import { startNativeConcentrationChecks } from '../encounters/concentration'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
-
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
 const workerSecret = 'private-concentration-planning-test-secret-at-least-32-bytes'
 const authSecret = 'private-concentration-continuation-test-secret-at-least-32-bytes'
@@ -77,7 +57,7 @@ it.each([
   { rolls: 'AUTO_ROLL' as const, face: 1, outcome: 'SAVE_FAILURE' as const },
   { rolls: 'PROMPT' as const, face: 20, outcome: 'PENDING' as const }
 ])(
-  'plans $rolls concentration $outcome against native settlement',
+  'plans and commits $rolls concentration $outcome as the Worker projects it',
   async ({ rolls, face, outcome }) => {
     const fixture = await setupConcentration(rolls)
     const seeded = await seedConcentration(fixture)
@@ -99,17 +79,18 @@ it.each([
     stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
     const command = concentrationAction(fixture)
     const before = await concentrationRecords(fixture)
+    const scope = {
+      campaignId: fixture.campaign.id,
+      authorityEpoch: fixture.run.id,
+      expectedUserId: fixture.owner.userId,
+      expectedRole: 'OWNER' as const,
+      encounterId: fixture.run.id,
+      expectedVersion: fixture.run.version
+    }
     const planned = await planNativeLiveEncounterAction(
       workerEnvironment(workerSecret),
       'fixture-access-token',
-      {
-        campaignId: fixture.campaign.id,
-        authorityEpoch: fixture.run.id,
-        expectedUserId: fixture.owner.userId,
-        expectedRole: 'OWNER',
-        encounterId: fixture.run.id,
-        expectedVersion: fixture.run.version
-      },
+      scope,
       command,
       { runtime: await runtime(), random: () => face - 1 }
     )
@@ -132,8 +113,12 @@ it.each([
       expect(concentration.completed[0]?.result.applicationOutputs).toMatchObject({ outcome })
       expect(concentration.cleanups).toHaveLength(outcome === 'SAVE_FAILURE' ? 1 : 0)
     }
-    const random = await import('../lib/rollRandom')
-    vi.mocked(random.nextRollInt).mockReturnValueOnce(face - 1)
+    await commitNativeLiveEncounterAction(
+      workerEnvironment(workerSecret),
+      'fixture-access-token',
+      scope,
+      planned
+    )
     await fixture.owner.caller.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -141,120 +126,12 @@ it.each([
         .unique()
       if (!row) throw new Error('Concentration Run is unavailable.')
       const state = readRunState(row)
-      const actors = await readRunActors(ctx, state)
-      const source = actors.find((actor) => actor.id === fixture.actor.id)
-      const target = actors.find((actor) => actor.id === fixture.target.id)
-      if (!source || !target) throw new Error('Concentration actors are unavailable.')
-      const prepared = await prepareNativeEncounterActionMechanics(ctx, {
-        state,
-        actors,
-        actor: source,
-        target,
-        actionId: command.actionId,
-        wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-        overridable: true,
-        campaignOwnerUserId: fixture.owner.userId
-      })
-      const maintenance = await prepareNativeActionMaintenance(ctx, prepared, fixture.owner.userId)
-      const effects = await prepareNativeActionEffects(ctx, {
-        prepared,
-        execution: planned.execution,
-        occurrenceId: planned.occurrenceId,
-        commandId: command.commandId
-      })
-      expect(maintenance).toBeNull()
-      expect(effects).toEqual(planned.preparedEffects)
-      const settled = await settleNativeEncounterActionMechanics(ctx, {
-        prepared,
-        encounterId: state.id,
-        expectedEncounterVersion: state.version,
-        occurrenceId: planned.occurrenceId,
-        sourceCommandId: command.commandId,
-        commandId: command.commandId,
-        occurredAt: planned.occurredAt,
-        applications: [
-          ...planned.execution.applications,
-          ...effects.relationshipConditionApplications
-        ],
-        forceTargetVersionAdvance: false
-      })
-      expect(settled.mechanics.updatedActor).toEqual(planned.mechanics.mechanics.updatedActor)
-      expect(planned.storedExecution).toEqual(
-        buildEncounterActionStoredExecution({
-          prepared,
-          execution: planned.execution,
-          occurrenceId: planned.occurrenceId,
-          occurrenceVersion: 0,
-          settled,
-          effects: projectNativeActionEffectTransitions({
-            state: null,
-            recurring: null,
-            targetActorId: target.id
-          }),
-          maintainedState: null,
-          maintenanceTransition: null,
-          actionEconomy: planned.actionEconomy
-        })
-      )
-      const economyActor = planned.actionEconomy
-        ? await consumeNativeActionEconomy(ctx, {
-            actor: settled.settledSource,
-            consumption: planned.actionEconomy,
-            overridden: false
-          })
-        : settled.settledSource
-      const nextActors = actors.map((actor) =>
-        actor.id === settled.mechanics.updatedActor.id
-          ? economyActor.id === actor.id
-            ? economyActor
-            : settled.mechanics.updatedActor
-          : economyActor.id === actor.id
-            ? economyActor
-            : actor
-      )
-      expect(nextActors).toEqual(planned.settlement.actors)
-      const nextState = encounterRunStateSchema.parse({
-        ...state,
-        version: state.version + 1,
-        updatedAt: planned.occurredAt
-      })
-      const damage = [
-        {
-          targetActorId: target.id,
-          applications: settled.mechanics.receiptApplications,
-          sourceLabel: encounterActionSourceLabel(prepared.source)
-        }
-      ]
-      const applications = nativeConcentrationDamageApplications(damage, true)
-      expect(applications).not.toEqual([])
-      const native = await startNativeConcentrationChecks(ctx, {
-        state: nextState,
-        readVersion: state.version,
-        actors: nextActors,
-        parentOccurrenceId: planned.occurrenceId,
-        parentCommandFingerprint: planned.fingerprint,
-        applications,
-        sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
-        userId: fixture.owner.userId,
-        autoRollByActorId: { [target.id]: rolls === 'AUTO_ROLL' },
-        occurredAt: planned.occurredAt
-      })
-      expect(native.pending).toBe(outcome === 'PENDING')
-      expect(native.actors).toEqual(concentration.actors)
-      const nextFacts = buildEncounterActorRuleFacts({ actors: native.actors })
-      const nextRules = reconcileEncounterActorRuleOutput(
-        evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
-        nextFacts,
-        { output: prepared.actorRules }
-      )
-      expect(planned.nextState).toEqual(nextState)
-      expect(planned.nextRules).toEqual(nextRules)
-      const store = createActiveRuleEffectStore(ctx)
-      const effectsAfter = await store.list({
+      expect(state).toEqual(planned.nextState)
+      const effectsAfter = await createActiveRuleEffectStore(ctx).list({
         kind: 'CHARACTER',
         characterId: fixture.character.id
       })
-      expect(effectsAfter).toEqual(concentration.activeEffectsByActorId.get(target.id))
+      expect(effectsAfter).toEqual(concentration.activeEffectsByActorId.get(fixture.target.id))
       const character = await ctx.db
         .query('characters')
         .withIndex('by_publicId', (query) => query.eq('id', fixture.character.id))
@@ -285,7 +162,7 @@ it.each([
       const actualTargets = await loadMovementTargets(ctx, {
         encounterId: state.id,
         expectedEncounterVersion: state.version,
-        targetActorIds: [source.id, target.id],
+        targetActorIds: [fixture.actor.id, fixture.target.id],
         includeReactionSources: true
       })
       for (const [actorId, projected] of concentration.projectedTargets) {
@@ -293,12 +170,8 @@ it.each([
         expect({ ...actual, characterFacts: null }).toEqual({ ...projected, characterFacts: null })
         expect(actual?.characterFacts?.character).toEqual(projected.characterFacts?.character)
         expect(actual?.characterFacts?.sheetState).toEqual(projected.characterFacts?.sheetState)
-        expect(actual?.characterFacts?.active?.id).toEqual(projected.characterFacts?.active?.id)
         expect(actual?.characterFacts?.active?.checksum).toEqual(
           projected.characterFacts?.active?.checksum
-        )
-        expect(actual?.characterFacts?.active?.streamVersion).toEqual(
-          projected.characterFacts?.active?.streamVersion
         )
       }
     })
@@ -317,11 +190,10 @@ it.each([
           JSON.parse(after.pending[0]!.pendingSnapshotJson!)
         )
       ).toEqual(concentration.pending)
-      expect(after.receipts).toEqual(before.receipts)
     } else {
       const child = concentration.completed[0]!
       const receipt = after.receipts.find((entry) => entry.commandId === child.commandId)
-      if (!receipt) throw new Error('Native concentration receipt is unavailable.')
+      if (!receipt) throw new Error('Concentration receipt is unavailable.')
       expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))).toEqual(
         child.result
       )
@@ -335,7 +207,7 @@ it.each([
       ).toEqual(child.metadata)
       expect(after.pending).toEqual([])
     }
-    expect(after.run).toEqual(before.run)
+    expect(after.run?.version).toBe(before.run!.version + 1)
     expect(after.characterReceipts.length).toBeGreaterThan(before.characterReceipts.length)
     expect(after.character?.checksum).toBe(
       checksumRuleDocument(
@@ -400,27 +272,6 @@ it.each([
     expect(plan.concentration.completed[0]?.result.applicationOutputs).toMatchObject({ outcome })
     expect(await concentrationRecords(fixture)).toEqual(before)
 
-    const probe: { result?: Awaited<ReturnType<typeof executeNativeEncounterAction>> } = {}
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(plan.occurredAt))
-    const uuid = vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(occurrenceId)
-    try {
-      const random = await import('../lib/rollRandom')
-      vi.mocked(random.nextRollInt).mockReturnValue(face - 1)
-      await expect(
-        fixture.owner.caller.run(async (ctx) => {
-          probe.result = await executeNativeEncounterAction(ctx, command, fixture.owner.userId)
-          throw new Error('Roll back native terminal parity probe.')
-        })
-      ).rejects.toThrow('Roll back native terminal parity probe.')
-    } finally {
-      uuid.mockRestore()
-      vi.useRealTimers()
-    }
-    const nativeResult = probe.result
-    if (!nativeResult) throw new Error('Native terminal parity probe did not complete.')
-    expect(await concentrationRecords(fixture)).toEqual(before)
-
     await expect(
       commitNativeLiveEncounterAction(
         { ...environment, LIVE_SESSION_WORKER_SECRET: 'wrong-private-test-secret' },
@@ -469,7 +320,6 @@ it.each([
       scope,
       plan
     )
-    expect(committed).toEqual(nativeResult)
     expect(
       await commitNativeLiveEncounterAction(environment, 'fixture-access-token', scope, plan)
     ).toEqual(committed)

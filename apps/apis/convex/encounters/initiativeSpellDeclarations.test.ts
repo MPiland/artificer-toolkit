@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import * as z from 'zod/mini'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
@@ -31,6 +33,7 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -232,7 +235,7 @@ describe('native initiative Spell declarations', () => {
     const base = await setup()
     const actor = base.run.actors.find((value) => value.kind === 'CHARACTER')
     if (!actor) throw new Error('Expected Character actor.')
-    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -244,10 +247,7 @@ describe('native initiative Spell declarations', () => {
     if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Expected declaration.')
     if (!pending.primaryOptions.some((value) => value.kind === 'CHARACTER_SPELL_CAST')) {
-      result = await base.owner.caller.mutation(
-        internal.encounters.commands.execute,
-        gmCommand(base.run.id, pending)
-      )
+      result = await executeInRoom(base.owner.caller, gmCommand(base.run.id, pending))
       pending = result.occurrence?.pending
       if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected Spell declaration.')
@@ -284,18 +284,17 @@ describe('native initiative Spell declarations', () => {
         spellChecksum: publication.checksum
       })
     )
-    result = await base.player.caller.action(
-      internal.encounters.commandActions.execute,
+    result = await executeInRoom(
+      base.player.caller,
       spellCommand(base.run.id, pending, option.optionId)
     )
-    pending = await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-      encounterId: base.run.id
-    })
+    pending = z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema).parse(
+      await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: base.run.id
+      })
+    )
     if (pending && pending.kind === 'INITIATIVE_DECLARATION')
-      result = await base.owner.caller.mutation(
-        internal.encounters.commands.execute,
-        gmCommand(base.run.id, pending)
-      )
+      result = await executeInRoom(base.owner.caller, gmCommand(base.run.id, pending))
     expect(result.projection.status).toBe('ACTIVE')
     const participant = await base.t.run((ctx) =>
       ctx.db
@@ -330,7 +329,7 @@ describe('native initiative Spell declarations', () => {
 
   it('rejects a response after the Spell publication changes before any encounter write', async () => {
     const base = await setup()
-    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: base.run.id,
@@ -342,10 +341,7 @@ describe('native initiative Spell declarations', () => {
     if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Expected declaration.')
     if (!pending.primaryOptions.some((value) => value.kind === 'CHARACTER_SPELL_CAST')) {
-      result = await base.owner.caller.mutation(
-        internal.encounters.commands.execute,
-        gmCommand(base.run.id, pending)
-      )
+      result = await executeInRoom(base.owner.caller, gmCommand(base.run.id, pending))
       pending = result.occurrence?.pending
       if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected Spell declaration.')
@@ -362,6 +358,7 @@ describe('native initiative Spell declarations', () => {
       if (!current) throw new Error('Expected Fire Bolt version.')
       const document = { ...fireBolt, description: 'Republished Fire Bolt.' }
       const checksum = checksumRuleDocument(document)
+      const currentVersionPublicId = crypto.randomUUID()
       const versionId = await insertAuthoredVersion(
         ctx,
         {
@@ -371,14 +368,18 @@ describe('native initiative Spell declarations', () => {
           label: current.label,
           checksum,
           contentSourceId: current.contentSourceId,
-          versionId: crypto.randomUUID(),
+          versionId: currentVersionPublicId,
           version: current.version + 1,
           documentSchemaVersion: current.documentSchemaVersion,
           compilation: current.compilation
         },
         canonicalizeRuleDocument(document)
       )
-      await ctx.db.patch(root._id, { currentVersionId: versionId, checksum })
+      await ctx.db.patch(root._id, {
+        currentVersionId: versionId,
+        currentVersionPublicId,
+        checksum
+      })
     })
     const before = await base.t.run(async (ctx) => ({
       run: await ctx.db.query('encounterRuns').collect(),
@@ -389,9 +390,7 @@ describe('native initiative Spell declarations', () => {
       receipts: await ctx.db.query('encounterRuleReceipts').collect(),
       commands: await ctx.db.query('encounterRunCommands').collect()
     }))
-    await expect(
-      base.player.caller.action(internal.encounters.commandActions.execute, response)
-    ).rejects.toThrow(/stale/)
+    await expect(executeInRoom(base.player.caller, response)).rejects.toThrow(/stale/)
     expect(
       await base.t.run(async (ctx) => ({
         run: await ctx.db.query('encounterRuns').collect(),

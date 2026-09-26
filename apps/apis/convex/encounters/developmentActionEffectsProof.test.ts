@@ -17,8 +17,8 @@ import {
 } from '../../tests/fixtures/encounterEffects'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { fixture } from '../../tests/fixtures/characters'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { api, components, internal } from '../_generated/api'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 const removeFixtureState = makeFunctionReference<
   'mutation',
@@ -81,16 +81,8 @@ async function prepareActionEffectFixture() {
     subjectId: draft.subjectId,
     expectedDraftUpdatedAt: draft.updatedAt
   })
-  const owner: DevelopmentClient = {
-    query: (query, ...args) => base.owner.caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) =>
-      base.owner.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
-  const player: DevelopmentClient = {
-    query: (query, ...args) => base.other.caller.run((ctx) => ctx.runQuery(query, ...args)),
-    mutation: (mutation, ...args) =>
-      base.other.caller.run((ctx) => ctx.runMutation(mutation, ...args))
-  }
+  const owner = inProcessDevelopmentClient(base.owner.caller)
+  const player = inProcessDevelopmentClient(base.other.caller)
   return { base, policies, draft, owner, player }
 }
 

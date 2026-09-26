@@ -22,6 +22,7 @@ import {
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
+import { rejectDomain } from '../lib/domainRejections'
 
 export type Geometry = {
   sceneTokens: readonly SceneToken[]
@@ -153,7 +154,7 @@ export async function readMovementResponseAuthority(
     decisionActorIds.length === 0 ||
     decisionActorIds.some((actorId) => !controlledActorIds.has(actorId))
   )
-    throw new Error('The current movement decision belongs to another controller.')
+    rejectDomain('NOT_ACTOR_CONTROLLER', "This decision isn't yours to answer.")
   const binding = await ctx.db
     .query('encounterSceneBindings')
     .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))

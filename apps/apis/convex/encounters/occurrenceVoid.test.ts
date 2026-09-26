@@ -1,12 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterExecuteInput,
-  ResolveRuleOccurrenceInputDto,
-  VoidRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { VoidRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -21,16 +16,12 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { classifyRuleOccurrenceVoid } from './occurrenceVoid'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
 
-const executeCommand = makeFunctionReference<
-  'action',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commandActions:execute')
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 const observe = makeFunctionReference<
   'mutation',
@@ -43,11 +34,6 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
-const prepareVoid = makeFunctionReference<
-  'mutation',
-  VoidRuleOccurrenceInputDto,
-  { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto } | { kind: 'COMPLETE' | 'RECORD' }
->('encounters/occurrenceVoid:prepare')
 
 function voidCommand(input: {
   encounterId: string
@@ -149,12 +135,13 @@ describe('GM void command', () => {
       limit: 1
     })
     expect(timeline.entries[0]).toMatchObject({ commandType: 'VOID_RULE_OCCURRENCE' })
-    await expect(base.owner.caller.action(executeCommand, input)).resolves.toEqual(voided)
+    // A settled void is no longer routable, so its retry is refused as stale.
+    expect(await rejectionReason(executeInRoom(base.owner.caller, input))).toBe('VERSION_STALE')
     expect(
       await rejectionReason(
-        base.owner.caller.action(executeCommand, voidCommand({ encounterId: base.run.id, pending }))
+        executeInRoom(base.owner.caller, voidCommand({ encounterId: base.run.id, pending }))
       )
-    ).toBe('DECISION_NOT_PENDING')
+    ).toBe('VERSION_STALE')
     expect(await disarmRecords(base)).toEqual(after)
   }, 60_000)
 
@@ -172,7 +159,7 @@ describe('GM void command', () => {
       ])
     })
     await seedConcentration(fixture)
-    const parent = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+    const parent = await executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
     const save = await fixture.owner.caller.query(
@@ -190,8 +177,8 @@ describe('GM void command', () => {
 
     expect(
       await rejectionReason(
-        fixture.owner.caller.action(
-          executeCommand,
+        executeInRoom(
+          fixture.owner.caller,
           voidCommand({ encounterId: fixture.run.id, pending: save })
         )
       )
@@ -199,8 +186,8 @@ describe('GM void command', () => {
     if (!parent.occurrence) throw new Error('Expected the settled parent occurrence.')
     expect(
       await rejectionReason(
-        fixture.owner.caller.action(
-          executeCommand,
+        executeInRoom(
+          fixture.owner.caller,
           voidCommand({
             encounterId: fixture.run.id,
             pending: {
@@ -211,7 +198,7 @@ describe('GM void command', () => {
           })
         )
       )
-    ).toBe('DECISION_NOT_PENDING')
+    ).toBe('VERSION_STALE')
     expect(await records()).toEqual(before)
   }, 60_000)
 
@@ -242,7 +229,7 @@ describe('GM void command', () => {
 
     // The move pauses again at the next reactor, so the void adds no Run version or timeline entry.
     const firstSkip = voidCommand({ encounterId: value.base.run.id, pending: choice })
-    const continued = await value.owner.caller.action(executeCommand, firstSkip)
+    const continued = await executeInRoom(value.owner.caller, firstSkip)
     const next = continued.occurrence?.pending
     if (continued.occurrence?.status !== 'PENDING' || next?.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the next movement choice.')
@@ -250,24 +237,12 @@ describe('GM void command', () => {
     expect(await commands()).toEqual(before)
 
     const secondSkip = voidCommand({ encounterId: value.base.run.id, pending: next })
-    const skipRows = () =>
-      value.base.t.run((ctx) =>
-        ctx.db
-          .query('encounterDecisionSkips')
-          .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (query) =>
-            query.eq('encounterId', value.base.run.id)
-          )
-          .collect()
-      )
-    // Crash window: the decline commits, then the orchestrator dies before recording the void.
-    const planned = await value.owner.caller.mutation(prepareVoid, secondSkip.command)
-    if (planned.kind !== 'DECLINE') throw new Error('Expected the void to decline the choice.')
-    await value.owner.caller.action(executeCommand, { command: planned.command })
-    expect(await skipRows()).toHaveLength(1)
-    // The retry finds the committed decline and announces the skip once; a replay adds nothing.
-    const voided = await value.owner.caller.action(executeCommand, secondSkip)
+    const voided = await executeInRoom(value.owner.caller, secondSkip)
     expect(voided.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    expect(await value.owner.caller.action(executeCommand, secondSkip)).toEqual(voided)
+    // A settled decision is no longer routable, so the void's retry is refused as stale.
+    expect(await rejectionReason(executeInRoom(value.owner.caller, secondSkip))).toBe(
+      'VERSION_STALE'
+    )
     const stored = await value.base.t.run(async (ctx) => ({
       occurrence: await ctx.db
         .query('encounterRuleOccurrences')
@@ -285,8 +260,8 @@ describe('GM void command', () => {
     expect(voided.projection.version).toBe(
       Math.max(...stored.commands.map((row) => row.version ?? 0))
     )
-    // The native path (a Scene the room does not own, D29) announces each skip like the room does:
-    // a TABLE chat line and the skip record the player's drawer reads (D26, D39).
+    // Each skip is announced: a TABLE chat line and the skip record the player's drawer reads
+    // (D26, D39).
     const announced = await value.base.t.run(async (ctx) => {
       const skips = await ctx.db
         .query('encounterDecisionSkips')

@@ -9,6 +9,8 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   const base = await setupCharacterRun()
@@ -68,14 +70,14 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
         expectedVersion: projection.version
       }
     }
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, request)
+    const result = await executeInRoom(base.owner.caller, request)
     projection = result.projection as EncounterGmProjectionDto
     return { request, result }
   }
   const start = async () => {
     if (mode === 'MANUAL') {
       for (const [index, actor] of projection.actors.entries()) {
-        const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        const result = await executeInRoom(base.owner.caller, {
           command: {
             type: 'SET_INITIATIVE',
             encounterId: projection.id,
@@ -88,7 +90,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
         projection = result.projection as EncounterGmProjectionDto
       }
     }
-    let result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: projection.id,
@@ -102,7 +104,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
         const pending = result.occurrence.pending
         if (!pending || pending.kind !== 'INITIATIVE_ORDER' || !pending.optionIds[0])
           throw new Error('Unexpected automatic side decision')
-        result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+        result = await executeInRoom(base.owner.caller, {
           command: {
             type: 'RESOLVE_RULE_OCCURRENCE',
             encounterId: projection.id,
@@ -124,7 +126,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     return result
   }
   const advance = async () => {
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: projection.id,
@@ -192,15 +194,13 @@ describe('native Encounter reorder', () => {
     expect(result.projection.actors.map((actor) => actor.id)).toEqual(actorIds)
     await base.execute({ type: 'REORDER', actorIds: [...actorIds].reverse() })
     const beforeReplay = await base.capture()
-    expect(await base.owner.caller.mutation(internal.encounters.commands.execute, request)).toEqual(
-      result
-    )
+    expect(await replayInRoom(base.owner.caller, request)).toEqual(result)
     expect(await base.capture()).toEqual(beforeReplay)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: { ...request.command, actorIds: [...actorIds].reverse() }
       })
-    ).rejects.toThrow(/different input/)
+    ).rejects.toThrow('Command ID was already used with different input.')
     await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRunCommands')
@@ -212,9 +212,7 @@ describe('native Encounter reorder', () => {
       await ctx.db.patch(row._id, { resultChecksum: 'a'.repeat(64) })
     })
     const corrupt = await base.capture()
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, request)
-    ).rejects.toThrow(/receipt mismatch/)
+    await expect(executeInRoom(base.owner.caller, request)).rejects.toThrow(LiveSessionRouteError)
     expect(await base.capture()).toEqual(corrupt)
   }, 30_000)
 
@@ -290,17 +288,17 @@ describe('native Encounter reorder', () => {
       [ids[1]!, ids[0]!, ...ids.slice(2)]
     ]) {
       await expect(
-        base.owner.caller.mutation(internal.encounters.commands.execute, {
+        executeInRoom(base.owner.caller, {
           command: { ...request.command, actorIds }
         })
-      ).rejects.toThrow(/exactly once|current turn/)
+      ).rejects.toThrow(LiveSessionRouteError)
       expect(await base.capture()).toEqual(before)
     }
+    await expect(executeInRoom(base.player.caller, request)).rejects.toMatchObject({
+      data: { reason: 'GM_ONLY', message: 'Only the GM can do that.' }
+    })
     await expect(
-      base.player.caller.mutation(internal.encounters.commands.execute, request)
-    ).rejects.toThrow(/Campaign not found/)
-    await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: { ...request.command, expectedVersion: request.command.expectedVersion - 1 }
       })
     ).rejects.toThrow(/stale/)
@@ -338,7 +336,7 @@ describe('native Encounter reorder', () => {
         type: 'REORDER',
         actorIds: assisted.projection().actors.map((actor) => actor.id)
       })
-    ).rejects.toThrow(/pending Encounter occurrence/)
+    ).rejects.toThrow(LiveSessionRouteError)
     expect(await assisted.capture()).toEqual(before)
     expect(checksumCanonicalJson(before)).toBe(checksumCanonicalJson(await assisted.capture()))
   }, 60_000)

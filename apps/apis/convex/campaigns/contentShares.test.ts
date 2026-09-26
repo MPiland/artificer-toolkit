@@ -96,6 +96,7 @@ async function ownedContent(
       description: '<p>Secret shitstorm</p>'
     }
     const checksum = checksumRuleDocument(document)
+    const publicVersionId = crypto.randomUUID()
     const versionId = await insertAuthoredVersion(
       ctx,
       {
@@ -105,7 +106,7 @@ async function ownedContent(
         label: document.label,
         checksum,
         contentSourceId,
-        versionId: crypto.randomUUID(),
+        versionId: publicVersionId,
         version: stored.version,
         documentSchemaVersion: stored.documentSchemaVersion,
         compilation: stored.compilation
@@ -120,7 +121,8 @@ async function ownedContent(
       checksum,
       contentSourceId,
       ownerUserId: userId,
-      currentVersionId: versionId
+      currentVersionId: versionId,
+      currentVersionPublicId: publicVersionId
     })
     await ctx.db.insert('authoredRouteIds', {
       subjectKind: 'BACKGROUND',

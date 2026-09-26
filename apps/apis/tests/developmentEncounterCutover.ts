@@ -9,11 +9,7 @@ import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/en
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { api } from '../convex/_generated/api.js'
-import {
-  type DevelopmentClient,
-  executeEncounterCommand,
-  executeEncounterCommandAction
-} from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import {
   bindScene,
   bindToken,
@@ -872,7 +868,7 @@ async function executeCutoverWorkloadReaction(
   let terminalCommandId = crypto.randomUUID()
   let responseSubmittedAt = Date.now()
   let resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-    owner.action(executeEncounterCommandAction, {
+    owner.mutation(executeEncounterCommand, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId: terminalCommandId,
@@ -911,7 +907,7 @@ async function executeCutoverWorkloadReaction(
     terminalCommandId = crypto.randomUUID()
     responseSubmittedAt = Date.now()
     resolved = await timeCutoverCommand('REACTION_RESPONSE', commandSamples, () =>
-      owner.action(executeEncounterCommandAction, {
+      owner.mutation(executeEncounterCommand, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
           commandId: terminalCommandId,

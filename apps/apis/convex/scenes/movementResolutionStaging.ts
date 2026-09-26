@@ -1,15 +1,12 @@
 import { z } from 'zod'
-import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import {
-  sceneGeometryBeginResultSchema,
   sceneGeometryExecuteInputSchema,
   type SceneGeometryBeginResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { internalMutation } from '../lib/mutations'
 import type { MutationCtx } from '../_generated/server'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
@@ -21,19 +18,11 @@ import { readMovementResponseAuthority } from './movementResolutionDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { readPresentedVisionScene } from './sessionVisionDocuments'
 
-/** Null selects the existing non-spatial response mutation; only the server classifies the occurrence. */
-export const begin = internalMutation({
-  args: zodToConvexFields(resolveRuleOccurrenceInputDtoSchema.shape),
-  returns: zodToConvex(z.nullable(sceneGeometryBeginResultSchema)),
-
-  handler: (ctx, args) => beginMovementResolution(ctx, args)
-})
-
-/** Native and live-authority responses share the same issued-decision and receipt checks. */
+/** Stages the room's movement decision on its Scene after the issued-decision and receipt checks. */
 export async function beginMovementResolution(
   ctx: MutationCtx,
   args: z.input<typeof resolveRuleOccurrenceInputDtoSchema>,
-  liveAuthority?: Parameters<typeof beginSceneGeometry>[4]
+  liveAuthority: NonNullable<Parameters<typeof beginSceneGeometry>[4]>
 ): Promise<SceneGeometryBeginResult | null> {
   const command = resolveRuleOccurrenceInputDtoSchema.parse(args)
   const { userId } = await requireIdentity(ctx)

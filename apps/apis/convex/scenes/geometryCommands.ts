@@ -1,4 +1,3 @@
-import { publishPreparedMovementResponse } from './movementResolutionPublication.helper'
 import { publishPreparedSpatialTerminal } from './spatialPublication.helper'
 import { publishPreparedSpatialPending } from './spatialPendingPublication.helper'
 import { verifyPreparedUninterruptedMovement } from './spatialCommit.helper'
@@ -25,7 +24,10 @@ export async function finishSceneGeometry(
     ctx,
     args,
     {
-      publishPreparedMovementResponse,
+      // Movement decisions publish only through the room with its presented Scene (D42).
+      publishPreparedMovementResponse: () => {
+        throw new Error('A movement decision publishes through the Session room.')
+      },
       publishPreparedSpatialPending,
       publishPreparedSpatialTerminal,
       verifyPreparedUninterruptedMovement

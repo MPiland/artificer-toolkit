@@ -33,7 +33,9 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom,
+  replayInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -310,7 +312,7 @@ describe('shield stow on two-handed attacks', () => {
     })
     expect(choices?.actions.find((action) => action.id === base.actionId)?.wieldConflict).toBeNull()
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: base.command(accept(base.shieldItemId))
       })
     ).rejects.toThrow('This attack does not stow a shield.')
@@ -385,13 +387,13 @@ describe('shield stow on two-handed attacks', () => {
     const base = await setup()
     expect(await base.armorClass()).toBe(14)
     await expect(
-      base.owner.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(base.owner.caller, {
         command: base.command(null)
       })
     ).rejects.toThrow('confirm it first')
     const before = await base.characterRow()
     const command = base.command(accept(base.shieldItemId))
-    const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const result = await executeInRoom(base.owner.caller, {
       command
     })
     expect(result.occurrence?.status).toBe('COMPLETE')
@@ -401,9 +403,7 @@ describe('shield stow on two-handed attacks', () => {
       base.shieldItemId
     )
     expect(await base.armorClass()).toBe(12)
-    expect(
-      await base.owner.caller.mutation(internal.encounters.commands.execute, { command })
-    ).toEqual(result)
+    expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
     expect((await base.characterRow())?.streamVersion).toBe(after!.streamVersion)
   }, 60000)
 
@@ -521,7 +521,7 @@ describe('versatile grips', () => {
       wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId: base.shieldItemId }
     })
     const execute = (command: ResolveEncounterActionInputDto) =>
-      base.owner.caller.mutation(internal.encounters.commands.execute, { command })
+      executeInRoom(base.owner.caller, { command })
     await expect(execute(base.command(null, twoHand.id))).rejects.toThrow('confirm it first')
     await expect(execute(base.command(accept(base.shieldItemId), oneHand.id))).rejects.toThrow(
       'This attack does not stow a shield.'
@@ -546,7 +546,7 @@ describe('drawn weapons', () => {
         })
       )?.actions.find((action) => action.id === base.actionId)
       const command = base.command(null)
-      const result = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+      const result = await executeInRoom(base.owner.caller, {
         command
       })
       expect(result.occurrence?.status).toBe('COMPLETE')

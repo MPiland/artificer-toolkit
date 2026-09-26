@@ -10,8 +10,8 @@ import {
   getNativeOptionalActionChoices,
   nativeDisarmFixture
 } from '../../tests/fixtures/nativeDisarm'
-import { domainRejection, executeEncounterCommand } from '../../tests/fixtures/playerControl'
-import { internal } from '../_generated/api'
+import { domainRejection } from '../../tests/fixtures/playerControl'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 function inputs(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
   if (!base.command.optionalCombatIntent) throw new Error('Missing Disarm intent.')
@@ -109,7 +109,7 @@ describe('native public Encounter action choices', () => {
     ).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
     expect(await disarmRecords(base)).toEqual(beforeRefusal)
 
-    const granted = await base.owner.caller.mutation(executeEncounterCommand, {
+    const granted = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
         encounterId: base.run.id,
@@ -176,7 +176,7 @@ describe('native public Encounter action choices', () => {
       ).rejects.toThrow()
     }
     expect(await disarmRecords(base)).toEqual(before)
-    const disabled = await base.owner.caller.mutation(internal.encounters.commands.execute, {
+    const disabled = await executeInRoom(base.owner.caller, {
       command: {
         type: 'REPLACE_OPTIONAL_COMBAT_RULES',
         encounterId: base.run.id,

@@ -1,6 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   SceneGeometryBeginResult,
   SceneGeometryExecuteInput,
@@ -10,8 +9,12 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  insertActiveLiveAuthority,
+  planMovementDecisionInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -27,11 +30,6 @@ const begin = makeFunctionReference<
   SceneGeometryExecuteInput,
   SceneGeometryBeginResult
 >('scenes/geometryStaging:begin')
-const beginResponse = makeFunctionReference<
-  'mutation',
-  ResolveRuleOccurrenceInputDto,
-  SceneGeometryBeginResult | null
->('scenes/movementResolutionStaging:begin')
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -61,17 +59,20 @@ it.each(['ROOT', 'RESPONSE'] as const)(
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect()
       }))
-    let request: Request = value.request
     let commandId = value.rootInput.commandId
+    await value.owner.caller.mutation(observe, {
+      saveId: value.request.saveId,
+      characterRevisions: []
+    })
+    await value.owner.caller.mutation(prepare, value.request)
+    let publish = () => value.owner.caller.mutation(finish, value.request)
     const respond = async (resolution: 'DECLINE' | 'USE') => {
-      await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-      await value.owner.caller.mutation(prepare, request)
-      const current = await value.owner.caller.mutation(finish, request)
+      const current = await publish()
       const pending = current.occurrence?.pending
       if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
         throw new Error('Expected a controller reaction choice.')
       commandId = crypto.randomUUID()
-      const started = await value.owner.caller.mutation(beginResponse, {
+      const plan = await planMovementDecisionInRoom(value.owner.caller, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         commandId,
         encounterId: value.base.run.id,
@@ -84,29 +85,16 @@ it.each(['ROOT', 'RESPONSE'] as const)(
             ? { kind: 'DECLINE' }
             : { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
       })
-      if (!started || started.kind !== 'READY') throw new Error('Expected response staging.')
-      request = { ...request, saveId: started.saveId }
+      publish = plan.publish
+      return plan
     }
     if (stage === 'RESPONSE') await respond('DECLINE')
-    await respond('USE')
-    await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
+    const plan = await respond('USE')
     const before = await snapshot()
     const beforeCharacter = before.characters.find((row) => row.id === value.base.character.id)!
     const beforeRun = before.runs.find((row) => row.id === value.base.run.id)!
-    const prepared = await value.owner.caller.mutation(prepare, request)
-    expect(prepared.outcome.kind).toBe('PENDING')
-    expect(await snapshot()).toEqual(before)
-    await expect(
-      value.owner.caller.run(async (ctx) => {
-        const result = await ctx.runMutation(finish, request)
-        expect(result.occurrence?.pending?.kind).toBe('MOVEMENT_REACTION')
-        expect(await ctx.db.query('characters').collect()).not.toEqual(before.characters)
-        expect(await ctx.db.query('encounterRuleReceipts').collect()).not.toEqual(before.receipts)
-        throw new Error('Injected automatic pending rollback')
-      })
-    ).rejects.toThrow('Injected automatic pending rollback')
-    expect(await snapshot()).toEqual(before)
-    const result = await value.owner.caller.mutation(finish, request)
+    expect(plan.outcome.kind).toBe('PENDING')
+    const result = await publish()
     expect(result.occurrence?.pending?.kind).toBe('MOVEMENT_REACTION')
     const after = await snapshot()
     expect(after.characters.find((row) => row.id === value.base.character.id)?.streamVersion).toBe(
@@ -128,7 +116,7 @@ it.each(['ROOT', 'RESPONSE'] as const)(
         afterStreamVersion: beforeCharacter.streamVersion + 1
       }
     ])
-    await expect(value.owner.caller.mutation(finish, request)).resolves.toMatchObject({
+    await expect(publish()).resolves.toMatchObject({
       replayed: true
     })
     await expect(value.owner.caller.mutation(finish, value.request)).resolves.toMatchObject({
@@ -200,7 +188,7 @@ it('replays player movement with the original private projection before and afte
     kind: 'REPLAY',
     result: { ...initial, replayed: true }
   })
-  const response = await value.owner.caller.mutation(beginResponse, {
+  const responseRequest = await planMovementDecisionInRoom(value.owner.caller, {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
     encounterId: value.base.run.id,
@@ -210,11 +198,7 @@ it('replays player movement with the original private projection before and afte
     correlationId: null,
     resolution: { kind: 'DECLINE' }
   })
-  if (!response || response.kind !== 'READY') throw new Error('Expected GM response staging.')
-  const responseRequest = { ...value.request, saveId: response.saveId }
-  await value.owner.caller.mutation(observe, { saveId: response.saveId, characterRevisions: [] })
-  await value.owner.caller.mutation(prepare, responseRequest)
-  const completed = await value.owner.caller.mutation(finish, responseRequest)
+  const completed = await responseRequest.publish()
   expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const snapshot = () =>
     value.base.t.run(async (ctx) => ({
@@ -242,6 +226,44 @@ it('replays player movement with the original private projection before and afte
     result: expected
   })
   expect(await snapshot()).toEqual(beforeReplay)
+}, 30_000)
+
+it('refuses a bound move on a live Campaign Scene that is not presented (D42)', async () => {
+  const value = await setupAutomaticCharacterMovement(['CHOICE'])
+  const rootSave = await value.owner.caller.run((ctx) =>
+    ctx.db
+      .query('sceneGeometrySaves')
+      .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
+      .unique()
+  )
+  const vision = rootSave?.sessionVision
+  if (!vision) throw new Error('Expected fixture presentation vision.')
+  // The room is live and presents another Scene.
+  await value.base.t.run(async (ctx) => {
+    await insertActiveLiveAuthority(ctx, {
+      campaignId: value.base.campaign.id,
+      epoch: crypto.randomUUID(),
+      createdAt: new Date().toISOString()
+    })
+    const presented = await ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', value.base.campaign.id))
+      .unique()
+    if (!presented) throw new Error('Expected the fixture Scene presentation.')
+    await ctx.db.patch(presented._id, { sceneId: crypto.randomUUID() })
+  })
+  await expect(
+    value.player.caller.mutation(begin, {
+      input: { ...value.rootInput, commandId: crypto.randomUUID() },
+      presentation: { expectedPresentationVersion: vision.expectedPresentationVersion }
+    })
+  ).rejects.toMatchObject({
+    data: {
+      code: 'DOMAIN_REJECTED',
+      reason: 'SCENE_NOT_PRESENTED',
+      message: 'Present this Scene to move Encounter tokens.'
+    }
+  })
 }, 30_000)
 
 it('moves an Encounter-bound token for its actor controllers, not its Scene token controllers', async () => {
@@ -291,7 +313,7 @@ it('moves an Encounter-bound token for its actor controllers, not its Scene toke
   }
   const setControllers = async (expectedVersion: number, controllerUserIds: string[]) =>
     (
-      await value.owner.caller.mutation(executeEncounterCommand, {
+      await executeInRoom(value.owner.caller, {
         command: {
           type: 'UPDATE_ACTOR',
           encounterId: value.base.run.id,

@@ -760,7 +760,10 @@ describe('native Class publication', () => {
         .withIndex('by_id_version', (q) => q.eq('id', base.subjectId).eq('version', 1))
         .unique()
       if (!root || !version) throw new Error('Missing owned Class fixture')
-      await ctx.db.patch(root._id, { currentVersionId: version._id })
+      await ctx.db.patch(root._id, {
+        currentVersionId: version._id,
+        currentVersionPublicId: version.versionId
+      })
     })
     const valid = await first.caller.mutation(api.content.drafts.save, {
       subjectKind: 'CLASS',

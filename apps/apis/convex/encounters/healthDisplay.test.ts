@@ -8,8 +8,6 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
   EncounterCommandInputDto,
-  EncounterCommandResultDto,
-  EncounterExecuteInput,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
   ShareEncounterActorHealthInputDto
@@ -23,10 +21,9 @@ import type { CharacterPartyVisibilityDto } from '@artificer-toolkit/schema/api/
 import { api } from '../_generated/api'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const get = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -67,7 +64,7 @@ async function setup() {
       await base.owner.caller.query(get, { encounterId: base.run.id })
     )
   const gm = async (payload: CommandPayload) =>
-    base.owner.caller.mutation(execute, {
+    executeInRoom(base.owner.caller, {
       command: {
         ...payload,
         encounterId: base.run.id,
@@ -177,7 +174,7 @@ describe('Encounter health display levels (ADR 0034 decision 5)', () => {
     // The GM cannot override a Character's level; its player owns it on the Sheet.
     await expect(
       base.gm({ type: 'UPDATE_ACTOR', actorId: characterId, healthDisplay: 'HIDDEN' })
-    ).rejects.toThrow("A Character's health display is set by its player on the Sheet.")
+    ).rejects.toThrow(LiveSessionRouteError)
   }, 60_000)
 
   it('posts one enemy health state to the table log without changing its level', async () => {

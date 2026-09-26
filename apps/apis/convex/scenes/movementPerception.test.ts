@@ -1,9 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -36,12 +33,12 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 import type { SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
 import { completeSceneGeometry } from './geometryActions'
-import { prepareSceneMovement } from './movementPerceptionAction'
 import { readGeometrySave } from './geometryDocuments'
 import { api, internal } from '../_generated/api'
 import { setupCreatureReactionRun, reactionRecords } from '../../tests/fixtures/movementReaction'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { advanceLiveState, readLiveScene } from './liveDocuments'
+import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 type Request = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 const captureReference = makeFunctionReference<'mutation', Request, SceneMovementPerceptionCapture>(
@@ -268,7 +265,6 @@ async function setup(withVision = false, returnsToOrigin = false) {
 describe('native Scene movement perception staging', () => {
   it('captures retained SEE contacts after moving and completes the response through the geometry action', async () => {
     const { base, request, input } = await setup(true)
-    const initialCapture = await base.owner.caller.mutation(captureReference, request)
     const begin = await base.owner.caller.run(async (ctx) => {
       const { save, header } = await readGeometrySave(ctx, request.saveId)
       return sceneGeometryBeginResultSchema.parse({
@@ -287,38 +283,20 @@ describe('native Scene movement perception staging', () => {
       kind: 'TOKEN_MOVED',
       position: { x: 300, y: 50 }
     })
-    const response = await base.owner.caller.mutation(
-      makeFunctionReference<
-        'mutation',
-        ResolveRuleOccurrenceInputDto,
-        ReturnType<typeof sceneGeometryBeginResultSchema.parse> | null
-      >('scenes/movementResolutionStaging:begin'),
-      {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: crypto.randomUUID(),
-        encounterId: base.run.id,
-        expectedVersion: boundary.occurrence.pending.encounterVersion,
-        occurrenceId: boundary.occurrence.occurrenceId,
-        expectedOccurrenceVersion: boundary.occurrence.occurrenceVersion,
-        correlationId: null,
-        resolution: { kind: 'DECLINE' }
-      }
-    )
-    if (!response || response.kind !== 'READY') throw new Error('Expected movement response save.')
-    const responseRequest = { ...request, saveId: response.saveId }
-    const capture = await base.owner.caller.mutation(captureReference, responseRequest)
-    expect(capture.sceneVersion).toBe(boundary.version)
-    expect(capture.requests).toHaveLength(1)
-    expect(capture.requests[0]!.subject.position).toEqual({ x: 300, y: 50 })
-    expect(capture.requests[0]!.key).not.toBe(initialCapture.requests[0]!.key)
+    const plan = await planMovementDecisionInRoom(base.owner.caller, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id,
+      expectedVersion: boundary.occurrence.pending.encounterVersion,
+      occurrenceId: boundary.occurrence.occurrenceId,
+      expectedOccurrenceVersion: boundary.occurrence.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'DECLINE' }
+    })
     const before = await reactionRecords(base.t, base.run.id)
-    const prepared = await base.owner.caller.action((ctx) =>
-      prepareSceneMovement(ctx, responseRequest)
-    )
-    expect(prepared.perceptionEnvironments).toHaveLength(1)
-    expect(prepared.perceptionEnvironments[0]!.key).toBe(capture.requests[0]!.key)
+    expect(plan.outcome.kind).toBe('TERMINAL')
     expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
-    const result = await base.owner.caller.action((ctx) => completeSceneGeometry(ctx, response))
+    const result = await plan.publish()
     expect(result).toMatchObject({
       occurrence: { status: 'COMPLETE', pending: null },
       delta: {

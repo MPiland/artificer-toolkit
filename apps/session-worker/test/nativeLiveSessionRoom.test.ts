@@ -1929,6 +1929,49 @@ it('sends a GM void of a presented movement decision through the room (D26)', as
   expect(convex.begins).toEqual([expect.objectContaining({ command })])
 })
 
+it('refuses a movement decision off the presented Scene without staging it (D42)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  base.capture.sceneEncounterId = crypto.randomUUID()
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  await routeEncounterRequests(base, async (pathname) =>
+    pathname === '/live-sessions/encounter-route'
+      ? Response.json({ route: 'MOVEMENT', decline: null })
+      : undefined
+  )
+  const command = {
+    type: 'RESOLVE_RULE_OCCURRENCE',
+    encounterId: crypto.randomUUID(),
+    commandId: crypto.randomUUID(),
+    expectedVersion: 5,
+    occurrenceId: crypto.randomUUID(),
+    expectedOccurrenceVersion: 1,
+    correlationId: null,
+    resolution: { kind: 'DECLINE' }
+  } as const
+  base.messages.length = 0
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'DOMAIN_REJECTED',
+        commandId: command.commandId,
+        reason: 'SCENE_NOT_PRESENTED',
+        message: 'Present this Scene to move Encounter tokens.',
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  expect(convex.begins).toEqual([])
+})
+
 it('settles an unsettled commit before the drain fence when the room closes', async () => {
   const value = movementScene(crypto.randomUUID())
   const base = await fixture(value.scene)
@@ -2973,6 +3016,66 @@ it('asks Convex which planner owns a decision and records a GM void that decline
   )
   expect(calls).toEqual(['/live-sessions/encounter-route', '/live-sessions/encounter-void-prepare'])
 })
+it('draws a dice command with the room random source between the Convex dice read and commit', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const encounterId = crypto.randomUUID()
+  const commandId = crypto.randomUUID()
+  const command = {
+    type: 'ROLL_ENEMY_ACTION',
+    encounterId,
+    commandId,
+    expectedVersion: 3,
+    actorId: crypto.randomUUID(),
+    featureId: 'whirlwind',
+    rollDefinitionId: 'gust',
+    visibility: 'PRIVATE'
+  }
+  const calls: { pathname: string; body: unknown }[] = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/encounter-roll-dice') {
+      calls.push({ pathname, body: await request.json() })
+      return Response.json({ dice: [20, 6] })
+    }
+    if (pathname === '/live-sessions/encounter-roll') {
+      calls.push({ pathname, body: await request.json() })
+      return Response.json(encounterResult(base.capture.campaignId, encounterId))
+    }
+    return undefined
+  })
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  const scope = {
+    campaignId: base.capture.campaignId,
+    authorityEpoch: base.authorityEpoch,
+    expectedUserId: base.userId,
+    expectedRole: 'OWNER'
+  }
+  expect(calls.map((call) => call.pathname)).toEqual([
+    '/live-sessions/encounter-roll-dice',
+    '/live-sessions/encounter-roll'
+  ])
+  expect(calls[0]!.body).toEqual({ ...scope, command })
+  const commit = calls[1]!.body as { draws: number[] }
+  expect(commit).toEqual({ ...scope, command, draws: [expect.any(Number), expect.any(Number)] })
+  expect(commit.draws[0]).toBeLessThan(20)
+  expect(commit.draws[1]).toBeLessThan(6)
+})
 it('rejects a refused Encounter command with a generic code and no Convex detail', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
@@ -3009,6 +3112,50 @@ it('rejects a refused Encounter command with a generic code and no Convex detail
     ).toMatchObject({ code: 'STALE_STATE', reason: null })
   )
   expect(JSON.stringify(base.messages)).not.toContain('internal detail')
+})
+
+it("tells a player a GM-only Encounter command is the GM's, not a changed Encounter (D42)", async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const commandId = crypto.randomUUID()
+  await routeEncounterRequests(base, (pathname) =>
+    pathname === '/live-sessions/encounter-command'
+      ? Response.json(
+          { code: 'DOMAIN_REJECTED', reason: 'GM_ONLY', message: 'Only the GM can do that.' },
+          { status: 422 }
+        )
+      : undefined
+  )
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'SET_ROUND',
+          encounterId: crypto.randomUUID(),
+          commandId,
+          expectedVersion: 3,
+          round: 2
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      base.messages.find(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+    ).toMatchObject({
+      code: 'DOMAIN_REJECTED',
+      reason: 'GM_ONLY',
+      message: 'Only the GM can do that.'
+    })
+  )
 })
 
 it('forwards an expected domain rejection and keeps an unexpected failure generic', async () => {

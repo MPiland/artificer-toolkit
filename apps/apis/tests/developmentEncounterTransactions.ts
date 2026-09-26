@@ -89,8 +89,19 @@ export async function verifyEncounterTransactions({
       expectedVersion: prepared.version
     }
   }
+  // Convex records only GM tools; the room plans START, so the rollback proof uses one (D41).
+  const initiative: EncounterExecuteInput = {
+    command: {
+      type: 'SET_INITIATIVE',
+      encounterId: prepared.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: prepared.version,
+      actorId: prepared.actors[0]!.id,
+      initiative: 12
+    }
+  }
   assert.deepEqual(
-    await rollback({ encounterId: prepared.id, operation: { kind: 'COMMAND', input: start } }),
+    await rollback({ encounterId: prepared.id, operation: { kind: 'COMMAND', input: initiative } }),
     { rolledBack: true }
   )
   assert.deepEqual(
@@ -233,7 +244,8 @@ export async function verifyEncounterTransactions({
     const formerOwner = await owner.query(api.campaigns.queries.get, { id: campaignId })
     assert.equal(formerOwner.role, 'PLAYER')
     if (transfer[0]!.status === 'rejected')
-      assert.match(String(transfer[0]!.reason), /Campaign not found/)
+      // The room plans the former owner's advance as a player, who does not control the actor.
+      assert.match(String(transfer[0]!.reason), /NOT_ACTOR_CONTROLLER/)
     const current = encounterGmProjectionDtoSchema.parse(
       await player.query(api.encounters.projectionReads.get, { encounterId: prepared.id })
     )

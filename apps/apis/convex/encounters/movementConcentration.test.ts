@@ -10,11 +10,12 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readRunState } from './documents'
 import { loadMovementTargets } from './movementTargets'
 import { loadNativeConcentrationState, prepareNativeConcentrationEnd } from './concentrationState'
 import { projectNativeMovementConcentrationEnd } from './movementMaintenance'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
 
@@ -33,7 +34,7 @@ async function setupFixture() {
 it('forecasts Concentration cleanup without writes and matches the committed failure', async () => {
   const fixture = await setupFixture()
   const seeded = await seedConcentration(fixture)
-  await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)
   })
   const before = await concentrationRecords(fixture)
@@ -147,7 +148,7 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
       rollMode: summary.request.rollMode
     }
   }
-  const result = await fixture.player.caller.mutation(internal.encounters.commands.execute, {
+  const result = await executeInRoom(fixture.player.caller, {
     command
   })
   expect(result.occurrence?.outcome).toBe('SAVE_FAILURE')
@@ -180,8 +181,6 @@ it('forecasts Concentration cleanup without writes and matches the committed fai
     streamVersion: after.character?.streamVersion,
     checksum: after.character?.checksum
   })
-  expect(
-    await fixture.player.caller.mutation(internal.encounters.commands.execute, { command })
-  ).toEqual(result)
+  expect(await replayInRoom(fixture.player.caller, { command })).toEqual(result)
   expect(await concentrationRecords(fixture)).toEqual(after)
 }, 60_000)

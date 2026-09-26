@@ -12,9 +12,11 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
-import { api, internal } from '../_generated/api'
-import { executeEncounterCommand, storeRunAutomationMode } from '../../tests/fixtures/playerControl'
+import { api } from '../_generated/api'
+import { storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
@@ -75,7 +77,7 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   const seeded = await seedConcentration(fixture)
   const root = concentrationAction(fixture)
   const before = await concentrationRecords(fixture)
-  const parent = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  const parent = await executeInRoom(fixture.owner.caller, {
     command: root
   })
   expect(parent.occurrence?.status).toBe('COMPLETE')
@@ -100,7 +102,7 @@ it('pauses an Assisted concentration child and settles success without cleanup',
     username: 'ConcentrationGm',
     bio: null
   })
-  const rolled = await fixture.owner.caller.mutation(executeEncounterCommand, {
+  const rolled = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'ROLL_RULE_EVIDENCE',
       encounterId: fixture.run.id,
@@ -121,19 +123,11 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   } satisfies EncounterExecuteInput
   const random = await import('../lib/rollRandom')
   vi.mocked(random.nextRollInt).mockClear()
-  await expect(
-    fixture.owner.caller.mutation(internal.encounters.commands.execute, colliding)
-  ).rejects.toThrow()
+  await expect(executeInRoom(fixture.owner.caller, colliding)).rejects.toThrow()
   expect(vi.mocked(random.nextRollInt)).not.toHaveBeenCalled()
   expect(await concentrationRecords(fixture)).toEqual(staged)
-  await expect(
-    fixture.owner.caller.run(async (ctx) => {
-      await ctx.runMutation(internal.encounters.commands.execute, command)
-      throw new Error('rollback concentration success')
-    })
-  ).rejects.toThrow('rollback concentration success')
   expect(await concentrationRecords(fixture)).toEqual(staged)
-  const settled = await fixture.owner.caller.mutation(internal.encounters.commands.execute, command)
+  const settled = await executeInRoom(fixture.owner.caller, command)
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
   const after = await concentrationRecords(fixture)
   expect(after.run?.version).toBe(staged.run?.version)
@@ -149,12 +143,8 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   )
   if (parentExecution.status !== 'COMPLETE') throw new Error('Parent action did not complete.')
   expect(parentExecution.applicationOutputs.kind).toBe('CHARACTER_MECHANICS_BATCH')
-  expect(
-    await fixture.owner.caller.mutation(internal.encounters.commands.execute, command)
-  ).toEqual(settled)
-  expect(
-    await fixture.owner.caller.mutation(internal.encounters.commands.execute, { command: root })
-  ).toEqual(parent)
+  expect(await replayInRoom(fixture.owner.caller, command)).toEqual(settled)
+  expect(await replayInRoom(fixture.owner.caller, { command: root })).toEqual(parent)
   expect(await concentrationRecords(fixture)).toEqual(after)
 }, 60_000)
 
@@ -164,10 +154,10 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
   await storeRunAutomationMode(fixture.t, fixture.run.id, 'MANUAL')
   const before = await concentrationRecords(fixture)
   await expect(
-    fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+    executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
-  ).rejects.toThrow('Native action execution requires an Assisted Encounter.')
+  ).rejects.toThrow(LiveSessionRouteError)
   expect(await concentrationRecords(fixture)).toEqual(before)
   expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
   for (const member of [fixture.owner, fixture.player])
@@ -201,7 +191,7 @@ it('does not create a concentration child when finalized applied damage is zero'
     })
   })
   const before = await concentrationRecords(fixture)
-  await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)
   })
   expect(
@@ -233,16 +223,9 @@ it.each([
     const root = concentrationAction(fixture)
     const before = await concentrationRecords(fixture)
     const random = await import('../lib/rollRandom')
-    vi.mocked(random.nextRollInt).mockReturnValueOnce(face - 1)
-    await expect(
-      fixture.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(internal.encounters.commands.execute, { command: root })
-        throw new Error('rollback Automatic concentration')
-      })
-    ).rejects.toThrow('rollback Automatic concentration')
     expect(await concentrationRecords(fixture)).toEqual(before)
     vi.mocked(random.nextRollInt).mockReturnValueOnce(face - 1)
-    const settled = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+    const settled = await executeInRoom(fixture.owner.caller, {
       command: root
     })
     expect(settled.occurrence?.status).toBe('COMPLETE')
@@ -265,9 +248,7 @@ it.each([
       applicationOutputs: { outcome: cleanup ? 'SAVE_FAILURE' : 'SAVE_SUCCESS' }
     })
     vi.mocked(random.nextRollInt).mockClear()
-    expect(
-      await fixture.owner.caller.mutation(internal.encounters.commands.execute, { command: root })
-    ).toEqual(settled)
+    expect(await replayInRoom(fixture.owner.caller, { command: root })).toEqual(settled)
     expect(await concentrationRecords(fixture)).toEqual(after)
   },
   60_000
@@ -276,7 +257,7 @@ it.each([
 it('cleans the exact concentration state on failure and preserves an independent condition', async () => {
   const fixture = await setupFixture('PROMPT')
   const seeded = await seedConcentration(fixture)
-  const parent = await fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  const parent = await executeInRoom(fixture.owner.caller, {
     command: concentrationAction(fixture)
   })
   expect(parent.occurrence?.status).toBe('COMPLETE')
@@ -294,9 +275,7 @@ it('cleans the exact concentration state on failure and preserves an independent
   if (malformed.command.resolution.kind !== 'ENTER_DICE')
     throw new Error('Expected physical concentration evidence.')
   malformed.command.resolution.rawFaces = [0]
-  await expect(
-    fixture.player.caller.mutation(internal.encounters.commands.execute, malformed)
-  ).rejects.toThrow()
+  await expect(executeInRoom(fixture.player.caller, malformed)).rejects.toThrow()
   const priorStateVersion = await fixture.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -308,9 +287,7 @@ it('cleans the exact concentration state on failure and preserves an independent
     await ctx.db.patch(state._id, { version: state.version + 1 })
     return state.version
   })
-  await expect(
-    fixture.player.caller.mutation(internal.encounters.commands.execute, command)
-  ).rejects.toThrow(/stale|unavailable/)
+  await expect(executeInRoom(fixture.player.caller, command)).rejects.toThrow(/stale|unavailable/)
   await fixture.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -322,10 +299,7 @@ it('cleans the exact concentration state on failure and preserves an independent
     await ctx.db.patch(state._id, { version: priorStateVersion })
   })
   expect(await concentrationRecords(fixture)).toEqual(staged)
-  const settled = await fixture.player.caller.mutation(
-    internal.encounters.commands.execute,
-    command
-  )
+  const settled = await executeInRoom(fixture.player.caller, command)
   expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
   const after = await concentrationRecords(fixture)
   expect(after.run?.version).toBe(staged.run!.version + 1)

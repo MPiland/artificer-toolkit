@@ -8,12 +8,12 @@ import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolk
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { verifyCampaignGmState } from '../../tests/developmentCampaignGmState'
-import type { DevelopmentClient } from '../../tests/developmentClient'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
 import type { TableNames } from '../_generated/dataModel'
 import schema from '../schema'
 import { ensureAuthoredRouteId } from '../content/routeIds'
+import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
 
@@ -70,10 +70,7 @@ it('proves native GM overlays through public Campaign handlers', async () => {
     return id
   })
   const outsider = await createOutsider(base)
-  const client = (caller: typeof owner.caller): DevelopmentClient => ({
-    query: (reference, ...args) => caller.run((ctx) => ctx.runQuery(reference, ...args)),
-    mutation: (reference, ...args) => caller.run((ctx) => ctx.runMutation(reference, ...args))
-  })
+  const client = inProcessDevelopmentClient
   const inspect = async (): Promise<DevelopmentCampaignInspection> =>
     base.t.run(async (ctx) => {
       const tables = Object.fromEntries(

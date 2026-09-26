@@ -1,4 +1,3 @@
-import { v } from 'convex/values'
 import { v5 as uuidV5 } from 'uuid'
 import {
   encounterCommandResultDtoSchema,
@@ -24,7 +23,6 @@ import type { MutationCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { rejectDomain } from '../lib/domainRejections'
 import { requireIdentity } from '../lib/identity'
-import { internalMutation } from '../lib/mutations'
 import { readRunProjection, readRunState } from './documents'
 import { readPendingRunDecision } from './pendingReads'
 import { insertRunCommand } from './timelineEntries'
@@ -155,7 +153,7 @@ async function admitVoid(ctx: MutationCtx, args: unknown): Promise<VoidAdmission
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, run.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   const fingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db
@@ -336,12 +334,6 @@ export async function prepareRuleOccurrenceVoid(
   }
 }
 
-// Internal to the void orchestrator: the handler's Zod contract validates input, as at the Worker boundary.
-export const prepare = internalMutation({
-  args: v.any(),
-  handler: prepareRuleOccurrenceVoid
-})
-
 /**
  * Records a void after its decline committed. A turn or move that pauses again stays fenced to the
  * current Run version, so it returns the next decision instead of a separate timeline entry.
@@ -481,9 +473,3 @@ export async function recordDeclinedRuleOccurrenceVoid(
   }
   return result
 }
-
-// Internal to the void orchestrator: the handler's Zod contract validates input.
-export const record = internalMutation({
-  args: v.any(),
-  handler: recordDeclinedRuleOccurrenceVoid
-})

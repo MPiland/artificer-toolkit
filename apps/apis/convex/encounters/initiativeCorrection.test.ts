@@ -24,6 +24,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { fixture } from '../../tests/fixtures/characters'
 
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -223,7 +225,7 @@ describe('native initiative corrections', () => {
       [first, 20, 0],
       [second, 10, 1]
     ] as const) {
-      await base.owner.caller.mutation(execute, {
+      await executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: run.id,
@@ -235,7 +237,7 @@ describe('native initiative corrections', () => {
         }
       })
     }
-    let result = await base.owner.caller.mutation(execute, {
+    let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
         encounterId: run.id,
@@ -289,13 +291,13 @@ describe('native initiative corrections', () => {
       })
     )
     const beforePending = await capture()
-    await expect(base.owner.caller.mutation(execute, correction)).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, correction)).rejects.toThrow()
     expect(await capture()).toEqual(beforePending)
     await base.t.run((ctx) => ctx.db.delete(pendingId))
     const participant = beforeCorrection.participants[0]!
     await base.t.run((ctx) => ctx.db.patch(participant._id, { turnOrderOrdinal: 999 }))
     const corruptCursor = await capture()
-    await expect(base.owner.caller.mutation(execute, correction)).rejects.toThrow()
+    await expect(executeInRoom(base.owner.caller, correction)).rejects.toThrow()
     expect(await capture()).toEqual(corruptCursor)
     await base.t.run((ctx) =>
       ctx.db.patch(participant._id, { turnOrderOrdinal: participant.turnOrderOrdinal })
@@ -309,10 +311,10 @@ describe('native initiative corrections', () => {
         round: 2
       }
     }
-    result = await base.owner.caller.mutation(execute, setRound)
+    result = await executeInRoom(base.owner.caller, setRound)
     const setRoundResult = result
     expect(result.projection).toMatchObject({ round: 2, currentActorId: first.id })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: run.id,
@@ -321,7 +323,7 @@ describe('native initiative corrections', () => {
         actorId: second.id
       }
     })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'PREVIOUS_TURN',
         encounterId: run.id,
@@ -330,7 +332,7 @@ describe('native initiative corrections', () => {
       }
     })
     expect(result.projection).toMatchObject({ round: 2, currentActorId: first.id })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'PREVIOUS_TURN',
         encounterId: run.id,
@@ -339,7 +341,7 @@ describe('native initiative corrections', () => {
       }
     })
     expect(result.projection).toMatchObject({ round: 1, currentActorId: second.id })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: run.id,
@@ -350,7 +352,7 @@ describe('native initiative corrections', () => {
     })
     expect(result.projection.currentActorId).toBeNull()
     await expect(
-      base.owner.caller.mutation(execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           type: 'ADVANCE_TURN',
           encounterId: run.id,
@@ -359,7 +361,7 @@ describe('native initiative corrections', () => {
         }
       })
     ).rejects.toThrow('current actor can advance')
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
         encounterId: run.id,
@@ -368,7 +370,7 @@ describe('native initiative corrections', () => {
         actorId: second.id
       }
     })
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'ADVANCE_TURN',
         encounterId: run.id,
@@ -378,7 +380,7 @@ describe('native initiative corrections', () => {
     })
     expect(result.projection).toMatchObject({ round: 2, currentActorId: first.id })
     await expect(
-      base.other.caller.mutation(execute, {
+      executeInRoom(base.other.caller, {
         command: {
           type: 'SET_CURRENT_ACTOR',
           encounterId: run.id,
@@ -389,7 +391,7 @@ describe('native initiative corrections', () => {
       })
     ).rejects.toThrow()
     await expect(
-      base.owner.caller.mutation(execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_CURRENT_ACTOR',
           encounterId: run.id,
@@ -399,9 +401,9 @@ describe('native initiative corrections', () => {
         }
       })
     ).rejects.toThrow('Encounter version is stale')
-    await expect(base.owner.caller.mutation(execute, setRound)).resolves.toEqual(setRoundResult)
+    await expect(replayInRoom(base.owner.caller, setRound)).resolves.toEqual(setRoundResult)
     await expect(
-      base.owner.caller.mutation(execute, {
+      replayInRoom(base.owner.caller, {
         command: {
           ...setRound.command,
           commandId: setRound.command.commandId.toUpperCase(),
@@ -410,7 +412,7 @@ describe('native initiative corrections', () => {
       })
     ).resolves.toEqual(setRoundResult)
     await expect(
-      base.owner.caller.mutation(execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_ROUND',
           encounterId: run.id,
@@ -419,7 +421,7 @@ describe('native initiative corrections', () => {
           round: 9
         }
       })
-    ).rejects.toThrow('different input')
+    ).rejects.toThrow('Command ID was already used with different input.')
     const correctionReceipt = (await capture()).commands.find(
       (command) => command.commandId === setRound.command.commandId
     )
@@ -428,15 +430,13 @@ describe('native initiative corrections', () => {
     await base.t.run((ctx) =>
       ctx.db.patch(correctionReceipt._id, { initiativeStateChecksum: '0'.repeat(64) })
     )
-    await expect(base.owner.caller.mutation(execute, setRound)).rejects.toThrow(
-      'correction receipt is invalid'
-    )
+    await expect(executeInRoom(base.owner.caller, setRound)).rejects.toThrow(LiveSessionRouteError)
     await base.t.run((ctx) =>
       ctx.db.patch(correctionReceipt._id, {
         initiativeStateChecksum: correctionReceipt.initiativeStateChecksum
       })
     )
-    result = await base.owner.caller.mutation(execute, {
+    result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'COMPLETE',
         encounterId: run.id,
@@ -446,7 +446,7 @@ describe('native initiative corrections', () => {
     })
     expect(result.projection).toMatchObject({ status: 'COMPLETED', currentActorId: null })
     await expect(
-      base.owner.caller.mutation(execute, {
+      executeInRoom(base.owner.caller, {
         command: {
           type: 'SET_ROUND',
           encounterId: run.id,

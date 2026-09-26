@@ -254,7 +254,7 @@ only the persistence and projection pieces. Local transaction tests cover respon
 one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. The room
 now dispatches these routes itself; see "Convex-first Scene commits" below.
 
-**Convex-first Scene commits (CURRENT, S4-c, D26-D29).** The room commits Encounter-bound movement
+**Convex-first Scene commits (CURRENT, S4-c, D26-D28, D42).** The room commits Encounter-bound movement
 to Convex first, then applies it (`apps/session-worker/src/nativeExternalSceneCommit.ts`, called from
 `#commitExternal` in `nativeLiveSessionRoom.ts`). `isExternalSceneCommand`
 (`nativeRoomSceneCommand.ts`) selects every bound move, every move on an Encounter-bound Scene, and
@@ -314,15 +314,16 @@ is set the room refuses token moves, door changes and undo on that Scene with `U
 "Waiting on a movement decision."; chat, Sheets, other Scenes and every Encounter command continue.
 A forwarded Encounter command rereads the flag with one authority capture while it is set. The GM's
 decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
-`MOVEMENT` that declines it (the movement continues). A decision on a Scene that is not presented
-keeps the native path (D29). A player's Convex-first Scene command counts against the one-in-flight
-limit. The skip also writes an `encounterDecisionSkips` row keyed by the decision's occurrence and
+`MOVEMENT` that declines it (the movement continues). While a room is active, bound-token movement
+and its decisions happen only on the presented Scene (D42, superseding D29's native staging path):
+the room refuses a decision whose Encounter is not bound to its synchronized presented Scene, and
+Convex refuses a bound move on a live Campaign's non-presented Scene, both with domain reason
+`SCENE_NOT_PRESENTED` ("Present this Scene to move Encounter tokens."). A player's Convex-first Scene
+command counts against the one-in-flight limit. The skip also writes an `encounterDecisionSkips` row
+keyed by the decision's occurrence and
 version, so `encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the
-decision a player was shown, and their drawer says "The GM skipped this decision." (D39). A skip on
-the native path (D29) posts the same chat line and skip row through the same function, in
-`occurrenceVoid:record` after its decline commits. It knows a movement decision from state that
-survives the decline (the decline's receipt and a `MOVE_SCENE_TOKEN` root receipt), so a retry after
-a crash still announces it; the skipped occurrence and version key both writes, so nothing repeats.
+decision a player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
+occurrence and version key both writes, so a retry repeats nothing.
 
 **Turn movement (CURRENT, D37-D38, V07.5).** The caller that holds the whole Scene (the room's
 `prepareExternalSceneCommit`, or the native geometry action) measures each published segment of a
@@ -338,26 +339,37 @@ The tabletop shows "Movement 15 / 30 ft" for the active controlled actor; past t
 uses the soft-warning style and Manual shows the number only. Dash is not modeled yet (escalated).
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
-`encounters/commands:execute` and `encounters/commandActions:execute` are internal. Every Encounter
-command enters through the Session room, and `roomEncounterPlanner`
+`encounters/commands:execute` is internal and records only GM tools. Every Encounter command enters
+through the Session room, and `roomEncounterPlanner`
 (`apps/session-worker/src/nativeRoomEncounterCommand.ts`) picks its planner before any read:
 `RESOLVE_ACTION` plans as `ACTION`, or `DISARM` when it carries an optional-combat intent (Disarm is
-the one contested action); `START` and `ADVANCE_TURN` plan as `TURN`; a decision answer or GM void
-asks the private `encounter-route` query (`liveSessions/encounterRoute:route`), which names the
-planner for the current pending occurrence — `ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`,
-`DISARM`, `MOVEMENT` or `VOID` — through the one shared classifier, `encounters/occurrenceOwner.ts`,
-and refuses an occurrence no planner owns. A PLAYER may classify only an occurrence that
-`encounters/pendingReads` already shows them. Only the GM commands in
-`CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` and `CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`
-(`packages/schema/src/api/liveSessionEncounterCommand.ts`) go to Convex as they are: the first list
-is bookkeeping with no dice, rules evaluation or derived mechanics; the second is the GM tool
-commands that still evaluate dice or derived actor rules in Convex (open R06.1 work). The private
-`encounter-command` action (`liveSessions/encounterCommand:execute`) runs those, and a movement
-decision on a Scene the room does not own (D29), through the native implementation as the
-forwarding user; its admission refuses every other command. Both routes require the Worker secret,
-the user's identity, the expected user and role, an ACTIVE Campaign, a `DO_ACTIVE` authority at the
-given epoch, and a Run in that Campaign (`liveSessions/encounterCommandAdmission.ts`). The admission
-check and native execution run as separate transactions, which Convex fences only by `DO_ACTIVE`
+the one contested action); `START` and `ADVANCE_TURN` plan as `TURN`; the three dice commands
+(`ROLL_RULE_EVIDENCE`, `ROLL_ACTOR_INITIATIVE`, `ROLL_ENEMY_ACTION`) take the room's dice (`ROLL`,
+below); a decision answer or GM void asks the private `encounter-route` query
+(`liveSessions/encounterRoute:route`), which names the planner for the current pending occurrence —
+`ACTION`, `TURN`, `CONCENTRATION`, `CLEAVING`, `DISARM`, `MOVEMENT` or `VOID` — through the one shared
+classifier, `encounters/occurrenceOwner.ts`, and refuses an occurrence no planner owns. A PLAYER may
+classify only an occurrence that `encounters/pendingReads` already shows them. Only the GM tools in
+`CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES` (`packages/schema/src/api/liveSessionEncounterCommand.ts`)
+go to Convex as they are (D41): no dice, and no derived mechanics beyond the deterministic actor
+recalculation every Convex commit runs anyway. The private `encounter-command` route
+(`liveSessions/encounterCommand:execute`, an internal mutation) admits and records those through
+`recordEncounterCommand` in one transaction, as the forwarding user, and refuses every other command.
+Both routes require the Worker secret, the user's identity, the expected user and role, an ACTIVE
+Campaign, a `DO_ACTIVE` authority at the given epoch, and a Run in that Campaign
+(`requireLiveEncounterRun`, `liveSessions/encounterCommandAdmission.ts`).
+
+**Room dice (CURRENT, D41).** A dice command takes two private round trips. The `encounter-roll-dice`
+query (`liveSessions/encounterRoll:dice`) admits the member and names the dice the command draws, as
+die sizes in draw order: one d20 for initiative, the roll definition's dice (two d20s for advantage or
+disadvantage) for an enemy action, and the request's die for "Roll dice"; none for a retried command,
+which replays its recorded roll. The room draws each with its secure random source, and the
+`encounter-roll` mutation (`liveSessions/encounterRoll:commit`) records the command with those draws
+(`recordEncounterCommand` in `encounters/commands.ts`). It refuses the draws `VERSION_STALE` unless
+every draw is used within its die, so a roll whose dice changed between the two calls records
+nothing. Initiative and enemy actions are the GM's; "Roll dice" is any member's who may answer the
+decision. Convex rechecks everything else at the commit, so a refused roll's draws are discarded.
+
 authority. Current: room closure
 (`#closeRoom` in `apps/session-worker/src/nativeLiveSessionRoom.ts`) closes every socket, so no new
 command arrives, then awaits the in-flight command chain, including forwarded Encounter commands,
@@ -434,8 +446,8 @@ Action choice or a Cleaving choice routes `TURN` or `CLEAVING` with the GM's dec
 and then records the void through the private `encounter-void-record` route. Every other void routes
 `VOID`: the private `encounter-void-prepare` route (`liveSessions/encounterVoid.ts`, GM only, no rules
 evaluated) cancels a paused action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE`
-receipt, one Run version) or refuses. `occurrenceVoid:record` adds the "Voided by the GM" receipt
-after a decline. When the declined turn or move
+receipt, one Run version) or refuses. The `encounter-void-record` route adds the "Voided by the GM"
+receipt after a decline. When the declined turn or move
 pauses again, the Run version cannot advance without breaking that flow's fences (each Run version
 has exactly one receipt), so the void returns the next decision and adds no timeline entry. Steps
 play cannot continue without (initiative, Concentration saves, Recharge, turn-effect saves,
@@ -528,11 +540,11 @@ turn-effect definition label; movement contacts have none yet), and each context
 so the decision drawer reads "Concentration check for Mira: took 12 fire from Fire Bolt (DC 10)". In Assisted mode an authored automatic reaction becomes a Use/Decline choice for its controller;
 auto-roll fills in dice only. Each prompt row is answered one of three ways:
 
-- `ROLL_RULE_EVIDENCE` ("Roll dice") rolls the request with secure randomness in Convex
-  (`encounters/evidenceRolls.ts`), records the attempt (`encounterEvidenceRolls`), posts it to the
-  table roll log ("Rolled by the app, attempt N", plus "Advantage, changed from Normal" when the roller
-  overrides the rules-derived mode) unless the roller is hidden, and settles nothing. Rerolls add
-  attempts. It is one of the GM tool commands Convex still evaluates (`CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`).
+- `ROLL_RULE_EVIDENCE` ("Roll dice") rolls the request with the room's dice (see "Room dice"),
+  records the attempt in Convex (`encounters/evidenceRolls.ts`, `encounterEvidenceRolls`), posts it
+  to the table roll log ("Rolled by the app, attempt N", plus "Advantage, changed from Normal" when
+  the roller overrides the rules-derived mode) unless the roller is hidden, and settles nothing.
+  Rerolls add attempts.
 - `SYSTEM_ROLL {requestId, rollId}` settles with the recorded faces of the responder's latest attempt
   for that request; anything else is refused `ROLL_UNAVAILABLE`. Captures return the verified
   `appRoll`, so the DO planner never sees a client-supplied app-roll value.
@@ -551,7 +563,7 @@ Worker for its proofs; its secrets must match the local Convex deployment's.
 
 **Worker-boundary validators.** The private rules captures and commits
 (`liveSessions/{characterRulesCapture,encounterRulesCapture,encounterAction,encounterActionCommit,
-encounterCleavingCommit,encounterCommand,encounterCommandAdmission,encounterConcentrationCommit,
+encounterCleavingCommit,encounterCommand,encounterConcentrationCommit,
 encounterDisarm,encounterMovement,encounterRoute,encounterTurn,encounterTurnCommit,encounterVoid}.ts`) are internal
 functions reached only through the Worker-secret HTTP routes. They declare `args: v.any()` with no
 `returns` validator; each handler takes `unknown` and parses it with its shared Zod contract before
@@ -659,8 +671,8 @@ changes use the ordered control above, so prior commands publish before their pr
 Current DO command coverage is incomplete: Door state, standalone token movement and its undo use
 the outbox; Encounter-bound movement, moves on an Encounter-bound Scene, fog-deriving moves and door
 changes, and movement decisions commit to Convex first (see "Convex-first Scene commits").
-Character Sheet commands use Convex. Other Encounter rule commands enter through the room but some
-still compute in the native Convex implementation (see the single Encounter command door above).
+Character Sheet commands use Convex. Encounter rule commands are planned or rolled in the room; only
+the GM tools Convex records go to it as they are (see the single Encounter command door above).
 These are remaining R06 integration gaps. Frozen decisions, rolls, effects, and receipts retain their
 issued evidence while subscriptions expose the latest published durable state.
 
@@ -875,7 +887,12 @@ active Encounter already in the Campaign or a reused command ID, throw `ConvexEr
 status 422; every other failure keeps the redacted 409 text. The room forwards it as
 `COMMAND_REJECTED` with code `DOMAIN_REJECTED`, the domain `reason` and its message; every other
 rejection carries `reason: null` and a generic message, so Convex internals never reach clients.
-Integrity checks and authorization gates stay plain errors.
+Integrity checks stay plain errors. A permission refusal says what it is (D42) and never reads as a
+stale state: a player sending a GM-only Encounter command is refused with `GM_ONLY` ("Only the GM
+can do that."), and a member answering a decision or acting for an actor they do not control with
+`NOT_ACTOR_CONTROLLER`. A genuinely stale version keeps `VERSION_STALE`, and the room's generic
+`STALE_STATE` stays for redacted Convex refusals. The default messages live in
+`DOMAIN_REJECTION_MESSAGES` beside the reason enum.
 
 Rule warnings (current, ADR 0034 decision 2) are the one rejection with a payload: reason
 `RULE_WARNINGS` is a discriminated variant of `domainRejectionErrorDataSchema` that also carries
@@ -883,9 +900,9 @@ Rule warnings (current, ADR 0034 decision 2) are the one rejection with a payloa
 `COMMAND_REJECTED` carries them in `warnings` (`null` for every other rejection). The DO action
 planner raises the same data itself as a `LiveSessionDomainRejectionError`, so both RESOLVE_ACTION
 paths reach the client identically. The web action drawer shows the warnings and resends the command
-with `acknowledgedWarnings` when the user chooses "Do it anyway". `REVERT_LAST_ACTION` still runs in
-Convex (`CONVEX_EVALUATED_ENCOUNTER_COMMAND_TYPES`); its refusals use reason `REVERT_UNAVAILABLE` with a
-message naming what changed.
+with `acknowledgedWarnings` when the user chooses "Do it anyway". `REVERT_LAST_ACTION` is a GM tool
+Convex records (`CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES`); its refusals use reason
+`REVERT_UNAVAILABLE` with a message naming what changed.
 
 Scene command retention is current: `scenes/commandRetention:purge` runs daily at 09:00 UTC
 (`convex/crons.ts`) and deletes `sceneLiveCommands` receipts older than 30 days together with their

@@ -11,12 +11,13 @@ import type {
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   domainRejection,
-  executeEncounterCommand,
   playerControlFixture,
   setActorControllers,
   storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Caller = Pick<PlayerControlFixture['owner'], 'caller'>
@@ -50,7 +51,7 @@ function rollDice(
   pending: D20Pending,
   rollMode: RollRuleEvidenceInputDto['rollMode'] = null
 ) {
-  return member.caller.mutation(executeEncounterCommand, {
+  return executeInRoom(member.caller, {
     command: {
       type: 'ROLL_RULE_EVIDENCE',
       encounterId: base.run.id,
@@ -70,7 +71,7 @@ function settle(
   pending: D20Pending,
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ) {
-  return member.caller.mutation(executeEncounterCommand, {
+  return executeInRoom(member.caller, {
     command: {
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: base.run.id,
@@ -115,7 +116,7 @@ describe('Encounter roll prompts', () => {
   it('routes a creature save against a player action to the GM, who rolls twice and settles the latest roll', async () => {
     const base = await playerControlFixture({ bite: 'SAVE', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
-    const started = await base.other.caller.mutation(executeEncounterCommand, {
+    const started = await executeInRoom(base.other.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
     // The player sees the action waiting, but the enemy's save belongs to the GM.
@@ -197,7 +198,7 @@ describe('Encounter roll prompts', () => {
   it('lets the controlling player enter their own attack roll and rejects a forged face count', async () => {
     const base = await playerControlFixture({ bite: 'ATTACK', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
-    await base.other.caller.mutation(executeEncounterCommand, {
+    await executeInRoom(base.other.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
     // The companion's attack roll goes to its controller; the GM may answer it too.
@@ -256,10 +257,10 @@ describe('Encounter roll prompts', () => {
     // Manual mode runs no rules: neither the controlling player nor the GM can start the action.
     for (const member of [base.other, base.owner])
       await expect(
-        member.caller.mutation(executeEncounterCommand, {
+        executeInRoom(member.caller, {
           command: await base.bite(base.companion.id, base.enemy.id)
         })
-      ).rejects.toThrow('Native action execution requires an Assisted Encounter.')
+      ).rejects.toThrow(LiveSessionRouteError)
     expect(await stored()).toEqual(before)
     for (const member of [base.owner, base.other, base.player])
       await expect(readPending(base, member)).resolves.toBeNull()
@@ -269,7 +270,7 @@ describe('Encounter roll prompts', () => {
   it('rolls on the server without a prompt when the roller auto-rolls', async () => {
     const base = await playerControlFixture({ bite: 'SAVE' })
     await setActorControllers(base, base.companion.id, [base.other.userId])
-    const result = await base.other.caller.mutation(executeEncounterCommand, {
+    const result = await executeInRoom(base.other.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
     expect(result.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')

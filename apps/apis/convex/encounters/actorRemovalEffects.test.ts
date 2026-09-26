@@ -1,9 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { makeFunctionReference } from 'convex/server'
-import type {
-  EncounterExecuteInput,
-  EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounters'
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -21,11 +16,10 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readRunState } from './documents'
 import { cleanupRemovedActorEffects } from './actorRemovalEffects'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { LiveSessionRouteError } from '../../../session-worker/src/liveSessionRoutes'
 
 const lifecycle: ActiveRuleEffectLifecycleDto = { schemaVersion: 1, remainingTicks: 3 }
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 type EmptyPolicy = 'V1' | 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
 
 function definition(encounterId: string, sourceActorId: string): ActiveRuleEffectDefinitionDto {
@@ -160,7 +154,7 @@ describe('native actor maintained-effect cleanup', () => {
         expectedVersion: state.version,
         commandId: crypto.randomUUID()
       }
-      const removed = await fixture.owner.caller.mutation(execute, { command })
+      const removed = await executeInRoom(fixture.owner.caller, { command })
       expect(
         removed.projection.actors.find((actor) => actor.id === fixture.actor.id)
       ).toMatchObject({ sourceRevision: null, currentHitPoints: fixture.actor.currentHitPoints })
@@ -198,9 +192,9 @@ describe('native actor maintained-effect cleanup', () => {
       expect(after.characterEffects).toEqual([])
       expect(after.actorEffects).toEqual([])
       expect(after.maintainedStates).toEqual([])
-      expect(await fixture.owner.caller.mutation(execute, { command })).toEqual(removed)
+      expect(await replayInRoom(fixture.owner.caller, { command })).toEqual(removed)
       expect(await records(fixture)).toEqual(after)
-      await fixture.owner.caller.mutation(execute, {
+      await executeInRoom(fixture.owner.caller, {
         command: {
           type: 'SET_INITIATIVE',
           encounterId: state.id,
@@ -330,8 +324,8 @@ describe('native actor maintained-effect cleanup', () => {
     }
     const before = await records(fixture)
     await expect(
-      fixture.owner.caller.mutation(execute, { command: { ...command, actorId: other.id } })
-    ).rejects.toThrow('pending Encounter occurrence')
+      executeInRoom(fixture.owner.caller, { command: { ...command, actorId: other.id } })
+    ).rejects.toThrow(LiveSessionRouteError)
     expect(await records(fixture)).toEqual(before)
     if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
       throw new Error('Expected concentration')
@@ -351,8 +345,8 @@ describe('native actor maintained-effect cleanup', () => {
         pendingSnapshotChecksum: checksumCanonicalJson(mismatched)
       })
     )
-    await expect(fixture.owner.caller.mutation(execute, { command })).rejects.toThrow(
-      'did not terminate'
+    await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
+      LiveSessionRouteError
     )
     expect(await records(fixture)).toEqual(before)
     await fixture.t.run((ctx) =>
@@ -361,7 +355,7 @@ describe('native actor maintained-effect cleanup', () => {
         pendingSnapshotChecksum: checksumCanonicalJson(snapshot)
       })
     )
-    const result = await fixture.owner.caller.mutation(execute, { command })
+    const result = await executeInRoom(fixture.owner.caller, { command })
     const completed = await fixture.t.run((ctx) => ctx.db.get(pendingId))
     expect(completed).toMatchObject({
       state: 'COMPLETED',
@@ -371,7 +365,7 @@ describe('native actor maintained-effect cleanup', () => {
       pendingSnapshotChecksum: null
     })
     expect((await records(fixture)).maintainedStates).toEqual([])
-    expect(await fixture.owner.caller.mutation(execute, { command })).toEqual(result)
+    expect(await replayInRoom(fixture.owner.caller, { command })).toEqual(result)
   })
 
   it.each([

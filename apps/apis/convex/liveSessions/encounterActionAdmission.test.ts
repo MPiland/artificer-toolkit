@@ -58,7 +58,8 @@ import { readRunActor, readRunProjection, readRunState } from '../encounters/doc
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
 
@@ -253,9 +254,7 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
     optionalCombatIntent: null,
     sceneContext: null
   }
-  const result = fresh
-    ? null
-    : await base.owner.caller.mutation(internal.encounters.commands.execute, { command })
+  const result = fresh ? null : await executeInRoom(base.owner.caller, { command })
   if (!fresh) {
     if (!result) throw new Error('Missing executed action fixture result.')
     expect(result.occurrence?.status).toBe(pending ? 'PENDING' : 'COMPLETE')

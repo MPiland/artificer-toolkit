@@ -31,6 +31,7 @@ import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readRunActor, readRunState } from './documents'
 import * as rollRandom from '../lib/rollRandom'
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -198,7 +199,7 @@ function execute(
   fixture: Fixture,
   command: (base: { encounterId: string; commandId: string }) => EncounterExecuteInput['command']
 ) {
-  return fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+  return executeInRoom(fixture.owner.caller, {
     command: command({ encounterId: fixture.run.id, commandId: crypto.randomUUID() })
   })
 }
@@ -568,7 +569,7 @@ describe('GM undo against live Character state', () => {
       before.state.hitpoints.current - 1
     )
     await expect(
-      fixture.player.caller.mutation(internal.encounters.commands.execute, {
+      executeInRoom(fixture.player.caller, {
         command: {
           type: 'REVERT_LAST_ACTION',
           encounterId: fixture.run.id,
@@ -576,7 +577,9 @@ describe('GM undo against live Character state', () => {
           expectedVersion: bitten.projection.version
         }
       })
-    ).rejects.toThrow('Campaign not found')
+    ).rejects.toMatchObject({
+      data: { reason: 'GM_ONLY', message: 'Only the GM can do that.' }
+    })
     const undone = await execute(fixture, (base) => ({
       ...base,
       type: 'REVERT_LAST_ACTION',

@@ -13,6 +13,9 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import {
   liveSessionEncounterCommandInputSchema,
+  liveSessionEncounterRollCommitInputSchema,
+  liveSessionEncounterRollDiceSchema,
+  liveSessionEncounterRollInputSchema,
   liveSessionEncounterRouteInputSchema,
   liveSessionEncounterRouteResponseSchema,
   liveSessionEncounterVoidInputSchema,
@@ -225,6 +228,14 @@ const liveSessionRoutes = {
   },
   encounterVoidRecord: {
     input: liveSessionEncounterVoidInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
+  encounterRollDice: {
+    input: liveSessionEncounterRollInputSchema,
+    output: liveSessionEncounterRollDiceSchema
+  },
+  encounterRollCommit: {
+    input: liveSessionEncounterRollCommitInputSchema,
     output: encounterCommandResultDtoSchema
   },
   encounterCommand: {

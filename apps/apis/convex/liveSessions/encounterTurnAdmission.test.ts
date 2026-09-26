@@ -12,7 +12,6 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
-  EncounterCommandResultDto,
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -45,7 +44,8 @@ import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRou
 import {
   insertActiveLiveAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  executeInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 const secret = 'private-turn-planning-test-secret-at-least-32-bytes'
@@ -79,9 +79,6 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const capture = makeFunctionReference<
   'query',
   LiveSessionEncounterRulesInput,
@@ -146,7 +143,7 @@ async function setup() {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  let started = await base.owner.caller.mutation(execute, {
+  let started = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
       encounterId: run.id,
@@ -158,7 +155,7 @@ async function setup() {
     const pending = started.occurrence?.pending
     if (!started.occurrence || !pending || pending.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing Assisted initiative evidence.')
-    started = await base.owner.caller.mutation(execute, {
+    started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: run.id,
@@ -307,7 +304,7 @@ it('admits the owner or the current actor controller, epoch, and Run', async () 
   ).rejects.toThrow('scope mismatch')
   const currentActorId = base.started.projection.currentActorId
   if (!currentActorId) throw new Error('Expected a current actor.')
-  const granted = await base.owner.caller.mutation(execute, {
+  const granted = await executeInRoom(base.owner.caller, {
     command: {
       type: 'UPDATE_ACTOR',
       encounterId: base.run.id,
@@ -348,7 +345,7 @@ it('returns exact native pending and terminal turn replays while blocking unrela
       expectedVersion: base.started.projection.version
     }
   } satisfies EncounterExecuteInput
-  const advanced = await base.owner.caller.mutation(execute, first)
+  const advanced = await executeInRoom(base.owner.caller, first)
   expect(advanced).toMatchObject({ projection: { version: first.command.expectedVersion + 1 } })
   const wrap = {
     command: {
@@ -358,7 +355,7 @@ it('returns exact native pending and terminal turn replays while blocking unrela
       expectedVersion: advanced.projection.version
     }
   } satisfies EncounterExecuteInput
-  const pending = await base.owner.caller.mutation(execute, wrap)
+  const pending = await executeInRoom(base.owner.caller, wrap)
   if (!pending.occurrence?.pending || pending.occurrence.pending.kind !== 'INITIATIVE_EVIDENCE')
     throw new Error('Expected native pending turn root.')
   const pendingCapture = await base.owner.caller.query(capture, {
@@ -394,7 +391,7 @@ it('returns exact native pending and terminal turn replays while blocking unrela
     const evidence = settled.occurrence?.pending
     if (!settled.occurrence || !evidence || evidence.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing pending round-wrap evidence.')
-    settled = await base.owner.caller.mutation(execute, {
+    settled = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -445,17 +442,17 @@ it('plans a same-round turn through private raw captures without writing Convex 
   expect(requests).toContain('TURN_COMMAND')
   expect(requests).toContain('INITIATIVE_ROUND')
   expect(await storedTurnState(base)).toEqual(before)
-  const native = await base.owner.caller.mutation(execute, { command })
+  const committed = await executeInRoom(base.owner.caller, { command })
   expect(planned.prepared.root.proposedTerminalTransition).toMatchObject({
-    status: native.projection.status,
-    round: native.projection.round,
-    currentActorId: native.projection.currentActorId
+    status: committed.projection.status,
+    round: committed.projection.round,
+    currentActorId: committed.projection.currentActorId
   })
 }, 60_000)
 
 it('plans a round-wrap pause and restores the exact pending root without dice or writes', async () => {
   const base = await setup()
-  const first = await base.owner.caller.mutation(execute, {
+  const first = await executeInRoom(base.owner.caller, {
     command: {
       type: 'ADVANCE_TURN',
       encounterId: base.run.id,
@@ -487,7 +484,7 @@ it('plans a round-wrap pause and restores the exact pending root without dice or
   const advance = context.root.initiativeAdvance
   if (advance?.kind !== 'ROUND_WRAP') throw new Error('Expected round-wrap transition.')
   expect(await storedTurnState(base)).toEqual(before)
-  const pending = await base.owner.caller.mutation(execute, { command })
+  const pending = await executeInRoom(base.owner.caller, { command })
   const nativePending = await base.owner.caller.query(capture, {
     ...scope,
     request: { kind: 'TURN_COMMAND', command }
@@ -536,7 +533,7 @@ it('plans a round-wrap pause and restores the exact pending root without dice or
     const evidence = settled.occurrence?.pending
     if (!settled.occurrence || !evidence || evidence.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing pending native round-wrap evidence.')
-    settled = await base.owner.caller.mutation(execute, {
+    settled = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -555,7 +552,7 @@ it('plans a round-wrap pause and restores the exact pending root without dice or
 
 it('commits a DO round-wrap pause once and resolves it through native initiative evidence', async () => {
   const base = await setup()
-  const first = await base.owner.caller.mutation(execute, {
+  const first = await executeInRoom(base.owner.caller, {
     command: {
       type: 'ADVANCE_TURN',
       encounterId: base.run.id,
@@ -681,7 +678,7 @@ it('commits a DO round-wrap pause once and resolves it through native initiative
     const evidence = settled.occurrence?.pending
     if (!settled.occurrence || !evidence || evidence.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing DO-issued initiative evidence.')
-    settled = await base.owner.caller.mutation(execute, {
+    settled = await executeInRoom(base.owner.caller, {
       command: {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,

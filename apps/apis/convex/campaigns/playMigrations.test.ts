@@ -2,10 +2,6 @@ import migrations from '@convex-dev/migrations/test'
 import { defineSchema, makeFunctionReference, type WithoutSystemFields } from 'convex/server'
 import { convexTest } from 'convex-test'
 import { expect, it, vi } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterExecuteInput
-} from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredPresentationSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -13,9 +9,7 @@ import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene
 import type { Doc, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import schema from '../schema'
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
+import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 const runPlayMigrations = makeFunctionReference<'mutation', Record<string, never>, unknown>(
   'campaigns/playMigrations:run'
 )
@@ -38,7 +32,7 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
   onTestFinished
 }) => {
   const base = await createEncounterSceneFixture()
-  await base.other.caller.mutation(execute, {
+  await executeInRoom(base.other.caller, {
     command: {
       type: 'UPSERT_REMINDER',
       encounterId: base.run.id,

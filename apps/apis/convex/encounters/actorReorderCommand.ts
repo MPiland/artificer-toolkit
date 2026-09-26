@@ -40,7 +40,7 @@ export async function reorderEncounterActors(
     .unique()
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
