@@ -103,6 +103,10 @@ export function presentTimelineEntry(
     actorUserId: command.actorUserId,
     createdAt: command.createdAt,
     roll: result?.roll ?? null,
-    ruleOverrides: command.commandType === 'RESOLVE_ACTION' ? command.ruleOverrides : []
+    label: command.commandType === 'USE_BASIC_ACTION' ? command.label : null,
+    ruleOverrides:
+      command.commandType === 'RESOLVE_ACTION' || command.commandType === 'USE_BASIC_ACTION'
+        ? command.ruleOverrides
+        : []
   }
 }

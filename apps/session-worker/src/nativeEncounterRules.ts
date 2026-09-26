@@ -22,7 +22,11 @@ import {
   encounterActionSourceLabel,
   resolveEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import {
+  lockedRelationshipActionFacts,
+  mergeCanonicalD20Contributors
+} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   evaluateEncounterActionRuleWarnings,
@@ -206,6 +210,8 @@ export async function planNativeLiveEncounterAction(
       selectedActors.map(async (actor) => [actor.id, await loadTarget(actor)] as const)
     )
   )
+  // An ally's Help (basic action, Q11) gives this actor's next attack roll advantage.
+  const allyAdvantage = encounterBasicActionAllyAdvantage({ actors, attackerId: command.actorId })
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
@@ -217,13 +223,21 @@ export async function planNativeLiveEncounterAction(
     movementTargets,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
-      lockedRelationshipActionFacts({
-        actionEffectId: input.actionEffectId,
-        sourceActorId: input.sourceActorId,
-        targetActorId: input.targetActorId,
-        targets: { activeEffectsByActorId }
-      })
+      mergeCanonicalD20Contributors(
+        lockedRelationshipActionFacts({
+          actionEffectId: input.actionEffectId,
+          sourceActorId: input.sourceActorId,
+          targetActorId: input.targetActorId,
+          targets: { activeEffectsByActorId }
+        }),
+        allyAdvantage ? [allyAdvantage.contributor] : []
+      )
   })
+  // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
+  const allyAdvantageUse =
+    allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
+      ? { helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }
+      : null
   const capturedScene = command.sceneContext
     ? await capture({
         kind: 'ACTION_SCENE',
@@ -389,6 +403,7 @@ export async function planNativeLiveEncounterAction(
     sceneContext,
     currentnessChecksum,
     activeEffectsByActorId,
+    allyAdvantageUse,
     dependencies,
     revisions
   }
@@ -606,7 +621,8 @@ export async function commitNativeLiveEncounterAction(
     maintainedState: plan.settlement.maintainedState,
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
-    cleaving: plan.cleaving
+    cleaving: plan.cleaving,
+    allyAdvantageUse: plan.allyAdvantageUse
   })
   return callLiveSessionRoute(environment, accessToken, 'encounterActionCommit', input)
 }

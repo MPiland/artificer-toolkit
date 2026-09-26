@@ -9,6 +9,7 @@ import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { rejectDomain } from '../lib/domainRejections'
 import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
 import { readDisarmAdmission } from '../encounters/disarmAdmission'
+import { readBasicActionAdmission } from '../encounters/basicActionAdmission'
 
 /** Shared authorization and replay fences for the pending and terminal action transactions. */
 export async function readLiveEncounterActionAdmission(
@@ -94,6 +95,11 @@ export async function readLiveEncounterActionScope(
     const disarm = await readDisarmAdmission(ctx, { ...input, command: input.action.command })
     if (disarm.kind !== 'READY') throw new Error('The admitted Disarm is unavailable.')
     return disarm
+  }
+  if (input.action.kind === 'BASIC_ACTION') {
+    const basic = await readBasicActionAdmission(ctx, { ...input, command: input.action.command })
+    if (basic.kind !== 'READY') throw new Error('The admitted basic action is unavailable.')
+    return basic
   }
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')

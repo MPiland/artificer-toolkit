@@ -53,13 +53,16 @@ export type EncounterStoredEvidenceRoll = z.infer<typeof encounterStoredEvidence
  * The voluntary movement an actor spent during one turn, in feet (D38). The turn is the Run's round
  * and current actor, so a new turn reads a new key and starts at zero. It sits outside the Run's
  * version and checksum: the budget is displayed, never enforced, so no fence reads it.
+ * `speedBonuses` counts the basic actions this turn that each added the actor's speed to its
+ * budget (Dash, D38).
  */
 export const encounterStoredTurnMovementSchema = z.strictObject({
   encounterId: postgresUuidSchema,
   round: z.number().check(z.int()).check(z.positive()),
   turnActorId: postgresUuidSchema,
   actorId: postgresUuidSchema,
-  usedFeet: z.number().check(z.nonnegative())
+  usedFeet: z.number().check(z.nonnegative()),
+  speedBonuses: z.number().check(z.int()).check(z.nonnegative())
 })
 export type EncounterStoredTurnMovement = z.infer<typeof encounterStoredTurnMovementSchema>
 
@@ -138,6 +141,12 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
     ruleResultChecksum: projectionChecksumSchema,
     optionalCombatSnapshotChecksum: projectionChecksumSchema,
     /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
+    ruleOverrides: encounterRuleWarningsDtoSchema
+  }),
+  z.extend(encounterStoredRunCommandResultSchema, {
+    commandType: z.literal('USE_BASIC_ACTION'),
+    /** The catalogue entry's name when it was used; the timeline shows it. */
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
     ruleOverrides: encounterRuleWarningsDtoSchema
   }),
   z.extend(encounterStoredRunCommandResultSchema, {

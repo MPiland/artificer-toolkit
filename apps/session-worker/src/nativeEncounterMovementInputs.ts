@@ -16,6 +16,7 @@ import {
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { suppressesEncounterOpportunityAttacks } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
@@ -309,9 +310,12 @@ export async function readNativeLiveMovementInputs(input: {
           },
           loadSpatialEffects: async () => spatialEffects
         })
+  // A mover that took Disengage (basic action, Q11) provokes no opportunity attacks this turn.
+  const mover = actors.find((actor) => actor.id === actorIdByTokenId.get(token.id))
   const reactions =
     !facts ||
     !resolvePerception ||
+    (mover && suppressesEncounterOpportunityAttacks(state, mover)) ||
     (response && response.context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
       ? { reactionTimeline: [], firstBoundaryDistance: null }
       : await discoverEncounterMovementReactionChoices({

@@ -128,6 +128,19 @@ export const resolveEncounterActionInputDtoSchema = z.extend(commandBaseDtoSchem
   )
 })
 
+/**
+ * The current actor takes one of its System's basic actions (Q11). `allyActorId` names the ally an
+ * ally-advantage action helps and is null for every other action.
+ */
+export const useEncounterBasicActionInputDtoSchema = z.extend(commandBaseDtoSchema, {
+  type: z.literal('USE_BASIC_ACTION'),
+  actorId: uuidSchema,
+  definitionId: postgresUuidSchema,
+  allyActorId: z.nullable(uuidSchema),
+  /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+  acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+})
+
 const requestIdSchema = z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
 
 /** A d20 row's roll mode. The rules-derived mode is recommended; the roller may change it. */
@@ -214,6 +227,7 @@ export const revertLastEncounterActionInputDtoSchema = z.extend(commandBaseDtoSc
   type: z.literal('REVERT_LAST_ACTION')
 })
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
+export type UseEncounterBasicActionInputDto = z.infer<typeof useEncounterBasicActionInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>

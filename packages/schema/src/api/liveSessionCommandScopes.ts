@@ -2,7 +2,8 @@ import { z } from '../zod.js'
 import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  useEncounterBasicActionInputDtoSchema
 } from './encounterRuleCommands.js'
 
 /**
@@ -30,6 +31,11 @@ export const liveSessionActionCaptureScopeSchema = z.discriminatedUnion('kind', 
       resolveEncounterActionInputDtoSchema,
       resolveRuleOccurrenceInputDtoSchema
     ])
+  }),
+  /** One of the System's basic actions (Q11). */
+  z.strictObject({
+    kind: z.literal('BASIC_ACTION'),
+    command: useEncounterBasicActionInputDtoSchema
   })
 ])
 export type LiveSessionActionCaptureScope = z.infer<typeof liveSessionActionCaptureScopeSchema>

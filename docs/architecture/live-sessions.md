@@ -335,17 +335,43 @@ to an `encounterTurnMovements` row keyed by Run, round, the turn's current actor
 version and checksum and fences nothing: the budget is shown, never enforced. A new turn reads a new
 key, so it starts at zero; completing the Run deletes the rows. `encounters/activeReads:active`
 returns `turnMovement` (`{actorId, used, budget}`) for the actors the viewer controls, every actor for
-the GM; the budget is a Character's stored `walkingSpeed` or a creature stat block's walking speed.
+the GM; the budget is a Character's stored `walkingSpeed` or a creature stat block's walking speed,
+once more for each of the row's `speedBonuses` (a Dash this turn).
 The tabletop shows "Movement 15 / 30 ft" for the active controlled actor (`readActiveTurn` in
 `CampaignVttStage.model.ts` picks the current actor's entry only when the viewer acts for it); past
-the budget Assisted uses the soft-warning style and Manual shows the number only. Dash is not modeled yet (escalated).
+the budget Assisted uses the soft-warning style and Manual shows the number only.
+
+**Basic combat actions (CURRENT, Q11, D38).** The Run System's basic actions are its published
+platform `basic-action` reusable definitions (SRD: Dash, Disengage, Dodge, Help, Hide, Ready, Search,
+Use an Object in `packages/source-data/src/srd/basicActions.ts`). Each carries a name (the definition
+label), rules text, an action cost and zero or more closed mechanic kinds
+(`BASIC_ACTION_MECHANIC_CODE` in `packages/shared`). `encounters/actionChoices:get` lists them for
+every actor apart from its features. `USE_BASIC_ACTION` plans as `BASIC_ACTION` in the room
+(`nativeBasicAction.ts`): the `BASIC_ACTION` admission (`encounters/basicActionAdmission.ts`, replay
+first) is followed by the entry's current definition, the Assisted allowance and target warnings and
+the effects (`rules-runtime/encounterBasicActions.ts`). The private `encounter-basic-action` commit
+(`liveSessions/encounterBasicAction.ts`) checks the plan against the current platform entry and Run,
+records the allowance use, appends the effects to the actor's Run resources (`basicActionEffects`),
+adds a `speedBonuses` count to the turn movement row for `SPEED_MOVEMENT_BONUS` and stores a
+`USE_BASIC_ACTION` run command whose label the timeline shows; it evaluates no rules. Entries without
+mechanics (Hide, Ready, Search, Use an Object) are only logged. Effects live on the actor that took
+the action and end as its next turn starts (the turn planner stages `stagedBasicActionExpiry` and
+`persistLiveTurnResources` clears it). `NO_OPPORTUNITY_ATTACKS` also ends with its own turn: the
+room's movement reaction discovery skips a mover it covers. `DISADVANTAGE_ON_ATTACKS_AGAINST` adds a
+disadvantage contributor to every attack against the actor through `prepareEncounterActionMechanics`,
+and `ALLY_ADVANTAGE` an advantage contributor to the named ally's next `RESOLVE_ACTION` attack roll,
+whose commit removes it from the helper (`allyAdvantageUse`). Their contributor source ids name the
+entry, so the derived-mode reason reads "Dodge" or "Help". A custom actor spends no allowance.
+Known gaps: Help does not yet apply to ability checks or opportunity attacks, Dodge ignores whether
+the actor sees the attacker, and `REVERT_LAST_ACTION` neither undoes a basic action nor restores a
+consumed Help.
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` is internal and records only GM tools. Every Encounter command enters
 through the Session room, and `roomEncounterPlanner`
 (`apps/session-worker/src/nativeRoomEncounterCommand.ts`) picks its planner before any read:
 `RESOLVE_ACTION` plans as `ACTION`, or `DISARM` when it carries an optional-combat intent (Disarm is
-the one contested action); `START` and `ADVANCE_TURN` plan as `TURN`; the three dice commands
+the one contested action); `USE_BASIC_ACTION` plans as `BASIC_ACTION`; `START` and `ADVANCE_TURN` plan as `TURN`; the three dice commands
 (`ROLL_RULE_EVIDENCE`, `ROLL_ACTOR_INITIATIVE`, `ROLL_ENEMY_ACTION`) take the room's dice (`ROLL`,
 below); a decision answer or GM void asks the private `encounter-route` query
 (`liveSessions/encounterRoute:route`), which names the planner for the current pending occurrence —

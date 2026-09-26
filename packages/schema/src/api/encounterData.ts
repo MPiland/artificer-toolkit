@@ -261,6 +261,8 @@ export const encounterTimelineEntryDtoSchema = z.strictObject({
   actorUserId: uuidSchema,
   createdAt: timestampSchema,
   roll: z.nullable(rollRecordDtoSchema),
+  /** The named basic action a `USE_BASIC_ACTION` entry took; null for every other command. */
+  label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
   /** Rule warnings the action overrode; the GM log badges each one. */
   ruleOverrides: encounterRuleWarningsDtoSchema
 })

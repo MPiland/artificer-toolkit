@@ -71,6 +71,7 @@ export async function restoreEncounterInitiativeTurnActors<
     root.legendaryActionQueue ||
     root.stagedLegendaryActionRefreshes ||
     root.stagedActionEconomyRefreshes ||
+    root.stagedBasicActionExpiry ||
     root.completedRechargePlan !== undefined
   )
     throw new Error('Initiative outgoing turn is stale.')

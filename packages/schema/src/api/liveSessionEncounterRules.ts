@@ -22,7 +22,8 @@ import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  useEncounterBasicActionInputDtoSchema
 } from './encounterRuleCommands.js'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
@@ -107,6 +108,10 @@ export const liveSessionEncounterRulesRequestSchema = z.discriminatedUnion('kind
       resolveEncounterActionInputDtoSchema,
       resolveRuleOccurrenceInputDtoSchema
     ])
+  }),
+  z.strictObject({
+    kind: z.literal('BASIC_ACTION'),
+    command: useEncounterBasicActionInputDtoSchema
   }),
   z.strictObject({ kind: z.literal('INPUTS') }),
   z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
@@ -388,6 +393,19 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
         /** The pending contest being answered and its version; null for a new Disarm. */
         snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
         occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative()))
+      })
+    ),
+    result: z.nullable(encounterCommandResultDtoSchema)
+  }),
+  z.strictObject({
+    kind: z.literal('BASIC_ACTION'),
+    revisions: liveSessionRulesRevisionsSchema,
+    readChecksum: projectionChecksumSchema,
+    /** The admitted basic action to plan; null when `result` replays a stored one. */
+    ready: z.nullable(
+      z.strictObject({
+        command: useEncounterBasicActionInputDtoSchema,
+        fingerprint: projectionChecksumSchema
       })
     ),
     result: z.nullable(encounterCommandResultDtoSchema)

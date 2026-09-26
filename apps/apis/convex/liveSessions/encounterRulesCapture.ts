@@ -42,6 +42,7 @@ import { readLiveEncounterActionScope } from './encounterActionAdmission'
 import { readEncounterSettledAppRoll } from '../encounters/evidenceRolls'
 import { readCleavingResponseAdmission } from '../encounters/cleavingResponseAdmission'
 import { readDisarmAdmission } from '../encounters/disarmAdmission'
+import { readBasicActionAdmission } from '../encounters/basicActionAdmission'
 
 type SemanticResponse = {
   [K in LiveSessionEncounterRulesResponse['kind']]: Omit<
@@ -128,9 +129,37 @@ export async function readEncounterRulesCapture(
     (input.request.kind === 'ACTION_COMMAND' ||
       input.request.kind === 'ACTION_RESPONSE' ||
       input.request.kind === 'CLEAVING_RESPONSE' ||
-      input.request.kind === 'DISARM')
+      input.request.kind === 'DISARM' ||
+      input.request.kind === 'BASIC_ACTION')
   )
     throw new Error('Ordinary action capture cannot use another command scope.')
+  if (input.request.kind === 'BASIC_ACTION') {
+    if (
+      input.expectedRole !== 'OWNER' &&
+      checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
+    )
+      throw new Error('Live Session action scope mismatch.')
+    const admission = await readBasicActionAdmission(ctx, {
+      ...input,
+      command: input.request.command
+    })
+    const response = {
+      kind: 'BASIC_ACTION' as const,
+      ready:
+        admission.kind === 'READY'
+          ? { command: admission.command, fingerprint: admission.fingerprint }
+          : null,
+      result: admission.kind === 'REPLAY' ? admission.result : null
+    }
+    return liveSessionEncounterRulesResponseSchema.parse({
+      ...response,
+      revisions: await readLiveSessionRulesRevisions(ctx, {
+        systemId: admission.state.gameSystemId,
+        campaignId: input.campaignId
+      }),
+      readChecksum: checksumCanonicalJson({ input, userId: input.expectedUserId, response })
+    })
+  }
   if (input.request.kind === 'DISARM') {
     if (
       input.expectedRole !== 'OWNER' &&
@@ -333,6 +362,7 @@ type OrdinaryEncounterRequest = Exclude<
       | 'ACTION_RESPONSE'
       | 'CLEAVING_RESPONSE'
       | 'DISARM'
+      | 'BASIC_ACTION'
   }
 >
 
@@ -365,7 +395,8 @@ export async function admitEncounterCaptureParts(
       parsed.kind === 'ACTION_COMMAND' ||
       parsed.kind === 'ACTION_RESPONSE' ||
       parsed.kind === 'CLEAVING_RESPONSE' ||
-      parsed.kind === 'DISARM'
+      parsed.kind === 'DISARM' ||
+      parsed.kind === 'BASIC_ACTION'
     )
       throw new Error('A command admission admits its own scope.')
     return readOrdinaryEncounterCapture(ctx, { ...input, request: parsed }, admission)

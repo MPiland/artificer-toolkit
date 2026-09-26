@@ -1,6 +1,10 @@
 import { executeEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
+import {
+  encounterBasicActionEffects,
+  withEncounterBasicActionEffects
+} from './encounterBasicActions.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
@@ -446,6 +450,17 @@ export async function prepareTurnLegendaryActions<
       actors = actors.map((actor) =>
         actor.id === actionEconomy.refreshedActor!.id ? actionEconomy.refreshedActor! : actor
       )
+    // The entering actor's basic-action effects (Dodge, Help, Disengage) end as its turn starts.
+    const refreshed = actors.find((actor) => actor.id === currentActorId)!
+    const expiring = encounterBasicActionEffects(refreshed)
+    if (root.stagedBasicActionExpiry !== undefined && !same(root.stagedBasicActionExpiry, expiring))
+      throw new Error('Basic action expiry is stale.')
+    if (expiring.length) {
+      root = { ...root, stagedBasicActionExpiry: expiring }
+      actors = actors.map((actor) =>
+        actor.id === refreshed.id ? withEncounterBasicActionEffects(refreshed, []) : actor
+      )
+    }
   }
   return { kind: 'COMPLETE' as const, root, actors }
 }

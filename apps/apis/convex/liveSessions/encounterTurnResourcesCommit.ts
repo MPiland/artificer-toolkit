@@ -21,6 +21,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/actionEconomyCapabilityRegistry.default'
 import { applyStagedLegendaryActionRefreshes } from '@artificer-toolkit/rules-runtime/encounterLegendaryActionDiscovery'
+import {
+  encounterBasicActionEffects,
+  withEncounterBasicActionEffects
+} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
@@ -286,6 +290,18 @@ export async function persistLiveTurnResources(
       await writeActor(actor, next)
       actor = await readActor(enteringId)
     }
+  }
+
+  const basicActionExpiry = root.stagedBasicActionExpiry ?? []
+  if (basicActionExpiry.length) {
+    if (!enteringId) throw new Error('Live Session basic action expiry owner is unavailable.')
+    const actor = await readActor(enteringId)
+    if (
+      checksumCanonicalJson(encounterBasicActionEffects(actor)) !==
+      checksumCanonicalJson(basicActionExpiry)
+    )
+      throw new Error('Live Session basic action expiry is stale.')
+    await writeActor(actor, withEncounterBasicActionEffects(actor, []))
   }
 
   if (recharge) {

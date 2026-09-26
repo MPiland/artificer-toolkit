@@ -21,16 +21,13 @@ function currentTurn(state: RunTurnState) {
     : null
 }
 
-/**
- * Adds an actor's voluntary movement to its record for the current turn (D38). It never writes the
- * Run, so it bumps no version and adds no contention to Encounter commands.
- */
-export async function recordTurnMovement(
+/** Adds to an actor's record for the current turn, creating it at zero (D38). */
+async function addTurnMovement(
   ctx: MutationCtx,
-  input: { state: RunTurnState; actorId: string; feet: number }
+  input: { state: RunTurnState; actorId: string; usedFeet: number; speedBonuses: number }
 ) {
   const turn = currentTurn(input.state)
-  if (!turn || input.feet <= 0) return
+  if (!turn) throw new Error('Turn movement needs a current turn.')
   const row = await ctx.db
     .query('encounterTurnMovements')
     .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
@@ -41,23 +38,53 @@ export async function recordTurnMovement(
         .eq('actorId', input.actorId)
     )
     .unique()
-  if (row) await ctx.db.patch(row._id, { usedFeet: row.usedFeet + input.feet })
+  if (row)
+    await ctx.db.patch(row._id, {
+      usedFeet: row.usedFeet + input.usedFeet,
+      speedBonuses: row.speedBonuses + input.speedBonuses
+    })
   else
     await ctx.db.insert(
       'encounterTurnMovements',
       encounterStoredTurnMovementSchema.parse({
         ...turn,
         actorId: input.actorId,
-        usedFeet: input.feet
+        usedFeet: input.usedFeet,
+        speedBonuses: input.speedBonuses
       })
     )
 }
 
-/** Feet each actor has moved in the current turn; an actor without a record has moved none. */
-export async function readTurnMovementByActorId(
+/**
+ * Adds an actor's voluntary movement to its record for the current turn (D38). It never writes the
+ * Run, so it bumps no version and adds no contention to Encounter commands.
+ */
+export async function recordTurnMovement(
+  ctx: MutationCtx,
+  input: { state: RunTurnState; actorId: string; feet: number }
+) {
+  if (!currentTurn(input.state) || input.feet <= 0) return
+  await addTurnMovement(ctx, {
+    state: input.state,
+    actorId: input.actorId,
+    usedFeet: input.feet,
+    speedBonuses: 0
+  })
+}
+
+/** Records a basic action that added the actor's speed to its budget this turn (Dash, D38). */
+export async function recordTurnSpeedBonus(
+  ctx: MutationCtx,
+  input: { state: RunTurnState; actorId: string }
+) {
+  await addTurnMovement(ctx, { ...input, usedFeet: 0, speedBonuses: 1 })
+}
+
+/** Each actor's record for the current turn; an actor without one has moved none and has no bonus. */
+async function readTurnMovementByActorId(
   ctx: QueryCtx,
   state: RunTurnState
-): Promise<ReadonlyMap<string, number>> {
+): Promise<ReadonlyMap<string, { usedFeet: number; speedBonuses: number }>> {
   const turn = currentTurn(state)
   if (!turn) return new Map()
   const rows = await ctx.db
@@ -69,13 +96,14 @@ export async function readTurnMovementByActorId(
         .eq('turnActorId', turn.turnActorId)
     )
     .take(MAX_ENCOUNTER_ACTORS)
-  return new Map(rows.map((row) => [row.actorId, row.usedFeet]))
+  return new Map(rows.map((row) => [row.actorId, row]))
 }
 
 /**
  * The tabletop's movement readout (V07.5): feet spent this turn and the walking-speed budget for
  * each actor the member controls, which for the GM is every actor. Characters read the speed their
- * row stores; creatures read their stat block's walking speed; custom actors have no budget.
+ * row stores; creatures read their stat block's walking speed; custom actors have no budget. Each
+ * speed bonus this turn (Dash) adds the speed once more.
  */
 export async function readTurnMovementView(
   ctx: QueryCtx,
@@ -90,15 +118,14 @@ export async function readTurnMovementView(
   const runActors = await readRunActors(ctx, state)
   const controlled = await readEncounterControlledActorIds(ctx, { ...input, actors: runActors })
   const actors = runActors.filter((actor) => controlled.has(actor.id))
-  const used = await readTurnMovementByActorId(ctx, state)
+  const records = await readTurnMovementByActorId(ctx, state)
   const speeds = actors.some((actor) => actor.kind === 'CREATURE')
     ? (await requireSystem(ctx, input.campaign.gameSystemId)).speeds
     : []
   return Promise.all(
-    actors.map(async (actor) => ({
-      actorId: actor.id,
-      used: used.get(actor.id) ?? 0,
-      budget:
+    actors.map(async (actor) => {
+      const record = records.get(actor.id)
+      const speed =
         actor.kind === 'CHARACTER'
           ? ((
               await ctx.db
@@ -109,7 +136,12 @@ export async function readTurnMovementView(
           : actor.kind === 'CREATURE'
             ? resolveWalkingSpeedFeet(snapshotStatBlock(actor)?.speeds ?? [], speeds)
             : null
-    }))
+      return {
+        actorId: actor.id,
+        used: record?.usedFeet ?? 0,
+        budget: speed === null ? null : speed * (1 + (record?.speedBonuses ?? 0))
+      }
+    })
   )
 }
 

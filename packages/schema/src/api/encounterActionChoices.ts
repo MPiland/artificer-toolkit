@@ -5,6 +5,10 @@ import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
 import { equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import {
+  basicActionCostDtoSchema,
+  basicActionReusableDefinitionDocumentDtoSchema
+} from '../shared/basicActions.js'
 
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
 const labelSchema = z.string().check(z.trim()).check(z.minLength(1))
@@ -42,11 +46,28 @@ export const encounterActionChoiceDtoSchema = z.strictObject({
   warnings: encounterRuleWarningsDtoSchema
 })
 
+export const MAX_BASIC_ACTION_CHOICES = 64
+
+/** One of the Run System's basic actions (Q11), offered to every actor apart from its features. */
+export const encounterBasicActionChoiceDtoSchema = z.strictObject({
+  definitionId: postgresUuidSchema,
+  label: labelSchema,
+  rulesText: basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText,
+  actionCost: basicActionCostDtoSchema,
+  /** The action helps an ally, who must be chosen. */
+  needsAlly: z.boolean(),
+  /** Soft-rule warnings that already apply, as for `actions`. */
+  warnings: encounterRuleWarningsDtoSchema
+})
+
 export const encounterActionChoicesDtoSchema = z.strictObject({
   encounterId: postgresUuidSchema,
   encounterVersion: versionSchema,
   actorId: postgresUuidSchema,
   actions: z.array(encounterActionChoiceDtoSchema),
+  basicActions: z
+    .array(encounterBasicActionChoiceDtoSchema)
+    .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),
   optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
 })
 
@@ -95,6 +116,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
   typeof getEncounterActionChoicesInputDtoSchema
 >
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
+export type EncounterBasicActionChoiceDto = z.infer<typeof encounterBasicActionChoiceDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

@@ -14,6 +14,7 @@ import {
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
   rollRuleEvidenceInputDtoSchema,
+  useEncounterBasicActionInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
@@ -25,6 +26,7 @@ export {
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
+  useEncounterBasicActionInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
@@ -35,6 +37,7 @@ export type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
   RevertLastEncounterActionInputDto,
+  UseEncounterBasicActionInputDto,
   VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
 
@@ -247,6 +250,7 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   setEncounterHealthDisplayDefaultInputDtoSchema,
   completeEncounterInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
+  useEncounterBasicActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,

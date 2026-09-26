@@ -29,6 +29,37 @@ import { evaluateNativeActionEconomy } from './actionEconomy'
 import { encounterActionEconomyWarnings } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { rejectDomain } from '../lib/domainRejections'
+import { readDefinitionRoot } from '../content/definitionStore'
+import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { MAX_BASIC_ACTION_CHOICES } from '@artificer-toolkit/schema/api/encounterActionChoices'
+
+/**
+ * The System's basic-action catalogue (Q11): its published platform entries, by label. User-authored
+ * Systems are deferred, so no user-owned entry joins a catalogue.
+ */
+async function readSystemBasicActions(ctx: QueryCtx, gameSystemId: string, userId: string) {
+  const rows = await ctx.db
+    .query('reusableDefinitions')
+    .withIndex('by_gameSystemId_owner_family_label_id', (q) =>
+      q
+        .eq('gameSystemId', gameSystemId)
+        .eq('ownerUserId', undefined)
+        .eq('definitionFamilyKey', BASIC_ACTION_DEFINITION_FAMILY_KEY)
+    )
+    .take(MAX_BASIC_ACTION_CHOICES + 1)
+  if (rows.length > MAX_BASIC_ACTION_CHOICES)
+    throw new Error('The basic-action catalogue exceeds its bound.')
+  const entries = await Promise.all(
+    rows.map(async (row) => {
+      const root = await readDefinitionRoot(ctx, row.id, userId)
+      return root?.sourceKind === 'PLATFORM' && root.current
+        ? [requireEncounterBasicActionDefinition({ gameSystemId }, root.current)]
+        : []
+    })
+  )
+  return entries.flat()
+}
 
 const choicesValidator: Validator<EncounterActionChoicesResponseDto, 'required', string> =
   zodToConvex<z.core.$ZodType<EncounterActionChoicesResponseDto>>(
@@ -197,11 +228,28 @@ export const get = query({
         }))
       )
     }
+    const basicActions = await Promise.all(
+      (await readSystemBasicActions(ctx, state.gameSystemId, campaign.ownerUserId)).map(
+        async ({ definition, document }) => ({
+          definitionId: definition.id,
+          label: definition.label,
+          rulesText: document.rulesText,
+          actionCost: document.actionCost,
+          needsAlly: document.mechanics.includes('ALLY_ADVANTAGE'),
+          // A custom actor has no System allowance to spend.
+          warnings:
+            actor.kind === 'CUSTOM'
+              ? []
+              : await readEconomyWarnings({ code: document.actionCost, amount: 1 })
+        })
+      )
+    )
     return encounterActionChoicesDtoSchema.parse({
       encounterId: state.id,
       encounterVersion: state.version,
       actorId: actor.id,
       actions,
+      basicActions,
       optionalRules: activeOptionalCombatDefinitions({
         automationMode: state.automationMode,
         snapshot: state.optionalCombatSnapshot

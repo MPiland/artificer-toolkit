@@ -21,6 +21,7 @@ import {
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
+import { encounterBasicActionDefenseContributors } from './encounterBasicActions.js'
 import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
@@ -270,17 +271,21 @@ export async function prepareEncounterActionMechanics<
             itemMechanics: source.effectivePolicyOutput.itemMechanics
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
-  const contributors = await input.loadRelationshipFacts({
-    state,
-    actors,
-    sourceActorId: actor.id,
-    targetActorId: target.id,
-    activeEffectsByActorId: new Map(
-      [...currentTargets].map(([id, value]) => [id, value.activeEffects])
-    ),
-    actionEffectId:
-      source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
-  })
+  // A Dodging target (basic action, Q11) gives every attack roll against it disadvantage.
+  const contributors = mergeCanonicalD20Contributors(
+    await input.loadRelationshipFacts({
+      state,
+      actors,
+      sourceActorId: actor.id,
+      targetActorId: target.id,
+      activeEffectsByActorId: new Map(
+        [...currentTargets].map(([id, value]) => [id, value.activeEffects])
+      ),
+      actionEffectId:
+        source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
+    }),
+    encounterBasicActionDefenseContributors(target)
+  )
   return {
     state,
     actor,

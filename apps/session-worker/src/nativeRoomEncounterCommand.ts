@@ -21,6 +21,7 @@ import {
   type NativeLiveSessionEnvironment
 } from './liveSessionRoutes.js'
 import type { LiveCaptureCache, LiveCaptureReads } from './nativeCaptureCache.js'
+import { planNativeLiveBasicAction } from './nativeBasicAction.js'
 import { planNativeLiveCleavingResponse } from './nativeCleavingResponse.js'
 import { planNativeLiveDisarm } from './nativeDisarm.js'
 import { planNativeLiveConcentrationResponse } from './nativeConcentrationResponse.js'
@@ -209,6 +210,24 @@ export async function executeLiveEncounterCommand(input: {
           plan.input
         )
       }
+      case 'BASIC_ACTION': {
+        if (decision.type !== 'USE_BASIC_ACTION')
+          throw new Error('Basic action planning received another command.')
+        const plan = await planNativeLiveBasicAction(
+          environment,
+          accessToken,
+          scope,
+          decision,
+          execution.captures
+        )
+        if (plan.kind === 'REPLAY') return plan.result
+        return callLiveSessionRoute(
+          environment,
+          accessToken,
+          'encounterBasicActionCommit',
+          plan.input
+        )
+      }
       case 'MOVEMENT':
         if (decision.type !== 'RESOLVE_RULE_OCCURRENCE' && decision.type !== 'VOID_RULE_OCCURRENCE')
           throw new Error('Movement planning received a non-decision command.')
@@ -297,10 +316,10 @@ export function encounterCommandRefusal(error: unknown): {
 }
 
 /**
- * A room planner, the room's dice for a roll command (ROLL), or Convex for the GM tools it records
- * (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES).
+ * A room planner, the basic-action planner (BASIC_ACTION), the room's dice for a roll command (ROLL),
+ * or Convex for the GM tools it records (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES).
  */
-type RoomEncounterPlanner = LiveSessionEncounterRoute | 'ROLL' | 'CONVEX'
+type RoomEncounterPlanner = LiveSessionEncounterRoute | 'BASIC_ACTION' | 'ROLL' | 'CONVEX'
 
 const convexCommandTypes = new Set<string>(CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES)
 
@@ -313,6 +332,7 @@ export function roomEncounterPlanner(command: {
   optionalCombatIntent?: unknown
 }): RoomEncounterPlanner | 'DECISION' {
   if (command.type === 'RESOLVE_ACTION') return command.optionalCombatIntent ? 'DISARM' : 'ACTION'
+  if (command.type === 'USE_BASIC_ACTION') return 'BASIC_ACTION'
   if (command.type === 'START' || command.type === 'ADVANCE_TURN') return 'TURN'
   if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE')
     return 'DECISION'

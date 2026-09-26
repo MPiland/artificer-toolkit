@@ -1,0 +1,256 @@
+import { describe, expect, it } from 'vitest'
+import type { BasicActionReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/basicActions'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+
+import {
+  encounterBasicActionAllyAdvantage,
+  encounterBasicActionDefenseContributors,
+  encounterBasicActionEffects,
+  planEncounterBasicAction,
+  requireEncounterBasicActionDefinition,
+  suppressesEncounterOpportunityAttacks,
+  withEncounterBasicActionEffects,
+  withoutEncounterAllyAdvantage
+} from '../encounterBasicActions.js'
+import { labelEncounterRollModeReasons } from '../encounterRollModeReasons.js'
+
+const SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
+const HOMEBREW_SYSTEM_ID = '00000000-0000-0000-0000-0000000000aa'
+const ENCOUNTER_ID = '11111111-1111-4111-8111-111111111111'
+const IDS = {
+  dash: '00000000-0000-4000-8000-000000000b01',
+  disengage: '00000000-0000-4000-8000-000000000b02',
+  dodge: '00000000-0000-4000-8000-000000000b03',
+  help: '00000000-0000-4000-8000-000000000b04',
+  hide: '00000000-0000-4000-8000-000000000b05'
+}
+
+function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
+  return encounterRunActorStateSchema.parse({
+    id,
+    encounterId: ENCOUNTER_ID,
+    kind: 'CREATURE',
+    label: `Actor ${id.slice(-1)}`,
+    sourceId: null,
+    sourceRevision: null,
+    public: true,
+    controllerUserIds: [],
+    disposition,
+    initiative: null,
+    manualOrder: null,
+    conditions: [],
+    healthDisplay: null,
+    systemId: SYSTEM_ID,
+    stableTieKey: id,
+    currentHitPoints: 10,
+    maxHitPoints: 10,
+    tempHitPoints: 0,
+    resources: {},
+    gmNotes: null,
+    sideId: '22222222-2222-4222-8222-222222222222',
+    snapshot: {},
+    createdAt: '2026-09-26T00:00:00.000Z',
+    updatedAt: '2026-09-26T00:00:00.000Z'
+  })
+}
+
+const fighter = actor('33333333-3333-4333-8333-333333333331')
+const rogue = actor('33333333-3333-4333-8333-333333333332')
+const ogre = actor('33333333-3333-4333-8333-333333333333', 'HOSTILE')
+
+function turn(round: number, currentActorId: string) {
+  return { round, currentActorId, gameSystemId: SYSTEM_ID } as EncounterRunState
+}
+
+function document(
+  id: string,
+  mechanics: BasicActionReusableDefinitionDocumentDto['mechanics'],
+  gameSystemId = SYSTEM_ID
+): BasicActionReusableDefinitionDocumentDto {
+  return {
+    schemaVersion: 1,
+    kind: 'BASIC_ACTION',
+    id,
+    gameSystemId,
+    rulesText: 'Rules text.',
+    actionCost: 'ACTION',
+    mechanics
+  }
+}
+
+function published(
+  label: string,
+  body: BasicActionReusableDefinitionDocumentDto
+): ReusableDefinitionCurrentDto {
+  return {
+    id: body.id,
+    gameSystemId: body.gameSystemId,
+    contentSourceId: '44444444-4444-4444-8444-444444444444',
+    definitionFamilyKey: 'basic-action',
+    label,
+    description: null,
+    document: body,
+    checksum: checksumRuleDocument(body),
+    contractVersion: 1,
+    version: 1,
+    publishedAt: '2026-09-26T00:00:00.000Z',
+    publishedBy: '55555555-5555-4555-8555-555555555555'
+  }
+}
+
+describe('basic action mechanics (Q11)', () => {
+  it('Dash adds a movement bonus and leaves no lasting effect', () => {
+    const planned = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: null,
+      document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
+    })
+    expect(planned.speedMovementBonus).toBe(true)
+    expect(planned.effects).toEqual([])
+    expect(planned.actor).toEqual(fighter)
+  })
+
+  it('Hide is logged only: no effect, no movement bonus', () => {
+    const planned = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: null,
+      document: document(IDS.hide, [])
+    })
+    expect(planned).toMatchObject({ effects: [], speedMovementBonus: false, warnings: [] })
+  })
+
+  it('Disengage suppresses opportunity attacks for the rest of its own turn only', () => {
+    const state = turn(2, fighter.id)
+    const { actor: disengaged } = planEncounterBasicAction({
+      state,
+      actor: fighter,
+      ally: null,
+      document: document(IDS.disengage, ['NO_OPPORTUNITY_ATTACKS'])
+    })
+    expect(suppressesEncounterOpportunityAttacks(state, disengaged)).toBe(true)
+    expect(suppressesEncounterOpportunityAttacks(state, fighter)).toBe(false)
+    // Its turn ended: another actor is current, or a later round began.
+    expect(suppressesEncounterOpportunityAttacks(turn(2, ogre.id), disengaged)).toBe(false)
+    expect(suppressesEncounterOpportunityAttacks(turn(3, fighter.id), disengaged)).toBe(false)
+  })
+
+  it('Dodge gives attacks against the actor disadvantage, and the reason reads "Dodge"', () => {
+    const { actor: dodging } = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: null,
+      document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST'])
+    })
+    const contributors = encounterBasicActionDefenseContributors(dodging)
+    expect(contributors).toEqual([
+      {
+        sourceId: `basic-action:${IDS.dodge}`,
+        grantId: null,
+        domainKey: `basic-action:${fighter.id}`,
+        influence: 'DISADVANTAGE'
+      }
+    ])
+    expect(encounterBasicActionDefenseContributors(fighter)).toEqual([])
+    const reasons = labelEncounterRollModeReasons(new Map([[`basic-action:${IDS.dodge}`, 'Dodge']]))
+    expect(reasons({ rollMode: 'DISADVANTAGE', contributors })).toEqual(['Dodge'])
+  })
+
+  it('Help grants one attack advantage to the named ally', () => {
+    const { actor: helper, warnings } = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: rogue,
+      document: document(IDS.help, ['ALLY_ADVANTAGE'])
+    })
+    expect(warnings).toEqual([])
+    const actors = [helper, rogue, ogre]
+    expect(encounterBasicActionAllyAdvantage({ actors, attackerId: ogre.id })).toBeNull()
+    const use = encounterBasicActionAllyAdvantage({ actors, attackerId: rogue.id })
+    expect(use).toMatchObject({
+      helperActorId: fighter.id,
+      contributor: { sourceId: `basic-action:${IDS.help}`, influence: 'ADVANTAGE' }
+    })
+    const spent = withoutEncounterAllyAdvantage(helper, use!.effect)
+    expect(encounterBasicActionEffects(spent)).toEqual([])
+    expect(
+      encounterBasicActionAllyAdvantage({ actors: [spent, rogue, ogre], attackerId: rogue.id })
+    ).toBeNull()
+    expect(() => withoutEncounterAllyAdvantage(spent, use!.effect)).toThrow('already used')
+  })
+
+  it('Help needs exactly one ally, and helping an enemy is a soft warning', () => {
+    const help = document(IDS.help, ['ALLY_ADVANTAGE'])
+    const state = turn(2, fighter.id)
+    expect(() =>
+      planEncounterBasicAction({ state, actor: fighter, ally: null, document: help })
+    ).toThrow('Choose an ally')
+    expect(() =>
+      planEncounterBasicAction({ state, actor: fighter, ally: fighter, document: help })
+    ).toThrow()
+    expect(() =>
+      planEncounterBasicAction({
+        state,
+        actor: fighter,
+        ally: rogue,
+        document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
+      })
+    ).toThrow('no target')
+    expect(
+      planEncounterBasicAction({ state, actor: fighter, ally: ogre, document: help }).warnings
+    ).toEqual([{ code: 'TARGET_DISPOSITION', message: 'This helps an enemy.' }])
+  })
+
+  it('clearing an actor keeps no empty entry in its resources', () => {
+    const { actor: dodging } = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: null,
+      document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST'])
+    })
+    expect(withEncounterBasicActionEffects(dodging, []).resources).toEqual({})
+  })
+})
+
+describe('basic action catalogue identity', () => {
+  it("accepts only a published basic-action entry of the Run's System", () => {
+    const dash = published('Dash', document(IDS.dash, ['SPEED_MOVEMENT_BONUS']))
+    expect(
+      requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, dash).document
+    ).toEqual(dash.document)
+    expect(() => requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, null)).toThrow()
+    expect(() =>
+      requireEncounterBasicActionDefinition(
+        { gameSystemId: SYSTEM_ID },
+        { ...dash, definitionFamilyKey: 'sense' }
+      )
+    ).toThrow()
+  })
+
+  it('a homebrew System overrides an entry with its own name, text and cost', () => {
+    const sprint = published('Sprint', {
+      ...document(IDS.dash, ['SPEED_MOVEMENT_BONUS'], HOMEBREW_SYSTEM_ID),
+      rulesText: 'Run twice as far, as a bonus action.',
+      actionCost: 'BONUS_ACTION'
+    })
+    const resolved = requireEncounterBasicActionDefinition(
+      { gameSystemId: HOMEBREW_SYSTEM_ID },
+      sprint
+    )
+    expect(resolved.definition.label).toBe('Sprint')
+    expect(resolved.document).toMatchObject({
+      actionCost: 'BONUS_ACTION',
+      mechanics: ['SPEED_MOVEMENT_BONUS']
+    })
+    // An SRD Encounter never uses the homebrew System's entry.
+    expect(() =>
+      requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, sprint)
+    ).toThrow()
+  })
+})

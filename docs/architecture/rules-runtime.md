@@ -87,6 +87,10 @@ Convex action fallback was removed in S4-d:
   Actor sides remain only for initiative grouping and ordering, actor reorder, reinforcement and
   removal, and the workspace's side labels.
 
+`USE_BASIC_ACTION` (Q11, [live sessions](live-sessions.md)) follows the same acknowledgment rule in its
+room planner, with the allowance warning for the entry's cost (`encounterActionEconomyWarnings`) and
+`TARGET_DISPOSITION` when an ally-advantage entry names a hostile actor.
+
 Encounter action choices (`encounters/actionChoices.ts`) carry the warnings that already apply before
 a target is chosen (allowance via `encounterActionEconomyWarnings`, unequipped source, exhausted
 resource), so the drawer can show those actions dimmed with their reasons.

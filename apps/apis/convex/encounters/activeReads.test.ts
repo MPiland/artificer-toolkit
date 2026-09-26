@@ -211,7 +211,9 @@ it('reads the active projection and pending decision together with existing visi
       round: state.round,
       turnActorId: state.currentActorId,
       actorId: hidden.id,
-      usedFeet: 15
+      usedFeet: 15,
+      // One Dash this turn adds the walking speed to the budget once (D38).
+      speedBonuses: 1
     })
   })
 
@@ -224,7 +226,7 @@ it('reads the active projection and pending decision together with existing visi
     // The GM sees every actor's movement this turn against its stat block's walking speed.
     turnMovement: expect.arrayContaining([
       { actorId: visible?.id, used: 0, budget: 40 },
-      { actorId: hidden?.id, used: 15, budget: 40 }
+      { actorId: hidden?.id, used: 15, budget: 80 }
     ])
   })
   expect(ownerState.turnMovement).toHaveLength(2)

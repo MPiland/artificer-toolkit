@@ -47,6 +47,10 @@ import {
   turnResolutionCommandDtoSchema
 } from './ruleExecutionTurnCommands.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import {
+  encounterBasicActionEffectsDtoSchema,
+  type EncounterBasicActionEffectDto
+} from './basicActions.js'
 
 export const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
 
@@ -114,6 +118,8 @@ export interface TurnCoordinatorRootDto {
   stagedLegendaryActionRefreshes?: TurnLegendaryActionRefreshDto[]
   /** System-owned aggregate usage refreshes staged at the authoritative turn boundary. */
   stagedActionEconomyRefreshes?: TurnActionEconomyRefreshDto[]
+  /** The entering actor's basic-action effects, which end as its turn starts (Q11). */
+  stagedBasicActionExpiry?: EncounterBasicActionEffectDto[]
   completedRechargePlan?: CompletedTurnRechargePlanDto | null
   proposedTerminalTransition: {
     status: 'ACTIVE' | 'COMPLETED'
@@ -233,6 +239,7 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
         })
       )
   ),
+  stagedBasicActionExpiry: z.optional(encounterBasicActionEffectsDtoSchema.check(z.minLength(1))),
   /** Recharge outcomes are staged with the turn and applied only at terminal commit. */
   completedRechargePlan: z.optional(z.nullable(z.lazy(() => completedTurnRechargePlanDtoSchema))),
   proposedTerminalTransition: z.strictObject({

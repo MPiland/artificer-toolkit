@@ -25,6 +25,7 @@ import {
   liveSessionEncounterCaptureBundleInputSchema,
   liveSessionEncounterCaptureBundleSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
+import { liveSessionEncounterBasicActionCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import { liveSessionEncounterCleavingCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterCleaving'
 import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import {
@@ -216,6 +217,10 @@ const liveSessionRoutes = {
   },
   encounterDisarmCommit: {
     input: liveSessionEncounterDisarmCommitInputSchema,
+    output: encounterCommandResultDtoSchema
+  },
+  encounterBasicActionCommit: {
+    input: liveSessionEncounterBasicActionCommitInputSchema,
     output: encounterCommandResultDtoSchema
   },
   encounterRoute: {

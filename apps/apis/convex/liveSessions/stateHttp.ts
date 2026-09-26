@@ -75,6 +75,9 @@ const encounterDisarmPending = makeFunctionReference<'mutation', JsonObject, unk
 const encounterDisarmCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterDisarm:commit'
 )
+const encounterBasicActionCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterBasicAction:commit'
+)
 const encounterVoidPrepare = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterVoid:prepare'
 )
@@ -191,6 +194,11 @@ export const encounterDisarmCommitHttp = liveStateHttp(
   true,
   'Live Session Disarm commit unavailable.',
   (ctx, input) => ctx.runMutation(encounterDisarmCommit, input)
+)
+export const encounterBasicActionCommitHttp = liveStateHttp(
+  true,
+  'Live Session basic action commit unavailable.',
+  (ctx, input) => ctx.runMutation(encounterBasicActionCommit, input)
 )
 export const encounterVoidPrepareHttp = liveStateHttp(
   true,

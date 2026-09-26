@@ -6,6 +6,7 @@ import {
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema,
+  type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
@@ -121,6 +122,31 @@ function parseRunActor(row: Doc<'encounterRunActors'>, state: EncounterRunState)
   const actor = deriveOnce(row, readRunActorDocument)
   if (actor.encounterId !== state.id) throw new Error('Encounter actor state checksum mismatch.')
   return actor
+}
+
+/** Replaces one actor's stored state, refusing when it changed since `before` was read. */
+export async function replaceRunActor(
+  ctx: MutationCtx,
+  before: EncounterRunActorState,
+  after: EncounterRunActorState
+) {
+  const row = await ctx.db
+    .query('encounterRunActors')
+    .withIndex('by_encounterId_id', (q) =>
+      q.eq('encounterId', before.encounterId).eq('id', before.id)
+    )
+    .unique()
+  if (
+    !row ||
+    row.stateChecksum !== checksumCanonicalJson(before) ||
+    after.id !== before.id ||
+    after.encounterId !== before.encounterId
+  )
+    throw new Error('Encounter actor changed before settlement.')
+  await ctx.db.patch(row._id, {
+    stateJson: JSON.stringify(after),
+    stateChecksum: checksumCanonicalJson(after)
+  })
 }
 
 /** Read one actor without hydrating unrelated actor snapshots. */

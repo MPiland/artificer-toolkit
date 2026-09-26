@@ -27,6 +27,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   encounterCleavingCommit: '/live-sessions/encounter-cleaving',
   encounterDisarmPending: '/live-sessions/encounter-disarm-pending',
   encounterDisarmCommit: '/live-sessions/encounter-disarm',
+  encounterBasicActionCommit: '/live-sessions/encounter-basic-action',
   encounterRoute: '/live-sessions/encounter-route',
   encounterVoidPrepare: '/live-sessions/encounter-void-prepare',
   encounterVoidRecord: '/live-sessions/encounter-void-record',
