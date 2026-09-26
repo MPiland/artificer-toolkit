@@ -81,6 +81,7 @@ Next (8.2 core, in order):
      - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
+   - R08 prep: the local R2 fixture (`apps/apis/tests/localR2.ts`, served from the Convex container on 127.0.0.1:8026) was started by hand and stops when the container restarts. Its start command is undocumented. Script its start in the local proof tooling, checking health first, and document it in `apps/apis/README.md`. Map uploads, and so bound-move timing and browser proofs, need it.
    - R08 prep: rebuild a room-driven, real-backend reaction contention proof for V14.4 once S4-c lands.
      - The stale driver (`developmentEncounterReactionTransactions.ts`) was deleted and replaced by an in-process test.
      - convex-test runs one transaction at a time, so the in-process test proves winner and loser semantics but not true parallel transactions.
