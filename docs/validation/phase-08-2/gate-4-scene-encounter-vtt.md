@@ -5,7 +5,7 @@
 - **Update when:** a Gate 4 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **36** criteria and **3** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
+Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **40** criteria and **5** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -118,7 +118,7 @@ What was proven or remains to prove:
 - `V05.2` READY_FOR_ACCEPTANCE: Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.
 - `V05.3` IN_PROGRESS: The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.
 - `V05.4` IN_PROGRESS: Renewal closes removed or stale-role sockets, keeps valid users and rotates authority to another current member.
-- `V05.5` IN_PROGRESS: The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).
+- `V05.5` READY_FOR_ACCEPTANCE: The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).
 
 Evidence:
 
@@ -202,7 +202,7 @@ Evidence:
 
 ## V09 — Encounter actors and initiative
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-17 (reopened 2026-09-24, ADR 0033)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 0/7
@@ -217,7 +217,7 @@ What was proven or remains to prove:
 - `V09.4` READY_FOR_ACCEPTANCE: Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.
 - `V09.5` READY_FOR_ACCEPTANCE: One predicate (encounters/actorController.ts) decides control: the GM always, and a controller for that actor.
 - `V09.6` READY_FOR_ACCEPTANCE: Each Run actor has a GM-editable disposition, FRIENDLY for Characters and HOSTILE for creatures by default.
-- `V09.7` IN_PROGRESS: Removing a member drops them from every controller list, and development data is migrated or reset under the standing local-reset approval.
+- `V09.7` READY_FOR_ACCEPTANCE: Removing a member drops them from every controller list, and development data is migrated or reset under the standing local-reset approval.
 
 Evidence:
 
@@ -291,7 +291,7 @@ Evidence:
 
 ## V12 — Player and GM privacy and redaction
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** not recorded; packet v12-authorization-20260916 (reopened 2026-09-25)
 - **Proof tier:** AUTHORIZATION
 - **Criteria met:** 3/8
@@ -306,8 +306,8 @@ What was proven or remains to prove:
 - `V12.4` READY_FOR_ACCEPTANCE: Every command result and replay a player receives is the redacted player projection, and the room refuses anything else.
 - `V12.5` READY_FOR_ACCEPTANCE: A replay by command ID is returned only to its issuer.
 - `V12.6` READY_FOR_ACCEPTANCE: The player projection carries no actor health by default.
-- `V12.7` IN_PROGRESS: Health display is Hidden by default, Descriptive, Bar or Exact; each player sets it for their Character and the GM per Encounter with per-actor overrides, and the GM always sees exact values (ADR 0034).
-- `V12.8` IN_PROGRESS: Another player's Character Sheet is GM-only unless its "Party can view" option is on, personality and background are never shown to other players, and the Campaign roster shows only public basics (name, portrait, level, class) (ADR 0034).
+- `V12.7` READY_FOR_ACCEPTANCE: Health display is Hidden by default, Descriptive, Bar or Exact; each player sets it for their Character and the GM per Encounter with per-actor overrides, and the GM always sees exact values (ADR 0034).
+- `V12.8` READY_FOR_ACCEPTANCE: Another player's Character Sheet is GM-only unless its "Party can view" option is on, personality and background are never shown to other players, and the Campaign roster shows only public basics (name, portrait, level, class) (ADR 0034).
 
 Evidence:
 

@@ -2584,8 +2584,16 @@
             {
               "id": "V05.5",
               "text": "The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › drains and releases authority after five minutes without an admitted socket (no release while a socket is admitted; the next admitted socket activates a fresh epoch)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › cancels the idle release when a member reconnects inside the window",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › publishes the pending outbox before an idle room releases its authority",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes every socket when the live Session ends (CLOSE_ROOM drains and releases)",
+                "apps/apis/convex/campaigns/lifecycle.test.ts › archives only with current owner authority and version, preserving member reads and stored data (schedules CLOSE_ROOM)",
+                "apps/apis/convex/campaigns/deletionLifecycle.test.ts › retains the root through a %s room close and retries the captured authority (deletion closes the room before purge)",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (room_idle_release, alarm), apps/session-worker/src/roomLimits.ts, apps/apis/convex/liveSessions/controlScheduling.ts, apps/apis/convex/campaigns/deletionJobs.ts"
+              ]
             }
           ]
         },
@@ -2769,7 +2777,7 @@
           "id": "V09",
           "title": "Encounter actors and initiative",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-blueprints/native-run-proof.md",
             ".codex/validation/movement-replay-duplicates-20260916/v09-functional-validation-03/v09-acceptance.md",
@@ -2853,8 +2861,12 @@
             {
               "id": "V09.7",
               "text": "Removing a member drops them from every controller list, and development data is migrated or reset under the standing local-reset approval.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member (a departing member is removed from the stored actor and the projection controller lists)",
+                "impl: apps/apis/convex/encounters/actorControllerRemoval.ts (removeEncounterActorController), apps/apis/convex/campaigns/membershipDeparture.ts (depart, shared by leave and removeMember), apps/apis/convex/campaigns/accountDeparture.helper.ts",
+                "development data: local reset under the standing approval before the dd074aef integration run (ignored local-validation/s6/s4b2-s6h/reset.log; backup local-validation/convex-reset/s4b2-s6h.before.zip), followed by deploy, codegen, seed and audit"
+              ]
             }
           ]
         },
@@ -3088,7 +3100,7 @@
           "id": "V12",
           "title": "Player and GM privacy and redaction",
           "proofTier": "AUTHORIZATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. S6b criteria added 2026-09-25 (IN_PROGRESS, not yet proven): every command result and replay a player receives is the redacted player projection (the room refuses anything else); a replay by command ID returns only to its issuer; the player projection carries no actor health by default (ADR 0034 decision 5). Accepted at the frozen AUTHORIZATION tier. All 89 current-source native tests in 13 files pass serially with unchanged backend/domain source. The complete current recipient matrix covers GM full data, Character-controller decisions, other-player redaction, hidden actor/target and server-snapshot exclusion, private timeline filtering, anonymous/outsider/departed/revoked refusal, and ownership-transfer audience changes. General actions, movement/reaction/Passage, initiative declarations, Recharge, active effects, Legendary choices, Concentration, Cleaving and Disarm use the reviewed current-authority dispatcher. Public Disarm03, reaction12 and retained Scene/action/effect evidence supplement the native matrix. Acceptance packet: .codex/validation/v12-authorization-20260916/acceptance.md. Browser completion, measured workload and final release lifecycle remain with their owning cases.",
           "evidence": [
             ".codex/validation/movement-decision-privacy-20260913/evidence.json",
@@ -3146,14 +3158,34 @@
             {
               "id": "V12.7",
               "text": "Health display is Hidden by default, Descriptive, Bar or Exact; each player sets it for their Character and the GM per Encounter with per-actor overrides, and the GM always sees exact values (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/healthDisplay.test.ts › redacts enemy health for every level, with the actor override over the Encounter default",
+                "apps/apis/convex/encounters/healthDisplay.test.ts › shows a Character at its player’s level, and exact health to its controller",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › carries only what each health display level allows",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › prefers the actor override to the Encounter default, and shows controllers exact health",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › shows a Character at its player's level, never the Encounter default",
+                "packages/schema/src/__tests__/encounter-contracts.test.ts (player health carries only its level's fields; bar ratios are coarse)",
+                "apps/apis/convex/campaigns/partyVisibility.test.ts › lets only the Character’s player set it, and never lets another player act",
+                "apps/web/src/domains/characters/sheet/core/CharacterSheetPartyVisibility.test.tsx › lets the Character’s player share the Sheet and choose a health display level",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › shows a player only the health its level allows: %j",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › always shows the GM exact hit points instead of a band",
+                "impl: packages/schema/src/api/healthDisplay.ts, packages/rules-runtime/src/encounterPlayerProjection.ts, apps/apis/convex/encounters/healthViewer.ts, apps/apis/convex/encounters/projectionReads.ts, apps/apis/convex/encounters/resultPresentation.ts, apps/apis/convex/encounters/commands.ts (SET_HEALTH_DISPLAY_DEFAULT, UPDATE_ACTOR healthDisplay), apps/web/src/domains/campaigns/vtt/EncounterActorHealth.tsx"
+              ]
             },
             {
               "id": "V12.8",
               "text": "Another player's Character Sheet is GM-only unless its \"Party can view\" option is on, personality and background are never shown to other players, and the Campaign roster shows only public basics (name, portrait, level, class) (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/partyVisibility.test.ts › keeps another player’s Sheet GM-only until its player turns Party can view on (personality, background and concept stripped server-side)",
+                "apps/apis/convex/campaigns/partyVisibility.test.ts › lets only the Character’s player set it, and never lets another player act",
+                "apps/apis/convex/campaigns/partyVisibility.test.ts › shows every member only the public roster basics",
+                "apps/apis/convex/media/characterPortrait.test.ts › lets only active members read the portrait of a Character assigned in their Campaign",
+                "apps/web/src/domains/campaigns/components/CampaignParty.test.tsx › shows another player only roster basics, with View Sheet only when Party can view is %s",
+                "apps/web/src/domains/characters/sheet/core/CharacterSheetPartyVisibility.test.tsx › lets the Character’s player share the Sheet and choose a health display level",
+                "impl: apps/apis/convex/campaigns/characterSheet.ts (get, basics), apps/apis/convex/campaigns/characterState.ts (readCampaignCharacterReader), packages/rules-runtime/src/character/campaignCharacterSheet.ts (PARTY_MEMBER projection), apps/apis/convex/media/characterPortraitAssets.ts, apps/web/src/domains/campaigns/components/CampaignParty.tsx"
+              ]
             }
           ]
         },
