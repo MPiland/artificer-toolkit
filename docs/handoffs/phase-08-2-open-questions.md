@@ -172,7 +172,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * Dimmed unavailable actions need 4.5:1 text contrast.
     * The GM Window story's token-binding select must offer the fixture's actors.
   * **Fog exploration along a move (defect found by the T3 fast tests).** A move explores continuously along the walked line, as Foundry does and as the code comment says. Today `deriveSceneTokenPathExplorationPatch` (`packages/shared/src/domains/vtt/exploration.ts:361`) samples only the path's corner points. A straight drag is a two-point path, so short-sighted tokens leave the middle unexplored. Fix it with a test that fails today.
-  * **No commits during the final R08 run.** Its source-identity check requires a frozen tree.
+  * **No commits during the final R08 run.**
+* **D48** Rules defects found by the T1 fast tests. All are to be fixed, each with a test that fails first:
+  * **Half damage on a successful save.** An `ON_SAVE_SUCCESS` outcome's `multiplier` (for example 0.5) must apply to direct saving-throw actions, such as the Black Dragon Wyrmling's Acid Breath. Today only the nested follow-up save shape halves damage, so the tabletop disagrees with the Sheet.
+  * **Several non-dice outcomes on one save result.** Two or more fixed or condition outcomes on the same result path must not crash. Give every outcome group a unique node id, as dice groups already have.
+  * **Grid distance.** Range and reach use the SRD grid rule: count squares to the nearest occupied square of the target, so adjacent is 5 ft. Today the gap between footprints undercounts by one square: a 5-ft reach reaches a target two squares away. The same measure drives opportunity-attack reach, so fix both from one shared measure. This supersedes the documented "between complete occupied rectangles" choice.
+  * **Touch range.** A single-target Touch action (for example the Unicorn's Healing Touch) behaves as a 5-ft range that warns when out of reach (D11). It is not refused.
+  * **Wording:** "This actor can't take an action right now."
+  * **Creature saving-throw proficiencies.** Stat blocks with a Saving Throws line must use those modifiers. This needs a creature schema field and SRD data. It's queued as its own slice before closed beta. Its source-identity check requires a frozen tree.
 
 ## Resolved
 

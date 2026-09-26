@@ -210,6 +210,7 @@ function runState(automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'): Encounter
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,
+    turnSequence: 1,
     currentActorId: ids.source,
     reminders: [],
     createdAt: timestamp,
