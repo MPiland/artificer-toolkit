@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      # The Convex typecheck loads ~2.9 MB of generated API types; give tsc room.
+      # The Convex typecheck loads ~2.9 MB of generated API types; run typechecks one at a time with room for tsc.
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +96,6 @@ jobs:
       - name: Worker types
         run: yarn workspace @artificer-toolkit/session-worker types
       - name: Backend typechecks
-        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=2 --env-mode=loose --continue
+        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=1 --env-mode=loose --continue
       - name: Web typechecks
-        run: yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --concurrency=2 --env-mode=loose --continue
+        run: yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --concurrency=1 --env-mode=loose --continue
