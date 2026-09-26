@@ -47,13 +47,13 @@ jobs:
         run: corepack enable && yarn install --immutable
       - name: Build packages
         if: steps.gate.outputs.run == 'true'
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
       - name: Convex tests (shard ${{ matrix.shard }})
         if: steps.gate.outputs.run == 'true'
         run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
 
   packages-worker-web:
-    name: Packages, Worker, web and typechecks
+    name: Packages, Worker and web
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -64,7 +64,7 @@ jobs:
       - name: Install
         run: corepack enable && yarn install --immutable
       - name: Build packages
-        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --env-mode=loose
       - name: Package tests
         run: |
           yarn workspace @artificer-toolkit/schema test
@@ -78,7 +78,24 @@ jobs:
           yarn workspace @artificer-toolkit/session-worker test:unit
       - name: Web tests
         run: yarn workspace @artificer-toolkit/web test
-      - name: Typechecks
-        run: |
-          yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --env-mode=loose --continue
-          yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --env-mode=loose --continue
+
+  typechecks:
+    name: Typechecks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      # The Convex typecheck loads ~2.9 MB of generated API types; give tsc room.
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install
+        run: corepack enable && yarn install --immutable
+      - name: Worker types
+        run: yarn workspace @artificer-toolkit/session-worker types
+      - name: Backend typechecks
+        run: yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --concurrency=2 --env-mode=loose --continue
+      - name: Web typechecks
+        run: yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --concurrency=2 --env-mode=loose --continue
