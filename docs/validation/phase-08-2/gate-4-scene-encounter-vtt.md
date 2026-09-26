@@ -5,7 +5,7 @@
 - **Update when:** a Gate 4 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **40** criteria and **5** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
+Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **43** criteria and **7** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -59,7 +59,7 @@ Evidence:
 
 ## V03 — Scene entities, geometry, and visibility facts
 
-- **Status:** READY_FOR_ACCEPTANCE
+- **Status:** IN_PROGRESS
 - **Accepted:** 2026-09-11 (reopened 2026-09-25, ADR 0034)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 3/5
@@ -71,7 +71,7 @@ What was proven or remains to prove:
 - `V03.1` ACCEPTED: All six entity collections and persisted geometry keep recipient privacy and separate definition and live Scene state.
 - `V03.2` ACCEPTED: Exact replay, competing writes, stale versions and entity/fog/head/receipt rollback pass through the shared verifier.
 - `V03.3` ACCEPTED: Maximum-polygon and full fog-capacity coverage is kept without smaller Scene limits.
-- `V03.4` READY_FOR_ACCEPTANCE: Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
+- `V03.4` IN_PROGRESS (moved back in the third review): Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
 - `V03.5` READY_FOR_ACCEPTANCE: Fog of war is opt-in per Scene: with fog off, players see every non-hidden token, wall, door and light; with fog on, the shared-party or per-player exploration model applies (ADR 0034).
 
 Evidence:
@@ -105,7 +105,7 @@ Evidence:
 
 ## V05 — Session admission and presence
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-09 (reopened 2026-09-24, ADR 0033)
 - **Proof tier:** AUTHORIZATION
 - **Criteria met:** 0/5
@@ -116,8 +116,8 @@ What was proven or remains to prove:
 
 - `V05.1` READY_FOR_ACCEPTANCE: Any ACTIVE Campaign member can get a ticket without an open Session; ticket issue and authority claim require current membership and an ACTIVE Campaign (ADR 0033).
 - `V05.2` READY_FOR_ACCEPTANCE: Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.
-- `V05.3` IN_PROGRESS: The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.
-- `V05.4` IN_PROGRESS: Renewal closes removed or stale-role sockets, keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
+- `V05.3` READY_FOR_ACCEPTANCE: The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.
+- `V05.4` READY_FOR_ACCEPTANCE: Renewal closes removed or stale-role sockets, keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
 - `V05.5` READY_FOR_ACCEPTANCE: The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).
 
 Evidence:
@@ -261,7 +261,7 @@ Evidence:
 
 ## V11 — Decisions, pause, and resume
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** not recorded; packet v11-acceptance-20260916 (reopened 2026-09-25)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 3/10
@@ -273,7 +273,7 @@ What was proven or remains to prove:
 - `V11.1` ACCEPTED: Pending decisions reach only current audiences through private pending projections that follow authority changes.
 - `V11.2` ACCEPTED: Paused state is preserved, validated sequential evidence resumes the flow, and DECLINE cancels.
 - `V11.3` ACCEPTED: Disarm03 proves participant evidence, nonparticipant and stale refusal, terminal contention, one ACTION, one item transition and unchanged replay.
-- `V11.4` IN_PROGRESS: A roll is answered by the controllers of the actor making it and by the GM; in Assisted mode a player's save-forcing action against a creature pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues; Manual mode raises no rules prompts. (Spell-specific proof is a Phase 8.3 spell-casting criterion.)
+- `V11.4` READY_FOR_ACCEPTANCE: A roll is answered by the controllers of the actor making it and by the GM; in Assisted mode a player's save-forcing action against a creature pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues; Manual mode raises no rules prompts. (Spell-specific proof is a Phase 8.3 spell-casting criterion.)
 - `V11.5` READY_FOR_ACCEPTANCE: "Roll dice" records every attempt in the roll log without settling.
 - `V11.6` READY_FOR_ACCEPTANCE: A response settles with the latest app roll ID or entered faces, never with a client-supplied app value.
 - `V11.7` READY_FOR_ACCEPTANCE: The chosen d20 mode is stored beside the derived mode and labeled when changed.
@@ -338,7 +338,7 @@ Evidence:
 
 ## V14 — Same-aggregate contention and unrelated concurrency
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** not recorded; packet v14-acceptance-20260916 (reopened 2026-09-24)
 - **Proof tier:** CONCURRENCY
 - **Criteria met:** 0/5
@@ -350,7 +350,7 @@ What was proven or remains to prove:
 - `V14.1` READY_FOR_ACCEPTANCE: Lifecycle, binding, presentation and ownership race schedules pass against Campaign-keyed Runs and presentation (ADR 0033).
 - `V14.2` READY_FOR_ACCEPTANCE: Same-Scene movement contention and distinct-Scene writes stay consistent.
 - `V14.3` READY_FOR_ACCEPTANCE: Same-Run actions serialize while independent Runs proceed.
-- `V14.4` IN_PROGRESS: A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.
+- `V14.4` READY_FOR_ACCEPTANCE: A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.
 - `V14.5` READY_FOR_ACCEPTANCE: An Encounter reads a Character's HP and state live from the Character at capture time, fenced by the captured revisions; the Run keeps no Character HP, maximum, condition or stream-version mirror, so a Sheet write no longer refuses that Character's Encounter commands (ADR 0034).
 
 Evidence:

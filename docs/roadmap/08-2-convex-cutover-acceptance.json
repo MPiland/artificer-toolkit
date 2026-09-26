@@ -493,7 +493,7 @@
           "id": "F12",
           "title": "Account deletion",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-19",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.manifest.json",
@@ -537,8 +537,13 @@
             {
               "id": "F12.3",
               "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033) and retained handout delivery survive with Deleted user attribution.",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log, Encounter Run history and handout delivery attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes and handouts read Deleted user, RSVPs and the Run timeline keep the opaque account id, handout delivery unchanged)",
+                "apps/apis/convex/campaigns/chat.test.ts › masks a removed profile while retaining OOC, roleplay, and roll snapshots (chat and roll entries read Deleted user once the profile is gone)",
+                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
+                "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls, Session notes and attachments), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/campaigns/attachments.ts, apps/apis/convex/lib/authTriggers.helper.ts"
+              ]
             },
             {
               "id": "F12.4",
@@ -554,8 +559,14 @@
             {
               "id": "F12.5",
               "text": "Deferred cleanup converges identically on rerun, and an injected rollback preserves the complete persisted catalogue.",
-              "status": "IN_PROGRESS",
-              "proof": ["browser suite account-deletion-browser12 (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/media/avatar.test.ts › converges identically when every deferred account cleanup reruns (media purgeAccount, notifications purgeRecipient and Social accountCleanup rerun; every app table and R2 object unchanged)",
+                "apps/apis/convex/accountDeletion.test.ts › rolls back provider user, every credential/session and app state when the native deletion trigger fails late",
+                "apps/apis/convex/developmentAccountDeletionRollback.test.ts › reaches the late marker after installed SDK cleanup and restores complete application, provider and scheduled rows",
+                "apps/apis/convex/accountDeletionHttp.test.ts › rolls back provider, app, schedules, and cookies when late native cleanup fails",
+                "impl: apps/apis/convex/lib/authTriggers.helper.ts, apps/apis/convex/media/assets.ts (purgeAccount), apps/apis/convex/social/accountCleanup.ts"
+              ]
             }
           ]
         },
@@ -2122,8 +2133,14 @@
             {
               "id": "P15.1",
               "text": "Concurrent Session numbering and metadata, RSVP uniqueness, attendance authority, note privacy, reference pins and finish replay pass.",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-p15-complete/verification.md"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (runs apps/apis/tests/developmentSessionControl.ts verifySessionControl in-process: concurrent creates numbered 1 and 2, metadata version conflict with one winner, RSVP uniqueness, owner-only attendance, private-note and pin privacy, concurrent finish replay and finished-Session locks)",
+                "apps/apis/convex/campaigns/sessions.test.ts › keeps RSVP identity self-scoped and unique, while attendance is owner-only and versioned",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › keeps private notes out of player pages and preserves kind, Session, archive, and membership boundaries",
+                "apps/apis/convex/campaigns/sessionReferences.test.ts › enforces member reads, GM-only writes, Session and Campaign scope, archive, and exact removal scope",
+                "impl: apps/apis/convex/campaigns/sessions.ts, sessionRsvps.ts, sessionAttendance.ts, sessionNotes.ts, sessionReferences.ts, sessionFinish.ts"
+              ]
             },
             {
               "id": "P15.2",
@@ -2143,13 +2160,19 @@
               "id": "P15.3",
               "text": "Clock version contention, exact replay, once-only DAILY recovery and watermark hold, and managed recovery stays within limits.",
               "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-p15-performance/verification.md"]
+              "proof": [
+                "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (Clock advance race with one winner, exact replay, once-only DAILY recovery, watermark held through rewind and reset)",
+                "missing: managed recovery within limits needs a managed run; .codex/validation/phase82-p15-performance/verification.md is historical"
+              ]
             },
             {
               "id": "P15.4",
               "text": "GM adjustment and condition contention, effective projection, secret masking and removal pass, and archived authorization is checked before replay.",
-              "status": "IN_PROGRESS",
-              "proof": [".codex/validation/phase82-p15-complete/verification.md"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (adjustment and condition races with one winner each, effective maximum HP, SECRET adjustment hidden from the player, removal, archived Campaign refuses Clock and finish replays before replaying)",
+                "impl: apps/apis/convex/campaigns/gmWrites.ts, gmReads.ts, clock.ts, sessionFinish.ts"
+              ]
             }
           ]
         },
@@ -2436,7 +2459,7 @@
           "id": "V03",
           "title": "Scene entities, geometry, and visibility facts",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "READY_FOR_ACCEPTANCE",
+          "status": "IN_PROGRESS",
           "acceptedAt": "2026-09-11",
           "evidence": ".codex/validation/phase82-ultra-continuation-20260911/v03-integration.md",
           "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. Accepted at LOCAL_INTEGRATION. All six entity collections, persisted geometry, recipient privacy, independent definition/live Scene state, exact replay, competing writes, stale versions and actual entity/fog/head/receipt rollback pass through the shared local and authenticated personal-development verifier. Existing maximum-polygon and full fog-capacity coverage is retained without smaller Scene limits. The final affected lifecycle passes fresh build, all web types, lint, 1,296 web tests, 206 stories and 23 Playwright journeys; unchanged native/core/worker evidence is verified by source hashes. Real owner map upload/create/edit/reload and private-read denials pass with zero browser diagnostics. Exact fixture/account cleanup, revoked-JWT denial and post-fence physical R2 absence pass for every proof asset. Complete live hydration/reconnect, movement, exhaustive privacy/contention/performance and release promotion retain their separate cases.",
@@ -2462,7 +2485,7 @@
             {
               "id": "V03.4",
               "text": "Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).",
-              "status": "READY_FOR_ACCEPTANCE",
+              "status": "IN_PROGRESS",
               "proof": [
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets $role change a visible $from door to $to: $outcome",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a player door change for $case",
@@ -2531,7 +2554,7 @@
           "id": "V05",
           "title": "Session admission and presence",
           "proofTier": "AUTHORIZATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-09",
           "evidence": [
             ".codex/validation/phase82-v05-final/acceptance.md",
@@ -2568,17 +2591,27 @@
             {
               "id": "V05.3",
               "text": "The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-v05-final/acceptance.md (historical, Session-scoped)"
+                "apps/session-worker/test/nativeWorkerEntry.test.ts › refuses an upgrade from an origin outside the allowlist",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › refuses a ticket with %s before the room accepts a socket (another secret's signature, issuer, audience, retired version, unknown role, expired, no ticket id)",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › re-verifies the forwarded ticket inside the room and refuses a forged signature",
+                "apps/session-worker/test/nativeWorkerEntry.test.ts › refuses a valid ticket used on another Campaign room path",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › requires native authentication, consumes the ticket once, and never persists the JWT (a replayed ticket gets 409)",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › renews current authority once under the activation lock before any socket is READY",
+                "impl: apps/session-worker/src/ticket.ts, apps/session-worker/src/nativeLiveSessionRoom.ts (authentication capture, #ensureAuthority single activation promise)"
               ]
             },
             {
               "id": "V05.4",
               "text": "Renewal closes removed or stale-role sockets, keeps valid users and keeps room authority serving the remaining current members (ADR 0033).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-v05-final/acceptance.md (historical, Session-scoped)"
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › closes an authenticated socket when a later capture returns membership conflict",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › closes a socket whose role went stale on renewal and keeps the other members admitted",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › closes a first admission whose ticket role no longer matches the membership",
+                "apps/session-worker/test/nativeRoomAdmission.test.ts › keeps room authority after the activating member leaves and admits another current member under it",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (capture role and membership recheck, EVICT_USER)"
               ]
             },
             {
@@ -2993,7 +3026,7 @@
           "id": "V11",
           "title": "Decisions, pause, and resume",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. S6b criteria added 2026-09-25 (IN_PROGRESS, not yet proven): a roll is answered by the controllers of the actor making it and by the GM (a player's spell against a creature pauses on the creature's save for the GM); Roll dice records every attempt in the roll log without settling; a response settles with the latest app roll id or entered faces, never a client-supplied app value; the chosen d20 mode is stored beside the derived mode and labeled when changed; an authored automatic reaction becomes a Use/Decline choice for its controller in Assisted mode. Accepted at the frozen LOCAL_INTEGRATION tier. Current audiences and private pending projections, authority changes, paused-state preservation, validated sequential evidence, Automatic/Assisted resume, existing DECLINE cancellation, exact replay and rollback are covered by native decision/Passage/effect proofs and authenticated final-source Disarm03. Disarm03 proves owner/player participant evidence, nonparticipant and stale refusal, terminal contention, one ACTION and one Character item transition, unchanged replay and exact fixture/account cleanup. The final root-receipt correction passes targeted movement/initiative/turn regressions. Acceptance packet: .codex/validation/v11-acceptance-20260916/acceptance.md. V07/V13 browser scope, V12 cross-product privacy, V14 terminal reaction contention and R08 release lifecycle remain separate open cases.",
           "evidence": [
             ".codex/validation/movement-decision-privacy-20260913/evidence.json",
@@ -3028,8 +3061,17 @@
             {
               "id": "V11.4",
               "text": "A roll is answered by the controllers of the actor making it and by the GM; in Assisted mode a player's save-forcing action against a creature pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues; Manual mode raises no rules prompts. (Spell-specific proof is a Phase 8.3 spell-casting criterion.)",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › lets the controlling player enter their own attack roll and rejects a forged face count (the controller and the GM both receive the roll; a non-controller does not)",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › routes a creature save against a player action to the GM, who rolls twice and settles the latest roll",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › rolls on the server without a prompt when the roller auto-rolls",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › raises no save prompt in a Manual Run, where a save-forcing action is refused whole",
+                "apps/apis/convex/encounters/concentration.test.ts › raises no concentration prompt in a Manual Run, where the damaging action is refused whole",
+                "apps/apis/convex/encounters/spatialMovement.test.ts › leaves targets and effects unchanged in Manual mode",
+                "apps/apis/convex/encounters/turnEffects.test.ts › retains Manual reminders without loading target mechanics",
+                "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts (Manual refusal)"
+              ]
             },
             {
               "id": "V11.5",
@@ -3232,7 +3274,7 @@
           "id": "V14",
           "title": "Same-aggregate contention and unrelated concurrency",
           "proofTier": "CONCURRENCY",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "notes": "Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at the frozen CONCURRENCY tier. Retained real09 lifecycle/binding/presentation/ownership/Session-finish and rollback schedules, same-Scene movement contention, distinct-Scene writes, and action02 same-Run/independent-Run proofs are joined by final-source Disarm03 and reaction12 terminal contention. Reaction12 races every outcome request: one winner, one recognized stale loser, one reaction spend and one mechanics receipt; winner/root replay and loser retry preserve complete Run, timeline, Character and recipient Scene state. A completed-response receipt lookup bug found by reaction11 was corrected and passes targeted native regressions plus the actual rerun. Exact fixture/account cleanup and unchanged source pass; reaction12 provider deletion remains tracked behind its normal fence. Acceptance packet: .codex/validation/v14-acceptance-20260916/acceptance.md. V15 measured workload, V07/V13 browser/reconnect and R08 release lifecycle remain open.",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/workstreams/v14-real-20260913/real-09/evidence.json",
@@ -3268,8 +3310,11 @@
             {
               "id": "V14.4",
               "text": "A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.",
-              "status": "IN_PROGRESS",
-              "proof": ["proof mode reaction12 (historical)", "proof mode Disarm03 (historical)"]
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; winner replay, loser retry and root replay leave every stored table unchanged)",
+                "impl: apps/apis/convex/encounters/commandActions.ts (executeNativeEncounterCommand), apps/apis/convex/scenes/movementResolutionStaging.ts, apps/apis/convex/scenes/movementResolutionReads.ts"
+              ]
             },
             {
               "id": "V14.5",
@@ -3475,14 +3520,27 @@
               "id": "R06.1",
               "text": "The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.",
               "status": "IN_PROGRESS",
-              "proof": null
+              "proof": [
+                "partial: apps/session-worker/src/nativeRoomEncounterCommand.ts plans RESOLVE_ACTION, START/ADVANCE_TURN, Concentration and movement decisions in the room",
+                "missing: contested/Cleaving/optional-combat (Disarm) evidence, Manual-mode actions, Legendary Resistance and spatially interpreted actions throw LivePlannerUnsupportedError (apps/session-worker/src/nativeEncounterRules.ts), and every other command routes NATIVE; both forward to Convex, which evaluates the rules there"
+              ]
             },
             {
               "id": "R06.2",
               "text": "Live Encounter-bound movement has a working Durable Object-to-Convex route (the gap exposed by V15-20260924-05).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                ".codex/validation/phase82-goal-20260923/r06-amended-acceptance.md (historical review)"
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › runs a bound move, its answer and a GM skip through the room pipeline, advancing the sequence each time (D26, D27)",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › publishes the same bound move and Scene through the room as the native path (parity)",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses private staging with a bad secret, identity or epoch, and a non-controller at begin",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a move on an Encounter-bound Scene Convex-first with the authority advance (D27)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › keeps the record of a commit that timed out, and the next command settles it",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits bound moves and moves on a bound Scene to Convex first, and holds a Scene with a pending movement decision (D26)",
+                "apps/session-worker/test/nativeDurableCommandJournal.test.ts › journals a Convex-first commit write-ahead and completes it with no outbox row (D27)",
+                "impl: apps/session-worker/src/nativeExternalSceneCommit.ts, apps/session-worker/src/durableCommandJournal.ts, apps/session-worker/src/nativeLiveSessionRoom.ts, apps/apis/convex/liveSessions/externalCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/liveSessions/stateHttp.ts"
               ]
             },
             {
