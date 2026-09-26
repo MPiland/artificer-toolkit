@@ -6,8 +6,15 @@
 
 ## Open
 
-_(none)_
+* **Q11: basic combat actions (Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object).** The SRD data has none of them. Encounter actions come only from authored Character, spell and creature features. So in Assisted mode:
+  * Dash can't double the movement budget (D38), so the budget warns wrongly after a real Dash.
+  * Disengage can't suppress opportunity-attack prompts. The reactor has to decline by hand.
+  * Dodge can't impose disadvantage on attacks against the dodger.
 
+  Foundry leaves these to players narrating. D&D Beyond lists them and applies the simple ones.
+  * **Recommendation:** a catalogue of basic combat actions owned by the rules System, so homebrew Systems can edit or add their own. Every actor gets them through the normal action flow. Mechanics are limited to Dash (adds speed to the turn budget), Disengage (no opportunity attacks this turn), Dodge (disadvantage against you until your next turn) and Help (advantage for an ally). Hide, Ready, Search and Use an Object are logged, not automated. This needs new authored-data and action-option contracts, so it's its own slice before closed beta.
+  * **Alternative:** a small built-in command for Dash, Disengage and Dodge only. It's smaller, but it hard-codes D&D terms into shared infrastructure.
+  * **Answer:**
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
