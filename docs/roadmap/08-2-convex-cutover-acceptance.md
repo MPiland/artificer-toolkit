@@ -9,7 +9,7 @@
 
 Work resumed on 2026-09-09. The exact workspace, completed architecture corrections, personal-development
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
-Acceptance is 53/75 cases and 195/276 criteria (2026-09-25). A further 56 criteria and 9 cases (F12, P06, V05, V08, V09, V10, V11, V12, V14) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `80b3b4e3`; V03 moved back to IN_PROGRESS in that pass). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
+Acceptance is 53/75 cases and 195/276 criteria (2026-09-26). A further 58 criteria and 10 cases (F12, P06, V03, V05, V08, V09, V10, V11, V12, V14) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md), last updated against `276ad42d1` in its fourth pass). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
 
 Status meanings (the same for cases and criteria):
 

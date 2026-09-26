@@ -2459,7 +2459,7 @@
           "id": "V03",
           "title": "Scene entities, geometry, and visibility facts",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-11",
           "evidence": ".codex/validation/phase82-ultra-continuation-20260911/v03-integration.md",
           "notes": "Reopened 2026-09-25 for ADR 0034 player agency criteria. Accepted at LOCAL_INTEGRATION. All six entity collections, persisted geometry, recipient privacy, independent definition/live Scene state, exact replay, competing writes, stale versions and actual entity/fog/head/receipt rollback pass through the shared local and authenticated personal-development verifier. Existing maximum-polygon and full fog-capacity coverage is retained without smaller Scene limits. The final affected lifecycle passes fresh build, all web types, lint, 1,296 web tests, 206 stories and 23 Playwright journeys; unchanged native/core/worker evidence is verified by source hashes. Real owner map upload/create/edit/reload and private-read denials pass with zero browser diagnostics. Exact fixture/account cleanup, revoked-JWT denial and post-fence physical R2 absence pass for every proof asset. Complete live hydration/reconnect, movement, exhaustive privacy/contention/performance and release promotion retain their separate cases.",
@@ -2485,12 +2485,13 @@
             {
               "id": "V03.4",
               "text": "Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets $role change a visible $from door to $to: $outcome",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › commits a player's door change on a fog-on Scene through the room, refusing a locked door (V03.4) (a player opens a closed door on a presented fog-on Scene Convex-first with staged fog and sequence 1; opening a LOCKED door is refused at publication and the sequence stays 1)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets $role change a visible $from door to $to: $outcome (player CLOSED→OPEN and OPEN→CLOSED plan EXTERNAL; player CLOSED→LOCKED and LOCKED→OPEN are FORBIDDEN; the GM locks and unlocks)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a player door change for $case",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › lets a player open a door in a fog-OFF Scene even with a kept unexplored layer",
-                "impl: packages/shared/src/domains/vtt/geometry.ts (sceneDoorChangeFailure), apps/session-worker/src/nativeRoomSceneCommand.ts"
+                "impl: packages/shared/src/domains/vtt/geometry.ts (sceneDoorChangeFailure), apps/session-worker/src/nativeRoomSceneCommand.ts, apps/apis/convex/scenes/geometryStaging.ts (beginSceneGeometry admits a member's live door change), apps/apis/convex/scenes/geometryPublication.ts (player lock rule)"
               ]
             },
             {
@@ -2709,14 +2710,30 @@
             {
               "id": "V07.4",
               "text": "A player commits moves of tokens they control outside Encounters, and unbound tokens keep Scene token control (ADR 0034).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › commits a player move of a controlled unbound token through the room, refusing others (V07.4) (a player moves the Scene token they control on a presented Scene with no Encounter, Convex-first at sequence 1; their move of a token they do not control is refused at publication and the sequence stays 1)",
+                "apps/apis/convex/scenes/standaloneMovement.test.ts › moves immutable uppercase token and controller identities through canonical hydration",
+                "apps/session-worker/test/nativeSceneTokenControl.test.ts › keeps Scene token control for unbound tokens and refuses locked or hidden ones",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts › uses the same token-control rule for a player and the GM",
+                "impl: apps/apis/convex/scenes/geometryPublication.ts (Scene token control for unbound moves), apps/apis/convex/scenes/geometryDocuments.ts (assertStandaloneMovement), apps/session-worker/src/nativeRoomSceneCommand.ts, apps/session-worker/src/nativeExternalSceneCommit.ts"
+              ]
             },
             {
               "id": "V07.5",
               "text": "Moves of Encounter-bound tokens follow the actor-control predicate, and a player's remaining movement is shown but not enforced (ADR 0034).",
               "status": "IN_PROGRESS",
-              "proof": null
+              "proof": [
+                "apps/apis/convex/encounters/playerControl.test.ts › moves an Encounter-bound token only for the bound actor controllers",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › moves an Encounter-bound token for its actor controllers, not its Scene token controllers",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › refuses private staging with a bad secret, identity or epoch, and a non-controller at begin",
+                "apps/apis/convex/liveSessions/externalCommit.test.ts › counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)",
+                "apps/apis/convex/encounters/activeReads.test.ts › reads the active projection and pending decision together with existing visibility and membership rules (the GM reads every actor's used/budget; a player who controls no actor reads an empty list)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › shows the movement spent against the walking-speed budget",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › warns softly past the budget in Assisted mode",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx › shows the number only past the budget in Manual mode",
+                "impl: apps/apis/convex/encounters/turnMovement.ts (readTurnMovementView), apps/apis/convex/encounters/activeReads.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.tsx, apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx"
+              ]
             }
           ]
         },
@@ -2866,7 +2883,7 @@
               "text": "Each Run actor has GM-set controllerUserIds limited to current players, and a Character actor's assigned player is always a controller.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member",
+                "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member (granting the GM or a non-member is refused through the room with a redacted route error, and the same grant to current players then succeeds)",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › lets the GM grant a player control of an actor and set its disposition",
                 "impl: apps/apis/convex/encounters/actorController.ts, apps/apis/convex/encounters/commands.ts (UPDATE_ACTOR controllerUserIds)"
               ]
@@ -3069,8 +3086,8 @@
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › raises no save prompt in a Manual Run, where a save-forcing action is refused whole",
                 "apps/apis/convex/encounters/concentration.test.ts › raises no concentration prompt in a Manual Run, where the damaging action is refused whole",
                 "apps/apis/convex/encounters/spatialMovement.test.ts › leaves targets and effects unchanged in Manual mode",
-                "apps/apis/convex/encounters/turnEffects.test.ts › retains Manual reminders without loading target mechanics",
-                "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts (Manual refusal)"
+                "apps/apis/convex/encounters/turnActiveEffects.test.ts › commits the planner’s MANUAL phase with its fixed occurrence version (replaces the deleted turnEffects.test.ts Manual test: the room plans a Manual turn with a pending end-of-turn save effect as MANUAL and commits it without settling the effect)",
+                "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts and apps/session-worker/src/nativeEncounterRules.ts (Manual refusal)"
               ]
             },
             {
@@ -3312,8 +3329,8 @@
               "text": "A terminal reaction outcome race has one winner, one stale loser, one reaction spend and one mechanics receipt, and winner, root and loser replay preserve state.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; winner replay, loser retry and root replay leave every stored table unchanged)",
-                "impl: apps/apis/convex/encounters/commandActions.ts (executeNativeEncounterCommand), apps/apis/convex/scenes/movementResolutionStaging.ts, apps/apis/convex/scenes/movementResolutionReads.ts"
+                "apps/apis/convex/scenes/movementResolution.test.ts › races every reaction response to one winner and one stale loser, spending the reaction once (each response step, through the terminal outcome, has one winner and one recognized stale loser; reaction ruleUsage is 1; the loser leaves no command, receipt, occurrence or Scene trace; one command receipt per committed Run version; since S4-d the responses race through the room, a retried winner or loser is refused as stale, and those retries and the root replay leave every stored table unchanged)",
+                "impl: apps/session-worker/src/nativeRoomEncounterCommand.ts (MOVEMENT route), apps/session-worker/src/nativeExternalSceneCommit.ts, apps/apis/convex/liveSessions/encounterMovementCommit.ts, apps/apis/convex/scenes/movementResolutionPublication.ts"
               ]
             },
             {
@@ -3521,8 +3538,11 @@
               "text": "The Durable Object runs heavy live rule evaluation and fact preparation in order, with authorized capture and validated atomic Convex commits that preserve replay, version checks and Character/Encounter/Scene atomicity.",
               "status": "IN_PROGRESS",
               "proof": [
-                "partial: apps/session-worker/src/nativeRoomEncounterCommand.ts plans RESOLVE_ACTION, START/ADVANCE_TURN, Concentration and movement decisions in the room",
-                "missing: contested/Cleaving/optional-combat (Disarm) evidence, Manual-mode actions, Legendary Resistance and spatially interpreted actions throw LivePlannerUnsupportedError (apps/session-worker/src/nativeEncounterRules.ts), and every other command routes NATIVE; both forward to Convex, which evaluates the rules there"
+                "partial: apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room",
+                "partial: apps/apis/convex/liveSessions/encounterRoute.test.ts › classifies the pending declaration, and Convex runs only the listed GM commands",
+                "partial: apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them",
+                "partial: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, turns, Concentration, Cleaving, Disarm and movement decisions and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES with a throwing random source; LivePlannerUnsupportedError and the Convex forward are deleted (S4-d, 276ad42d1)",
+                "missing: with no room authority active, the public scenes/geometryActions:execute still publishes an Encounter-bound root move natively: scenes/spatialPreparation:prepare evaluates movement rules in Convex, and encounters/spatialMovement.ts (rollD20: nextRollInt) and encounters/movementConcentration.ts/concentration.ts (nextRollInt) draw dice in Convex (beginSceneGeometry refuses bound moves only while a room is live, D42). Either refuse Encounter-bound moves in Convex without a live room, or record an architect ruling that this path is allowed"
               ]
             },
             {

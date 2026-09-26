@@ -2,7 +2,7 @@
 
 > Living list of questions waiting for the user's answer. Answer inline under **Answer** (or in chat); answered items move to [Resolved](#resolved) with the decision. Decisions made on the user's behalf are summarized in [Decisions to review](#decisions-to-review); the full reasoning is in the [handoff Decision log](phase-08-2-convex-cutover.md#decision-log-delegated-for-user-review).
 >
-> Updated: 2026-09-25.
+> Updated: 2026-09-26.
 
 ## Open
 
@@ -137,6 +137,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **No internal IDs in persisted contracts.** They must carry public UUIDs, never Convex document ids.
   * **Permission refusals say so.** A player sending a GM-only command, or acting for an actor they don't control, sees a permission message such as "Only the GM can do that." "The Encounter changed" is reserved for genuinely stale versions.
 
+* **D43** (was Q12; decided because it follows from D41) Convex refuses Encounter-bound token moves when no room is live, using the same domain refusal as D42. The native Convex movement preparation, dice and Concentration code this leaves unused is deleted. The tabletop always opens a room before moving tokens, so the native path was a second rules path with Convex dice, which D41 rules out.
 ## Resolved
 
 * **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:

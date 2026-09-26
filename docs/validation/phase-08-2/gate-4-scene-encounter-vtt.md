@@ -5,7 +5,7 @@
 - **Update when:** a Gate 4 case or criterion in the [acceptance ledger](../../roadmap/08-2-convex-cutover-acceptance.json) changes status or evidence
 - **Recorded:** 2026-09-25, from the ledger; run `node scripts/acceptanceProgress.mjs` for live counts
 
-Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **43** criteria and **7** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
+Gate 4 has **5/15** cases and **31/81** criteria accepted. A further **45** criteria and **8** cases are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](gate-readiness-2026-09-25.md)).
 
 The ledger's `criteria` arrays are the authority for what each case must prove; this page summarizes them with the proof tier and where the evidence came from. Raw logs are not copied here.
 
@@ -59,19 +59,19 @@ Evidence:
 
 ## V03 — Scene entities, geometry, and visibility facts
 
-- **Status:** IN_PROGRESS
+- **Status:** READY_FOR_ACCEPTANCE
 - **Accepted:** 2026-09-11 (reopened 2026-09-25, ADR 0034)
 - **Proof tier:** LOCAL_INTEGRATION
 - **Criteria met:** 3/5
 
-Reopened 2026-09-25 for ADR 0034 player agency criteria. Earlier scoped acceptance evidence still backs the ACCEPTED criteria; the player agency criteria are unproven.
+Reopened 2026-09-25 for ADR 0034 player agency criteria. Earlier scoped acceptance evidence still backs the ACCEPTED criteria; the player agency criteria are READY_FOR_ACCEPTANCE since the fourth readiness pass (2026-09-26) and await the final-source R08 run.
 
 What was proven or remains to prove:
 
 - `V03.1` ACCEPTED: All six entity collections and persisted geometry keep recipient privacy and separate definition and live Scene state.
 - `V03.2` ACCEPTED: Exact replay, competing writes, stale versions and entity/fog/head/receipt rollback pass through the shared verifier.
 - `V03.3` ACCEPTED: Maximum-polygon and full fog-capacity coverage is kept without smaller Scene limits.
-- `V03.4` IN_PROGRESS (moved back in the third review): Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
+- `V03.4` READY_FOR_ACCEPTANCE (moved back in the third review, READY again in the fourth): Players may open and close unlocked doors, and locking stays GM-only (ADR 0034).
 - `V03.5` READY_FOR_ACCEPTANCE: Fog of war is opt-in per Scene: with fog off, players see every non-hidden token, wall, door and light; with fog on, the shared-party or per-player exploration model applies (ADR 0034).
 
 Evidence:
@@ -160,7 +160,7 @@ What was proven or remains to prove:
 - `V07.1` ACCEPTED: Bound and standalone movement publish validated sampled paths and fog atomically, with current authority, token control, fences and replay.
 - `V07.2` ACCEPTED: Movement reactions, Passage continuation, stopped-path fog and GM undo pass in the browser.
 - `V07.3` ACCEPTED: Peers converge, and reconnect, reload and current departure refusal pass with exact cleanup.
-- `V07.4` IN_PROGRESS: A player commits moves of tokens they control outside Encounters, and unbound tokens keep Scene token control (ADR 0034).
+- `V07.4` READY_FOR_ACCEPTANCE: A player commits moves of tokens they control outside Encounters, and unbound tokens keep Scene token control (ADR 0034).
 - `V07.5` IN_PROGRESS: Moves of Encounter-bound tokens follow the actor-control predicate, and a player's remaining movement is shown but not enforced (ADR 0034).
 
 Evidence:
