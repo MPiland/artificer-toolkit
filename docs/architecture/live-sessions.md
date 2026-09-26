@@ -356,15 +356,32 @@ adds a `speedBonuses` count to the turn movement row for `SPEED_MOVEMENT_BONUS` 
 `USE_BASIC_ACTION` run command whose label the timeline shows; it evaluates no rules. Entries without
 mechanics (Hide, Ready, Search, Use an Object) are only logged. Effects live on the actor that took
 the action and end as its next turn starts (the turn planner stages `stagedBasicActionExpiry` and
-`persistLiveTurnResources` clears it). `NO_OPPORTUNITY_ATTACKS` also ends with its own turn: the
-room's movement reaction discovery skips a mover it covers. `DISADVANTAGE_ON_ATTACKS_AGAINST` adds a
-disadvantage contributor to every attack against the actor through `prepareEncounterActionMechanics`,
-and `ALLY_ADVANTAGE` an advantage contributor to the named ally's next `RESOLVE_ACTION` attack roll,
-whose commit removes it from the helper (`allyAdvantageUse`). Their contributor source ids name the
-entry, so the derived-mode reason reads "Dodge" or "Help". A custom actor spends no allowance.
-Known gaps: Help does not yet apply to ability checks or opportunity attacks, Dodge ignores whether
-the actor sees the attacker, and `REVERT_LAST_ACTION` neither undoes a basic action nor restores a
-consumed Help.
+`persistLiveTurnResources` clears it). Each effect records the Run's `turnSequence` (D45): START and
+ADVANCE_TURN always begin a new turn, and each GM change of the current actor or round
+(`SET_CURRENT_ACTOR`, `PREVIOUS_TURN`, `SET_ROUND`, removing the current actor) counts one more.
+`NO_OPPORTUNITY_ATTACKS` therefore applies only during the turn it was taken in, and setting that
+actor current again does not revive it; the room's movement reaction discovery skips a mover it
+covers. `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE` (Dodge) apply to the holder's target
+facts in the room (`withEncounterBasicActionDefense`, called by `prepareNativeLiveMovementTarget`):
+a disadvantage contributor on every attack roll against it (`basicActionAttackContributors`, merged
+by `prepareEncounterActionMechanics`) and an advantage contributor on its saving throws of the
+entry's `saveAbilityIds` (Dexterity for Dodge). An entry with `suspendedWhileUnableToActOrMove`
+applies neither while its holder can't act (the System's actor-action capability is suppressed, for
+example by Incapacitated) or every speed it has is 0; the effect stays and applies again once it
+can. `ALLY_ADVANTAGE` (Help) adds an advantage contributor to the named ally's next d20 in any
+Encounter flow: an action or opportunity attack roll, a Disarm attack roll or check, or an Overrun or
+Tumble check. That flow's commit removes the Help from its helper (`allyAdvantageUses` on the action,
+Disarm, movement reaction and passage commits, through `encounters/allyAdvantage.ts`), and a passage
+removes it from the targets its move continues with, so a later roll in the same move can't reuse
+it. Contributor source ids name the entry, so the derived-mode reason reads "Dodge" or "Help". A
+custom actor spends no allowance. The GM's `REVERT_LAST_ACTION` undoes the Run's last basic action
+exactly from its stored receipt (effects, allowance use, Dash speed bonus) and gives back any Help an
+undone action used; it still refuses once a later command changed the Run. Feet already moved stay
+recorded, so the readout can show more used than the restored budget. Known gaps: Dodge does not
+check that the dodger sees its attacker, because no Encounter flow computes that perception fact;
+speed 0 is read from evaluated speeds (a Character's rule output, a Creature's stat block), so a
+condition that zeroes a Creature's speed without changing those is not seen; and targets rebuilt
+inside turn-effect saves carry no Dodge contributors.
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` is internal and records only GM tools. Every Encounter command enters
