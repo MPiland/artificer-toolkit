@@ -1,8 +1,12 @@
-# Manual-only test run. Nothing here runs on push, pull request or a schedule:
-# start it from GitHub (Actions → Tests → Run workflow) or with `gh workflow run tests.yml`.
+# Manual-only test run. It never runs on ordinary pushes, pull requests or a schedule.
+# Start it from GitHub (Actions → Tests → Run workflow, once this file is on the default branch)
+# or by deliberately pushing a commit to the dedicated `ci/run` branch:
+#   git push --force origin HEAD:ci/run
 name: Tests
 
 on:
+  push:
+    branches: ['ci/run']
   workflow_dispatch:
     inputs:
       convex_shards:
@@ -20,7 +24,7 @@ concurrency:
 
 jobs:
   convex-shards:
-    name: Convex suite ${{ matrix.shard }}/${{ inputs.convex_shards }}
+    name: Convex suite ${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
@@ -31,7 +35,7 @@ jobs:
     steps:
       - name: Skip shard outside the chosen count
         id: gate
-        run: echo "run=$([ ${{ matrix.shard }} -le ${{ inputs.convex_shards }} ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        run: echo "run=$([ ${{ matrix.shard }} -le ${{ inputs.convex_shards || '4' }} ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.gate.outputs.run == 'true'
       - uses: actions/setup-node@v4
@@ -46,7 +50,7 @@ jobs:
         run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose
       - name: Convex tests (shard ${{ matrix.shard }})
         if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards }}
+        run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards || '4' }}
 
   packages-worker-web:
     name: Packages, Worker, web and typechecks
