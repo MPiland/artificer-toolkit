@@ -118,6 +118,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * Players see "Movement 15 / 30 ft". Moving past the budget is allowed: Assisted mode shows a soft warning, and Manual mode shows the number only.
   * Foundry v13 tracks movement history per combat turn in the same way.
 
+* **D38** How remaining movement (D37) is built, following up S4-c:
+  * **Walking speed** is stored on the Character record through the same persistence helper as maximum HP (D7). Creatures read their stat block speeds.
+  * **Movement used** lives in a small per-turn record keyed by Run, round and turn, outside the Run version and checksum. The budget is shown, never enforced, so no fence needs it. Bound moves don't bump the Run version or add contention, and a new turn key starts at zero.
+  * **Dash** becomes a real rules mechanic: using the Dash action adds the actor's speed to that turn's budget. Without it, Assisted mode would warn wrongly after every Dash.
+* **D39** A player whose movement decision the GM skipped sees "The GM skipped this decision" in their decision drawer as well as in chat. The decision read model records who settled it.
+* **D40** Confirmed from S4-c:
+  * A player's door change is staged under their own actor, and the lock rule is checked at publish.
+  * Recovering an uncertain commit as COMMITTED drops the room's Scene cache and re-challenges every socket.
+  * A decision whose acknowledgement was lost in a crash replays as "already settled". The player already sees the result through their subscription.
 ## Resolved
 
 * **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).

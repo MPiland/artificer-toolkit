@@ -94,10 +94,10 @@ export async function prepareNativeLiveMovement(
   }
 ) {
   const captured = await readNativeLiveMovementInputs(input)
-  const { state, save, response, system, definitions, capture, spatialEffects } = captured
+  const { state, save, response, system, definitions, capture, spatialEffects, runtime } = captured
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
-  const { runtime, random, scene } = input
+  const { random, scene } = input
   const userId = input.scope.expectedUserId
   // Each roll goes to its actor's controllers; the mover rolls for the actors they control.
   const autoRoll = captured.autoRollByActorId

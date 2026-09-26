@@ -102,6 +102,8 @@ export const sceneGeometryBeginResultSchema = z.discriminatedUnion('kind', [
     saveId: postgresUuidSchema,
     input: sceneNativeGeometryCommandInputSchema,
     header: sceneLiveStateHeaderSchema,
+    /** The Encounter bound to the Scene, if any; its token moves carry Encounter rules. */
+    encounterId: z.nullable(postgresUuidSchema),
     movementStartDistance: z.optional(z.number().check(z.nonnegative())),
     sessionVision: z.optional(sceneSessionVisionScopeSchema)
   })
@@ -110,13 +112,19 @@ export const sceneGeometrySaveLookupSchema = z.strictObject({ saveId: postgresUu
 export const sceneGeometryStageFogInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
   layer: sceneFogLayerDtoSchema
 })
+/** Each entity's ordinal in the Scene definition save; null for an entity added during play. */
+export const sceneTokenOrdinalsSchema = z
+  .array(z.strictObject({ tokenId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
+  .check(z.maxLength(VTT_SCENE_LIMITS.tokens))
+export const sceneBaseOrdinalsSchema = z.strictObject({
+  tokens: sceneTokenOrdinalsSchema,
+  barriers: z
+    .array(z.strictObject({ barrierId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
+    .check(z.maxLength(VTT_SCENE_LIMITS.barriers))
+})
 export const sceneGeometryFinishInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
   baseOrdinal: z.nullable(version),
-  tokenOrdinals: z.optional(
-    z
-      .array(z.strictObject({ tokenId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
-      .check(z.maxLength(VTT_SCENE_LIMITS.tokens))
-  )
+  tokenOrdinals: z.optional(sceneTokenOrdinalsSchema)
 })
 export const sceneGeometryObserveInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
   characterRevisions: sceneSessionVisionCharacterRevisionsSchema
@@ -124,6 +132,7 @@ export const sceneGeometryObserveInputSchema = z.extend(sceneGeometrySaveLookupS
 
 export type SceneGeometryCommandResult = z.infer<typeof sceneGeometryCommandResultSchema>
 export type SceneGeometryBeginResult = z.infer<typeof sceneGeometryBeginResultSchema>
+export type SceneBaseOrdinals = z.infer<typeof sceneBaseOrdinalsSchema>
 
 export const sceneGeometryCommandChunksInputSchema = z.extend(sceneFogCommandChunksInputSchema, {
   ownerUserId: z.nullable(postgresUuidSchema)

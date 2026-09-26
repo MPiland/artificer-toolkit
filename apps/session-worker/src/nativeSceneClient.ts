@@ -4,6 +4,7 @@ import type {
   LiveSessionTransientHydrationRequest,
   LiveSessionTransientHydrationResultByKind
 } from '@artificer-toolkit/schema/api/liveSessionTransientHydration'
+import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneCurrentEntityPage } from '@artificer-toolkit/schema/api/sceneRecipient'
 import type { SceneFogChunksPage, SceneFogLayersPage } from '@artificer-toolkit/schema/api/sceneFog'
 import {
@@ -362,18 +363,23 @@ async function hydrateVisionCharacter(
   return result
 }
 
+/** The room's shared Scene: every entity, composed with Character vision, and its base ordinals. */
 export async function hydrateNativeTransientScene(
   environment: NativeLiveSessionEnvironment,
   accessToken: string,
   capture: LiveSessionTransientCapture
 ): Promise<{
   scene: CampaignSceneStateDto | null
+  baseOrdinals: SceneBaseOrdinals
   characterRevisions: SceneSessionVisionComposition['characterRevisions']
 }> {
-  if (!capture.sceneHeader) return { characterRevisions: [], scene: null }
+  if (!capture.sceneHeader)
+    return { baseOrdinals: { tokens: [], barriers: [] }, characterRevisions: [], scene: null }
   let uncomposedScene: CampaignSceneStateDto
+  let baseOrdinals: SceneBaseOrdinals
   if (capture.sceneSnapshot) {
-    uncomposedScene = capture.sceneSnapshot
+    uncomposedScene = capture.sceneSnapshot.scene
+    baseOrdinals = capture.sceneSnapshot.baseOrdinals
   } else {
     const pages = await Promise.all(
       entityCollections.map((collection) =>
@@ -392,6 +398,19 @@ export async function hydrateNativeTransientScene(
       }
     }
     const fogLayers = await loadFogLayers(environment, accessToken, capture)
+    const { counts } = capture.sceneHeader
+    const baseOrdinal = (collection: 'tokens' | 'barriers', ordinal: number) =>
+      ordinal < counts[collection] ? ordinal : null
+    baseOrdinals = {
+      tokens: entities.get('tokens')!.map((row) => ({
+        tokenId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('tokens', row.ordinal)
+      })),
+      barriers: barriers.map((row) => ({
+        barrierId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('barriers', row.ordinal)
+      }))
+    }
     const {
       counts: _counts,
       currentCounts: _currentCounts,
@@ -413,6 +432,7 @@ export async function hydrateNativeTransientScene(
   }
   const composition = await loadVision(environment, accessToken, capture, uncomposedScene)
   return {
+    baseOrdinals,
     characterRevisions: composition.characterRevisions,
     scene: resolveSceneCharacterVision(
       uncomposedScene,

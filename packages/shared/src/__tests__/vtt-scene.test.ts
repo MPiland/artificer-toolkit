@@ -8,6 +8,7 @@ import {
   createUniformSceneFogLayer,
   deriveSceneExplorationPatch,
   deriveSceneCommandExplorationDeltas,
+  deriveSceneCommandFogLayer,
   deriveSceneTokenPathExplorationPatch,
   extendSceneMovementPath,
   isSceneTokenVisibleToViewer,
@@ -25,6 +26,7 @@ import {
   replaySceneEvents,
   resolveSceneCharacterVision,
   sceneDeltaConflictKeys,
+  sceneDerivesExploration,
   sceneTokenIdsAffectedByBarriers,
   SceneBarrierIndex,
   segmentsIntersect,
@@ -118,6 +120,10 @@ function definition(): SceneDefinition {
   }
 }
 
+function visionOff() {
+  return { enabled: false, brightRange: 0, dimRange: 0, angleDegrees: 360, directionDegrees: 0 }
+}
+
 it('derives command fog from geometry alone while preserving pinned and explicit token vision', () => {
   const full = materializeCampaignScene(definition(), ids.scene)
   const state: SceneExplorationState = {
@@ -186,6 +192,67 @@ it('derives command fog from geometry alone while preserving pinned and explicit
       context
     )
   ).toEqual([])
+})
+
+it('derives exploration only with fog on and a stored layer or a seeing token', () => {
+  const seeing = [{ vision: { ...visionOff(), enabled: true } }]
+  const blind = [{ vision: null }, { vision: visionOff() }]
+  expect(sceneDerivesExploration({ fogMode: 'OFF', fogLayerCount: 3, tokens: seeing })).toBe(false)
+  expect(sceneDerivesExploration({ fogMode: 'PER_PLAYER', fogLayerCount: 0, tokens: blind })).toBe(
+    false
+  )
+  expect(
+    sceneDerivesExploration({ fogMode: 'SHARED_PARTY', fogLayerCount: 1, tokens: blind })
+  ).toBe(true)
+  expect(sceneDerivesExploration({ fogMode: 'PER_PLAYER', fogLayerCount: 0, tokens: seeing })).toBe(
+    true
+  )
+})
+
+it('stages a complete canonical layer that keeps earlier exploration and adds the command patch', () => {
+  const full = materializeCampaignScene(definition(), ids.scene)
+  const state: SceneExplorationState = {
+    map: full.map,
+    grid: full.grid,
+    tokens: full.tokens.map((token) => ({
+      ...token,
+      vision: { ...visionOff(), enabled: true, dimRange: 30 }
+    })),
+    barriers: [],
+    doorStates: {},
+    fogMode: 'PER_PLAYER',
+    fogLayers: []
+  }
+  const delta = { kind: 'TOKEN_MOVED' as const, tokenId: ids.token, position: { x: 600, y: 0 } }
+  const plan = planSceneCommandExploration(state, state, delta)
+  const earlier = createUniformSceneFogLayer(state, { explored: false, ownerUserId: ids.player })
+  const movement = {
+    tokenId: ids.token,
+    path: [
+      { x: 0, y: 0 },
+      { x: 600, y: 0 }
+    ]
+  }
+  const layer = deriveSceneCommandFogLayer(plan, {
+    ownerUserId: ids.player,
+    existing: earlier,
+    movement
+  })
+  const patch = deriveSceneTokenPathExplorationPatch(
+    { ...plan.state, fogLayers: [earlier] },
+    { ownerUserId: ids.player, path: movement.path, tokenId: ids.token }
+  )
+  if (!layer || !patch) throw new Error('Expected newly explored cells.')
+  expect(layer).toMatchObject({ ownerUserId: ids.player, width: earlier.width })
+  // The complete layer covers every canonical tile, so staging can replace the stored layer.
+  expect(layer.chunks).toHaveLength(earlier.chunks.length)
+  expect(isScenePointExplored({ ...state, fogLayers: [layer] }, ids.player, { x: 600, y: 0 })).toBe(
+    true
+  )
+  // Nothing new explored stages nothing.
+  expect(
+    deriveSceneCommandFogLayer(plan, { ownerUserId: ids.player, existing: layer, movement })
+  ).toBeNull()
 })
 
 it('plans recipients without fog and matches command exploration one recipient at a time', () => {

@@ -201,6 +201,7 @@ it.each([
         saveId: save.id,
         input: save.input,
         header,
+        encounterId: null,
         sessionVision: save.sessionVision
       })
     })

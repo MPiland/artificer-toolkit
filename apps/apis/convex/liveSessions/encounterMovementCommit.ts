@@ -1,4 +1,7 @@
-import { liveSessionMovementCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import {
+  liveSessionMovementCommitInputSchema,
+  type LiveSessionMovementCommitResponse
+} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
@@ -29,12 +32,19 @@ import {
 import { publishSpatialPending } from '../scenes/spatialPendingPublication'
 import { publishMovementResponse } from '../scenes/movementResolutionPublication'
 import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
+import {
+  postMovementDecisionSkipped,
+  recordRuleOccurrenceVoid,
+  voidDeclineCommandId
+} from '../encounters/occurrenceVoid'
+import { readMovementResponseResult } from '../scenes/movementResolutionReads'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { persistLiveMovementSpatial } from './encounterMovementSpatialCommit'
 import { persistLiveMovementReaction } from './encounterMovementReactionCommit'
 import { persistLiveMovementConcentration } from './encounterMovementConcentrationCommit'
+import { publishWithAuthorityAdvance } from './externalCommit'
 
 function contactEvidence<T extends { concentrationChecks?: MovementConcentrationExecutionDto[] }>(
   value: T
@@ -88,8 +98,14 @@ function retainedContactChecks<
   })
 }
 
-/** Called inside the private movement mutation's single Convex transaction. */
-export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
+/**
+ * Called inside the private movement mutation's single Convex transaction. It also advances the
+ * room's authority sequence (D27); a decision answer or GM void returns its member Encounter result.
+ */
+export async function commitLiveMovement(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<LiveSessionMovementCommitResponse> {
   const input = liveSessionMovementCommitInputSchema.parse(args)
   const { userId } = await requireIdentity(ctx)
   if (
@@ -116,6 +132,13 @@ export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
   )
     throw new Error('Live movement commit scope mismatch.')
   const resolution = readMovementResolution(save)
+  if (
+    input.voidCommand &&
+    (!resolution ||
+      resolution.command.commandId !== voidDeclineCommandId(input.voidCommand.commandId) ||
+      resolution.command.occurrenceId !== input.voidCommand.occurrenceId.toLowerCase())
+  )
+    throw new Error('Live movement void does not match its declined decision.')
   // Completed publication validates its receipt before revisions consumed by that publication.
   const admission =
     save.status === 'PUBLISHED' ? null : await readLiveMovementWriteAdmission(ctx, input)
@@ -342,60 +365,71 @@ export async function commitLiveMovement(ctx: MutationCtx, args: unknown) {
       throw new Error('Movement actor rule output scope mismatch.')
     return projectGm({ ...state, actors }, rules, characterStates)
   }
-  return publishSceneGeometry(
-    ctx,
-    input.finish,
-    {
-      publishPreparedMovementResponse: (transaction, request, geometry) =>
-        publishMovementResponse(transaction, request, geometry, {
-          commit: async () => {
-            if (!resolution || preparation.outcome.kind === 'UNINTERRUPTED')
-              throw new Error('Live movement response is unavailable.')
-            const resolutionCommands =
-              preparation.outcome.kind === 'PENDING'
-                ? readEncounterMovementPendingContext(preparation.outcome.pendingSnapshot).root
-                    .resolutionCommands
-                : preparation.outcome.resolutionCommands
-            if (!resolutionCommands) throw new Error('Movement response history is unavailable.')
-            const committed = await settle()
-            return {
-              outcome: preparation.outcome,
-              resolutionCommands,
-              ...committed,
-              commandCharacterTransitions: committed.characterTransitions
-            }
-          },
-          project
-        }),
-      publishPreparedSpatialPending: (transaction, request, geometry) =>
-        publishSpatialPending(transaction, request, geometry, {
-          evaluateInitial: async () => {
-            if (!admission || preparation.outcome.kind !== 'PENDING')
-              throw new Error('Live pending movement is unavailable.')
-            return { outcome: preparation.outcome, settlements: input.settlements }
-          },
-          settle,
-          project
-        }),
-      verifyPreparedUninterruptedMovement: async () => {
-        if (
-          !admission ||
-          preparation.outcome.kind !== 'UNINTERRUPTED' ||
-          input.settlements.length ||
-          input.rules
-        )
-          throw new Error('Uninterrupted movement cannot settle mechanics.')
+  const scene = await publishWithAuthorityAdvance(ctx, input, () =>
+    publishSceneGeometry(
+      ctx,
+      input.finish,
+      {
+        publishPreparedMovementResponse: (transaction, request, geometry) =>
+          publishMovementResponse(transaction, request, geometry, {
+            commit: async () => {
+              if (!resolution || preparation.outcome.kind === 'UNINTERRUPTED')
+                throw new Error('Live movement response is unavailable.')
+              const resolutionCommands =
+                preparation.outcome.kind === 'PENDING'
+                  ? readEncounterMovementPendingContext(preparation.outcome.pendingSnapshot).root
+                      .resolutionCommands
+                  : preparation.outcome.resolutionCommands
+              if (!resolutionCommands) throw new Error('Movement response history is unavailable.')
+              const committed = await settle()
+              return {
+                outcome: preparation.outcome,
+                resolutionCommands,
+                ...committed,
+                commandCharacterTransitions: committed.characterTransitions
+              }
+            },
+            project
+          }),
+        publishPreparedSpatialPending: (transaction, request, geometry) =>
+          publishSpatialPending(transaction, request, geometry, {
+            evaluateInitial: async () => {
+              if (!admission || preparation.outcome.kind !== 'PENDING')
+                throw new Error('Live pending movement is unavailable.')
+              return { outcome: preparation.outcome, settlements: input.settlements }
+            },
+            settle,
+            project
+          }),
+        verifyPreparedUninterruptedMovement: async () => {
+          if (
+            !admission ||
+            preparation.outcome.kind !== 'UNINTERRUPTED' ||
+            input.settlements.length ||
+            input.rules
+          )
+            throw new Error('Uninterrupted movement cannot settle mechanics.')
+        },
+        publishPreparedSpatialTerminal: (transaction, saveId, geometry, request) =>
+          publishSpatialTerminal(transaction, saveId, geometry, request, {
+            settle: async () => {
+              if (preparation.outcome.kind !== 'TERMINAL')
+                throw new Error('Live terminal movement is unavailable.')
+              return { result: preparation.outcome.result, ...(await settle()) }
+            },
+            project
+          })
       },
-      publishPreparedSpatialTerminal: (transaction, saveId, geometry, request) =>
-        publishSpatialTerminal(transaction, saveId, geometry, request, {
-          settle: async () => {
-            if (preparation.outcome.kind !== 'TERMINAL')
-              throw new Error('Live terminal movement is unavailable.')
-            return { result: preparation.outcome.result, ...(await settle()) }
-          },
-          project
-        })
-    },
-    current
+      current
+    )
   )
+  if (!resolution) return { scene, encounter: null }
+  if (!input.voidCommand)
+    return { scene, encounter: await readMovementResponseResult(ctx, resolution.command) }
+  await postMovementDecisionSkipped(ctx, {
+    campaignId: input.campaignId,
+    gmUserId: userId,
+    voidCommandId: input.voidCommand.commandId
+  })
+  return { scene, encounter: await recordRuleOccurrenceVoid(ctx, input.voidCommand) }
 }

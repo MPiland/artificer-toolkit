@@ -302,7 +302,7 @@ it('moves an Encounter-bound token for its actor controllers, not its Scene toke
         }
       })
     ).projection.version
-  const refused = 'Members may only move an unlocked token they control.'
+  const refused = 'NOT_ACTOR_CONTROLLER'
 
   await expect(prepareMove(value.player, value.rootInput.expectedEncounterVersion)).rejects.toThrow(
     refused

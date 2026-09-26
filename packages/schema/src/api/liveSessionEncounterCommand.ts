@@ -15,7 +15,9 @@ export const liveSessionEncounterRouteSchema = z.enum([
   'NATIVE'
 ])
 
+/** A GM void of a movement decision declines it through the room's movement path (D26). */
 export const liveSessionEncounterRouteInputSchema = z.extend(liveSessionBootstrapInputSchema, {
+  commandType: z.enum(['RESOLVE_RULE_OCCURRENCE', 'VOID_RULE_OCCURRENCE']),
   encounterId: postgresUuidSchema,
   occurrenceId: postgresUuidSchema
 })

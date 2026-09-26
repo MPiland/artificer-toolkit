@@ -360,6 +360,36 @@ describe('CampaignTabletopDecisionDrawer void', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer movement skip', () => {
+  it('offers the GM Skip decision on a pending movement choice (D26)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={passagePending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.queryByRole('button', { name: 'Void decision' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Skip decision' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'VOID_RULE_OCCURRENCE',
+        occurrenceId: passagePending.occurrenceId,
+        expectedOccurrenceVersion: passagePending.occurrenceVersion
+      })
+    )
+    expect(await screen.findByText('Decision skipped.')).toBeVisible()
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer passage choice', () => {
   it('submits passage options and decline with the existing command envelope', async () => {
     const user = userEvent.setup()

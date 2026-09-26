@@ -10,7 +10,10 @@ import type {
   SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import type {
+  LiveSessionMovementCommitInput,
+  LiveSessionMovementCommitResponse
+} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   encounterRunActorStateSchema,
@@ -60,7 +63,7 @@ const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandRe
 const privateFinish = makeFunctionReference<
   'mutation',
   LiveSessionMovementCommitInput,
-  SceneGeometryCommandResult
+  LiveSessionMovementCommitResponse
 >('liveSessions/encounterMovement:commit')
 const beginResponse = makeFunctionReference<
   'mutation',
@@ -639,7 +642,7 @@ describe('native Scene movement passage', () => {
       await expect(
         value.owner.caller.run(async (ctx) => {
           let completed: SceneGeometryCommandResult
-          if (privateCommit) completed = await ctx.runMutation(privateFinish, privateCommit)
+          if (privateCommit) completed = (await ctx.runMutation(privateFinish, privateCommit)).scene
           else if (response) completed = await ctx.runMutation(finish, response.request)
           else throw new Error('Passage publication input is unavailable.')
           expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
@@ -665,7 +668,7 @@ describe('native Scene movement passage', () => {
             'encounterMovementCommit',
             privateCommit
           )
-        ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
+        ).resolves.toMatchObject({ scene: { occurrence: { status: 'COMPLETE', pending: null } } })
       else if (response)
         await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
           occurrence: { status: 'COMPLETE', pending: null }
@@ -701,7 +704,7 @@ describe('native Scene movement passage', () => {
             'encounterMovementCommit',
             privateCommit
           )
-        ).resolves.toMatchObject({ replayed: true })
+        ).resolves.toMatchObject({ scene: { replayed: true } })
       else if (response)
         await expect(value.owner.caller.mutation(finish, response.request)).resolves.toMatchObject({
           replayed: true

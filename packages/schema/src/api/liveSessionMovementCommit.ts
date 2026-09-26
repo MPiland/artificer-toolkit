@@ -1,7 +1,18 @@
 import { z } from '../zod.js'
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
+import { liveSessionSequenceDtoSchema } from './liveSessionCommands.js'
 import { liveSessionMovementCaptureScopeSchema } from './liveSessionEncounterMovement.js'
-import { sceneGeometryFinishInputSchema } from './sceneGeometry.js'
+import {
+  sceneGeometryCommandResultSchema,
+  sceneGeometryFinishInputSchema,
+  sceneGeometryObserveInputSchema,
+  sceneGeometrySaveLookupSchema,
+  sceneGeometryStageFogInputSchema
+} from './sceneGeometry.js'
+import { sceneDeltaDtoSchema } from './vttScenes.js'
+import { encounterCommandResultDtoSchema } from './encounterData.js'
+import { voidRuleOccurrenceInputDtoSchema } from './encounterRuleCommands.js'
+import { projectionChecksumSchema } from '../projections/identity.js'
 import { sceneSpatialPreparationSchema } from '../projections/sceneSpatialPreparation.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
@@ -64,10 +75,69 @@ export const liveSessionMovementPrepareInputSchema = z.extend(liveSessionBootstr
     .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * RULE_GRAPH_LIMITS.NODES))
 })
 
+/**
+ * The room's next authority sequence, which a Convex-first commit advances in its own transaction
+ * (D27): Convex requires its persisted sequence to be `sequence - 1` with `expectedStateChecksum`.
+ */
+export const liveSessionExternalAuthoritySchema = z.strictObject({
+  sequence: liveSessionSequenceDtoSchema.check(z.positive()),
+  expectedStateChecksum: projectionChecksumSchema,
+  stateChecksum: projectionChecksumSchema
+})
+
+/** The Scene result the room predicted; any other publication rolls the whole commit back. */
+export const liveSessionExpectedSceneSchema = z.strictObject({
+  sceneId: postgresUuidSchema,
+  version: z.number().check(z.int()).check(z.nonnegative()),
+  delta: z.nullable(sceneDeltaDtoSchema)
+})
+
+const externalCommit = {
+  authority: liveSessionExternalAuthoritySchema,
+  expectedScene: liveSessionExpectedSceneSchema
+}
+
+/** A room Scene commit that carries no Encounter rules: a token move or a door change. */
+export const liveSessionSceneGeometryCommitInputSchema = z.extend(liveSessionBootstrapInputSchema, {
+  finish: sceneGeometryFinishInputSchema,
+  ...externalCommit
+})
+
+export const liveSessionSceneGeometryObserveInputSchema = z.extend(
+  liveSessionBootstrapInputSchema,
+  sceneGeometryObserveInputSchema.shape
+)
+
+/** Stages one complete fog layer; returns the geometry save, which is unchanged. */
+export const liveSessionSceneGeometryStageFogInputSchema = z.extend(
+  liveSessionBootstrapInputSchema,
+  sceneGeometryStageFogInputSchema.shape
+)
+export const liveSessionSceneGeometrySaveResponseSchema = sceneGeometrySaveLookupSchema
+
+/**
+ * Settles a room commit whose outcome the room did not observe (a timeout or a restart). Worker
+ * secret only: the room's write-ahead record supplies every field.
+ */
+export const liveSessionExternalCommitResolveInputSchema = z.strictObject({
+  campaignId: postgresUuidSchema,
+  epoch: postgresUuidSchema,
+  saveId: postgresUuidSchema,
+  expectedSequence: liveSessionSequenceDtoSchema,
+  expectedStateChecksum: projectionChecksumSchema,
+  nextStateChecksum: projectionChecksumSchema
+})
+export const liveSessionExternalCommitResolveResponseSchema = z.strictObject({
+  outcome: z.enum(['COMMITTED', 'ABANDONED'])
+})
+
 export const liveSessionMovementCommitInputSchema = z.extend(
   liveSessionMovementPrepareInputSchema,
   {
     finish: sceneGeometryFinishInputSchema,
+    ...externalCommit,
+    /** A GM void this commit declines (D26); it is recorded in the same transaction. */
+    voidCommand: z.optional(voidRuleOccurrenceInputDtoSchema),
     rules: z.nullable(encounterActorRuleOutputSchema),
     settlements: z
       .array(liveSessionMovementSettlementSchema)
@@ -79,6 +149,23 @@ export const liveSessionMovementCommitInputSchema = z.extend(
   }
 )
 
+/** A decision answer or void also returns its Encounter result, presented for the member. */
+export const liveSessionMovementCommitResponseSchema = z.strictObject({
+  scene: sceneGeometryCommandResultSchema,
+  encounter: z.nullable(encounterCommandResultDtoSchema)
+})
+
 export type LiveSessionMovementSettlement = z.infer<typeof liveSessionMovementSettlementSchema>
+export type LiveSessionExternalAuthority = z.infer<typeof liveSessionExternalAuthoritySchema>
+export type LiveSessionExpectedScene = z.infer<typeof liveSessionExpectedSceneSchema>
+export type LiveSessionSceneGeometryCommitInput = z.infer<
+  typeof liveSessionSceneGeometryCommitInputSchema
+>
+export type LiveSessionExternalCommitResolveInput = z.infer<
+  typeof liveSessionExternalCommitResolveInputSchema
+>
+export type LiveSessionMovementCommitResponse = z.infer<
+  typeof liveSessionMovementCommitResponseSchema
+>
 export type LiveSessionMovementPrepareInput = z.infer<typeof liveSessionMovementPrepareInputSchema>
 export type LiveSessionMovementCommitInput = z.infer<typeof liveSessionMovementCommitInputSchema>

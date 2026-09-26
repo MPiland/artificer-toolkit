@@ -9,6 +9,10 @@ import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
 import { resolveRuleOccurrenceInputDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  serverPublishedRuleDefinitionDtoSchema,
+  serverRuleExecutionInputDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
@@ -20,13 +24,18 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneTokenMovementFailure, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
+import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 
-/** The room supplies its complete, flushed Scene; raw captures stay within the trusted DO. */
+/**
+ * The room supplies its complete, flushed Scene; raw captures stay within the trusted DO. The
+ * movement admission read fetches the command's capture bundle, and System-level reads go through
+ * the room cache.
+ */
 export async function readNativeLiveMovementInputs(input: {
   environment: NativeLiveSessionEnvironment
   accessToken: string
@@ -36,8 +45,9 @@ export async function readNativeLiveMovementInputs(input: {
   scene: CampaignSceneState
   occurrenceId: string
   runtime: RulesRuntimeService
+  captures?: LiveCaptureReads
 }) {
-  const { environment, accessToken, scene, runtime, occurrenceId } = input
+  const { environment, accessToken, scene, runtime, occurrenceId, captures } = input
   const scope = liveSessionEncounterRulesInputSchema.parse({
     ...input.scope,
     request: { kind: 'MOVEMENT_INPUTS' }
@@ -50,14 +60,16 @@ export async function readNativeLiveMovementInputs(input: {
     const key = checksumCanonicalJson(request)
     let read = reads.get(key)
     if (!read) {
-      read = callLiveSessionRoute(
+      read = captureEncounterRules(
         environment,
         accessToken,
-        'encounterRules',
-        liveSessionEncounterRulesInputSchema.parse({ ...scope, request })
-      ).then((response) => {
+        liveSessionEncounterRulesInputSchema.parse({ ...scope, request }),
+        revisions,
+        captures
+      ).then((captured) => {
+        const { response } = captured
         if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
-        revisions = mergeNativeRulesRevisions(revisions, response.revisions)
+        revisions = mergeNativeRulesRevisions(revisions, captured.revisions)
         dependencies.push({ request, readChecksum: response.readChecksum })
         return response
       })
@@ -65,10 +77,9 @@ export async function readNativeLiveMovementInputs(input: {
     }
     return read
   }
-  const [movement, inputs] = await Promise.all([
-    capture({ kind: 'MOVEMENT_INPUTS' }),
-    capture({ kind: 'INPUTS' })
-  ])
+  // The admission read fetches the bundle that later reads take their parts from.
+  const movement = await capture({ kind: 'MOVEMENT_INPUTS' })
+  const inputs = await capture({ kind: 'INPUTS' })
   if (movement.kind !== 'MOVEMENT_INPUTS' || inputs.kind !== 'INPUTS')
     throw new Error('Movement inputs are unavailable.')
   const { header, save } = movement
@@ -188,7 +199,8 @@ export async function readNativeLiveMovementInputs(input: {
               scope,
               state,
               actor,
-              activeEffectsByActorId
+              activeEffectsByActorId,
+              captures
             })
           )
         )
@@ -205,6 +217,25 @@ export async function readNativeLiveMovementInputs(input: {
       )
         throw new Error('Movement definition is unavailable.')
       return response.definition
+    }
+  }
+  // A policy that names its definition (reaction eligibility) reads it through this command's
+  // authorized capture; the room runtime has no definition source of its own.
+  const capturedRuntime: RulesRuntimeService = {
+    ...runtime,
+    execute: async (candidate) => {
+      const command = serverRuleExecutionInputDtoSchema.parse(candidate)
+      const current = await definitions.requireCurrent(command.definitionId)
+      return runtime.executeResolved({
+        command,
+        published: serverPublishedRuleDefinitionDtoSchema.parse({
+          id: current.id,
+          gameSystemId: current.gameSystemId,
+          definitionFamilyKey: current.definitionFamilyKey,
+          checksum: current.checksum,
+          definition: current.document
+        })
+      })
     }
   }
   const spatialEffects: EncounterSpatialRuleEffectRecord[] = []
@@ -252,7 +283,7 @@ export async function readNativeLiveMovementInputs(input: {
             system,
             definitions
           }),
-          runtime
+          runtime: capturedRuntime
         }
   const resolvePerception =
     facts === null
@@ -310,6 +341,7 @@ export async function readNativeLiveMovementInputs(input: {
     resolvePerception,
     reactions,
     definitions,
+    runtime: capturedRuntime,
     capture,
     dependencies,
     revisions: () => revisions

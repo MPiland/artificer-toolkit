@@ -49,7 +49,8 @@ const capture: LiveSessionTransientCapture = {
   origin: { membershipEpoch: '2026-09-12T00:00:00.000Z', role: 'OWNER', userId },
   presentation: null,
   recipients: [],
-  sceneEncounterBound: false,
+  sceneEncounterId: null,
+  sceneMovementDecisionPending: false,
   originBoundTokenControl: [],
   sceneHeader: null,
   systemId: '00000000-0000-4000-8000-000000000104',
@@ -215,12 +216,14 @@ it('uses a compact captured Scene without entity or fog hydration requests', asy
     return emptyHydration(String(request.kind))
   })
 
+  const baseOrdinals = { tokens: [], barriers: [] }
   const result = await hydrateNativeTransientScene(environment, 'access-token', {
     ...sceneCapture(sceneHeader),
-    sceneSnapshot
+    sceneSnapshot: { scene: sceneSnapshot, baseOrdinals }
   })
 
   expect(result.scene).toEqual(sceneSnapshot)
+  expect(result.baseOrdinals).toEqual(baseOrdinals)
   expect(fetchMock).not.toHaveBeenCalled()
 })
 
@@ -262,6 +265,8 @@ it('follows an empty BASE page into APPENDED entities and retains door state', a
 
   expect(result.scene?.doorStates[door.id]).toBe('OPEN')
   expect(result.scene?.barriers).toEqual([door])
+  // A barrier added during play has no definition ordinal.
+  expect(result.baseOrdinals.barriers).toEqual([{ barrierId: door.id, baseOrdinal: null }])
 })
 
 it('rejects entity pagination cycles and header count mismatches', async () => {

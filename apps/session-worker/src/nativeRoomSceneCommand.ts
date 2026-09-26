@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   isSceneEntityVisibleToViewer,
+  sceneDerivesExploration,
   sceneDoorChangeFailure,
   sceneTokenMovementFailure,
   VTT_SCENE_LIMITS
@@ -60,8 +61,31 @@ const sceneMovementUndoSchema = z.object({
     .max(VTT_SCENE_LIMITS.tokens)
 })
 
+type LiveSceneCommand = z.infer<typeof liveSessionSceneCommandInputSchema>
+
+/**
+ * Whether a Scene command commits to Convex first (D27) instead of through the outbox: every
+ * Encounter-bound move and every move on an Encounter-bound Scene, and any move or door change that
+ * derives fog exploration. Door changes and moves that do neither stay on the outbox.
+ */
+export function isExternalSceneCommand(
+  command: LiveSceneCommand,
+  scene: CampaignSceneStateDto,
+  encounterId: string | null
+): boolean {
+  const derivesExploration = sceneDerivesExploration({
+    fogMode: scene.fogMode,
+    fogLayerCount: scene.fogLayers.length,
+    tokens: scene.tokens
+  })
+  if (command.type === 'MOVE_SCENE_TOKEN')
+    return command.expectedEncounterVersion !== null || encounterId !== null || derivesExploration
+  return command.type === 'SET_SCENE_DOOR_STATE' && derivesExploration
+}
+
 type SceneCommandPlan =
   | { kind: 'ACCEPTED'; delta: NonNullable<SceneCommandResultDto['delta']> }
+  | { kind: 'EXTERNAL' }
   | {
       kind: 'REJECTED'
       code: LiveSessionCommandRejectionCodeDto
@@ -79,17 +103,23 @@ function reject(
 }
 
 /**
- * Decides the Scene delta for one synchronized live command. Pure apart from reading the
- * latest undoable move; journal writes, broadcast and publication stay with the room.
+ * Decides the Scene delta for one synchronized live command, or that it commits to Convex first.
+ * Pure apart from reading the latest undoable move; journal writes, broadcast and publication stay
+ * with the room.
  */
 export function planLiveSceneCommand(input: {
-  command: z.infer<typeof liveSessionSceneCommandInputSchema>
+  command: LiveSceneCommand
   scene: CampaignSceneStateDto
-  sceneEncounterBound: boolean
+  encounterId: string | null
+  /** A pending movement decision holds token moves and door changes on its Scene (D26). */
+  movementDecisionPending: boolean
   actor: { role: 'OWNER' | 'PLAYER'; userId: string }
   latestUnmatchedMove: () => ReturnType<DurableCommandJournal['latestUnmatchedSceneTokenMove']>
 }): SceneCommandPlan {
   const { command, scene, actor } = input
+  if (input.movementDecisionPending)
+    return reject('UNAVAILABLE', 'Waiting on a movement decision.', true)
+  const external = isExternalSceneCommand(command, scene, input.encounterId)
   if (command.type === 'SET_SCENE_DOOR_STATE') {
     const door = scene.barriers.find(
       (barrier) => barrier.id === command.barrierId && barrier.kind === 'DOOR'
@@ -109,31 +139,26 @@ export function planLiveSceneCommand(input: {
       command.state
     )
     if (failure) return reject('FORBIDDEN', failure, false)
+    if (external) return { kind: 'EXTERNAL' }
     return {
       kind: 'ACCEPTED',
       delta: { barrierId: command.barrierId, kind: 'DOOR_STATE_SET', state: command.state }
     }
   }
   if (command.type === 'MOVE_SCENE_TOKEN') {
-    if (
-      command.expectedEncounterVersion !== null ||
-      input.sceneEncounterBound ||
-      // Fog OFF derives no exploration, so kept fog layers and token vision do not apply.
-      (scene.fogMode !== 'OFF' &&
-        (scene.fogLayers.length > 0 ||
-          scene.tokens.some((token) => token.vision?.enabled === true)))
-    )
-      return reject(
-        'UNAVAILABLE',
-        'Encounter-bound or fog-derived token movement is not available through live play yet.',
-        true
-      )
+    // A bound token follows its actor's controllers, which Convex checks; the room never applies
+    // the Scene token's own list to it.
     const token = scene.tokens.find((candidate) => candidate.id === command.tokenId)
-    if (actor.role !== 'OWNER' && (!token || !token.controlledByUserIds.includes(actor.userId)))
+    if (
+      command.expectedEncounterVersion === null &&
+      actor.role !== 'OWNER' &&
+      (!token || !token.controlledByUserIds.includes(actor.userId))
+    )
       return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
     const position = command.path.at(-1)!
     const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
     if (failure) return reject('INVALID_COMMAND', failure, true)
+    if (external) return { kind: 'EXTERNAL' }
     return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }
   }
   if (actor.role !== 'OWNER')

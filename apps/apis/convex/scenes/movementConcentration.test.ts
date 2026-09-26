@@ -873,7 +873,7 @@ it.each(['native', 'private'] as const)(
         'encounterMovementCommit',
         privateCommit
       )
-      completed = committed
+      completed = committed.scene
     } else {
       const started = await value.player.caller.mutation(begin, concentration)
       if (!started || started.kind !== 'READY')
@@ -925,7 +925,7 @@ it.each(['native', 'private'] as const)(
           'encounterMovementCommit',
           privateCommit
         )
-      ).resolves.toEqual({ ...completed, replayed: true })
+      ).resolves.toMatchObject({ scene: { ...completed, replayed: true } })
     else
       await expect(value.player.caller.mutation(finish, request)).resolves.toEqual({
         ...completed,

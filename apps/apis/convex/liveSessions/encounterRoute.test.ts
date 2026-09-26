@@ -217,6 +217,7 @@ async function setup() {
     throw new Error('Expected a pending initiative declaration.')
   const route: LiveSessionEncounterRouteInput = {
     ...scope,
+    commandType: 'RESOLVE_RULE_OCCURRENCE',
     encounterId: run.id,
     occurrenceId: pending.occurrenceId
   }
@@ -230,6 +231,13 @@ describe('Session room Encounter door', () => {
     expect(
       await base.owner.caller.query(internal.liveSessions.encounterRoute.route, base.route)
     ).toEqual({ route: 'TURN' })
+    // Only a GM void that declines a movement decision settles through the room (D26).
+    expect(
+      await base.owner.caller.query(internal.liveSessions.encounterRoute.route, {
+        ...base.route,
+        commandType: 'VOID_RULE_OCCURRENCE'
+      })
+    ).toEqual({ route: 'NATIVE' })
 
     const option = base.pending.primaryOptions[0]
     if (!option) throw new Error('Expected an issued declaration option.')

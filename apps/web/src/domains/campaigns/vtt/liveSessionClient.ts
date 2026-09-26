@@ -299,11 +299,19 @@ export function createLiveSessionConnection(
             }
           }
         } else if (message.type === 'COMMAND_COMMITTED') {
+          // A movement decision's Scene change reaches its initiator before its Encounter result,
+          // so an Encounter command settles only with the Encounter acknowledgement.
+          const settle = () => {
+            const pending = pendingCommands.get(message.commandId)
+            if (pending?.command.scope === 'ENCOUNTER' && message.delta?.scope !== 'ENCOUNTER')
+              return
+            pending?.resolve(message)
+            pendingCommands.delete(message.commandId)
+          }
           // Encounter commits persist in Convex and converge through subscriptions; they do not
           // advance the room sequence, so they acknowledge the initiator without touching state.
           if (message.delta?.scope === 'ENCOUNTER') {
-            pendingCommands.get(message.commandId)?.resolve(message)
-            pendingCommands.delete(message.commandId)
+            settle()
             return
           }
           if (sequence === null || recipientState === null) {
@@ -313,8 +321,7 @@ export function createLiveSessionConnection(
             return
           }
           if (message.sequence <= sequence) {
-            pendingCommands.get(message.commandId)?.resolve(message)
-            pendingCommands.delete(message.commandId)
+            settle()
             return
           }
           if (message.sequence !== sequence + 1) {
@@ -334,8 +341,7 @@ export function createLiveSessionConnection(
           }
           recipientState = nextState
           sequence = message.sequence
-          pendingCommands.get(message.commandId)?.resolve(message)
-          pendingCommands.delete(message.commandId)
+          settle()
           emitDurableState()
         } else if (message.type === 'COMMAND_REJECTED') {
           if (recipientState && message.correction) {

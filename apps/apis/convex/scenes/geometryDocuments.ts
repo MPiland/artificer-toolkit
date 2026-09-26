@@ -236,10 +236,13 @@ export async function readGeometrySave(ctx: QueryCtx, saveId: string) {
     .unique()
   if (!row) throw new Error('Scene geometry save is unavailable.')
   const save = parseGeometrySave(row)
+  // Only the save's own actor may continue it; a player's door save exists only through the room.
   const scene = await readLiveScene(
     ctx,
     row.sceneId,
-    save.input.type === 'MOVE_SCENE_TOKEN' ? 'MEMBER' : 'OWNER'
+    save.input.type === 'MOVE_SCENE_TOKEN' || save.input.type === 'SET_SCENE_DOOR_STATE'
+      ? 'MEMBER'
+      : 'OWNER'
   )
   if (scene.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   let presented: Awaited<ReturnType<typeof readPresentedVisionScene>> | null = null

@@ -31,8 +31,15 @@ import {
   liveSessionEncounterTurnPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterTurn'
 import {
+  liveSessionExternalCommitResolveInputSchema,
+  liveSessionExternalCommitResolveResponseSchema,
   liveSessionMovementCommitInputSchema,
-  liveSessionMovementPrepareInputSchema
+  liveSessionMovementCommitResponseSchema,
+  liveSessionMovementPrepareInputSchema,
+  liveSessionSceneGeometryCommitInputSchema,
+  liveSessionSceneGeometryObserveInputSchema,
+  liveSessionSceneGeometrySaveResponseSchema,
+  liveSessionSceneGeometryStageFogInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
@@ -149,9 +156,25 @@ const liveSessionRoutes = {
     input: liveSessionMovementPrepareInputSchema,
     output: sceneSpatialPreparationSchema
   },
+  encounterMovementObserve: {
+    input: liveSessionSceneGeometryObserveInputSchema,
+    output: liveSessionSceneGeometrySaveResponseSchema
+  },
+  encounterMovementStageFog: {
+    input: liveSessionSceneGeometryStageFogInputSchema,
+    output: liveSessionSceneGeometrySaveResponseSchema
+  },
   encounterMovementCommit: {
     input: liveSessionMovementCommitInputSchema,
+    output: liveSessionMovementCommitResponseSchema
+  },
+  sceneGeometryCommit: {
+    input: liveSessionSceneGeometryCommitInputSchema,
     output: sceneGeometryCommandResultSchema
+  },
+  externalCommitResolve: {
+    input: liveSessionExternalCommitResolveInputSchema,
+    output: liveSessionExternalCommitResolveResponseSchema
   },
   encounterActionPending: {
     input: liveSessionEncounterActionPendingInputSchema,

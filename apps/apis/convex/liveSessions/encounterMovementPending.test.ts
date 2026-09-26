@@ -21,7 +21,11 @@ import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { readRunActors, readRunState } from '../encounters/documents'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  expectedMovementScene,
+  insertActiveLiveAuthority,
+  nextExternalAuthority
+} from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
@@ -132,13 +136,17 @@ async function preparePrivateCommit(value: Fixture) {
     preparation,
     revisions,
     maintenanceOwners: [],
-    finish: value.request
+    finish: value.request,
+    ...(await value.base.t.run(async (ctx) => ({
+      authority: await nextExternalAuthority(ctx, value.base.campaign.id),
+      expectedScene: await expectedMovementScene(ctx, value.saveId, preparation.outcome)
+    })))
   }
   return { base, preparation }
 }
 
-function publish(value: Fixture, input: LiveSessionMovementCommitInput) {
-  return value.owner.caller.run((ctx) => commitLiveMovement(ctx, input))
+async function publish(value: Fixture, input: LiveSessionMovementCommitInput) {
+  return (await value.owner.caller.run((ctx) => commitLiveMovement(ctx, input))).scene
 }
 
 it('publishes an Assisted spatial evidence pause without settling retained no-input contact', async () => {

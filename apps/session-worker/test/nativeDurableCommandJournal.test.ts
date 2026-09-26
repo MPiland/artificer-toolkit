@@ -554,3 +554,95 @@ it('fails closed on oversized receipts and outbox JSON, JWTs, and unbounded batc
     ).toThrowError(expectJournalError('INVALID_ACKNOWLEDGEMENT'))
   })
 })
+
+it('journals a Convex-first commit write-ahead and completes it with no outbox row (D27)', async () => {
+  const test = fixture()
+  await runInDurableObject(test.stub, (_instance, state) => {
+    const journal = new DurableCommandJournal(state.storage)
+    test.activate(journal)
+    const external = (commandId: string, expectedSequence: number, checksum: string) => ({
+      actorId: test.actorId,
+      authorityEpoch: test.authorityEpoch,
+      commandId,
+      expectedSequence,
+      expectedStateChecksum: checksum,
+      fingerprint: `fingerprint-${commandId}`,
+      nextStateChecksum: `${checksum}-next`,
+      nextStateJson: largeUnicodeJson(commandId),
+      receiptJson: JSON.stringify({ recovered: commandId }),
+      saveId: crypto.randomUUID()
+    })
+
+    // Every earlier command must be published before Convex advances the sequence itself.
+    test.commit(journal, 1)
+    expect(() => journal.beginExternalCommit(external('external-1', 1, 'checksum-1'))).toThrow(
+      'Earlier table changes have not been published.'
+    )
+    journal.acknowledge({
+      authorityEpoch: test.authorityEpoch,
+      stateChecksum: 'checksum-1',
+      throughSequence: 1
+    })
+    expect(() => journal.beginExternalCommit(external('command-1', 1, 'checksum-1'))).toThrow(
+      'The command ID already has a receipt.'
+    )
+    const record = journal.beginExternalCommit(external('external-1', 1, 'checksum-1'))
+    expect(journal.readExternalCommit()).toEqual(record)
+    // While a commit is unsettled nothing else commits, drains or discards.
+    expect(() => journal.beginExternalCommit(external('external-2', 1, 'checksum-1'))).toThrow(
+      'An earlier table change has not settled.'
+    )
+    expect(() => test.commit(journal, 2, { expectedStateChecksum: 'checksum-1' })).toThrow(
+      'An earlier table change has not settled.'
+    )
+    expect(() =>
+      journal.beginDrain({
+        authorityEpoch: test.authorityEpoch,
+        finalSequence: 1,
+        finalStateChecksum: 'checksum-1'
+      })
+    ).toThrow('An unsettled table change blocks the drain fence.')
+
+    const completed = journal.completeExternalCommit({
+      authorityEpoch: test.authorityEpoch,
+      commandId: 'external-1',
+      receiptJson: JSON.stringify({ committed: true })
+    })
+    expect(completed.state).toMatchObject({
+      sequence: 2,
+      publishedSequence: 2,
+      stateChecksum: 'checksum-1-next',
+      publishedChecksum: 'checksum-1-next',
+      stateJson: largeUnicodeJson('external-1')
+    })
+    expect(completed.receipt).toMatchObject({ sequence: 2, receiptJson: '{"committed":true}' })
+    expect(journal.readExternalCommit()).toBeNull()
+    expect(journal.listPending(1)).toEqual([])
+    expect(
+      state.storage.sql
+        .exec<{ count: number }>(
+          "SELECT COUNT(*) AS count FROM durable_command_json_chunks WHERE document_key = 'external'"
+        )
+        .one().count
+    ).toBe(0)
+
+    // An abandoned commit leaves the state unchanged; a recovery stores its recorded receipt.
+    journal.beginExternalCommit(external('external-3', 2, 'checksum-1-next'))
+    journal.abandonExternalCommit('external-3')
+    expect(journal.readCurrent()).toMatchObject({ sequence: 2 })
+    expect(
+      journal.lookupCommand({
+        actorId: test.actorId,
+        commandId: 'external-3',
+        fingerprint: 'fingerprint-external-3'
+      })
+    ).toEqual({ kind: 'MISSING' })
+    journal.beginExternalCommit(external('external-4', 2, 'checksum-1-next'))
+    expect(
+      journal.completeExternalCommit({
+        authorityEpoch: test.authorityEpoch,
+        commandId: 'external-4'
+      }).receipt
+    ).toMatchObject({ sequence: 3, receiptJson: '{"recovered":"external-4"}' })
+  })
+})

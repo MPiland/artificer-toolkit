@@ -27,7 +27,9 @@ import { readLiveScene } from '../scenes/liveDocuments'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
+  expectedMovementScene,
   insertActiveLiveAuthority,
+  nextExternalAuthority,
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
@@ -114,7 +116,11 @@ it('publishes a sealed movement response through the private DO path without rep
       sceneCommands: await ctx.db
         .query('sceneLiveCommands')
         .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', value.sceneId))
-        .collect()
+        .collect(),
+      authority: await ctx.db
+        .query('campaignLiveAuthorities')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', value.base.campaign.id))
+        .unique()
     }))
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   const initialPreparation = await value.owner.caller.mutation(prepare, value.request)
@@ -333,6 +339,10 @@ it('publishes a sealed movement response through the private DO path without rep
   const commitInput: LiveSessionMovementCommitInput = {
     ...stageInput,
     finish: { ...value.request, saveId: staged.saveId },
+    ...(await value.base.t.run(async (ctx) => ({
+      authority: await nextExternalAuthority(ctx, value.base.campaign.id),
+      expectedScene: await expectedMovementScene(ctx, staged.saveId, planned.outcome)
+    }))),
     rules: planned.rules,
     settlements: planned.settlementInputs
   }
@@ -343,7 +353,7 @@ it('publishes a sealed movement response through the private DO path without rep
     })
   ).rejects.toMatchObject({ status: 409 })
   expect(await records()).toEqual(baseline)
-  const committed = await callLiveSessionRoute(
+  const { scene: committed, encounter } = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
     'encounterMovementCommit',
@@ -351,6 +361,9 @@ it('publishes a sealed movement response through the private DO path without rep
   )
   const after = await records()
   expect(committed.replayed).toBe(false)
+  // A decision answer advances the room's sequence (D27) and returns its member result.
+  expect(after.authority).toMatchObject({ persistedSequence: 1 })
+  expect(encounter?.occurrence).toMatchObject({ status: 'PENDING' })
   expect(committed.delta).toBeNull()
   expect(committed.version).toBe(baseline.liveState?.version ?? 0)
   expect(after.run?.version).toBe(baseline.run!.version + 1)
@@ -367,10 +380,7 @@ it('publishes a sealed movement response through the private DO path without rep
       'encounterMovementCommit',
       commitInput
     )
-  ).toEqual({
-    ...committed,
-    replayed: true
-  })
+  ).toMatchObject({ scene: { ...committed, replayed: true } })
   expect(
     await callLiveSessionRoute(environment, 'fixture-access-token', 'encounterMovementBegin', {
       ...common,
@@ -452,16 +462,21 @@ it('publishes a sealed movement response through the private DO path without rep
   const secondCommitInput: LiveSessionMovementCommitInput = {
     ...secondStageInput,
     finish: { ...value.request, saveId: secondStaged.saveId },
+    ...(await value.base.t.run(async (ctx) => ({
+      authority: await nextExternalAuthority(ctx, value.base.campaign.id),
+      expectedScene: await expectedMovementScene(ctx, secondStaged.saveId, secondPlanned.outcome)
+    }))),
     rules: secondPlanned.rules,
     settlements: secondPlanned.settlementInputs
   }
-  const terminal = await callLiveSessionRoute(
+  const { scene: terminal } = await callLiveSessionRoute(
     environment,
     'fixture-access-token',
     'encounterMovementCommit',
     secondCommitInput
   )
   const terminalRecords = await records()
+  expect(terminalRecords.authority).toMatchObject({ persistedSequence: 2 })
   expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect(terminal.delta).toMatchObject({ kind: 'TOKEN_MOVED', tokenId: value.moverTokenId })
   expect(terminalRecords.effects).toEqual(after.effects)
@@ -482,6 +497,6 @@ it('publishes a sealed movement response through the private DO path without rep
       'encounterMovementCommit',
       secondCommitInput
     )
-  ).toEqual({ ...terminal, replayed: true })
+  ).toMatchObject({ scene: { ...terminal, replayed: true } })
   expect(await records()).toEqual(terminalRecords)
 }, 120_000)

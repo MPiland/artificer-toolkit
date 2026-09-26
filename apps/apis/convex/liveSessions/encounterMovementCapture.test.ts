@@ -301,22 +301,18 @@ it('allows a controlling player to stage and capture movement, while rejecting a
       movement: { ...scope.movement!, baseTokenOrdinal: 1 }
     })
   ).rejects.toThrow()
-  const otherToken = await base.owner.caller.mutation(begin, {
-    ...playerBegin,
-    command: {
-      ...base.command,
-      commandId: crypto.randomUUID(),
-      tokenId: base.tokens[1]!.id,
-      path: [base.tokens[1]!.position, { x: 10, y: 0 }]
-    }
-  })
-  if (otherToken.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  // A token bound to an actor the player does not control is refused before anything is staged.
   await expect(
-    base.owner.caller.query(capture, {
-      ...scope,
-      movement: { ...scope.movement!, saveId: otherToken.saveId, baseTokenOrdinal: 1 }
+    base.owner.caller.mutation(begin, {
+      ...playerBegin,
+      command: {
+        ...base.command,
+        commandId: crypto.randomUUID(),
+        tokenId: base.tokens[1]!.id,
+        path: [base.tokens[1]!.position, { x: 10, y: 0 }]
+      }
     })
-  ).rejects.toThrow()
+  ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
   await base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('sceneDefinitionEntities')

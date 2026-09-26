@@ -905,6 +905,9 @@ export type GetCampaignLiveSceneInputDto = z.infer<typeof getCampaignLiveSceneIn
 export type DeleteSceneDefinitionInputDto = z.infer<typeof deleteSceneDefinitionInputDtoSchema>
 export type SceneCommandResultDto = z.infer<typeof sceneCommandResultDtoSchema>
 export type SceneDoorStateCommandInputDto = z.infer<typeof sceneDoorStateCommandInputDtoSchema>
+export type SceneTokenMovementCommandInputDto = z.infer<
+  typeof sceneTokenMovementCommandInputDtoSchema
+>
 export type BindEncounterToPresentedSceneResultDto = z.infer<
   typeof bindEncounterToPresentedSceneResultDtoSchema
 >

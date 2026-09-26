@@ -5,6 +5,7 @@ const MAX_LEGACY_DURABLE_COMMAND_JSON_BYTES = 2 * 1024 * 1024
 const MAX_IDENTIFIER_BYTES = 512
 const MAX_CHECKSUM_BYTES = 256
 const INLINE_JSON_CODE_UNITS = 256 * 1024
+const EXTERNAL_STATE_KEY = 'external'
 const CHUNK_CODE_UNITS = 128 * 1024
 const textEncoder = new TextEncoder()
 const jwtPattern = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
@@ -48,11 +49,29 @@ export type DurableCommandCommitResult =
   | { kind: 'COMMITTED'; receipt: DurableCommandReceipt; state: DurableCommandJournalState }
   | { kind: 'REPLAY'; receipt: DurableCommandReceipt }
 
+/**
+ * A Convex-first command the room sent but has not seen settle (D27): the write-ahead record that
+ * lets the room complete or abandon it after a timeout or restart.
+ */
+export interface DurableExternalCommit {
+  actorId: string
+  commandId: string
+  expectedSequence: number
+  expectedStateChecksum: string
+  fingerprint: string
+  nextStateChecksum: string
+  nextStateJson: string
+  /** The receipt a recovery stores; a normal completion stores the committed result instead. */
+  receiptJson: string
+  saveId: string
+}
+
 export type DurableCommandJournalErrorCode =
   | 'AUTHORITY_MISMATCH'
   | 'COMMAND_ID_REUSE'
   | 'CORRUPT_JOURNAL'
   | 'DRAIN_IN_PROGRESS'
+  | 'EXTERNAL_COMMIT_PENDING'
   | 'INVALID_ACKNOWLEDGEMENT'
   | 'INVALID_INPUT'
   | 'NOT_ACTIVATED'
@@ -96,6 +115,18 @@ interface OutboxRow extends Record<string, SqlStorageValue> {
   payload_json: string
   sequence: number
   state_checksum: string
+}
+
+interface ExternalCommitRow extends Record<string, SqlStorageValue> {
+  actor_id: string
+  command_id: string
+  expected_sequence: number
+  expected_state_checksum: string
+  fingerprint: string
+  next_state_checksum: string
+  next_state_json: string
+  receipt_json: string
+  save_id: string
 }
 
 interface JsonChunkRow extends Record<string, SqlStorageValue> {
@@ -299,6 +330,18 @@ export class DurableCommandJournal {
         state_checksum TEXT NOT NULL,
         payload_json TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS durable_external_commit (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        command_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        save_id TEXT NOT NULL,
+        expected_sequence INTEGER NOT NULL CHECK (expected_sequence >= 0),
+        expected_state_checksum TEXT NOT NULL,
+        next_state_checksum TEXT NOT NULL,
+        next_state_json TEXT NOT NULL,
+        receipt_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS durable_command_json_chunks (
         document_key TEXT NOT NULL,
         part_index INTEGER NOT NULL CHECK (part_index >= 0),
@@ -371,7 +414,7 @@ export class DurableCommandJournal {
              UNION ALL SELECT 1 FROM durable_command_outbox LIMIT 1`
           )
           .toArray().length === 0
-      if (!unused && current.status !== 'RELEASED')
+      if ((!unused && current.status !== 'RELEASED') || this.#externalRow())
         fail('RELEASE_BLOCKED', 'Committed Session authority cannot be discarded.')
       this.storage.sql.exec('DELETE FROM durable_session_authority WHERE id = 1')
       this.storage.sql.exec('DELETE FROM durable_command_receipts')
@@ -462,6 +505,8 @@ export class DurableCommandJournal {
         fail('AUTHORITY_MISMATCH', 'The command authority epoch is stale.')
       if (current.status !== 'ACTIVE')
         fail('DRAIN_IN_PROGRESS', 'The Session authority is no longer accepting commands.')
+      if (this.#externalRow())
+        fail('EXTERNAL_COMMIT_PENDING', 'An earlier table change has not settled.')
       if (
         current.sequence !== input.expectedSequence ||
         current.stateChecksum !== input.expectedStateChecksum
@@ -510,6 +555,132 @@ export class DurableCommandJournal {
         receipt: receiptFromRow(receipt, this.storage),
         state: this.#requiredState()
       }
+    })
+  }
+
+  /**
+   * Writes the room's write-ahead record before a Convex-first commit. The commit advances Convex's
+   * persisted sequence itself, so every earlier command must already be published.
+   */
+  beginExternalCommit(
+    input: DurableExternalCommit & { authorityEpoch: string }
+  ): DurableExternalCommit {
+    assertIdentifier('actor ID', input.actorId)
+    assertIdentifier('authority epoch', input.authorityEpoch)
+    assertIdentifier('command ID', input.commandId)
+    assertIdentifier('command fingerprint', input.fingerprint)
+    assertIdentifier('Scene save ID', input.saveId)
+    assertSequence('expected sequence', input.expectedSequence)
+    assertChecksum('expected state checksum', input.expectedStateChecksum)
+    assertChecksum('next state checksum', input.nextStateChecksum)
+    assertJsonContents('next state', input.nextStateJson)
+    assertJson('command receipt', input.receiptJson)
+
+    return this.storage.transactionSync(() => {
+      if (this.#externalRow())
+        fail('EXTERNAL_COMMIT_PENDING', 'An earlier table change has not settled.')
+      if (this.#receiptRow(input.commandId))
+        fail('COMMAND_ID_REUSE', 'The command ID already has a receipt.')
+      const current = this.#requiredState()
+      if (current.authorityEpoch !== input.authorityEpoch)
+        fail('AUTHORITY_MISMATCH', 'The command authority epoch is stale.')
+      if (current.status !== 'ACTIVE')
+        fail('DRAIN_IN_PROGRESS', 'The Session authority is no longer accepting commands.')
+      if (
+        current.sequence !== input.expectedSequence ||
+        current.stateChecksum !== input.expectedStateChecksum
+      )
+        fail('STALE_STATE', 'The command was prepared from stale Session state.')
+      if (
+        current.publishedSequence !== current.sequence ||
+        this.storage.sql.exec('SELECT 1 FROM durable_command_outbox LIMIT 1').toArray().length > 0
+      )
+        fail('STALE_STATE', 'Earlier table changes have not been published.')
+      if (current.sequence === Number.MAX_SAFE_INTEGER)
+        fail('CORRUPT_JOURNAL', 'The durable command sequence is exhausted.')
+      this.storage.sql.exec(
+        `INSERT INTO durable_external_commit (
+          id, command_id, actor_id, fingerprint, save_id, expected_sequence,
+          expected_state_checksum, next_state_checksum, next_state_json, receipt_json
+        ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        input.commandId,
+        input.actorId,
+        input.fingerprint,
+        input.saveId,
+        input.expectedSequence,
+        input.expectedStateChecksum,
+        input.nextStateChecksum,
+        writeStoredJson(this.storage, EXTERNAL_STATE_KEY, input.nextStateJson),
+        input.receiptJson
+      )
+      return this.#requiredExternal()
+    })
+  }
+
+  readExternalCommit(): DurableExternalCommit | null {
+    return this.#externalRow() ? this.#requiredExternal() : null
+  }
+
+  /**
+   * Applies a Convex-first commit that Convex committed: the next state, its receipt, and a
+   * published sequence equal to the new sequence, because Convex already persisted it. No outbox
+   * row is written.
+   */
+  completeExternalCommit(input: {
+    authorityEpoch: string
+    commandId: string
+    receiptJson?: string
+  }): { receipt: DurableCommandReceipt; state: DurableCommandJournalState } {
+    assertIdentifier('authority epoch', input.authorityEpoch)
+    if (input.receiptJson !== undefined) assertJson('command receipt', input.receiptJson)
+    return this.storage.transactionSync(() => {
+      const record = this.#requiredExternal()
+      if (record.commandId !== input.commandId)
+        fail('STALE_STATE', 'A different table change is unsettled.')
+      const current = this.#requiredState()
+      if (current.authorityEpoch !== input.authorityEpoch)
+        fail('AUTHORITY_MISMATCH', 'The command authority epoch is stale.')
+      if (
+        current.sequence !== record.expectedSequence ||
+        current.stateChecksum !== record.expectedStateChecksum
+      )
+        fail('CORRUPT_JOURNAL', 'The unsettled table change no longer follows the Session state.')
+      const sequence = current.sequence + 1
+      this.storage.sql.exec(
+        `UPDATE durable_session_authority
+         SET state_checksum = ?, state_json = ?, sequence = ?,
+             published_sequence = ?, published_checksum = ?
+         WHERE id = 1`,
+        record.nextStateChecksum,
+        writeStoredJson(this.storage, 'state', record.nextStateJson),
+        sequence,
+        sequence,
+        record.nextStateChecksum
+      )
+      this.storage.sql.exec(
+        `INSERT INTO durable_command_receipts (
+          command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, undo_json
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+        record.commandId,
+        record.actorId,
+        record.fingerprint,
+        sequence,
+        record.nextStateChecksum,
+        input.receiptJson ?? record.receiptJson
+      )
+      this.#deleteExternal()
+      const receipt = this.#receiptRow(record.commandId)
+      if (!receipt) fail('CORRUPT_JOURNAL', 'The committed command receipt is missing.')
+      return { receipt: receiptFromRow(receipt, this.storage), state: this.#requiredState() }
+    })
+  }
+
+  /** Forgets a Convex-first commit that Convex refused or abandoned; the state is unchanged. */
+  abandonExternalCommit(commandId: string): void {
+    this.storage.transactionSync(() => {
+      if (this.#requiredExternal().commandId !== commandId)
+        fail('STALE_STATE', 'A different table change is unsettled.')
+      this.#deleteExternal()
     })
   }
 
@@ -623,6 +794,8 @@ export class DurableCommandJournal {
       const current = this.#requiredState()
       if (current.authorityEpoch !== input.authorityEpoch)
         fail('AUTHORITY_MISMATCH', 'The drain authority epoch is stale.')
+      if (this.#externalRow())
+        fail('EXTERNAL_COMMIT_PENDING', 'An unsettled table change blocks the drain fence.')
       if (
         current.sequence !== input.finalSequence ||
         current.stateChecksum !== input.finalStateChecksum
@@ -700,6 +873,46 @@ export class DurableCommandJournal {
         commandId
       )
       .toArray()[0]
+  }
+
+  #externalRow(): ExternalCommitRow | undefined {
+    return this.storage.sql
+      .exec<ExternalCommitRow>(
+        `SELECT command_id, actor_id, fingerprint, save_id, expected_sequence,
+                expected_state_checksum, next_state_checksum, next_state_json, receipt_json
+         FROM durable_external_commit
+         WHERE id = 1`
+      )
+      .toArray()[0]
+  }
+
+  #requiredExternal(): DurableExternalCommit {
+    const row = this.#externalRow()
+    if (!row) fail('STALE_STATE', 'No table change is unsettled.')
+    assertSequence('stored expected sequence', row.expected_sequence)
+    assertChecksum('stored expected checksum', row.expected_state_checksum)
+    assertChecksum('stored next checksum', row.next_state_checksum)
+    const nextStateJson = readStoredJson(this.storage, EXTERNAL_STATE_KEY, row.next_state_json)
+    assertJsonContents('stored next state', nextStateJson)
+    return {
+      actorId: row.actor_id,
+      commandId: row.command_id,
+      expectedSequence: row.expected_sequence,
+      expectedStateChecksum: row.expected_state_checksum,
+      fingerprint: row.fingerprint,
+      nextStateChecksum: row.next_state_checksum,
+      nextStateJson,
+      receiptJson: row.receipt_json,
+      saveId: row.save_id
+    }
+  }
+
+  #deleteExternal(): void {
+    this.storage.sql.exec('DELETE FROM durable_external_commit WHERE id = 1')
+    this.storage.sql.exec(
+      'DELETE FROM durable_command_json_chunks WHERE document_key = ?',
+      EXTERNAL_STATE_KEY
+    )
   }
 
   #requiredState(): DurableCommandJournalState {

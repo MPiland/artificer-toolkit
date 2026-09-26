@@ -356,7 +356,7 @@ describe('Encounter actor control', () => {
         }).then(
           () => true,
           (error: unknown) => {
-            if (!(error instanceof Error) || !error.message.includes('token they control'))
+            if (!(error instanceof Error) || !error.message.includes('NOT_ACTOR_CONTROLLER'))
               throw error
             return false
           }

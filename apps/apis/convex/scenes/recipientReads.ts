@@ -13,6 +13,7 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { isSceneEntityVisibleToViewer } from '@artificer-toolkit/shared/vtt'
 import { internalQuery, query, type QueryCtx } from '../_generated/server'
@@ -30,11 +31,17 @@ const compactCollections = [
 ] as const
 const compactSceneEntityLimit = 16
 
+/**
+ * A small Scene read in one transaction. A `null` viewer reads every entity for the room's shared
+ * Scene cache, with each token's and barrier's definition ordinal.
+ */
 export async function readCompactScene(
   ctx: QueryCtx,
-  captured: Pick<SceneRecipientCapture, 'header' | 'viewer'>,
+  captured: Pick<SceneRecipientCapture, 'header'> & {
+    viewer: SceneRecipientCapture['viewer'] | null
+  },
   liveScene: Pick<Awaited<ReturnType<typeof readLiveScene>>, 'header' | 'live'>
-): Promise<CampaignSceneStateDto | null> {
+): Promise<{ scene: CampaignSceneStateDto; baseOrdinals: SceneBaseOrdinals } | null> {
   const { header, viewer } = captured
   const totalEntities = compactCollections.reduce(
     (total, collection) => total + header.currentCounts[collection],
@@ -97,14 +104,16 @@ export async function readCompactScene(
           throw new Error('Compact Scene recipient entities are inconsistent.')
         return [
           collection,
-          page.filter(({ value }) =>
-            // The compact path runs only without stored fog layers, so an empty list is exact.
-            isSceneEntityVisibleToViewer(
-              { map: header.map, fogMode: header.fogMode, fogLayers: [] },
-              viewer,
-              value
-            )
-          )
+          viewer === null
+            ? page
+            : page.filter(({ value }) =>
+                // The compact path runs only without stored fog layers, so an empty list is exact.
+                isSceneEntityVisibleToViewer(
+                  { map: header.map, fogMode: header.fogMode, fogLayers: [] },
+                  viewer,
+                  value
+                )
+              )
         ] as const
       })
     )
@@ -125,17 +134,32 @@ export async function readCompactScene(
     fogLayerCount: _fogLayerCount,
     ...scene
   } = header
-  return campaignSceneStateDtoSchema.parse({
-    ...scene,
-    annotations: entityPages.get('annotations')!.map((row) => row.value.entity),
-    barriers: barriers.map((row) => row.value.entity),
-    darknessZones: entityPages.get('darknessZones')!.map((row) => row.value.entity),
-    lights: entityPages.get('lights')!.map((row) => row.value.entity),
-    tokens: entityPages.get('tokens')!.map((row) => row.value.entity),
-    measurements: entityPages.get('measurements')!.map((row) => row.value.entity),
-    doorStates,
-    fogLayers: []
-  })
+  const tokens = entityPages.get('tokens')!
+  const baseOrdinal = (collection: 'tokens' | 'barriers', ordinal: number) =>
+    ordinal < header.counts[collection] ? ordinal : null
+  return {
+    scene: campaignSceneStateDtoSchema.parse({
+      ...scene,
+      annotations: entityPages.get('annotations')!.map((row) => row.value.entity),
+      barriers: barriers.map((row) => row.value.entity),
+      darknessZones: entityPages.get('darknessZones')!.map((row) => row.value.entity),
+      lights: entityPages.get('lights')!.map((row) => row.value.entity),
+      tokens: tokens.map((row) => row.value.entity),
+      measurements: entityPages.get('measurements')!.map((row) => row.value.entity),
+      doorStates,
+      fogLayers: []
+    }),
+    baseOrdinals: {
+      tokens: tokens.map((row) => ({
+        tokenId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('tokens', row.ordinal)
+      })),
+      barriers: barriers.map((row) => ({
+        barrierId: row.value.entity.id,
+        baseOrdinal: baseOrdinal('barriers', row.ordinal)
+      }))
+    }
+  }
 }
 export const header = query({
   args: zodToConvexFields(sceneRecipientHeaderInputSchema.shape),
@@ -147,7 +171,9 @@ export const header = query({
     const { capture, scene } = await readRecipientContext(ctx, input.sceneId)
     const recipientRevision = checksumCanonicalJson(capture)
     const snapshot =
-      input.includeSnapshot === false ? null : await readCompactScene(ctx, capture, scene)
+      input.includeSnapshot === false
+        ? null
+        : ((await readCompactScene(ctx, capture, scene))?.scene ?? null)
     const {
       definitionSaveId: _save,
       counts: _base,

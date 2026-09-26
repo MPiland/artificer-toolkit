@@ -36,8 +36,20 @@ const encounterMovementBegin = makeFunctionReference<'mutation', JsonObject, unk
 const encounterMovementPrepare = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:prepare'
 )
+const encounterMovementObserve = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterMovement:observe'
+)
+const encounterMovementStageFog = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterMovement:stageFog'
+)
 const encounterMovementCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:commit'
+)
+const sceneGeometryCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/encounterMovement:commitScene'
+)
+const externalCommitResolve = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/externalCommit:resolve'
 )
 const encounterActionPending = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterAction:commitPending'
@@ -94,10 +106,30 @@ export const encounterMovementPrepareHttp = liveStateHttp(
   'Live Session movement evidence unavailable.',
   (ctx, input) => ctx.runMutation(encounterMovementPrepare, input)
 )
+export const encounterMovementObserveHttp = liveStateHttp(
+  true,
+  'Live Session movement vision unavailable.',
+  (ctx, input) => ctx.runMutation(encounterMovementObserve, input)
+)
+export const encounterMovementStageFogHttp = liveStateHttp(
+  true,
+  'Live Session movement fog unavailable.',
+  (ctx, input) => ctx.runMutation(encounterMovementStageFog, input)
+)
 export const encounterMovementCommitHttp = liveStateHttp(
   true,
   'Live Session movement commit unavailable.',
   (ctx, input) => ctx.runMutation(encounterMovementCommit, input)
+)
+export const sceneGeometryCommitHttp = liveStateHttp(
+  true,
+  'Live Session Scene commit unavailable.',
+  (ctx, input) => ctx.runMutation(sceneGeometryCommit, input)
+)
+export const externalCommitResolveHttp = liveStateHttp(
+  false,
+  'Live Session commit resolution unavailable.',
+  (ctx, input) => ctx.runMutation(externalCommitResolve, input)
 )
 export const encounterActionPendingHttp = liveStateHttp(
   true,

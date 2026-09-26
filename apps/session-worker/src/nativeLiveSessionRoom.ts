@@ -16,6 +16,7 @@ import {
   liveSessionPublishInputSchema,
   type LiveSessionScenePublicationDto
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
   sceneCommandResultDtoSchema,
   type CampaignSceneStateDto,
@@ -36,7 +37,9 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 import type {
   EncounterCommandInputDto,
-  EncounterCommandResultDto
+  EncounterCommandResultDto,
+  ResolveRuleOccurrenceInputDto,
+  VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { decodeJwt } from 'jose'
@@ -52,6 +55,7 @@ import {
 } from './nativeLiveSessionState.js'
 import {
   canPreviewSceneTokenDrag,
+  isExternalSceneCommand,
   liveSessionSceneCommandInputSchema,
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
@@ -61,7 +65,12 @@ import {
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
 import { executeLiveEncounterCommand } from './nativeRoomEncounterCommand.js'
-import { LiveCaptureCache } from './nativeCaptureCache.js'
+import { LiveCaptureCache, type LiveCaptureReads } from './nativeCaptureCache.js'
+import {
+  commitExternalSceneCommit,
+  prepareExternalSceneCommit,
+  type ExternalSceneCommand
+} from './nativeExternalSceneCommit.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { hydrateNativeTransientScene } from './nativeSceneClient.js'
 import {
@@ -96,11 +105,18 @@ interface Admission {
   userId: string
 }
 
+/**
+ * The room's shared Scene: every entity (never filtered for one member), each token's and
+ * barrier's definition ordinal, the bound Encounter and whether it waits on a movement decision.
+ */
 interface TransientCache {
+  baseOrdinals: SceneBaseOrdinals
   characterRevisions: LiveSessionTransientCapture['observedCharacterRevisions']
+  encounterId: string | null
   key: string
+  /** A pending movement decision holds moves and door changes on this Scene (D26). */
+  movementDecisionPending: boolean
   scene: CampaignSceneStateDto | null
-  sceneEncounterBound: boolean
   presentation: LiveSessionScenePublicationDto['presentation'] | null
   synchronized: boolean
 }
@@ -135,7 +151,8 @@ function cacheKey(capture: LiveSessionTransientCapture): string {
     campaignId: capture.campaignId,
     origin: capture.origin,
     presentation: capture.presentation,
-    sceneEncounterBound: capture.sceneEncounterBound,
+    sceneEncounterId: capture.sceneEncounterId,
+    sceneMovementDecisionPending: capture.sceneMovementDecisionPending,
     originBoundTokenControl: capture.originBoundTokenControl,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
@@ -152,7 +169,8 @@ function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
     recipients: [...capture.recipients].sort((left, right) =>
       left.userId.localeCompare(right.userId)
     ),
-    sceneEncounterBound: capture.sceneEncounterBound,
+    sceneEncounterId: capture.sceneEncounterId,
+    sceneMovementDecisionPending: capture.sceneMovementDecisionPending,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness
@@ -355,9 +373,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (parsed.data.type === 'COMMAND') {
       const work = { admission, message: parsed.data }
       const commandId = work.message.command.command.commandId
-      // A player may have one Encounter command in flight; the GM's are bounded per socket only.
+      // A player may have one Encounter or Convex-first command in flight; the GM's are bounded
+      // per socket only.
       const playerEncounter =
-        work.message.command.scope === 'ENCOUNTER' && admission.role === 'PLAYER'
+        admission.role === 'PLAYER' &&
+        (work.message.command.scope === 'ENCOUNTER' ||
+          this.#isExternalCommand(work.message.command.command))
           ? admission.userId
           : null
       if (
@@ -586,7 +607,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       if (this.#cache?.scene) {
         if (
-          capture.sceneEncounterBound !== this.#cache.sceneEncounterBound ||
+          capture.sceneEncounterId !== this.#cache.encounterId ||
           capture.sceneHeader?.id !== this.#cache.scene.id ||
           capture.sceneHeader.version !== this.#cache.scene.version ||
           capture.presentation?.sceneId !== this.#cache.scene.id
@@ -595,6 +616,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         else
           this.#cache = {
             ...this.#cache,
+            movementDecisionPending: capture.sceneMovementDecisionPending,
             presentation: { expectedPresentationVersion: capture.presentation.version }
           }
       }
@@ -685,6 +707,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           this.#journal.discardReplaceableAuthority(current.authorityEpoch)
           current = null
           this.#cache = null
+        }
+        // Convex may already hold an unsettled Convex-first commit at the next sequence.
+        if (current?.authorityEpoch === value.authorityEpoch) {
+          await this.#settleExternalCommit()
+          current = this.#journal.readCurrent()
         }
         if (!current) {
           if (bootstrap.persistedSequence !== 0)
@@ -782,6 +809,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#rejectCommand(socket, commandId, 'AUTHORITY_CHANGED', 'Live Session authority changed.')
       return
     }
+    try {
+      await this.#settleExternalCommit()
+    } catch {
+      this.#rejectCommand(
+        socket,
+        commandId,
+        'UNAVAILABLE',
+        'An earlier table change is still saving; try again.'
+      )
+      return
+    }
+    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     if (message.command.scope === 'ENCOUNTER')
       return this.#executeEncounterCommand(socket, admission, value, message.command.command)
     const sceneCommand =
@@ -873,9 +912,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const plan = planLiveSceneCommand({
       actor: admission,
       command,
+      encounterId: synchronized.encounterId,
       latestUnmatchedMove: () => this.#journal.latestUnmatchedSceneTokenMove(scene.id),
-      scene,
-      sceneEncounterBound: synchronized.sceneEncounterBound
+      movementDecisionPending: synchronized.movementDecisionPending,
+      scene
     })
     if (plan.kind === 'REJECTED') {
       this.#rejectCommand(
@@ -886,6 +926,23 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         current.sequence,
         plan.correct ? correction() : undefined
       )
+      return
+    }
+    if (plan.kind === 'EXTERNAL') {
+      if (command.type !== 'MOVE_SCENE_TOKEN' && command.type !== 'SET_SCENE_DOOR_STATE')
+        throw new Error('Only token moves and door changes commit to Convex first.')
+      try {
+        await this.#commitExternal(
+          socket,
+          admission,
+          value,
+          command,
+          fingerprint,
+          this.#captureCache.reads()
+        )
+      } catch (error) {
+        this.#rejectExternal(socket, commandId, error, correction())
+      }
       return
     }
     const { delta } = plan
@@ -972,7 +1029,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     this.#cache = { ...synchronized, scene: nextScene, synchronized: true }
-    this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult)
+    this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult, null)
     this.#publishInBackground()
     return
   }
@@ -987,6 +1044,38 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     value: SocketAttachment,
     command: EncounterCommandInputDto
   ): Promise<void> {
+    // A movement decision the room committed is journaled; its session sequence is not fenced (D28).
+    const fingerprint = checksumCanonicalJson({ command, scope: 'ENCOUNTER' })
+    const prior = this.#journal.lookupCommand({
+      actorId: admission.userId,
+      commandId: command.commandId,
+      fingerprint
+    })
+    if (prior.kind === 'MISMATCHED_REUSE') {
+      this.#rejectCommand(
+        socket,
+        command.commandId,
+        'INVALID_COMMAND',
+        'The command ID was already used for different input.'
+      )
+      return
+    }
+    if (prior.kind === 'REPLAY') {
+      const replay = liveSessionWebSocketServerMessageDtoSchema.parse(
+        JSON.parse(prior.receipt.receiptJson)
+      )
+      // A commit recovered after a restart kept only its Scene receipt.
+      if (replay.type === 'COMMAND_COMMITTED' && replay.delta?.scope === 'ENCOUNTER')
+        send(socket, replay)
+      else
+        this.#rejectCommand(
+          socket,
+          command.commandId,
+          'STALE_STATE',
+          'This decision was already settled.'
+        )
+      return
+    }
     try {
       await this.#flushOutbox()
     } catch {
@@ -999,6 +1088,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     let result: EncounterCommandResultDto
+    let movementCommitted = false
     try {
       result = await executeLiveEncounterCommand({
         environment: this.env,
@@ -1012,7 +1102,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         command,
         runtime: await this.#liveRulesRuntime(),
         random: secureRandomInt,
-        captureCache: this.#captureCache
+        captureCache: this.#captureCache,
+        movement: async (decision, captures) => {
+          movementCommitted = true
+          return this.#commitMovementDecision(
+            socket,
+            admission,
+            value,
+            decision,
+            fingerprint,
+            captures
+          )
+        }
       })
     } catch (error) {
       // Expected domain rejections carry a user-safe message; everything else stays generic.
@@ -1043,6 +1144,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       return
     }
+    // Only the room's own movement commits settle a held Scene's decision without a new read.
+    if (!movementCommitted && command.type !== 'ROLL_RULE_EVIDENCE')
+      await this.#refreshMovementHold(socket, admission, value).catch(() => undefined)
     // A member removed while the command ran must not receive its result.
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
     send(socket, {
@@ -1053,27 +1157,319 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
+  /**
+   * A movement decision's answer or GM void on the presented Scene commits through the room with
+   * that Scene (D27); a decision on any other Scene keeps its native Convex path (D29).
+   */
+  async #commitMovementDecision(
+    socket: WebSocket,
+    admission: Admission,
+    value: SocketAttachment,
+    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
+    fingerprint: string,
+    captures: LiveCaptureReads | undefined
+  ): Promise<EncounterCommandResultDto> {
+    if (!this.#cache?.synchronized || this.#cache.encounterId !== command.encounterId.toLowerCase())
+      return callLiveSessionRoute(this.env, admission.accessToken, 'encounterCommand', {
+        campaignId: value.campaignId,
+        authorityEpoch: value.authorityEpoch,
+        expectedUserId: admission.userId,
+        expectedRole: admission.role,
+        command
+      })
+    const { encounter } = await this.#commitExternal(
+      socket,
+      admission,
+      value,
+      command,
+      fingerprint,
+      captures
+    )
+    if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
+    return encounter
+  }
+
+  /**
+   * Runs one Convex-first command (D27) inside the command chain: publish earlier commands, stage
+   * and prepare it, write the write-ahead record, then commit, which advances Convex's authority
+   * to the next sequence in the same transaction. The room applies it only after Convex commits:
+   * the Scene delta goes to every member (the decision summary only to its initiator), fog changes
+   * resynchronize everyone, and a refusal leaves the room unchanged. A commit whose outcome the
+   * room did not see keeps its record for the next command to settle.
+   */
+  async #commitExternal(
+    socket: WebSocket,
+    admission: Admission,
+    value: SocketAttachment,
+    command: ExternalSceneCommand,
+    fingerprint: string,
+    captures: LiveCaptureReads | undefined
+  ) {
+    await this.#flushOutbox()
+    const synchronized = this.#cache?.synchronized ? this.#cache : null
+    const before = synchronized?.scene
+    if (!synchronized || !before || !synchronized.presentation) throw new LiveSessionRouteError(409)
+    const actor = {
+      campaignId: value.campaignId,
+      authorityEpoch: value.authorityEpoch,
+      expectedUserId: admission.userId,
+      expectedRole: admission.role
+    }
+    const prepared = await prepareExternalSceneCommit({
+      environment: this.env,
+      accessToken: admission.accessToken,
+      actor,
+      command,
+      context: {
+        scene: before,
+        baseOrdinals: synchronized.baseOrdinals,
+        characterRevisions: synchronized.characterRevisions,
+        presentation: synchronized.presentation
+      },
+      runtime: await this.#liveRulesRuntime(),
+      random: secureRandomInt,
+      captures
+    })
+    const current = this.#journal.readCurrent()
+    if (
+      !current ||
+      current.authorityEpoch !== value.authorityEpoch ||
+      this.#cache?.scene?.id !== before.id ||
+      this.#cache.scene.version !== before.version
+    )
+      throw new LiveSessionRouteError(409)
+    const next = createNativeLiveSessionState(prepared.nextScene)
+    const sequence = current.sequence + 1
+    const { delta: predictedDelta, version } = prepared.expectedScene
+    this.#journal.beginExternalCommit({
+      actorId: admission.userId,
+      authorityEpoch: value.authorityEpoch,
+      commandId: command.commandId,
+      expectedSequence: current.sequence,
+      expectedStateChecksum: current.stateChecksum,
+      fingerprint,
+      nextStateChecksum: next.stateChecksum,
+      nextStateJson: next.stateJson,
+      // A recovery knows only the predicted Scene change, not the decision it opened.
+      receiptJson: JSON.stringify(
+        liveSessionWebSocketServerMessageDtoSchema.parse({
+          commandId: command.commandId,
+          delta: predictedDelta
+            ? {
+                scope: 'SCENE',
+                result: {
+                  commandId: command.commandId,
+                  delta: predictedDelta,
+                  occurrence: null,
+                  replayed: false,
+                  sceneId: before.id,
+                  version
+                }
+              }
+            : version !== before.version
+              ? { scope: 'SCENE_VERSION', sceneId: before.id, version }
+              : null,
+          sequence,
+          type: 'COMMAND_COMMITTED'
+        })
+      ),
+      saveId: prepared.saveId
+    })
+    let committed: Awaited<ReturnType<typeof commitExternalSceneCommit>>
+    try {
+      committed = await commitExternalSceneCommit({
+        environment: this.env,
+        accessToken: admission.accessToken,
+        actor,
+        prepared,
+        authority: {
+          sequence,
+          expectedStateChecksum: current.stateChecksum,
+          stateChecksum: next.stateChecksum
+        }
+      })
+    } catch (error) {
+      // A response means Convex rolled the commit back; without one the outcome is unknown.
+      if (error instanceof LiveSessionRouteError && error.status >= 400 && error.status < 500)
+        this.#journal.abandonExternalCommit(command.commandId)
+      throw error
+    }
+    const result = sceneCommandResultDtoSchema.parse({
+      commandId: committed.scene.commandId,
+      delta: committed.scene.delta,
+      occurrence: committed.scene.occurrence,
+      replayed: committed.scene.replayed,
+      sceneId: committed.scene.sceneId,
+      version: committed.scene.version
+    })
+    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse(
+      committed.encounter
+        ? {
+            commandId: command.commandId,
+            delta: { scope: 'ENCOUNTER', result: committed.encounter },
+            sequence,
+            type: 'COMMAND_COMMITTED'
+          }
+        : {
+            commandId: command.commandId,
+            delta: { scope: 'SCENE', result },
+            sequence,
+            type: 'COMMAND_COMMITTED'
+          }
+    )
+    this.#journal.completeExternalCommit({
+      authorityEpoch: value.authorityEpoch,
+      commandId: command.commandId,
+      receiptJson: JSON.stringify(receipt)
+    })
+    const latest = this.#cache
+    if (latest?.scene?.id === before.id)
+      this.#cache = {
+        ...latest,
+        movementDecisionPending:
+          prepared.kind === 'MOVEMENT'
+            ? result.occurrence?.status === 'PENDING'
+            : latest.movementDecisionPending,
+        scene: prepared.nextScene
+      }
+    this.#broadcastSceneCommitted(
+      { commandId: command.commandId, sequence },
+      before,
+      prepared.nextScene,
+      result,
+      socket
+    )
+    if (prepared.fogChanged) this.#broadcastStateSync()
+    return committed
+  }
+
+  /** Maps a failed Convex-first Scene command to its user-safe rejection. */
+  #rejectExternal(
+    socket: WebSocket,
+    commandId: string,
+    error: unknown,
+    correction: LiveSessionCorrectionDto | undefined
+  ): void {
+    if (error instanceof LiveSessionDomainRejectionError) {
+      send(socket, {
+        code: 'DOMAIN_REJECTED',
+        commandId,
+        ...(correction ? { correction } : {}),
+        currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
+        message: error.rejection.message,
+        reason: error.rejection.reason,
+        warnings: error.rejection.reason === 'RULE_WARNINGS' ? error.rejection.warnings : null,
+        type: 'COMMAND_REJECTED'
+      })
+      return
+    }
+    const status = error instanceof LiveSessionRouteError ? error.status : 0
+    this.#rejectCommand(
+      socket,
+      commandId,
+      status === 409 ? 'STALE_STATE' : 'UNAVAILABLE',
+      status === 409
+        ? 'The table changed; the current state has been restored.'
+        : 'The table change could not be saved.',
+      this.#journal.readCurrent()?.sequence ?? 0,
+      correction
+    )
+  }
+
+  /** Whether a member's Scene command will commit to Convex first on the synchronized Scene. */
+  #isExternalCommand(command: unknown): boolean {
+    const parsed = liveSessionSceneCommandInputSchema.safeParse(command)
+    const cached = this.#cache?.synchronized ? this.#cache : null
+    return (
+      parsed.success &&
+      !!cached?.scene &&
+      isExternalSceneCommand(parsed.data, cached.scene, cached.encounterId)
+    )
+  }
+
+  /**
+   * An Encounter command the room forwarded may have closed a held movement decision (the Run
+   * completed or its mover left), so the hold is reread from Convex.
+   */
+  async #refreshMovementHold(
+    socket: WebSocket,
+    admission: Admission,
+    value: SocketAttachment
+  ): Promise<void> {
+    const cached = this.#cache
+    if (!cached?.movementDecisionPending) return
+    const capture = await this.#capture(value, admission, [{ admission, socket }], 'AUTHORITY', [])
+    if (
+      this.#cache === cached &&
+      capture.sceneHeader?.id === cached.scene?.id &&
+      capture.sceneEncounterId === cached.encounterId
+    )
+      this.#cache = { ...cached, movementDecisionPending: capture.sceneMovementDecisionPending }
+  }
+
+  /**
+   * Settles a Convex-first commit whose outcome the room did not see (a timeout or a restart):
+   * Convex reports whether it committed. A committed one is applied; members never received it,
+   * so the Scene cache is dropped and every socket resynchronizes. An abandoned one is forgotten.
+   */
+  async #settleExternalCommit(): Promise<void> {
+    const record = this.#journal.readExternalCommit()
+    const current = this.#journal.readCurrent()
+    const campaignId = this.#roomCampaignId()
+    if (!record || !current || !campaignId) return
+    const { outcome } = await callLiveSessionRoute(this.env, null, 'externalCommitResolve', {
+      campaignId,
+      epoch: current.authorityEpoch,
+      saveId: record.saveId,
+      expectedSequence: record.expectedSequence,
+      expectedStateChecksum: record.expectedStateChecksum,
+      nextStateChecksum: record.nextStateChecksum
+    })
+    if (outcome === 'ABANDONED') {
+      this.#journal.abandonExternalCommit(record.commandId)
+      return
+    }
+    this.#journal.completeExternalCommit({
+      authorityEpoch: current.authorityEpoch,
+      commandId: record.commandId
+    })
+    this.#bumpCacheGeneration()
+    for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
+  }
+
   #liveRulesRuntime(): Promise<RulesRuntimeService> {
     this.#rulesRuntime ??= createNativeLiveRulesRuntime(this.env.RULES_CONTINUATION_SECRET)
     return this.#rulesRuntime
   }
 
+  /**
+   * Sends one committed Scene command to every member, projected for each. Only `initiator` sees
+   * its Encounter occurrence; a member who cannot see the change gets the version bump.
+   */
   #broadcastSceneCommitted(
-    committed: Extract<LiveSessionWebSocketServerMessageDto, { type: 'COMMAND_COMMITTED' }>,
+    committed: { commandId: string; sequence: number },
     before: CampaignSceneStateDto,
     after: CampaignSceneStateDto,
-    result: SceneCommandResultDto
+    result: SceneCommandResultDto,
+    initiator: WebSocket | null
   ): void {
-    if (!result.delta) throw new Error('Live Session Scene delta is missing.')
     for (const socket of this.ctx.getWebSockets()) {
       const admission = this.#liveAdmission(socket)
       if (!admission) continue
-      const delta = projectSceneDeltaForViewer(before, after, viewer(admission), result.delta)
+      const occurrence = socket === initiator ? result.occurrence : null
+      const delta = result.delta
+        ? projectSceneDeltaForViewer(before, after, viewer(admission), result.delta)
+        : null
       send(socket, {
         ...committed,
         delta: delta
-          ? { scope: 'SCENE', result: { ...result, delta } }
-          : { scope: 'SCENE_VERSION', sceneId: result.sceneId, version: result.version }
+          ? { scope: 'SCENE', result: { ...result, delta, occurrence } }
+          : after.version !== before.version
+            ? { scope: 'SCENE_VERSION', sceneId: result.sceneId, version: result.version }
+            : occurrence
+              ? { scope: 'SCENE', result: { ...result, occurrence } }
+              : null,
+        type: 'COMMAND_COMMITTED'
       })
     }
   }
@@ -1197,7 +1593,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         // A player's preview on an Encounter-bound Scene needs their bound-actor control, which the
         // room's short-lived authority capture carries (D25); any mismatch takes the full path.
         const capture =
-          originAdmission.role === 'OWNER' || !cached.sceneEncounterBound
+          originAdmission.role === 'OWNER' || cached.encounterId === null
             ? null
             : await this.#authorityCapture(originAttachment, originAdmission, candidates, envelope)
         if (
@@ -1397,6 +1793,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const hydrated = await hydrateNativeTransientScene(this.env, admission.accessToken, capture)
     let scene = hydrated.scene
     let revisions = hydrated.characterRevisions
+    let baseOrdinals = hydrated.baseOrdinals
     let finalCapture: LiveSessionTransientCapture
     try {
       finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
@@ -1414,6 +1811,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       scene = hydratedRetry.scene
       revisions = hydratedRetry.characterRevisions
+      baseOrdinals = hydratedRetry.baseOrdinals
       finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
       if (!equalCanonicalJson(authorityFingerprint(retry), authorityFingerprint(finalCapture)))
         return null
@@ -1424,10 +1822,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return null
     }
     this.#cache = {
+      baseOrdinals,
       characterRevisions: revisions,
+      encounterId: finalCapture.sceneEncounterId,
       key: cacheKey(finalCapture),
+      movementDecisionPending: finalCapture.sceneMovementDecisionPending,
       scene,
-      sceneEncounterBound: finalCapture.sceneEncounterBound,
       presentation: finalCapture.presentation
         ? { expectedPresentationVersion: finalCapture.presentation.version }
         : null,
@@ -1775,6 +2175,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#movementIndexes.clear()
     try {
       await this.#flushOutbox()
+      await this.#settleExternalCommit()
       const current = this.#journal.readCurrent()
       if (
         current &&
@@ -1806,6 +2207,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // commands, which Convex fences only by DO_ACTIVE authority) finish before the drain fence.
     const closed = this.#closeSockets({ type: 'CLOSE_ROOM' })
     await this.#commandChain
+    await this.#settleExternalCommit()
     const draining = this.#journal.readCurrent() ?? current
     const fence = {
       authorityEpoch: draining.authorityEpoch,

@@ -23,6 +23,7 @@ import {
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   applySceneGeometryDelta,
+  sceneDerivesExploration,
   sceneDoorChangeFailure,
   sceneTokenMovementFailure
 } from '@artificer-toolkit/shared/vtt'
@@ -256,13 +257,15 @@ async function executeGeometryFast(
       stagedRequired()
     // Fog OFF derives no exploration, so kept fog layers and token vision need no staging.
     if (header.fogMode !== 'OFF') {
-      if (header.fogLayerCount !== 0) stagedRequired()
       const tokenSnapshot = await readBoundedCollection(ctx, { header, live }, 'tokens')
       if (
         !tokenSnapshot ||
-        tokenSnapshot.entities.some(
-          ({ value }) => value.collection !== 'tokens' || value.entity.vision?.enabled === true
-        )
+        sceneDerivesExploration({
+          ...header,
+          tokens: tokenSnapshot.entities.map(({ value }) =>
+            value.collection === 'tokens' ? value.entity : stagedRequired()
+          )
+        })
       )
         stagedRequired()
     }
@@ -271,9 +274,7 @@ async function executeGeometryFast(
     ordinal = target.ordinal
     doorState = target.doorState
   } else {
-    const fogDerived = header.fogMode !== 'OFF'
-    if (input.expectedEncounterVersion !== null || (fogDerived && header.fogLayerCount !== 0))
-      stagedRequired()
+    if (input.expectedEncounterVersion !== null) stagedRequired()
     const [tokenSnapshot, barrierSnapshot] = await Promise.all([
       readBoundedCollection(ctx, { header, live }, 'tokens'),
       readBoundedCollection(ctx, { header, live }, 'barriers')
@@ -283,7 +284,7 @@ async function executeGeometryFast(
       if (value.collection !== 'tokens') stagedRequired()
       return value.entity
     })
-    if (fogDerived && tokens.some((token) => token.vision?.enabled === true)) stagedRequired()
+    if (sceneDerivesExploration({ ...header, tokens })) stagedRequired()
     const barriers = barrierSnapshot.entities.map(({ value }) => {
       if (value.collection !== 'barriers') stagedRequired()
       return value.entity
@@ -533,9 +534,6 @@ export async function publishResolvedGeometryCommand(
   } else {
     if (input.expectedEncounterVersion !== null)
       throw new Error('Live Session publication only supports standalone token movement.')
-    const fogDerived = header.fogMode !== 'OFF'
-    if (fogDerived && header.fogLayerCount !== 0)
-      throw new Error('Live Session publication cannot bypass Scene fog mechanics.')
     const tokenLimit = Math.max(
       header.counts.tokens,
       header.currentCounts.tokens,
@@ -569,8 +567,8 @@ export async function publishResolvedGeometryCommand(
         throw new Error('Live Session publication Scene geometry is inconsistent.')
       return value.entity
     })
-    if (fogDerived && tokens.some((token) => token.vision?.enabled === true))
-      throw new Error('Live Session publication cannot bypass Scene vision mechanics.')
+    if (sceneDerivesExploration({ ...header, tokens }))
+      throw new Error('Live Session publication cannot bypass Scene fog mechanics.')
     const barriers = barrierSnapshot.entities.map(({ value }) => {
       if (value.collection !== 'barriers')
         throw new Error('Live Session publication Scene geometry is inconsistent.')

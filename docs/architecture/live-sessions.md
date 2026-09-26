@@ -236,8 +236,72 @@ new Concentration children; an already committed damage contact is not applied a
 check finishes. A completed passage consumes its validated allowance once before the remaining move.
 Native response adapters reuse the same rules coordinators; the Convex publication layer imports
 only the persistence and projection pieces. Local transaction tests cover response authority, retained
-one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. Durable
-room dispatch/recovery remains unfinished. These private routes alone do not establish command acceptance.
+one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. The room
+now dispatches these routes itself; see "Convex-first Scene commits" below.
+
+**Convex-first Scene commits (CURRENT, S4-c, D26-D29).** The room commits Encounter-bound movement
+to Convex first, then applies it (`apps/session-worker/src/nativeExternalSceneCommit.ts`, called from
+`#commitExternal` in `nativeLiveSessionRoom.ts`). `isExternalSceneCommand`
+(`nativeRoomSceneCommand.ts`) selects every bound move, every move on an Encounter-bound Scene, and
+any move or door change that derives fog exploration (`sceneDerivesExploration` in
+`packages/shared` vtt, the one predicate Convex's fast commands use too). Other door changes and
+moves stay on the outbox. Movement decision answers and a GM's movement void reach the same path
+from `executeLiveEncounterCommand` (route `MOVEMENT`). Inside the command chain the room:
+
+1. checks its journal for a replay, then the session sequence and Scene version (a decision answer
+   skips the session sequence, D28: its Scene version pin already fences it);
+2. publishes the outbox (it must be empty) and settles any unsettled record (below);
+3. calls `encounter-movement-begin` (a move or door change with its presentation fence, a decision
+   answer, or a GM void that `occurrenceVoid` turns into the decision's decline), then
+   `encounter-movement-observe` with the cached Scene vision's Character revisions;
+4. for a bound move, captures through the command's capture bundle (a `MOVEMENT_INPUTS` admission
+   now starts one) and the room cache, runs `prepareNativeLiveMovement` on its cached Scene and
+   freezes the outcome with `encounter-movement-prepare`;
+5. stages each fog owner's complete layer (`deriveSceneCommandFogLayer`) with
+   `encounter-movement-stage-fog`, following the walked segment (`preparedMovementSegment`);
+6. predicts the published Scene (`preparedMovementSceneDelta`, the same function Convex publishes
+   with) and the next state checksum, writes the SQLite write-ahead record
+   (`durable_external_commit`, `beginExternalCommit`), and commits with
+   `authority {sequence: N+1, expectedStateChecksum, stateChecksum}` and `expectedScene`:
+   `encounter-movement` for bound moves and decisions, `scene-geometry` otherwise. In one Convex
+   transaction the commit publishes the Scene, compares it with `expectedScene`, and advances the
+   persisted authority, which must be at N (`publishWithAuthorityAdvance`,
+   `liveSessions/externalCommit.ts`). A replay of a published save does not advance. A decision
+   answer returns its member-presented Encounter result; a void also records the void and posts
+   "The GM skipped this decision." to TABLE chat, keyed by the void command ID;
+7. completes the record: new state, receipt, and sequence = published = N+1, with no outbox row;
+8. sends the Scene delta to every member (only the initiator sees the decision summary), then
+   STATE_SYNC when fog changed, then the ENCOUNTER result to a decision's initiator. The browser
+   settles an Encounter command only on its ENCOUNTER result.
+
+A commit refused with a response rolled back, so the record is dropped. Without a response the
+record stays, and the room settles it before the next command, while activating, before a
+presentation change and before the drain fence: the Worker-secret route
+`external-commit-resolve` answers COMMITTED (the save published and the authority reached N+1 with
+the predicted checksum) or ABANDONED (it expires the still-receiving save while the authority is at
+N, so a delayed commit fails); anything else fails closed. A COMMITTED recovery applies the record,
+drops the Scene cache and challenges every socket, because no member saw the change. Bootstrap
+accepts a persisted sequence of N+1 only through that recovery; while a record exists the journal
+refuses other commits, the drain fence and `discardReplaceableAuthority`.
+
+The room cache holds every entity of the presented Scene: the transient capture's compact snapshot
+is read unfiltered (`readCompactScene` with no viewer), never for the capturing member. It keeps each
+token's and barrier's definition ordinal (`sceneSnapshot.baseOrdinals`, or the entity page ordinals)
+and the bound `sceneEncounterId`, which the commit's `finish` and movement scope need. The room
+never applies a bound token's own `controlledByUserIds`: `beginSceneGeometry` checks the bound
+actor's controllers (`requireBoundTokenMoveControl`, refusing `NOT_ACTOR_CONTROLLER`), and
+publication checks again. A room door save is readable by its player actor, and publication applies
+the same lock rule to a player's door change as the tabletop.
+
+The D26 hold: the capture carries `sceneMovementDecisionPending` (the bound Encounter's pending
+occurrence is a movement context), and the room updates it after its own movement commits. While it
+is set the room refuses token moves, door changes and undo on that Scene with `UNAVAILABLE`
+"Waiting on a movement decision."; chat, Sheets, other Scenes and every Encounter command continue.
+A forwarded Encounter command rereads the flag with one authority capture while it is set. The GM's
+decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
+`MOVEMENT` that declines it (the movement continues). A decision on a Scene that is not presented
+keeps the native path (D29). A player's Convex-first Scene command counts against the one-in-flight
+limit.
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` and `encounters/commandActions:execute` are internal. Every Encounter
@@ -279,7 +343,8 @@ Run.
 **Capture bundle (CURRENT, D32).** A room command's volatile reads arrive in one private query,
 `/live-sessions/encounter-bundle` (`liveSessions/encounterCaptureBundle.ts`,
 `packages/schema/src/api/liveSessionEncounterCaptureBundle.ts`). When a room planner makes its
-admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `TURN_COMMAND` or `CONCENTRATION_RESPONSE`),
+admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `TURN_COMMAND`, `CONCENTRATION_RESPONSE` or
+`MOVEMENT_INPUTS`),
 `captureEncounterRules` sends the bundle instead. In one transaction the bundle runs the existing
 capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, one `ACTOR`
 (first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
@@ -310,7 +375,9 @@ Campaign owner's `autoRollDice` for the GM's turn steps, the same `autoRollByAct
 as initiator) for each actor's turn-effect and Concentration saves, and the issuing member's
 `responderControlledActorIds`, so the planner can admit a player's turn-effect answer. All are read in the capture
 transaction and covered by its read checksum, so DO planners decide between a server roll and a
-pending prompt without a separate call. `VOID_RULE_OCCURRENCE` always routes `NATIVE`:
+pending prompt without a separate call. A GM `VOID_RULE_OCCURRENCE` that declines a movement
+decision routes `MOVEMENT` (the route input carries its `commandType`; see "Convex-first Scene
+commits"); every other void routes `NATIVE`:
 `encounters/commandActions.ts` asks `encounters/occurrenceVoid:prepare` (GM only) to cancel a paused
 action atomically (occurrence `VOIDED`, one `VOID_RULE_OCCURRENCE` receipt, one Run version) or
 returns a decline that runs through the same path as a GM answer, including movement staging;
@@ -335,7 +402,8 @@ removes them from every PREPARED or ACTIVE Run's controller lists in the same tr
   and Scene inputs as the Campaign owner (Scene scope `MEMBER` for players); the player `action`
   capture scope carries the admitted command so later captures in the same plan pass.
 - Encounter-bound token movement follows the bound actor's controllers plus the GM
-  (`requireBoundTokenMoveControl`); unbound tokens keep the Scene token's `controlledByUserIds`.
+  (`requireBoundTokenMoveControl`, checked at begin and at publication, refusing
+  `NOT_ACTOR_CONTROLLER`); unbound tokens keep the Scene token's `controlledByUserIds`.
   The room applies the same rule to drag previews: a player's transient capture carries
   `originBoundTokenControl` (each bound token and whether they control its actor). On an
   Encounter-bound Scene the room renders a player's preview from its synchronized Scene cache and
@@ -359,7 +427,7 @@ removes them from every PREPARED or ACTIVE Run's controller lists in the same tr
   carries exact values, and GM surfaces show exact hit points. `encounters/healthDisplay:share`
   (GM only) posts one visible enemy's or NPC's descriptive state to the TABLE chat once per command
   ID without changing its level.
-- Room flood control: a PLAYER has at most one Encounter command in flight
+- Room flood control: a PLAYER has at most one Encounter or Convex-first Scene command in flight
   (`ROOM_LIMITS.maxInFlightEncounterCommandsPerPlayer`); a second is refused `UNAVAILABLE` "Your
   previous action is still resolving."
 
@@ -534,11 +602,12 @@ or control of the token. Epoch, contiguous sequence, checksums, Scene versions, 
 mandatory. Public access and new commands continue to require current permissions. Scene presentation
 changes use the ordered control above, so prior commands publish before their presentation is replaced.
 
-Current DO command coverage is incomplete: Door state, standalone token movement and its undo.
-Character Sheet commands use Convex. Other Encounter rule commands enter through the room but still
-compute in the native Convex implementation (see the single Encounter command door above), and
-Encounter-bound movement is rejected by both the DO and the active-authority Convex fence. These
-are remaining R06 integration gaps. Frozen decisions, rolls, effects, and receipts retain their
+Current DO command coverage is incomplete: Door state, standalone token movement and its undo use
+the outbox; Encounter-bound movement, moves on an Encounter-bound Scene, fog-deriving moves and door
+changes, and movement decisions commit to Convex first (see "Convex-first Scene commits").
+Character Sheet commands use Convex. Other Encounter rule commands enter through the room but some
+still compute in the native Convex implementation (see the single Encounter command door above).
+These are remaining R06 integration gaps. Frozen decisions, rolls, effects, and receipts retain their
 issued evidence while subscriptions expose the latest published durable state.
 
 ## Ticket and authentication flow

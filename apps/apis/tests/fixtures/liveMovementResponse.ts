@@ -22,7 +22,12 @@ import { readCurrentEntities } from '../../convex/scenes/currentEntities'
 import { readLiveScene } from '../../convex/scenes/liveDocuments'
 import type { setupAutomaticCharacterMovement } from './automaticCharacterMovement'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { stubLiveSessionFetch, workerEnvironment } from './liveSessionWorker'
+import {
+  expectedMovementScene,
+  nextExternalAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from './liveSessionWorker'
 
 export const privateMovementWorkerSecret = 'private-movement-child-worker-secret-at-least-32-bytes'
 export const privateMovementEnvironment = workerEnvironment(privateMovementWorkerSecret)
@@ -212,6 +217,10 @@ export async function preparePrivateMovementResponse(input: {
   const commitInput: LiveSessionMovementCommitInput = {
     ...stageInput,
     finish: { ...value.request, saveId: staged.saveId },
+    ...(await value.base.t.run(async (ctx) => ({
+      authority: await nextExternalAuthority(ctx, value.base.campaign.id),
+      expectedScene: await expectedMovementScene(ctx, staged.saveId, planned.outcome)
+    }))),
     rules: planned.rules,
     settlements: planned.settlementInputs
   }

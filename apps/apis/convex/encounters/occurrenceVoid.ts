@@ -27,6 +27,19 @@ import { internalMutation } from '../lib/mutations'
 import { readRunProjection, readRunState } from './documents'
 import { readPendingRunDecision } from './pendingReads'
 import { insertRunCommand } from './timelineEntries'
+import {
+  insertConversationEntry,
+  openConversation,
+  readCampaignAccessTime
+} from '../campaigns/conversationDocuments'
+import {
+  MOVEMENT_DECISION_SKIPPED_MESSAGE,
+  ruleCheckAuthorLabel
+} from '@artificer-toolkit/schema/api/campaignCommunication'
+import {
+  campaignStoredEntryHeaderSchema,
+  campaignStoredEntryPayloadSchema
+} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 type Resolution = ResolveRuleOccurrenceInputDto['resolution']
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
@@ -223,6 +236,63 @@ async function hasDeclineReceipt(ctx: MutationCtx, scope: VoidScope) {
   return runCommand !== null || ruleReceipt !== null
 }
 
+type RuleOccurrenceVoidPlan =
+  | { kind: 'COMPLETE'; result: EncounterCommandResultDto }
+  | { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto }
+  | { kind: 'RECORD' }
+  | { kind: 'CANCEL'; admission: VoidScope }
+
+/** Decides a void without writing: its replay, a pending decline, a record, or a cancel. */
+async function planRuleOccurrenceVoid(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<RuleOccurrenceVoidPlan> {
+  const admission = await admitVoid(ctx, args)
+  if (admission.kind === 'REPLAY') return { kind: 'COMPLETE', result: admission.result }
+  const { input, run, occurrence } = admission
+  if (occurrence.state !== 'PENDING') {
+    if (await hasDeclineReceipt(ctx, admission)) return { kind: 'RECORD' }
+    rejectDomain('DECISION_NOT_PENDING')
+  }
+  if (
+    run.version !== input.expectedVersion ||
+    occurrence.version !== input.expectedOccurrenceVersion
+  )
+    rejectDomain('VERSION_STALE')
+  if (occurrence.pendingSnapshotJson === null)
+    throw new Error('Stored Encounter occurrence state is invalid.')
+  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
+    JSON.parse(occurrence.pendingSnapshotJson)
+  )
+  const outcome = classifyRuleOccurrenceVoid(snapshot.applicationContext)
+  if (outcome.kind === 'REFUSE') rejectDomain('DECISION_REQUIRES_ANSWER', outcome.message)
+  if (outcome.kind === 'DECLINE')
+    return {
+      kind: 'DECLINE',
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: input.encounterId,
+        commandId: voidDeclineCommandId(input.commandId),
+        expectedVersion: input.expectedVersion,
+        correlationId: null,
+        occurrenceId: occurrence.id,
+        expectedOccurrenceVersion: occurrence.version,
+        resolution: outcome.resolution
+      }
+    }
+  return { kind: 'CANCEL', admission }
+}
+
+/** The decline a room movement commit settles for a GM void (D26); anything else is refused. */
+export async function readRuleOccurrenceVoidDecline(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<ResolveRuleOccurrenceInputDto> {
+  const plan = await planRuleOccurrenceVoid(ctx, args)
+  if (plan.kind !== 'DECLINE') throw new Error('The void does not decline a pending decision.')
+  return plan.command
+}
+
 /**
  * Settles a cancel atomically, or returns the decline the orchestrator runs through the same path
  * a GM answer takes. A void whose decline already committed only records its timeline entry.
@@ -233,44 +303,11 @@ export const prepare = internalMutation({
   handler: async (
     ctx,
     args: unknown
-  ): Promise<
-    | { kind: 'COMPLETE'; result: EncounterCommandResultDto }
-    | { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto }
-    | { kind: 'RECORD' }
-  > => {
-    const admission = await admitVoid(ctx, args)
-    if (admission.kind === 'REPLAY') return { kind: 'COMPLETE', result: admission.result }
-    const { input, run, occurrence } = admission
-    if (occurrence.state !== 'PENDING') {
-      if (await hasDeclineReceipt(ctx, admission)) return { kind: 'RECORD' }
-      rejectDomain('DECISION_NOT_PENDING')
-    }
-    if (
-      run.version !== input.expectedVersion ||
-      occurrence.version !== input.expectedOccurrenceVersion
-    )
-      rejectDomain('VERSION_STALE')
-    if (occurrence.pendingSnapshotJson === null)
-      throw new Error('Stored Encounter occurrence state is invalid.')
-    const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
-      JSON.parse(occurrence.pendingSnapshotJson)
-    )
-    const outcome = classifyRuleOccurrenceVoid(snapshot.applicationContext)
-    if (outcome.kind === 'REFUSE') rejectDomain('DECISION_REQUIRES_ANSWER', outcome.message)
-    if (outcome.kind === 'DECLINE')
-      return {
-        kind: 'DECLINE',
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          encounterId: input.encounterId,
-          commandId: voidDeclineCommandId(input.commandId),
-          expectedVersion: input.expectedVersion,
-          correlationId: null,
-          occurrenceId: occurrence.id,
-          expectedOccurrenceVersion: occurrence.version,
-          resolution: outcome.resolution
-        }
-      }
+  ): Promise<Exclude<RuleOccurrenceVoidPlan, { kind: 'CANCEL' }>> => {
+    const plan = await planRuleOccurrenceVoid(ctx, args)
+    if (plan.kind !== 'CANCEL') return plan
+    const { admission } = plan
+    const { occurrence } = admission
     // Paused actions stage nothing on the Run, so cancelling only closes the occurrence.
     const updatedAt = new Date().toISOString()
     const { _id, _creationTime, ...stored } = occurrence
@@ -299,28 +336,83 @@ export const prepare = internalMutation({
  * Records a void after its decline committed. A turn or move that pauses again stays fenced to the
  * current Run version, so it returns the next decision instead of a separate timeline entry.
  */
+export async function recordRuleOccurrenceVoid(
+  ctx: MutationCtx,
+  args: unknown
+): Promise<EncounterCommandResultDto> {
+  const admission = await admitVoid(ctx, args)
+  if (admission.kind === 'REPLAY') return admission.result
+  const { input, run, campaign, membership, occurrence } = admission
+  if (occurrence.state === 'PENDING' && occurrence.version === input.expectedOccurrenceVersion)
+    throw new Error('The voided decision did not settle.')
+  const pending = await readPendingRunDecision(ctx, run, campaign, membership)
+  if (pending)
+    return encounterCommandResultDtoSchema.parse({
+      projection: readRunProjection(run),
+      roll: null,
+      occurrence: {
+        occurrenceId: pending.occurrenceId,
+        occurrenceVersion: pending.occurrenceVersion,
+        status: 'PENDING',
+        outcome: null,
+        pending
+      }
+    })
+  return recordVoid(ctx, admission, occurrence.state === 'VOIDED' ? 'VOIDED' : 'COMPLETE')
+}
+
+/**
+ * Tells the table in chat that the GM skipped a movement decision (D26). The void command ID keys
+ * the entry, so a replay adds nothing; like other rules entries it spends no chat rate limit.
+ */
+export async function postMovementDecisionSkipped(
+  ctx: MutationCtx,
+  input: { campaignId: string; gmUserId: string; voidCommandId: string }
+) {
+  const authority = await requireCampaignAuthority(ctx, input.campaignId, input.gmUserId)
+  const { campaign } = authority
+  const clientNonce = input.voidCommandId.toLowerCase()
+  const prior = await ctx.db
+    .query('campaignConversationEntries')
+    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+      q
+        .eq('campaignId', campaign.id)
+        .eq('authorUserId', input.gmUserId)
+        .eq('clientNonce', clientNonce)
+    )
+    .unique()
+  if (prior) return
+  const { conversation } = await openConversation(ctx, authority, 'TABLE')
+  const header = campaignStoredEntryHeaderSchema.parse({
+    id: crypto.randomUUID(),
+    campaignId: campaign.id,
+    conversationId: conversation.id,
+    authorUserId: input.gmUserId,
+    clientNonce,
+    createdAt: new Date(await readCampaignAccessTime(ctx, campaign)).toISOString()
+  })
+  await insertConversationEntry(
+    ctx,
+    header,
+    campaignStoredEntryPayloadSchema.parse({
+      entryId: header.id,
+      kind: 'CHAT',
+      mode: 'OOC',
+      body: MOVEMENT_DECISION_SKIPPED_MESSAGE,
+      roll: null,
+      revealedByGm: false,
+      authorUsername: ruleCheckAuthorLabel,
+      characterId: null,
+      characterLabel: null,
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    })
+  )
+}
+
 // Internal to the void orchestrator: the handler's Zod contract validates input.
 export const record = internalMutation({
   args: v.any(),
-  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
-    const admission = await admitVoid(ctx, args)
-    if (admission.kind === 'REPLAY') return admission.result
-    const { input, run, campaign, membership, occurrence } = admission
-    if (occurrence.state === 'PENDING' && occurrence.version === input.expectedOccurrenceVersion)
-      throw new Error('The voided decision did not settle.')
-    const pending = await readPendingRunDecision(ctx, run, campaign, membership)
-    if (pending)
-      return encounterCommandResultDtoSchema.parse({
-        projection: readRunProjection(run),
-        roll: null,
-        occurrence: {
-          occurrenceId: pending.occurrenceId,
-          occurrenceVersion: pending.occurrenceVersion,
-          status: 'PENDING',
-          outcome: null,
-          pending
-        }
-      })
-    return recordVoid(ctx, admission, occurrence.state === 'VOIDED' ? 'VOIDED' : 'COMPLETE')
-  }
+  handler: recordRuleOccurrenceVoid
 })

@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import type { z } from 'zod'
 import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
@@ -46,6 +47,7 @@ import {
   assertConvexOwnsSceneLiveState,
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
+import { requireBoundTokenMoveControl } from '../encounters/actorController'
 
 const SAVE_WINDOW = 24 * 60 * 60_000
 const cleanupReference = makeFunctionReference<'mutation', { saveId: string }, null>(
@@ -83,18 +85,26 @@ export async function beginSceneGeometry(
   const bound = input.type === 'MOVE_SCENE_TOKEN' && input.expectedEncounterVersion !== null
   if (bound && !args.presentation)
     throw new Error('Bound Scene movement requires a presentation context.')
-  const { header, campaign, userId } = await readLiveScene(
+  // The room admits a player's door change on a live Scene; the lock rule applies at publication.
+  const liveSceneChange =
+    liveAuthority !== undefined &&
+    (input.type === 'MOVE_SCENE_TOKEN' || input.type === 'SET_SCENE_DOOR_STATE')
+  const { header, campaign, membership, userId } = await readLiveScene(
     ctx,
     input.sceneId,
-    input.type === 'MOVE_SCENE_TOKEN' ? 'MEMBER' : 'OWNER'
+    input.type === 'MOVE_SCENE_TOKEN' || liveSceneChange ? 'MEMBER' : 'OWNER'
   )
   active(campaign)
   if (liveAuthority) {
-    if (!bound || liveAuthority.campaignId !== campaign.id)
+    if (!liveSceneChange || liveAuthority.campaignId !== campaign.id)
       throw new Error('Live movement authority scope is inconsistent.')
     await requireActiveCampaignLiveAuthority(ctx, liveAuthority)
   } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN')
     await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
+  const sceneBinding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_sceneId', (q) => q.eq('sceneId', header.id))
+    .first()
   const { presentation: fence } = sceneGeometryExecuteInputSchema.parse(args)
   const presented = fence
     ? await readPresentedVisionScene(ctx, { campaignId: campaign.id, sceneId: header.id })
@@ -160,6 +170,16 @@ export async function beginSceneGeometry(
   if (input.expectedSceneVersion > header.version)
     throw new Error('Scene version is ahead of the authoritative state.')
   await assertStandaloneMovement(ctx, campaign.id, input)
+  // A bound token follows its actor's controllers, never the Scene token's own list.
+  if (bound && !movementResolution) {
+    if (!sceneBinding) throw new Error('Bound Scene movement requires an Encounter binding.')
+    await requireBoundTokenMoveControl(ctx, {
+      campaign,
+      membership,
+      encounterId: sceneBinding.encounterId,
+      tokenId: input.tokenId
+    })
+  }
   const capture = fence
     ? {
         ...fence,
@@ -252,6 +272,7 @@ export async function beginSceneGeometry(
     saveId: save.id,
     input: save.input,
     header,
+    encounterId: sceneBinding?.encounterId ?? null,
     ...(save.movementResolution
       ? { movementStartDistance: readMovementResolution(save)!.root.pathStartDistance }
       : {}),
@@ -259,150 +280,160 @@ export async function beginSceneGeometry(
   })
 }
 
+/** Pins the Character revisions behind the save's Scene vision before fog is staged. */
+export async function observeSceneGeometry(
+  ctx: MutationCtx,
+  args: z.input<typeof sceneGeometryObserveInputSchema>
+): Promise<{ saveId: string }> {
+  const input = sceneGeometryObserveInputSchema.parse(args)
+  const { row, save, header, userId } = await readGeometrySave(ctx, input.saveId)
+  assertGeometryReceiving(save, header.version, userId)
+  if (!save.sessionVision)
+    throw new Error('Scene geometry observations require a presentation context.')
+  await readSessionVisionScope(ctx, save.sessionVision)
+  await assertSceneVisionCharacters(ctx, input.characterRevisions)
+  const revisions = [...input.characterRevisions].sort((a, b) =>
+    a.characterId.localeCompare(b.characterId)
+  )
+  if (
+    save.characterRevisions &&
+    checksumCanonicalJson(save.characterRevisions) !== checksumCanonicalJson(revisions)
+  ) {
+    if (readSpatialPreparation(save))
+      throw new Error('Spatial preparation is stale and cannot be rebased.')
+    const next = sceneStoredGeometrySaveSchema.parse({
+      ...save,
+      id: crypto.randomUUID(),
+      characterRevisions: revisions,
+      fogSaves: []
+    })
+    await ctx.db.replace(row._id, next)
+    await ctx.scheduler.runAt(next.expiresAt, cleanupReference, { saveId: next.id })
+    return { saveId: next.id }
+  }
+  if (!save.characterRevisions) await ctx.db.patch(row._id, { characterRevisions: revisions })
+  return { saveId: save.id }
+}
+
 export const observe = internalMutation({
   args: zodToConvexFields(sceneGeometryObserveInputSchema.shape),
   returns: zodToConvex(sceneGeometrySaveLookupSchema),
-  handler: async (ctx, args) => {
-    const input = sceneGeometryObserveInputSchema.parse(args)
-    const { row, save, header, userId } = await readGeometrySave(ctx, input.saveId)
-    assertGeometryReceiving(save, header.version, userId)
-    if (!save.sessionVision)
-      throw new Error('Scene geometry observations require a presentation context.')
-    await readSessionVisionScope(ctx, save.sessionVision)
-    await assertSceneVisionCharacters(ctx, input.characterRevisions)
-    const revisions = [...input.characterRevisions].sort((a, b) =>
-      a.characterId.localeCompare(b.characterId)
-    )
-    if (
-      save.characterRevisions &&
-      checksumCanonicalJson(save.characterRevisions) !== checksumCanonicalJson(revisions)
-    ) {
-      if (readSpatialPreparation(save))
-        throw new Error('Spatial preparation is stale and cannot be rebased.')
-      const next = sceneStoredGeometrySaveSchema.parse({
-        ...save,
-        id: crypto.randomUUID(),
-        characterRevisions: revisions,
-        fogSaves: []
-      })
-      await ctx.db.replace(row._id, next)
-      await ctx.scheduler.runAt(next.expiresAt, cleanupReference, { saveId: next.id })
-      return { saveId: next.id }
-    }
-    if (!save.characterRevisions) await ctx.db.patch(row._id, { characterRevisions: revisions })
-    return { saveId: save.id }
-  }
+  handler: observeSceneGeometry
 })
+
+/** Stages one complete fog layer on the receiving save; staging the same layer again is a no-op. */
+export async function stageSceneGeometryFog(
+  ctx: MutationCtx,
+  args: z.input<typeof sceneGeometryStageFogInputSchema>
+): Promise<{ saveId: string }> {
+  const input = sceneGeometryStageFogInputSchema.parse(args)
+  const {
+    row: parentRow,
+    save: parent,
+    header,
+    userId
+  } = await readGeometrySave(ctx, input.saveId.toLowerCase())
+  assertGeometryReceiving(parent, header.version, userId)
+  if (parent.sessionVision && !parent.characterRevisions)
+    throw new Error('Scene geometry Character observations are missing.')
+  const layer = input.layer
+  if (layer.chunks.length === 0) throw new Error('Geometry fog layer must contain chunks.')
+  const columns = Math.ceil(layer.width / 32)
+  if (layer.chunks.length !== columns * Math.ceil(layer.height / 32))
+    throw new Error('Geometry fog replacement must cover the complete layer.')
+  const chunks = [...layer.chunks].sort((left, right) => left.index - right.index)
+  for (const chunk of chunks) {
+    const expectedIndex = (chunk.y / 32) * columns + chunk.x / 32
+    if (
+      chunk.x % 32 !== 0 ||
+      chunk.y % 32 !== 0 ||
+      chunk.width !== Math.min(32, layer.width - chunk.x) ||
+      chunk.height !== Math.min(32, layer.height - chunk.y) ||
+      chunk.index !== expectedIndex
+    )
+      throw new Error('Geometry fog chunks must use canonical 32-cell tiles.')
+  }
+  const manifest = chunks.map((chunk) => ({
+    index: chunk.index,
+    checksum: checksumCanonicalJson(chunk)
+  }))
+  const existingReference = parent.fogSaves.find((entry) => entry.ownerUserId === layer.ownerUserId)
+  if (existingReference) {
+    const existingRow = await ctx.db
+      .query('sceneFogSaves')
+      .withIndex('by_publicId', (q) => q.eq('id', existingReference.saveId))
+      .unique()
+    if (!existingRow) throw new Error('Stored geometry fog save is inconsistent.')
+    const existing = parseFogSave(existingRow)
+    if (
+      existing.geometrySaveId !== parent.id ||
+      existing.sceneId !== parent.sceneId ||
+      existing.actorUserId !== parent.actorUserId ||
+      existing.input.layer.ownerUserId !== layer.ownerUserId ||
+      existing.input.layer.width !== layer.width ||
+      existing.input.layer.height !== layer.height ||
+      existing.input.expectedSceneVersion !== parent.snapshotVersion ||
+      existing.status !== 'RECEIVING' ||
+      existing.chunksRemoved ||
+      existing.expiresAt <= Date.now() ||
+      existing.receivedChunks !== existing.input.chunkManifest.length ||
+      checksumCanonicalJson(existing.input.chunkManifest) !== checksumCanonicalJson(manifest)
+    )
+      throw new Error('Geometry fog layer was already staged differently.')
+    return { saveId: parent.id }
+  }
+  const saveId = crypto.randomUUID()
+  const childInput = sceneFogPatchInputSchema.parse({
+    type: 'PATCH_SCENE_FOG',
+    sceneId: parent.sceneId,
+    commandId: saveId,
+    expectedSceneVersion: parent.snapshotVersion,
+    layer: {
+      ownerUserId: layer.ownerUserId,
+      width: layer.width,
+      height: layer.height
+    },
+    chunkManifest: manifest
+  })
+  const child = sceneStoredFogSaveSchema.parse({
+    id: saveId,
+    sceneId: parent.sceneId,
+    commandId: saveId,
+    actorUserId: parent.actorUserId,
+    geometrySaveId: parent.id,
+    input: childInput,
+    inputChecksum: checksumCanonicalJson(childInput),
+    status: 'RECEIVING',
+    receivedChunks: chunks.length,
+    expiresAt: parent.expiresAt,
+    chunksRemoved: false
+  })
+  await ctx.db.insert('sceneFogSaves', child)
+  for (const [ordinal, chunk] of chunks.entries())
+    await ctx.db.insert(
+      'sceneFogChunks',
+      sceneStoredFogChunkSchema.parse({
+        saveId,
+        ordinal,
+        chunk,
+        checksum: checksumCanonicalJson(chunk)
+      })
+    )
+  const nextParent = sceneStoredGeometrySaveSchema.parse({
+    ...parent,
+    fogSaves: [...parent.fogSaves, { saveId, ownerUserId: layer.ownerUserId }]
+  })
+  await ctx.db.replace(parentRow._id, nextParent)
+  await ctx.scheduler.runAt(parent.expiresAt, fogCleanupReference, {
+    saveId
+  })
+  return { saveId: parent.id }
+}
 
 export const stageFog = internalMutation({
   args: zodToConvexFields(sceneGeometryStageFogInputSchema.shape),
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const input = sceneGeometryStageFogInputSchema.parse(args)
-    const {
-      row: parentRow,
-      save: parent,
-      header,
-      userId
-    } = await readGeometrySave(ctx, input.saveId.toLowerCase())
-    assertGeometryReceiving(parent, header.version, userId)
-    if (parent.sessionVision && !parent.characterRevisions)
-      throw new Error('Scene geometry Character observations are missing.')
-    const layer = input.layer
-    if (layer.chunks.length === 0) throw new Error('Geometry fog layer must contain chunks.')
-    const columns = Math.ceil(layer.width / 32)
-    if (layer.chunks.length !== columns * Math.ceil(layer.height / 32))
-      throw new Error('Geometry fog replacement must cover the complete layer.')
-    const chunks = [...layer.chunks].sort((left, right) => left.index - right.index)
-    for (const chunk of chunks) {
-      const expectedIndex = (chunk.y / 32) * columns + chunk.x / 32
-      if (
-        chunk.x % 32 !== 0 ||
-        chunk.y % 32 !== 0 ||
-        chunk.width !== Math.min(32, layer.width - chunk.x) ||
-        chunk.height !== Math.min(32, layer.height - chunk.y) ||
-        chunk.index !== expectedIndex
-      )
-        throw new Error('Geometry fog chunks must use canonical 32-cell tiles.')
-    }
-    const manifest = chunks.map((chunk) => ({
-      index: chunk.index,
-      checksum: checksumCanonicalJson(chunk)
-    }))
-    const existingReference = parent.fogSaves.find(
-      (entry) => entry.ownerUserId === layer.ownerUserId
-    )
-    if (existingReference) {
-      const existingRow = await ctx.db
-        .query('sceneFogSaves')
-        .withIndex('by_publicId', (q) => q.eq('id', existingReference.saveId))
-        .unique()
-      if (!existingRow) throw new Error('Stored geometry fog save is inconsistent.')
-      const existing = parseFogSave(existingRow)
-      if (
-        existing.geometrySaveId !== parent.id ||
-        existing.sceneId !== parent.sceneId ||
-        existing.actorUserId !== parent.actorUserId ||
-        existing.input.layer.ownerUserId !== layer.ownerUserId ||
-        existing.input.layer.width !== layer.width ||
-        existing.input.layer.height !== layer.height ||
-        existing.input.expectedSceneVersion !== parent.snapshotVersion ||
-        existing.status !== 'RECEIVING' ||
-        existing.chunksRemoved ||
-        existing.expiresAt <= Date.now() ||
-        existing.receivedChunks !== existing.input.chunkManifest.length ||
-        checksumCanonicalJson(existing.input.chunkManifest) !== checksumCanonicalJson(manifest)
-      )
-        throw new Error('Geometry fog layer was already staged differently.')
-      return null
-    }
-    const saveId = crypto.randomUUID()
-    const childInput = sceneFogPatchInputSchema.parse({
-      type: 'PATCH_SCENE_FOG',
-      sceneId: parent.sceneId,
-      commandId: saveId,
-      expectedSceneVersion: parent.snapshotVersion,
-      layer: {
-        ownerUserId: layer.ownerUserId,
-        width: layer.width,
-        height: layer.height
-      },
-      chunkManifest: manifest
-    })
-    const child = sceneStoredFogSaveSchema.parse({
-      id: saveId,
-      sceneId: parent.sceneId,
-      commandId: saveId,
-      actorUserId: parent.actorUserId,
-      geometrySaveId: parent.id,
-      input: childInput,
-      inputChecksum: checksumCanonicalJson(childInput),
-      status: 'RECEIVING',
-      receivedChunks: chunks.length,
-      expiresAt: parent.expiresAt,
-      chunksRemoved: false
-    })
-    await ctx.db.insert('sceneFogSaves', child)
-    for (const [ordinal, chunk] of chunks.entries())
-      await ctx.db.insert(
-        'sceneFogChunks',
-        sceneStoredFogChunkSchema.parse({
-          saveId,
-          ordinal,
-          chunk,
-          checksum: checksumCanonicalJson(chunk)
-        })
-      )
-    const nextParent = sceneStoredGeometrySaveSchema.parse({
-      ...parent,
-      fogSaves: [...parent.fogSaves, { saveId, ownerUserId: layer.ownerUserId }]
-    })
-    await ctx.db.replace(parentRow._id, nextParent)
-    await ctx.scheduler.runAt(parent.expiresAt, fogCleanupReference, {
-      saveId
-    })
-    return null
-  }
+  returns: zodToConvex(sceneGeometrySaveLookupSchema),
+  handler: stageSceneGeometryFog
 })
 
 export const cleanup = internalMutation({

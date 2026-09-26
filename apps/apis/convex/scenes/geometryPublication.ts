@@ -12,7 +12,8 @@ import {
   sceneStoredLiveStateSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { applySceneGeometryDelta } from '@artificer-toolkit/shared/vtt'
+import { applySceneGeometryDelta, sceneDoorChangeFailure } from '@artificer-toolkit/shared/vtt'
+import { preparedMovementSceneDelta } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import type { MutationCtx } from '../_generated/server'
 import { parseFogSave } from './fogDocuments'
 import {
@@ -246,6 +247,11 @@ export async function publishSceneGeometry(
         ? current.entity.initialState
         : null
   }
+  // The room admits a player's door change; the lock rule is the same as the GM tabletop's.
+  if (save.input.type === 'SET_SCENE_DOOR_STATE' && membership.role !== 'OWNER') {
+    const failure = sceneDoorChangeFailure(false, doorState ?? undefined, save.input.state)
+    if (failure) throw new Error(failure)
+  }
   if (!save.movementResolution && save.input.type === 'MOVE_SCENE_TOKEN') {
     const movingToken = current?.collection === 'tokens' ? current.entity : null
     if (bound && preparation) {
@@ -259,27 +265,16 @@ export async function publishSceneGeometry(
       })
     } else assertMoveTokenControl(movingToken, userId, membership.role === 'OWNER')
   }
-  const terminal = preparation?.outcome.kind === 'TERMINAL' ? preparation.outcome.result : null
   const pending = preparation?.outcome.kind === 'PENDING' ? preparation.outcome : null
-  const delta = terminal
-    ? terminal.sceneVersion === header.version
-      ? null
-      : {
-          kind: 'TOKEN_MOVED' as const,
-          tokenId: terminal.tokenId,
-          position: terminal.terminalPosition
-        }
-    : pending
-      ? pending.movementIntent
-        ? { kind: 'TOKEN_MOVED' as const, ...pending.movementIntent }
-        : null
+  const delta =
+    save.input.type === 'MOVE_SCENE_TOKEN'
+      ? preparedMovementSceneDelta({
+          tokenId: save.input.tokenId,
+          path: save.input.path,
+          outcome: preparation?.outcome ?? null,
+          sceneVersion: header.version
+        })
       : target.delta
-  if (
-    terminal &&
-    terminal.sceneVersion !== header.version &&
-    terminal.sceneVersion !== header.version + 1
-  )
-    throw new Error('Spatial Scene version is inconsistent.')
   const sceneChanged = delta !== null || save.fogSaves.length > 0
   let occurrence: SceneGeometryCommandResult['occurrence'] = null
   if (bound) {

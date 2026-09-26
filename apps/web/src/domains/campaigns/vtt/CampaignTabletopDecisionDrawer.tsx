@@ -65,6 +65,9 @@ export function CampaignTabletopDecisionDrawer({
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const disabled = !connected || submitting || localPending
+  // The GM skips a pending movement choice for its player; the movement continues (D26).
+  const movementChoice =
+    pending.kind === 'MOVEMENT_REACTION' || pending.kind === 'MOVEMENT_PASSAGE_CHOICE'
 
   useEffect(() => {
     setPrimaryOptionId(null)
@@ -126,7 +129,9 @@ export function CampaignTabletopDecisionDrawer({
         result.occurrence?.status === 'PENDING'
           ? 'Decision recorded. Another decision is ready.'
           : resolution === 'VOID'
-            ? 'Decision voided.'
+            ? movementChoice
+              ? 'Decision skipped.'
+              : 'Decision voided.'
             : 'Decision resolved.'
       )
     } catch (nextError) {
@@ -335,11 +340,12 @@ export function CampaignTabletopDecisionDrawer({
                 variant='subtle'
                 onClick={() => void resolve('VOID')}
               >
-                Void decision
+                {movementChoice ? 'Skip decision' : 'Void decision'}
               </Button>
               <Text c='dimmed' size='xs'>
-                Cancels a paused action or declines an optional choice. Rolls play can't continue
-                without stay open.
+                {movementChoice
+                  ? "Declines the choice for whoever it's waiting on; the movement continues."
+                  : "Cancels a paused action or declines an optional choice. Rolls play can't continue without stay open."}
               </Text>
             </Stack>
           ) : null}

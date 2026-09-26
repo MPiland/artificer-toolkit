@@ -275,6 +275,7 @@ describe('native Scene movement perception staging', () => {
         saveId: save.id,
         input: save.input,
         header,
+        encounterId: null,
         sessionVision: save.sessionVision
       })
     })
@@ -340,6 +341,7 @@ describe('native Scene movement perception staging', () => {
           saveId: save.id,
           input: save.input,
           header,
+          encounterId: null,
           sessionVision: save.sessionVision
         })
       })

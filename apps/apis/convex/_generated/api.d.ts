@@ -1688,6 +1688,7 @@ export declare const api: {
           noteSectionId: string | null;
           profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
           sessionId: string | null;
+          uploaderLabel: string;
           uploaderUserId: string;
         }
       >;
@@ -1716,6 +1717,7 @@ export declare const api: {
             noteSectionId: string | null;
             profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
             sessionId: string | null;
+            uploaderLabel: string;
             uploaderUserId: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -12763,6 +12765,7 @@ export declare const api: {
           visibility: "SHARED" | "GM_PRIVATE";
         },
         {
+          authorLabel: string;
           authorUserId: string;
           campaignId: string;
           content: string;
@@ -12805,6 +12808,7 @@ export declare const api: {
           continueCursor: string;
           isDone: boolean;
           page: Array<{
+            authorLabel: string;
             authorUserId: string;
             campaignId: string;
             content: string;
@@ -12865,6 +12869,7 @@ export declare const api: {
           visibility?: "SHARED" | "GM_PRIVATE";
         },
         {
+          authorLabel: string;
           authorUserId: string;
           campaignId: string;
           content: string;
@@ -71299,7 +71304,10 @@ export declare const internal: {
     encounterMovement: {
       begin: FunctionReference<"mutation", "internal", any, any>;
       commit: FunctionReference<"mutation", "internal", any, any>;
+      commitScene: FunctionReference<"mutation", "internal", any, any>;
+      observe: FunctionReference<"mutation", "internal", any, any>;
       prepare: FunctionReference<"mutation", "internal", any, any>;
+      stageFog: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterRoute: {
       route: FunctionReference<"query", "internal", any, any>;
@@ -71312,6 +71320,9 @@ export declare const internal: {
     };
     encounterTurnCommit: {
       commit: FunctionReference<"mutation", "internal", any, any>;
+    };
+    externalCommit: {
+      resolve: FunctionReference<"mutation", "internal", any, any>;
     };
     state: {
       activate: FunctionReference<
@@ -71975,7 +71986,7 @@ export declare const internal: {
             role: "OWNER" | "PLAYER";
             userId: string;
           }>;
-          sceneEncounterBound: boolean;
+          sceneEncounterId: string | null;
           sceneHeader: {
             ambientIllumination:
               "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
@@ -72025,156 +72036,166 @@ export declare const internal: {
             version: number;
             visionRevealMode?: "ON_DRAG" | "ON_DROP";
           } | null;
+          sceneMovementDecisionPending: boolean;
           sceneSnapshot?: {
-            ambientIllumination:
-              "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
-            annotations: Array<{
-              id: string;
-              position: { x: number; y: number };
-              text: string;
-              visibility: "GM_ONLY" | "TABLE";
-            }>;
-            barriers: Array<
-              | {
-                  a: { x: number; y: number };
-                  b: { x: number; y: number };
-                  blocksLight: boolean;
-                  blocksMovement: boolean;
-                  id: string;
-                  kind: "WALL";
-                }
-              | {
-                  a: { x: number; y: number };
-                  b: { x: number; y: number };
-                  blocksLightWhenClosed: boolean;
-                  blocksMovementWhenClosed: boolean;
-                  id: string;
-                  initialState: "OPEN" | "CLOSED" | "LOCKED";
-                  kind: "DOOR";
-                  openAngleDegrees: number;
-                }
-              | {
-                  a: { x: number; y: number };
-                  b: { x: number; y: number };
-                  blocksLight: boolean;
-                  blocksMovement: boolean;
-                  id: string;
-                  kind: "WINDOW";
-                }
-              | {
-                  a: { x: number; y: number };
-                  b: { x: number; y: number };
-                  blockedDirection: "LEFT_TO_RIGHT" | "RIGHT_TO_LEFT";
-                  blocksLight: boolean;
-                  blocksMovement: boolean;
-                  id: string;
-                  kind: "ONE_WAY";
-                }
-              | {
-                  a: { x: number; y: number };
-                  b: { x: number; y: number };
-                  id: string;
-                  kind: "TERRAIN";
-                  movementCostMultiplier: number;
-                }
-            >;
-            campaignId: string;
-            darknessZones: Array<{
-              id: string;
-              mechanicalIllumination:
-                "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS" | null;
-              mechanicalObscurement: "LIGHT" | "HEAVY" | null;
-              opacity: number;
-              polygon: { points: Array<{ x: number; y: number }> };
-            }>;
-            definitionId: string;
-            definitionVersion: number;
-            doorStates: Record<string, "OPEN" | "CLOSED" | "LOCKED">;
-            fogLayers: Array<{
-              chunks: Array<{
-                data: string;
-                height: number;
-                index: number;
-                width: number;
-                x: number;
-                y: number;
+            baseOrdinals: {
+              barriers: Array<{
+                barrierId: string;
+                baseOrdinal: number | null;
               }>;
-              height: number;
-              ownerUserId: string | null;
-              width: number;
-            }>;
-            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
-            grid:
-              | {
-                  cellSize: number;
-                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
-                  distancePerCell: number;
-                  kind: "SQUARE";
-                  origin: { x: number; y: number };
-                  unit: "FEET" | "METERS" | "SQUARES";
-                }
-              | {
-                  kind: "GRIDLESS";
-                  pixelsPerUnit: number;
-                  unit: "FEET" | "METERS" | "SQUARES";
-                };
-            id: string;
-            lights: Array<
-              | {
-                  brightRadius: number;
-                  color: string;
-                  dimRadius: number;
-                  id: string;
-                  intensity: number;
-                  kind: "POINT";
-                  position: { x: number; y: number };
-                }
-              | {
-                  angleDegrees: number;
-                  brightRadius: number;
-                  color: string;
-                  dimRadius: number;
-                  directionDegrees: number;
-                  id: string;
-                  intensity: number;
-                  kind: "CONE";
-                  position: { x: number; y: number };
-                }
-            >;
-            map: {
-              assetId: string;
-              height: number;
-              tileManifestAssetId: string | null;
-              width: number;
+              tokens: Array<{ baseOrdinal: number | null; tokenId: string }>;
             };
-            measurements: Array<{
-              createdByUserId: string;
+            scene: {
+              ambientIllumination:
+                "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
+              annotations: Array<{
+                id: string;
+                position: { x: number; y: number };
+                text: string;
+                visibility: "GM_ONLY" | "TABLE";
+              }>;
+              barriers: Array<
+                | {
+                    a: { x: number; y: number };
+                    b: { x: number; y: number };
+                    blocksLight: boolean;
+                    blocksMovement: boolean;
+                    id: string;
+                    kind: "WALL";
+                  }
+                | {
+                    a: { x: number; y: number };
+                    b: { x: number; y: number };
+                    blocksLightWhenClosed: boolean;
+                    blocksMovementWhenClosed: boolean;
+                    id: string;
+                    initialState: "OPEN" | "CLOSED" | "LOCKED";
+                    kind: "DOOR";
+                    openAngleDegrees: number;
+                  }
+                | {
+                    a: { x: number; y: number };
+                    b: { x: number; y: number };
+                    blocksLight: boolean;
+                    blocksMovement: boolean;
+                    id: string;
+                    kind: "WINDOW";
+                  }
+                | {
+                    a: { x: number; y: number };
+                    b: { x: number; y: number };
+                    blockedDirection: "LEFT_TO_RIGHT" | "RIGHT_TO_LEFT";
+                    blocksLight: boolean;
+                    blocksMovement: boolean;
+                    id: string;
+                    kind: "ONE_WAY";
+                  }
+                | {
+                    a: { x: number; y: number };
+                    b: { x: number; y: number };
+                    id: string;
+                    kind: "TERRAIN";
+                    movementCostMultiplier: number;
+                  }
+              >;
+              campaignId: string;
+              darknessZones: Array<{
+                id: string;
+                mechanicalIllumination:
+                  "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS" | null;
+                mechanicalObscurement: "LIGHT" | "HEAVY" | null;
+                opacity: number;
+                polygon: { points: Array<{ x: number; y: number }> };
+              }>;
+              definitionId: string;
+              definitionVersion: number;
+              doorStates: Record<string, "OPEN" | "CLOSED" | "LOCKED">;
+              fogLayers: Array<{
+                chunks: Array<{
+                  data: string;
+                  height: number;
+                  index: number;
+                  width: number;
+                  x: number;
+                  y: number;
+                }>;
+                height: number;
+                ownerUserId: string | null;
+                width: number;
+              }>;
+              fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+              grid:
+                | {
+                    cellSize: number;
+                    diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                    distancePerCell: number;
+                    kind: "SQUARE";
+                    origin: { x: number; y: number };
+                    unit: "FEET" | "METERS" | "SQUARES";
+                  }
+                | {
+                    kind: "GRIDLESS";
+                    pixelsPerUnit: number;
+                    unit: "FEET" | "METERS" | "SQUARES";
+                  };
               id: string;
-              label: string | null;
-              path: Array<{ x: number; y: number }>;
-            }>;
-            name: string;
-            tokens: Array<{
-              assetId: string | null;
-              controlledByUserIds: Array<string>;
-              height: number;
-              hidden: boolean;
-              id: string;
-              label: string;
-              locked: boolean;
-              position: { x: number; y: number };
-              rotationDegrees: number;
-              vision: {
-                angleDegrees: number;
-                brightRange: number;
-                dimRange: number;
-                directionDegrees: number;
-                enabled: boolean;
-              } | null;
-              width: number;
-            }>;
-            version: number;
-            visionRevealMode?: "ON_DRAG" | "ON_DROP";
+              lights: Array<
+                | {
+                    brightRadius: number;
+                    color: string;
+                    dimRadius: number;
+                    id: string;
+                    intensity: number;
+                    kind: "POINT";
+                    position: { x: number; y: number };
+                  }
+                | {
+                    angleDegrees: number;
+                    brightRadius: number;
+                    color: string;
+                    dimRadius: number;
+                    directionDegrees: number;
+                    id: string;
+                    intensity: number;
+                    kind: "CONE";
+                    position: { x: number; y: number };
+                  }
+              >;
+              map: {
+                assetId: string;
+                height: number;
+                tileManifestAssetId: string | null;
+                width: number;
+              };
+              measurements: Array<{
+                createdByUserId: string;
+                id: string;
+                label: string | null;
+                path: Array<{ x: number; y: number }>;
+              }>;
+              name: string;
+              tokens: Array<{
+                assetId: string | null;
+                controlledByUserIds: Array<string>;
+                height: number;
+                hidden: boolean;
+                id: string;
+                label: string;
+                locked: boolean;
+                position: { x: number; y: number };
+                rotationDegrees: number;
+                vision: {
+                  angleDegrees: number;
+                  brightRange: number;
+                  dimRange: number;
+                  directionDegrees: number;
+                  enabled: boolean;
+                } | null;
+                width: number;
+              }>;
+              version: number;
+              visionRevealMode?: "ON_DRAG" | "ON_DROP";
+            };
           } | null;
           systemId: string;
           visionFreshness: {
@@ -75122,6 +75143,7 @@ export declare const internal: {
             };
           }
         | {
+            encounterId: string | null;
             header: {
               ambientIllumination:
                 "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
@@ -75333,7 +75355,7 @@ export declare const internal: {
           };
           saveId: string;
         },
-        null
+        { saveId: string }
       >;
     };
     movementPerception: {
@@ -130968,6 +130990,7 @@ export declare const internal: {
             };
           }
         | {
+            encounterId: string | null;
             header: {
               ambientIllumination:
                 "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";

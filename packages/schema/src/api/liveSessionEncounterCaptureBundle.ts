@@ -19,7 +19,8 @@ const admissionKinds = new Set([
   'ACTION_COMMAND',
   'ACTION_RESPONSE',
   'TURN_COMMAND',
-  'CONCENTRATION_RESPONSE'
+  'CONCENTRATION_RESPONSE',
+  'MOVEMENT_INPUTS'
 ])
 
 /** Whether a capture is a command admission, the first read of a capture bundle. */

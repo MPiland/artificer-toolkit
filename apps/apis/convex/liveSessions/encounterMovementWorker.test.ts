@@ -47,7 +47,9 @@ import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
+  expectedMovementScene,
   insertActiveLiveAuthority,
+  nextExternalAuthority,
   stubLiveSessionFetch,
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
@@ -472,6 +474,14 @@ it.each([
         request.kind === 'MAINTENANCE_OWNER' ? [request] : []
       )
     }
+    const persistedAuthority = () =>
+      value.base.t.run(async (ctx) => {
+        const row = await ctx.db
+          .query('campaignLiveAuthorities')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', value.base.campaign.id))
+          .unique()
+        return { sequence: row?.persistedSequence, checksum: row?.persistedStateChecksum }
+      })
     const geometrySave = () =>
       value.base.t.run((ctx) =>
         ctx.db
@@ -636,9 +646,17 @@ it.each([
     expect(observedSave?.characterRevisions).toEqual([])
     expect(await records()).toEqual(before)
     if (!prepared.rules) throw new Error('Expected automatic Encounter actor rules.')
+    const [authority, expectedScene] = await value.base.t.run(async (ctx) =>
+      Promise.all([
+        nextExternalAuthority(ctx, value.base.campaign.id),
+        expectedMovementScene(ctx, staged.saveId, prepared.outcome)
+      ])
+    )
     const commitInput: LiveSessionMovementCommitInput = {
       ...stageInput,
       finish: { ...value.request, saveId: staged.saveId },
+      authority,
+      expectedScene,
       rules: prepared.rules,
       settlements: prepared.settlementInputs
     }
@@ -713,6 +731,19 @@ it.each([
       ).rejects.toThrow('Movement actor rule output scope mismatch.')
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
+      // The room's sequence fence and Scene prediction roll the whole commit back (D27).
+      await expect(
+        publish({ ...commitInput, authority: { ...authority, sequence: authority.sequence + 1 } })
+      ).rejects.toThrow('Live Session authority sequence is stale.')
+      await expect(
+        publish({
+          ...commitInput,
+          expectedScene: { ...expectedScene, version: expectedScene.version + 1 }
+        })
+      ).rejects.toThrow('Live Scene publication differs from the room prediction.')
+      expect(await records()).toEqual(before)
+      expect(await geometrySave()).toEqual(observedSave)
+      expect(await persistedAuthority()).toEqual({ sequence: 0, checksum: '0'.repeat(64) })
     }
 
     if (asPlayer) {
@@ -739,7 +770,14 @@ it.each([
       commitInput
     )
     const committed = await records()
-    expect(published.replayed).toBe(false)
+    expect(published.scene.replayed).toBe(false)
+    // The commit advanced the room's authority in the same transaction.
+    expect(await persistedAuthority()).toEqual({
+      sequence: authority.sequence,
+      checksum: authority.stateChecksum
+    })
+    // A decision answer returns its Encounter result for the member.
+    expect(published.encounter?.occurrence).toMatchObject({ occurrenceId, status: 'COMPLETE' })
     expect(committed.run?.version).toBe(before.run!.version + 1)
     expect(committed.sceneCommands).toHaveLength(before.sceneCommands.length + 1)
     const publishedSave = await geometrySave()
@@ -748,7 +786,11 @@ it.each([
       readLiveScene(ctx, value.sceneId, 'MEMBER')
     )
     expect(sceneAfter.header.version).toBe(scene.version + 1)
-    expect(published.version).toBe(sceneAfter.header.version)
+    expect(published.scene.version).toBe(sceneAfter.header.version)
+    expect(published.scene).toMatchObject({
+      version: expectedScene.version,
+      delta: expectedScene.delta
+    })
     const settledActors = await initiator.caller.run(async (ctx) => {
       const run = await ctx.db
         .query('encounterRuns')
@@ -814,8 +856,13 @@ it.each([
       'encounterMovementCommit',
       commitInput
     )
-    expect(replay).toEqual({ ...published, replayed: true })
+    expect(replay.scene).toEqual({ ...published.scene, replayed: true })
     expect(await records()).toEqual(committed)
+    // A replay of the published save does not advance the authority again.
+    expect(await persistedAuthority()).toEqual({
+      sequence: authority.sequence,
+      checksum: authority.stateChecksum
+    })
     expect(await geometrySave()).toEqual(publishedSave)
   },
   120_000

@@ -11,8 +11,10 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type {
   SceneCommandResultDto,
+  SceneGeometryCommandInputDto,
   SceneLiveCommandInputDto,
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
@@ -43,6 +45,11 @@ const executeScene = makeFunctionReference<
   { input: SceneLiveCommandInputDto },
   SceneCommandResultDto
 >('scenes/commands:execute')
+const executeGeometry = makeFunctionReference<
+  'action',
+  { input: SceneGeometryCommandInputDto },
+  SceneGeometryCommandResult
+>('scenes/geometryActions:execute')
 const setPresentation = makeFunctionReference<
   'mutation',
   SetCampaignLiveScenePresentationInputDto,
@@ -82,14 +89,19 @@ it('captures current authenticated admission, presentation, active recipient epo
       expect.objectContaining({ userId: base.owner.userId }),
       expect.objectContaining({ role: 'PLAYER', userId: base.other.userId })
     ]),
-    sceneEncounterBound: false,
+    sceneEncounterId: null,
+    sceneMovementDecisionPending: false,
     sceneHeader: { id: sceneId, version: 0 },
-    sceneSnapshot: expect.objectContaining({ id: sceneId, version: 0 }),
+    sceneSnapshot: {
+      scene: expect.objectContaining({ id: sceneId, version: 0 }),
+      baseOrdinals: { tokens: [], barriers: [] }
+    },
     visionFreshness: expect.any(Object)
   })
+  const encounterId = crypto.randomUUID()
   await base.t.run((ctx) =>
     ctx.db.insert('encounterSceneBindings', {
-      encounterId: crypto.randomUUID(),
+      encounterId,
       campaignId: base.campaign.id,
       sceneId,
       commandId: crypto.randomUUID(),
@@ -100,9 +112,49 @@ it('captures current authenticated admission, presentation, active recipient epo
   await expect(
     base.owner.caller.query(capture, { ...input, mode: 'AUTHORITY' })
   ).resolves.toMatchObject({
-    sceneEncounterBound: true
+    sceneEncounterId: encounterId,
+    sceneMovementDecisionPending: false
   })
 }, 30_000)
+
+it('fills the shared room Scene cache with every entity even from a player capture (S-0)', async () => {
+  const { base, input, sceneId } = await setup()
+  const hiddenToken = {
+    assetId: null,
+    controlledByUserIds: [],
+    height: 1,
+    hidden: true,
+    id: crypto.randomUUID(),
+    label: 'Hidden scout',
+    locked: false,
+    position: { x: 10, y: 10 },
+    rotationDegrees: 0,
+    vision: null,
+    width: 1
+  }
+  await base.owner.caller.action(executeGeometry, {
+    input: {
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion: 0,
+      sceneId,
+      token: hiddenToken,
+      type: 'UPSERT_SCENE_TOKEN'
+    }
+  })
+  const playerCapture = await base.other.caller.query(capture, {
+    ...input,
+    expectedRole: 'PLAYER',
+    expectedUserId: base.other.userId
+  })
+  expect(playerCapture.sceneSnapshot?.scene.tokens.map((token) => token.id)).toEqual([
+    hiddenToken.id
+  ])
+  // A token added during play has no definition ordinal.
+  expect(playerCapture.sceneSnapshot?.baseOrdinals).toEqual({
+    tokens: [{ tokenId: hiddenToken.id, baseOrdinal: null }],
+    barriers: []
+  })
+})
 
 it('captures a successfully admitted PLAYER origin and rejects anonymous or mismatched socket binding', async () => {
   const { base, input } = await setup()
@@ -222,7 +274,7 @@ it('captures a changed Scene header and presentation revision, then rejects stal
   })
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
     sceneHeader: { ambientIllumination: 'DIM', id: sceneId, version: 1 },
-    sceneSnapshot: { ambientIllumination: 'DIM', id: sceneId, version: 1 }
+    sceneSnapshot: { scene: { ambientIllumination: 'DIM', id: sceneId, version: 1 } }
   })
   await base.owner.caller.mutation(setPresentation, {
     commandId: crypto.randomUUID(),
@@ -233,7 +285,7 @@ it('captures a changed Scene header and presentation revision, then rejects stal
   })
   await expect(base.owner.caller.query(capture, input)).resolves.toMatchObject({
     presentation: { campaignId: base.campaign.id, sceneId: null, version: 1 },
-    sceneEncounterBound: false,
+    sceneEncounterId: null,
     sceneHeader: null,
     sceneSnapshot: null,
     visionFreshness: null

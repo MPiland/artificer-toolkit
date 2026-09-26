@@ -17,22 +17,21 @@ import { sceneFogLayerDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import type { SceneFogLayersPage, SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   applySceneGeometryDelta,
+  deriveSceneCommandFogLayer,
   planSceneCommandExploration,
-  deriveSceneExplorationPatch,
-  deriveSceneTokenPathExplorationPatch,
-  sceneTokenMovementFailure,
-  canonicalizeSceneFogLayer
+  sceneTokenMovementFailure
 } from '@artificer-toolkit/shared/vtt'
 import {
   VTT_SCENE_LIMITS,
   type SceneToken,
   type SceneBarrier,
   type SceneDoorState,
-  type SceneFogChunk
+  type SceneFogChunk,
+  type ScenePoint
 } from '@artificer-toolkit/shared/vtt/scene'
 import { makeFunctionReference } from 'convex/server'
 import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { preparedMovementSegment } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import { action, type ActionCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { geometryTarget } from './geometryValues'
@@ -142,60 +141,29 @@ export async function completeSceneGeometry(
     doorStates
   }
   let delta = target.delta
-  const startDistance = begin.movementStartDistance ?? 0
-  let movementPath =
-    input.type === 'MOVE_SCENE_TOKEN'
-      ? sliceMovementPath(input.path, startDistance, Number.POSITIVE_INFINITY)
-      : undefined
+  let movementPath: ScenePoint[] | undefined
   let prepared: Awaited<ReturnType<typeof prepareSceneMovement>> | undefined
   if (input.type === 'MOVE_SCENE_TOKEN') {
+    const startDistance = begin.movementStartDistance ?? 0
+    const remaining = sliceMovementPath(input.path, startDistance, Number.POSITIVE_INFINITY)
+    const first = remaining[0]!
     const token = prior.tokens.find((entry) => entry.id === input.tokenId)
-    const first = movementPath![0]!
     if (!token || Math.hypot(token.position.x - first.x, token.position.y - first.y) > 1e-8)
       throw new Error('Movement does not begin at the current token position.')
     const failure =
-      movementPath!.length > 1
-        ? sceneTokenMovementFailure(prior, input.tokenId, movementPath!.at(-1)!, movementPath!)
+      remaining.length > 1
+        ? sceneTokenMovementFailure(prior, input.tokenId, remaining.at(-1)!, remaining)
         : null
     if (failure) throw new Error(failure)
-    if (input.expectedEncounterVersion !== null) {
+    if (input.expectedEncounterVersion !== null)
       prepared = await prepareSceneMovement(ctx, { saveId, baseOrdinal, tokenOrdinals })
-      const { outcome } = prepared.preparation
-      if (outcome.kind !== 'UNINTERRUPTED') {
-        let endDistance: number
-        let position: SceneToken['position']
-        if (outcome.kind === 'PENDING') {
-          const { root } = readEncounterMovementPendingContext(outcome.pendingSnapshot)
-          endDistance = root.pathStartDistance
-          position = root.currentPosition
-        } else {
-          position = outcome.result.terminalPosition
-          const stops = [
-            ...outcome.result.reactionExecutions
-              .filter((entry) => entry.execution.movementInterruption?.kind === 'STOP')
-              .map((entry) => entry.option.candidate.pathDistance),
-            ...(outcome.result.status === 'BATCH_COMPLETE'
-              ? outcome.result.executions
-                  .filter((entry) => entry.execution.movementInterruption?.kind === 'STOP')
-                  .map((entry) => entry.candidate.candidate.pathDistance)
-              : [])
-          ]
-          endDistance =
-            outcome.terminalPathDistance ??
-            (stops.length
-              ? Math.min(...stops)
-              : input.path.slice(1).reduce((total, point, index) => {
-                  const previous = input.path[index]!
-                  return total + Math.hypot(point.x - previous.x, point.y - previous.y)
-                }, 0))
-        }
-        movementPath = sliceMovementPath(input.path, startDistance, endDistance)
-        const last = movementPath.at(-1)!
-        if (Math.abs(last.x - position.x) > 1e-8 || Math.abs(last.y - position.y) > 1e-8)
-          throw new Error('Prepared movement does not match its authoritative path segment.')
-        delta = { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position }
-      }
-    }
+    const segment = preparedMovementSegment({
+      path: input.path,
+      startDistance,
+      outcome: prepared?.preparation.outcome ?? null
+    })
+    movementPath = segment.path
+    delta = { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: segment.position }
   }
   const after = applySceneGeometryDelta(prior, delta)
   if (
@@ -279,31 +247,21 @@ export async function completeSceneGeometry(
         if (chunks.length !== existing.chunkCount)
           throw new Error('Stored Scene fog chunk count is inconsistent.')
       }
-      const layer = existing
-        ? sceneFogLayerDtoSchema.parse({
-            ownerUserId,
-            width: existing.width,
-            height: existing.height,
-            chunks
-          })
-        : null
-      const recipientState = { ...plan.state, fogLayers: layer ? [layer] : [] }
-      const patch =
-        input.type === 'MOVE_SCENE_TOKEN'
-          ? deriveSceneTokenPathExplorationPatch(recipientState, {
+      const layer = deriveSceneCommandFogLayer(plan, {
+        ownerUserId,
+        existing: existing
+          ? sceneFogLayerDtoSchema.parse({
               ownerUserId,
-              path: movementPath!,
-              tokenId: input.tokenId
+              width: existing.width,
+              height: existing.height,
+              chunks
             })
-          : deriveSceneExplorationPatch(recipientState, {
-              ownerUserId,
-              tokenIds: plan.tokenIds
-            })
-      if (patch)
-        await ctx.runMutation(internal.scenes.geometryStaging.stageFog, {
-          saveId,
-          layer: canonicalizeSceneFogLayer({ ...patch, chunks: [...chunks, ...patch.chunks] })
-        })
+          : null,
+        ...(input.type === 'MOVE_SCENE_TOKEN'
+          ? { movement: { tokenId: input.tokenId, path: movementPath! } }
+          : {})
+      })
+      if (layer) await ctx.runMutation(internal.scenes.geometryStaging.stageFog, { saveId, layer })
     }
   }
   return sceneGeometryCommandResultSchema.parse(

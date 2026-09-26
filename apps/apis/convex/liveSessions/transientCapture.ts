@@ -9,7 +9,9 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { Doc } from '../_generated/dataModel'
 import { internalQuery, type QueryCtx } from '../_generated/server'
+import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { readEncounterControlledActorIds } from '../encounters/actorController'
+import { isEncounterMovementContext } from '../encounters/occurrenceOwner'
 import { readRunActors, readRunState } from '../encounters/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
@@ -66,6 +68,24 @@ async function readBoundTokenControl(
   }))
 }
 
+/** Whether the Scene's bound Encounter waits on a movement decision (D26). */
+async function readMovementDecisionPending(ctx: QueryCtx, encounterId: string) {
+  const [pending] = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_encounterId_state', (q) =>
+      q.eq('encounterId', encounterId).eq('state', 'PENDING')
+    )
+    .take(1)
+  return (
+    pending !== undefined &&
+    pending.pendingSnapshotJson !== null &&
+    isEncounterMovementContext(
+      serverRuleExecutionPendingSnapshotDtoSchema.parse(JSON.parse(pending.pendingSnapshotJson))
+        .applicationContext
+    )
+  )
+}
+
 export const capture = internalQuery({
   args: zodToConvexFields(liveSessionTransientCaptureInputSchema.shape),
   returns: zodToConvex(liveSessionTransientCaptureSchema),
@@ -96,7 +116,6 @@ export const capture = internalQuery({
           .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.header.id))
           .first()
       : null
-    const sceneEncounterBound = sceneBinding !== null
     const origin = activeMember(membership, campaign.ownerUserId)
     if (!origin) throw new Error('Stored Campaign membership authority mismatch.')
     const recipients = await Promise.all(
@@ -110,19 +129,10 @@ export const capture = internalQuery({
         return recipient ? activeMember(recipient, campaign.ownerUserId) : null
       })
     )
+    // The room shares one Scene cache across members, so it is never filtered for the origin.
     const sceneSnapshot =
       fullCapture && scene
-        ? await readCompactScene(
-            ctx,
-            {
-              header: scene.header,
-              viewer: {
-                role: scene.membership.role === 'OWNER' ? 'GM' : 'PLAYER',
-                userId
-              }
-            },
-            scene
-          )
+        ? await readCompactScene(ctx, { header: scene.header, viewer: null }, scene)
         : fullCapture
           ? null
           : undefined
@@ -137,7 +147,10 @@ export const capture = internalQuery({
       recipients: recipients.filter(
         (recipient): recipient is LiveSessionTransientMember => recipient !== null
       ),
-      sceneEncounterBound,
+      sceneEncounterId: sceneBinding?.encounterId ?? null,
+      sceneMovementDecisionPending: sceneBinding
+        ? await readMovementDecisionPending(ctx, sceneBinding.encounterId)
+        : false,
       originBoundTokenControl:
         sceneBinding && membership.role === 'PLAYER'
           ? await readBoundTokenControl(ctx, { campaign, membership, sceneBinding })

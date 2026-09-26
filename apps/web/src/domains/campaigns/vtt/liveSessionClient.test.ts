@@ -335,6 +335,69 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('settles a movement decision only with its Encounter result after its Scene change', async () => {
+    const errors: Error[] = []
+    const durableStates: unknown[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket' }),
+      onDurableState: (state) => durableStates.push(state),
+      onError: (error) => errors.push(error),
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    socket.receive({
+      authorityEpoch,
+      sequence: 4,
+      state: { ...recipientState, recipientRole: 'OWNER', scene: sceneState },
+      type: 'STATE_SYNC'
+    })
+    const decision = {
+      command: {
+        commandId,
+        correlationId: null,
+        encounterId: tabletopGmEncounter.id,
+        expectedOccurrenceVersion: 1,
+        expectedVersion: tabletopGmEncounter.version,
+        occurrenceId: '00000000-0000-4000-8000-000000000021',
+        resolution: { kind: 'DECLINE' },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      },
+      scope: 'ENCOUNTER'
+    } satisfies LiveSessionCommandDto
+    let settled = false
+    const committed = connection.submitCommand(decision)
+    void committed.then(() => {
+      settled = true
+    })
+    // The room commits the decision with its Scene first (D27); the Scene advances the sequence.
+    socket.receive({
+      commandId,
+      delta: { scope: 'SCENE_VERSION', sceneId, version: sceneState.version + 1 },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    await vi.waitFor(() => expect(durableStates.at(-1)).toMatchObject({ sequence: 5 }))
+    expect(settled).toBe(false)
+    const result = { occurrence: null, projection: tabletopGmEncounter, roll: null }
+    socket.receive({
+      commandId,
+      delta: { result, scope: 'ENCOUNTER' },
+      sequence: 5,
+      type: 'COMMAND_COMMITTED'
+    })
+    await expect(committed).resolves.toMatchObject({ delta: { result, scope: 'ENCOUNTER' } })
+    expect(errors).toEqual([])
+    connection.close()
+  })
+
   it('waits for the requested Scene before resending a pending command', async () => {
     const durableStates: unknown[] = []
     const connection = createLiveSessionConnection({

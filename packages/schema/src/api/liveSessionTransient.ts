@@ -10,6 +10,7 @@ import {
   sceneSessionVisionFreshnessSchema
 } from './sceneSessionVision.js'
 import { sceneLiveStateHeaderSchema } from './sceneLiveState.js'
+import { sceneBaseOrdinalsSchema } from './sceneGeometry.js'
 import { campaignSceneStateDtoSchema, campaignScenePresentationDtoSchema } from './vttScenes.js'
 
 const uuidSchema = z.string().check(z.uuid())
@@ -41,7 +42,10 @@ export const liveSessionTransientCaptureSchema = z.strictObject({
   presentation: z.nullable(campaignScenePresentationDtoSchema),
   recipients: z.array(liveSessionTransientMemberSchema).check(z.maxLength(10_000)),
   sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
-  sceneEncounterBound: z.boolean(),
+  /** The Encounter bound to the presented Scene, if any. */
+  sceneEncounterId: z.nullable(uuidSchema),
+  /** Whether that Encounter waits on a movement decision planned against this Scene (D26). */
+  sceneMovementDecisionPending: z.boolean(),
   /**
    * For a player origin on an Encounter-bound Scene: each Encounter-bound token and whether the
    * origin controls its bound actor. Bound tokens follow actor control, never the Scene token's
@@ -50,7 +54,12 @@ export const liveSessionTransientCaptureSchema = z.strictObject({
   originBoundTokenControl: z
     .array(z.strictObject({ tokenId: uuidSchema, controlled: z.boolean() }))
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  sceneSnapshot: z.optional(z.nullable(campaignSceneStateDtoSchema)),
+  /** The room's shared Scene cache: every entity, never filtered for the origin member. */
+  sceneSnapshot: z.optional(
+    z.nullable(
+      z.strictObject({ scene: campaignSceneStateDtoSchema, baseOrdinals: sceneBaseOrdinalsSchema })
+    )
+  ),
   visionFreshness: z.nullable(sceneSessionVisionFreshnessSchema)
 })
 

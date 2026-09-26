@@ -166,7 +166,7 @@ export async function requireBoundTokenMoveControl(
     throw new Error('Members may only move an unlocked token they control.')
   const actor = await readRunActor(ctx, readRunState(row), binding.actorId)
   if (!(await readEncounterActorControl(ctx, { ...input, actor })))
-    throw new Error('Members may only move an unlocked token they control.')
+    rejectDomain('NOT_ACTOR_CONTROLLER')
 }
 
 /** GM-granted controllers must be current players of the Campaign. */

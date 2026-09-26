@@ -17,6 +17,8 @@ import {
   liveSessionDrainReleaseInputSchema,
   liveSessionPublishInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
+import { liveSessionSceneGeometryCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   liveSessionTransientCaptureInputSchema,
@@ -124,6 +126,17 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/** Every fixture entity comes from the Scene definition, in order. */
+function baseOrdinals(scene: CampaignSceneStateDto) {
+  return {
+    tokens: scene.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal })),
+    barriers: scene.barriers.map((barrier, baseOrdinal) => ({
+      barrierId: barrier.id,
+      baseOrdinal
+    }))
+  }
+}
+
 function control(input: LiveSessionControlInput, workerSecret = secret) {
   return SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
     body: JSON.stringify(input),
@@ -207,7 +220,8 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     recipients: scene
       ? [{ membershipEpoch: new Date().toISOString(), role: 'PLAYER', userId: playerId }]
       : [],
-    sceneEncounterBound: false,
+    sceneEncounterId: null,
+    sceneMovementDecisionPending: false,
     originBoundTokenControl: [],
     sceneHeader: scene
       ? {
@@ -241,7 +255,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
           visionRevealMode: scene.visionRevealMode
         }
       : null,
-    sceneSnapshot: scene,
+    sceneSnapshot: scene ? { scene, baseOrdinals: baseOrdinals(scene) } : null,
     visionFreshness: scene ? { campaign: null, play: null, system: null } : null
   }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
@@ -676,7 +690,7 @@ it.each([false, true])(
     const setCapturedScene = (scene: CampaignSceneStateDto) => {
       const header = base.capture.sceneHeader
       if (!header) throw new Error('Missing captured Scene header.')
-      base.capture.sceneSnapshot = scene
+      base.capture.sceneSnapshot = { scene, baseOrdinals: baseOrdinals(scene) }
       base.capture.sceneHeader = {
         ...header,
         definitionId: scene.definitionId,
@@ -1438,36 +1452,567 @@ it.each([false, true])(
     })
   }
 )
-it('rejects encounter-bound token movement before committing durable state', async () => {
+type ExternalConvex = {
+  calls: string[]
+  commits: Array<ReturnType<typeof liveSessionSceneGeometryCommitInputSchema.parse>>
+  begins: Array<ReturnType<typeof liveSessionMovementBeginInputSchema.parse>>
+  stagedOwners: Array<string | null>
+  /** What the next commit does: answer, time out (no response) or refuse. */
+  commit: 'COMMIT' | 'TIMEOUT' | 'REFUSE'
+  resolve: 'COMMITTED' | 'ABANDONED'
+  begin?: (body: ReturnType<typeof liveSessionMovementBeginInputSchema.parse>) => Response | null
+}
+
+/** A fake Convex for the room's Convex-first pipeline (D27); it records each private route call. */
+async function installExternalConvex(base: Awaited<ReturnType<typeof fixture>>) {
+  const convex: ExternalConvex = {
+    calls: [],
+    commits: [],
+    begins: [],
+    stagedOwners: [],
+    commit: 'COMMIT',
+    resolve: 'COMMITTED'
+  }
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname === '/live-sessions/encounter-movement-begin') {
+      convex.calls.push('begin')
+      const body = liveSessionMovementBeginInputSchema.parse(await request.json())
+      convex.begins.push(body)
+      const custom = convex.begin?.(body)
+      if (custom) return custom
+      if (body.command.type !== 'MOVE_SCENE_TOKEN' && body.command.type !== 'SET_SCENE_DOOR_STATE')
+        throw new Error('Unexpected external decision.')
+      return Response.json({
+        kind: 'READY',
+        saveId: crypto.randomUUID(),
+        input: body.command,
+        header: base.capture.sceneHeader,
+        encounterId: base.capture.sceneEncounterId
+      })
+    }
+    if (pathname === '/live-sessions/encounter-movement-observe') {
+      convex.calls.push('observe')
+      const body = (await request.json()) as { saveId: string }
+      return Response.json({ saveId: body.saveId })
+    }
+    if (pathname === '/live-sessions/encounter-movement-stage-fog') {
+      convex.calls.push('stageFog')
+      const body = (await request.json()) as {
+        saveId: string
+        layer: { ownerUserId: string | null }
+      }
+      convex.stagedOwners.push(body.layer.ownerUserId)
+      return Response.json({ saveId: body.saveId })
+    }
+    if (pathname === '/live-sessions/scene-geometry') {
+      convex.calls.push('commit')
+      const body = liveSessionSceneGeometryCommitInputSchema.parse(await request.json())
+      convex.commits.push(body)
+      if (convex.commit === 'TIMEOUT') throw new TypeError('The Convex request timed out.')
+      if (convex.commit === 'REFUSE')
+        return new Response('Live Session Scene commit unavailable.', { status: 409 })
+      const begin = convex.begins.at(-1)!
+      return Response.json({
+        sceneId: body.expectedScene.sceneId,
+        commandId: begin.command.commandId,
+        version: body.expectedScene.version,
+        occurrence: null,
+        replayed: false,
+        delta: body.expectedScene.delta,
+        fogPatches: []
+      })
+    }
+    if (pathname === '/live-sessions/external-commit-resolve') {
+      expect(request.headers.get('authorization')).toBeNull()
+      convex.calls.push('resolve')
+      return Response.json({ outcome: convex.resolve })
+    }
+    if (pathname === '/live-sessions/begin-drain') convex.calls.push('beginDrain')
+    return undefined
+  })
+  return convex
+}
+
+async function journalEvidence(base: Awaited<ReturnType<typeof fixture>>) {
+  return runInDurableObject(base.stub, (_instance, state) => ({
+    authority: state.storage.sql
+      .exec<{ published_sequence: number; sequence: number }>(
+        'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
+      )
+      .one(),
+    outboxCount: state.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+      .one().count,
+    records: state.storage.sql
+      .exec<{ command_id: string }>('SELECT command_id FROM durable_external_commit')
+      .toArray()
+      .map((row) => row.command_id)
+  }))
+}
+
+it('commits a move on an Encounter-bound Scene Convex-first with the authority advance (D27)', async () => {
   const value = movementScene(crypto.randomUUID())
+  // Fog OFF lets the player see the moved token.
+  value.scene.fogMode = 'OFF'
   const base = await fixture(value.scene)
-  base.capture.sceneEncounterBound = true
+  base.capture.sceneEncounterId = crypto.randomUUID()
   await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  const convex = await installExternalConvex(base)
+  // The journal holds no Scene until its first committed command.
+  const initial = createNativeLiveSessionState()
+  base.messages.length = 0
+  player.messages.length = 0
+
+  const commandId = crypto.randomUUID()
+  const command = tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 })
+  base.socket.send(JSON.stringify(command))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId, sequence: 1, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  // Fog is OFF, so the Scene vision is observed but no fog layer is staged.
+  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+  const moved = {
+    ...value.scene,
+    tokens: value.scene.tokens.map((token) => ({ ...token, position: { x: 20, y: 10 } })),
+    version: 1
+  }
+  expect(convex.commits).toEqual([
+    {
+      campaignId: base.capture.campaignId,
+      authorityEpoch: base.authorityEpoch,
+      expectedUserId: base.userId,
+      expectedRole: 'OWNER',
+      finish: { saveId: expect.any(String), baseOrdinal: 0 },
+      authority: {
+        sequence: 1,
+        expectedStateChecksum: initial.stateChecksum,
+        stateChecksum: createNativeLiveSessionState(moved).stateChecksum
+      },
+      expectedScene: {
+        sceneId: value.scene.id,
+        version: 1,
+        delta: { kind: 'TOKEN_MOVED', tokenId: value.tokenId, position: { x: 20, y: 10 } }
+      }
+    }
+  ])
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        commandId,
+        delta: { scope: 'SCENE', result: expect.objectContaining({ occurrence: null }) },
+        sequence: 1
+      })
+    )
+  )
+  // Convex persisted the sequence itself: the journal advances with nothing left to publish.
+  expect(await journalEvidence(base)).toEqual({
+    authority: { published_sequence: 1, sequence: 1 },
+    outboxCount: 0,
+    records: []
+  })
+
+  const first = base.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+  )
+  base.socket.send(JSON.stringify(command))
+  await vi.waitFor(() =>
+    expect(
+      base.messages.filter(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toEqual([first, first])
+  )
+  const reused = tokenMoveCommand(moved, value.tokenId, commandId, { x: 30, y: 10 }, 1)
+  base.socket.send(JSON.stringify(reused))
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ code: 'INVALID_COMMAND', commandId, type: 'COMMAND_REJECTED' })
+    )
+  )
+  expect(convex.calls).toEqual(['begin', 'observe', 'commit'])
+})
+
+it('stages each fog owner on a fog-deriving move and resynchronizes the table', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const [first, second] = [crypto.randomUUID(), crypto.randomUUID()]
+  const scene: CampaignSceneStateDto = {
+    ...value.scene,
+    fogMode: 'PER_PLAYER',
+    tokens: value.scene.tokens.map((token) => ({
+      ...token,
+      controlledByUserIds: [first, second].sort(),
+      vision: { ...token.vision!, dimRange: 30, enabled: true }
+    }))
+  }
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const convex = await installExternalConvex(base)
   base.messages.length = 0
 
   const commandId = crypto.randomUUID()
   base.socket.send(
-    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+    JSON.stringify(tokenMoveCommand(scene, value.tokenId, commandId, { x: 20, y: 10 }))
   )
-
   await vi.waitFor(() =>
     expect(base.messages).toContainEqual(
-      expect.objectContaining({ code: 'UNAVAILABLE', commandId, type: 'COMMAND_REJECTED' })
+      expect.objectContaining({
+        sequence: 1,
+        state: expect.objectContaining({
+          scene: expect.objectContaining({
+            fogLayers: expect.arrayContaining([
+              expect.objectContaining({ ownerUserId: first }),
+              expect.objectContaining({ ownerUserId: second })
+            ])
+          })
+        }),
+        type: 'STATE_SYNC'
+      })
     )
   )
-  await expect(
-    runInDurableObject(base.stub, (_instance, state) => ({
-      authority: state.storage.sql
-        .exec<{ published_sequence: number; sequence: number }>(
-          'SELECT published_sequence, sequence FROM durable_session_authority WHERE id = 1'
-        )
-        .one(),
-      outboxCount: state.storage.sql
-        .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
-        .one().count
-    }))
-  ).resolves.toEqual({ authority: { published_sequence: 0, sequence: 0 }, outboxCount: 0 })
+  expect(convex.calls).toEqual(['begin', 'observe', 'stageFog', 'stageFog', 'commit'])
+  expect(convex.stagedOwners.sort()).toEqual([first, second].sort())
 })
+
+it('keeps the record of a commit that timed out, and the next command settles it', async () => {
+  for (const outcome of ['COMMITTED', 'ABANDONED'] as const) {
+    const value = movementScene(crypto.randomUUID())
+    const base = await fixture(value.scene)
+    base.capture.sceneEncounterId = crypto.randomUUID()
+    await synchronizeScene(base, value.scene)
+    const convex = await installExternalConvex(base)
+    convex.commit = 'TIMEOUT'
+    convex.resolve = outcome
+    base.messages.length = 0
+
+    const commandId = crypto.randomUUID()
+    base.socket.send(
+      JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+    )
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({ code: 'UNAVAILABLE', commandId, type: 'COMMAND_REJECTED' })
+      )
+    )
+    expect(await journalEvidence(base)).toEqual({
+      authority: { published_sequence: 0, sequence: 0 },
+      outboxCount: 0,
+      records: [commandId]
+    })
+
+    convex.commit = 'COMMIT'
+    const nextId = crypto.randomUUID()
+    base.socket.send(
+      JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, nextId, { x: 30, y: 10 }))
+    )
+    await vi.waitFor(() => expect(convex.calls).toContain('resolve'))
+    // A recovered commit takes sequence 1; after an abandoned one the next command does.
+    await vi.waitFor(async () =>
+      expect(await journalEvidence(base)).toEqual({
+        authority: { published_sequence: 1, sequence: 1 },
+        outboxCount: 0,
+        records: []
+      })
+    )
+    if (outcome === 'COMMITTED')
+      // Members never saw the recovered commit, so every socket resynchronizes.
+      await vi.waitFor(() =>
+        expect(base.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(
+          true
+        )
+      )
+    else
+      await vi.waitFor(() =>
+        expect(base.messages).toContainEqual(
+          expect.objectContaining({ commandId: nextId, sequence: 1, type: 'COMMAND_COMMITTED' })
+        )
+      )
+  }
+})
+
+it('surfaces a refused commit and leaves the room unchanged', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  base.capture.sceneEncounterId = crypto.randomUUID()
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  convex.commit = 'REFUSE'
+  base.messages.length = 0
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'STALE_STATE',
+        commandId,
+        correction: expect.objectContaining({ scope: 'SCENE' }),
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  // A response means Convex rolled back, so the record is forgotten without a resolve call.
+  expect(await journalEvidence(base)).toEqual({
+    authority: { published_sequence: 0, sequence: 0 },
+    outboxCount: 0,
+    records: []
+  })
+  expect(convex.calls).not.toContain('resolve')
+})
+
+it('surfaces a player domain rejection from Convex with the Scene correction', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  base.capture.sceneEncounterId = crypto.randomUUID()
+  await synchronizeScene(base, value.scene)
+  const player = await connectPlayer(base)
+  player.socket.send(
+    JSON.stringify({
+      expectedPresentationVersion: base.capture.presentation!.version,
+      sceneId: value.scene.id,
+      type: 'SYNCHRONIZE_SCENE',
+      version: value.scene.version
+    })
+  )
+  await vi.waitFor(() =>
+    expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+  )
+  const convex = await installExternalConvex(base)
+  convex.begin = () =>
+    Response.json(
+      {
+        code: 'DOMAIN_REJECTED',
+        reason: 'NOT_ACTOR_CONTROLLER',
+        message: "You don't control this actor."
+      },
+      { status: 422 }
+    )
+  const commandId = crypto.randomUUID()
+  const bound = tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 })
+  player.socket.send(
+    JSON.stringify({
+      ...bound,
+      command: {
+        ...bound.command,
+        command: { ...bound.command.command, expectedEncounterVersion: 4 }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(player.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'DOMAIN_REJECTED',
+        commandId,
+        correction: expect.objectContaining({ scope: 'SCENE' }),
+        reason: 'NOT_ACTOR_CONTROLLER',
+        type: 'COMMAND_REJECTED'
+      })
+    )
+  )
+  // The room never applies the token's own controller list to a bound token.
+  expect(convex.begins).toHaveLength(1)
+  expect(await journalEvidence(base)).toEqual({
+    authority: { published_sequence: 0, sequence: 0 },
+    outboxCount: 0,
+    records: []
+  })
+})
+
+it('holds moves and door changes on a Scene waiting on a movement decision, and keeps the chain free (D26)', async () => {
+  const value = doorScene(crypto.randomUUID())
+  const token = movementScene(value.scene.campaignId).scene.tokens[0]!
+  const scene: CampaignSceneStateDto = { ...value.scene, fogMode: 'OFF', tokens: [token] }
+  const base = await fixture(scene)
+  base.capture.sceneEncounterId = crypto.randomUUID()
+  base.capture.sceneMovementDecisionPending = true
+  await synchronizeScene(base, scene)
+  const encounterId = crypto.randomUUID()
+  await routeEncounterRequests(base, async (pathname) =>
+    pathname === '/live-sessions/encounter-command'
+      ? Response.json(encounterResult(base.capture.campaignId, encounterId))
+      : undefined
+  )
+  base.messages.length = 0
+  const [doorId, moveId, roundId] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+  base.socket.send(JSON.stringify(doorCommand(scene, value.doorId, doorId)))
+  base.socket.send(JSON.stringify(tokenMoveCommand(scene, token.id, moveId, { x: 20, y: 10 })))
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'SET_ROUND',
+          encounterId,
+          commandId: roundId,
+          expectedVersion: 3,
+          round: 2
+        }
+      }
+    })
+  )
+  for (const commandId of [doorId, moveId])
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual(
+        expect.objectContaining({
+          code: 'UNAVAILABLE',
+          commandId,
+          message: 'Waiting on a movement decision.',
+          type: 'COMMAND_REJECTED'
+        })
+      )
+    )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId: roundId, type: 'COMMAND_COMMITTED' })
+    )
+  )
+})
+
+it('sends a GM void of a presented movement decision through the room (D26)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  const encounterId = crypto.randomUUID()
+  base.capture.sceneEncounterId = encounterId
+  base.capture.sceneMovementDecisionPending = true
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  const routes: unknown[] = []
+  await routeEncounterRequests(base, async (pathname, request) => {
+    if (pathname !== '/live-sessions/encounter-route') return undefined
+    routes.push(await request.json())
+    return Response.json({ route: 'MOVEMENT' })
+  })
+  convex.begin = () =>
+    Response.json(
+      {
+        code: 'DOMAIN_REJECTED',
+        reason: 'DECISION_REQUIRES_ANSWER',
+        message: "Dice during a move can't be voided; answer it to continue."
+      },
+      { status: 422 }
+    )
+  const command = {
+    type: 'VOID_RULE_OCCURRENCE',
+    encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: 5,
+    occurrenceId: crypto.randomUUID(),
+    expectedOccurrenceVersion: 1
+  } as const
+  base.messages.length = 0
+  base.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: { scope: 'ENCOUNTER', command }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        code: 'DOMAIN_REJECTED',
+        commandId: command.commandId,
+        reason: 'DECISION_REQUIRES_ANSWER'
+      })
+    )
+  )
+  expect(routes).toEqual([
+    expect.objectContaining({ commandType: 'VOID_RULE_OCCURRENCE', encounterId })
+  ])
+  expect(convex.begins).toEqual([expect.objectContaining({ command })])
+})
+
+it('settles an unsettled commit before the drain fence when the room closes', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  base.capture.sceneEncounterId = crypto.randomUUID()
+  await synchronizeScene(base, value.scene)
+  const convex = await installExternalConvex(base)
+  convex.commit = 'TIMEOUT'
+  convex.resolve = 'ABANDONED'
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+  )
+  await vi.waitFor(async () => expect((await journalEvidence(base)).records).toEqual([commandId]))
+  const closed = await control({
+    campaignId: value.scene.campaignId,
+    operation: { type: 'CLOSE_ROOM' }
+  })
+  expect(closed.status).toBe(200)
+  expect(convex.calls.slice(convex.calls.indexOf('resolve'))).toEqual(['resolve', 'beginDrain'])
+  expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/release'
+  ])
+})
+
+it('completes or abandons a record left by a restart when the next member admits (D27)', async () => {
+  for (const persisted of [1, 0]) {
+    const value = movementScene(crypto.randomUUID())
+    const base = await fixture(value.scene)
+    base.capture.sceneEncounterId = crypto.randomUUID()
+    await synchronizeScene(base, value.scene)
+    const moved = createNativeLiveSessionState({ ...value.scene, version: 1 })
+    const commandId = crypto.randomUUID()
+    await runInDurableObject(base.stub, (_instance, state) => {
+      const journal = new DurableCommandJournal(state.storage)
+      const current = journal.readCurrent()!
+      journal.beginExternalCommit({
+        actorId: base.userId,
+        authorityEpoch: base.authorityEpoch,
+        commandId,
+        expectedSequence: 0,
+        expectedStateChecksum: current.stateChecksum,
+        fingerprint: 'f'.repeat(64),
+        nextStateChecksum: moved.stateChecksum,
+        nextStateJson: moved.stateJson,
+        receiptJson: JSON.stringify({
+          commandId,
+          delta: null,
+          sequence: 1,
+          type: 'COMMAND_COMMITTED'
+        }),
+        saveId: crypto.randomUUID()
+      })
+    })
+    await evictDurableObject(base.stub)
+    const resolved: unknown[] = []
+    await runInDurableObject(base.stub, () => {
+      const previous = vi.mocked(globalThis.fetch).getMockImplementation()
+      vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+        const request = new Request(input, init)
+        const pathname = new URL(request.url).pathname
+        if (pathname === '/live-sessions/bootstrap')
+          return Response.json({
+            activationFingerprint: 'a'.repeat(64),
+            persistedSequence: persisted,
+            persistedStateChecksum: persisted === 1 ? moved.stateChecksum : 'a'.repeat(64)
+          })
+        if (pathname === '/live-sessions/external-commit-resolve') {
+          resolved.push(await request.json())
+          return Response.json({ outcome: persisted === 1 ? 'COMMITTED' : 'ABANDONED' })
+        }
+        if (!previous) throw new Error('Missing base native fetch mock.')
+        return previous(input, init)
+      })
+    })
+    base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+    await vi.waitFor(() => expect(resolved).toHaveLength(1))
+    await vi.waitFor(async () =>
+      expect(await journalEvidence(base)).toMatchObject({
+        authority: { published_sequence: persisted, sequence: persisted },
+        records: []
+      })
+    )
+  }
+})
+
 it('returns projected corrections for stale Session and Scene versions', async () => {
   const value = doorScene(crypto.randomUUID())
   const base = await fixture(value.scene)
@@ -2947,19 +3492,21 @@ function planDoorChange(input: {
       type: 'SET_SCENE_DOOR_STATE'
     },
     scene: input.scene,
-    sceneEncounterBound: false,
+    encounterId: null,
+    movementDecisionPending: false,
     actor: { role: input.role, userId: crypto.randomUUID() },
     latestUnmatchedMove: () => null
   })
 }
 
 it.each([
-  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'OPEN' as const, outcome: 'ACCEPTED' },
-  { role: 'PLAYER' as const, from: 'OPEN' as const, to: 'CLOSED' as const, outcome: 'ACCEPTED' },
+  // Fog is on with a stored layer, so an allowed door change stages exploration through Convex.
+  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'OPEN' as const, outcome: 'EXTERNAL' },
+  { role: 'PLAYER' as const, from: 'OPEN' as const, to: 'CLOSED' as const, outcome: 'EXTERNAL' },
   { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'FORBIDDEN' },
   { role: 'PLAYER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'FORBIDDEN' },
-  { role: 'OWNER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'ACCEPTED' },
-  { role: 'OWNER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'ACCEPTED' }
+  { role: 'OWNER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'EXTERNAL' },
+  { role: 'OWNER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'EXTERNAL' }
 ])('lets $role change a visible $from door to $to: $outcome', ({ role, from, to, outcome }) => {
   const { doorId, scene } = exploredDoorScene(true)
   const plan = planDoorChange({
@@ -3022,12 +3569,73 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
         type: 'MOVE_SCENE_TOKEN'
       },
       scene: { ...scene, fogMode },
-      sceneEncounterBound: false,
+      encounterId: null,
+      movementDecisionPending: false,
       actor: { role: 'OWNER', userId: crypto.randomUUID() },
       latestUnmatchedMove: () => null
     })
   expect(plan('OFF')).toMatchObject({ kind: 'ACCEPTED' })
-  expect(plan('SHARED_PARTY')).toMatchObject({ code: 'UNAVAILABLE' })
+  expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'EXTERNAL' })
+})
+
+it('commits bound moves and moves on a bound Scene to Convex first, and holds a Scene with a pending movement decision (D26)', () => {
+  const { scene, tokenId } = movementScene(crypto.randomUUID())
+  const plan = (input: {
+    expectedEncounterVersion: number | null
+    encounterId: string | null
+    movementDecisionPending: boolean
+    role: 'OWNER' | 'PLAYER'
+  }) =>
+    planLiveSceneCommand({
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion: input.expectedEncounterVersion,
+        expectedSceneVersion: scene.version,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene: { ...scene, fogMode: 'OFF' },
+      encounterId: input.encounterId,
+      movementDecisionPending: input.movementDecisionPending,
+      actor: { role: input.role, userId: crypto.randomUUID() },
+      latestUnmatchedMove: () => null
+    })
+  const encounterId = crypto.randomUUID()
+  // A bound token follows its actor's controllers, which Convex checks, never the token's list.
+  expect(
+    plan({
+      expectedEncounterVersion: 3,
+      encounterId,
+      movementDecisionPending: false,
+      role: 'PLAYER'
+    })
+  ).toEqual({ kind: 'EXTERNAL' })
+  expect(
+    plan({
+      expectedEncounterVersion: null,
+      encounterId,
+      movementDecisionPending: false,
+      role: 'OWNER'
+    })
+  ).toEqual({ kind: 'EXTERNAL' })
+  expect(
+    plan({
+      expectedEncounterVersion: null,
+      encounterId,
+      movementDecisionPending: false,
+      role: 'PLAYER'
+    })
+  ).toMatchObject({ code: 'FORBIDDEN' })
+  expect(
+    plan({ expectedEncounterVersion: 3, encounterId, movementDecisionPending: true, role: 'OWNER' })
+  ).toMatchObject({ code: 'UNAVAILABLE', message: 'Waiting on a movement decision.' })
 })
 
 it('fans out every non-hidden token and door to a player in a fog-OFF Scene', async () => {

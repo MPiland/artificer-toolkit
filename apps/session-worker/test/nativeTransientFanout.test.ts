@@ -117,7 +117,8 @@ function captureFor(
     origin: member(originUserId, role, epoch),
     presentation: { campaignId, sceneId, version: 1 },
     recipients: [...recipients],
-    sceneEncounterBound: false,
+    sceneEncounterId: null,
+    sceneMovementDecisionPending: false,
     originBoundTokenControl: [],
     sceneHeader: header(),
     visionFreshness: { campaign: null, play: null, system: null }
@@ -324,6 +325,7 @@ it.each([
   'checks a bound-token preview for a player who %s its actor with one reused authority capture',
   async (_label, controlled) => {
     const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
+    const encounterId = crypto.randomUUID()
     const stub = env.LIVE_SESSION_ROOMS.get(
       env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
     )
@@ -333,7 +335,7 @@ it.each([
         captureModes.push(input.mode)
         return {
           ...capture,
-          sceneEncounterBound: true,
+          sceneEncounterId: encounterId,
           originBoundTokenControl: capture.origin.role === 'PLAYER' ? [{ tokenId, controlled }] : []
         }
       })

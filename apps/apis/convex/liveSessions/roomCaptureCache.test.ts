@@ -180,7 +180,10 @@ async function roomFixture(...setup: Parameters<typeof setupConcentration>) {
         command,
         runtime,
         random: () => 9,
-        captureCache
+        captureCache,
+        movement: async () => {
+          throw new Error('This command sequence opens no movement decision.')
+        }
       })
     )
   }
