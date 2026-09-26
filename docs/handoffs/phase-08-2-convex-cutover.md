@@ -146,6 +146,10 @@ Next (8.2 core, in order):
            - `resolveCharacterRecordStats`.
          - Before those assertions can move, extract the inline Convex rest and extras cleanup (`characters/sheetCommands.ts:383-384, 423, 462, 481-484`: resourceUsage and max-HP-modifier filters) into pure functions.
          - Keep in Convex: `drafts.test.ts` (all), `characterMaximumHitPoints.test.ts` (stored-stat sync across every write path), Sheet extras source visibility, and Campaign masking wiring.
+       - From the turn-phase audit:
+         - GM turn-correction cursor math is inline in Convex (`encounters/commands.ts:269-316`). Extract it into a pure function (T4) before its assertions can move. `initiativeCorrection.test.ts:144` is already pure and can move as it is.
+         - `turnLegendaryAction.test.ts:1052` is named "settles once with spend, damage and cursor" but asserts only status, version and replay. Strengthen it or rename it.
+         - Once the pure tests exist, the rules outcomes duplicated across in-process and live-Worker transports in `turnConcentration.test.ts` (461/960, 511/584, 678/785) can shrink to one transport each.
        - Test cleanup: `encounters/actionCharacterSources.test.ts:627-664` runs a second full setup and compares two snapshots with nothing executed between them. That proves nothing and doubles the test's cost. Remove it together with the redundant re-reads.
        - Worker-level tests with injected capture fakes, the medium-effort precedent being `apps/session-worker/test/nativeTurnEffectPerception.test.ts`:
          - movement Concentration;
