@@ -138,6 +138,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Permission refusals say so.** A player sending a GM-only command, or acting for an actor they don't control, sees a permission message such as "Only the GM can do that." "The Encounter changed" is reserved for genuinely stale versions.
 
 * **D43** (was Q12; decided because it follows from D41) Convex refuses Encounter-bound token moves when no room is live, using the same domain refusal as D42. The native Convex movement preparation, dice and Concentration code this leaves unused is deleted. The tabletop always opens a room before moving tokens, so the native path was a second rules path with Convex dice, which D41 rules out.
+* **D44** Rulings on S4-e's escalations:
+  * **Commit checks:** Convex no longer re-runs movement rules at commit. Correctness rests on the commit fences over every captured read (Run version, Scene version, Character and rules revisions), plus the room running commands one at a time (D41).
+  * **Refusal wording:** the no-room refusal reuses "Present this Scene to move Encounter tokens." Only direct API calls can reach that case.
+  * **V15 workload driver:** the driver D43 broke gets fixed in R08 prep, by sending Scene commands through the room socket.
+
 ## Resolved
 
 * **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
