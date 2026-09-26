@@ -370,6 +370,7 @@ describe('native Encounter timeline reads', () => {
         'commandType',
         'createdAt',
         'id',
+        'label',
         'roll',
         'ruleOverrides',
         'version',
