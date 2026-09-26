@@ -1,6 +1,7 @@
 import { z } from '../zod.js'
 
 import { ruleGraphDefinitionDtoSchema } from '../api/rulesRuntime.js'
+import { basicActionReusableDefinitionDocumentDtoSchema } from './basicActions.js'
 import { senseReusableDefinitionDocumentDtoSchema } from './combatPerception.js'
 import { initiativePolicyReusableDefinitionDocumentDtoSchema } from './initiativePolicy.js'
 import { dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema } from './encounterLifecycle.js'
@@ -30,7 +31,8 @@ export const reusableDefinitionDocumentDtoSchema = z.union([
   senseReusableDefinitionDocumentDtoSchema,
   ruleCapabilityReusableDefinitionDocumentDtoSchema,
   conditionRuleStateReusableDefinitionDocumentDtoSchema,
-  ruleMaintenanceReusableDefinitionDocumentDtoSchema
+  ruleMaintenanceReusableDefinitionDocumentDtoSchema,
+  basicActionReusableDefinitionDocumentDtoSchema
 ])
 
 export function reusableDefinitionDocumentFamilyKey(
@@ -66,6 +68,7 @@ export function reusableDefinitionDocumentFamilyKey(
   if (document.kind === 'SENSE') return 'sense'
   if (document.kind === 'RULE_CAPABILITY') return 'rule-capability'
   if (document.kind === 'RULE_MAINTENANCE') return 'rule-maintenance'
+  if (document.kind === 'BASIC_ACTION') return 'basic-action'
   return 'condition-rule-state'
 }
 

@@ -38,6 +38,7 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import {
+  BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
   RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
   RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
@@ -2328,6 +2329,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
     CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
     RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
+    BASIC_ACTION_DEFINITION_FAMILY_KEY,
     ...new Set([
       ...dnd5eConcentrationCapabilityContribution.definitionFamilyKeys,
       ...dnd5eEncounterLifecycleCapabilityContribution.definitionFamilyKeys,

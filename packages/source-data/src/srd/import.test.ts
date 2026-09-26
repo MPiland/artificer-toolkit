@@ -7,6 +7,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from './concentration.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {
@@ -26,6 +27,38 @@ function emptySubjectBundle(): BaselineContentBundle {
 }
 
 describe('canonical Convex import preparation', () => {
+  it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
+    const catalogue = prepareSrdImport().definitions.filter(
+      (definition) => definition.definitionFamilyKey === 'basic-action'
+    )
+    expect(
+      Object.fromEntries(
+        catalogue.map((definition) => [
+          definition.label,
+          definition.document.kind === 'BASIC_ACTION'
+            ? [definition.document.actionCost, definition.document.mechanics]
+            : null
+        ])
+      )
+    ).toEqual({
+      Dash: ['ACTION', ['SPEED_MOVEMENT_BONUS']],
+      Disengage: ['ACTION', ['NO_OPPORTUNITY_ATTACKS']],
+      Dodge: ['ACTION', ['DISADVANTAGE_ON_ATTACKS_AGAINST']],
+      Help: ['ACTION', ['ALLY_ADVANTAGE']],
+      Hide: ['ACTION', []],
+      Ready: ['ACTION', []],
+      Search: ['ACTION', []],
+      'Use an Object': ['ACTION', []]
+    })
+    expect(catalogue.map((definition) => definition.id).sort()).toEqual(
+      Object.values(SRD_BASIC_ACTION_IDS).sort()
+    )
+    for (const definition of catalogue) {
+      expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
+      expect(definition.checksum).toBe(checksumRuleDocument(definition.document))
+    }
+  })
+
   it('preserves every authored root and separate policy definition deterministically', () => {
     const result = prepareSrdImport()
     expect(result.subjects).toHaveLength(Object.values(srdBaselineContent.subjects).flat().length)

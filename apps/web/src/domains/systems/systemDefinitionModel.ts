@@ -1,5 +1,6 @@
 import type { ReusableDefinitionWorkspaceDto } from '@artificer-toolkit/schema/api/reusableDefinitions'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
+import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 
 function createStarterDocument(workspace: ReusableDefinitionWorkspaceDto): unknown {
   if (workspace.definitionFamilyKey === 'sense') {
@@ -19,6 +20,17 @@ function createStarterDocument(workspace: ReusableDefinitionWorkspaceDto): unkno
           physicalConstraints: ['LINE_OF_EFFECT']
         }
       ]
+    }
+  }
+  if (workspace.definitionFamilyKey === BASIC_ACTION_DEFINITION_FAMILY_KEY) {
+    return {
+      schemaVersion: 1,
+      kind: 'BASIC_ACTION',
+      id: workspace.id,
+      gameSystemId: workspace.gameSystemId,
+      rulesText: 'Describe what this action does.',
+      actionCost: 'ACTION',
+      mechanics: []
     }
   }
   return {

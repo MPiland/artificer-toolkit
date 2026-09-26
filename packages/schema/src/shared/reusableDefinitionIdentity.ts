@@ -9,6 +9,7 @@ export const RULE_MAINTENANCE_DEFINITION_FAMILY_KEY = 'rule-maintenance'
 export const INITIATIVE_POLICY_DEFINITION_FAMILY_KEY = 'initiative-policy'
 export const DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY = 'dnd5e-encounter-lifecycle'
 export const DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY = 'dnd5e-optional-combat'
+export const BASIC_ACTION_DEFINITION_FAMILY_KEY = 'basic-action'
 
 export const dnd5eOptionalCombatRuleKindDtoSchema = z.enum([
   'FLANKING',
@@ -37,7 +38,8 @@ export const REUSABLE_DEFINITION_AUTHORING_FAMILY_KEYS = [
   RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
-  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY
+  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
+  BASIC_ACTION_DEFINITION_FAMILY_KEY
 ] as const
 
 // Storage identity must not load the executable graph/geometry schema dependency tree.

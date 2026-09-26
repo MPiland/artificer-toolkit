@@ -19,6 +19,7 @@ import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import {
   SRD_RULE_CAPABILITY_DEFINITIONS,
   SRD_CONDITION_RULE_STATE_DEFINITIONS
@@ -506,6 +507,34 @@ describe('native reusable definitions', () => {
       await publishDocument(a, definition.definitionFamilyKey, definition.document)
     }
   )
+
+  it('authors and publishes a basic-action catalogue entry through the ordinary flow (Q11)', async () => {
+    const { a } = await fixture()
+    const published = await publishDocument(a, 'basic-action', {
+      ...SRD_BASIC_ACTION_DEFINITIONS[0].document,
+      rulesText: 'Sprint: move twice your speed this turn.',
+      actionCost: 'BONUS_ACTION'
+    })
+    expect(published.current?.document).toMatchObject({
+      kind: 'BASIC_ACTION',
+      actionCost: 'BONUS_ACTION',
+      mechanics: ['SPEED_MOVEMENT_BONUS']
+    })
+    const created = await a.mutation(create, {
+      gameSystemId: srdSystemRecord.id,
+      definitionFamilyKey: 'basic-action',
+      label: 'Wrong family',
+      description: null
+    })
+    await expect(
+      a.mutation(saveDraft, {
+        definitionId: created.id,
+        expectedDefinitionVersion: 0,
+        expectedDraftVersion: null,
+        document: sense(created.id)
+      })
+    ).rejects.toThrow()
+  })
 
   it('saves and publishes an initiative policy with installed D&D graphs and exact current pins', async () => {
     const { a } = await fixture()

@@ -20,6 +20,7 @@ import {
   ruleCapabilityReusableDefinitionDocumentDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
 import { reusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
   compileRuleGraph,
@@ -40,7 +41,8 @@ import {
   RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
-  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY
+  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
+  BASIC_ACTION_DEFINITION_FAMILY_KEY
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 
 export {
@@ -177,6 +179,20 @@ function validateRuleMaintenanceDefinition(root: ReusableDefinitionRootRecord, d
       'No publisher is registered for this definition family.'
     )
   const parsed = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse(document)
+  if (parsed.id !== root.id || parsed.gameSystemId !== root.gameSystemId)
+    throw new ReusableDefinitionValidationError(
+      'Published definition identity must match its reusable definition root.'
+    )
+  return parsed
+}
+
+/** A System's basic-action catalogue entry (Q11): its closed mechanics need no further binding. */
+function validateBasicActionDefinition(root: ReusableDefinitionRootRecord, document: unknown) {
+  if (root.definitionFamilyKey !== BASIC_ACTION_DEFINITION_FAMILY_KEY)
+    throw new ReusableDefinitionValidationError(
+      'No publisher is registered for this definition family.'
+    )
+  const parsed = basicActionReusableDefinitionDocumentDtoSchema.parse(document)
   if (parsed.id !== root.id || parsed.gameSystemId !== root.gameSystemId)
     throw new ReusableDefinitionValidationError(
       'Published definition identity must match its reusable definition root.'
@@ -576,6 +592,9 @@ async function validateReusableDefinition(input: {
     case DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY:
       requirePermittedDefinitionFamily(input)
       return validateDnd5eOptionalCombatDefinition(input)
+    case BASIC_ACTION_DEFINITION_FAMILY_KEY:
+      requirePermittedDefinitionFamily(input)
+      return validateBasicActionDefinition(input.root, input.document)
     default:
       throw new ReusableDefinitionValidationError(
         'No publisher is registered for this definition family.'
