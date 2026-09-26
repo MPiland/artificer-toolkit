@@ -5,9 +5,6 @@ import type { VoidRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/e
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
@@ -18,22 +15,15 @@ import {
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { api } from '../_generated/api'
 import { classifyRuleOccurrenceVoid } from './occurrenceVoid'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 
 function voidCommand(input: {
   encounterId: string
@@ -212,8 +202,8 @@ describe('GM void command', () => {
       ]
     })
     await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, value.request)
-    const initial = await value.owner.caller.mutation(finish, value.request)
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const initial = await root.publish()
     const choice = initial.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected an issued movement choice.')

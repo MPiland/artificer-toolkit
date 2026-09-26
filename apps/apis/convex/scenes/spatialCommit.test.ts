@@ -5,31 +5,21 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  sceneGeometryCommandResultSchema,
-  sceneGeometryFinishInputSchema
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import { sceneGeometryCommandResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import {
-  createSpatialPreparationFixture,
-  grantFixtureActorControl
-} from '../../tests/fixtures/spatialPreparation'
-import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { internal } from '../_generated/api'
 import { readRunActor, readRunProjection, readRunState } from '../encounters/documents'
-import {
-  evaluateNativeSpatialMovement,
-  type NativeSpatialMovementInput
-} from '../encounters/spatialMovement'
 import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { readGeometrySave } from './geometryDocuments'
-import { commitPreparedSpatialTerminal } from './spatialCommit.helper'
-import { publishPreparedSpatialTerminal } from './spatialPublication.helper'
-import { persistSpatialPreparation } from './spatialPreparationPersistence'
+import { commitLiveMovement } from '../liveSessions/encounterMovementCommit'
+import type { QueryCtx } from '../_generated/server'
+import {
+  expectedMovementScene,
+  nextExternalAuthority
+} from '../../tests/fixtures/liveSessionWorker'
+import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 
 const timeline = makeFunctionReference<
   'query',
@@ -40,151 +30,32 @@ const timeline = makeFunctionReference<
 beforeEach(() => vi.stubEnv('BETTER_AUTH_SECRET', 'spatial-commit-test-secret-at-least-32-bytes'))
 afterEach(() => vi.unstubAllEnvs())
 
-async function setup(
-  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
+/** The room's commit input for the planned move, with the next authority advance. */
+async function commitInput(
+  ctx: QueryCtx,
+  value: Awaited<ReturnType<typeof planSpatialTerminalFixture>>,
+  finish: Partial<LiveSessionMovementCommitInput['finish']> = {}
+): Promise<LiveSessionMovementCommitInput> {
+  return {
+    ...value.plan.commit,
+    finish: { ...value.plan.commit.finish, ...finish },
+    authority: await nextExternalAuthority(ctx, value.base.campaign.id),
+    expectedScene: await expectedMovementScene(ctx, value.saveId, value.plan.outcome)
+  }
+}
+
+/** Commits the planned move as the room does; a retry replays the published command. */
+async function finish(
+  value: Awaited<ReturnType<typeof planSpatialTerminalFixture>>,
+  hints: Partial<LiveSessionMovementCommitInput['finish']> = {}
 ) {
-  const fixture = await createSpatialPreparationFixture()
-  const { base, tokenId } = fixture
-  const input = path ? { ...fixture.input, path } : fixture.input
-  const sceneTokens = base.tokens.map((token) => ({
-    ...token,
-    id: token.id.toLowerCase(),
-    controlledByUserIds: [base.owner.userId]
-  }))
-  await base.owner.caller.run(async (ctx) => {
-    if (path) {
-      const save = await ctx.db
-        .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.saveId))
-        .unique()
-      if (!save) throw new Error('Fixture geometry save missing')
-      await ctx.db.patch(save._id, {
-        input,
-        inputChecksum: checksumCanonicalJson(input)
-      })
-    }
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-      .unique()
-    if (!run) throw new Error('Fixture Run missing')
-    const state = { ...readRunState(run), automationMode: 'ASSISTED' as const }
-    await ctx.db.patch(run._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
-    await ctx.db.insert('encounterActorTokenBindings', {
-      encounterId: base.run.id,
-      actorId: base.run.actors[0]!.id,
-      sceneId: base.sceneId,
-      tokenId
-    })
-    // The moving player controls the bound actor; its Scene token control no longer applies.
-    await grantFixtureActorControl(ctx, {
-      encounterId: base.run.id,
-      actorId: base.run.actors[0]!.id,
-      controllerUserIds: [base.owner.userId]
-    })
-    for (const token of sceneTokens) {
-      const row = await ctx.db
-        .query('sceneDefinitionEntities')
-        .withIndex('by_saveId_collection_ordinal', (q) =>
-          q
-            .eq('saveId', base.saveId)
-            .eq('value.collection', 'tokens')
-            .eq('ordinal', sceneTokens.indexOf(token))
-        )
-        .unique()
-      if (!row) throw new Error('Fixture token missing')
-      const { _id, _creationTime, ...stored } = row
-      const value = { collection: 'tokens' as const, entity: token }
-      await ctx.db.replace(
-        _id,
-        sceneStoredDefinitionEntitySchema.parse({
-          ...stored,
-          entityId: token.id,
-          value,
-          checksum: checksumCanonicalJson(value)
-        })
-      )
-    }
-  })
-  const effect = await seedSpatialEffect(base)
-  const geometry = { sceneTokens, actorIdByTokenId: new Map([[tokenId, base.run.actors[0]!.id]]) }
-  const movement: NativeSpatialMovementInput = {
-    ...geometry,
-    encounterId: base.run.id,
-    expectedEncounterVersion: input.expectedEncounterVersion,
-    sceneId: base.sceneId,
-    sceneVersion: 0,
-    currentPosition: sceneTokens[0]!.position,
-    occurrenceId: crypto.randomUUID(),
-    executionCommandId: input.commandId,
-    occurredAt: new Date().toISOString(),
-    // The initiating owner keeps the default auto-roll preference.
-    autoRoll: { [base.run.actors[0]!.id]: true },
-    root: {
-      commandId: input.commandId,
-      commandFingerprint: checksumCanonicalJson(input),
-      initiatorUserId: base.owner.userId,
-      correlationId: null,
-      encounterId: base.run.id,
-      sceneId: base.sceneId,
-      tokenId,
-      expectedEncounterVersion: input.expectedEncounterVersion,
-      expectedSceneVersion: 0,
-      movementKind: input.movementKind,
-      originalPath: input.path
-    }
-  }
-  const preview = await base.owner.caller.run((ctx) =>
-    evaluateNativeSpatialMovement(ctx, movement, 'PREVIEW')
+  const { scene } = await value.base.owner.caller.run(async (ctx) =>
+    commitLiveMovement(ctx, await commitInput(ctx, value, hints))
   )
-  if (preview.kind !== 'TERMINAL') throw new Error('Expected terminal spatial preview')
-  const preparation: SceneSpatialPreparation = {
-    encounterId: base.run.id,
-    expectedEncounterVersion: input.expectedEncounterVersion,
-    occurrenceId: movement.occurrenceId,
-    occurredAt: movement.occurredAt,
-    outcome: {
-      kind: 'TERMINAL',
-      result: preview.result,
-      selectionChecksum: preview.selectionChecksum,
-      currentnessChecksum: preview.currentnessChecksum
-    }
-  }
-  await base.owner.caller.run((ctx) => persistSpatialPreparation(ctx, fixture.saveId, preparation))
-  await base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
-    saveId: fixture.saveId,
-    characterRevisions: []
-  })
-  return { ...fixture, input, geometry, preparation, effect }
+  return scene
 }
 
-function finishWithHints(
-  value: Awaited<ReturnType<typeof setup>>,
-  tokenOrdinals?: ReturnType<typeof sceneGeometryFinishInputSchema.parse>['tokenOrdinals']
-) {
-  const input: ReturnType<typeof sceneGeometryFinishInputSchema.parse> = {
-    saveId: value.saveId,
-    baseOrdinal: 0,
-    movementCost: 0,
-    ...(tokenOrdinals === undefined ? {} : { tokenOrdinals })
-  }
-  return value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, input)
-}
-
-function finish(value: Awaited<ReturnType<typeof setup>>) {
-  return finishWithHints(
-    value,
-    value.geometry.sceneTokens.map((token, baseOrdinal) => ({
-      tokenId: token.id,
-      baseOrdinal
-    }))
-  )
-}
-
-function stageFog(value: Awaited<ReturnType<typeof setup>>) {
+function stageFog(value: Awaited<ReturnType<typeof planSpatialTerminalFixture>>) {
   return value.base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
     saveId: value.saveId,
     layer: {
@@ -205,7 +76,7 @@ function stageFog(value: Awaited<ReturnType<typeof setup>>) {
   })
 }
 
-async function current(value: Awaited<ReturnType<typeof setup>>) {
+async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixture>>) {
   return value.base.owner.caller.run(async (ctx) => {
     const { save } = await readGeometrySave(ctx, value.saveId)
     const row = await ctx.db
@@ -246,39 +117,16 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
   })
 }
 
-it('reconstructs retained terminal evidence and rolls back all mechanics with the parent transaction', async () => {
-  const value = await setup()
-  const before = await current(value)
-  await expect(
-    value.base.owner.caller.run(async (ctx) => {
-      await commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-      throw new Error('parent publication failed')
-    })
-  ).rejects.toThrow('parent publication failed')
-  expect(await current(value)).toEqual(before)
-  const committed = await value.base.owner.caller.run((ctx) =>
-    commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-  )
-  expect(committed.kind).toBe('TERMINAL')
-  if (committed.kind !== 'TERMINAL' || value.preparation.outcome.kind !== 'TERMINAL')
-    throw new Error('Expected terminal result')
-  expect(committed.result).toEqual(value.preparation.outcome.result)
-  const after = await current(value)
-  expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
-  expect(after.effects).toEqual([])
-  expect(after.runVersion).toBe(before.runVersion)
-  expect(after.save).toEqual(before.save)
-})
-
 it('publishes a terminal movement once with its Run receipt and timeline entry', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   const before = await current(value)
-  const first = await value.base.owner.caller.run((ctx) =>
-    publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-  )
+  const first = await finish(value)
   const after = await current(value)
 
-  expect(first.projection.version).toBe(before.runVersion + 1)
+  expect(first.occurrence).toMatchObject({
+    occurrenceId: value.preparation.occurrenceId,
+    status: 'COMPLETE'
+  })
   expect(after.runVersion).toBe(before.runVersion + 1)
   expect(after.projection.version).toBe(before.projection.version + 1)
   expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
@@ -320,15 +168,12 @@ it('publishes a terminal movement once with its Run receipt and timeline entry',
   expect(
     after.projection.actors.find((actor) => actor.id === after.actor.id)?.currentHitPoints
   ).toBe(after.actor.currentHitPoints)
-  const replay = await value.base.owner.caller.run((ctx) =>
-    publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-  )
-  expect(replay).toEqual(first)
+  expect(await finish(value)).toEqual({ ...first, replayed: true })
   expect(await current(value)).toEqual(after)
 })
 
-it('finishes prepared terminal movement through the native Scene transaction', async () => {
-  const value = await setup()
+it('commits a planned terminal movement and its fog in one Scene transaction', async () => {
+  const value = await planSpatialTerminalFixture()
   if (value.preparation.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal fixture')
   const terminal = value.preparation.outcome.result
   await stageFog(value)
@@ -377,8 +222,8 @@ it('finishes prepared terminal movement through the native Scene transaction', a
   expect(await current(value)).toEqual(after)
 })
 
-it('rolls back native terminal publication when a later staged fog save is malformed', async () => {
-  const value = await setup()
+it('rolls back terminal publication when a later staged fog save is malformed', async () => {
+  const value = await planSpatialTerminalFixture()
   await stageFog(value)
   await value.base.owner.caller.run(async (ctx) => {
     const fogSave = await ctx.db.query('sceneFogSaves').unique()
@@ -393,7 +238,7 @@ it('rolls back native terminal publication when a later staged fog save is malfo
 })
 
 it('rejects a checksum-consistent tampered Scene delta during terminal replay', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   const result = await finish(value)
   await value.base.owner.caller.run(async (ctx) => {
     const command = await ctx.db
@@ -423,27 +268,27 @@ it('rejects a checksum-consistent tampered Scene delta during terminal replay', 
 })
 
 it('refuses missing token source hints before publication writes', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   const before = await current(value)
 
-  await expect(finishWithHints(value)).rejects.toThrow()
+  await expect(finish(value, { tokenOrdinals: undefined })).rejects.toThrow()
 
   expect(await current(value)).toEqual(before)
 })
 
 it('refuses invalid token source hints before publication writes', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   const before = await current(value)
 
   await expect(
-    finishWithHints(value, [{ tokenId: value.tokenId, baseOrdinal: 1 }])
+    finish(value, { tokenOrdinals: [{ tokenId: value.tokenId, baseOrdinal: 1 }] })
   ).rejects.toThrow()
 
   expect(await current(value)).toEqual(before)
 })
 
 it.each([false, true])('publishes a stationary terminal with fog=%s', async (withFog) => {
-  const value = await setup([
+  const value = await planSpatialTerminalFixture([
     { x: 0, y: 0 },
     { x: 10, y: 0 },
     { x: 0, y: 0 }
@@ -503,12 +348,12 @@ it.each([false, true])('publishes a stationary terminal with fog=%s', async (wit
 })
 
 it('rolls back terminal mechanics and all publication records when the parent transaction fails', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   const before = await current(value)
 
   await expect(
     value.base.owner.caller.run(async (ctx) => {
-      await publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
+      await commitLiveMovement(ctx, await commitInput(ctx, value))
       throw new Error('parent publication failed')
     })
   ).rejects.toThrow('parent publication failed')
@@ -517,10 +362,8 @@ it('rolls back terminal mechanics and all publication records when the parent tr
 })
 
 it('rejects a tampered terminal receipt replay without new writes', async () => {
-  const value = await setup()
-  await value.base.owner.caller.run((ctx) =>
-    publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-  )
+  const value = await planSpatialTerminalFixture()
+  await finish(value)
   await value.base.owner.caller.run(async (ctx) => {
     const receipt = await ctx.db
       .query('encounterRuleReceipts')
@@ -533,20 +376,14 @@ it('rejects a tampered terminal receipt replay without new writes', async () => 
   })
   const before = await current(value)
 
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-    )
-  ).rejects.toThrow('replay receipt is inconsistent')
+  await expect(finish(value)).rejects.toThrow('replay receipt is inconsistent')
 
   expect(await current(value)).toEqual(before)
 })
 
 it('rejects a terminal replay whose stored command omits its occurrence summary', async () => {
-  const value = await setup()
-  await value.base.owner.caller.run((ctx) =>
-    publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-  )
+  const value = await planSpatialTerminalFixture()
+  await finish(value)
   await value.base.owner.caller.run(async (ctx) => {
     const command = await ctx.db
       .query('encounterRunCommands')
@@ -565,17 +402,13 @@ it('rejects a terminal replay whose stored command omits its occurrence summary'
   })
   const before = await current(value)
 
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      publishPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-    )
-  ).rejects.toThrow('replay summary is inconsistent')
+  await expect(finish(value)).rejects.toThrow('replay summary is inconsistent')
 
   expect(await current(value)).toEqual(before)
 })
 
 it('rejects changed effect currentness before applying retained outcomes', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
   await value.base.owner.caller.run(async (ctx) => {
     const scope = await createSpatialRuleEffectStore(ctx).scope({
       encounterId: value.base.run.id,
@@ -589,42 +422,30 @@ it('rejects changed effect currentness before applying retained outcomes', async
     })
   })
   const before = await current(value)
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-    )
-  ).rejects.toThrow('stale')
-  expect(await current(value)).toEqual(before)
-})
-
-it('rejects a newly contacting effect even when Run and Scene versions have not advanced', async () => {
-  const value = await setup()
-  await seedSpatialEffect(value.base)
-  const before = await current(value)
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-    )
-  ).rejects.toThrow('stale')
+  await expect(finish(value)).rejects.toThrow('stale')
   expect(await current(value)).toEqual(before)
 })
 
 it('rejects token control changes before mechanics publication', async () => {
-  const value = await setup()
+  const value = await planSpatialTerminalFixture()
+  await value.base.owner.caller.run(async (ctx) => {
+    const row = await ctx.db
+      .query('sceneDefinitionEntities')
+      .withIndex('by_saveId_collection_ordinal', (q) =>
+        q.eq('saveId', value.base.saveId).eq('value.collection', 'tokens').eq('ordinal', 0)
+      )
+      .unique()
+    if (!row || row.value.collection !== 'tokens') throw new Error('Fixture token missing')
+    const locked = { ...row.value, entity: { ...row.value.entity, locked: true } }
+    await ctx.db.patch(row._id, { value: locked, checksum: checksumCanonicalJson(locked) })
+  })
   const before = await current(value)
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      commitPreparedSpatialTerminal(ctx, value.saveId, {
-        ...value.geometry,
-        sceneTokens: value.geometry.sceneTokens.map((token) => ({ ...token, locked: true }))
-      })
-    )
-  ).rejects.toThrow('token')
+  await expect(finish(value)).rejects.toThrow('token')
   expect(await current(value)).toEqual(before)
 })
 
-it('rolls mechanics back when reconstructed outcomes differ from retained preparation', async () => {
-  const value = await setup()
+it('refuses a commit whose frozen preparation differs from the room plan', async () => {
+  const value = await planSpatialTerminalFixture()
   if (value.preparation.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal fixture')
   const changed = {
     ...value.preparation,
@@ -641,18 +462,14 @@ it('rolls mechanics back when reconstructed outcomes differ from retained prepar
     })
   })
   const before = await current(value)
-  await expect(
-    value.base.owner.caller.run((ctx) =>
-      commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-    )
-  ).rejects.toThrow('does not match retained preparation')
+  await expect(finish(value)).rejects.toThrow('Live movement commit scope mismatch.')
   expect(await current(value)).toEqual(before)
 })
 
 it.each(['root replay', 'pending occurrence'] as const)(
   'refuses %s before replaying mechanics',
   async (kind) => {
-    const value = await setup()
+    const value = await planSpatialTerminalFixture()
     await value.base.owner.caller.run(async (ctx) => {
       const pending = kind === 'pending occurrence'
       const now = new Date().toISOString()
@@ -673,57 +490,11 @@ it.each(['root replay', 'pending occurrence'] as const)(
       })
     })
     const before = await current(value)
-    await expect(
-      value.base.owner.caller.run((ctx) =>
-        commitPreparedSpatialTerminal(ctx, value.saveId, value.geometry)
-      )
-    ).rejects.toThrow(
-      kind === 'root replay' ? 'replay must be handled by the parent' : 'pending rule occurrence'
+    await expect(finish(value)).rejects.toThrow(
+      kind === 'root replay'
+        ? 'Spatial occurrence replay must use the published command.'
+        : 'pending rule occurrence'
     )
     expect(await current(value)).toEqual(before)
   }
 )
-
-it('prepares and replays authoritative movement evidence before one atomic Scene publication', async () => {
-  const value = await setup()
-  await value.base.owner.caller.run(async (ctx) => {
-    const save = await ctx.db
-      .query('sceneGeometrySaves')
-      .withIndex('by_publicId', (q) => q.eq('id', value.saveId))
-      .unique()
-    if (!save) throw new Error('Fixture geometry save missing')
-    await ctx.db.patch(save._id, {
-      spatialPreparationJson: undefined,
-      spatialPreparationChecksum: undefined
-    })
-  })
-  const prepare = makeFunctionReference<
-    'mutation',
-    ReturnType<typeof sceneGeometryFinishInputSchema.parse>,
-    SceneSpatialPreparation
-  >('scenes/spatialPreparation:prepare')
-  const request = {
-    saveId: value.saveId,
-    baseOrdinal: 0,
-    movementCost: 0,
-    tokenOrdinals: value.geometry.sceneTokens.map((token, baseOrdinal) => ({
-      tokenId: token.id,
-      baseOrdinal
-    }))
-  }
-  const before = await current(value)
-  const prepared = await value.base.owner.caller.mutation(prepare, request)
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  const { save: preparedSave, ...preparedState } = await current(value)
-  const { save: priorSave, ...priorState } = before
-  expect(preparedState).toEqual(priorState)
-  expect(preparedSave.inputChecksum).toBe(priorSave.inputChecksum)
-  await expect(value.base.owner.caller.mutation(prepare, request)).resolves.toEqual(prepared)
-  const result = await finish(value)
-  expect(sceneGeometryCommandResultSchema.parse(result).occurrence?.occurrenceId).toBe(
-    prepared.occurrenceId
-  )
-  const after = await current(value)
-  expect(after.runVersion).toBe(before.runVersion + 1)
-  expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
-})

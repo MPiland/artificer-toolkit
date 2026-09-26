@@ -4,7 +4,7 @@ import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { applyEncounterMechanicsBatch } from '../encounters/mechanicsBatch'
+import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 
 type Fixture = Awaited<ReturnType<typeof setupCharacterRun>>

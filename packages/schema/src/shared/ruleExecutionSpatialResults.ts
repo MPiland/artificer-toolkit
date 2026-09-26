@@ -1,7 +1,6 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRuleEffectPersistence.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
@@ -29,6 +28,7 @@ import {
   spatialPointDtoSchema
 } from './spatialFacts.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 export const movementCompleteRuleExecutionResultDtoSchema = z.strictObject({
   /** A reaction-bearing movement completed without any spatial-effect execution. */
   status: z.literal('MOVEMENT_COMPLETE'),
@@ -42,7 +42,7 @@ export const movementCompleteRuleExecutionResultDtoSchema = z.strictObject({
   tokenId: uuidSchema,
   movementKind: spatialMovementKindDtoSchema,
   reactionExecutions: z._default(
-    z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+    z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     []
   ),
   terminalPosition: spatialPointDtoSchema
@@ -62,7 +62,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = z
     tokenId: uuidSchema,
     movementKind: spatialMovementKindDtoSchema,
     reactionExecutions: z._default(
-      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       []
     ),
     terminalPosition: spatialPointDtoSchema,

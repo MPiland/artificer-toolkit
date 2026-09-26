@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import { ConvexClient, type ConvexHttpClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import type {
   SceneGeometryCommandResult,
   SceneGeometryExecuteInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { api } from '../convex/_generated/api.js'
@@ -202,19 +204,18 @@ export async function verifyEncounterCutoverContention({
     tokenId: token.id,
     path: [token.position, { x: token.position.x + token.width, y: token.position.y }]
   })
-  const inputs = [input(crypto.randomUUID()), input(crypto.randomUUID())] as const
   const presentation = { expectedPresentationVersion: fixture.presentation.version }
-  await assert.rejects(
-    owner.action(executeGeometry, { input: input(crypto.randomUUID()) }),
-    /Bound Scene movement requires a presentation context\./
-  )
-  await assert.rejects(
-    owner.action(executeGeometry, {
-      input: { ...input(crypto.randomUUID()), expectedEncounterVersion: fixture.run.version + 1 },
-      presentation
-    }),
-    /Spatial Encounter scope is stale\./
-  )
+  // Only the Session room moves Encounter tokens; with no room live Convex refuses them (D43).
+  for (const request of [
+    { input: input(crypto.randomUUID()) },
+    { input: input(crypto.randomUUID()), presentation }
+  ])
+    await assert.rejects(
+      owner.action(executeGeometry, request),
+      (error: unknown) =>
+        error instanceof ConvexError &&
+        domainRejectionErrorDataSchema.safeParse(error.data).data?.reason === 'SCENE_NOT_PRESENTED'
+    )
   assert.deepEqual(
     await owner.query(api.scenes.recipientReads.header, { sceneId: fixture.sceneId }),
     header
@@ -222,41 +223,6 @@ export async function verifyEncounterCutoverContention({
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: fixture.run.id }),
     fixture.run
-  )
-  const contenders = await Promise.allSettled([
-    owner.action(executeGeometry, { input: inputs[0], presentation }),
-    peer.action(executeGeometry, { input: inputs[1], presentation })
-  ])
-  assert.equal(
-    contenders.filter((result) => result.status === 'fulfilled').length,
-    1,
-    contenders
-      .map((result) => (result.status === 'rejected' ? String(result.reason) : 'fulfilled'))
-      .join('\n')
-  )
-  const winnerIndex = contenders.findIndex((result) => result.status === 'fulfilled')
-  const winner = contenders[winnerIndex]
-  const loser = contenders[1 - winnerIndex]
-  if (!winner || winner.status !== 'fulfilled' || !loser || loser.status !== 'rejected')
-    throw new Error('Cutover movement contention did not produce one winner and one stale loser.')
-  assert.match(
-    String(loser.reason),
-    /Scene target changed before this command completed\.|Scene changed before geometry publication\.|Encounter version is stale\.|Spatial Encounter scope is stale\./
-  )
-  assert.equal(winner.value.replayed, false)
-  const afterWinner = await owner.query(api.scenes.liveReads.header, { sceneId: fixture.sceneId })
-  assert.equal(afterWinner.version, header.version + 1)
-  const runAfterWinner = await owner.query(api.encounters.projectionReads.get, {
-    encounterId: fixture.run.id
-  })
-  assert.deepEqual(runAfterWinner, fixture.run, 'Uninterrupted movement must preserve the Run.')
-  const replay = await owner.action(executeGeometry, { input: inputs[winnerIndex]!, presentation })
-  assert.deepEqual(replay, { ...winner.value, replayed: true })
-  const afterReplay = await owner.query(api.scenes.liveReads.header, { sceneId: fixture.sceneId })
-  assert.deepEqual(afterReplay, afterWinner, 'A replay must not append another Scene write.')
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: fixture.run.id }),
-    runAfterWinner
   )
   assert.notEqual(fixture.sceneId, fixture.unrelatedSceneId)
   const independentHeaders = await Promise.all([
@@ -311,9 +277,8 @@ export async function verifyEncounterCutoverContention({
   }
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: fixture.run.id }),
-    runAfterWinner
+    fixture.run
   )
-  return winner.value
 }
 
 const MEASURED_SAMPLES = 1

@@ -3,6 +3,7 @@ import { z } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 
 import { postgresUuidSchema } from './postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 const uuidSchema = z.pipe(
   postgresUuidSchema,
@@ -278,10 +279,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = z
       encounterVersion: versionSchema,
       requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
       entityKind: z.enum(['ACTOR', 'SIDE']),
-      optionIds: z
-        .array(uuidSchema)
-        .check(z.minLength(2))
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      optionIds: z.array(uuidSchema).check(z.minLength(2)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       allowedResponses: z.tuple([z.literal('INITIATIVE_ENTITY')])
     })
   ])

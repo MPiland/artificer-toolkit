@@ -40,7 +40,7 @@ export type NativeEncounterActionMechanicsInput = {
 }
 
 /** Uses the same event identities and batches for planning and publication. */
-export function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechanicsInput) {
+function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechanicsInput) {
   const { prepared } = input
   const { state, actor, target, source, sourceFacts, targetFacts } = prepared
   if (input.encounterId !== state.id || input.expectedEncounterVersion !== state.version)

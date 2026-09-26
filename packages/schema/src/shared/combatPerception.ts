@@ -10,7 +10,7 @@ const uuidSchema = z.pipe(
   z.transform((value) => value.toLowerCase())
 )
 
-export const combatPerceptionChannelDtoSchema = z.enum([
+const combatPerceptionChannelDtoSchema = z.enum([
   'VISUAL',
   'AUDITORY',
   'VIBRATION',

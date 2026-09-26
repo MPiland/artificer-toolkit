@@ -1,6 +1,18 @@
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { describe, expect, it } from 'vitest'
-import { canMoveSceneToken, createSceneBarrier, nudgeSceneToken } from './CampaignVttStage.model'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
+import {
+  canMoveSceneToken,
+  createSceneBarrier,
+  nudgeSceneToken,
+  readActiveTurn
+} from './CampaignVttStage.model'
+import {
+  createTabletopCampaign,
+  tabletopCurrentUserId,
+  tabletopGmEncounter,
+  tabletopPlayerEncounter
+} from './CampaignTabletop.stories.fixtures'
 
 const currentUserId = '00000000-0000-4000-8000-000000000001'
 
@@ -164,5 +176,59 @@ describe('Campaign VTT accessible scene controls', () => {
       x: 125,
       y: 75
     })
+  })
+})
+
+describe('Campaign VTT active turn movement readout (V07.5)', () => {
+  const [character, creature] = tabletopPlayerEncounter.actors
+  const movement = [
+    { actorId: character.id, used: 15, budget: 30 },
+    { actorId: creature.id, used: 5, budget: 40 }
+  ]
+  function state(
+    encounter: EncounterSessionStateDto['encounter'],
+    turnMovement: EncounterSessionStateDto['turnMovement'] = movement
+  ): EncounterSessionStateDto {
+    return { encounter, pending: null, waitingOn: null, turnMovement }
+  }
+
+  it("shows a player the readout on their own Character's turn only", () => {
+    const player = createTabletopCampaign('PLAYER')
+    expect(
+      readActiveTurn(player, tabletopCurrentUserId, state(tabletopPlayerEncounter))
+    ).toMatchObject({
+      currentActorMine: true,
+      turnMovement: { actorId: character.id, used: 15, budget: 30 }
+    })
+    const creatureTurn = { ...tabletopPlayerEncounter, currentActorId: creature.id }
+    expect(readActiveTurn(player, tabletopCurrentUserId, state(creatureTurn))).toMatchObject({
+      currentActor: { id: creature.id },
+      currentActorMine: false,
+      turnMovement: undefined
+    })
+  })
+
+  it("shows the GM the current actor's readout on every turn", () => {
+    const gm = createTabletopCampaign('OWNER')
+    const creatureTurn = { ...tabletopGmEncounter, currentActorId: creature.id }
+    expect(readActiveTurn(gm, tabletopCurrentUserId, state(creatureTurn))).toMatchObject({
+      currentActorMine: true,
+      turnMovement: { actorId: creature.id, used: 5, budget: 40 }
+    })
+  })
+
+  it('shows no readout outside an active Encounter or before its movement loads', () => {
+    const player = createTabletopCampaign('PLAYER')
+    const completed = { ...tabletopPlayerEncounter, status: 'COMPLETED' as const }
+    expect(readActiveTurn(player, tabletopCurrentUserId, state(completed))).toEqual({
+      encounter: undefined,
+      currentActor: undefined,
+      currentActorMine: false,
+      turnMovement: undefined
+    })
+    expect(readActiveTurn(player, tabletopCurrentUserId, undefined).turnMovement).toBeUndefined()
+    expect(
+      readActiveTurn(player, tabletopCurrentUserId, state(tabletopPlayerEncounter, [])).turnMovement
+    ).toBeUndefined()
   })
 })

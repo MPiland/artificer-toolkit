@@ -18,9 +18,6 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import {
@@ -56,7 +53,10 @@ import { sourceImportBatches } from '../content/importBatches'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 import { withSceneVisionTracking } from '../lib/mutations'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -78,21 +78,6 @@ const bindActorToken = makeFunctionReference<
   { input: EncounterActorTokenBindingCommandInputDto },
   { projection: { version: number } }
 >('encounters/actorTokenBindings:execute')
-const prepare = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const finish = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -556,12 +541,6 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
       })
     )
   )
-  const rootRequest = {
-    saveId: rootSaveId,
-    baseOrdinal: tokens.length - 1,
-    movementCost: 0,
-    tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-  }
   return {
     base,
     player,
@@ -575,17 +554,14 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     sceneId,
     tokens,
     rootInput,
-    rootRequest
+    rootSaveId
   }
 }
 
 async function startPending(value: Awaited<ReturnType<typeof setup>>) {
-  await value.gm.caller.mutation(observe, {
-    saveId: value.rootRequest.saveId,
-    characterRevisions: []
-  })
-  expect((await value.gm.caller.mutation(prepare, value.rootRequest)).outcome.kind).toBe('PENDING')
-  const result = await value.gm.caller.mutation(finish, value.rootRequest)
+  const root = await planStagedMovementInRoom(value.gm.caller, value.rootSaveId)
+  expect(root.outcome.kind).toBe('PENDING')
+  const result = await root.publish()
   if (!result.occurrence?.pending) throw new Error('Expected Character controller pending choice.')
   return { ...result.occurrence, pending: result.occurrence.pending }
 }

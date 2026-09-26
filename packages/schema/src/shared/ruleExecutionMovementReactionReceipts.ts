@@ -1,7 +1,5 @@
 import { z } from '../zod.js'
 
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
-
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from './activeRuleEffects.js'
 import { movementReactionChoiceOptionDtoSchema } from './reaction.js'
@@ -33,8 +31,7 @@ export const pendingSpatialCharacterTransitionsDtoSchema = z
   .array(movementReactionCharacterTransitionDtoSchema)
   .check(
     z.maxLength(
-      MAX_ENCOUNTER_ACTORS +
-        RULE_GRAPH_LIMITS.NODES * MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+      MAX_ENCOUNTER_ACTORS + MAX_ENCOUNTER_ACTORS * MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
     )
   )
   .check(

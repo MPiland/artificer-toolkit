@@ -32,7 +32,7 @@ import {
   encounterMaintainedEffectStateRecordSchema
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_SPATIAL_CANDIDATES } from '../shared/spatialFacts.js'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 
 /** Ordered domain outcomes only; Character documents and arbitrary patches never cross this seam. */
 export const liveSessionMovementSettlementSchema = z.discriminatedUnion('kind', [
@@ -72,7 +72,7 @@ export const liveSessionMovementPrepareInputSchema = z.extend(liveSessionBootstr
   revisions: liveSessionRulesRevisionsSchema,
   maintenanceOwners: z
     .array(liveSessionEncounterMaintenanceOwnerRequestSchema)
-    .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * RULE_GRAPH_LIMITS.NODES))
+    .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR * MAX_ENCOUNTER_ACTORS))
 })
 
 /**
@@ -142,9 +142,7 @@ export const liveSessionMovementCommitInputSchema = z.extend(
     settlements: z
       .array(liveSessionMovementSettlementSchema)
       .check(
-        z.maxLength(
-          MAX_SPATIAL_CANDIDATES + RULE_GRAPH_LIMITS.NODES * (RULE_GRAPH_LIMITS.NODES + 1)
-        )
+        z.maxLength(MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 1))
       )
   }
 )

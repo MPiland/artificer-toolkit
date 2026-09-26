@@ -1,3 +1,4 @@
+import { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterCommandResultDtoSchema,
@@ -14,7 +15,6 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -26,7 +26,7 @@ import { readRunActors, readRunProjection, readRunState } from '../encounters/do
 import { insertRunCommand, presentTimelineEntry } from '../encounters/timelineEntries'
 import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 
-type SceneSpatialPrepareInput = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SpatialTerminalGeometry = {
   sceneTokens: readonly SceneToken[]
   actorIdByTokenId: ReadonlyMap<string, string>

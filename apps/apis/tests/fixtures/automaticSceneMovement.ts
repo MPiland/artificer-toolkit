@@ -3,7 +3,6 @@ import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type {
   SceneSessionVisionCaptureInput,
@@ -19,7 +18,7 @@ import {
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { setupCreatureReactionRun } from './movementReaction'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
-import { planMovementDecisionInRoom } from './liveSessionWorker'
+import { planMovementDecisionInRoom, planStagedMovementInRoom } from './liveSessionWorker'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -278,17 +277,6 @@ export async function setupReactionMovementScene<
   }
 }
 
-type SceneMovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepareMovement = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const finishMovement = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 const observeMovement = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -296,11 +284,11 @@ const observeMovement = makeFunctionReference<
 >('scenes/geometryStaging:observe')
 /**
  * Assisted play offers every authored reaction, "automatic" ones included, to its controller as a
- * Use/Decline choice. Prepares the root movement (natively, before any room) or continues from a
- * planned decision (`start`), publishes its reaction choice, then answers Use with the first option as the GM through the room (the fixture
- * reactors are Creatures) for each further choice. Stops after `maxUses` Uses or at the first plan
- * that is not a reaction choice, and returns that plan's outcome with `publish` to commit it. Once a
- * Use is answered the Campaign stays live (`planMovementDecisionInRoom`).
+ * Use/Decline choice. Plans the root movement in the room (`planStagedMovementInRoom`) or continues
+ * from a planned decision (`start`), publishes its reaction choice, then answers Use with the first
+ * option as the GM through the room (the fixture reactors are Creatures) for each further choice.
+ * Stops after `maxUses` Uses or at the first plan that is not a reaction choice, and returns that
+ * plan's outcome with `publish` to commit it.
  */
 export async function useMovementReactions(
   value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'request'>,
@@ -319,10 +307,9 @@ export async function useMovementReactions(
       saveId: value.request.saveId,
       characterRevisions: []
     })
-  let prepared: Pick<SceneSpatialPreparation, 'outcome'> = start
-    ? { outcome: start.outcome }
-    : await owner.caller.mutation(prepareMovement, value.request)
-  let publish = start?.publish ?? (() => owner.caller.mutation(finishMovement, value.request))
+  const plan = start ?? (await planStagedMovementInRoom(owner.caller, value.request.saveId))
+  let prepared: Pick<SceneSpatialPreparation, 'outcome'> = { outcome: plan.outcome }
+  let publish = plan.publish
   let responseCommandId: string | null = null
   for (let uses = 0; ; uses++) {
     const context =

@@ -1,5 +1,5 @@
 import { createEncounterSceneFixture } from './encounterScene'
-import { createRulesRuntime } from '../../convex/rules/runtime'
+import { createRulesRuntime } from './rulesRuntime'
 import { createSpatialRuleEffectStore } from '../../convex/rules/spatialEffectStore'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'

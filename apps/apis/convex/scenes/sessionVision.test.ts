@@ -58,14 +58,10 @@ import { withSceneVisionTracking } from '../lib/mutations'
 import { readRunProjection, readRunState } from '../encounters/documents'
 import { readSceneVisionRevision } from './visionFreshness'
 import { api, components, internal } from '../_generated/api'
-import type {
-  SceneGeometryCommandResult,
-  SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { SceneGeometryExecuteInput } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { readSessionVisionScope } from './sessionVisionDocuments'
+import { planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const createRun = makeFunctionReference<
   'mutation',
@@ -125,16 +121,6 @@ const readBindings = makeFunctionReference<
   SceneSessionVisionBindingsInput,
   SceneSessionVisionBindingsPage
 >('scenes/sessionVision:bindings')
-const spatialPreparationReference = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const spatialFinishReference = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 
 async function createCampaignPlayer(base: Awaited<ReturnType<typeof createEncounterSceneFixture>>) {
   const user = await base.t.run(async (ctx) =>
@@ -463,13 +449,8 @@ async function prepareBoundMovement(base: Awaited<ReturnType<typeof setup>>) {
     saveId,
     characterRevisions: [{ characterId: base.character.id, revision: vision.characterRevision }]
   })
-  const preparation = await base.owner.caller.mutation(spatialPreparationReference, {
-    saveId,
-    baseOrdinal: 0,
-    movementCost: 0,
-    tokenOrdinals: [{ tokenId: token.id, baseOrdinal: 0 }]
-  })
-  return { saveId, commandId, token, vision, preparation }
+  const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
+  return { saveId, commandId, token, vision, plan }
 }
 
 async function boundMovementState(
@@ -515,13 +496,11 @@ async function boundMovementState(
   }))
 }
 
-describe('native play Character vision boundary', () => {
+describe('play Character vision boundary', () => {
   it('refuses a prepared bound movement after its real Character vision observation changes', async () => {
     const base = await setup()
     const prepared = await prepareBoundMovement(base)
-    expect(prepared.preparation).toMatchObject({
-      outcome: { kind: 'UNINTERRUPTED', reason: 'NO_CANDIDATES' }
-    })
+    expect(prepared.plan.outcome).toEqual({ kind: 'UNINTERRUPTED', reason: 'NO_CANDIDATES' })
 
     const advanced = await base.owner.caller.mutation(executeSheet, {
       id: base.character.id,
@@ -539,14 +518,9 @@ describe('native play Character vision boundary', () => {
     expect(currentVision.characterRevision).not.toBe(prepared.vision.characterRevision)
     const before = await boundMovementState(base, prepared.saveId, prepared.commandId)
 
-    await expect(
-      base.owner.caller.mutation(spatialFinishReference, {
-        saveId: prepared.saveId,
-        baseOrdinal: 0,
-        movementCost: 0,
-        tokenOrdinals: [{ tokenId: prepared.token.id, baseOrdinal: 0 }]
-      })
-    ).rejects.toThrow('Character changed')
+    await expect(prepared.plan.publish()).rejects.toThrow(
+      'Live rules inputs changed before commit.'
+    )
     await expect(boundMovementState(base, prepared.saveId, prepared.commandId)).resolves.toEqual(
       before
     )

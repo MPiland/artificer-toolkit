@@ -1,9 +1,5 @@
-import { makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sceneGeometryBeginResultSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   createSpatialPreparationFixture,
   grantFixtureActorControl
@@ -11,19 +7,15 @@ import {
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api, internal } from '../_generated/api'
 import { readRunState } from '../encounters/documents'
-import { completeSceneGeometry } from './geometryActions'
-import { readGeometrySave } from './geometryDocuments'
+import {
+  planMovementInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 beforeEach(() =>
   vi.stubEnv('BETTER_AUTH_SECRET', 'uninterrupted-movement-test-secret-at-least-32-bytes')
 )
 afterEach(() => vi.unstubAllEnvs())
-
-const prepare = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
 
 async function setup(
   mode: 'MANUAL' | 'ASSISTED',
@@ -88,16 +80,7 @@ async function setup(
       })
     }
   })
-  const request = {
-    saveId,
-    baseOrdinal: 0,
-    movementCost: 0,
-    tokenOrdinals: base.tokens.map((token, baseOrdinal) => ({
-      tokenId: token.id.toLowerCase(),
-      baseOrdinal
-    }))
-  }
-  return { ...fixture, request }
+  return fixture
 }
 
 async function current(value: Awaited<ReturnType<typeof setup>>) {
@@ -195,19 +178,16 @@ it.each([
     const value = await setup(mode, movementKind)
     if (mode === 'MANUAL') await seedSpatialEffect(value.base)
     const before = await current(value)
-    const begin = await value.base.owner.caller.run(async (ctx) => {
-      const { save, header } = await readGeometrySave(ctx, value.saveId)
-      return sceneGeometryBeginResultSchema.parse({
-        kind: 'READY',
-        saveId: save.id,
-        input: save.input,
-        header,
-        encounterId: null,
-        sessionVision: save.sessionVision
-      })
+    const move = await planMovementInRoom(value.base.owner.caller, {
+      ...value.input,
+      movementKind,
+      commandId: crypto.randomUUID()
     })
-    if (begin.kind !== 'READY') throw new Error('Expected ready movement.')
-    const result = await value.base.owner.caller.action((ctx) => completeSceneGeometry(ctx, begin))
+    expect(move.outcome).toEqual({
+      kind: 'UNINTERRUPTED',
+      reason: mode === 'MANUAL' ? 'MANUAL' : 'NO_CANDIDATES'
+    })
+    const result = await move.publish()
     expect(result).toMatchObject({
       version: 1,
       occurrence: null,
@@ -223,59 +203,44 @@ it.each([
     expect(after.effects).toEqual(before.effects)
     if (mode === 'ASSISTED' && movementKind === 'VOLUNTARY') await seedSpatialEffect(value.base)
     const beforeReplay = await current(value)
-    await expect(
-      value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, value.request)
-    ).resolves.toEqual({ ...result, replayed: true })
+    await expect(move.publish()).resolves.toEqual({ ...result, replayed: true })
     expect(await current(value)).toEqual(beforeReplay)
   },
   30000
 )
 
-it.each(['NEW_EFFECT', 'INCOMPLETE_FOG'] as const)(
-  'refuses %s after preparation without publishing any movement',
-  async (failure) => {
-    const value = await setup('ASSISTED')
-    await value.base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
-      saveId: value.saveId,
-      characterRevisions: []
-    })
-    const prepared = await value.base.owner.caller.mutation(prepare, value.request)
-    expect(prepared.outcome).toEqual({ kind: 'UNINTERRUPTED', reason: 'NO_CANDIDATES' })
-    if (failure === 'NEW_EFFECT') await seedSpatialEffect(value.base)
-    else {
-      await value.base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
-        saveId: value.saveId,
-        layer: {
-          ownerUserId: value.base.owner.userId,
+it('refuses incomplete staged fog after planning without publishing any movement', async () => {
+  const value = await setup('ASSISTED')
+  await value.base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
+    saveId: value.saveId,
+    characterRevisions: []
+  })
+  const prepared = await planStagedMovementInRoom(value.base.owner.caller, value.saveId)
+  expect(prepared.outcome).toEqual({ kind: 'UNINTERRUPTED', reason: 'NO_CANDIDATES' })
+  await value.base.owner.caller.mutation(internal.scenes.geometryStaging.stageFog, {
+    saveId: value.saveId,
+    layer: {
+      ownerUserId: value.base.owner.userId,
+      width: 32,
+      height: 32,
+      chunks: [
+        {
+          index: 0,
+          x: 0,
+          y: 0,
           width: 32,
           height: 32,
-          chunks: [
-            {
-              index: 0,
-              x: 0,
-              y: 0,
-              width: 32,
-              height: 32,
-              data: Buffer.alloc(128, 255).toString('base64')
-            }
-          ]
+          data: Buffer.alloc(128, 255).toString('base64')
         }
-      })
-      await value.base.t.run(async (ctx) => {
-        const fog = await ctx.db.query('sceneFogSaves').first()
-        if (!fog) throw new Error('Missing staged fog.')
-        await ctx.db.patch(fog._id, { receivedChunks: 0 })
-      })
+      ]
     }
-    const before = await current(value)
-    await expect(
-      value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, value.request)
-    ).rejects.toThrow(
-      failure === 'NEW_EFFECT'
-        ? 'Uninterrupted movement evaluation does not match retained preparation.'
-        : 'fog save is inconsistent'
-    )
-    expect(await current(value)).toEqual(before)
-  },
-  30000
-)
+  })
+  await value.base.t.run(async (ctx) => {
+    const fog = await ctx.db.query('sceneFogSaves').first()
+    if (!fog) throw new Error('Missing staged fog.')
+    await ctx.db.patch(fog._id, { receivedChunks: 0 })
+  })
+  const before = await current(value)
+  await expect(prepared.publish()).rejects.toThrow('fog save is inconsistent')
+  expect(await current(value)).toEqual(before)
+}, 30000)

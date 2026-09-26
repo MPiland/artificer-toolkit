@@ -5,10 +5,7 @@ import type {
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  SceneGeometryCommandResult,
-  SceneGeometryExecuteInput
-} from '@artificer-toolkit/schema/api/sceneGeometry'
+import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
   EncounterDecisionSettlementDto,
@@ -47,11 +44,6 @@ import {
 
 const workerSecret = 'external-commit-worker-test-secret-at-least-32-bytes'
 const environment = workerEnvironment(workerSecret)
-const nativeExecute = makeFunctionReference<
-  'action',
-  SceneGeometryExecuteInput,
-  SceneGeometryCommandResult
->('scenes/geometryActions:execute')
 const executeGeometry = makeFunctionReference<
   'action',
   { input: SceneGeometryCommandInputDto },
@@ -323,59 +315,6 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
     used: 15,
     budget: 40
   })
-}, 120_000)
-
-it('publishes the same bound move and Scene through the room as the native path (parity)', async () => {
-  // Distinct reactor positions make the first contact geometric, not an identity tie-break.
-  const fixture = { ...twoChoices, reactorPositions: [150, 300] as const }
-  const room = await setupAutomaticSceneMovement(fixture)
-  const native = await setupAutomaticSceneMovement(fixture)
-  const epoch = await activateRoom(room.base)
-  routeRoom(room.owner)
-  const roomResult = (
-    await (
-      await runRoomCommit({
-        base: room.base,
-        member: room.owner,
-        role: 'OWNER',
-        epoch,
-        command: { ...room.rootInput, commandId: crypto.randomUUID() }
-      })
-    ).commit()
-  ).scene
-  const nativeResult = await native.owner.caller.action(nativeExecute, {
-    input: { ...native.rootInput, commandId: crypto.randomUUID() },
-    presentation: { expectedPresentationVersion: 0 }
-  })
-  // Identities differ per fixture; the published move, its version and the decision it opens match.
-  const shape = (result: SceneGeometryCommandResult, tokenIds: readonly string[]) => {
-    const pending = result.occurrence?.pending
-    return {
-      version: result.version,
-      position: result.delta?.kind === 'TOKEN_MOVED' ? result.delta.position : null,
-      status: result.occurrence?.status,
-      kind: pending?.kind,
-      options:
-        pending?.kind === 'MOVEMENT_REACTION'
-          ? pending.choice.options.map((option) => ({
-              // The action ID starts with the fixture's own actor ID.
-              action: option.actionId.slice(option.actionId.indexOf(':')),
-              reactor: tokenIds.indexOf(pending.choice.reactorTokenId)
-            }))
-          : null
-    }
-  }
-  expect(
-    shape(
-      roomResult,
-      room.tokens.map((token) => token.id)
-    )
-  ).toEqual(
-    shape(
-      nativeResult,
-      native.tokens.map((token) => token.id)
-    )
-  )
 }, 120_000)
 
 it('resolves an unsettled commit as ABANDONED or COMMITTED, and a late commit then fails', async () => {

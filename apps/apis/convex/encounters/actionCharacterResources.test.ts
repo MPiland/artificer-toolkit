@@ -11,7 +11,10 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { prepareNativeCharacterActionState } from '@artificer-toolkit/rules-runtime/character/characterNativeActionResources'
-import { applyEncounterMechanicsBatch, type EncounterMechanicsBatchInput } from './mechanicsBatch'
+import {
+  applyEncounterMechanicsBatch,
+  type EncounterMechanicsBatchInput
+} from '../../tests/fixtures/mechanicsBatch'
 
 function command(
   fixture: Awaited<ReturnType<typeof setupCharacterRun>>

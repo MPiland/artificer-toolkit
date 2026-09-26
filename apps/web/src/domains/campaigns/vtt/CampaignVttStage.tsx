@@ -96,6 +96,7 @@ import {
   isFogTool,
   nudgeSceneToken,
   playTools,
+  readActiveTurn,
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
@@ -132,21 +133,13 @@ export function CampaignVttStage({
     ...convexQuery(convexApi.encounters.activeReads.active, { campaignId: campaign.id }),
     select: encounterSessionStateDtoSchema.parse
   })
-  const activeEncounter =
-    encounterSessionState.data?.encounter?.status === 'ACTIVE'
-      ? encounterSessionState.data.encounter
-      : undefined
+  const {
+    encounter: activeEncounter,
+    currentActor,
+    currentActorMine,
+    turnMovement: currentTurnMovement
+  } = readActiveTurn(campaign, currentUserId, encounterSessionState.data)
   const pendingOccurrence = encounterSessionState.data?.pending
-  const currentActor = activeEncounter?.actors.find(
-    (actor) => actor.id === activeEncounter.currentActorId
-  )
-  // The GM acts for every actor; a player only on the turn of an actor they control.
-  const currentActorMine = currentActor
-    ? isEncounterActorMine(campaign, currentUserId, currentActor)
-    : false
-  const currentTurnMovement = currentActorMine
-    ? encounterSessionState.data?.turnMovement.find((entry) => entry.actorId === currentActor?.id)
-    : undefined
   useEffect(() => {
     if (
       !currentActorMine ||

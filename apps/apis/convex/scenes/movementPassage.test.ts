@@ -5,10 +5,7 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import type { LiveSessionMovementCommitInput } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -34,12 +31,12 @@ import {
   preparePrivateMovementResponse,
   privateMovementEnvironment
 } from '../../tests/fixtures/liveMovementResponse'
-import { prepareSceneMovement } from './movementPerceptionAction'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import {
+  insertActiveLiveAuthority,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
-
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 
 const importDefinitions = makeFunctionReference<
   'mutation',
@@ -49,17 +46,6 @@ const importDefinitions = makeFunctionReference<
   },
   unknown
 >('content/import:importDefinitions')
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -163,15 +149,9 @@ async function setupPassageScene(
 }
 
 async function issuePassage(value: Awaited<ReturnType<typeof setupPassageScene>>) {
-  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  const { preparation, perceptionEnvironments } = await value.owner.caller.action((ctx) =>
-    prepareSceneMovement(ctx, value.request)
-  )
-  expect(preparation.outcome.kind).toBe('PENDING')
-  const initial = await value.owner.caller.mutation(finish, {
-    ...value.request,
-    perceptionEnvironments
-  })
+  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  expect(root.outcome.kind).toBe('PENDING')
+  const initial = await root.publish()
   const choice = initial.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
     throw new Error('Expected the native movement passage choice.')
@@ -281,8 +261,7 @@ describe('native Scene movement passage', () => {
 
   it('refuses a foreign Campaign binding at publication without publishing movement', async () => {
     const value = await setupPassageScene()
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, value.request)
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
     const before = await value.base.t.run(async (ctx) => {
       const binding = await ctx.db
         .query('encounterSceneBindings')
@@ -296,7 +275,7 @@ describe('native Scene movement passage', () => {
         receipts: await ctx.db.query('encounterRuleReceipts').collect()
       }
     })
-    await expect(value.owner.caller.mutation(finish, value.request)).rejects.toThrow()
+    await expect(root.publish()).rejects.toThrow()
     expect(
       await value.base.t.run(async (ctx) => ({
         entities: await ctx.db.query('sceneLiveEntities').collect(),
@@ -313,8 +292,7 @@ describe('native Scene movement passage', () => {
         { x: 300, y: 50 }
       ]
     })
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await expect(value.owner.caller.mutation(prepare, value.request)).rejects.toThrow(
+    await expect(planStagedMovementInRoom(value.owner.caller, value.saveId)).rejects.toThrow(
       'Voluntary movement cannot end inside a hostile occupied footprint.'
     )
   }, 30_000)
@@ -333,9 +311,9 @@ describe('native Scene movement passage', () => {
       radius: 5,
       targetActorId: value.base.mover.id
     })
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    expect((await value.owner.caller.mutation(prepare, value.request)).outcome.kind).toBe('PENDING')
-    const paused = await value.owner.caller.mutation(finish, value.request)
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    expect(root.outcome.kind).toBe('PENDING')
+    const paused = await root.publish()
     const evidence = paused.occurrence?.pending
     if (!evidence || evidence.kind !== 'D20_EVIDENCE')
       throw new Error(`Expected spatial pause d20 request; received ${evidence?.kind ?? 'none'}.`)

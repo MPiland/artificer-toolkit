@@ -4,14 +4,12 @@ import { v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   sceneGeometryBeginResultSchema,
-  sceneGeometryCommandResultSchema,
   sceneGeometryStageFogInputSchema,
   sceneGeometryExecuteInputSchema,
   sceneNativeGeometryCommandInputSchema,
   sceneGeometryObserveInputSchema,
   sceneGeometrySaveLookupSchema,
   type SceneGeometryBeginResult,
-  type SceneGeometryCommandResult,
   type SceneGeometryExecuteInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { sceneFogPatchInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
@@ -26,7 +24,6 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalMutation, withSceneVisionTracking } from '../lib/mutations'
 import { consumeSceneWriteRateLimit } from '../lib/rateLimits'
-import { internal } from '../_generated/api'
 // eslint-disable-next-line no-restricted-imports -- Preserve lazy return metadata and apply the same Scene vision tracking in the handler.
 import { internalMutation as rawInternalMutation, type MutationCtx } from '../_generated/server'
 import { parseFogSave } from './fogDocuments'
@@ -45,7 +42,6 @@ import { readPresentedVisionScene, readSessionVisionScope } from './sessionVisio
 import { assertSceneVisionCharacters } from './visionFreshness'
 import {
   assertConvexOwnsSceneLiveState,
-  readLiveCampaignAuthority,
   requireActiveCampaignLiveAuthority
 } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '../lib/domainRejections'
@@ -85,8 +81,6 @@ export async function beginSceneGeometry(
   // Parse again so storage never trusts its caller.
   const input = normalizeGeometryInput(sceneNativeGeometryCommandInputSchema.parse(args.input))
   const bound = input.type === 'MOVE_SCENE_TOKEN' && input.expectedEncounterVersion !== null
-  if (bound && !args.presentation)
-    throw new Error('Bound Scene movement requires a presentation context.')
   // The room admits a player's door change on a live Scene; the lock rule applies at publication.
   const liveSceneChange =
     liveAuthority !== undefined &&
@@ -100,12 +94,13 @@ export async function beginSceneGeometry(
   if (liveAuthority) {
     if (!liveSceneChange || liveAuthority.campaignId !== campaign.id)
       throw new Error('Live movement authority scope is inconsistent.')
+    if (bound && !args.presentation)
+      throw new Error('Bound Scene movement requires a presentation context.')
     await requireActiveCampaignLiveAuthority(ctx, liveAuthority)
   } else if (input.type === 'SET_SCENE_DOOR_STATE' || input.type === 'MOVE_SCENE_TOKEN') {
     await assertConvexOwnsSceneLiveState(ctx, campaign.id, header.id)
-    // While a room is live it owns Encounter movement, only on its presented Scene (D42).
-    if (bound && (await readLiveCampaignAuthority(ctx, campaign.id)))
-      rejectDomain('SCENE_NOT_PRESENTED')
+    // Only the Session room moves Encounter tokens, on its presented Scene (D42, D43).
+    if (bound) rejectDomain('SCENE_NOT_PRESENTED')
   }
   const sceneBinding = await ctx.db
     .query('encounterSceneBindings')
@@ -155,19 +150,6 @@ export async function beginSceneGeometry(
     if (prior.inputChecksum !== inputChecksum) throw new Error('Scene command ID was already used.')
     if (!priorSave || priorSave.status !== 'PUBLISHED' || priorSave.inputChecksum !== inputChecksum)
       throw new Error('Stored Scene geometry save is inconsistent.')
-    const preparation = readSpatialPreparation(priorSave)
-    if (bound && !priorSave.movementResolution && preparation?.outcome.kind === 'PENDING') {
-      const replay: SceneGeometryCommandResult = sceneGeometryCommandResultSchema.parse(
-        await ctx.runMutation(internal.scenes.geometryCommands.finish, {
-          saveId: priorSave.id,
-          baseOrdinal: null
-        })
-      )
-      return sceneGeometryBeginResultSchema.parse({
-        kind: 'REPLAY',
-        result: { ...prior.result, occurrence: replay.occurrence, replayed: true }
-      })
-    }
     return sceneGeometryBeginResultSchema.parse({
       kind: 'REPLAY',
       result: { ...prior.result, replayed: true }

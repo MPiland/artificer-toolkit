@@ -1,9 +1,8 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
@@ -200,7 +199,7 @@ export const movementReactionPendingContextDtoSchema = z
       null
     ),
     completedReactionExecutions: z._default(
-      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       []
     ),
     phase: movementReactionPendingPhaseDtoSchema,

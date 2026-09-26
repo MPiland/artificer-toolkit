@@ -5,22 +5,16 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -87,8 +81,9 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
     await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
     const beforePause = await actorChecksums(value)
-    expect((await value.owner.caller.mutation(prepare, value.request)).outcome.kind).toBe('PENDING')
-    const choice = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    expect(root.outcome.kind).toBe('PENDING')
+    const choice = (await root.publish()).occurrence?.pending
     expect(await actorChecksums(value)).toEqual(beforePause)
     if (!choice || choice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
@@ -197,8 +192,9 @@ it('skips a declined System-automatic reaction in Assisted mode without rolling 
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   const reactorBefore = await reactorChecksum(value, base.reactor.id)
-  expect((await value.owner.caller.mutation(prepare, value.request)).outcome.kind).toBe('PENDING')
-  const choice = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  expect(root.outcome.kind).toBe('PENDING')
+  const choice = (await root.publish()).occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION')
     throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
   const request = await planMovementDecisionInRoom(

@@ -6,9 +6,6 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   setupCreatureReactionRun,
   reactionRecords
@@ -19,18 +16,14 @@ import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runti
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { api } from '../_generated/api'
-import { executeInRoom, planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (maximum: number) => maximum - 1 }))
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -46,13 +39,10 @@ async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>
   )
 }
 
-async function publish(
-  scene: Awaited<ReturnType<typeof setupReactionMovementScene>>,
-  request: Request
-) {
-  await scene.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
-  const prepared = await scene.owner.caller.mutation(prepare, request)
-  const result = await scene.owner.caller.mutation(finish, request)
+async function publish(scene: Awaited<ReturnType<typeof setupReactionMovementScene>>) {
+  await scene.owner.caller.mutation(observe, { saveId: scene.saveId, characterRevisions: [] })
+  const prepared = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
+  const result = await prepared.publish()
   return { prepared, result }
 }
 
@@ -136,7 +126,7 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
   const base = await setupCreatureReactionRun(null, true, false, 'AUTOMATIC')
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   const before = await reactionRecords(base.t, base.run.id)
-  const choice = await publish(scene, scene.request)
+  const choice = await publish(scene)
   const published = await useAutomaticReaction(scene, choice.result.occurrence?.pending)
 
   expect(published.prepared.outcome?.kind).toBe('TERMINAL')
@@ -168,12 +158,12 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
     characterRevisions: []
   })
   const before = await reactionRecords(base.t, base.run.id)
-  const prepared = await scene.owner.caller.mutation(prepare, scene.request)
+  const prepared = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
   expect(prepared.outcome.kind).toBe('PENDING')
   expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   expect(await effects(base)).toEqual([])
 
-  const choice = await scene.owner.caller.mutation(finish, scene.request)
+  const choice = await prepared.publish()
   expect(await effects(base)).toEqual([])
   const attack = await useAutomaticReaction(scene, choice.occurrence?.pending)
   const attackPending = attack.result.occurrence?.pending

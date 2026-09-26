@@ -1,20 +1,22 @@
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import type { MutationCtx } from '../_generated/server'
-import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from '../characters/sheetFacts'
+import type { MutationCtx } from '../../convex/_generated/server'
+import {
+  loadCharacterSheetFacts,
+  type CharacterSheetSourceContext
+} from '../../convex/characters/sheetFacts'
 import {
   readEncounterMechanicsBatchTarget,
   persistEncounterMechanicsBatchPlan,
   type EncounterMechanicsBatchResult
-} from './mechanicsBatchPersistence'
+} from '../../convex/encounters/mechanicsBatchPersistence'
 
 export type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-export type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence'
+export type { EncounterMechanicsBatchResult } from '../../convex/encounters/mechanicsBatchPersistence'
 
 /**
- * Plans against current state and commits inside the caller's transaction. Sequential movement
- * settlements deliberately reload facts after preceding contacts; sourceContext reuses only
- * authored sources, never prior Character play state or rules output.
+ * Plans a batch against current state as the room does and persists it with Convex's writer in the
+ * caller's transaction; sourceContext reuses only authored sources.
  */
 export async function applyEncounterMechanicsBatch(
   ctx: MutationCtx,

@@ -3,7 +3,7 @@ import { z } from '../zod.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { AUTHORED_LIMITS } from './authoredLimits.js'
+import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import {
@@ -50,7 +50,7 @@ export const turnLegendaryActionRefreshDtoSchema: z.ZodMiniType<TurnLegendaryAct
       .number()
       .check(z.int())
       .check(z.gte(0))
-      .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1)),
+      .check(z.lte(MAX_ENCOUNTER_ACTORS - 1)),
     actorId: uuidSchema,
     actorCurrentnessChecksum: checksumSchema,
     ownerFeatureId: uuidSchema,
@@ -68,7 +68,7 @@ export const turnActionEconomyRefreshDtoSchema: z.ZodMiniType<TurnActionEconomyR
       .number()
       .check(z.int())
       .check(z.gte(0))
-      .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1)),
+      .check(z.lte(MAX_ENCOUNTER_ACTORS - 1)),
     actorId: uuidSchema,
     capabilityDefinitionId: uuidSchema,
     definitionVersion: positiveIntegerSchema,

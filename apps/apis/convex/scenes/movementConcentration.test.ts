@@ -5,8 +5,6 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -40,7 +38,8 @@ import { createSpatialRuleEffectStore } from '../rules/spatialEffectStore'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import {
   insertActiveLiveAuthority,
-  planMovementDecisionInRoom
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
@@ -49,15 +48,8 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 type MovementFixture = Awaited<ReturnType<typeof setupAutomaticCharacterMovement>>
 
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -391,9 +383,9 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   await refreshMovementSaveVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
 
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   expect(prepared.outcome.kind).toBe('PENDING')
-  const initial = await value.owner.caller.mutation(finish, value.request)
+  const initial = await prepared.publish()
   const pending = initial.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected the shared-effect Concentration evidence.')
@@ -582,7 +574,7 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
   await refreshMovementSaveVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
   const before = await records(value)
-  const prepared = await value.owner.caller.mutation(prepare, value.request)
+  const prepared = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   expect(prepared.outcome.kind).toBe('PENDING')
   if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected the later reaction choice.')
   const context = prepared.outcome.pendingSnapshot.applicationContext
@@ -610,13 +602,13 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
   expect(random).toHaveBeenCalledTimes(1)
   expect(await records(value)).toEqual(before)
 
-  const published = await value.owner.caller.mutation(finish, value.request)
+  const published = await prepared.publish()
   const after = await records(value)
   expect(published.occurrence?.pending).toMatchObject({ kind: 'MOVEMENT_REACTION' })
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
   expect(random).toHaveBeenCalledTimes(1)
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(prepared.publish()).resolves.toEqual({
     ...published,
     replayed: true
   })

@@ -13,7 +13,10 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { applyEncounterMechanicsBatch, type EncounterMechanicsBatchInput } from './mechanicsBatch'
+import {
+  applyEncounterMechanicsBatch,
+  type EncounterMechanicsBatchInput
+} from '../../tests/fixtures/mechanicsBatch'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 

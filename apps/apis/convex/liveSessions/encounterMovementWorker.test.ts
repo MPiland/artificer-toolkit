@@ -12,8 +12,6 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
@@ -47,7 +45,8 @@ import {
   insertActiveLiveAuthority,
   nextExternalAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 const workerSecret = 'private-movement-worker-test-secret-at-least-32-bytes'
@@ -63,17 +62,6 @@ const observe = makeFunctionReference<
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-type SceneMovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepareRoot = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const finishRoot = makeFunctionReference<
-  'mutation',
-  SceneMovementRequest,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 
 const concentrationAdvantageFeature = {
   id: '00000000-0000-4000-8000-000000000c30',
@@ -169,9 +157,8 @@ it.each([
     })
     await refreshMovementSaveVision(value)
     await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepareRoot, value.request)
-    const choice = (await value.owner.caller.mutation(finishRoot, value.request)).occurrence
-      ?.pending
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const choice = (await root.publish()).occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
       throw new Error('Expected the Assisted Use/Decline reaction choice.')
     const responseCommandId = crypto.randomUUID()
@@ -715,7 +702,11 @@ it.each([
       ).rejects.toThrow('Live Scene publication differs from the room prediction.')
       expect(await records()).toEqual(before)
       expect(await geometrySave()).toEqual(observedSave)
-      expect(await persistedAuthority()).toEqual({ sequence: 0, checksum: '0'.repeat(64) })
+      // The refused commits leave the authority where the root move's commit left it.
+      expect(await persistedAuthority()).toEqual({
+        sequence: authority.sequence - 1,
+        checksum: authority.expectedStateChecksum
+      })
     }
 
     if (asPlayer) {
@@ -854,8 +845,8 @@ it('bundles exactly the parts of a Character mover response the separate capture
   )
   await refreshMovementSaveVision(value)
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  await value.owner.caller.mutation(prepareRoot, value.request)
-  const choice = (await value.owner.caller.mutation(finishRoot, value.request)).occurrence?.pending
+  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+  const choice = (await root.publish()).occurrence?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
     throw new Error('Expected the reaction choice.')
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)

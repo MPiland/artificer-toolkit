@@ -1,27 +1,13 @@
-import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
-
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 function command(input: {
   encounterId: string
@@ -48,9 +34,8 @@ it.each(['USE', 'DECLINE'] as const)(
       stopOnFailedSave: true
     })
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-    await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-    await value.owner.caller.mutation(prepare, value.request)
-    const initial = await value.owner.caller.mutation(finish, value.request)
+    const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
+    const initial = await root.publish()
     const reactionChoice = initial.occurrence?.pending
     if (
       !reactionChoice ||

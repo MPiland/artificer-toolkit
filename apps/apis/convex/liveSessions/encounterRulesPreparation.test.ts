@@ -36,8 +36,6 @@ import { loadMovementTargets } from '../encounters/movementTargets'
 import { prepareNativeEncounterActionMechanics } from '../encounters/actionMechanicsPreparation'
 import { readNativeActionSceneContext } from '../encounters/actionSceneContext'
 import { prepareNativeActionEconomy } from '../encounters/actionEconomy'
-import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersistence'
-import { settleNativeEncounterActionMechanics } from '../encounters/actionMechanics'
 import { readEncounterRulesCapture } from './encounterRulesCapture'
 import { readCharacterRulesCapture } from './characterRulesCapture'
 import { createActiveRuleEffectStore, listActiveRuleEffects } from '../rules/effectStore'
@@ -550,86 +548,6 @@ it('plans the same Character action and target facts in the Worker using private
         ).toBe(dependency.readChecksum)
     }
   })
-
-  let settlementProofError: unknown
-  await expect(
-    fixture.owner.caller.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
-        .unique()
-      if (!row) throw new Error('Missing Encounter.')
-      const state = readRunState(row)
-      const actors = await readRunActors(ctx, state)
-      const prepared = await prepareNativeEncounterActionMechanics(ctx, {
-        state,
-        actors,
-        actor: actors.find((actor) => actor.id === fixture.actor.id)!,
-        target: actors.find((actor) => actor.id === target.id)!,
-        actionId,
-        wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
-        overridable: true,
-        campaignOwnerUserId: fixture.owner.userId
-      })
-      const settled = await settleNativeEncounterActionMechanics(ctx, {
-        prepared,
-        encounterId: state.id,
-        expectedEncounterVersion: state.version,
-        occurrenceId: actual.occurrenceId,
-        sourceCommandId: command.commandId,
-        commandId: command.commandId,
-        occurredAt: actual.occurredAt,
-        applications: [
-          ...actual.execution.applications,
-          ...actual.preparedEffects.relationshipConditionApplications
-        ],
-        forceTargetVersionAdvance:
-          prepared.target.kind === 'CHARACTER' &&
-          (actual.preparedEffects.stateEffect !== null ||
-            actual.preparedEffects.recurringEffect !== null)
-      })
-      if (!actual.actionEconomy) throw new Error('Missing action economy consumption.')
-      await consumeNativeActionEconomy(ctx, {
-        actor: settled.settledSource,
-        consumption: actual.actionEconomy,
-        overridden: false
-      })
-      try {
-        const nativeActors = await readRunActors(ctx, state)
-        expect(actual.settlement.actors).toEqual(nativeActors)
-        expect(nativeActors.find((actor) => actor.id === fixture.actor.id)?.resources).not.toEqual(
-          prepared.actor.resources
-        )
-        const nativeTargets = await loadMovementTargets(ctx, {
-          encounterId: state.id,
-          expectedEncounterVersion: state.version,
-          targetActorIds: [fixture.actor.id, target.id],
-          includeReactionSources: true
-        })
-        for (const actorId of [fixture.actor.id, target.id]) {
-          const projected = actual.settlement.projectedTargets.get(actorId)
-          const native = nativeTargets.get(actorId)
-          expect(projected).toBeDefined()
-          expect(native).toBeDefined()
-          expect(projected?.characterFacts?.active.streamVersion).toBe(
-            native?.characterFacts?.active.streamVersion
-          )
-          expect(projected?.characterFacts?.active.checksum).toBe(
-            native?.characterFacts?.active.checksum
-          )
-          expect({ ...projected, characterFacts: null }).toEqual({
-            ...native,
-            characterFacts: null
-          })
-        }
-      } catch (error) {
-        settlementProofError = error
-      }
-      throw new Error('Rollback native action settlement proof.')
-    })
-  ).rejects.toThrow('Rollback native action settlement proof.')
-  if (settlementProofError) throw settlementProofError
-  expect(await storedRecords()).toEqual(beforePlanning)
 
   // With the allowance spent, the DO planner and the Convex fallback raise the same warning.
   const economy = actual.actionEconomy

@@ -39,7 +39,7 @@ export function movementDamageEnvelope<
   return envelope
 }
 
-export function movementConcentrationDamageSource(
+function movementConcentrationDamageSource(
   remainder: FrozenMovementReactionRemainder,
   source: DamageSource
 ) {

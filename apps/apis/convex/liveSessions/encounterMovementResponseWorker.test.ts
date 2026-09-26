@@ -7,8 +7,6 @@ import type {
   LiveSessionMovementCommitInput,
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
@@ -24,7 +22,8 @@ import {
   insertActiveLiveAuthority,
   nextExternalAuthority,
   stubLiveSessionFetch,
-  workerEnvironment
+  workerEnvironment,
+  planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -32,18 +31,11 @@ vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 const workerSecret = 'private-movement-response-worker-secret-at-least-32-bytes'
 const authSecret = 'private-movement-response-continuation-secret-at-least-32-bytes'
 const environment = workerEnvironment(workerSecret)
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
   { saveId: string }
 >('scenes/geometryStaging:observe')
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -111,7 +103,7 @@ it('publishes a sealed movement response through the private DO path without rep
         .unique()
     }))
   await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
-  const initialPreparation = await value.owner.caller.mutation(prepare, value.request)
+  const initialPreparation = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   expect(initialPreparation.outcome.kind).toBe('PENDING')
   if (initialPreparation.outcome.kind !== 'PENDING')
     throw new Error('Expected movement choice pause.')
@@ -125,12 +117,12 @@ it('publishes a sealed movement response through the private DO path without rep
     (entry) => 'candidate' in entry
   )
   expect(crossedEffects.map((entry) => entry.candidate.candidate.effectId)).toContain(effect.id)
-  const initial = await value.owner.caller.mutation(finish, value.request)
+  const initial = await initialPreparation.publish()
   const choice = initial.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
     throw new Error('Expected a published movement choice.')
   expect((await records()).effects.map((entry) => entry.id)).not.toContain(effect.id)
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toMatchObject({
+  await expect(initialPreparation.publish()).resolves.toMatchObject({
     replayed: true
   })
 

@@ -5,6 +5,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 const checksumSchema = z.string().check(z.regex(/^[a-f0-9]{64}$/))
 const actionIdentitySchema = z
@@ -204,7 +205,7 @@ export const movementReactionTimelineEntryDtoSchema = z
 
 export const movementReactionTimelineDtoSchema = z
   .array(movementReactionTimelineEntryDtoSchema)
-  .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   .check(
     z.superRefine((timeline, context) => {
       let prior: {

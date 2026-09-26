@@ -171,7 +171,7 @@ export function verifyCompletedMovementReactionPlan<
     throw new Error('The movement reaction TEST did not select one terminal outcome.')
 }
 
-export function requireCompletedMovementReaction<
+function requireCompletedMovementReaction<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
 >(input: MovementReactionSettlementInput<TFacts, TRow>) {
@@ -193,7 +193,7 @@ export function requireCompletedMovementReaction<
   return input.execution
 }
 
-export function reactionMechanicsInput<
+function reactionMechanicsInput<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
 >(
@@ -223,7 +223,7 @@ export function reactionMechanicsInput<
   }
 }
 
-export function movementReactionActors<
+function movementReactionActors<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
 >(
@@ -267,7 +267,7 @@ export function movementReactionActors<
   return { sourceActor, targetActor, charge }
 }
 
-export function movementReactionSettlement<
+function movementReactionSettlement<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
 >(

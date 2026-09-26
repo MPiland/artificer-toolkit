@@ -1,14 +1,20 @@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import {
+  sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
   sceneStoredInitialStateSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+import type { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { createEncounterSceneFixture } from './encounterScene'
 import { readRunProjection, readRunState } from '../../convex/encounters/documents'
 import { readSessionVisionScope } from '../../convex/scenes/sessionVisionDocuments'
+import { readGeometrySave, readSpatialPreparation } from '../../convex/scenes/geometryDocuments'
+import { internal } from '../../convex/_generated/api'
+import { seedSpatialEffect } from './spatialEffect'
+import { insertActiveLiveAuthority, planStagedMovementInRoom } from './liveSessionWorker'
 export async function createSpatialPreparationFixture() {
   const base = await createEncounterSceneFixture()
   const expectedEncounterVersion = await base.owner.caller.run(async (ctx) => {
@@ -173,4 +179,98 @@ export async function grantFixtureActorControl(
     projectionJson: JSON.stringify(granted),
     projectionChecksum: checksumCanonicalJson(granted)
   })
+}
+
+/**
+ * A player's staged bound move over one seeded spatial hazard in an Assisted Run, planned by the
+ * room to a TERMINAL outcome with a live authority in place, ready to commit.
+ */
+export async function planSpatialTerminalFixture(
+  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
+) {
+  const fixture = await createSpatialPreparationFixture()
+  const { base, tokenId } = fixture
+  const input = path ? { ...fixture.input, path } : fixture.input
+  const sceneTokens = base.tokens.map((token) => ({
+    ...token,
+    id: token.id.toLowerCase(),
+    controlledByUserIds: [base.owner.userId]
+  }))
+  await base.owner.caller.run(async (ctx) => {
+    if (path) {
+      const save = await ctx.db
+        .query('sceneGeometrySaves')
+        .withIndex('by_publicId', (q) => q.eq('id', fixture.saveId))
+        .unique()
+      if (!save) throw new Error('Fixture geometry save missing')
+      await ctx.db.patch(save._id, {
+        input,
+        inputChecksum: checksumCanonicalJson(input)
+      })
+    }
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .unique()
+    if (!run) throw new Error('Fixture Run missing')
+    const state = { ...readRunState(run), automationMode: 'ASSISTED' as const }
+    await ctx.db.patch(run._id, {
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state)
+    })
+    await ctx.db.insert('encounterActorTokenBindings', {
+      encounterId: base.run.id,
+      actorId: base.run.actors[0]!.id,
+      sceneId: base.sceneId,
+      tokenId
+    })
+    // The moving player controls the bound actor; its Scene token control no longer applies.
+    await grantFixtureActorControl(ctx, {
+      encounterId: base.run.id,
+      actorId: base.run.actors[0]!.id,
+      controllerUserIds: [base.owner.userId]
+    })
+    for (const token of sceneTokens) {
+      const row = await ctx.db
+        .query('sceneDefinitionEntities')
+        .withIndex('by_saveId_collection_ordinal', (q) =>
+          q
+            .eq('saveId', base.saveId)
+            .eq('value.collection', 'tokens')
+            .eq('ordinal', sceneTokens.indexOf(token))
+        )
+        .unique()
+      if (!row) throw new Error('Fixture token missing')
+      const { _id, _creationTime, ...stored } = row
+      const value = { collection: 'tokens' as const, entity: token }
+      await ctx.db.replace(
+        _id,
+        sceneStoredDefinitionEntitySchema.parse({
+          ...stored,
+          entityId: token.id,
+          value,
+          checksum: checksumCanonicalJson(value)
+        })
+      )
+    }
+  })
+  const effect = await seedSpatialEffect(base)
+  // A live room plans the move and Convex commits it (D43).
+  await base.owner.caller.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch: crypto.randomUUID(),
+      createdAt: new Date().toISOString()
+    })
+  )
+  await base.owner.caller.mutation(internal.scenes.geometryStaging.observe, {
+    saveId: fixture.saveId,
+    characterRevisions: []
+  })
+  const plan = await planStagedMovementInRoom(base.owner.caller, fixture.saveId)
+  const preparation = await base.owner.caller.run(async (ctx) =>
+    readSpatialPreparation((await readGeometrySave(ctx, fixture.saveId)).save)
+  )
+  if (preparation?.outcome.kind !== 'TERMINAL') throw new Error('Expected a terminal room plan.')
+  return { ...fixture, input, plan, preparation, effect }
 }

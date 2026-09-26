@@ -10,7 +10,7 @@ import type {
   LiveSessionMovementPrepareInput
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
+import type { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import {
@@ -36,7 +36,7 @@ type AutomaticFixture = Awaited<ReturnType<typeof setupAutomaticCharacterMovemen
 type MovementFixture = {
   base: Pick<AutomaticFixture['base'], 't' | 'campaign' | 'run'>
   sceneId: string
-  request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+  request: ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 }
 type Caller = AutomaticFixture['owner']['caller']
 const capture = makeFunctionReference<

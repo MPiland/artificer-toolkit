@@ -17,7 +17,7 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
-import { createRulesRuntime } from '../../convex/rules/runtime'
+import { createRulesRuntime } from './rulesRuntime'
 import { createSpatialRuleEffectStore } from '../../convex/rules/spatialEffectStore'
 import { setupAutomaticSceneMovement } from './automaticSceneMovement'
 

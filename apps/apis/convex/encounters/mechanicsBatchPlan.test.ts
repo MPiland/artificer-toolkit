@@ -3,7 +3,10 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readRunActor, readRunState } from './documents'
-import { applyEncounterMechanicsBatch, type EncounterMechanicsBatchInput } from './mechanicsBatch'
+import {
+  applyEncounterMechanicsBatch,
+  type EncounterMechanicsBatchInput
+} from '../../tests/fixtures/mechanicsBatch'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 
 function command(input: {

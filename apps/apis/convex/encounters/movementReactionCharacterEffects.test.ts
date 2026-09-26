@@ -1,26 +1,18 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { setupMovementReactionCharacterEffects } from '../../tests/fixtures/movementReactionCharacterEffects'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
   nextRollInt: (sides: number) => (sides === 20 ? 19 : 0)
 }))
 
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -107,18 +99,18 @@ it('creates one Character reaction effect after the public choice and preserves 
     sheet: [expect.objectContaining({ notes: 'Sheet condition survives reaction effect' })],
     campaign: [expect.objectContaining({ notes: 'Campaign condition survives reaction effect' })]
   })
-  const preparedRoot = await value.owner.caller.mutation(prepare, value.request)
+  const preparedRoot = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   expect(preparedRoot.outcome.kind).toBe('PENDING')
   expect(await snapshot(value)).toEqual(beforeRoot)
 
-  const pendingRoot = await value.owner.caller.mutation(finish, value.request)
+  const pendingRoot = await preparedRoot.publish()
   const pending = pendingRoot.occurrence?.pending
   if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
     throw new Error('Expected public movement reaction choice.')
   const afterPending = await snapshot(value)
   expect(afterPending.effects).toEqual([])
   expect(conditionSources(afterPending)).toEqual(conditionSources(beforeRoot))
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toEqual({
+  await expect(preparedRoot.publish()).resolves.toEqual({
     ...pendingRoot,
     replayed: true
   })
@@ -169,9 +161,9 @@ it('projects the first used automatic Character reaction into the second reactio
     saveId: value.request.saveId,
     characterRevisions: []
   })
-  await value.owner.caller.mutation(prepare, value.request)
+  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   // Assisted play offers the authored automatic reaction as Use/Decline; the GM uses it.
-  const automatic = (await value.owner.caller.mutation(finish, value.request)).occurrence?.pending
+  const automatic = (await root.publish()).occurrence?.pending
   if (!automatic || automatic.kind !== 'MOVEMENT_REACTION' || !automatic.choice.options[0])
     throw new Error('Expected the automatic reaction Use/Decline choice.')
   const firstRequest = await planMovementDecisionInRoom(

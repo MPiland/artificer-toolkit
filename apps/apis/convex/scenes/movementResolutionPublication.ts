@@ -1,4 +1,4 @@
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
+import type { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -36,12 +36,12 @@ import {
   type Geometry,
   type assertMovementResolutionCurrent
 } from './movementResolutionDocuments'
-import type { settleSceneMovementSettlements } from './movementSettlements'
+import type { SpatialPendingPublicationCallbacks } from './spatialPendingPublication'
 import type { SpatialTerminalPublicationCallbacks } from './spatialTerminalPublication'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { rejectDomain } from '../lib/domainRejections'
 
-type MovementSettlement = Awaited<ReturnType<typeof settleSceneMovementSettlements>>
+type MovementSettlement = Awaited<ReturnType<SpatialPendingPublicationCallbacks<unknown>['settle']>>
 
 /** The room's frozen response outcome, its decision history, and the settled mechanics. */
 type MovementResponseCommit = MovementSettlement & {
@@ -58,7 +58,7 @@ type MovementResponseCommit = MovementSettlement & {
 type MovementResponsePublicationCallbacks = {
   commit: (
     ctx: MutationCtx,
-    request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
+    request: ReturnType<typeof sceneGeometryFinishInputSchema.parse>,
     response: Awaited<ReturnType<typeof readResponse>>
   ) => Promise<MovementResponseCommit>
   project: SpatialTerminalPublicationCallbacks['project']
@@ -249,7 +249,7 @@ async function projectCurrentOccurrence(
 /** Publishes one response receipt, occurrence update, Run update, and the caller's Scene writes atomically. */
 export async function publishMovementResponse(
   ctx: MutationCtx,
-  request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
+  request: ReturnType<typeof sceneGeometryFinishInputSchema.parse>,
   geometry: Geometry | null,
   callbacks: MovementResponsePublicationCallbacks
 ): Promise<{ occurrence: EncounterRuleOccurrenceSummaryDto }> {

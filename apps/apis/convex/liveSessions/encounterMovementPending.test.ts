@@ -1,8 +1,6 @@
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   liveSessionMovementSettlementSchema,
   type LiveSessionMovementCommitInput
@@ -24,14 +22,11 @@ import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import {
   expectedMovementScene,
   insertActiveLiveAuthority,
-  nextExternalAuthority
+  nextExternalAuthority,
+  planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -105,10 +100,6 @@ async function preparePrivateCommit(value: Fixture) {
     saveId: value.saveId,
     characterRevisions: []
   })
-  const beforePreparation = await records(value)
-  // Native preparation supplies trusted rule evidence; this test exercises only private publication.
-  const preparation = await value.owner.caller.mutation(prepare, value.request)
-  expect(await records(value)).toEqual(beforePreparation)
   const epoch = crypto.randomUUID()
   await value.base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
@@ -117,6 +108,10 @@ async function preparePrivateCommit(value: Fixture) {
       createdAt: value.base.campaign.createdAt
     })
   )
+  const beforePreparation = await records(value)
+  // The room plans the rules; this test exercises only private publication.
+  const { preparation } = (await planStagedMovementInRoom(value.owner.caller, value.saveId)).commit
+  expect(await records(value)).toEqual(beforePreparation)
   const revisions = await value.owner.caller.run((ctx) =>
     readLiveSessionRulesRevisions(ctx, {
       systemId: value.base.campaign.gameSystemId,

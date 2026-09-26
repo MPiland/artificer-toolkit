@@ -29,6 +29,7 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from './spatialFacts.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 /**
  * Immutable pending evidence context for an optional-combat contested action.
@@ -116,7 +117,7 @@ export const optionalCombatPassageContinuationDtoSchema = z
       .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
     appliedSpatialPrefix: z.nullable(z.lazy(() => storedRuleExecutionResultDtoSchema)),
     completedReactionExecutions: z._default(
-      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      z.array(movementReactionActionExecutionDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       []
     ),
     remainingSpatialCandidates: z

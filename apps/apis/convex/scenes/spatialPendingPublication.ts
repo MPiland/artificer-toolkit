@@ -1,5 +1,5 @@
+import type { sceneGeometryFinishInputSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
@@ -35,7 +35,7 @@ import { readGeometrySave, readSpatialPreparation } from './geometryDocuments'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import type { readSpatialSceneGeometry } from './spatialGeometry'
 
-type SceneSpatialPrepareInput = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SpatialPendingGeometry = Awaited<ReturnType<typeof readSpatialSceneGeometry>>
 
 export type SpatialPendingPublicationCallbacks<TSettlement> = {
@@ -122,7 +122,7 @@ function movementHistory(
 /** The caller commits the matching token and clipped fog in this same mutation. */
 export async function publishSpatialPending<TSettlement>(
   ctx: MutationCtx,
-  request: ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
+  request: ReturnType<typeof sceneGeometryFinishInputSchema.parse>,
   geometry: Awaited<ReturnType<typeof readSpatialSceneGeometry>> | null,
   callbacks: SpatialPendingPublicationCallbacks<TSettlement>
 ) {

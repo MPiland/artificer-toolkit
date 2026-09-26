@@ -9,7 +9,6 @@ import {
   type SceneGeometryBeginResult,
   type SceneGeometryCommandResult,
   type SceneGeometryExecuteInput,
-  type sceneGeometryFinishInputSchema,
   type SceneGeometryPage,
   type SceneGeometryPageInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
@@ -26,20 +25,14 @@ import {
   type SceneToken,
   type SceneBarrier,
   type SceneDoorState,
-  type SceneFogChunk,
-  type ScenePoint
+  type SceneFogChunk
 } from '@artificer-toolkit/shared/vtt/scene'
 import { makeFunctionReference } from 'convex/server'
 import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
-import {
-  preparedMovementCost,
-  preparedMovementSegment
-} from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import { action, type ActionCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { geometryTarget } from './geometryValues'
 import { loadSceneSessionVision } from './sessionVisionComposition'
-import { prepareSceneMovement } from './movementPerceptionAction'
 
 const geometryBeginReference = makeFunctionReference<
   'mutation',
@@ -60,7 +53,7 @@ export const execute = action({
   }
 })
 
-/** Hydrates and stages the authoritative movement segment before atomic Scene publication. */
+/** Hydrates the Scene and stages the command's fog before atomic Scene publication. */
 export async function completeSceneGeometry(
   ctx: Pick<ActionCtx, 'runQuery' | 'runMutation'>,
   begin: Extract<SceneGeometryBeginResult, { kind: 'READY' }>
@@ -72,9 +65,6 @@ export async function completeSceneGeometry(
   const barriers: SceneBarrier[] = []
   const doorStates: Record<string, SceneDoorState> = {}
   let baseOrdinal: number | null = null
-  const tokenOrdinals: NonNullable<
-    ReturnType<typeof sceneGeometryFinishInputSchema.parse>['tokenOrdinals']
-  > = []
   for (const collection of ['tokens', 'barriers'] as const) {
     let next: SceneGeometryPage['next'] = { phase: 'BASE', afterOrdinal: null }
     const ids = new Set<string>()
@@ -106,13 +96,8 @@ export async function completeSceneGeometry(
           ordinal < header.counts[collection]
         )
           baseOrdinal = ordinal
-        if (value.collection === 'tokens') {
-          tokens.push(value.entity)
-          tokenOrdinals.push({
-            tokenId: value.entity.id,
-            baseOrdinal: ordinal < header.counts.tokens ? ordinal : null
-          })
-        } else {
+        if (value.collection === 'tokens') tokens.push(value.entity)
+        else {
           barriers.push(value.entity)
           if (value.entity.kind === 'DOOR') {
             if (entry.doorState === null)
@@ -143,30 +128,22 @@ export async function completeSceneGeometry(
     barriers,
     doorStates
   }
-  let delta = target.delta
-  let movementPath: ScenePoint[] | undefined
-  let movementCost: number | undefined
-  let prepared: Awaited<ReturnType<typeof prepareSceneMovement>> | undefined
-  if (input.type === 'MOVE_SCENE_TOKEN') {
-    const startDistance = begin.movementStartDistance ?? 0
-    const remaining = sliceMovementPath(input.path, startDistance, Number.POSITIVE_INFINITY)
-    const first = remaining[0]!
+  const delta = target.delta
+  // Exploration follows the walked path; begin refused Encounter-bound moves (D43).
+  const movementPath =
+    input.type === 'MOVE_SCENE_TOKEN'
+      ? sliceMovementPath(input.path, 0, Number.POSITIVE_INFINITY)
+      : null
+  if (input.type === 'MOVE_SCENE_TOKEN' && movementPath) {
+    const first = movementPath[0]!
     const token = prior.tokens.find((entry) => entry.id === input.tokenId)
     if (!token || Math.hypot(token.position.x - first.x, token.position.y - first.y) > 1e-8)
       throw new Error('Movement does not begin at the current token position.')
     const failure =
-      remaining.length > 1
-        ? sceneTokenMovementFailure(prior, input.tokenId, remaining.at(-1)!, remaining)
+      movementPath.length > 1
+        ? sceneTokenMovementFailure(prior, input.tokenId, movementPath.at(-1)!, movementPath)
         : null
     if (failure) throw new Error(failure)
-    if (input.expectedEncounterVersion !== null)
-      prepared = await prepareSceneMovement(ctx, { saveId, baseOrdinal, tokenOrdinals })
-    const walk = { path: input.path, startDistance, outcome: prepared?.preparation.outcome ?? null }
-    const segment = preparedMovementSegment(walk)
-    movementPath = segment.path
-    // The walked segment's cost becomes a bound actor's turn movement (D38).
-    movementCost = preparedMovementCost({ ...walk, grid: prior.grid, scene: prior })
-    delta = { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: segment.position }
   }
   const after = applySceneGeometryDelta(prior, delta)
   if (
@@ -268,12 +245,6 @@ export async function completeSceneGeometry(
     }
   }
   return sceneGeometryCommandResultSchema.parse(
-    await ctx.runMutation(internal.scenes.geometryCommands.finish, {
-      saveId,
-      baseOrdinal,
-      ...(prepared
-        ? { tokenOrdinals, perceptionEnvironments: prepared.perceptionEnvironments, movementCost }
-        : {})
-    })
+    await ctx.runMutation(internal.scenes.geometryCommands.finish, { saveId, baseOrdinal })
   )
 }

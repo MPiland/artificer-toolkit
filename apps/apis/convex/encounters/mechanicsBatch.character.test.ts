@@ -7,7 +7,10 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
-import { applyEncounterMechanicsBatch, type EncounterMechanicsBatchInput } from './mechanicsBatch'
+import {
+  applyEncounterMechanicsBatch,
+  type EncounterMechanicsBatchInput
+} from '../../tests/fixtures/mechanicsBatch'
 
 function damage(input: { actorId: string; current: number; temporary: number; maximum: number }) {
   return {

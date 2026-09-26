@@ -564,9 +564,11 @@ Session requires the Encounter version; finished-Session bindings do not block o
 Scene undo walks movement history with opaque database continuation cursors so equal-version rows
 cannot hide an older movement. It skips only null-delta/no-fog receipts; a latest fog-only event
 refuses token undo, preserving the existing reversal boundary.
-Movement decisions are planned only by the Session room on its presented Scene and committed through
-the private movement routes (D42, superseding D29); Convex has no other decision staging path. A bound
-move on a live Campaign's non-presented Scene is refused with `SCENE_NOT_PRESENTED`.
+Encounter-bound moves and movement decisions are planned only by the Session room on its presented
+Scene and committed through the private movement routes (D42, D43, superseding D29); Convex has no
+other bound-movement staging path and evaluates no movement rule. Public staging refuses every bound
+move with `SCENE_NOT_PRESENTED`, whether no room is live or a live room presents another Scene;
+unbound moves and door changes still stage natively while no room owns the Scene.
 The server classifies movement decisions and retains the exact response plus prior pending snapshot
 in the existing private geometry save. The original path remains immutable; Node derives its
 remaining segment from the stored boundary, including a one-point segment at the final boundary.
@@ -885,24 +887,13 @@ and Chromium drawer proof is retained in `.codex/validation/disarm-client-202609
 Generated contracts, actual backend/browser/reconnect/contention and complete release lifecycle
 evidence remain pending.
 
-Native movement perception capture also exports its complete result validator through a metadata
-getter. Its raw internal mutation explicitly applies the same Scene vision-tracked context before
-entering the unchanged read/validation body; importing the helper does not convert return metadata.
 Assignment-only readers use the focused Campaign assigned-Character module. It preserves full Character checksum, route, ownership, membership, System, and unique-assignment validation without initializing Campaign presentation text policy. The original Campaign documents export remains available for presentation callers.
 
-Capture imports current source facts through the focused `movementReactionFacts` module. The original
-full fact API adds the execution runtime for eligibility/response evaluation; capture does not create
-that unused runtime. Current target policy uses focused Character and Encounter policy modules, with
-the same installed System identity, input/output validation and dispatch errors. Active discovery and
-response helpers live in `movementPerceptionValidation`, keeping their modules out of capture's
-initial import path. All receiving/control/origin checks, complete source catalogues, readiness,
-current effects, current Character reads and exact issued-contact construction are preserved.
 Retained pending-command replay compares the original geometry occurrence with the same caller projection of the verified original pending snapshot. The full owner receipt and current occurrence remain independently validated; another controller's pending choice stays private.
 
-Native geometry begin delegates retained pending-command replay to the existing geometry finish
-mutation through `MutationCtx.runMutation`. Convex runs that nested call in the parent transaction;
-its isolated JavaScript context keeps the movement preparation/response module out of new begin.
-Finish retains the complete stored replay comparisons, current authority and Scene vision tracking.
+Geometry begin answers an already-published command with its stored result as a replay; the room's
+own journal answers a bound move's retry, and its commit route replays the pending or terminal
+publication with the complete stored comparisons (D43).
 The parent still parses the complete begin result, and an unhandled nested failure aborts the parent.
 
 ### Public authored version identity (CURRENT, D42)
@@ -2544,7 +2535,9 @@ Character play writes therefore leave unrelated Session and System markers uncha
 is the initial `null` revision, so existing data needs no backfill. Markers do not replace current
 authorization, integrity checks, or the exact Scene, Run and Character versions.
 
-`scenes/geometryActions:execute` accepts the existing `{ input }` envelope plus an optional `session`
+`scenes/geometryActions:execute` stages owner edits, door changes and unbound moves only; it refuses
+an Encounter-bound move with `SCENE_NOT_PRESENTED` (D43). It accepts the existing `{ input }`
+envelope plus an optional `session`
 containing Session ID, expected Session version and expected presentation version. Ordinary owner edits
 need no Session. Session edits require current owner/OPEN/presented authority, including on replay;
 omitting or switching the original optional Session identity cannot replay a retained command. Old

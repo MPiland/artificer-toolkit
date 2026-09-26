@@ -1,9 +1,5 @@
-import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   setupAutomaticSceneMovement,
@@ -14,22 +10,13 @@ import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { api } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
-import { executeInRoom, planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  planMovementDecisionInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
-
-type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
-  'scenes/geometryCommands:finish'
-)
-const observe = makeFunctionReference<
-  'mutation',
-  { saveId: string; characterRevisions: [] },
-  { saveId: string }
->('scenes/geometryStaging:observe')
 
 function response(input: {
   encounterId: string
@@ -71,12 +58,10 @@ async function effects(value: Awaited<ReturnType<typeof setupAutomaticSceneMovem
 }
 
 async function publish(value: Awaited<ReturnType<typeof setupAutomaticSceneMovement>>) {
-  const { request } = value
-  await value.owner.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
   const before = await mechanics(value)
-  const { outcome } = await value.owner.caller.mutation(prepare, request)
+  const root = await planStagedMovementInRoom(value.owner.caller, value.saveId)
   expect(await mechanics(value)).toEqual(before)
-  return { prepared: { outcome }, result: await value.owner.caller.mutation(finish, request) }
+  return { root, published: { prepared: { outcome: root.outcome }, result: await root.publish() } }
 }
 
 function stage(
@@ -119,7 +104,8 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   )
   if (!beforeTarget) throw new Error('Expected mover state.')
 
-  let published = await publish(value)
+  const staged = await publish(value)
+  let published = staged.published
   let plan: Awaited<ReturnType<typeof stage>>
   expect(published.prepared.outcome.kind).toBe('PENDING')
   let pending = published.result.occurrence?.pending
@@ -168,7 +154,7 @@ it('publishes two assisted spatial save contacts before both retained reactions'
     replayed: true,
     occurrence: { status: 'COMPLETE', pending: null }
   })
-  await expect(value.owner.caller.mutation(finish, value.request)).resolves.toMatchObject({
+  await expect(staged.root.publish()).resolves.toMatchObject({
     occurrence: { status: 'COMPLETE', pending: null }
   })
   expect(await mechanics(value)).toEqual(complete)
@@ -199,7 +185,7 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
     (actor) => actor.id === value.base.mover.id
   )
   if (!beforeTarget) throw new Error('Expected mover state.')
-  let published = await publish(value)
+  let { published } = await publish(value)
   let plan: Awaited<ReturnType<typeof stage>>
   let pending = published.result.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')

@@ -25,7 +25,10 @@ import type {
   ScenePoint,
   SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignVttTool } from './vttSceneRenderer'
+import { isEncounterActorMine } from './encounterActorControl'
 import {
   canControlSceneToken,
   resolveSceneTokenMove,
@@ -207,4 +210,25 @@ export function createSceneToken(
     vision: null,
     width: size
   }
+}
+
+/**
+ * The Run's current turn as the stage offers it: the current actor, whether the viewer acts for it
+ * (the GM for every actor, a player for an actor they control), and that actor's movement readout
+ * (V07.5), which only a viewer who acts for it sees.
+ */
+export function readActiveTurn(
+  campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
+  currentUserId: string,
+  state: EncounterSessionStateDto | undefined
+) {
+  const encounter = state?.encounter?.status === 'ACTIVE' ? state.encounter : undefined
+  const currentActor = encounter?.actors.find((actor) => actor.id === encounter.currentActorId)
+  const currentActorMine = currentActor
+    ? isEncounterActorMine(campaign, currentUserId, currentActor)
+    : false
+  const turnMovement = currentActorMine
+    ? state?.turnMovement.find((entry) => entry.actorId === currentActor?.id)
+    : undefined
+  return { encounter, currentActor, currentActorMine, turnMovement }
 }

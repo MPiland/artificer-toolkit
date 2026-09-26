@@ -236,21 +236,20 @@ inputs include the original private row so existing maintenance checksums surviv
 they stay inside the trusted Worker boundary. The planner serializes ordered, bounded
 spatial, reaction, passage-allowance and concentration outcomes and computes final actor rules in the DO. Private
 preparation checks captured revisions and freezes the existing Scene save without gameplay writes.
-The private movement commit coordinator reuses the native Scene, pending and terminal
-publication writers, applying those closed outcomes in their original order within one Convex
-transaction. Completed retries verify stored receipts before checking consumed source revisions.
+The private movement commit coordinator reuses the Convex Scene, pending and terminal publication
+writers, applying those closed outcomes in their original order within one Convex transaction. Completed retries verify stored receipts before checking consumed source revisions.
 Pending publication settles only the explicit applied spatial prefix and completed reactions. A
 spatial dice pause may retain evaluated contacts that have not changed gameplay state; that evidence
-must remain unsettled. Native pending publication shares its persistence writer through evaluation,
-settlement and projection callbacks; native adapters retain their existing computation. The private
+must remain unsettled. Pending and terminal publication take their evaluation, settlement and
+projection as callbacks, which the room's commit supplies from its frozen plan. The private
 `encounter-movement-prepare` and `encounter-movement` HTTP routes require both the Worker secret and
 the initiating user's identity, then use the same epoch, membership, save and revision checks as the
 internal mutations. Initial pending, terminal and response publication share this commit route.
 Response publication preserves prior contact evidence and commits only newly applied contacts and
 new Concentration children; an already committed damage contact is not applied again when its child
 check finishes. A completed passage consumes its validated allowance once before the remaining move.
-Native response adapters reuse the same rules coordinators; the Convex publication layer imports
-only the persistence and projection pieces. Local transaction tests cover response authority, retained
+The Convex publication layer imports only the persistence and projection pieces; Convex evaluates no
+movement rule and rolls no movement die (D41, D43). Local transaction tests cover response authority, retained
 one-shot effects, PLAYER Concentration cleanup, Passage allowance rollback and exact retries. The room
 now dispatches these routes itself; see "Convex-first Scene commits" below.
 
@@ -314,29 +313,32 @@ is set the room refuses token moves, door changes and undo on that Scene with `U
 "Waiting on a movement decision."; chat, Sheets, other Scenes and every Encounter command continue.
 A forwarded Encounter command rereads the flag with one authority capture while it is set. The GM's
 decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
-`MOVEMENT` that declines it (the movement continues). While a room is active, bound-token movement
-and its decisions happen only on the presented Scene (D42, superseding D29's native staging path):
-the room refuses a decision whose Encounter is not bound to its synchronized presented Scene, and
-Convex refuses a bound move on a live Campaign's non-presented Scene, both with domain reason
-`SCENE_NOT_PRESENTED` ("Present this Scene to move Encounter tokens."). A player's Convex-first Scene
-command counts against the one-in-flight limit. The skip also writes an `encounterDecisionSkips` row
-keyed by the decision's occurrence and
-version, so `encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the
-decision a player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
+`MOVEMENT` that declines it (the movement continues). Bound-token movement and its decisions happen
+only in the room, on its presented Scene (D42, D43; D29's native staging path is gone): the room
+refuses a decision whose Encounter is not bound to its synchronized presented Scene, and Convex's
+public staging (`scenes/geometryActions:execute`, through `beginSceneGeometry`) refuses every
+Encounter-bound move, whether no room is live or a live room presents another Scene. Both refusals
+use domain reason `SCENE_NOT_PRESENTED` ("Present this Scene to move Encounter tokens."); the
+tabletop opens a room before it moves tokens. Unbound moves and door changes still stage natively
+while no room owns the Scene, and `finishSceneGeometry` publishes only Scene changes without
+Encounter rules. A player's Convex-first Scene command counts against the one-in-flight limit. The
+skip also writes an `encounterDecisionSkips` row keyed by the decision's occurrence and version, so
+`encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the decision a
+player was shown, and their drawer says "The GM skipped this decision." (D39). The skipped
 occurrence and version key both writes, so a retry repeats nothing.
 
-**Turn movement (CURRENT, D37-D38, V07.5).** The caller that holds the whole Scene (the room's
-`prepareExternalSceneCommit`, or the native geometry action) measures each published segment of a
-bound move with `measureScenePathMovementCost` (terrain included) and sends it as the finish input's
-`movementCost`. `publishSceneGeometry` requires it for a voluntary bound move and adds it, in feet,
+**Turn movement (CURRENT, D37-D38, V07.5).** The room, which holds the whole Scene
+(`prepareExternalSceneCommit`), measures each published segment of a bound move with
+`measureScenePathMovementCost` (terrain included) and sends it as the finish input's `movementCost`. `publishSceneGeometry` requires it for a voluntary bound move and adds it, in feet,
 to an `encounterTurnMovements` row keyed by Run, round, the turn's current actor and the moving actor
 (`encounters/turnMovement.ts`); forced movement and teleports add nothing. The row is outside the Run
 version and checksum and fences nothing: the budget is shown, never enforced. A new turn reads a new
 key, so it starts at zero; completing the Run deletes the rows. `encounters/activeReads:active`
 returns `turnMovement` (`{actorId, used, budget}`) for the actors the viewer controls, every actor for
 the GM; the budget is a Character's stored `walkingSpeed` or a creature stat block's walking speed.
-The tabletop shows "Movement 15 / 30 ft" for the active controlled actor; past the budget Assisted
-uses the soft-warning style and Manual shows the number only. Dash is not modeled yet (escalated).
+The tabletop shows "Movement 15 / 30 ft" for the active controlled actor (`readActiveTurn` in
+`CampaignVttStage.model.ts` picks the current actor's entry only when the viewer acts for it); past
+the budget Assisted uses the soft-warning style and Manual shows the number only. Dash is not modeled yet (escalated).
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` is internal and records only GM tools. Every Encounter command enters

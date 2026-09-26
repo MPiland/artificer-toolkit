@@ -1,8 +1,8 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { rangeDtoSchema, type RangeDto } from './range.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
 import {
@@ -194,7 +194,7 @@ const optionalCombatCleavingChoicePendingContextDtoSchema = z
       .number()
       .check(z.int())
       .check(z.gte(1))
-      .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1)),
+      .check(z.lte(MAX_ENCOUNTER_ACTORS - 1)),
     optionalCombat: z.strictObject({
       definitionId: uuidSchema,
       definitionVersion: positiveIntegerSchema,
@@ -234,7 +234,7 @@ const optionalCombatCleavingChoicePendingContextDtoSchema = z
     visitedTargetActorIds: z
       .array(uuidSchema)
       .check(z.minLength(1))
-      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1)),
     options: z
       .array(
         z.strictObject({
@@ -248,7 +248,7 @@ const optionalCombatCleavingChoicePendingContextDtoSchema = z
         })
       )
       .check(z.minLength(1))
-      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1))
   })
   .check(
     z.superRefine((value, context) => {

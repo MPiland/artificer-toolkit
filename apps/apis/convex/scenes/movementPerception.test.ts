@@ -2,23 +2,10 @@ import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import {
-  sceneGeometryFinishInputSchema,
-  sceneGeometryBeginResultSchema,
-  type SceneGeometryCommandResult
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import type {
-  SceneMovementPerceptionCapture,
-  sceneSpatialPrepareInputSchema
-} from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -27,31 +14,18 @@ import {
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  resolveSceneCombatPerceptionEnvironment,
-  isScenePointExplored
-} from '@artificer-toolkit/shared/vtt'
+import { isScenePointExplored } from '@artificer-toolkit/shared/vtt'
 import type { SceneFogChunksPage } from '@artificer-toolkit/schema/api/sceneFog'
-import { completeSceneGeometry } from './geometryActions'
-import { readGeometrySave } from './geometryDocuments'
 import { api, internal } from '../_generated/api'
 import { setupCreatureReactionRun, reactionRecords } from '../../tests/fixtures/movementReaction'
 import { readSessionVisionScope } from './sessionVisionDocuments'
 import { advanceLiveState, readLiveScene } from './liveDocuments'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  planMovementInRoom,
+  planStagedMovementInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
-type Request = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
-const captureReference = makeFunctionReference<'mutation', Request, SceneMovementPerceptionCapture>(
-  'scenes/movementPerception:capture'
-)
-const prepareReference = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
-const actionReference = makeFunctionReference<'action', Request, SceneSpatialPreparation>(
-  'scenes/movementPerceptionAction:prepare'
-)
 const bindActorToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
@@ -60,11 +34,6 @@ const bindActorToken = makeFunctionReference<
 const pendingReference = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/pendingReads:pendingRuleOccurrence'
 )
-const finishReference = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 const observeReference = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -249,35 +218,19 @@ async function setup(withVision = false, returnsToOrigin = false) {
       })
     )
   })
-  return {
-    base,
-    input,
-    tokens,
-    request: {
-      saveId,
-      baseOrdinal: 1,
-      movementCost: 0,
-      tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
-    }
-  }
+  // The room plans against pinned Character observations; this Scene has none.
+  await base.owner.caller.mutation(observeReference, { saveId, characterRevisions: [] })
+  return { base, input, tokens, settings, saveId }
 }
 
-describe('native Scene movement perception staging', () => {
+describe('room Scene movement perception staging', () => {
   it('captures retained SEE contacts after moving and completes the response through the geometry action', async () => {
-    const { base, request, input } = await setup(true)
-    const begin = await base.owner.caller.run(async (ctx) => {
-      const { save, header } = await readGeometrySave(ctx, request.saveId)
-      return sceneGeometryBeginResultSchema.parse({
-        kind: 'READY',
-        saveId: save.id,
-        input: save.input,
-        header,
-        encounterId: null,
-        sessionVision: save.sessionVision
-      })
+    const { base, input } = await setup(true)
+    const move = await planMovementInRoom(base.owner.caller, {
+      ...input,
+      commandId: crypto.randomUUID()
     })
-    if (begin.kind !== 'READY') throw new Error('Expected initial movement save.')
-    const boundary = await base.owner.caller.action((ctx) => completeSceneGeometry(ctx, begin))
+    const boundary = await move.publish()
     if (!boundary.occurrence?.pending) throw new Error('Expected current movement choice.')
     expect(boundary.delta).toMatchObject({
       kind: 'TOKEN_MOVED',
@@ -311,21 +264,11 @@ describe('native Scene movement perception staging', () => {
   it.each([false, true])(
     'derives and publishes fog only through the actual pending contact when the path%s returns to origin',
     async (returnsToOrigin) => {
-      const { base, request, input } = await setup(true, returnsToOrigin)
+      const { base, input, settings } = await setup(true, returnsToOrigin)
       const before = await reactionRecords(base.t, base.run.id)
-      const begin = await base.owner.caller.run(async (ctx) => {
-        const { save, header } = await readGeometrySave(ctx, request.saveId)
-        return sceneGeometryBeginResultSchema.parse({
-          kind: 'READY',
-          saveId: save.id,
-          input: save.input,
-          header,
-          encounterId: null,
-          sessionVision: save.sessionVision
-        })
-      })
-      if (begin.kind !== 'READY') throw new Error('Expected receiving geometry save.')
-      const result = await base.owner.caller.action((ctx) => completeSceneGeometry(ctx, begin))
+      const command = { ...input, commandId: crypto.randomUUID() }
+      const move = await planMovementInRoom(base.owner.caller, command)
+      const result = await move.publish()
       expect(result).toMatchObject({
         version: 1,
         delta: { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: { x: 300, y: 50 } },
@@ -337,7 +280,7 @@ describe('native Scene movement perception staging', () => {
       let offset = 0
       do {
         page = await base.owner.caller.query(internal.scenes.transientFogReads.chunks, {
-          sceneId: input.sceneId,
+          sceneId: command.sceneId,
           ownerUserId: base.owner.userId,
           expectedVersion: result.version,
           offset,
@@ -352,56 +295,23 @@ describe('native Scene movement perception staging', () => {
         height: page.height,
         chunks
       }
-      const explored = {
-        map: begin.header.map,
-        fogMode: begin.header.fogMode,
-        fogLayers: [layer]
-      }
+      const explored = { map: settings.map, fogMode: settings.fogMode, fogLayers: [layer] }
       expect(isScenePointExplored(explored, base.owner.userId, { x: 250, y: 75 })).toBe(true)
       expect(isScenePointExplored(explored, base.owner.userId, { x: 650, y: 75 })).toBe(false)
       const after = await reactionRecords(base.t, base.run.id)
       expect(after.run).toEqual(before.run)
       expect(after.actors).toEqual(before.actors)
-      expect(await base.owner.caller.mutation(finishReference, request)).toEqual({
-        ...result,
-        replayed: true
-      })
+      expect(await move.publish()).toEqual({ ...result, replayed: true })
       expect(await reactionRecords(base.t, base.run.id)).toEqual(after)
     },
     30000
   )
 
   it('publishes the actual boundary and pending receipt atomically, rechecks evidence and replays exactly', async () => {
-    const { base, request, input, tokens } = await setup()
-    await base.owner.caller.mutation(observeReference, {
-      saveId: request.saveId,
-      characterRevisions: []
-    })
-    const capture = await base.owner.caller.mutation(captureReference, request)
-    const perceptionEnvironments = capture.requests.map(({ key, observer, subject }) => ({
-      key,
-      environment: {
-        ...resolveSceneCombatPerceptionEnvironment({
-          scene: {
-            ...capture.header,
-            grid: capture.grid,
-            barriers: [],
-            lights: [],
-            darknessZones: [],
-            doorStates: {}
-          },
-          observer,
-          subject,
-          sharedSurface: true,
-          invisibleChannels: [],
-          suppressedChannels: []
-        }),
-        invisibleChannels: [],
-        suppressedChannels: []
-      }
-    }))
-    const prepared = await base.owner.caller.action(actionReference, request)
-    if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
+    const { base, saveId, input, tokens } = await setup()
+    const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
+    if (plan.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
+    const { occurrenceId } = plan.commit.preparation
     const beforeMechanics = await reactionRecords(base.t, base.run.id)
     const records = () =>
       base.t.run(async (ctx) => ({
@@ -412,36 +322,10 @@ describe('native Scene movement perception staging', () => {
         states: await ctx.db.query('sceneLiveStates').collect()
       }))
     const before = await records()
-    await expect(base.owner.caller.mutation(finishReference, request)).rejects.toThrow(
-      'missing or stale'
-    )
-    expect(await records()).toEqual(before)
-    const reactor = beforeMechanics.actors.find((row) => row.id === base.reactor.id)!
-    const actor = encounterRunActorStateSchema.parse(JSON.parse(reactor.stateJson))
-    const exhausted = encounterRunActorStateSchema.parse({
-      ...actor,
-      resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 1)
-    })
-    await base.t.run((ctx) =>
-      ctx.db.patch(reactor._id, {
-        stateJson: JSON.stringify(exhausted),
-        stateChecksum: checksumCanonicalJson(exhausted)
-      })
-    )
-    await expect(
-      base.owner.caller.mutation(finishReference, { ...request, perceptionEnvironments })
-    ).rejects.toThrow('Initial movement evaluation does not match retained preparation.')
-    expect(await records()).toEqual(before)
-    await base.t.run((ctx) =>
-      ctx.db.patch(reactor._id, {
-        stateJson: reactor.stateJson,
-        stateChecksum: reactor.stateChecksum
-      })
-    )
     const saveRowId = await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('sceneGeometrySaves')
-        .withIndex('by_publicId', (q) => q.eq('id', request.saveId))
+        .withIndex('by_publicId', (q) => q.eq('id', saveId))
         .unique()
       if (!row) throw new Error('Missing geometry save.')
       await ctx.db.patch(row._id, {
@@ -449,37 +333,29 @@ describe('native Scene movement perception staging', () => {
       })
       return row._id
     })
-    await expect(
-      base.owner.caller.mutation(finishReference, { ...request, perceptionEnvironments })
-    ).rejects.toThrow('Stored geometry fog save is inconsistent.')
+    await expect(plan.publish()).rejects.toThrow('Stored geometry fog save is inconsistent.')
     expect(await records()).toEqual(before)
     expect(await reactionRecords(base.t, base.run.id)).toEqual(beforeMechanics)
     await base.t.run((ctx) => ctx.db.patch(saveRowId, { fogSaves: [] }))
-    const result = await base.owner.caller.mutation(finishReference, {
-      ...request,
-      perceptionEnvironments
-    })
+    const result = await plan.publish()
     expect(result).toMatchObject({
       version: 1,
       replayed: false,
       delta: { kind: 'TOKEN_MOVED', tokenId: tokens[1]!.id, position: { x: 300, y: 50 } },
-      occurrence: { occurrenceId: prepared.occurrenceId, occurrenceVersion: 0, status: 'PENDING' }
+      occurrence: { occurrenceId, occurrenceVersion: 0, status: 'PENDING' }
     })
     expect(await reactionRecords(base.t, base.run.id)).toEqual(beforeMechanics)
     const after = await records()
     expect(after.occurrences).toHaveLength(before.occurrences.length + 1)
     expect(after.receipts).toHaveLength(before.receipts.length + 1)
-    const occurrence = after.occurrences.find((row) => row.id === prepared.occurrenceId)!
+    const occurrence = after.occurrences.find((row) => row.id === occurrenceId)!
     expect(
       JSON.parse(occurrence.pendingSnapshotJson!).applicationContext.root.currentSceneVersion
     ).toBe(1)
     expect(after.entities.find((row) => row.entityId === tokens[1]!.id)?.value).toMatchObject({
       entity: { position: { x: 300, y: 50 } }
     })
-    expect(await base.owner.caller.mutation(finishReference, request)).toEqual({
-      ...result,
-      replayed: true
-    })
+    expect(await plan.publish()).toEqual({ ...result, replayed: true })
     expect(await records()).toEqual(after)
     const occurrenceRowId = occurrence._id
     const pendingSnapshotJson = occurrence.pendingSnapshotJson
@@ -493,9 +369,9 @@ describe('native Scene movement perception staging', () => {
         updatedAt: new Date().toISOString()
       })
     )
-    await expect(base.owner.caller.mutation(finishReference, request)).resolves.toMatchObject({
+    await expect(plan.publish()).resolves.toMatchObject({
       replayed: true,
-      occurrence: { occurrenceId: prepared.occurrenceId, occurrenceVersion: 1, status: 'COMPLETE' }
+      occurrence: { occurrenceId, occurrenceVersion: 1, status: 'COMPLETE' }
     })
     await base.t.run((ctx) =>
       ctx.db.patch(occurrenceRowId, {
@@ -507,9 +383,7 @@ describe('native Scene movement perception staging', () => {
         updatedAt: new Date().toISOString()
       })
     )
-    await expect(base.owner.caller.mutation(finishReference, request)).rejects.toThrow(
-      'replay evidence is inconsistent'
-    )
+    await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
     await base.t.run((ctx) =>
       ctx.db.patch(occurrenceRowId, {
         pendingSnapshotChecksum: checksumCanonicalJson(JSON.parse(pendingSnapshotJson!))
@@ -521,16 +395,15 @@ describe('native Scene movement perception staging', () => {
       sceneVersionTransition: 'ADVANCED'
     })
     await base.t.run((ctx) => ctx.db.patch(receipt._id, { resultChecksum: '0'.repeat(64) }))
-    await expect(base.owner.caller.mutation(finishReference, request)).rejects.toThrow(
-      'replay evidence is inconsistent'
-    )
+    await expect(plan.publish()).rejects.toThrow('replay evidence is inconsistent')
   }, 30000)
 
   it('projects a native pending movement choice only to its current audience', async () => {
-    const { base, request, input } = await setup()
-    const prepared = await base.owner.caller.action(actionReference, request)
-    if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
-    const snapshot = prepared.outcome.pendingSnapshot
+    const { base, saveId, input } = await setup()
+    const plan = await planStagedMovementInRoom(base.owner.caller, saveId)
+    if (plan.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
+    const prepared = plan.commit.preparation
+    const snapshot = plan.outcome.pendingSnapshot
     const query = { encounterId: base.run.id }
     await expect(base.other.caller.query(pendingReference, query)).rejects.toThrow(
       'Campaign not found.'
@@ -641,38 +514,9 @@ describe('native Scene movement perception staging', () => {
   }, 30000)
 
   it('hydrates current Scene evidence and freezes the exact reaction choice without settling mechanics', async () => {
-    const { base, request } = await setup()
+    const { base, saveId, input } = await setup()
     const before = await reactionRecords(base.t, base.run.id)
-    const capture = await base.owner.caller.mutation(captureReference, request)
-    expect(capture.requests).toHaveLength(1)
-    expect(capture.requests[0]!.subject.position).toEqual({ x: 300, y: 50 })
-    const environment = resolveSceneCombatPerceptionEnvironment({
-      scene: {
-        ...capture.header,
-        grid: capture.grid,
-        barriers: [],
-        lights: [],
-        darknessZones: [],
-        doorStates: {}
-      },
-      observer: capture.requests[0]!.observer,
-      subject: capture.requests[0]!.subject,
-      sharedSurface: true,
-      invisibleChannels: [],
-      suppressedChannels: []
-    })
-    await expect(
-      base.owner.caller.mutation(prepareReference, {
-        ...request,
-        perceptionEnvironments: [
-          {
-            key: '0'.repeat(64),
-            environment: { ...environment, invisibleChannels: [], suppressedChannels: [] }
-          }
-        ]
-      })
-    ).rejects.toThrow('missing or stale')
-    const prepared = await base.owner.caller.action(actionReference, request)
+    const prepared = await planStagedMovementInRoom(base.owner.caller, saveId)
     expect(prepared.outcome.kind).toBe('PENDING')
     if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice.')
     expect(prepared.outcome.movementIntent).toMatchObject({ position: { x: 300, y: 50 } })
@@ -680,15 +524,12 @@ describe('native Scene movement perception staging', () => {
       kind: 'ENCOUNTER_MOVEMENT_REACTION',
       phase: { kind: 'CHOICE' }
     })
-    expect(await base.owner.caller.action(actionReference, request)).toEqual(prepared)
     expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
     await base.owner.caller.run(async (ctx) => {
-      const { header, live } = await readLiveScene(ctx, capture.sceneId, 'OWNER')
+      const { header, live } = await readLiveScene(ctx, input.sceneId, 'OWNER')
       await ctx.db.insert('sceneLiveStates', advanceLiveState(header, live))
     })
-    await expect(base.owner.caller.action(actionReference, request)).rejects.toThrow(
-      'Scene changed before geometry publication.'
-    )
+    await expect(prepared.publish()).rejects.toThrow('Scene changed before geometry publication.')
     expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
   }, 30000)
 })

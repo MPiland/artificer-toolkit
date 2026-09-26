@@ -20,11 +20,11 @@ import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecut
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '../shared/ruleExecutionReceiptCommandMetadata.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import {
   encounterRuleWarningsDtoSchema,
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = z.extend(
@@ -104,7 +104,7 @@ export const liveSessionEncounterConcentrationFields = {
         metadata: serverRuleExecutionReceiptCommandMetadataDtoSchema
       })
     )
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   pendingConcentration: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema)
 }
 

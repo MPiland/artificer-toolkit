@@ -1,7 +1,5 @@
 import { z } from '../zod.js'
 
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
-
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import {
   ruleExecutionChecksumSchema as checksumSchema,
@@ -9,6 +7,7 @@ import {
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 export const initiativeEntityIdentityDtoSchema = z.strictObject({
   kind: z.enum(['ACTOR', 'SIDE']),
@@ -45,7 +44,7 @@ export const initiativeScoreGroupDtoSchema = z.strictObject({
   members: z
     .array(initiativeEntityIdentityDtoSchema)
     .check(z.minLength(1))
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   classification: z.enum(['SETTLED', 'TIED'])
 })
 
@@ -55,17 +54,13 @@ export const initiativeOrderSegmentDtoSchema = z.strictObject({
   members: z
     .array(initiativeEntityIdentityDtoSchema)
     .check(z.minLength(1))
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 })
 
 export const initiativePendingScoreBatchDtoSchema = z.strictObject({
-  completed: z
-    .array(initiativeScoreBatchResultDtoSchema)
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+  completed: z.array(initiativeScoreBatchResultDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   current: initiativeEntityIdentityDtoSchema,
-  remaining: z
-    .array(initiativeEntityIdentityDtoSchema)
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
+  remaining: z.array(initiativeEntityIdentityDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1))
 })
 
 export const initiativeTieEvaluationAttemptDtoSchema = z.strictObject({
@@ -74,7 +69,7 @@ export const initiativeTieEvaluationAttemptDtoSchema = z.strictObject({
   results: z
     .array(initiativeScoreBatchResultDtoSchema)
     .check(z.minLength(2))
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 })
 
 export const initiativeOrderChoiceEvidenceDtoSchema = z.strictObject({
@@ -86,13 +81,13 @@ export const initiativeExecutionEvidenceDtoSchema = z.strictObject({
   primaryResults: z
     .array(initiativeScoreBatchResultDtoSchema)
     .check(z.minLength(1))
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
   tieAttempts: z
     .array(initiativeTieEvaluationAttemptDtoSchema)
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES * 20)),
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS * 20)),
   orderChoices: z
     .array(initiativeOrderChoiceEvidenceDtoSchema)
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS - 1))
 })
 
 export const encounterInitiativeAdvancePlanDtoSchema = z.discriminatedUnion('kind', [
@@ -115,8 +110,8 @@ export const encounterInitiativeAdvancePlanDtoSchema = z.discriminatedUnion('kin
       orderedActorIds: z
         .array(uuidSchema)
         .check(z.minLength(1))
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
-      orderedSideIds: z.array(uuidSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      orderedSideIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     })
     .check(
       z.superRefine((value, context) => {
@@ -148,14 +143,14 @@ export type EncounterInitiativeAdvancePlanDto = z.infer<
 export const initiativeBeforePinDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('INITIAL_START'),
-    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   }),
   z.strictObject({
     kind: z.literal('EACH_ROUND'),
     round: positiveIntegerSchema,
     version: integerSchema.check(z.gte(0)),
     checksum: checksumSchema,
-    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   })
 ])
 
@@ -167,8 +162,8 @@ const encounterInitiativeSettlementBaseShape = {
   orderedActorIds: z
     .array(uuidSchema)
     .check(z.minLength(1))
-    .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
-  orderedSideIds: z.array(uuidSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+  orderedSideIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 }
 
 /** Terminal normalized initiative order plus every graph execution that established it. */

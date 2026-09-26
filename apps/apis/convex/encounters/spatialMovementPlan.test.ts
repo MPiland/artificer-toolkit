@@ -1,82 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementRuleService'
-import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { loadMovementTargets } from './movementTargets'
-import { readRunState } from './documents'
-import { evaluateNativeSpatialMovement, type NativeSpatialMovementInput } from './spatialMovement'
 import { planNativeSpatialMovementPrefix } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
-import { applyEncounterMechanicsBatch } from './mechanicsBatch'
+import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
+import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 
 type SpatialExecution = FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
 
+/** A spatial execution the room planned for a real move over one seeded hazard. */
 async function completedExecution() {
-  const base = await createEncounterSceneFixture()
-  const commandId = crypto.randomUUID()
-  const occurrenceId = crypto.randomUUID()
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (query) => query.eq('id', base.run.id))
-      .unique()
-    if (!row) throw new Error('Fixture Run is unavailable.')
-    const state = { ...readRunState(row), automationMode: 'ASSISTED' as const }
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
-    await ctx.db.insert(
-      'encounterSceneBindings',
-      encounterSceneBindingSchema.parse({
-        encounterId: base.run.id,
-        campaignId: base.campaign.id,
-        sceneId: base.sceneId,
-        commandId,
-        commandFingerprint: checksumCanonicalJson({ commandId }),
-        createdAt: new Date().toISOString()
-      })
-    )
-  })
-  await seedSpatialEffect(base)
-  const input: NativeSpatialMovementInput = {
-    encounterId: base.run.id,
-    expectedEncounterVersion: base.run.version,
-    sceneId: base.sceneId,
-    sceneVersion: 0,
-    root: {
-      commandId,
-      commandFingerprint: checksumCanonicalJson({ commandId }),
-      initiatorUserId: base.other.userId,
-      correlationId: null,
-      encounterId: base.run.id,
-      sceneId: base.sceneId,
-      tokenId: base.tokens[0]!.id.toLowerCase(),
-      expectedEncounterVersion: base.run.version,
-      expectedSceneVersion: 0,
-      movementKind: 'VOLUNTARY',
-      originalPath: [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 }
-      ]
-    },
-    actorIdByTokenId: new Map([[base.tokens[0]!.id.toLowerCase(), base.run.actors[0]!.id]]),
-    sceneTokens: base.tokens.map((token) => ({ ...token, id: token.id.toLowerCase() })),
-    currentPosition: base.tokens[0]!.position,
-    occurrenceId,
-    executionCommandId: commandId,
-    occurredAt: '2026-09-14T00:00:00.000Z',
-    autoRoll: { [base.run.actors[0]!.id]: true }
-  }
-  const evaluated = await base.other.caller.run((ctx) =>
-    evaluateNativeSpatialMovement(ctx, input, 'PREVIEW')
+  const { base, input, preparation } = await planSpatialTerminalFixture()
+  if (
+    preparation.outcome.kind !== 'TERMINAL' ||
+    preparation.outcome.result.status !== 'BATCH_COMPLETE'
   )
-  if (evaluated.kind !== 'TERMINAL' || evaluated.result.status !== 'BATCH_COMPLETE')
     throw new Error('Fixture spatial execution is unavailable.')
-  return { base, input, execution: evaluated.result.executions[0]! }
+  return {
+    base,
+    input: {
+      occurrenceId: preparation.occurrenceId,
+      executionCommandId: input.commandId,
+      occurredAt: preparation.occurredAt
+    },
+    execution: preparation.outcome.result.executions[0]!
+  }
 }
 
 describe('planNativeSpatialMovementPrefix', () => {

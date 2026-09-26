@@ -1,7 +1,5 @@
 import { z } from '../zod.js'
 
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
-
 import { serverRuleEvidenceResponseDtoSchema } from './ruleExecutionEvidence.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -15,6 +13,7 @@ import {
 import { turnResolutionCommandDtoSchema } from './ruleExecutionTurnCommands.js'
 import { MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS } from './ruleExecutionTurnPending.js'
 import { MAX_SPATIAL_CANDIDATES, spatialMovementKindDtoSchema } from './spatialFacts.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 const spatialMovementChangedAggregateDtoSchema = z.strictObject({
   aggregateKind: z.enum(['CHARACTER', 'ENCOUNTER', 'SCENE']),
@@ -81,9 +80,7 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = z
       terminalOccurrenceVersion: aggregateVersionSchema,
       resolutionCommands: z
         .array(turnResolutionCommandDtoSchema)
-        .check(
-          z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS + RULE_GRAPH_LIMITS.NODES * 20)
-        )
+        .check(z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS + MAX_ENCOUNTER_ACTORS * 20))
     }),
     z.strictObject({
       schemaVersion: z.literal(1),

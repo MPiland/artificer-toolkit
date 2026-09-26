@@ -1,10 +1,10 @@
 import { z } from '../zod.js'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from './activeRuleEffects.js'
 import { concentrationCheckApplicationOutputDtoSchema } from './ruleExecutionEncounterApplications.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import { ruleExecutionChecksumSchema, ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 /** Completed child evidence retained at the damage contact that caused it. */
 export const movementConcentrationExecutionDtoSchema = z
@@ -84,7 +84,7 @@ export const movementConcentrationExecutionDtoSchema = z
 
 export const movementConcentrationExecutionsDtoSchema = z
   .array(movementConcentrationExecutionDtoSchema)
-  .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+  .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   .check(
     z.superRefine((values, context) => {
       const ids = new Set<string>()

@@ -1,20 +1,12 @@
 import { expect, it, vi } from 'vitest'
-import { makeFunctionReference } from 'convex/server'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import {
   setupAutomaticSceneMovement,
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
-
-const prepare = makeFunctionReference<
-  'mutation',
-  ReturnType<typeof sceneSpatialPrepareInputSchema.parse>,
-  SceneSpatialPreparation
->('scenes/spatialPreparation:prepare')
 
 // Assisted play offers each authored automatic reaction to its controller as Use/Decline; these
 // tests use them as the GM (the reactors are Creatures).
@@ -53,7 +45,7 @@ it('does not publish gameplay state during automatic preparation', async () => {
       .take(10)
     return actors.map((actor) => actor.stateChecksum)
   })
-  await value.owner.caller.mutation(prepare, value.request)
+  await planStagedMovementInRoom(value.owner.caller, value.saveId)
   const after = await value.owner.caller.run(async (ctx) => {
     const actors = await ctx.db
       .query('encounterRunActors')

@@ -52,7 +52,7 @@ import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '../../convex/rules/effectStore'
-import { createRulesRuntime } from '../../convex/rules/runtime'
+import { createRulesRuntime } from './rulesRuntime'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { executeInRoom } from './liveSessionWorker'
 

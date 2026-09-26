@@ -4,9 +4,6 @@ import type {
   EncounterExecuteInput,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -27,7 +24,7 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, planStagedMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 13 : 0) }))
@@ -62,15 +59,6 @@ const movementReactionDamage = makeFunctionReference<
     afterHitPoints: number
   }
 >('encounters/developmentLifecycle:movementReactionDamage')
-type MovementRequest = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
-const prepareMovement = makeFunctionReference<'mutation', MovementRequest, SceneSpatialPreparation>(
-  'scenes/spatialPreparation:prepare'
-)
-const finishMovement = makeFunctionReference<
-  'mutation',
-  MovementRequest,
-  SceneGeometryCommandResult
->('scenes/geometryCommands:finish')
 const observeMovement = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -392,8 +380,8 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     saveId: scene.saveId,
     characterRevisions: []
   })
-  await scene.owner.caller.mutation(prepareMovement, scene.request)
-  const root = await scene.owner.caller.mutation(finishMovement, scene.request)
+  const plan = await planStagedMovementInRoom(scene.owner.caller, scene.saveId)
+  const root = await plan.publish()
   const choice = root.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
     throw new Error('Expected a movement reaction choice.')

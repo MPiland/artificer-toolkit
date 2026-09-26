@@ -1,10 +1,9 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from './encounterRuleOccurrence.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
@@ -139,7 +138,7 @@ export const manualRuleExecutionResultDtoSchema = z.strictObject({
   initiative: z._default(z.nullable(encounterInitiativeSettlementDtoSchema), null),
   initiativeAdvance: z._default(z.nullable(encounterInitiativeAdvancePlanDtoSchema), null),
   actionEconomyRefreshes: z.optional(
-    z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   )
 })
 
@@ -162,13 +161,13 @@ export const initiativeCompleteRuleExecutionResultDtoSchema = z
         .check(z.maxLength(MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES))
     ),
     legendaryActions: z.optional(
-      z.array(turnLegendaryActionEvidenceDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      z.array(turnLegendaryActionEvidenceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     ),
     legendaryActionRefreshes: z.optional(
-      z.array(turnLegendaryActionRefreshDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      z.array(turnLegendaryActionRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     ),
     actionEconomyRefreshes: z.optional(
-      z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     )
   })
   .check(

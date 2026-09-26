@@ -1,7 +1,6 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import {
   stagedInitiativeRoundStateDtoSchema,
@@ -47,6 +46,7 @@ import {
   type TurnResolutionCommandDto,
   turnResolutionCommandDtoSchema
 } from './ruleExecutionTurnCommands.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 export const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
 
@@ -159,12 +159,12 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
         ownerActorIds: z
           .array(uuidSchema)
           .check(z.minLength(1))
-          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         nextOwnerIndex: z
           .number()
           .check(z.int())
           .check(z.gte(0))
-          .check(z.lte(RULE_GRAPH_LIMITS.NODES - 1))
+          .check(z.lte(MAX_ENCOUNTER_ACTORS - 1))
       })
       .check(
         z.superRefine((queue, context) => {
@@ -188,12 +188,12 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
   completedLegendaryActions: z.optional(
     z
       .array(z.lazy(() => turnLegendaryActionEvidenceDtoSchema))
-      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   ),
   stagedLegendaryActionRefreshes: z.optional(
     z
       .array(turnLegendaryActionRefreshDtoSchema)
-      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       .check(
         z.superRefine((entries, context) => {
           const identities = new Set<string>()
@@ -215,7 +215,7 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
   stagedActionEconomyRefreshes: z.optional(
     z
       .array(turnActionEconomyRefreshDtoSchema)
-      .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       .check(
         z.superRefine((entries, context) => {
           const identities = new Set<string>()
@@ -243,9 +243,7 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
   resolutionCommands: z._default(
     z
       .array(turnResolutionCommandDtoSchema)
-      .check(
-        z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS + RULE_GRAPH_LIMITS.NODES * 20)
-      ),
+      .check(z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS + MAX_ENCOUNTER_ACTORS * 20)),
     []
   )
 })

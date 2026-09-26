@@ -1,7 +1,6 @@
 import { z } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
-import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import {
   aggregateChoiceCompleteRuleExecutionResultDtoSchema,
@@ -45,6 +44,7 @@ import {
   turnEffectEncounterActorTransitionDtoSchema,
   turnEffectExecutionDtoSchema
 } from './ruleExecutionEffectEvidence.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
 const completedTurnLifecyclePhaseEvidenceDtoSchema = z.discriminatedUnion('kind', [
@@ -101,15 +101,15 @@ export const storedRuleExecutionResultDtoSchema = z
           []
         ),
         legendaryActions: z._default(
-          z.array(turnLegendaryActionEvidenceDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+          z.array(turnLegendaryActionEvidenceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           []
         ),
         legendaryActionRefreshes: z._default(
-          z.array(turnLegendaryActionRefreshDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+          z.array(turnLegendaryActionRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           []
         ),
         actionEconomyRefreshes: z.optional(
-          z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+          z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         ),
         terminatedMaintainedStates: z.optional(
           z

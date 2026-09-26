@@ -11,7 +11,7 @@ import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-
 import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestPendingContext'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
-import { createRulesRuntime } from '../rules/runtime'
+import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { settleDisarm } from './actionDisarmSettlement'
 

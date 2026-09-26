@@ -1,10 +1,10 @@
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
+  sceneGeometryFinishInputSchema,
   sceneGeometryCommandResultSchema,
   type SceneGeometryEntity,
   type SceneGeometryCommandResult
 } from '@artificer-toolkit/schema/api/sceneGeometry'
-import { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import {
   sceneStoredGeometryCommandSchema,
@@ -36,7 +36,7 @@ import { assertSceneVisionCharacters } from './visionFreshness'
 import { requireBoundTokenMoveControl } from '../encounters/actorController'
 import { recordTurnMovement } from '../encounters/turnMovement'
 
-type SceneGeometryFinishInput = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
+type SceneGeometryFinishInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SceneGeometrySaveRead = Awaited<ReturnType<typeof readGeometrySave>>
 type SpatialSceneGeometry = Awaited<ReturnType<typeof readSpatialSceneGeometry>>
 type SpatialTerminalGeometry = Pick<SpatialSceneGeometry, 'sceneTokens' | 'actorIdByTokenId'>
@@ -82,13 +82,14 @@ function assertMoveTokenControl(
     throw new Error('Members may only move an unlocked token they control.')
 }
 
+/** `rules` publishes Encounter-bound movement; only the Session room supplies it (D43). */
 export async function publishSceneGeometry(
   ctx: MutationCtx,
   args: SceneGeometryFinishInput,
-  publicationCallbacks: SceneGeometryPublication,
+  rules: SceneGeometryPublication | null,
   previouslyRead?: SceneGeometrySaveRead
 ): Promise<SceneGeometryCommandResult> {
-  const input = sceneSpatialPrepareInputSchema.parse(args)
+  const input = sceneGeometryFinishInputSchema.parse(args)
   const currentSave = previouslyRead ?? (await readGeometrySave(ctx, input.saveId.toLowerCase()))
   if (currentSave.save.id !== input.saveId.toLowerCase())
     throw new Error('Stored Scene geometry save is inconsistent.')
@@ -106,7 +107,8 @@ export async function publishSceneGeometry(
   const preparation = readSpatialPreparation(save)
   const bound =
     save.input.type === 'MOVE_SCENE_TOKEN' && save.input.expectedEncounterVersion !== null
-  if (bound && !preparation) throw new Error('Bound movement requires spatial preparation.')
+  if (bound !== (rules !== null) || (bound && !preparation))
+    throw new Error('Only the Session room publishes Encounter-bound movement, with its rules.')
   const priorRow = await ctx.db
     .query('sceneLiveCommands')
     .withIndex('by_sceneId_commandId', (q) =>
@@ -118,15 +120,15 @@ export async function publishSceneGeometry(
     const prior = parseGeometryCommand(priorRow, header.version)
     if (prior.inputChecksum !== save.inputChecksum)
       throw new Error('Scene command ID was already used.')
-    if (save.movementResolution) {
-      const replay = await publicationCallbacks.publishPreparedMovementResponse(ctx, input, null)
+    if (save.movementResolution && rules) {
+      const replay = await rules.publishPreparedMovementResponse(ctx, input, null)
       return sceneGeometryCommandResultSchema.parse({
         ...prior.result,
         occurrence: replay.occurrence,
         replayed: true
       })
     }
-    if (bound) {
+    if (rules) {
       if (preparation?.outcome.kind === 'UNINTERRUPTED') {
         if (
           save.actorUserId !== userId ||
@@ -140,7 +142,7 @@ export async function publishSceneGeometry(
       if (preparation?.outcome.kind === 'PENDING') {
         const intent = preparation.outcome.movementIntent
         const expectedDelta = intent ? { kind: 'TOKEN_MOVED' as const, ...intent } : null
-        const replay = await publicationCallbacks.publishPreparedSpatialPending(ctx, input, null)
+        const replay = await rules.publishPreparedSpatialPending(ctx, input, null)
         if (
           prior.result.version !==
             save.snapshotVersion + (intent || save.fogSaves.length ? 1 : 0) ||
@@ -175,7 +177,7 @@ export async function publishSceneGeometry(
         checksumCanonicalJson(prior.result.delta) !== checksumCanonicalJson(expectedDelta)
       )
         throw new Error('Scene movement replay delta is inconsistent.')
-      const replay = await publicationCallbacks.publishPreparedSpatialTerminal(ctx, save.id, {
+      const replay = await rules.publishPreparedSpatialTerminal(ctx, save.id, {
         sceneTokens: [],
         actorIdByTokenId: new Map()
       })
@@ -282,19 +284,17 @@ export async function publishSceneGeometry(
       : target.delta
   const sceneChanged = delta !== null || save.fogSaves.length > 0
   let occurrence: SceneGeometryCommandResult['occurrence'] = null
-  if (bound) {
+  if (rules) {
     if (!input.tokenOrdinals) throw new Error('Spatial token source hints are missing.')
     const geometry = await readSpatialSceneGeometry(ctx, save.id, input.tokenOrdinals, currentSave)
     if (save.movementResolution) {
-      occurrence = (
-        await publicationCallbacks.publishPreparedMovementResponse(ctx, input, geometry)
-      ).occurrence
+      occurrence = (await rules.publishPreparedMovementResponse(ctx, input, geometry)).occurrence
     } else if (preparation?.outcome.kind === 'UNINTERRUPTED') {
-      await publicationCallbacks.verifyPreparedUninterruptedMovement(ctx, input, geometry)
+      await rules.verifyPreparedUninterruptedMovement(ctx, input, geometry)
     } else {
       const publication = pending
-        ? await publicationCallbacks.publishPreparedSpatialPending(ctx, input, geometry)
-        : await publicationCallbacks.publishPreparedSpatialTerminal(ctx, save.id, geometry, input)
+        ? await rules.publishPreparedSpatialPending(ctx, input, geometry)
+        : await rules.publishPreparedSpatialTerminal(ctx, save.id, geometry, input)
       occurrence = publication.occurrence
     }
     // Each published segment of a voluntary move counts toward the actor's turn (D38).
