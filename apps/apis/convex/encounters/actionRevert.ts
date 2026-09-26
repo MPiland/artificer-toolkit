@@ -6,9 +6,12 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import type { z } from 'zod'
 import {
   encounterRunActorStateSchema,
-  encounterRunStateSchema
+  encounterRunStateSchema,
+  type EncounterRunActorState,
+  type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
@@ -22,6 +25,10 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  encounterBasicActionEffects,
+  withEncounterBasicActionEffects
+} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -33,7 +40,8 @@ import { readCharacterRecord, readCharacterSheetState } from '../characters/docu
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { rejectDomain } from '../lib/domainRejections'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
-import { readRunActors, readRunState } from './documents'
+import { readRunActors, readRunState, replaceRunActor } from './documents'
+import { removeTurnSpeedBonus } from './turnMovement'
 import { projectNativeGm } from './nativeProjection'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries'
 
@@ -59,9 +67,9 @@ function unavailable(message: string): never {
 }
 
 /**
- * GM-only exact undo of the Run's last committed RESOLVE_ACTION and its committed children
- * (ADR 0034 decision 2). Every change is inverted from the before-states in its receipts; a later
- * Encounter command, a later write to an affected Character, or a transition without a recorded
+ * GM-only exact undo of the Run's last committed RESOLVE_ACTION and its committed children, or of
+ * its last basic action (ADR 0034 decision 2, D45). Every change is inverted from the before-states
+ * in its receipts; a later Encounter command, a later write to an affected Character, or a transition without a recorded
  * before-state refuses the undo instead of approximating it. Undoing an undo is not supported.
  */
 export async function revertLastEncounterAction(
@@ -121,6 +129,10 @@ export async function revertLastEncounterAction(
   const rootIndex = recent.findIndex((entry) => entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
+  if (root?.commandType === 'USE_BASIC_ACTION') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertBasicAction(ctx, { run, state, campaign, input, fingerprint, userId, root })
+  }
   if (!root || root.commandType !== 'RESOLVE_ACTION')
     unavailable(
       root
@@ -330,6 +342,18 @@ export async function revertLastEncounterAction(
     })
   }
 
+  // Ally advantages (Help) the action's rolls used go back to their helpers.
+  for (const help of root.allyAdvantageUses) {
+    const helper = actorsById.get(help.helperActorId)
+    if (!helper) unavailable('The helper left the Encounter; adjust manually.')
+    updateActor(helper.id, {
+      resources: withEncounterBasicActionEffects(helper, [
+        ...encounterBasicActionEffects(helper),
+        help.effect
+      ]).resources
+    })
+  }
+
   // Created effects and the maintained state go away; their versions prove nothing touched them.
   const store = createActiveRuleEffectStore(ctx)
   const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
@@ -369,22 +393,46 @@ export async function revertLastEncounterAction(
       gameSystemId: state.gameSystemId
     })
 
-  for (const actor of actors) {
-    const next = actorsById.get(actor.id)!
-    if (next === actor) continue
-    const row = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', actor.id))
-      .unique()
-    if (!row || row.stateChecksum !== checksumCanonicalJson(actor))
-      throw new Error('Encounter actor changed before the undo.')
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(next),
-      stateChecksum: checksumCanonicalJson(next)
-    })
-  }
+  return commitRevert(ctx, {
+    run,
+    state,
+    campaign,
+    input,
+    fingerprint,
+    userId,
+    root,
+    actors,
+    nextActors: actors.map((actor) => actorsById.get(actor.id)!),
+    updatedAt
+  })
+}
 
-  const nextActors = actors.map((actor) => actorsById.get(actor.id)!)
+type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
+type RevertScope = {
+  run: Doc<'encounterRuns'>
+  state: EncounterRunState
+  campaign: Doc<'campaigns'>
+  input: RevertLastEncounterActionInputDto
+  fingerprint: string
+  userId: string
+  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' | 'USE_BASIC_ACTION' }>
+}
+
+/** Writes the restored actors, the next Run version and the undo's own timeline entry. */
+async function commitRevert(
+  ctx: MutationCtx,
+  input: RevertScope & {
+    actors: readonly EncounterRunActorState[]
+    nextActors: EncounterRunActorState[]
+    updatedAt: string
+  }
+): Promise<EncounterCommandResultDto> {
+  const { run, state, campaign, root, updatedAt, nextActors } = input
+  for (const [index, actor] of input.actors.entries()) {
+    const next = nextActors[index]!
+    if (next === actor) continue
+    await replaceRunActor(ctx, actor, next)
+  }
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -415,14 +463,14 @@ export async function revertLastEncounterAction(
       id: crypto.randomUUID(),
       campaignId: campaign.id,
       encounterId: run.id,
-      commandId: input.commandId,
+      commandId: input.input.commandId,
       commandType: 'REVERT_LAST_ACTION',
       revertedCommandId: root.commandId,
-      ruleOccurrenceId: root.ruleOccurrenceId,
-      commandFingerprint: fingerprint,
-      actorUserId: userId,
+      ruleOccurrenceId: root.commandType === 'RESOLVE_ACTION' ? root.ruleOccurrenceId : null,
+      commandFingerprint: input.fingerprint,
+      actorUserId: input.userId,
       version: nextState.version,
-      commandJson: JSON.stringify(input),
+      commandJson: JSON.stringify(input.input),
       resultJson: JSON.stringify(result),
       resultChecksum: checksumCanonicalJson(result),
       createdAt: updatedAt
@@ -431,6 +479,46 @@ export async function revertLastEncounterAction(
   return result
 }
 
+/**
+ * Undoes the Run's last basic action (Q11) exactly from its receipt: the effects it added (still
+ * the actor's latest), its allowance use and its turn's speed bonus.
+ */
+async function revertBasicAction(
+  ctx: MutationCtx,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === receipt.actorId)
+  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  const effects = encounterBasicActionEffects(actor)
+  const kept = effects.slice(0, effects.length - receipt.effects.length)
+  if (checksumCanonicalJson(effects.slice(kept.length)) !== checksumCanonicalJson(receipt.effects))
+    unavailable(`${actor.label}'s basic-action effects changed; adjust manually.`)
+  let restored = withEncounterBasicActionEffects(actor, kept)
+  const economy = receipt.actionEconomy
+  if (economy) {
+    if (encounterRuleUsageUsed(restored, economy.definitionId) !== economy.afterUsed)
+      unavailable("The actor's action economy changed after this action; adjust manually.")
+    restored = encounterRunActorStateSchema.parse({
+      ...restored,
+      resources: withEncounterRuleUsageUsed(restored, economy.definitionId, economy.beforeUsed)
+    })
+  }
+  if (receipt.speedBonusTurn)
+    await removeTurnSpeedBonus(ctx, {
+      encounterId: state.id,
+      ...receipt.speedBonusTurn,
+      actorId: actor.id
+    })
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
+    updatedAt: new Date().toISOString()
+  })
+}
 async function restoreCharacter(
   ctx: MutationCtx,
   input: {

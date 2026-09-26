@@ -129,6 +129,14 @@ export const commit = internalMutation({
         commandType: 'USE_BASIC_ACTION',
         label: definition.label,
         ruleOverrides: input.ruleOverrides,
+        receipt: {
+          actorId: actor.id,
+          actionEconomy: input.actionEconomy,
+          effects: input.effects,
+          speedBonusTurn: input.speedMovementBonus
+            ? { round: state.round, turnActorId: actor.id }
+            : null
+        },
         commandFingerprint: fingerprint,
         actorUserId: input.expectedUserId,
         version: nextState.version,

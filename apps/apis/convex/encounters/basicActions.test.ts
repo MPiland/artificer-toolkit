@@ -111,6 +111,15 @@ async function setCurrentActor(base: PlayerControlFixture, actorId: string) {
   })
 }
 
+async function revertLastAction(base: PlayerControlFixture) {
+  return base.gm({
+    type: 'REVERT_LAST_ACTION',
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await base.version()
+  })
+}
+
 async function setConditions(base: PlayerControlFixture, actorId: string, conditions: string[]) {
   return base.gm({
     type: 'UPDATE_ACTOR',
@@ -332,6 +341,76 @@ describe('basic combat actions in the room (Q11)', () => {
       })
     )
     expect((await d20Pending(base)).request.rollMode).toBe('NORMAL')
+  })
+
+  it("the GM's undo takes a basic action back exactly: its effects, allowance and speed bonus", async () => {
+    const base = await basicActionFixture()
+    const walking = await turnBudget(base, base.companion.id)
+    await base.gm(
+      await useBasicAction(base, { actorId: base.companion.id, definitionId: dash!.id })
+    )
+    expect(await turnBudget(base, base.companion.id)).toBe(walking! * 2)
+    await revertLastAction(base)
+    expect(await turnBudget(base, base.companion.id)).toBe(walking)
+    expect(
+      encounterRuleUsageUsed(
+        await actorState(base, base.companion.id),
+        SRD_ACTION_ALLOWANCE_DEFINITION_ID
+      )
+    ).toBe(0)
+
+    await base.gm(
+      await useBasicAction(base, { actorId: base.companion.id, definitionId: dodge!.id })
+    )
+    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toHaveLength(2)
+    await revertLastAction(base)
+    const companion = await actorState(base, base.companion.id)
+    expect(encounterBasicActionEffects(companion)).toEqual([])
+    expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+    const { entries } = await base.owner.caller.query(timeline, { encounterId: base.run.id })
+    expect(entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION' })
+    await expect(domainRejection(revertLastAction(base))).resolves.toMatchObject({
+      reason: 'REVERT_UNAVAILABLE',
+      message: 'The last action was already undone.'
+    })
+  })
+
+  it('refuses to undo a basic action once a later command changed the Encounter', async () => {
+    const base = await basicActionFixture()
+    await base.gm(
+      await useBasicAction(base, { actorId: base.companion.id, definitionId: dodge!.id })
+    )
+    await setCurrentActor(base, base.enemy.id)
+    await expect(domainRejection(revertLastAction(base))).resolves.toMatchObject({
+      reason: 'REVERT_UNAVAILABLE'
+    })
+    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toHaveLength(2)
+  })
+
+  it('undoing an attack that used a Help gives the Help back to its helper', async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK' })
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(
+      await useBasicAction(base, {
+        actorId: base.enemy.id,
+        definitionId: help!.id,
+        allyActorId: base.companion.id
+      })
+    )
+    const helped = encounterBasicActionEffects(await actorState(base, base.enemy.id))
+    expect(helped).toHaveLength(1)
+    await setCurrentActor(base, base.companion.id)
+    await base.gm(await base.bite(base.companion.id, base.enemy.id))
+    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
+
+    await revertLastAction(base)
+    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual(helped)
+    expect(
+      encounterRuleUsageUsed(
+        await actorState(base, base.companion.id),
+        SRD_ACTION_ALLOWANCE_DEFINITION_ID
+      )
+    ).toBe(0)
   })
 
   it('Help needs a chosen ally, and a player may help only an actor they can see', async () => {

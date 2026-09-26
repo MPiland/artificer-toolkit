@@ -304,6 +304,7 @@ export const commit = internalMutation({
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
         // Disarm has no "Do it anyway"; its checks stay hard.
         ruleOverrides: [],
+        allyAdvantageUses: input.allyAdvantageUses,
         commandFingerprint: fingerprint,
         actorUserId: admission.initiatorUserId,
         version: nextState.version,

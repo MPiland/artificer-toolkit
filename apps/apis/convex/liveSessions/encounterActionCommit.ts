@@ -402,6 +402,7 @@ export const commit = internalMutation({
         ruleResultChecksum,
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
         ruleOverrides: input.ruleOverrides,
+        allyAdvantageUses: input.allyAdvantageUses,
         commandFingerprint: fingerprint,
         actorUserId: initiatorUserId,
         version: nextState.version,

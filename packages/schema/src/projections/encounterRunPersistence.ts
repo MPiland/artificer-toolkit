@@ -3,6 +3,11 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import {
+  encounterAllyAdvantageUsesDtoSchema,
+  encounterBasicActionEffectsDtoSchema
+} from '../shared/basicActions.js'
+import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots.
 export const encounterStoredRunSchema = z.strictObject({
@@ -141,13 +146,28 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
     ruleResultChecksum: projectionChecksumSchema,
     optionalCombatSnapshotChecksum: projectionChecksumSchema,
     /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
-    ruleOverrides: encounterRuleWarningsDtoSchema
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    /** The ally advantages (Help) the action's rolls used; its undo gives them back. */
+    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('USE_BASIC_ACTION'),
     /** The catalogue entry's name when it was used; the timeline shows it. */
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-    ruleOverrides: encounterRuleWarningsDtoSchema
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    /** What the action changed, so the GM's undo can reverse it exactly. */
+    receipt: z.strictObject({
+      actorId: postgresUuidSchema,
+      actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      effects: encounterBasicActionEffectsDtoSchema,
+      /** The turn movement record a speed bonus was added to. */
+      speedBonusTurn: z.nullable(
+        z.strictObject({
+          round: z.number().check(z.int()).check(z.positive()),
+          turnActorId: postgresUuidSchema
+        })
+      )
+    })
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('VOID_RULE_OCCURRENCE'),
@@ -155,9 +175,9 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('REVERT_LAST_ACTION'),
-    /** The undone RESOLVE_ACTION root command and its occurrence. */
+    /** The undone RESOLVE_ACTION or USE_BASIC_ACTION command, and the action's occurrence if any. */
     revertedCommandId: postgresUuidSchema,
-    ruleOccurrenceId: postgresUuidSchema
+    ruleOccurrenceId: z.nullable(postgresUuidSchema)
   }),
   z.extend(encounterStoredRunCommandResultSchema, {
     commandType: z.literal('UPDATE_ACTOR'),

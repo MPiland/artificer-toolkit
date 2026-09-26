@@ -80,6 +80,24 @@ export async function recordTurnSpeedBonus(
   await addTurnMovement(ctx, { ...input, usedFeet: 0, speedBonuses: 1 })
 }
 
+/** Takes back one recorded speed bonus from an actor's turn record (the GM's undo of a Dash). */
+export async function removeTurnSpeedBonus(
+  ctx: MutationCtx,
+  input: { encounterId: string; round: number; turnActorId: string; actorId: string }
+) {
+  const row = await ctx.db
+    .query('encounterTurnMovements')
+    .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
+      q
+        .eq('encounterId', input.encounterId)
+        .eq('round', input.round)
+        .eq('turnActorId', input.turnActorId)
+        .eq('actorId', input.actorId)
+    )
+    .unique()
+  if (!row || row.speedBonuses < 1) throw new Error('The turn speed bonus record is unavailable.')
+  await ctx.db.patch(row._id, { speedBonuses: row.speedBonuses - 1 })
+}
 /** Each actor's record for the current turn; an actor without one has moved none and has no bonus. */
 async function readTurnMovementByActorId(
   ctx: QueryCtx,
