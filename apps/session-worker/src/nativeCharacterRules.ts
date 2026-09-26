@@ -21,12 +21,18 @@ import {
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
-import { captureCacheKey, captureStamps, type LiveCaptureReads } from './nativeCaptureCache.js'
+import {
+  bundledCaptureKey,
+  captureCacheKey,
+  captureStamps,
+  type LiveCaptureReads
+} from './nativeCaptureCache.js'
 
 /**
  * Prepare authorized live Character facts; the caller must validate dependencies before commit.
- * The Character's own inputs (sheet, hit points, conditions, Campaign state) are always read fresh;
- * its authored sources are read as the Character's owner and may come from the room cache.
+ * The Character's own inputs (sheet, hit points, conditions, Campaign state) are always read fresh,
+ * possibly by the command's capture bundle; its authored sources are read as the Character's owner
+ * and may come from the room cache.
  */
 export async function prepareNativeLiveCharacterSheet(
   environment: NativeLiveSessionEnvironment,
@@ -47,10 +53,15 @@ export async function prepareNativeLiveCharacterSheet(
     const cacheable = request.kind !== 'INPUTS'
     const key = cacheable ? captureCacheKey('characterRules', cacheScope, request, revisions) : null
     const cached = key ? captures?.read(key) : undefined
+    const bundled = cacheable
+      ? undefined
+      : captures?.takeBundled(bundledCaptureKey('characterRules', input))
     const response =
       cached?.route === 'characterRules'
         ? cached.response
-        : await callLiveSessionRoute(environment, accessToken, 'characterRules', input)
+        : bundled?.route === 'characterRules'
+          ? bundled.response
+          : await callLiveSessionRoute(environment, accessToken, 'characterRules', input)
     const expectedKind =
       request.kind === 'INPUTS' || request.kind === 'PUBLICATIONS' ? request.kind : 'SOURCE_INDEX'
     if (response.kind !== expectedKind) throw new Error('Character rules capture kind mismatch.')

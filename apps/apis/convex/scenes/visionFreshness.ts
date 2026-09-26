@@ -30,16 +30,26 @@ export async function readSceneVisionFreshness(
   return { system, campaign, play }
 }
 
-export async function assertSceneVisionCharacters(
+/** Whether each observed Character still has the revision its Scene vision was composed from. */
+export async function sceneVisionCharactersCurrent(
   ctx: QueryCtx,
   revisions: SceneSessionVisionComposition['characterRevisions']
-) {
+): Promise<boolean> {
   if (new Set(revisions.map((entry) => entry.characterId)).size !== revisions.length)
     throw new Error('Scene geometry Character observations are duplicated.')
   for (const observed of revisions) {
     if (
       (await readSceneVisionRevision(ctx, 'CHARACTER', observed.characterId)) !== observed.revision
     )
-      throw new Error('Scene vision Character changed before geometry publication.')
+      return false
   }
+  return true
+}
+
+export async function assertSceneVisionCharacters(
+  ctx: QueryCtx,
+  revisions: SceneSessionVisionComposition['characterRevisions']
+) {
+  if (!(await sceneVisionCharactersCurrent(ctx, revisions)))
+    throw new Error('Scene vision Character changed before geometry publication.')
 }

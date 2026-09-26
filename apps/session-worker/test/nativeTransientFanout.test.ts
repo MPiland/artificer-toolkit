@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
 import {
   liveSessionTransientCaptureInputSchema,
+  liveSessionVisionRevisionsInputSchema,
   type LiveSessionTransientCapture,
   type LiveSessionTransientCaptureInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
@@ -855,7 +856,8 @@ it('fails closed when the fresh capture also conflicts without a third attempt',
   await noTransient(player.messages)
 })
 
-it('rehydrates bound Character vision after its revision invalidates the cached scene', async () => {
+/** A room whose Scene token takes its vision from a bound Character at revision A, then B. */
+async function characterVisionRoom() {
   const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
   const characterId = '00000000-0000-4000-8000-000000000112'
   const revisionA = '00000000-0000-4000-8000-000000000113'
@@ -877,11 +879,17 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
     streamVersion: 0,
     tokenId
   }
-  const captures: LiveSessionTransientCaptureInput[] = []
-  const visionRequests: string[] = []
-  let invalidations = 0
+  const room = {
+    revisionA,
+    revisionB,
+    captures: [] as LiveSessionTransientCaptureInput[],
+    visionRequests: [] as string[],
+    visionChecks: 0,
+    invalidations: 0,
+    /** Set to change the Character: the next check or capture observing revision A is refused. */
+    revisionChanged: false
+  }
   let visionRevision = revisionA
-  let revisionChanged = false
   const stub = env.LIVE_SESSION_ROOMS.get(
     env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
   )
@@ -910,17 +918,28 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
           updatedAt: now
         })
       }
+      if (pathname === '/live-sessions/vision-revisions') {
+        const body = liveSessionVisionRevisionsInputSchema.parse(await request.json())
+        room.visionChecks += 1
+        return Response.json({
+          current:
+            !room.revisionChanged &&
+            body.observedCharacterRevisions.every(
+              (revision) => revision.revision === visionRevision
+            )
+        })
+      }
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
-        captures.push(body)
+        room.captures.push(body)
         const origin = members.find((candidate) => candidate.userId === body.expectedUserId)
         if (!origin || origin.role !== body.expectedRole) return new Response(null, { status: 409 })
         if (
-          revisionChanged &&
+          room.revisionChanged &&
           body.observedCharacterRevisions.some((revision) => revision.revision === revisionA)
         ) {
-          invalidations += 1
-          revisionChanged = false
+          room.invalidations += 1
+          room.revisionChanged = false
           visionRevision = revisionB
           return new Response(null, { status: 409 })
         }
@@ -981,7 +1000,7 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
           })
         })
       if (body.request.kind === 'VISION_CHARACTER') {
-        visionRequests.push(visionRevision)
+        room.visionRequests.push(visionRevision)
         return Response.json({
           kind: 'VISION_CHARACTER',
           result: sceneSessionCharacterVisionResultSchema.parse({
@@ -1007,7 +1026,12 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
+  return { room, owner, player }
+}
 
+it('rehydrates bound Character vision after its revision invalidates the cached scene', async () => {
+  const { room, owner, player } = await characterVisionRoom()
+  const { revisionA, revisionB } = room
   player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
   await vi.waitFor(() =>
     expect(transient(player.messages)[0]).toMatchObject({
@@ -1015,24 +1039,67 @@ it('rehydrates bound Character vision after its revision invalidates the cached 
     })
   )
   expect(
-    captures.some((capture) =>
+    room.captures.some((capture) =>
       capture.observedCharacterRevisions.some((revision) => revision.revision === revisionA)
     )
   ).toBe(true)
 
   owner.messages.length = 0
   player.messages.length = 0
-  revisionChanged = true
+  room.revisionChanged = true
   player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(2) }))
   await vi.waitFor(() =>
     expect(transient(player.messages)[0]).toMatchObject({ message: { visionLayers: [] } })
   )
-  expect(visionRequests).toEqual([revisionA, revisionB])
-  expect(invalidations).toBe(1)
+  expect(room.visionRequests).toEqual([revisionA, revisionB])
+  expect(room.invalidations).toBe(1)
   expect(
-    captures.some((capture) =>
+    room.captures.some((capture) =>
       capture.observedCharacterRevisions.some((revision) => revision.revision === revisionB)
     )
   ).toBe(true)
   expect(transient(owner.messages)).toHaveLength(1)
+})
+
+it('checks only the Character revisions behind synchronized vision for GM and player previews', async () => {
+  const { room, owner, player } = await characterVisionRoom()
+  const { revisionA, revisionB } = room
+  owner.socket.send(
+    JSON.stringify({
+      expectedPresentationVersion: 1,
+      sceneId,
+      type: 'SYNCHRONIZE_SCENE',
+      version: 1
+    })
+  )
+  await vi.waitFor(() => expect(room.visionRequests).toEqual([revisionA]))
+  await vi.waitFor(() =>
+    expect(owner.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+  )
+  const capturesAfterSync = room.captures.length
+  owner.messages.length = 0
+  player.messages.length = 0
+
+  // D33: while the revisions are unchanged, each preview makes one small read and no capture.
+  owner.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(1) }))
+  await vi.waitFor(() => {
+    expect(transient(owner.messages)).toHaveLength(2)
+    expect(transient(player.messages)).toHaveLength(2)
+  })
+  expect(room.visionChecks).toBe(2)
+  expect(room.captures).toHaveLength(capturesAfterSync)
+
+  // A changed revision forces the full recapture and rehydration.
+  owner.messages.length = 0
+  player.messages.length = 0
+  room.revisionChanged = true
+  player.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope: tokenPreview(2) }))
+  await vi.waitFor(() =>
+    expect(transient(player.messages)[0]).toMatchObject({ message: { visionLayers: [] } })
+  )
+  expect(room.visionChecks).toBe(3)
+  expect(room.invalidations).toBe(1)
+  expect(room.visionRequests).toEqual([revisionA, revisionB])
+  expect(room.captures.length).toBeGreaterThan(capturesAfterSync)
 })

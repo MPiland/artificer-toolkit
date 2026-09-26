@@ -96,6 +96,20 @@ registerScope('authoredDraftPayloads', async (ctx, document) => {
 registerScope('authoredDraftPayloadChunks', (_, document) => systemScope(document.systemId))
 registerScope('reusableDefinitions', (_, document) => systemScope(document.gameSystemId))
 
+// Imported rows are readable only while their job is COMPLETED (`imports/visibility.ts`), so a
+// visibility change changes the content of every System the job imported roots into (D34).
+triggers.register('importJobs', async (ctx, change) => {
+  const visible = (job: Doc<'importJobs'> | null) => job?.status === 'COMPLETED'
+  const job = change.newDoc ?? change.oldDoc
+  if (!job || visible(change.oldDoc) === visible(change.newDoc)) return
+  const systemIds = new Set<string>()
+  for await (const root of ctx.innerDb
+    .query('authoredRoots')
+    .withIndex('by_importJobId_id', (query) => query.eq('importJobId', job.id)))
+    systemIds.add(root.systemId)
+  for (const systemId of systemIds) await refreshScope(ctx.innerDb, systemScope(systemId))
+})
+
 registerScope('campaigns', (_, document) => campaignScope(document.id))
 registerScope('campaignMemberships', (_, document) => campaignScope(document.campaignId))
 registerScope('campaignCharacterAssignments', (_, document) => campaignScope(document.campaignId))

@@ -3,6 +3,7 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { liveSessionCharacterRulesScope } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -105,19 +106,7 @@ export async function prepareNativeLiveMovementTarget(input: {
       ? await prepareNativeLiveCharacterSheet(
           input.environment,
           input.accessToken,
-          {
-            campaignId: scope.campaignId,
-            authorityEpoch: scope.authorityEpoch,
-            expectedUserId: scope.expectedUserId,
-            expectedRole: scope.expectedRole,
-            ...(scope.concentrationResponse
-              ? { concentrationResponse: scope.concentrationResponse }
-              : {}),
-            ...(scope.turnCommand ? { turnCommand: scope.turnCommand } : {}),
-            ...(scope.action ? { action: scope.action } : {}),
-            ...(scope.movement ? { movement: { ...scope.movement, actorId: actor.id } } : {}),
-            characterId: actor.sourceId
-          },
+          liveSessionCharacterRulesScope(scope, actor),
           input.captures
         )
       : null

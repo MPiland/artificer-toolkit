@@ -2,7 +2,9 @@ import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
   LiveSessionTransientCapture,
-  LiveSessionTransientCaptureInput
+  LiveSessionTransientCaptureInput,
+  LiveSessionVisionRevisions,
+  LiveSessionVisionRevisionsInput
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import type {
@@ -25,6 +27,11 @@ const capture = makeFunctionReference<
   LiveSessionTransientCaptureInput,
   LiveSessionTransientCapture
 >('liveSessions/transientCapture:capture')
+const visionRevisions = makeFunctionReference<
+  'query',
+  LiveSessionVisionRevisionsInput,
+  LiveSessionVisionRevisions
+>('liveSessions/transientCapture:visionRevisions')
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -319,3 +326,31 @@ it('skips vision freshness reads for authority capture while full capture retain
   })
   await expect(base.owner.caller.query(capture, input)).rejects.toThrow()
 })
+
+it('checks only whether the Character revisions behind Scene vision are current (D33)', async () => {
+  const { base } = await setup()
+  const characterId = crypto.randomUUID()
+  const revision = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    ctx.db.insert('sceneVisionRevisions', { scope: 'CHARACTER', id: characterId, revision })
+  )
+  const input: LiveSessionVisionRevisionsInput = {
+    campaignId: base.campaign.id,
+    expectedRole: 'OWNER',
+    expectedUserId: base.owner.userId,
+    observedCharacterRevisions: [{ characterId, revision }]
+  }
+  await expect(base.owner.caller.query(visionRevisions, input)).resolves.toEqual({ current: true })
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('sceneVisionRevisions')
+      .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER').eq('id', characterId))
+      .unique()
+    if (row) await ctx.db.patch(row._id, { revision: crypto.randomUUID() })
+  })
+  await expect(base.owner.caller.query(visionRevisions, input)).resolves.toEqual({ current: false })
+  // The read stays member-authorized: a mismatched socket identity is refused.
+  await expect(
+    base.other.caller.query(visionRevisions, { ...input, expectedUserId: base.owner.userId })
+  ).rejects.toThrow()
+}, 30_000)

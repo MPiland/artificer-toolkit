@@ -6,7 +6,7 @@ import {
   captureEncounterRules,
   captureStamps,
   LiveCaptureCache,
-  type CachedRulesCapture
+  type LiveRulesCapture
 } from './nativeCaptureCache.js'
 import { ROOM_LIMITS } from './roomLimits.js'
 
@@ -31,7 +31,7 @@ function revisions(stamps: {
   ] satisfies LiveSessionRulesRevisions
 }
 
-function definition(observed: LiveSessionRulesRevisions): CachedRulesCapture {
+function definition(observed: LiveSessionRulesRevisions): LiveRulesCapture {
   return {
     route: 'encounterRules',
     response: { kind: 'DEFINITION', definition: null, readChecksum, revisions: observed }
@@ -115,6 +115,16 @@ describe('room capture cache', () => {
     expect(cache.reads().read('second')).toBeUndefined()
   })
 
+  it('hands each bundled read to one capture of the same command only', () => {
+    const cache = new LiveCaptureCache()
+    const reads = cache.reads()
+    reads.bundle('part', definition(revisions({})))
+    expect(cache.reads().takeBundled('part')).toBeUndefined()
+    expect(reads.takeBundled('part')).toEqual(definition(revisions({})))
+    expect(reads.takeBundled('part')).toBeUndefined()
+    expect(cache.size).toBe(0)
+  })
+
   it('bounds the cache by age, entry count and bytes', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-09-25T00:00:00.000Z'))
@@ -132,7 +142,7 @@ describe('room capture cache', () => {
     expect(reads.read(`entry-${ROOM_LIMITS.captureCacheMaxEntries}`)).toBeDefined()
 
     cache.clear()
-    const large = (bytes: number): CachedRulesCapture => ({
+    const large = (bytes: number): LiveRulesCapture => ({
       route: 'characterRules',
       response: {
         kind: 'PUBLICATIONS',

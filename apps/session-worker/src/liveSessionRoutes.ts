@@ -16,6 +16,10 @@ import {
   liveSessionEncounterRouteInputSchema,
   liveSessionEncounterRouteResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
+import {
+  liveSessionEncounterCaptureBundleInputSchema,
+  liveSessionEncounterCaptureBundleSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
 import { liveSessionEncounterConcentrationCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import { liveSessionMovementBeginInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterMovement'
 import {
@@ -42,7 +46,9 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
   liveSessionTransientCaptureInputSchema,
-  liveSessionTransientCaptureSchema
+  liveSessionTransientCaptureSchema,
+  liveSessionVisionRevisionsInputSchema,
+  liveSessionVisionRevisionsSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import {
   liveSessionTransientHydrationInputSchema,
@@ -106,6 +112,10 @@ const liveSessionRoutes = {
     input: liveSessionTransientCaptureInputSchema,
     output: liveSessionTransientCaptureSchema
   },
+  visionRevisions: {
+    input: liveSessionVisionRevisionsInputSchema,
+    output: liveSessionVisionRevisionsSchema
+  },
   hydrate: {
     input: liveSessionTransientHydrationInputSchema,
     output: liveSessionTransientHydrationResponseSchema
@@ -126,6 +136,10 @@ const liveSessionRoutes = {
   encounterRules: {
     input: liveSessionEncounterRulesInputSchema,
     output: liveSessionEncounterRulesResponseSchema
+  },
+  encounterBundle: {
+    input: liveSessionEncounterCaptureBundleInputSchema,
+    output: liveSessionEncounterCaptureBundleSchema
   },
   encounterMovementBegin: {
     input: liveSessionMovementBeginInputSchema,

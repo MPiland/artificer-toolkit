@@ -27,6 +27,9 @@ const characterRules = makeFunctionReference<'query', JsonObject, unknown>(
 const encounterRules = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/encounterRulesCapture:capture'
 )
+const encounterBundle = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/encounterCaptureBundle:capture'
+)
 const encounterMovementBegin = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/encounterMovement:begin'
 )
@@ -75,6 +78,11 @@ export const encounterRulesHttp = liveStateHttp(
   true,
   'Live Session Encounter inputs unavailable.',
   (ctx, input) => ctx.runQuery(encounterRules, input)
+)
+export const encounterBundleHttp = liveStateHttp(
+  true,
+  'Live Session Encounter inputs unavailable.',
+  (ctx, input) => ctx.runQuery(encounterBundle, input)
 )
 export const encounterMovementBeginHttp = liveStateHttp(
   true,

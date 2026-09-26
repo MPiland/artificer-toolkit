@@ -1,23 +1,37 @@
-import type { LiveSessionCharacterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
-import type {
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesResponse
+import {
+  liveSessionCharacterRulesInputSchema,
+  type LiveSessionCharacterRulesResponse
+} from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
+import {
+  isLiveSessionCaptureBundleAdmission,
+  liveSessionCharacterRulesScope
+} from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
+import {
+  liveSessionEncounterRulesInputSchema,
+  type LiveSessionEncounterRulesInput,
+  type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 import { ROOM_LIMITS } from './roomLimits.js'
 
-/** A rules capture whose result depends only on content fenced by the SYSTEM and CAMPAIGN revisions. */
-export type CachedRulesCapture =
+/** One rules capture response, tagged with its route. */
+export type LiveRulesCapture =
   | { route: 'characterRules'; response: LiveSessionCharacterRulesResponse }
   | { route: 'encounterRules'; response: LiveSessionEncounterRulesResponse }
 
-/** One command's reads through the room cache. */
+/**
+ * One command's reads: System-level captures through the room cache, and the volatile reads its
+ * capture bundle already made, each taken once.
+ */
 export interface LiveCaptureReads {
-  read(key: string): CachedRulesCapture | undefined
-  write(key: string, capture: CachedRulesCapture): void
+  read(key: string): LiveRulesCapture | undefined
+  write(key: string, capture: LiveRulesCapture): void
+  bundle(key: string, capture: LiveRulesCapture): void
+  takeBundled(key: string): LiveRulesCapture | undefined
 }
 
 /**
@@ -28,7 +42,7 @@ export interface LiveCaptureReads {
 export class LiveCaptureCache {
   readonly #entries = new Map<
     string,
-    { capture: CachedRulesCapture; bytes: number; expiresAt: number }
+    { capture: LiveRulesCapture; bytes: number; expiresAt: number }
   >()
   #bytes = 0
 
@@ -44,7 +58,16 @@ export class LiveCaptureCache {
   /** A command's view; `dropReused` forgets exactly the entries that command reused. */
   reads(): LiveCaptureReads & { dropReused(): boolean } {
     const reused = new Set<string>()
+    const bundled = new Map<string, LiveRulesCapture>()
     return {
+      bundle: (key, capture) => {
+        bundled.set(key, capture)
+      },
+      takeBundled: (key) => {
+        const capture = bundled.get(key)
+        bundled.delete(key)
+        return capture
+      },
       read: (key) => {
         const entry = this.#entries.get(key)
         if (!entry) return undefined
@@ -102,7 +125,7 @@ export function captureStamps(revisions: LiveSessionRulesRevisions): LiveSession
 
 /** Null until both stamps are observed, so the first read of a plan always goes to Convex. */
 export function captureCacheKey(
-  route: CachedRulesCapture['route'],
+  route: LiveRulesCapture['route'],
   scope: Record<string, string>,
   request: unknown,
   revisions: LiveSessionRulesRevisions
@@ -111,10 +134,16 @@ export function captureCacheKey(
   return stamps.length === 2 ? checksumCanonicalJson({ route, scope, request, stamps }) : null
 }
 
+/** Identifies a volatile read by its route and complete input, so only the same read takes it. */
+export function bundledCaptureKey(route: LiveRulesCapture['route'], input: unknown): string {
+  return checksumCanonicalJson({ route, input })
+}
+
 /**
- * Reads one Encounter rules capture. Definitions and the System vocabulary are read as the Campaign
- * owner, so they go through the room cache; everything else is read fresh. Returns the observations
- * to merge: a cached read keeps its original response and contributes only its stamps.
+ * Reads one Encounter rules capture. A command admission read by the room fetches the command's
+ * whole capture bundle (D32) and later reads take their part from it. Definitions and the System
+ * vocabulary are read as the Campaign owner, so they go through the room cache. Returns the
+ * observations to merge: a cached read keeps its original response and contributes only its stamps.
  */
 export async function captureEncounterRules(
   environment: NativeLiveSessionEnvironment,
@@ -123,11 +152,19 @@ export async function captureEncounterRules(
   observed: LiveSessionRulesRevisions,
   captures: LiveCaptureReads | undefined
 ): Promise<{ response: LiveSessionEncounterRulesResponse; revisions: LiveSessionRulesRevisions }> {
+  const key = bundledCaptureKey('encounterRules', input)
+  if (captures && isLiveSessionCaptureBundleAdmission(input.request))
+    await captureBundle(environment, accessToken, input, captures)
+  const bundled = captures?.takeBundled(key)
+  if (bundled?.route === 'encounterRules')
+    return { response: bundled.response, revisions: bundled.response.revisions }
   const cacheable =
     input.request.kind === 'DEFINITION' || input.request.kind === 'SYSTEM_VOCABULARY'
   const scope = { campaignId: input.campaignId }
-  const key = cacheable ? captureCacheKey('encounterRules', scope, input.request, observed) : null
-  const cached = key ? captures?.read(key) : undefined
+  const cacheKey = cacheable
+    ? captureCacheKey('encounterRules', scope, input.request, observed)
+    : null
+  const cached = cacheKey ? captures?.read(cacheKey) : undefined
   if (cached?.route === 'encounterRules')
     return { response: cached.response, revisions: captureStamps(cached.response.revisions) }
   const response = await callLiveSessionRoute(environment, accessToken, 'encounterRules', input)
@@ -136,4 +173,38 @@ export async function captureEncounterRules(
     : null
   if (written) captures?.write(written, { route: 'encounterRules', response })
   return { response, revisions: response.revisions }
+}
+
+async function captureBundle(
+  environment: NativeLiveSessionEnvironment,
+  accessToken: string,
+  admission: LiveSessionEncounterRulesInput,
+  captures: LiveCaptureReads
+): Promise<void> {
+  const bundle = await callLiveSessionRoute(environment, accessToken, 'encounterBundle', {
+    ...admission,
+    // Concentration checks read each damaged actor's Concentration slot.
+    maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
+  })
+  for (const { request, response } of bundle.encounter) {
+    const input = liveSessionEncounterRulesInputSchema.parse({ ...admission, request })
+    captures.bundle(bundledCaptureKey('encounterRules', input), {
+      route: 'encounterRules',
+      response
+    })
+  }
+  for (const { actorId, response } of bundle.characters) {
+    if (response.kind !== 'INPUTS') throw new Error('Bundled Character inputs are unavailable.')
+    const input = liveSessionCharacterRulesInputSchema.parse({
+      ...liveSessionCharacterRulesScope(admission, {
+        id: actorId,
+        sourceId: response.character.id
+      }),
+      request: { kind: 'INPUTS' }
+    })
+    captures.bundle(bundledCaptureKey('characterRules', input), {
+      route: 'characterRules',
+      response
+    })
+  }
 }
