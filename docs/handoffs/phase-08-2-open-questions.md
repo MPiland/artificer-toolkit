@@ -161,6 +161,19 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - Speed 0 from conditions such as Grappled (ships with condition mechanics).
     - Dodge benefits on saves forced by turn effects.
 
+* **D47** R08-prep rulings:
+  * **Binding while a room is live.** A GM can bind an Encounter to the presented Scene mid-session, the common "the fight starts here" case, so binding goes through the room like other Scene-owning changes. Today `sceneBindings:bind` refuses whenever a room owns the presented Scene, which is a product defect.
+  * **V15 schedule.** An actor's turn may end without a reaction, as the criterion's "up to one reaction" wording allows. With two dispositions, not every turn can provoke one.
+  * **Room replies:**
+    * An exact replay reports `replayed: true`, matching Convex.
+    * A capture timeout is reported as temporarily unavailable ("try again"), not as `STALE_STATE`.
+    * When the initiator can't see the result of their own command, the room acknowledges only the version, which is correct redaction. Any decision owed to them must still reach them through their pending reads.
+  * **Storybook failures are real defects to fix:**
+    * Dimmed unavailable actions need 4.5:1 text contrast.
+    * The GM Window story's token-binding select must offer the fixture's actors.
+  * **Fog exploration along a move (defect found by the T3 fast tests).** A move explores continuously along the walked line, as Foundry does and as the code comment says. Today `deriveSceneTokenPathExplorationPatch` (`packages/shared/src/domains/vtt/exploration.ts:361`) samples only the path's corner points. A straight drag is a two-point path, so short-sighted tokens leave the middle unexplored. Fix it with a test that fails today.
+  * **No commits during the final R08 run.** Its source-identity check requires a frozen tree.
+
 ## Resolved
 
 - **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:

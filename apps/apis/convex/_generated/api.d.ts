@@ -31782,6 +31782,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             id: string;
@@ -33355,6 +33372,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             updatedAt: string;
@@ -34937,6 +34971,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             id: string;
@@ -36510,6 +36561,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             updatedAt: string;
@@ -38118,6 +38186,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             id: string;
@@ -39691,6 +39776,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             updatedAt: string;
@@ -41252,6 +41354,23 @@ export declare const api: {
                 kind: "RULE_MAINTENANCE";
                 replacementPolicy: "REPLACE_SAME_DEFINITION";
                 schemaVersion: 1;
+              }
+            | {
+                actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                gameSystemId: string;
+                id: string;
+                kind: "BASIC_ACTION";
+                mechanics: Array<
+                  | "SPEED_MOVEMENT_BONUS"
+                  | "NO_OPPORTUNITY_ATTACKS"
+                  | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                  | "ALLY_ADVANTAGE"
+                  | "SAVE_ADVANTAGE"
+                >;
+                rulesText: string;
+                saveAbilityIds: Array<string>;
+                schemaVersion: 1;
+                suspendedWhileUnableToActOrMove: boolean;
               };
           expectedDefinitionVersion: number;
           expectedDraftVersion: number | null;
@@ -42820,6 +42939,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             id: string;
@@ -44393,6 +44529,23 @@ export declare const api: {
                   kind: "RULE_MAINTENANCE";
                   replacementPolicy: "REPLACE_SAME_DEFINITION";
                   schemaVersion: 1;
+                }
+              | {
+                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  gameSystemId: string;
+                  id: string;
+                  kind: "BASIC_ACTION";
+                  mechanics: Array<
+                    | "SPEED_MOVEMENT_BONUS"
+                    | "NO_OPPORTUNITY_ATTACKS"
+                    | "DISADVANTAGE_ON_ATTACKS_AGAINST"
+                    | "ALLY_ADVANTAGE"
+                    | "SAVE_ADVANTAGE"
+                  >;
+                  rulesText: string;
+                  saveAbilityIds: Array<string>;
+                  schemaVersion: 1;
+                  suspendedWhileUnableToActOrMove: boolean;
                 };
             gameSystemId: string;
             updatedAt: string;
@@ -45468,6 +45621,23 @@ export declare const api: {
             } | null;
           }>;
           actorId: string;
+          basicActions: Array<{
+            actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+            definitionId: string;
+            label: string;
+            needsAlly: boolean;
+            rulesText: string;
+            warnings: Array<{
+              code:
+                | "ACTION_ECONOMY_UNAVAILABLE"
+                | "RESOURCE_UNAVAILABLE"
+                | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DISPOSITION"
+                | "TARGET_OUT_OF_RANGE"
+                | "TARGET_RANGE_UNCHECKED";
+              message: string;
+            }>;
+          }>;
           encounterId: string;
           encounterVersion: number;
           optionalRules: Array<{ definitionId: string; label: string }>;
@@ -47961,6 +48131,23 @@ export declare const api: {
                         type: "RESOLVE_ACTION";
                       }
                     | {
+                        acknowledgedWarnings?: Array<
+                          | "ACTION_ECONOMY_UNAVAILABLE"
+                          | "RESOURCE_UNAVAILABLE"
+                          | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DISPOSITION"
+                          | "TARGET_OUT_OF_RANGE"
+                          | "TARGET_RANGE_UNCHECKED"
+                        >;
+                        actorId: string;
+                        allyActorId: string | null;
+                        commandId: string;
+                        definitionId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        type: "USE_BASIC_ACTION";
+                      }
+                    | {
                         commandId: string;
                         correlationId?: string | null;
                         encounterId: string;
@@ -49577,6 +49764,7 @@ export declare const api: {
             commandType: string;
             createdAt: string;
             id: string;
+            label: string | null;
             roll: {
               characterId: string | null;
               characterLabel: string;
@@ -66213,6 +66401,23 @@ export declare const internal: {
                 type: "RESOLVE_ACTION";
               }
             | {
+                acknowledgedWarnings?: Array<
+                  | "ACTION_ECONOMY_UNAVAILABLE"
+                  | "RESOURCE_UNAVAILABLE"
+                  | "SOURCE_NOT_EQUIPPED"
+                  | "TARGET_DISPOSITION"
+                  | "TARGET_OUT_OF_RANGE"
+                  | "TARGET_RANGE_UNCHECKED"
+                >;
+                actorId: string;
+                allyActorId: string | null;
+                commandId: string;
+                definitionId: string;
+                encounterId: string;
+                expectedVersion: number;
+                type: "USE_BASIC_ACTION";
+              }
+            | {
                 commandId: string;
                 correlationId?: string | null;
                 encounterId: string;
@@ -68208,6 +68413,23 @@ export declare const internal: {
                         type: "RESOLVE_ACTION";
                       }
                     | {
+                        acknowledgedWarnings?: Array<
+                          | "ACTION_ECONOMY_UNAVAILABLE"
+                          | "RESOURCE_UNAVAILABLE"
+                          | "SOURCE_NOT_EQUIPPED"
+                          | "TARGET_DISPOSITION"
+                          | "TARGET_OUT_OF_RANGE"
+                          | "TARGET_RANGE_UNCHECKED"
+                        >;
+                        actorId: string;
+                        allyActorId: string | null;
+                        commandId: string;
+                        definitionId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        type: "USE_BASIC_ACTION";
+                      }
+                    | {
                         commandId: string;
                         correlationId?: string | null;
                         encounterId: string;
@@ -69374,6 +69596,9 @@ export declare const internal: {
       commitPending: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterActionCommit: {
+      commit: FunctionReference<"mutation", "internal", any, any>;
+    };
+    encounterBasicAction: {
       commit: FunctionReference<"mutation", "internal", any, any>;
     };
     encounterCaptureBundle: {
