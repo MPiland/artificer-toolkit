@@ -26,8 +26,10 @@ import {
   type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { healthDisplayLevelDtoSchema } from '@artificer-toolkit/schema/api/healthDisplay'
 import { getEncounterTimeline } from '#app/data/encounters/queries'
 import { useSystemList } from '#app/data/systems/useSystemList'
+import { AppSelect } from '#app/ui/primitives/Select'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
@@ -38,6 +40,7 @@ import { EncounterReminders } from './EncounterReminders'
 import { useCampaignLiveSession } from '../vtt/useCampaignLiveSession'
 import { LiveSessionCommandRejectedError } from '../vtt/liveSessionClient'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
+import { healthDisplayLevelOptions } from '../healthDisplay'
 
 export function CampaignEncounterWorkspace({
   campaign,
@@ -321,6 +324,25 @@ export function CampaignEncounterWorkspace({
         </Text>
       ) : null}
       {commandError ? <Alert color='red'>{commandError}</Alert> : null}
+      {!readOnly ? (
+        <AppSelect
+          allowDeselect={false}
+          className={encounterStyles.encounterTurnSelect}
+          data={healthDisplayLevelOptions}
+          description='Players see enemies and NPCs at this level unless one is set below.'
+          disabled={commandBlocked}
+          label='Enemy health players see'
+          searchable={false}
+          value={encounter.healthDisplayDefault}
+          onChange={(value) =>
+            value &&
+            commandWithVersion({
+              type: 'SET_HEALTH_DISPLAY_DEFAULT',
+              level: healthDisplayLevelDtoSchema.parse(value)
+            })
+          }
+        />
+      ) : null}
       <Accordion value={openedActorId} variant='separated' onChange={setOpenedActorId}>
         {encounter.actors.map((actor, actorIndex) => (
           <Accordion.Item
@@ -421,6 +443,8 @@ export function CampaignEncounterWorkspace({
                 campaign={campaign}
                 currentUserId={currentUserId}
                 disabled={readOnly || commandBlocked}
+                encounterId={encounter.id}
+                healthDisplayDefault={encounter.healthDisplayDefault}
                 onCommand={commandWithVersion}
               />
             </Accordion.Panel>
@@ -582,6 +606,7 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'SET_CURRENT_ACTOR') return 'Current turn corrected'
   if (commandType === 'SET_ROUND') return 'Round corrected'
   if (commandType === 'UPDATE_ACTOR') return 'Combatant updated'
+  if (commandType === 'SET_HEALTH_DISPLAY_DEFAULT') return 'Enemy health display changed'
   if (commandType === 'REMOVE_ACTOR') return 'Enemy removed'
   if (commandType === 'REORDER') return 'Turn order updated'
   if (commandType === 'REINFORCE') return 'Enemy added'

@@ -16,6 +16,7 @@ import {
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
 import { characterSheetPanelTargetDtoSchema } from './characterSheetPanel.js'
+import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 
 const stringSchema = z.string()
 const integerSchema = z.number().check(z.int())
@@ -96,6 +97,10 @@ export const characterSheetCommandInputDtoSchema = z
     z.extend(characterSheetCommandBaseDtoSchema, {
       type: z.literal('SET_MOVEMENT_DISPLAY_PREFERENCE'),
       preference: characterMovementDisplayPreferenceDtoSchema
+    }),
+    z.extend(characterSheetCommandBaseDtoSchema, {
+      type: z.literal('SET_PARTY_VISIBILITY'),
+      visibility: characterPartyVisibilityDtoSchema
     }),
     z.extend(characterSheetCommandBaseDtoSchema, {
       type: z.literal('UPDATE_SPELL_SOURCE_CUSTOMIZATION'),

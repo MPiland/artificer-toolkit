@@ -1240,7 +1240,10 @@ describe('native Encounter Run commands', () => {
       })
     )
     expect(await other.caller.query(getEncounter, { encounterId: run.id })).toEqual(
-      projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(pending.projection))
+      projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(pending.projection), {
+        userId: other.userId,
+        characters: new Map()
+      })
     )
     expect(await other.caller.query(listEncounters, { campaignId: campaign.id })).toEqual([])
     expect(await other.caller.query(getPendingOccurrence, { encounterId: run.id })).toBeNull()
@@ -1350,7 +1353,10 @@ describe('native Encounter Run commands', () => {
     )
     expect(await owner.caller.query(getPendingOccurrence, { encounterId: run.id })).toBeNull()
     expect(await other.caller.query(getActiveEncounter, { campaignId: campaign.id })).toEqual(
-      projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(settled.projection))
+      projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(settled.projection), {
+        userId: other.userId,
+        characters: new Map()
+      })
     )
     const settledStored = await t.run(async (ctx) => ({
       round: await ctx.db.query('encounterInitiativeRounds').unique(),
@@ -1550,7 +1556,8 @@ describe('native Encounter Run commands', () => {
       projectPlayerEncounterProjection(
         encounterGmProjectionDtoSchema.parse(
           await owner.caller.query(getEncounter, { encounterId: run.id })
-        )
+        ),
+        { userId: other.userId, characters: new Map() }
       )
     )
     const playerAdvanceRow = await t.run((ctx) =>

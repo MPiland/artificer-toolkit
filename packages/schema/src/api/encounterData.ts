@@ -17,6 +17,7 @@ import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
+import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
 
 const uuidSchema = z.string().check(z.uuid())
 const versionSchema = z.number().check(z.int()).check(z.nonnegative())
@@ -78,10 +79,13 @@ const encounterActorBaseDtoSchema = z.strictObject({
 })
 
 /**
- * Players see no health for any actor by default (ADR 0034 decision 5); the Hidden, Descriptive,
- * Bar and Exact display levels arrive with their Sheet and Encounter settings in Phase 8.3.
+ * A player sees another actor's health only at its display level (ADR 0034 decision 5): a
+ * Character's level is its player's "Show my health to the party", an enemy's or NPC's is its GM
+ * override or the Encounter default. `null` is Hidden.
  */
-export const encounterPlayerActorDtoSchema = encounterActorBaseDtoSchema
+export const encounterPlayerActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
+  health: z.nullable(playerActorHealthDtoSchema)
+})
 
 export const encounterFeatureReferenceDtoSchema = z.extend(
   z.pick(featureReferenceDtoSchema, {
@@ -108,6 +112,8 @@ export const encounterFeatureReferenceDtoSchema = z.extend(
 
 export const encounterGmActorDtoSchema = z.extend(encounterActorBaseDtoSchema, {
   healthBand: encounterHealthBandDtoSchema,
+  /** GM override of the Encounter's health display default; Character actors use their Sheet's. */
+  healthDisplay: z.nullable(healthDisplayLevelDtoSchema),
   systemId: z.nullable(postgresUuidSchema),
   stableTieKey: z.string().check(z.minLength(1)),
   currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
@@ -166,6 +172,8 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
   status: encounterStatusDtoSchema,
   automationMode: automationModeDtoSchema,
   manualReminderMode: manualReminderModeDtoSchema,
+  /** What players see of enemies' and NPCs' health unless an actor overrides it. */
+  healthDisplayDefault: healthDisplayLevelDtoSchema,
   initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
   optionalCombatRules: z._default(
     z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),

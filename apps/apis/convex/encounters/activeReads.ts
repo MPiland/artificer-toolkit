@@ -26,7 +26,7 @@ export const active = query({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     const row = await readActiveRun(ctx, campaign.id)
     if (!row) return { encounter: null, pending: null, waitingOn: null }
-    const encounter = await presentRun(ctx, row, campaign, membership.role)
+    const encounter = await presentRun(ctx, row, campaign, membership)
     const pending = await readPendingRunDecision(ctx, row, campaign, membership)
     return encounterSessionStateDtoSchema.parse({
       encounter,

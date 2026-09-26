@@ -575,23 +575,40 @@ describe('encounter contracts', () => {
       createdAt: '2026-08-07T00:00:00.000Z',
       updatedAt: '2026-08-07T00:00:00.000Z'
     }
-    expect(encounterPlayerProjectionDtoSchema.parse(base).actors[0]).not.toHaveProperty(
+    const withHealth = (health: unknown) => ({ ...base, actors: [{ ...base.actors[0], health }] })
+    expect(encounterPlayerProjectionDtoSchema.parse(withHealth(null)).actors[0]).not.toHaveProperty(
       'currentHitPoints'
     )
     expect(
       encounterPlayerProjectionDtoSchema.safeParse({
         ...base,
-        actors: [{ ...base.actors[0], healthBand: 'WOUNDED' }]
+        actors: [{ ...base.actors[0], health: null, healthBand: 'WOUNDED' }]
       }).success
     ).toBe(false)
+    // Each health display level carries only its own fields, and a bar only a coarse ratio.
+    for (const health of [
+      { level: 'DESCRIPTIVE', state: 'BLOODIED' },
+      { level: 'BAR', ratio: 0.35 },
+      { level: 'EXACT', current: 4, maximum: 7 }
+    ])
+      expect(encounterPlayerProjectionDtoSchema.safeParse(withHealth(health)).success).toBe(true)
+    for (const health of [
+      { level: 'HIDDEN' },
+      { level: 'DESCRIPTIVE', state: 'BLOODIED', current: 4 },
+      { level: 'BAR', ratio: 4 / 7 },
+      { level: 'BAR', ratio: 0.35, maximum: 7 }
+    ])
+      expect(encounterPlayerProjectionDtoSchema.safeParse(withHealth(health)).success).toBe(false)
     expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
         manualReminderMode: 'OFF',
+        healthDisplayDefault: 'HIDDEN',
         actors: [
           {
             ...base.actors[0],
             healthBand: 'WOUNDED',
+            healthDisplay: null,
             systemId: null,
             stableTieKey: commandId,
             currentHitPoints: 4,
@@ -618,16 +635,18 @@ describe('encounter contracts', () => {
         ]
       }).actors[0].currentHitPoints
     ).toBe(4)
-    expect(encounterProjectionListDtoSchema.parse([base])).toHaveLength(1)
+    expect(encounterProjectionListDtoSchema.parse([withHealth(null)])).toHaveLength(1)
     expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
         manualReminderMode: 'OFF',
+        healthDisplayDefault: 'HIDDEN',
         version: 0,
         actors: [
           {
             ...base.actors[0],
             healthBand: 'WOUNDED',
+            healthDisplay: null,
             systemId: null,
             stableTieKey: commandId,
             currentHitPoints: 4,

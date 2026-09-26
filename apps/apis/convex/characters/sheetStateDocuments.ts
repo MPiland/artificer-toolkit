@@ -7,6 +7,7 @@ import {
   characterSheetStateSchema,
   type CharacterSheetState
 } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import type { Doc } from '../_generated/dataModel'
 
@@ -15,6 +16,7 @@ export function readCharacterSheetState(record: Doc<'characters'>): CharacterShe
     return {
       adjustments: [],
       movementDisplayPreference: { mode: 'AUTO' },
+      partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
       resourceUsage: [],
       spellCustomizations: []
     }

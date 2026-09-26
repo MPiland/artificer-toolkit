@@ -28,6 +28,7 @@ import { useGetCampaignList } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import * as sharedStyles from '../campaigns.css'
 import * as partyStyles from './party.css'
+import { CampaignRosterPortrait } from './CampaignRosterPortrait'
 
 export function CampaignParty({
   campaign,
@@ -53,14 +54,27 @@ export function CampaignParty({
   const assignedCharacters = rosterMembers.flatMap((member) =>
     member.assignedCharacter ? [{ member, character: member.assignedCharacter }] : []
   )
-  const sheets = useQueries({
+  // Every member sees roster basics; full Sheets are the GM's, the player's own, or another
+  // player's while its "Party can view" is on and it is being inspected (ADR 0034 decision 5).
+  const basics = useQueries({
     queries: assignedCharacters.map(({ character }) =>
-      campaign.role === 'OWNER'
-        ? convexQuery(convexApi.campaigns.characterSheet.get, {
-            campaignId: campaign.id,
-            characterId: character.id
-          })
-        : getCharacterSheet(character.id)
+      convexQuery(convexApi.campaigns.characterSheet.basics, {
+        campaignId: campaign.id,
+        characterId: character.id
+      })
+    )
+  })
+  const sheets = useQueries({
+    queries: assignedCharacters.map(({ member, character }) =>
+      member.userId === currentUserId
+        ? getCharacterSheet(character.id)
+        : {
+            ...convexQuery(convexApi.campaigns.characterSheet.get, {
+              campaignId: campaign.id,
+              characterId: character.id
+            }),
+            enabled: campaign.role === 'OWNER' || inspectCharacterId === character.id
+          }
     )
   })
   const selectedIndex = assignedCharacters.findIndex(
@@ -143,46 +157,57 @@ export function CampaignParty({
               const assignedIndex = character
                 ? assignedCharacters.findIndex((entry) => entry.character.id === character.id)
                 : -1
-              const sheet = assignedIndex >= 0 ? sheets[assignedIndex]?.data : undefined
+              const basic = assignedIndex >= 0 ? basics[assignedIndex]?.data : undefined
+              const fullSheetShown = member.userId === currentUserId || campaign.role === 'OWNER'
+              const sheet =
+                fullSheetShown && assignedIndex >= 0 ? sheets[assignedIndex]?.data : undefined
               return (
                 <article className={partyStyles.partyCard} key={member.userId}>
                   <Group align='flex-start' justify='space-between' wrap='nowrap'>
-                    <div>
-                      <Text fw={700}>{character?.label ?? `@${member.username}`}</Text>
+                    <Group gap='sm' wrap='nowrap'>
                       {character ? (
-                        <Text c='dimmed' size='sm'>
-                          @{member.username}
-                        </Text>
+                        <CampaignRosterPortrait
+                          campaignId={campaign.id}
+                          characterId={character.id}
+                          label={character.label}
+                        />
                       ) : null}
-                    </div>
+                      <div>
+                        <Text fw={700}>{character?.label ?? `@${member.username}`}</Text>
+                        {character ? (
+                          <Text c='dimmed' size='sm'>
+                            @{member.username}
+                          </Text>
+                        ) : null}
+                      </div>
+                    </Group>
                     <Badge variant='light'>{character ? 'Ready' : 'Needs Character'}</Badge>
                   </Group>
                   {!character ? (
                     <Text c='dimmed' size='sm'>
                       This player has joined but has not assigned a Character yet.
                     </Text>
-                  ) : sheet ? (
+                  ) : basic ? (
                     <>
                       <Text c='dimmed' size='sm'>
-                        {[sheet.identity.raceLabel, sheet.identity.classSummary]
+                        {[basic.classSummary, `Level ${basic.totalLevel}`]
                           .filter(Boolean)
                           .join(' · ')}
                       </Text>
-                      <Group className={partyStyles.partySummary} gap='xs'>
-                        <Text size='sm'>
-                          HP {sheet.overview.currentHitPoints}/{sheet.overview.maxHitPoints}
-                        </Text>
-                        <Text c='dimmed' size='sm'>
-                          AC {sheet.overview.armorClass}
-                        </Text>
-                        <Text c='dimmed' size='sm'>
-                          Lvl {sheet.identity.totalLevel}
-                        </Text>
-                      </Group>
+                      {sheet ? (
+                        <Group className={partyStyles.partySummary} gap='xs'>
+                          <Text size='sm'>
+                            HP {sheet.overview.currentHitPoints}/{sheet.overview.maxHitPoints}
+                          </Text>
+                          <Text c='dimmed' size='sm'>
+                            AC {sheet.overview.armorClass}
+                          </Text>
+                        </Group>
+                      ) : null}
                     </>
                   ) : (
                     <Text c='dimmed' size='sm'>
-                      Loading Character state…
+                      Loading Character…
                     </Text>
                   )}
                   {campaign.role === 'OWNER' && character ? (
@@ -193,6 +218,14 @@ export function CampaignParty({
                       onClick={() => setInspectCharacterId(character.id)}
                     >
                       Inspect Sheet
+                    </Button>
+                  ) : character && !fullSheetShown && basic?.sheetVisible ? (
+                    <Button
+                      size='sm'
+                      variant='default'
+                      onClick={() => setInspectCharacterId(character.id)}
+                    >
+                      View Sheet
                     </Button>
                   ) : null}
                   {campaign.capabilities.manageMembers ? (

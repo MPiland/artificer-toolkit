@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -315,6 +316,7 @@ describe('native Character action resource persistence', () => {
       const sheetState = characterSheetStateSchema.parse({
         adjustments: [],
         movementDisplayPreference: { mode: 'AUTO' },
+        partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
         spellCustomizations: [],
         resourceUsage: [
           {

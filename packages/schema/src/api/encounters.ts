@@ -7,6 +7,7 @@ import {
 } from './encounterData.js'
 
 import { characterSheetCommandInputDtoSchema } from './characterSheetCommandInputs.js'
+import { healthDisplayLevelDtoSchema } from './healthDisplay.js'
 import {
   commandBaseDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -102,6 +103,8 @@ export const updateEncounterActorInputDtoSchema = z.extend(commandBaseDtoSchema,
   /** GM-only: the players who may act for this actor besides the assigned Character's player. */
   controllerUserIds: z.optional(encounterActorControllerUserIdsDtoSchema),
   disposition: z.optional(encounterActorDispositionDtoSchema),
+  /** GM-only override of the Encounter health display default for an enemy or NPC; null clears it. */
+  healthDisplay: z.optional(z.nullable(healthDisplayLevelDtoSchema)),
   characterCommand: z.optional(characterSheetCommandInputDtoSchema)
 })
 
@@ -214,6 +217,11 @@ export const rollEncounterEnemyActionInputDtoSchema = z.extend(commandBaseDtoSch
   rollDefinitionId: z.string().check(z.trim()).check(z.minLength(1)),
   visibility: z.enum(['PRIVATE', 'TABLE'])
 })
+/** GM-only: what players see of enemies' and NPCs' health unless an actor overrides it. */
+export const setEncounterHealthDisplayDefaultInputDtoSchema = z.extend(commandBaseDtoSchema, {
+  type: z.literal('SET_HEALTH_DISPLAY_DEFAULT'),
+  level: healthDisplayLevelDtoSchema
+})
 export const completeEncounterInputDtoSchema = z.extend(commandBaseDtoSchema, {
   type: z.literal('COMPLETE')
 })
@@ -236,6 +244,7 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   upsertEncounterReminderInputDtoSchema,
   removeEncounterReminderInputDtoSchema,
   rollEncounterEnemyActionInputDtoSchema,
+  setEncounterHealthDisplayDefaultInputDtoSchema,
   completeEncounterInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
@@ -258,3 +267,13 @@ export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiati
 export type SetEncounterRoundInputDto = z.infer<typeof setEncounterRoundInputDtoSchema>
 export type ReorderEncounterInputDto = z.infer<typeof reorderEncounterInputDtoSchema>
 export type EncounterCommandInputDto = z.infer<typeof encounterCommandInputDtoSchema>
+
+/** GM-only: posts one actor's current descriptive health to the table log once (ADR 0034). */
+export const shareEncounterActorHealthInputDtoSchema = z.strictObject({
+  encounterId: uuidSchema,
+  actorId: uuidSchema,
+  commandId: uuidSchema
+})
+export type ShareEncounterActorHealthInputDto = z.infer<
+  typeof shareEncounterActorHealthInputDtoSchema
+>

@@ -7,11 +7,12 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readPendingRunDecision } from './pendingReads'
+import { readEncounterHealthViewer } from './healthViewer'
 
 /**
  * The one presentation of an Encounter command result or replay (ADR 0034 decision 1). The GM gets
  * the GM projection. Everyone else gets the player projection, which omits hidden actors, GM notes,
- * stat blocks, resources and health. Either way the pending decision is the one `pendingReads` shows
+ * stat blocks and resources, and shows health only at each actor's display level. Either way the pending decision is the one `pendingReads` shows
  * that member, with its roll-mode reasons. Call it after the command's writes: the pending decision is
  * read from the current Run.
  */
@@ -45,7 +46,12 @@ export async function presentEncounterResultForMember(
   return encounterCommandResultDtoSchema.parse({
     ...result,
     projection:
-      membership.role === 'OWNER' ? projection : projectPlayerEncounterProjection(projection),
+      membership.role === 'OWNER'
+        ? projection
+        : projectPlayerEncounterProjection(
+            projection,
+            await readEncounterHealthViewer(ctx, projection, membership.userId)
+          ),
     occurrence: result.occurrence && { ...result.occurrence, pending }
   })
 }

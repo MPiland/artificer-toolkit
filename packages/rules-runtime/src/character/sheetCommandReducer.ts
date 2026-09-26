@@ -568,6 +568,7 @@ export function applyCharacterSheetCommand(
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'SET_PARTY_VISIBILITY':
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
     case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
@@ -1454,6 +1455,8 @@ export function summarizeCharacterSheetCommand(
       return 'Character sheet panel customizations reset'
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
       return 'Primary movement display updated'
+    case 'SET_PARTY_VISIBILITY':
+      return 'Party visibility updated'
     case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
       return 'Spell mechanic customization updated'
     case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':

@@ -2649,6 +2649,190 @@ it('keeps authenticated sockets open when the admission alarm fires', async () =
   expect(open).toBe(1)
 })
 
+async function authenticateOwner(
+  base: Awaited<ReturnType<typeof fixture>>,
+  ticket: string
+): Promise<LiveSessionWebSocketServerMessageDto[]> {
+  const response = await base.stub.fetch(base.request(ticket))
+  const socket = response.webSocket
+  if (!socket) throw new Error('Missing owner native test WebSocket.')
+  sockets.push(socket)
+  const messages: LiveSessionWebSocketServerMessageDto[] = []
+  socket.addEventListener('message', (event) => {
+    messages.push(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(event.data))))
+  })
+  socket.accept()
+  socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  return messages
+}
+
+function idleRelease(stub: Awaited<ReturnType<typeof fixture>>['stub']) {
+  return runInDurableObject(stub, async (_instance, state) => ({
+    alarm: await state.storage.getAlarm(),
+    releaseAt:
+      state.storage.sql
+        .exec<{ release_at: number }>('SELECT release_at FROM room_idle_release WHERE id = 1')
+        .toArray()[0]?.release_at ?? null,
+    status:
+      state.storage.sql
+        .exec<{ status: string }>('SELECT status FROM durable_session_authority WHERE id = 1')
+        .toArray()[0]?.status ?? null
+  }))
+}
+
+function fireAlarmAfterIdleWindow(stub: Awaited<ReturnType<typeof fixture>>['stub']) {
+  return runInDurableObject(stub, async (instance) => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5 * 60_000 + 1)
+    try {
+      await instance.alarm()
+    } finally {
+      clock.mockRestore()
+    }
+  })
+}
+
+async function leaveAndFireIdleAlarm(base: Awaited<ReturnType<typeof fixture>>) {
+  const leftAt = Date.now()
+  base.socket.close(1000, 'done')
+  await vi.waitFor(async () => {
+    const pending = await idleRelease(base.stub)
+    expect(pending.releaseAt).toBeGreaterThanOrEqual(leftAt + 5 * 60_000)
+    expect(pending.alarm).toBe(pending.releaseAt)
+  })
+  await fireAlarmAfterIdleWindow(base.stub)
+}
+
+it('drains and releases authority after five minutes without an admitted socket', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  await fireAlarmAfterIdleWindow(base.stub)
+
+  expect(base.authorityLifecycleCalls).toEqual([])
+
+  await leaveAndFireIdleAlarm(base)
+  expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/release'
+  ])
+  await expect(idleRelease(base.stub)).resolves.toEqual({
+    alarm: null,
+    releaseAt: null,
+    status: 'RELEASED'
+  })
+
+  // The next join bootstraps a fresh epoch over the released journal.
+  const replacementEpoch = crypto.randomUUID()
+  await authenticateOwner(
+    base,
+    await signTicket({
+      authorityEpoch: replacementEpoch,
+      campaignId: base.capture.campaignId,
+      issuedAt: Math.floor(Date.now() / 1_000),
+      role: 'OWNER',
+      subject: base.userId
+    })
+  )
+  await expect(
+    runInDurableObject(base.stub, (_instance, state) =>
+      new DurableCommandJournal(state.storage).readCurrent()
+    )
+  ).resolves.toMatchObject({ authorityEpoch: replacementEpoch, sequence: 0, status: 'ACTIVE' })
+})
+
+it('cancels the idle release when a member reconnects inside the window', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  base.socket.close(1000, 'done')
+  await vi.waitFor(async () => expect((await idleRelease(base.stub)).releaseAt).not.toBeNull())
+  await authenticateOwner(base, await ownerTicket(base))
+  await expect(idleRelease(base.stub)).resolves.toMatchObject({
+    releaseAt: null,
+    status: 'ACTIVE'
+  })
+  await fireAlarmAfterIdleWindow(base.stub)
+
+  expect(base.authorityLifecycleCalls).toEqual([])
+  await expect(idleRelease(base.stub)).resolves.toMatchObject({ status: 'ACTIVE' })
+})
+
+it('publishes the pending outbox before an idle room releases its authority', async () => {
+  const value = doorScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  const calls: string[] = []
+  let publishAvailable = false
+  await runInDurableObject(base.stub, () => {
+    const original = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!original) throw new Error('Missing native fetch mock.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      const pathname = new URL(request.url).pathname
+      calls.push(pathname)
+      if (pathname !== '/live-sessions/publish') return original(input, init)
+      if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
+      const body = liveSessionPublishInputSchema.parse(await request.json())
+      if (!('expectedSceneResult' in body)) throw new Error('Expected Scene publication.')
+      const now = new Date().toISOString()
+      return Response.json({
+        authority: {
+          activationFingerprint: 'a'.repeat(64),
+          campaignId: body.campaignId,
+          createdAt: now,
+          epoch: body.epoch,
+          persistedSequence: body.sequence,
+          persistedStateChecksum: body.stateChecksum,
+          phase: 'DO_ACTIVE',
+          updatedAt: now
+        },
+        sceneResult: body.expectedSceneResult,
+        scope: 'SCENE'
+      })
+    })
+  })
+  const commandId = crypto.randomUUID()
+  base.socket.send(JSON.stringify(doorCommand(value.scene, value.doorId, commandId)))
+  await vi.waitFor(() =>
+    expect(
+      base.messages.some(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  await vi.waitFor(() => expect(calls).toContain('/live-sessions/publish'))
+  publishAvailable = true
+  calls.length = 0
+
+  await leaveAndFireIdleAlarm(base)
+  expect(calls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/publish',
+    '/live-sessions/release'
+  ])
+  const journal = await runInDurableObject(base.stub, (_instance, state) => ({
+    authority: state.storage.sql
+      .exec<{ published_sequence: number; sequence: number; status: string }>(
+        'SELECT published_sequence, sequence, status FROM durable_session_authority WHERE id = 1'
+      )
+      .one(),
+    outboxCount: state.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM durable_command_outbox')
+      .one().count
+  }))
+  expect(journal).toEqual({
+    authority: { published_sequence: 1, sequence: 1, status: 'RELEASED' },
+    outboxCount: 0
+  })
+})
+
 it('reuses a recent authority capture for pointer samples on the same Scene version', async () => {
   const { scene } = doorScene(crypto.randomUUID())
   const base = await fixture(scene)

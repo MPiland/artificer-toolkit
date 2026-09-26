@@ -530,6 +530,8 @@ export function projectOptimisticCharacterSheet(
     case 'UPDATE_SHEET_EXTRA':
     case 'REMOVE_SHEET_EXTRA':
       return projectExtras(sheet, command)
+    case 'SET_PARTY_VISIBILITY':
+      return { ...sheet, meta: { ...sheet.meta, partyVisibility: command.visibility } }
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
@@ -783,6 +785,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'SET_PARTY_VISIBILITY':
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'ADD_SHEET_EXTRA':
     case 'UPDATE_SHEET_EXTRA':

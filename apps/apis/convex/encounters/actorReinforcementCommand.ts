@@ -214,6 +214,7 @@ export async function reinforceEncounterActors(
     public: input.public,
     controllerUserIds: [],
     disposition: 'HOSTILE',
+    healthDisplay: null,
     currentHitPoints: enemy.maxHitPoints,
     maxHitPoints: enemy.maxHitPoints,
     tempHitPoints: 0,

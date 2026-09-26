@@ -217,6 +217,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           jti TEXT PRIMARY KEY,
           expires_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS room_idle_release (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          release_at INTEGER NOT NULL
+        );
       `)
       const liveSocketIds = new Set<string>()
       for (const socket of ctx.getWebSockets()) {
@@ -236,6 +240,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const roomCampaignId = this.#roomCampaignId()
       if (roomCampaignId && roomCampaignId !== parsed.data.campaignId)
         return new Response('Live-session room identity does not match.', { status: 409 })
+      if (parsed.data.operation.type === 'EVICT_USER') {
+        const closed = this.#closeSockets(parsed.data.operation)
+        await this.#refreshIdleRelease()
+        return Response.json({ closed })
+      }
       if (parsed.data.operation.type === 'SET_SCENE_PRESENTATION') {
         const input = { ...parsed.data, operation: parsed.data.operation }
         const next = this.#commandChain.then(() => this.#presentScene(input))
@@ -249,12 +258,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           return new Response('Live Scene presentation is unavailable.', { status: 409 })
         }
       }
-      return Response.json({
-        closed:
-          parsed.data.operation.type === 'EVICT_USER'
-            ? this.#closeSockets(parsed.data.operation)
-            : await this.#closeRoom(parsed.data.campaignId)
-      })
+      return Response.json({ closed: await this.#closeRoom(parsed.data.campaignId) })
     }
     if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket')
       return new Response('Expected a WebSocket upgrade.', { status: 426 })
@@ -307,10 +311,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       userId: claims.sub
     } satisfies SocketAttachment)
     this.ctx.acceptWebSocket(server, [claims.sub])
-    const authenticationDeadline = acceptedAt + ROOM_LIMITS.authenticationTimeoutMs
-    const alarm = await this.ctx.storage.getAlarm()
-    if (alarm === null || alarm > authenticationDeadline)
-      await this.ctx.storage.setAlarm(authenticationDeadline)
+    await this.#scheduleAlarm()
     return new Response(null, {
       headers: { 'sec-websocket-protocol': 'artificer.live-session.v1' },
       status: 101,
@@ -451,26 +452,78 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     await next
   }
 
-  webSocketClose(socket: WebSocket): void {
+  async webSocketClose(socket: WebSocket): Promise<void> {
     this.#forgetSocket(socket)
+    await this.#refreshIdleRelease(socket)
   }
 
-  webSocketError(socket: WebSocket): void {
+  async webSocketError(socket: WebSocket): Promise<void> {
     this.#forgetSocket(socket)
+    await this.#refreshIdleRelease(socket)
   }
 
-  /** Closes sockets that have not authenticated within the admission window. */
+  /**
+   * Closes sockets that have not authenticated within the admission window, and drains and releases
+   * authority once the room has had no admitted socket for the idle window.
+   */
   async alarm(): Promise<void> {
     const now = Date.now()
-    let nextDeadline: number | null = null
-    for (const socket of this.ctx.getWebSockets()) {
+    for (const socket of this.#openSockets()) {
       const value = attachment(socket)
       if (!value || value.membershipEpoch !== null || this.#admissions.has(socket)) continue
-      const deadline = value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs
-      if (deadline <= now) this.#closeSocket(socket, 'Live-session authentication timed out.')
-      else nextDeadline = Math.min(nextDeadline ?? deadline, deadline)
+      if (value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs <= now)
+        this.#closeSocket(socket, 'Live-session authentication timed out.')
     }
-    if (nextDeadline !== null) await this.ctx.storage.setAlarm(nextDeadline)
+    const releaseAt = this.#idleReleaseAt()
+    const campaignId = this.#roomCampaignId()
+    // A socket still inside its admission window may be a reconnect, so release waits for it.
+    if (releaseAt !== null && releaseAt <= now && campaignId && this.#openSockets().length === 0)
+      await this.#closeRoom(campaignId)
+    await this.#refreshIdleRelease()
+  }
+
+  /**
+   * Starts the idle-release window when the last admitted socket leaves an active room; an admitted
+   * socket cancels it. `leaving` is a socket the runtime may still list while it closes.
+   */
+  async #refreshIdleRelease(leaving?: WebSocket): Promise<void> {
+    if (this.#openSockets(leaving).some((socket) => attachment(socket)?.membershipEpoch))
+      this.ctx.storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
+    else if (this.#journal.readCurrent()?.status === 'ACTIVE')
+      this.ctx.storage.sql.exec(
+        'INSERT OR IGNORE INTO room_idle_release (id, release_at) VALUES (1, ?)',
+        Date.now() + ROOM_LIMITS.idleReleaseMs
+      )
+    await this.#scheduleAlarm(leaving)
+  }
+
+  /** The room's one alarm serves every pending admission window and the idle release. */
+  async #scheduleAlarm(leaving?: WebSocket): Promise<void> {
+    const open = this.#openSockets(leaving)
+    const deadlines = open.flatMap((socket) => {
+      const value = attachment(socket)
+      return value && value.membershipEpoch === null && !this.#admissions.has(socket)
+        ? [value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs]
+        : []
+    })
+    const releaseAt = this.#idleReleaseAt()
+    if (releaseAt !== null && open.length === 0) deadlines.push(releaseAt)
+    if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
+    else await this.ctx.storage.setAlarm(Math.min(...deadlines))
+  }
+
+  #idleReleaseAt(): number | null {
+    return (
+      this.ctx.storage.sql
+        .exec<{ release_at: number }>('SELECT release_at FROM room_idle_release WHERE id = 1')
+        .toArray()[0]?.release_at ?? null
+    )
+  }
+
+  #openSockets(except?: WebSocket): WebSocket[] {
+    return this.ctx
+      .getWebSockets()
+      .filter((socket) => socket !== except && socket.readyState === WebSocket.OPEN)
   }
 
   async #authenticate(socket: WebSocket, accessToken: string): Promise<void> {
@@ -590,6 +643,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         })
         this.#sendStateSync(socket, current)
         this.#publishInBackground()
+        // A reconnect inside the idle window cancels the pending release.
+        await this.#refreshIdleRelease()
       }
     } catch (error) {
       if (
@@ -626,8 +681,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           current.authorityEpoch !== value.authorityEpoch &&
           bootstrap.persistedSequence === 0
         ) {
-          // Convex verified the replacement epoch; a never-used provisional snapshot can be rebuilt.
-          this.#journal.discardUncommittedAuthority(current.authorityEpoch)
+          // Convex verified the replacement epoch; a never-used or released journal can be rebuilt.
+          this.#journal.discardReplaceableAuthority(current.authorityEpoch)
           current = null
           this.#cache = null
         }
@@ -1129,9 +1184,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (
         cached?.scene &&
         cached.synchronized &&
-        cached.characterRevisions.length === 0 &&
         cached.scene.id === envelope.sceneId &&
-        cached.scene.version === envelope.baselineVersion
+        cached.scene.version === envelope.baselineVersion &&
+        // Character vision is rechecked per preview with one small read (D33).
+        (cached.characterRevisions.length === 0 ||
+          (await this.#visionRevisionsCurrent(
+            originAttachment,
+            originAdmission,
+            cached.characterRevisions
+          )))
       ) {
         // A player's preview on an Encounter-bound Scene needs their bound-actor control, which the
         // room's short-lived authority capture carries (D25); any mismatch takes the full path.
@@ -1140,10 +1201,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             ? null
             : await this.#authorityCapture(originAttachment, originAdmission, candidates, envelope)
         if (
-          !capture ||
-          (this.#cache === cached &&
-            capture.sceneHeader?.id === envelope.sceneId &&
-            capture.sceneHeader.version === envelope.baselineVersion)
+          this.#cache === cached &&
+          (!capture ||
+            (capture.sceneHeader?.id === envelope.sceneId &&
+              capture.sceneHeader.version === envelope.baselineVersion))
         ) {
           await this.#sendTransient(
             origin,
@@ -1219,6 +1280,30 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return capture
   }
 
+  /** Whether the Character revisions behind the cached Scene vision are still current (D33). */
+  async #visionRevisionsCurrent(
+    value: SocketAttachment,
+    admission: Admission,
+    observedCharacterRevisions: TransientCache['characterRevisions']
+  ): Promise<boolean> {
+    try {
+      const { current } = await callLiveSessionRoute(
+        this.env,
+        admission.accessToken,
+        'visionRevisions',
+        {
+          campaignId: value.campaignId,
+          expectedRole: admission.role,
+          expectedUserId: admission.userId,
+          observedCharacterRevisions
+        }
+      )
+      return current
+    } catch (error) {
+      if (error instanceof LiveSessionRouteError && error.status === 409) return false
+      throw error
+    }
+  }
   #overlayDurableSceneCache(sceneId: string): void {
     const current = this.#journal.readCurrent()
     if (!current || this.#cache?.scene?.id !== sceneId) return
@@ -1754,6 +1839,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       throw drainError ?? error
     }
     this.#journal.release(fence)
+    // The next admitted socket bootstraps a fresh epoch over the released journal.
+    this.#activation = null
+    this.ctx.storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
     return closed
   }
 

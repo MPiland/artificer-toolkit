@@ -7,7 +7,7 @@ import type { CharacterEvent } from '@artificer-toolkit/shared/core'
 import { sameCharacterSheetAdjustmentSlot } from './sheetAdjustmentIdentity.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
-export type CharacterSheetViewer = 'CHARACTER_OWNER' | 'CAMPAIGN_OWNER'
+export type CharacterSheetViewer = CharacterSheetResponseDto['meta']['viewer']
 
 export interface CharacterSheetCampaignContext {
   viewer: CharacterSheetViewer
@@ -76,14 +76,74 @@ export function getVisibleCampaignConditions(
     }))
 }
 
+/** Player-private notes: item, extra and spell notes and the Sheet's own note book. */
+function withoutPlayerNotes(sheet: CharacterSheetResponseDto): CharacterSheetResponseDto {
+  return {
+    ...sheet,
+    inventory: {
+      ...sheet.inventory,
+      items: sheet.inventory.items.map((item) => {
+        const sanitized = { ...item }
+        delete sanitized.notes
+        return sanitized
+      })
+    },
+    extras: {
+      ...sheet.extras,
+      items: sheet.extras.items.map((extra) => {
+        const sanitized = { ...extra }
+        delete sanitized.notes
+        return sanitized
+      })
+    },
+    spells: {
+      ...sheet.spells,
+      spells: sheet.spells.spells.map((spell) => ({
+        ...spell,
+        sources: spell.sources?.map((source) => {
+          const sanitized = { ...source }
+          delete sanitized.notes
+          return sanitized
+        })
+      }))
+    },
+    notes: { ...sheet.notes, notes: undefined, groups: undefined, items: undefined },
+    meta: { ...sheet.meta, hasBuilderDraft: false }
+  }
+}
+
+/** Personality and background are never shown to other players (ADR 0034 decision 5). */
+function withoutPersonalityAndBackground(
+  sheet: CharacterSheetResponseDto
+): CharacterSheetResponseDto {
+  return {
+    ...sheet,
+    // The identity concept repeats the backstory.
+    identity: { ...sheet.identity, concept: undefined },
+    notes: {
+      ...sheet.notes,
+      personalityTraits: undefined,
+      ideals: undefined,
+      bonds: undefined,
+      flaws: undefined,
+      organizations: undefined,
+      allies: undefined,
+      enemies: undefined,
+      backstory: undefined
+    }
+  }
+}
+
 export function projectCharacterSheetForViewer(
   sheet: CharacterSheetResponseDto,
   context: CharacterSheetCampaignContext
 ): CharacterSheetResponseDto {
+  const { partyVisibility, ...sharedMeta } = sheet.meta
   const projected = {
     ...sheet,
     meta: {
-      ...sheet.meta,
+      ...sharedMeta,
+      ...(context.viewer === 'CHARACTER_OWNER' && partyVisibility ? { partyVisibility } : {}),
       campaignId: context.campaignId,
       viewer: context.viewer,
       capabilities:
@@ -94,63 +154,27 @@ export function projectCharacterSheetForViewer(
               manageInventory: true,
               openBuilder: true
             }
-          : {
-              managePlayState: context.campaignStatus === 'ACTIVE',
-              managePrivateNotes: false,
-              manageInventory: context.campaignStatus === 'ACTIVE',
-              openBuilder: false
-            }
+          : context.viewer === 'CAMPAIGN_OWNER'
+            ? {
+                managePlayState: context.campaignStatus === 'ACTIVE',
+                managePrivateNotes: false,
+                manageInventory: context.campaignStatus === 'ACTIVE',
+                openBuilder: false
+              }
+            : {
+                managePlayState: false,
+                managePrivateNotes: false,
+                manageInventory: false,
+                openBuilder: false
+              }
     }
   }
-  if (context.viewer === 'CAMPAIGN_OWNER') {
-    const inventoryItems = projected.inventory.items.map((item) => {
-      const sanitized = { ...item }
-      delete sanitized.notes
-      return sanitized
-    })
-    const extras = projected.extras.items.map((extra) => {
-      const sanitized = { ...extra }
-      delete sanitized.notes
-      return sanitized
-    })
-    const spells = projected.spells.spells.map((spell) => ({
-      ...spell,
-      sources: spell.sources?.map((source) => {
-        const sanitized = { ...source }
-        delete sanitized.notes
-        return sanitized
-      })
-    }))
+  if (context.viewer === 'CAMPAIGN_OWNER')
     return presentCampaignCharacterText(
-      {
-        ...projected,
-        inventory: {
-          ...projected.inventory,
-          items: inventoryItems
-        },
-        extras: {
-          ...projected.extras,
-          items: extras
-        },
-        spells: {
-          ...projected.spells,
-          spells
-        },
-        notes: {
-          ...projected.notes,
-          notes: undefined,
-          groups: undefined,
-          items: undefined
-        },
-        meta: {
-          ...projected.meta,
-          hasBuilderDraft: false
-        }
-      },
+      withoutPlayerNotes(projected),
       context.contentMaturity,
       context.viewer
     )
-  }
   const secretMaximumOverride = context.adjustments.some(
     (adjustment) =>
       adjustment.family === 'HIT_POINTS' &&
@@ -163,25 +187,27 @@ export function projectCharacterSheetForViewer(
       adjustment.field === 'MAXIMUM_MODIFIER' &&
       context.secretAdjustmentIds.has(adjustment.id)
   )
-  if (!secretMaximumOverride && !secretMaximumModifier) {
-    return presentCampaignCharacterText(projected, context.contentMaturity, context.viewer)
-  }
+  const shown =
+    secretMaximumOverride || secretMaximumModifier
+      ? {
+          ...projected,
+          overview: {
+            ...projected.overview,
+            ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
+            ...(secretMaximumModifier
+              ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
+              : {})
+          }
+        }
+      : projected
   return presentCampaignCharacterText(
-    {
-      ...projected,
-      overview: {
-        ...projected.overview,
-        ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
-        ...(secretMaximumModifier
-          ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
-          : {})
-      }
-    },
+    context.viewer === 'PARTY_MEMBER'
+      ? withoutPersonalityAndBackground(withoutPlayerNotes(shown))
+      : shown,
     context.contentMaturity,
     context.viewer
   )
 }
-
 export function projectCharacterRestForViewer(
   preview: CharacterRestPreviewResponseDto,
   context: CharacterSheetCampaignContext

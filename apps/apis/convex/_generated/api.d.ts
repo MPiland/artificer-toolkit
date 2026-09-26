@@ -1730,6 +1730,18 @@ export declare const api: {
       >;
     };
     characterSheet: {
+      basics: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string; characterId: string },
+        {
+          characterId: string;
+          classSummary: string;
+          label: string;
+          sheetVisible: boolean;
+          totalLevel: number;
+        }
+      >;
       execute: FunctionReference<
         "mutation",
         "public",
@@ -2175,6 +2187,15 @@ export declare const api: {
                 preference:
                   { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
                 type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
+                type: "SET_PARTY_VISIBILITY";
+                visibility: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
               }
             | {
                 commandId: string;
@@ -5464,10 +5485,14 @@ export declare const api: {
               };
               characterId: string;
               hasBuilderDraft?: boolean;
+              partyVisibility?: {
+                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sheet: boolean;
+              };
               status: "DRAFT" | "ACTIVE";
               streamVersion: number;
               systemId: string;
-              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER";
+              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
             };
             notes: {
               age?: string;
@@ -6697,10 +6722,14 @@ export declare const api: {
             };
             characterId: string;
             hasBuilderDraft?: boolean;
+            partyVisibility?: {
+              health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+              sheet: boolean;
+            };
             status: "DRAFT" | "ACTIVE";
             streamVersion: number;
             systemId: string;
-            viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER";
+            viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
           };
           notes: {
             age?: string;
@@ -24543,10 +24572,14 @@ export declare const api: {
             };
             characterId: string;
             hasBuilderDraft?: boolean;
+            partyVisibility?: {
+              health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+              sheet: boolean;
+            };
             status: "DRAFT" | "ACTIVE";
             streamVersion: number;
             systemId: string;
-            viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER";
+            viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
           };
           notes: {
             age?: string;
@@ -25815,6 +25848,15 @@ export declare const api: {
                 preference:
                   { mode: "AUTO" } | { mode: "EXPLICIT"; speedId: string };
                 type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
+                type: "SET_PARTY_VISIBILITY";
+                visibility: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
               }
             | {
                 commandId: string;
@@ -29105,10 +29147,14 @@ export declare const api: {
               };
               characterId: string;
               hasBuilderDraft?: boolean;
+              partyVisibility?: {
+                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                sheet: boolean;
+              };
               status: "DRAFT" | "ACTIVE";
               streamVersion: number;
               systemId: string;
-              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER";
+              viewer: "CHARACTER_OWNER" | "CAMPAIGN_OWNER" | "PARTY_MEMBER";
             };
             notes: {
               age?: string;
@@ -45524,6 +45570,8 @@ export declare const api: {
                     | "BLOODIED"
                     | "CRITICAL"
                     | "DEFEATED";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -45567,6 +45615,8 @@ export declare const api: {
                 createdAt: string;
                 currentActorId: string | null;
                 gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
                 id: string;
                 initiativePolicy?: {
                   cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -45633,6 +45683,14 @@ export declare const api: {
                   controllerUserIds: Array<string>;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -46149,6 +46207,8 @@ export declare const api: {
                     | "BLOODIED"
                     | "CRITICAL"
                     | "DEFEATED";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -46192,6 +46252,8 @@ export declare const api: {
                 createdAt: string;
                 currentActorId: string | null;
                 gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
                 id: string;
                 initiativePolicy?: {
                   cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -46258,6 +46320,14 @@ export declare const api: {
                   controllerUserIds: Array<string>;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -46996,6 +47066,16 @@ export declare const api: {
                             }
                           | {
                               commandId: string;
+                              expectedVersion: number;
+                              type: "SET_PARTY_VISIBILITY";
+                              visibility: {
+                                health:
+                                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                                sheet: boolean;
+                              };
+                            }
+                          | {
+                              commandId: string;
                               customName?: string | null;
                               displayAsAttack?: boolean;
                               expectedVersion: number;
@@ -47656,6 +47736,8 @@ export declare const api: {
                         encounterId: string;
                         expectedVersion: number;
                         gmNotes?: string | null;
+                        healthDisplay?:
+                          "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                         public?: boolean;
                         sideId?: string;
                         tempHitPoints?: number;
@@ -47803,6 +47885,13 @@ export declare const api: {
                         rollDefinitionId: string;
                         type: "ROLL_ENEMY_ACTION";
                         visibility: "PRIVATE" | "TABLE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        level: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                        type: "SET_HEALTH_DISPLAY_DEFAULT";
                       }
                     | {
                         commandId: string;
@@ -48029,6 +48118,84 @@ export declare const api: {
           rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
           value: number;
         }>
+      >;
+    };
+    healthDisplay: {
+      share: FunctionReference<
+        "mutation",
+        "public",
+        { actorId: string; commandId: string; encounterId: string },
+        {
+          authorUserId: string;
+          authorUsername: string;
+          body: string | null;
+          campaignId: string;
+          characterId: string | null;
+          characterLabel: string | null;
+          conversationId: string;
+          createdAt: string;
+          editedAt: string | null;
+          id: string;
+          kind: "CHAT" | "ROLL";
+          mode: "OOC" | "ROLEPLAY" | null;
+          revealedByGm: boolean;
+          roll: {
+            characterId: string | null;
+            characterLabel: string;
+            createdAt: string;
+            evidence: {
+              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              modifier: number;
+              subtotal: number;
+              terms: Array<{
+                count: number;
+                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+                keptRollIndex?: number;
+                keptRollIndexes?: Array<number>;
+                modifier?: number;
+                rollSequences?: Array<Array<number>>;
+                rolls: Array<number>;
+                subtotal: number;
+              }>;
+              total: number;
+              transform:
+                | { kind: "NONE" }
+                | { kind: "HALF" }
+                | { kind: "DOUBLE" }
+                | { kind: "MULTIPLY"; value: number };
+            };
+            id: string;
+            normalizedExpression: string;
+            ruleCheck?: {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            };
+            ruleset: { code: string; systemId: string; version: string };
+            source: {
+              kind:
+                | "MANUAL"
+                | "ABILITY_CHECK"
+                | "SAVING_THROW"
+                | "SKILL_CHECK"
+                | "INITIATIVE"
+                | "ATTACK"
+                | "DAMAGE"
+                | "HEALING"
+                | "HIT_DIE";
+              label: string;
+            };
+          } | null;
+          room: "TABLE" | "PARTY" | "DIRECT";
+          unsentAt: string | null;
+        }
       >;
     };
     pendingReads: {
@@ -48272,6 +48439,7 @@ export declare const api: {
               gmNotes: string | null;
               healthBand:
                 "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+              healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48315,6 +48483,7 @@ export declare const api: {
             createdAt: string;
             currentActorId: string | null;
             gameSystemId: string;
+            healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
             id: string;
             initiativePolicy?: {
               cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -48381,6 +48550,14 @@ export declare const api: {
               controllerUserIds: Array<string>;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
+              health:
+                | {
+                    level: "DESCRIPTIVE";
+                    state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                  }
+                | { level: "BAR"; ratio: number }
+                | { current: number; level: "EXACT"; maximum: number }
+                | null;
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48509,6 +48686,7 @@ export declare const api: {
               gmNotes: string | null;
               healthBand:
                 "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+              healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48552,6 +48730,7 @@ export declare const api: {
             createdAt: string;
             currentActorId: string | null;
             gameSystemId: string;
+            healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
             id: string;
             initiativePolicy?: {
               cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -48618,6 +48797,14 @@ export declare const api: {
               controllerUserIds: Array<string>;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
               encounterId: string;
+              health:
+                | {
+                    level: "DESCRIPTIVE";
+                    state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                  }
+                | { level: "BAR"; ratio: number }
+                | { current: number; level: "EXACT"; maximum: number }
+                | null;
               id: string;
               initiative: number | null;
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48739,6 +48926,8 @@ export declare const api: {
                 gmNotes: string | null;
                 healthBand:
                   "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+                healthDisplay:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48782,6 +48971,7 @@ export declare const api: {
               createdAt: string;
               currentActorId: string | null;
               gameSystemId: string;
+              healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
               id: string;
               initiativePolicy?: {
                 cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -48848,6 +49038,14 @@ export declare const api: {
                 controllerUserIds: Array<string>;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
+                health:
+                  | {
+                      level: "DESCRIPTIVE";
+                      state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                    }
+                  | { level: "BAR"; ratio: number }
+                  | { current: number; level: "EXACT"; maximum: number }
+                  | null;
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -48970,6 +49168,8 @@ export declare const api: {
                 gmNotes: string | null;
                 healthBand:
                   "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+                healthDisplay:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -49013,6 +49213,7 @@ export declare const api: {
               createdAt: string;
               currentActorId: string | null;
               gameSystemId: string;
+              healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
               id: string;
               initiativePolicy?: {
                 cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -49079,6 +49280,14 @@ export declare const api: {
                 controllerUserIds: Array<string>;
                 disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                 encounterId: string;
+                health:
+                  | {
+                      level: "DESCRIPTIVE";
+                      state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                    }
+                  | { level: "BAR"; ratio: number }
+                  | { current: number; level: "EXACT"; maximum: number }
+                  | null;
                 id: string;
                 initiative: number | null;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -49198,6 +49407,7 @@ export declare const api: {
             gmNotes: string | null;
             healthBand:
               "HEALTHY" | "WOUNDED" | "BLOODIED" | "CRITICAL" | "DEFEATED";
+            healthDisplay: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
             id: string;
             initiative: number | null;
             kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -49241,6 +49451,7 @@ export declare const api: {
           createdAt: string;
           currentActorId: string | null;
           gameSystemId: string;
+          healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
           id: string;
           initiativePolicy?: {
             cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -50181,7 +50392,11 @@ export declare const api: {
         "action",
         "public",
         {
-          target: { characterId: string; type: "CHARACTER_PORTRAIT" };
+          target: {
+            campaignId?: string;
+            characterId: string;
+            type: "CHARACTER_PORTRAIT";
+          };
           variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
         },
         {
@@ -50212,7 +50427,11 @@ export declare const api: {
       bindingForCharacter: FunctionReference<
         "query",
         "public",
-        { characterId: string; type: "CHARACTER_PORTRAIT" },
+        {
+          campaignId?: string;
+          characterId: string;
+          type: "CHARACTER_PORTRAIT";
+        },
         { assetId: string | null; revision: number }
       >;
       createUpload: FunctionReference<
@@ -58915,6 +59134,15 @@ export declare const internal: {
               }
             | {
                 commandId: string;
+                expectedVersion: number;
+                type: "SET_PARTY_VISIBILITY";
+                visibility: {
+                  health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                  sheet: boolean;
+                };
+              }
+            | {
+                commandId: string;
                 customName?: string | null;
                 displayAsAttack?: boolean;
                 expectedVersion: number;
@@ -65099,6 +65327,15 @@ export declare const internal: {
                     }
                   | {
                       commandId: string;
+                      expectedVersion: number;
+                      type: "SET_PARTY_VISIBILITY";
+                      visibility: {
+                        health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                        sheet: boolean;
+                      };
+                    }
+                  | {
+                      commandId: string;
                       customName?: string | null;
                       displayAsAttack?: boolean;
                       expectedVersion: number;
@@ -65755,6 +65992,8 @@ export declare const internal: {
                 encounterId: string;
                 expectedVersion: number;
                 gmNotes?: string | null;
+                healthDisplay?:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 public?: boolean;
                 sideId?: string;
                 tempHitPoints?: number;
@@ -65898,6 +66137,13 @@ export declare const internal: {
                 rollDefinitionId: string;
                 type: "ROLL_ENEMY_ACTION";
                 visibility: "PRIVATE" | "TABLE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                level: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                type: "SET_HEALTH_DISPLAY_DEFAULT";
               }
             | {
                 commandId: string;
@@ -66321,6 +66567,8 @@ export declare const internal: {
                     | "BLOODIED"
                     | "CRITICAL"
                     | "DEFEATED";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -66364,6 +66612,8 @@ export declare const internal: {
                 createdAt: string;
                 currentActorId: string | null;
                 gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
                 id: string;
                 initiativePolicy?: {
                   cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -66430,6 +66680,14 @@ export declare const internal: {
                   controllerUserIds: Array<string>;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -66993,6 +67251,15 @@ export declare const internal: {
                     }
                   | {
                       commandId: string;
+                      expectedVersion: number;
+                      type: "SET_PARTY_VISIBILITY";
+                      visibility: {
+                        health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                        sheet: boolean;
+                      };
+                    }
+                  | {
+                      commandId: string;
                       customName?: string | null;
                       displayAsAttack?: boolean;
                       expectedVersion: number;
@@ -67649,6 +67916,8 @@ export declare const internal: {
                 encounterId: string;
                 expectedVersion: number;
                 gmNotes?: string | null;
+                healthDisplay?:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 public?: boolean;
                 sideId?: string;
                 tempHitPoints?: number;
@@ -67792,6 +68061,13 @@ export declare const internal: {
                 rollDefinitionId: string;
                 type: "ROLL_ENEMY_ACTION";
                 visibility: "PRIVATE" | "TABLE";
+              }
+            | {
+                commandId: string;
+                encounterId: string;
+                expectedVersion: number;
+                level: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                type: "SET_HEALTH_DISPLAY_DEFAULT";
               }
             | {
                 commandId: string;
@@ -68215,6 +68491,8 @@ export declare const internal: {
                     | "BLOODIED"
                     | "CRITICAL"
                     | "DEFEATED";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -68258,6 +68536,8 @@ export declare const internal: {
                 createdAt: string;
                 currentActorId: string | null;
                 gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
                 id: string;
                 initiativePolicy?: {
                   cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -68324,6 +68604,14 @@ export declare const internal: {
                   controllerUserIds: Array<string>;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -68946,6 +69234,16 @@ export declare const internal: {
                                 | { mode: "AUTO" }
                                 | { mode: "EXPLICIT"; speedId: string };
                               type: "SET_MOVEMENT_DISPLAY_PREFERENCE";
+                            }
+                          | {
+                              commandId: string;
+                              expectedVersion: number;
+                              type: "SET_PARTY_VISIBILITY";
+                              visibility: {
+                                health:
+                                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                                sheet: boolean;
+                              };
                             }
                           | {
                               commandId: string;
@@ -69609,6 +69907,8 @@ export declare const internal: {
                         encounterId: string;
                         expectedVersion: number;
                         gmNotes?: string | null;
+                        healthDisplay?:
+                          "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                         public?: boolean;
                         sideId?: string;
                         tempHitPoints?: number;
@@ -69756,6 +70056,13 @@ export declare const internal: {
                         rollDefinitionId: string;
                         type: "ROLL_ENEMY_ACTION";
                         visibility: "PRIVATE" | "TABLE";
+                      }
+                    | {
+                        commandId: string;
+                        encounterId: string;
+                        expectedVersion: number;
+                        level: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
+                        type: "SET_HEALTH_DISPLAY_DEFAULT";
                       }
                     | {
                         commandId: string;
@@ -70977,6 +71284,9 @@ export declare const internal: {
     encounterActionCommit: {
       commit: FunctionReference<"mutation", "internal", any, any>;
     };
+    encounterCaptureBundle: {
+      capture: FunctionReference<"query", "internal", any, any>;
+    };
     encounterCommand: {
       execute: FunctionReference<"action", "internal", any, any>;
     };
@@ -71874,6 +72184,20 @@ export declare const internal: {
           } | null;
         }
       >;
+      visionRevisions: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId: string;
+          expectedRole: "OWNER" | "PLAYER";
+          expectedUserId: string;
+          observedCharacterRevisions: Array<{
+            characterId: string;
+            revision: string | null;
+          }>;
+        },
+        { current: boolean }
+      >;
     };
   };
   media: {
@@ -72762,7 +73086,11 @@ export declare const internal: {
       read: FunctionReference<
         "query",
         "internal",
-        { characterId: string; type: "CHARACTER_PORTRAIT" },
+        {
+          campaignId?: string;
+          characterId: string;
+          type: "CHARACTER_PORTRAIT";
+        },
         {
           authoredTarget?: {
             subjectId: string;
@@ -129716,6 +130044,8 @@ export declare const internal: {
                     | "BLOODIED"
                     | "CRITICAL"
                     | "DEFEATED";
+                  healthDisplay:
+                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
@@ -129759,6 +130089,8 @@ export declare const internal: {
                 createdAt: string;
                 currentActorId: string | null;
                 gameSystemId: string;
+                healthDisplayDefault:
+                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
                 id: string;
                 initiativePolicy?: {
                   cadence: "ENCOUNTER_START" | "EACH_ROUND";
@@ -129825,6 +130157,14 @@ export declare const internal: {
                   controllerUserIds: Array<string>;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
                   encounterId: string;
+                  health:
+                    | {
+                        level: "DESCRIPTIVE";
+                        state: "UNHURT" | "HURT" | "BLOODIED" | "NEAR_DEATH";
+                      }
+                    | { level: "BAR"; ratio: number }
+                    | { current: number; level: "EXACT"; maximum: number }
+                    | null;
                   id: string;
                   initiative: number | null;
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";

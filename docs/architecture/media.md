@@ -72,8 +72,11 @@ after five minutes; reactive metadata contains only the public asset UUID and re
 
 Character portraits use `characters.portraitAssetId` and `portraitRevision`; Builder commits
 preserve both. Upload/save/remove require the Character owner, and the upload intent binds the
-exact Character UUID. Direct foreign or missing Character reads return no portrait. Campaign/VTT
-portrait projection is still pending and does not gain access through this direct owner endpoint.
+exact Character UUID. Direct foreign or missing Character reads return no portrait. A Campaign-scoped
+lookup (CHARACTER_PORTRAIT with campaignId, ADR 0034 D36) lets any active member of that Campaign
+read the portrait of a Character assigned in it, through the same indingForCharacter query and
+getImage action; a non-member, a departed member, or a Character not assigned in that Campaign is
+refused. The roster and VTT tokens use this scope. Uploads, crops and removal stay owner-only.
 Settlement rechecks ownership and portrait revision, so concurrent replacement or removal rejects
 stale processing. Failed replacements preserve the current binding. Removal schedules the existing
 24-hour grace; cleanup rechecks Character references. Account purge clears matching owned portrait

@@ -61,6 +61,24 @@ export const currentTurn = style({
   }
 })
 
+export const healthBar = style({
+  '@layer': {
+    [app]: {
+      inlineSize: '4.5rem'
+    }
+  }
+})
+
+export const healthExact = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontVariantNumeric: 'tabular-nums',
+      whiteSpace: 'nowrap'
+    }
+  }
+})
+
 export const controls = style({
   '@layer': {
     [app]: {

@@ -12,12 +12,14 @@ import {
   mediaSinglePutUploadSchema,
   mediaStoredAssetSchema,
   mediaStoredVariantSchema,
+  type CharacterPortraitLookup,
   type CharacterPortraitTarget
 } from '@artificer-toolkit/schema/api/mediaAssets'
 import { query, internalQuery, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { mutation, internalMutation } from '../lib/mutations'
 import { internal } from '../_generated/api'
 import { getAuthenticatedProfile } from '../lib/identity'
+import { requireCampaignAuthority } from '../campaigns/authority'
 import { charge, createMediaUpload, findAsset, ownedAsset } from './assets'
 
 const GRACE = 24 * 60 * 60_000
@@ -39,22 +41,43 @@ async function ownedCharacter(ctx: QueryCtx | MutationCtx, target: CharacterPort
   return { authenticated, character }
 }
 
-async function readableCharacter(ctx: QueryCtx, target: CharacterPortraitTarget) {
+/**
+ * The owner reads their Character's portrait. With a Campaign scope, any active member of that
+ * Campaign reads the portrait of a Character assigned in it, and nothing else (ADR 0034, D36).
+ */
+async function readableCharacter(ctx: QueryCtx, target: CharacterPortraitLookup) {
   const authenticated = await getAuthenticatedProfile(ctx)
   if (!authenticated) throw new Error('Unauthenticated')
   const character = await ctx.db
     .query('characters')
     .withIndex('by_publicId', (q) => q.eq('id', target.characterId))
     .unique()
-  return character?.userId === authenticated.identity.userId ? { authenticated, character } : null
+  if (!target.campaignId)
+    return character?.userId === authenticated.identity.userId ? character : null
+  const { campaign } = await requireCampaignAuthority(
+    ctx,
+    target.campaignId,
+    authenticated.identity.userId
+  )
+  const assignment = await ctx.db
+    .query('campaignCharacterAssignments')
+    .withIndex('by_characterId', (q) => q.eq('characterId', target.characterId.toLowerCase()))
+    .unique()
+  if (
+    !character ||
+    assignment?.campaignId !== campaign.id ||
+    assignment.userId !== character.userId
+  )
+    throw new Error('Image is unavailable.')
+  return character
 }
 
 export const bindingForCharacter = query({
   args: zodToConvexFields(characterPortraitLookupSchema.shape),
   returns: zodToConvex(avatarBindingSchema),
   handler: async (ctx, args) => {
-    const readable = await readableCharacter(ctx, characterPortraitLookupSchema.parse(args))
-    return readable ? binding(readable.character) : { assetId: null, revision: 0 }
+    const character = await readableCharacter(ctx, characterPortraitLookupSchema.parse(args))
+    return character ? binding(character) : { assetId: null, revision: 0 }
   }
 })
 
@@ -208,14 +231,12 @@ export const read = internalQuery({
   returns: zodToConvex(zMini.nullable(mediaStoredAssetSchema)),
   handler: async (ctx, args) => {
     const target = characterPortraitLookupSchema.parse(args)
-    const readable = await readableCharacter(ctx, target)
-    if (!readable) return null
-    const { authenticated, character } = readable
-    if (!character.portraitAssetId) return null
+    const character = await readableCharacter(ctx, target)
+    if (!character?.portraitAssetId) return null
     const asset = await findAsset(ctx, character.portraitAssetId)
     if (
       !asset ||
-      asset.ownerUserId !== authenticated.identity.userId ||
+      asset.ownerUserId !== character.userId ||
       asset.profile !== 'CHARACTER_PORTRAIT' ||
       asset.status !== 'READY' ||
       asset.characterTarget?.characterId !== target.characterId

@@ -221,6 +221,7 @@ export const execute = internalMutation({
       command.type !== 'ADJUST_FEATURE_RESOURCE' &&
       command.type !== 'COMPLETE' &&
       command.type !== 'REPLACE_OPTIONAL_COMBAT_RULES' &&
+      command.type !== 'SET_HEALTH_DISPLAY_DEFAULT' &&
       command.type !== 'RESOLVE_RULE_OCCURRENCE'
     )
       throw new Error('Encounter command is not available.')
@@ -249,6 +250,7 @@ export const execute = internalMutation({
               command.type === 'ADVANCE_TURN' ||
               command.type === 'PREVIOUS_TURN' ||
               command.type === 'SET_ROUND' ||
+              command.type === 'SET_HEALTH_DISPLAY_DEFAULT' ||
               command.type === 'COMPLETE'
             ? {
                 ...command,
@@ -455,6 +457,7 @@ export const execute = internalMutation({
     let optionalCombatSnapshot = state.optionalCombatSnapshot
     let optionalCombatSnapshotChecksum = state.optionalCombatSnapshotChecksum
     let optionalCombatRules = projection.optionalCombatRules
+    let healthDisplayDefault = state.healthDisplayDefault
     const version = row.version + 1
     if (input.type === 'UPSERT_REMINDER') {
       if (input.reminder.actorId !== null && !actorIds.has(input.reminder.actorId))
@@ -1790,6 +1793,12 @@ export const execute = internalMutation({
       if (
         input.type === 'UPDATE_ACTOR' &&
         actor.kind === 'CHARACTER' &&
+        input.healthDisplay !== undefined
+      )
+        throw new Error("A Character's health display is set by its player on the Sheet.")
+      if (
+        input.type === 'UPDATE_ACTOR' &&
+        actor.kind === 'CHARACTER' &&
         (input.currentHitPoints !== undefined ||
           input.tempHitPoints !== undefined ||
           input.conditions !== undefined)
@@ -1871,6 +1880,7 @@ export const execute = internalMutation({
                 ? {}
                 : { controllerUserIds: input.controllerUserIds }),
               ...(input.disposition === undefined ? {} : { disposition: input.disposition }),
+              ...(input.healthDisplay === undefined ? {} : { healthDisplay: input.healthDisplay }),
               ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
               updatedAt
             }
@@ -2007,6 +2017,8 @@ export const execute = internalMutation({
           kind: document.kind
         })
       )
+    } else if (input.type === 'SET_HEALTH_DISPLAY_DEFAULT') {
+      healthDisplayDefault = input.level
     } else if (input.type === 'ROLL_ENEMY_ACTION') {
       if (state.status !== 'ACTIVE')
         rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Enemy actions require an active Encounter.')
@@ -2176,6 +2188,7 @@ export const execute = internalMutation({
       reminders,
       optionalCombatSnapshot,
       optionalCombatSnapshotChecksum,
+      healthDisplayDefault,
       version,
       updatedAt
     })
@@ -2187,6 +2200,7 @@ export const execute = internalMutation({
       actors,
       reminders,
       optionalCombatRules,
+      healthDisplayDefault,
       version,
       updatedAt
     })

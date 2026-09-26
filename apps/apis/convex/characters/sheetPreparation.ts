@@ -63,6 +63,10 @@ export function projectCharacterSheetFacts(
     ruleProjection,
     resolution: facts.prepared.resolution,
     contentMaturity: facts.prepared.context.sourceAccess.campaign?.contentMaturity ?? null,
-    sheet: characterSheetResponseDtoSchema.parse({ ...sheet, publicId: facts.route.publicId })
+    sheet: characterSheetResponseDtoSchema.parse({
+      ...sheet,
+      meta: { ...sheet.meta, partyVisibility: facts.sheetState.partyVisibility },
+      publicId: facts.route.publicId
+    })
   }
 }

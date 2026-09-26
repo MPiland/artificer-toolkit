@@ -214,7 +214,7 @@ export const tabletopMapDelivery = {
   width: 1400
 } satisfies SignedVttMapDeliveryDto
 
-const playerActors = [
+const actorBases = [
   {
     conditions: [],
     controllerUserIds: [],
@@ -243,13 +243,19 @@ const playerActors = [
     sourceId: null,
     sourceRevision: null
   }
+] satisfies Omit<EncounterPlayerProjectionDto['actors'][number], 'health'>[]
+
+// The player controls their own Character (exact health); the enemy's level here is Descriptive.
+const playerActors = [
+  { ...actorBases[0], health: { level: 'EXACT', current: 36, maximum: 36 } },
+  { ...actorBases[1], health: { level: 'DESCRIPTIVE', state: 'HURT' } }
 ] satisfies EncounterPlayerProjectionDto['actors']
 
 const encounterBase = {
   automationMode: 'ASSISTED',
   campaignId: tabletopCampaignId,
   createdAt: '2026-08-15T22:05:00.000Z',
-  currentActorId: playerActors[0].id,
+  currentActorId: actorBases[0].id,
   id: tabletopEncounterId,
   gameSystemId: assignedCharacter.systemId,
   initiativePolicy: null,
@@ -272,12 +278,14 @@ export const tabletopPlayerEncounter = {
 export const tabletopGmEncounter = {
   ...encounterBase,
   manualReminderMode: 'OFF',
-  actors: playerActors.map((actor, index) => ({
+  healthDisplayDefault: 'DESCRIPTIVE',
+  actors: actorBases.map((actor, index) => ({
     ...actor,
     currentHitPoints: index === 0 ? 36 : 47,
     features: [],
     gmNotes: null,
     healthBand: index === 0 ? ('HEALTHY' as const) : ('WOUNDED' as const),
+    healthDisplay: null,
     maxHitPoints: index === 0 ? 36 : 64,
     resources: {},
     stableTieKey: actor.id,

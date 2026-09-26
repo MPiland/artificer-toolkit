@@ -61,11 +61,11 @@ it('discards only an exact unused epoch and preserves committed state and replay
       snapshotChecksum: 'checksum-0',
       stateJson: largeUnicodeJson('provisional')
     })
-    expect(() => journal.discardUncommittedAuthority(crypto.randomUUID())).toThrow(
+    expect(() => journal.discardReplaceableAuthority(crypto.randomUUID())).toThrow(
       'The provisional authority epoch is stale.'
     )
     expect(journal.readCurrent()).toEqual(initial)
-    journal.discardUncommittedAuthority(test.authorityEpoch)
+    journal.discardReplaceableAuthority(test.authorityEpoch)
     expect(journal.readCurrent()).toBeNull()
     expect(
       state.storage.sql
@@ -75,12 +75,55 @@ it('discards only an exact unused epoch and preserves committed state and replay
     test.activate(journal)
     const committed = test.commit(journal, 1)
     if (committed.kind !== 'COMMITTED') throw new Error('Expected a fresh command commit.')
-    expect(() => journal.discardUncommittedAuthority(test.authorityEpoch)).toThrow(
+    expect(() => journal.discardReplaceableAuthority(test.authorityEpoch)).toThrow(
       'Committed Session authority cannot be discarded.'
     )
     expect(journal.readCurrent()).toEqual(committed.state)
     expect(test.commit(journal, 1)).toEqual({ kind: 'REPLAY', receipt: committed.receipt })
     expect(journal.listPending(1)).toHaveLength(1)
+  })
+})
+
+it('discards a released epoch with its receipts so a fresh epoch can activate', async () => {
+  const test = fixture()
+  await runInDurableObject(test.stub, (_instance, state) => {
+    const journal = new DurableCommandJournal(state.storage)
+    test.activate(journal)
+    const committed = test.commit(journal, 1)
+    if (committed.kind !== 'COMMITTED') throw new Error('Expected a fresh command commit.')
+    const fence = {
+      authorityEpoch: test.authorityEpoch,
+      finalSequence: 1,
+      finalStateChecksum: 'checksum-1'
+    }
+    journal.beginDrain(fence)
+    expect(() => journal.discardReplaceableAuthority(test.authorityEpoch)).toThrow(
+      'Committed Session authority cannot be discarded.'
+    )
+    journal.acknowledge({
+      authorityEpoch: test.authorityEpoch,
+      stateChecksum: 'checksum-1',
+      throughSequence: 1
+    })
+    journal.release(fence)
+    journal.discardReplaceableAuthority(test.authorityEpoch)
+    expect(journal.readCurrent()).toBeNull()
+    expect(
+      state.storage.sql
+        .exec<{ count: number }>(
+          `SELECT (SELECT COUNT(*) FROM durable_command_receipts)
+             + (SELECT COUNT(*) FROM durable_command_json_chunks) AS count`
+        )
+        .one().count
+    ).toBe(0)
+    const replacementEpoch = crypto.randomUUID()
+    expect(
+      journal.activate({
+        authorityEpoch: replacementEpoch,
+        snapshotChecksum: 'checksum-0',
+        stateJson: JSON.stringify({ hitPoints: 10 })
+      })
+    ).toMatchObject({ authorityEpoch: replacementEpoch, sequence: 0, status: 'ACTIVE' })
   })
 })
 

@@ -337,7 +337,12 @@ export const imageLookupTargetSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ACCOUNT_AVATAR') }),
   z.strictObject({
     type: z.literal('CHARACTER_PORTRAIT'),
-    characterId: z.string().check(z.uuid())
+    characterId: z.string().check(z.uuid()),
+    /**
+     * Campaign scope: any active member reads the portrait of a Character assigned in that Campaign
+     * (ADR 0034 decision 5). Without it, only the Character's owner reads it.
+     */
+    campaignId: z.optional(z.string().check(z.uuid()))
   }),
   z.strictObject({
     type: z.literal('AUTHORED_IMAGE'),

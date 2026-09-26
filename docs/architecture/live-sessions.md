@@ -276,6 +276,33 @@ surfaces as before, and a plan that reused nothing is never replanned. Action an
 read every Run actor, because the committed actor rules, Concentration and Cleaving cover the whole
 Run.
 
+**Capture bundle (CURRENT, D32).** A room command's volatile reads arrive in one private query,
+`/live-sessions/encounter-bundle` (`liveSessions/encounterCaptureBundle.ts`,
+`packages/schema/src/api/liveSessionEncounterCaptureBundle.ts`). When a room planner makes its
+admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `TURN_COMMAND` or `CONCENTRATION_RESPONSE`),
+`captureEncounterRules` sends the bundle instead. In one transaction the bundle runs the existing
+capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, one `ACTOR`
+(first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
+Character actor's `INPUTS`. Each part is exactly the response its own capture returns, with its own
+read checksum and revisions, so commit fences are unchanged. The DO hands each part, once, to the
+capture with the same complete input; anything else (later effect pages, other maintenance, Scene
+reads, System-level content) is read as before. The bundle stops at the first failing part, and the
+planner then reads that part separately and meets the same refusal. `liveSessionCharacterRulesScope`
+derives a Character capture scope from an Encounter one for both sides. Warm commands now take two
+round trips (the bundle and the commit); a decision answer adds its `encounter-route` read.
+Every part reruns its builder, so the bundle reads through a transaction-local memo
+(`lib/transactionReads.ts`): an identical `get`, or the same table, index range, order and read, is
+served once and deeply frozen, so no part can change another part's view; filtered, search and
+streamed reads pass through. At the legal maxima (100 actors: 12 Characters, one per player seat, and
+88 Creatures) the largest action bundle reads 437 index ranges, 307 documents and 1.4 MB (0.85 MB
+distinct) and returns 1.1 MB, each under a quarter of its Convex limit; without the memo it read
+38.8 MB, over the 16 MiB limit.
+
+**Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
+`COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of
+every System the job imported roots into whenever that visibility changes, so commit fences and the
+room cache see it.
+
 **Auto-roll and GM void (CURRENT, ADR 0034).** The `ACTION_COMMAND`, `ACTION_RESPONSE` and
 `MOVEMENT_INPUTS` captures carry `autoRollByActorId`: for each Run actor, the "Auto-roll my dice"
 preference of the user its rolls are routed to (see roll routing below). `TURN_COMMAND` carries the
@@ -320,8 +347,18 @@ removes them from every PREPARED or ACTIVE Run's controller lists in the same tr
   pending decision re-read for that member). The room's `nativeRoomEncounterCommand.ts` refuses to hand
   a PLAYER anything that does not parse as a player projection. A replay by command ID returns only to
   the user who issued it.
-- The player projection carries no health for any actor (ADR 0034 decision 5 default "Hidden");
-  the per-Character and per-Encounter display levels are recorded for 8.3.
+- Health display (ADR 0034 decision 5, current): each player-projection actor carries `health` at
+  its level only (`projectPlayerEncounterProjection`, `@artificer-toolkit/schema/api/healthDisplay`).
+  Hidden (the default) carries `null`, Descriptive only the band (Unhurt, Hurt, Bloodied at or below
+  half, Near death at or below a quarter), Bar only a ratio rounded to 5%, Exact current and
+  maximum. A Character actor uses its player's Sheet setting; an enemy or NPC uses its GM override
+  (`UPDATE_ACTOR.healthDisplay`) or else the Run's `healthDisplayDefault`
+  (`SET_HEALTH_DISPLAY_DEFAULT`, GM only). Run creation stores the default `HIDDEN` and each new
+  actor `healthDisplay: null`; both fields are required in stored state and projections. An
+  actor's controllers, including a Character's player, see its exact health. The GM projection
+  carries exact values, and GM surfaces show exact hit points. `encounters/healthDisplay:share`
+  (GM only) posts one visible enemy's or NPC's descriptive state to the TABLE chat once per command
+  ID without changing its level.
 - Room flood control: a PLAYER has at most one Encounter command in flight
   (`ROOM_LIMITS.maxInFlightEncounterCommandsPerPlayer`); a second is refused `UNAVAILABLE` "Your
   previous action is still resolving."
@@ -679,14 +716,24 @@ signed-in client cannot turn one socket into unbounded Convex work:
   user's tabs from evicting each other in a reconnect loop.
 - **Authentication window:** a socket that has not authenticated within 10 s is closed by the room's
   Durable Object alarm.
+- **Idle release (ADR 0033):** when the last admitted socket of an active room leaves, the room
+  stores a release deadline five minutes out (`ROOM_LIMITS.idleReleaseMs`, SQLite
+  `room_idle_release`). One alarm serves this deadline and every admission window. An admitted
+  socket cancels the deadline; a socket still inside its admission window defers the release. At the
+  deadline the room runs the same drain and release as Campaign closure (`#closeRoom`: command chain,
+  drain fence, outbox publication, Convex release). The next join claims a fresh epoch, and the room
+  discards the released journal (`discardReplaceableAuthority`) before activating it.
 - **Queues:** at most 8 pending commands per socket and 64 per room; a command beyond either is
   rejected with `UNAVAILABLE` and the socket stays open. At most 32 pending previews per socket;
   extra samples are dropped, since previews are lossy.
 - **Preview captures:** pointer previews, and a player's bound-token drag previews on a synchronized
   Encounter-bound Scene (D25), reuse an AUTHORITY capture for the same origin and audience for up to
   2 s instead of querying Convex per sample. A Scene version change or presentation change bypasses
-  the cached capture. A Scene with Character vision still captures per drag preview (FULL mode, which
-  rechecks the Character revisions its vision was composed from).
+  the cached capture. On a Scene with Character vision, each GM or player drag preview first makes one
+  small read (`/live-sessions/vision-revisions`, `liveSessions/transientCapture:visionRevisions`)
+  of the Character revisions the synchronized vision was composed from (D33); unchanged revisions keep
+  the fast path, and a changed revision forces the full capture and rehydration. Commits keep the full
+  check.
 - **Rules capture cache:** System-level rules captures are reused across Encounter commands for up to
   60 s, at most 512 entries and 16 MB (see "Room capture cache" above).
 - **Admission freshness:** an admission lasts only until the access token expires; renewing it

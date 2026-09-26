@@ -373,7 +373,7 @@ export function CampaignVttStage({
       if (!actor?.sourceId || (actor.kind !== 'CHARACTER' && actor.kind !== 'CREATURE')) return []
       const target: ImageLookupInput['target'] =
         actor.kind === 'CHARACTER'
-          ? { characterId: actor.sourceId, type: 'CHARACTER_PORTRAIT' }
+          ? { campaignId: campaign.id, characterId: actor.sourceId, type: 'CHARACTER_PORTRAIT' }
           : {
               scope: 'ACTIVE',
               subjectId: actor.sourceId,
@@ -382,7 +382,7 @@ export function CampaignVttStage({
             }
       return [{ target, tokenAssetId: token.assetId, tokenId: token.id }]
     })
-  }, [activeEncounter?.actors, actorIdByTokenId, renderedScene?.tokens])
+  }, [activeEncounter?.actors, actorIdByTokenId, campaign.id, renderedScene?.tokens])
   const tokenArtUrls = useQueries({
     queries: tokenImageLookups.map((lookup) => ({
       queryFn: () =>

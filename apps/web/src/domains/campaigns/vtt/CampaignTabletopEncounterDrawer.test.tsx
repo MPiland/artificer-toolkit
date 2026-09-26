@@ -39,6 +39,65 @@ describe('CampaignTabletopEncounterDrawer', () => {
     expect(screen.queryByText('wounded')).not.toBeInTheDocument()
   })
 
+  it.each([
+    [{ level: 'DESCRIPTIVE', state: 'NEAR_DEATH' }, 'Near death'],
+    [{ level: 'BAR', ratio: 0.35 }, null],
+    [{ level: 'EXACT', current: 12, maximum: 40 }, 'HP 12/40'],
+    [null, null]
+  ] as const)('shows a player only the health its level allows: %j', async (health, text) => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine={false}
+        encounter={{
+          ...tabletopPlayerEncounter,
+          actors: [
+            tabletopPlayerEncounter.actors[0],
+            { ...tabletopPlayerEncounter.actors[1], health }
+          ]
+        }}
+        memberships={createTabletopCampaign('PLAYER').memberships}
+        pending={false}
+        role='PLAYER'
+        scene={tabletopLiveScene}
+        onCommand={() => undefined}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const rows = screen.getByLabelText('Encounter turn order').children
+    const warden = rows[1] as HTMLElement
+    expect(within(warden).getByText('Vault Warden')).toBeInTheDocument()
+    // The player's own Character is theirs to see exactly.
+    expect(screen.getByText('HP 36/36')).toBeInTheDocument()
+    if (text) expect(within(warden).getByText(text)).toBeInTheDocument()
+    expect(within(warden).queryByRole('progressbar') !== null).toBe(health?.level === 'BAR')
+    if (health?.level === 'BAR')
+      expect(within(warden).getByRole('progressbar', { name: 'Vault Warden health' })).toBeVisible()
+    if (!health) expect(within(warden).queryByText(/HP|Hurt|Bloodied|Unhurt|Near death/)).toBeNull()
+    expect(within(warden).queryByText(/\d+\/\d+/) !== null).toBe(health?.level === 'EXACT')
+  })
+  it('always shows the GM exact hit points instead of a band', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        onCommand={() => undefined}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    expect(screen.getByText('HP 36/36')).toBeInTheDocument()
+    expect(screen.getByText('HP 47/64')).toBeInTheDocument()
+    expect(screen.queryByText(/wounded|healthy/i)).not.toBeInTheDocument()
+  })
   it('sends an authoritative versioned turn command for the GM', async () => {
     const user = userEvent.setup()
     const onCommand = vi.fn()

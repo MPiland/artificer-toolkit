@@ -6,6 +6,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { api, internal } from '../_generated/api'
 import { startLocalR2 } from '../../tests/localR2'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 let server: Awaited<ReturnType<typeof startLocalR2>>
 const crop = { x: 0, y: 0, width: 2 / 3, height: 1 }
@@ -261,3 +264,119 @@ it.each(['remove', 'purge'] as const)(
   },
   60_000
 )
+
+it('lets only active members read the portrait of a Character assigned in their Campaign', async () => {
+  const base = await readyCharacterFixture()
+  register(base.t)
+  registerRetrier(base.t, 'r2/actionRetrier')
+  const commit = async () => {
+    const created = await base.createCharacter()
+    await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: created.draft.id,
+      mode: 'create',
+      character: created.character
+    })
+    return created.character
+  }
+  const assigned = await commit()
+  const unassigned = await commit()
+  const ownerTarget = { type: 'CHARACTER_PORTRAIT' as const, characterId: assigned.id }
+  const intent = await base.owner.caller.mutation(api.media.characterPortraitAssets.createUpload, {
+    target: ownerTarget,
+    originalFileName: 'portrait.png',
+    declaredMimeType: 'image/png',
+    declaredBytes: 1000,
+    idempotencyKey: crypto.randomUUID()
+  })
+  const claim = await base.owner.caller.mutation(internal.media.characterPortraitAssets.beginSave, {
+    assetId: intent.assetId,
+    crop,
+    target: ownerTarget
+  })
+  if (claim.kind !== 'PROCESS') throw new Error('Missing portrait claim')
+  await base.owner.caller.mutation(internal.media.characterPortraitAssets.finishSave, {
+    assetId: intent.assetId,
+    operationId: claim.operation.id,
+    variants: claim.operation.outputs.map((output) => ({
+      ...output,
+      byteSize: 1000,
+      width: 320,
+      height: 320,
+      mimeType: 'image/webp' as const
+    }))
+  })
+
+  const campaign = await base.other.caller.mutation(api.campaigns.create.create, {
+    name: 'Portrait roster',
+    format: 'ONGOING',
+    toneTags: ['HEROIC'],
+    contentMaturity: 'STANDARD',
+    gameSystemId: srdSystemRecord.id,
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+  })
+  await base.t.run(async (ctx) => {
+    await ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId: base.owner.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+    await ctx.db.insert('campaignCharacterAssignments', {
+      campaignId: campaign.id,
+      userId: base.owner.userId,
+      characterId: assigned.id,
+      assignedAt: campaign.createdAt
+    })
+  })
+  const member = await createPartyPlayer(base.t, campaign)
+  const scoped = (characterId: string) => ({
+    type: 'CHARACTER_PORTRAIT' as const,
+    characterId,
+    campaignId: campaign.id
+  })
+  const read = (reader: { caller: typeof member.caller }, characterId: string) =>
+    reader.caller.action(api.media.characterPortraitActions.getImage, {
+      target: scoped(characterId),
+      variantKind: 'THUMBNAIL'
+    })
+
+  // Not yet a member.
+  await expect(read(member, assigned.id)).rejects.toThrow()
+  await member.join()
+  expect(
+    await member.caller.query(
+      api.media.characterPortraitAssets.bindingForCharacter,
+      scoped(assigned.id)
+    )
+  ).toEqual({ assetId: intent.assetId, revision: 1 })
+  for (const reader of [member, base.other])
+    expect(await read(reader, assigned.id)).toMatchObject({
+      assetId: intent.assetId,
+      variantKind: 'THUMBNAIL'
+    })
+  // The Campaign scope never reaches a Character that is not assigned in that Campaign.
+  await expect(read(member, unassigned.id)).rejects.toThrow('Image is unavailable.')
+  // Without the scope, the portrait stays owner-only.
+  expect(
+    await member.caller.action(api.media.characterPortraitActions.getImage, {
+      target: ownerTarget,
+      variantKind: 'THUMBNAIL'
+    })
+  ).toBeNull()
+
+  await base.t.run(async (ctx) => {
+    const membership = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) =>
+        q.eq('campaignId', campaign.id).eq('userId', member.userId)
+      )
+      .unique()
+    if (!membership) throw new Error('Missing membership')
+    await ctx.db.patch(membership._id, { status: 'LEFT', leftAt: new Date().toISOString() })
+  })
+  await expect(read(member, assigned.id)).rejects.toThrow()
+  await base.t.finishAllScheduledFunctions(vi.runAllTimers)
+}, 60_000)

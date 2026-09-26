@@ -22,6 +22,7 @@ import type {
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
+import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
 
 type LiveEncounterCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
@@ -147,22 +148,21 @@ export function CampaignTabletopEncounterDrawer({
                       {current ? 'Current turn' : actor.kind.toLowerCase()}
                     </Text>
                   </div>
-                  {/* Only the GM projection carries health; players see none by default. */}
-                  {'healthBand' in actor ? (
-                    <Badge
-                      color={
-                        actor.healthBand === 'DEFEATED'
-                          ? 'red'
-                          : actor.healthBand === 'CRITICAL'
-                            ? 'orange'
-                            : 'gray'
-                      }
-                      size='xs'
-                      variant='light'
-                    >
-                      {actor.healthBand.toLowerCase()}
-                    </Badge>
-                  ) : null}
+                  {/* Players see health only at each actor's display level; the GM always sees exact. */}
+                  {'health' in actor ? (
+                    actor.health ? (
+                      <EncounterActorHealth health={actor.health} label={actor.label} />
+                    ) : null
+                  ) : (
+                    <EncounterActorHealth
+                      health={{
+                        level: 'EXACT',
+                        current: actor.currentHitPoints,
+                        maximum: actor.maxHitPoints
+                      }}
+                      label={actor.label}
+                    />
+                  )}
                 </div>
               )
             })}

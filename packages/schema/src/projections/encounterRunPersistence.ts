@@ -98,6 +98,7 @@ export const encounterStoredRunCommandSchema = z.discriminatedUnion('commandType
       'ROLL_ENEMY_ACTION',
       'ADJUST_FEATURE_RESOURCE',
       'REPLACE_OPTIONAL_COMBAT_RULES',
+      'SET_HEALTH_DISPLAY_DEFAULT',
       'COMPLETE',
       'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
       'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'

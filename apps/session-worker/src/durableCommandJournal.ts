@@ -351,27 +351,32 @@ export class DurableCommandJournal {
     return row ? stateFromRow(row, this.storage) : null
   }
 
-  /** The caller must first obtain a replacement epoch from current Convex bootstrap authority. */
-  discardUncommittedAuthority(authorityEpoch: string): void {
+  /**
+   * Discards a never-used provisional epoch, or a released one whose final state Convex already
+   * holds. The caller must first obtain a replacement epoch from current Convex bootstrap authority.
+   */
+  discardReplaceableAuthority(authorityEpoch: string): void {
     assertIdentifier('authority epoch', authorityEpoch)
     this.storage.transactionSync(() => {
       const current = this.#requiredState()
       if (current.authorityEpoch !== authorityEpoch)
         fail('AUTHORITY_MISMATCH', 'The provisional authority epoch is stale.')
-      if (
-        current.status !== 'ACTIVE' ||
-        current.sequence !== 0 ||
-        current.publishedSequence !== 0 ||
+      const unused =
+        current.status === 'ACTIVE' &&
+        current.sequence === 0 &&
+        current.publishedSequence === 0 &&
         this.storage.sql
           .exec(
             `SELECT 1 FROM durable_command_receipts
              UNION ALL SELECT 1 FROM durable_command_outbox LIMIT 1`
           )
-          .toArray().length > 0
-      )
+          .toArray().length === 0
+      if (!unused && current.status !== 'RELEASED')
         fail('RELEASE_BLOCKED', 'Committed Session authority cannot be discarded.')
       this.storage.sql.exec('DELETE FROM durable_session_authority WHERE id = 1')
-      this.storage.sql.exec("DELETE FROM durable_command_json_chunks WHERE document_key = 'state'")
+      this.storage.sql.exec('DELETE FROM durable_command_receipts')
+      this.storage.sql.exec('DELETE FROM durable_command_outbox')
+      this.storage.sql.exec('DELETE FROM durable_command_json_chunks')
     })
   }
 

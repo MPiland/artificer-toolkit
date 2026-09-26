@@ -13,11 +13,19 @@ import {
   Text,
   Textarea
 } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { notifications } from '@mantine/notifications'
+import { useMutation as useConvexMutation } from 'convex/react'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import {
+  healthDisplayLevelDtoSchema,
+  type HealthDisplayLevelDto
+} from '@artificer-toolkit/schema/api/healthDisplay'
 import { useEffect, useState } from 'react'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { getCharacterSheet } from '#app/data/characters/queries'
+import { AppSelect } from '#app/ui/primitives/Select'
 import { AuthoredDetailProse } from '#components/AuthoredDetail'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import { CharacterSheetResourceStepper } from '#domains/characters/sheet/shared/CharacterSheetResourceStepper'
@@ -25,6 +33,7 @@ import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
 import { EncounterActorControlFields } from './EncounterActorControlFields'
 import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
+import { healthDisplayLevelLabels, healthDisplayLevelOptions } from '../healthDisplay'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
 export function EncounterActorCard({
@@ -32,12 +41,17 @@ export function EncounterActorCard({
   campaign,
   currentUserId,
   disabled,
+  encounterId,
+  healthDisplayDefault,
   onCommand
 }: {
   actor: EncounterGmActorDto
   campaign: CampaignDetailDto
   currentUserId: string
   disabled: boolean
+  encounterId: string
+  /** The Encounter's level for enemies and NPCs without an override. */
+  healthDisplayDefault: HealthDisplayLevelDto
   onCommand: (payload: EncounterCommandPayload) => void
 }) {
   const [initiative, setInitiative] = useState(actor.initiative ?? 0)
@@ -47,6 +61,13 @@ export function EncounterActorCard({
   const [notes, setNotes] = useState(actor.gmNotes ?? '')
   const [rollVisibility, setRollVisibility] = useState<'PRIVATE' | 'TABLE'>('PRIVATE')
   const [sheetOpened, setSheetOpened] = useState(false)
+  const shareHealthMutation = useConvexMutation(convexApi.encounters.healthDisplay.share)
+  const shareHealth = useMutation({
+    mutationFn: () =>
+      shareHealthMutation({ encounterId, actorId: actor.id, commandId: crypto.randomUUID() }),
+    onSuccess: (entry) =>
+      notifications.show({ color: 'orange', title: 'Shared with the table', message: entry.body })
+  })
   const sheet = useQuery(
     getCharacterSheet(
       actor.kind === 'CHARACTER' && sheetOpened ? (actor.sourceId ?? undefined) : undefined
@@ -171,6 +192,45 @@ export function EncounterActorCard({
           </Button>
         ) : null}
       </Group>
+      {campaign.role === 'OWNER' && actor.kind !== 'CHARACTER' ? (
+        <Group align='end' gap='xs' wrap='wrap'>
+          <AppSelect
+            allowDeselect={false}
+            aria-label={`Health players see for ${actor.label}`}
+            comboboxProps={{ withinPortal: false }}
+            data={[
+              {
+                label: `Encounter default (${healthDisplayLevelLabels[healthDisplayDefault]})`,
+                value: 'DEFAULT'
+              },
+              ...healthDisplayLevelOptions
+            ]}
+            disabled={disabled}
+            label='Health players see'
+            searchable={false}
+            value={actor.healthDisplay ?? 'DEFAULT'}
+            onChange={(value) =>
+              value &&
+              onCommand({
+                type: 'UPDATE_ACTOR',
+                actorId: actor.id,
+                healthDisplay: value === 'DEFAULT' ? null : healthDisplayLevelDtoSchema.parse(value)
+              })
+            }
+          />
+          <Button
+            disabled={disabled || !actor.public}
+            loading={shareHealth.isPending}
+            variant='default'
+            onClick={() => shareHealth.mutate()}
+          >
+            Share health state
+          </Button>
+        </Group>
+      ) : null}
+      {shareHealth.error ? (
+        <Alert color='red'>The health state couldn’t be shared. Try again.</Alert>
+      ) : null}
       {campaign.role === 'OWNER' ? (
         <EncounterActorControlFields
           actor={actor}

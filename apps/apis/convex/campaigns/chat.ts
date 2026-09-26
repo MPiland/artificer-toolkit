@@ -7,7 +7,8 @@ import {
   editCampaignChatEntryInputSchema,
   unsendCampaignChatEntryInputSchema,
   type CampaignChatEntryDto,
-  type CampaignChatPageDto
+  type CampaignChatPageDto,
+  type SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import {
   campaignStoredEntryHeaderSchema,
@@ -79,70 +80,86 @@ export const send = mutation({
     const { userId } = actor.identity
     const input = sendCampaignChatEntryInputSchema.parse(args)
     const authority = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    const { conversation, member } = await openConversation(
-      ctx,
-      authority,
-      input.room,
-      input.directUserId
-    )
-    const clientNonce = input.clientNonce.toLowerCase()
-    const prior = await ctx.db
-      .query('campaignConversationEntries')
-      .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-        q
-          .eq('campaignId', authority.campaign.id)
-          .eq('authorUserId', userId)
-          .eq('clientNonce', clientNonce)
-      )
-      .unique()
-    if (prior) {
-      if (prior.conversationId !== conversation.id)
-        throw new Error('Chat nonce was used in another conversation.')
-      if (prior.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
-      const payload = await readEntryPayload(ctx, prior.id)
-      if (payload.kind !== 'CHAT')
-        throw new Error('Chat nonce was used for a different entry kind.')
-      return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
-    }
-    const now = await readCampaignAccessTime(ctx, authority.campaign)
-    await consumeUserRateLimit(ctx, 'campaignConversation', userId)
-    const character =
-      input.mode === 'ROLEPLAY'
-        ? await readCampaignAssignedCharacter(ctx, authority.campaign, authority.membership)
-        : null
-    if (
-      input.mode === 'ROLEPLAY' &&
-      (!character || character.id !== input.assignedCharacterId!.toLowerCase())
-    )
-      throw new Error('Assigned Character is unavailable.')
-    if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
-    const header = campaignStoredEntryHeaderSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: authority.campaign.id,
-      conversationId: conversation.id,
-      authorUserId: userId,
-      clientNonce,
-      createdAt: new Date(now).toISOString()
-    })
-    const payload = campaignStoredEntryPayloadSchema.parse({
-      entryId: header.id,
-      kind: 'CHAT',
-      mode: input.mode,
-      body: input.body,
-      roll: null,
-      revealedByGm: false,
-      authorUsername: actor.username,
-      characterId: character?.id ?? null,
-      characterLabel: character?.label ?? null,
-      editedAt: null,
-      unsentAt: null,
-      consumedAt: null
-    })
-    await insertConversationEntry(ctx, header, payload)
-    return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)
+    return postCampaignChatEntry(ctx, authority, actor.username, input)
   }
 })
+
+/**
+ * Posts one chat entry as the authenticated member, once per client nonce. Other Campaign writes
+ * that speak to the table (such as the GM sharing an enemy's health) use it too.
+ */
+export async function postCampaignChatEntry(
+  ctx: MutationCtx,
+  authority: Awaited<ReturnType<typeof requireCampaignAuthority>>,
+  username: string | null,
+  input: Pick<
+    SendCampaignChatEntryInput,
+    'room' | 'directUserId' | 'mode' | 'body' | 'assignedCharacterId' | 'clientNonce'
+  >
+): Promise<CampaignChatEntryDto> {
+  const userId = authority.membership.userId
+  if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  const { conversation, member } = await openConversation(
+    ctx,
+    authority,
+    input.room,
+    input.directUserId
+  )
+  const clientNonce = input.clientNonce.toLowerCase()
+  const prior = await ctx.db
+    .query('campaignConversationEntries')
+    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+      q
+        .eq('campaignId', authority.campaign.id)
+        .eq('authorUserId', userId)
+        .eq('clientNonce', clientNonce)
+    )
+    .unique()
+  if (prior) {
+    if (prior.conversationId !== conversation.id)
+      throw new Error('Chat nonce was used in another conversation.')
+    if (prior.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
+    const payload = await readEntryPayload(ctx, prior.id)
+    if (payload.kind !== 'CHAT') throw new Error('Chat nonce was used for a different entry kind.')
+    return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
+  }
+  const now = await readCampaignAccessTime(ctx, authority.campaign)
+  await consumeUserRateLimit(ctx, 'campaignConversation', userId)
+  const character =
+    input.mode === 'ROLEPLAY'
+      ? await readCampaignAssignedCharacter(ctx, authority.campaign, authority.membership)
+      : null
+  if (
+    input.mode === 'ROLEPLAY' &&
+    (!character || character.id !== input.assignedCharacterId!.toLowerCase())
+  )
+    throw new Error('Assigned Character is unavailable.')
+  if (!username) throw new Error('A username is required to participate in Campaign chat.')
+  const header = campaignStoredEntryHeaderSchema.parse({
+    id: crypto.randomUUID(),
+    campaignId: authority.campaign.id,
+    conversationId: conversation.id,
+    authorUserId: userId,
+    clientNonce,
+    createdAt: new Date(now).toISOString()
+  })
+  const payload = campaignStoredEntryPayloadSchema.parse({
+    entryId: header.id,
+    kind: 'CHAT',
+    mode: input.mode,
+    body: input.body,
+    roll: null,
+    revealedByGm: false,
+    authorUsername: username,
+    characterId: character?.id ?? null,
+    characterLabel: character?.label ?? null,
+    editedAt: null,
+    unsentAt: null,
+    consumedAt: null
+  })
+  await insertConversationEntry(ctx, header, payload)
+  return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)
+}
 
 async function mutableChatEntry(
   ctx: MutationCtx,

@@ -29,7 +29,9 @@ const mocks = vi.hoisted(() => ({
   leave: vi.fn(),
   remove: vi.fn(),
   personalSheet: vi.fn(),
-  campaignSheet: vi.fn()
+  campaignSheet: vi.fn(),
+  queryData: vi.fn<(queryKey: unknown[]) => unknown>(() => undefined),
+  portrait: vi.fn()
 }))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
@@ -54,13 +56,14 @@ vi.mock('convex/react', async (importOriginal) => ({
 }))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
-  useQueries: () => []
+  useQueries: ({ queries }: { queries: { queryKey: unknown[] }[] }) =>
+    queries.map((query) => ({ data: mocks.queryData(query.queryKey) }))
 }))
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@convex-dev/react-query')>()),
-  convexQuery: (...args: unknown[]) => {
-    mocks.campaignSheet(...args)
-    return { queryKey: ['campaign-sheet'] }
+  convexQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
+    mocks.campaignSheet(reference, args)
+    return { queryKey: [getFunctionName(reference), args] }
   }
 }))
 vi.mock('#app/data/characters/queries', () => ({
@@ -68,6 +71,12 @@ vi.mock('#app/data/characters/queries', () => ({
   getCharacterSheet: (...args: unknown[]) => {
     mocks.personalSheet(...args)
     return { queryKey: ['personal-sheet'] }
+  }
+}))
+vi.mock('#app/data/media', () => ({
+  useMediaImage: (target: { lookup: unknown }) => {
+    mocks.portrait(target.lookup)
+    return { data: null }
   }
 }))
 vi.mock('#domains/characters/sheet/core/CharacterSheetView', () => ({
@@ -115,6 +124,11 @@ const campaign = {
   }
 } satisfies CampaignDetailDto
 
+const convexQueryNames = () =>
+  mocks.campaignSheet.mock.calls.map(([reference]) =>
+    getFunctionName(reference as Parameters<typeof getFunctionName>[0])
+  )
+
 const playerId = '22222222-2222-4222-8222-222222222222'
 const accessStartedAt = '2026-09-02T00:00:00.000Z'
 const playerMembership = {
@@ -139,6 +153,7 @@ const playerCampaign: CampaignDetailDto = {
 describe('CampaignParty native transport', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.queryData.mockImplementation(() => undefined)
     mocks.page.results = []
     mocks.page.status = 'Exhausted'
     mocks.characters.isLoading = false
@@ -328,6 +343,70 @@ describe('CampaignParty native transport', () => {
       />
     )
     expect(mocks.personalSheet).toHaveBeenCalledWith(character.id)
-    expect(mocks.campaignSheet).not.toHaveBeenCalled()
+    expect(convexQueryNames()).toEqual(['campaigns/characterSheet:basics'])
   })
+
+  it.each([true, false])(
+    'shows another player only roster basics, with View Sheet only when Party can view is %s',
+    (sheetVisible) => {
+      const own = {
+        id: 'character-1',
+        publicId: 'aria',
+        label: 'Aria',
+        systemId: campaign.gameSystemId
+      }
+      const other = {
+        id: 'character-2',
+        publicId: 'borin',
+        label: 'Borin',
+        systemId: campaign.gameSystemId
+      }
+      mocks.queryData.mockImplementation(([name, args]) =>
+        name === 'campaigns/characterSheet:basics' &&
+        (args as { characterId: string }).characterId === other.id
+          ? {
+              characterId: other.id,
+              label: 'Borin',
+              classSummary: 'Cleric 3',
+              totalLevel: 3,
+              sheetVisible
+            }
+          : undefined
+      )
+      renderWithAppProviders(
+        <CampaignParty
+          campaign={{
+            ...playerCampaign,
+            memberships: [
+              { ...playerMembership, assignedCharacter: own },
+              {
+                ...playerMembership,
+                userId: '33333333-3333-4333-8333-333333333333',
+                username: 'borin',
+                assignedCharacter: other
+              }
+            ]
+          }}
+          currentUserId={playerId}
+        />
+      )
+      // Roster basics for everyone; another player's full Sheet query waits for View Sheet.
+      expect(convexQueryNames()).toEqual([
+        'campaigns/characterSheet:basics',
+        'campaigns/characterSheet:basics',
+        'campaigns/characterSheet:get'
+      ])
+      // Portraits use the Campaign-scoped read, which only covers Characters assigned here.
+      for (const character of [own, other])
+        expect(mocks.portrait).toHaveBeenCalledWith({
+          type: 'CHARACTER_PORTRAIT',
+          characterId: character.id,
+          campaignId: campaign.id
+        })
+      const card = screen.getByText('Borin').closest('article')!
+      expect(within(card).getByText('Cleric 3 · Level 3')).toBeInTheDocument()
+      expect(within(card).queryByText(/HP/)).not.toBeInTheDocument()
+      expect(within(card).queryByRole('button', { name: 'View Sheet' }) !== null).toBe(sheetVisible)
+    }
+  )
 })

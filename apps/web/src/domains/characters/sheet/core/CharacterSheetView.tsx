@@ -6,6 +6,7 @@ import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { CampaignChatDrawer } from '#domains/campaigns/components/CampaignChatDrawer'
 import { CampaignNotesDrawer } from '#domains/campaigns/components/CampaignNotesDrawer'
+import { CharacterSheetPartyVisibility } from './CharacterSheetPartyVisibility'
 import { CharacterSheetPartyInventory } from '#domains/campaigns/components/CharacterSheetPartyInventory'
 import { CampaignTabletopButton } from '#domains/campaigns/vtt/CampaignTabletopButton'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
@@ -201,6 +202,14 @@ export function CharacterSheetView({
                     campaignId={sheet.meta.campaignId}
                     currentUserId={currentUserId}
                   />
+                  {sheet.meta.partyVisibility ? (
+                    <CharacterSheetPartyVisibility
+                      expectedVersion={sheet.meta.streamVersion}
+                      pending={pending}
+                      submitCommand={submitCommand}
+                      visibility={sheet.meta.partyVisibility}
+                    />
+                  ) : null}
                 </>
               ) : null
             }

@@ -31,6 +31,7 @@ import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { characterProjectionState } from './characterStates'
+import { readEncounterHealthViewer } from './healthViewer'
 import { readRunActors, readRunState, readValidatedRunProjection } from './documents'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const
@@ -48,8 +49,9 @@ export async function presentRun(
   ctx: QueryCtx,
   row: Doc<'encounterRuns'>,
   campaign: Doc<'campaigns'>,
-  role: Doc<'campaignMemberships'>['role']
+  viewer: Pick<Doc<'campaignMemberships'>, 'role' | 'userId'>
 ): Promise<EncounterProjection> {
+  const { role } = viewer
   const projection = readValidatedRunProjection(row, campaign)
   if (row.status === 'COMPLETED' && role === 'OWNER') return projection
   const system = projection.actors.some(
@@ -141,7 +143,11 @@ export async function presentRun(
     })
   )
   const current = { ...projection, actors }
-  return role === 'OWNER' ? current : projectPlayerEncounterProjection(current)
+  if (role === 'OWNER') return current
+  return projectPlayerEncounterProjection(
+    current,
+    await readEncounterHealthViewer(ctx, current, viewer.userId)
+  )
 }
 
 export const get = query({
@@ -159,7 +165,7 @@ export const get = query({
       .unique()
     if (!row) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-    return encounterProjectionDtoSchema.parse(await presentRun(ctx, row, campaign, membership.role))
+    return encounterProjectionDtoSchema.parse(await presentRun(ctx, row, campaign, membership))
   }
 })
 
@@ -179,7 +185,7 @@ export const active = query({
     const row = await readActiveRun(ctx, campaign.id)
     return zMini
       .nullable(encounterProjectionDtoSchema)
-      .parse(row ? await presentRun(ctx, row, campaign, membership.role) : null)
+      .parse(row ? await presentRun(ctx, row, campaign, membership) : null)
   }
 })
 
@@ -215,7 +221,7 @@ export const list = query({
           right.id.localeCompare(left.id)
       )
     return encounterProjectionListDtoSchema.parse(
-      await Promise.all(rows.map((row) => presentRun(ctx, row, campaign, membership.role)))
+      await Promise.all(rows.map((row) => presentRun(ctx, row, campaign, membership)))
     )
   }
 })
@@ -240,7 +246,7 @@ export const pendingPrepared = query({
       .collect()
     const visible: EncounterProjection[] = []
     for (const row of rows) {
-      const projection = await presentRun(ctx, row, campaign, membership.role)
+      const projection = await presentRun(ctx, row, campaign, membership)
       const pending = await ctx.runQuery(internal.encounters.pendingReads.forPrepared, {
         encounterId: row.id
       })

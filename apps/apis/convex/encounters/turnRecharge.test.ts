@@ -671,7 +671,8 @@ describe('native Encounter turn Recharge', () => {
           await base.owner.caller.query(api.encounters.projectionReads.get, {
             encounterId: base.run.id
           })
-        )
+        ),
+        { userId: base.other.userId, characters: new Map() }
       )
     )
     for (const hidden of ['healthBand', 'gmNotes', 'statBlock'])

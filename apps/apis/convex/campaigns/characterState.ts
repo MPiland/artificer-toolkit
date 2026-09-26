@@ -17,7 +17,12 @@ export async function requireCampaignCharacterAuthority(
   authorityScope?: CampaignInternalScope
 ) {
   const characterId = lookupId.toLowerCase()
-  const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId, authorityScope)
+  const { campaign, membership } = await requireCampaignAuthority(
+    ctx,
+    campaignId,
+    userId,
+    authorityScope
+  )
   const assignment = await ctx.db
     .query('campaignCharacterAssignments')
     .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
@@ -39,6 +44,28 @@ export async function requireCampaignCharacterAuthority(
   if (character?.id !== characterId)
     throw new Error('Stored Campaign Character assignment mismatch.')
   return { campaign, membership, assignment }
+}
+
+/**
+ * Who reads an assigned Character's Sheet, and as whom it loads. The GM and the Character's player
+ * read it directly. Another active member reads the player's own view, which the caller still
+ * projects for `PARTY_MEMBER` and allows only while "Party can view" is on (ADR 0034 decision 5).
+ */
+export async function readCampaignCharacterReader(
+  ctx: QueryCtx,
+  campaignId: string,
+  lookupId: string,
+  userId: string
+): Promise<{ loadAsUserId: string; party: boolean }> {
+  const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
+  if (membership.role === 'OWNER') return { loadAsUserId: userId, party: false }
+  const assignment = await ctx.db
+    .query('campaignCharacterAssignments')
+    .withIndex('by_characterId', (q) => q.eq('characterId', lookupId.toLowerCase()))
+    .unique()
+  if (!assignment || assignment.campaignId !== campaign.id)
+    throw new Error('Assigned Character not found.')
+  return { loadAsUserId: assignment.userId, party: assignment.userId !== userId }
 }
 
 /** Caller supplies an already-authorized Campaign/Character binding. */

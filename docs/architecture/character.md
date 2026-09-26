@@ -279,6 +279,18 @@ admits the GM; personal Character endpoints and Builder remain owner-only. Sourc
 the validated Character owner's current source access, without changing authenticated actor identity.
 Archived Campaigns remain GM-readable but reject GM commands, including retries.
 
+Party visibility (current, ADR 0034 decision 5): the Sheet-owned `partyVisibility` state
+(`SET_PARTY_VISIBILITY`, the Character's own player only; the GM allowlist rejects it) holds "Party
+can view" and "Show my health to the party" (Hidden by default). `campaigns/characterSheet:get`
+serves another active member only while "Party can view" is on: it loads the player's own view and
+projects it as viewer `PARTY_MEMBER` (`projectCharacterSheetForViewer`), with every capability off,
+player-private notes removed, and personality (traits, ideals, bonds, flaws), background
+(organizations, allies, enemies, backstory) and the identity concept that repeats the backstory
+never included. Only the Character's player receives `meta.partyVisibility`. Every other scoped
+endpoint still requires the GM or the Character's player. `campaigns/characterSheet:basics` gives
+any active member the public roster basics (name, class, level) and whether "Party can view" is on.
+The roster shows each portrait through the Campaign-scoped portrait read ([media](media.md)).
+
 Both execute endpoints use the same reducer, current-source evaluation, stream increment and
 checksummed command receipt in one mutation. GM commands pass the neutral explicit allowlist before
 receipt replay: play state and shared custom names are allowed; private notes, player adjustment

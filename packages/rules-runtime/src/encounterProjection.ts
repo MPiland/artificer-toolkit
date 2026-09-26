@@ -134,6 +134,7 @@ export function projectGm(
     status: encounter.status,
     automationMode: encounter.automationMode,
     manualReminderMode: encounter.manualReminderMode,
+    healthDisplayDefault: encounter.healthDisplayDefault,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null
         ? null
@@ -177,6 +178,7 @@ export function projectGm(
         public: actor.public,
         controllerUserIds: actor.controllerUserIds,
         disposition: actor.disposition,
+        healthDisplay: actor.healthDisplay,
         currentHitPoints: current.current,
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,

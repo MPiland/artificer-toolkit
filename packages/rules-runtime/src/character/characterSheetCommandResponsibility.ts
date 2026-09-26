@@ -15,6 +15,7 @@ export function classifyCharacterSheetCommandRuleResponsibility(
         ? 'COMMITTED_SNAPSHOT'
         : 'CHARACTER_POLICY'
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'SET_PARTY_VISIBILITY':
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'USE_SHEET_RESOURCE':
     case 'RECOVER_SHEET_RESOURCE':

@@ -99,6 +99,7 @@ function applySupportedCommand(
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'SET_PARTY_VISIBILITY':
     case 'SET_HIT_POINTS':
     case 'SET_INSPIRATION':
     case 'ADJUST_HIT_POINTS':
@@ -465,6 +466,10 @@ export async function executeCharacterSheetCommand(
       command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE'
         ? command.preference
         : initial.sheetState.movementDisplayPreference,
+    partyVisibility:
+      command.type === 'SET_PARTY_VISIBILITY'
+        ? command.visibility
+        : initial.sheetState.partyVisibility,
     resourceUsage: getProspectiveSheetResourceUsage({
       resourceUsage: initial.sheetState.resourceUsage,
       resourceUsageUpdate,

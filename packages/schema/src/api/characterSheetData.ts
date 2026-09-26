@@ -25,6 +25,7 @@ import {
 } from './characterSheet.js'
 import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
+import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -50,7 +51,8 @@ export const characterSheetOptionDtoSchema = z.object({
 export const characterSheetMetaDtoSchema = z.object({
   characterId: stringSchema,
   campaignId: z.optional(z.nullable(stringSchema.check(z.uuid()))),
-  viewer: z.enum(['CHARACTER_OWNER', 'CAMPAIGN_OWNER']),
+  /** PARTY_MEMBER is another player reading through "Party can view" (ADR 0034 decision 5). */
+  viewer: z.enum(['CHARACTER_OWNER', 'CAMPAIGN_OWNER', 'PARTY_MEMBER']),
   capabilities: z.object({
     managePlayState: booleanSchema,
     managePrivateNotes: booleanSchema,
@@ -60,7 +62,9 @@ export const characterSheetMetaDtoSchema = z.object({
   systemId: stringSchema,
   status: authoredRecordStatusSchema,
   streamVersion: integerSchema,
-  hasBuilderDraft: z.optional(booleanSchema)
+  hasBuilderDraft: z.optional(booleanSchema),
+  /** Present only for the Character's own player, who sets it on the Sheet. */
+  partyVisibility: z.optional(characterPartyVisibilityDtoSchema)
 })
 
 export const characterSheetIdentityDtoSchema = z.object({

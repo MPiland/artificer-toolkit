@@ -21,7 +21,7 @@ type CampaignCharacterPresentation =
   | Pick<CharacterBuilderPreviewOutput, 'resolution' | 'preview'>
   | CharacterPreparationOptionsResponseDto
 
-type CampaignCharacterViewer = 'CHARACTER_OWNER' | 'CAMPAIGN_OWNER'
+type CampaignCharacterViewer = CharacterSheetResponseDto['meta']['viewer']
 
 const plainTextKeys = new Set([
   'activationLabel',

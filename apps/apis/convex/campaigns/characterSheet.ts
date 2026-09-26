@@ -1,10 +1,12 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/schema/api/campaignLiveState'
 import {
+  campaignCharacterBasicsDtoSchema,
   campaignCharacterSheetExecuteInputSchema,
   campaignCharacterSheetPanelInputSchema,
   campaignCharacterRestPreviewInputSchema,
-  campaignCharacterSheetRollInputSchema
+  campaignCharacterSheetRollInputSchema,
+  type CampaignCharacterBasicsDto
 } from '@artificer-toolkit/schema/api/campaignCharacterSheet'
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterSheetResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -18,7 +20,7 @@ import {
   projectCharacterRestForViewer,
   projectCharacterSheetForViewer
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import { query } from '../_generated/server'
+import { query, type QueryCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
@@ -27,7 +29,7 @@ import { projectCharacterSheetPanel } from '../characters/panels'
 import { projectCharacterPreparationOptions } from '../characters/preparationOptions'
 import { prepareCharacterRest } from '../characters/rest'
 import { evaluateCharacterRoll, presentRoll, retainUserRoll } from '../rollDocuments'
-import { requireCampaignCharacterAuthority } from './characterState'
+import { readCampaignCharacterReader, requireCampaignCharacterAuthority } from './characterState'
 
 export const executeRoll = mutation({
   args: zodToConvexFields(campaignCharacterSheetRollInputSchema.shape),
@@ -48,15 +50,60 @@ export const executeRoll = mutation({
   }
 })
 
+/** The GM, the Character's player, or another member while "Party can view" is on. */
+async function readCampaignCharacterSheetForMember(
+  ctx: QueryCtx,
+  userId: string,
+  campaignId: string,
+  characterId: string
+) {
+  const reader = await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
+  const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
+  if (!current) throw new Error('Assigned Character not found.')
+  return { current, party: reader.party }
+}
+
 export const get = query({
   args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
   returns: zodToConvex(characterSheetResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
-    const current = await loadCharacterSheet(ctx, userId, characterId, campaignId)
-    if (!current) throw new Error('Assigned Character not found.')
-    return projectCharacterSheetForViewer(current.sheet, current.campaignContext)
+    const { current, party } = await readCampaignCharacterSheetForMember(
+      ctx,
+      userId,
+      campaignId,
+      characterId
+    )
+    if (party && !current.sheetState.partyVisibility.sheet)
+      throw new Error('Assigned Character not found.')
+    return projectCharacterSheetForViewer(
+      current.sheet,
+      party ? { ...current.campaignContext, viewer: 'PARTY_MEMBER' } : current.campaignContext
+    )
+  }
+})
+
+/** Public roster basics (name, level, class) for any active member (ADR 0034 decision 5). */
+export const basics = query({
+  args: zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+  returns: zodToConvex(campaignCharacterBasicsDtoSchema),
+  handler: async (ctx, args): Promise<CampaignCharacterBasicsDto> => {
+    const { userId } = await requireIdentity(ctx)
+    const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
+    const { current } = await readCampaignCharacterSheetForMember(
+      ctx,
+      userId,
+      campaignId,
+      characterId
+    )
+    return campaignCharacterBasicsDtoSchema.parse({
+      characterId: current.active.id,
+      label: current.sheet.identity.label,
+      classSummary: current.sheet.identity.classSummary,
+      totalLevel: current.sheet.identity.totalLevel,
+      sheetVisible: current.sheetState.partyVisibility.sheet
+    })
   }
 })
 

@@ -242,7 +242,12 @@ describe('native Encounter reads', () => {
       tempHitPoints: 3
     })
     const playerProjection = await other.caller.query(get, { encounterId: run.id })
-    expect(playerProjection).toEqual(projectPlayerEncounterProjection(ownerProjection))
+    expect(playerProjection).toEqual(
+      projectPlayerEncounterProjection(ownerProjection, {
+        userId: other.userId,
+        characters: new Map()
+      })
+    )
     expect(playerProjection.currentActorId).toBeNull()
     expect(playerProjection.actors).toHaveLength(1)
     expect(playerProjection.actors[0]).toEqual({
@@ -257,7 +262,9 @@ describe('native Encounter reads', () => {
       manualOrder: null,
       conditions: ownerCreature!.conditions,
       controllerUserIds: [],
-      disposition: 'HOSTILE'
+      disposition: 'HOSTILE',
+      // Hidden by default (ADR 0034 decision 5).
+      health: null
     })
     // Players read no health band for any actor; the GM projection keeps it.
     expect(ownerCreature).toHaveProperty('healthBand')
@@ -298,7 +305,10 @@ describe('native Encounter reads', () => {
       activeOwnerProjection
     ])
     expect(await other.caller.query(active, { campaignId: campaign.id })).toEqual(
-      projectPlayerEncounterProjection(activeOwnerProjection)
+      projectPlayerEncounterProjection(activeOwnerProjection, {
+        userId: other.userId,
+        characters: new Map()
+      })
     )
     expect(await other.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
   }, 30000)
@@ -383,7 +393,7 @@ describe('native Encounter reads', () => {
     })
     expect(await other.caller.query(get, { encounterId: run.id })).toEqual(run)
     expect(await owner.caller.query(get, { encounterId: run.id })).toEqual(
-      projectPlayerEncounterProjection(run)
+      projectPlayerEncounterProjection(run, { userId: owner.userId, characters: new Map() })
     )
   }, 30000)
 })
