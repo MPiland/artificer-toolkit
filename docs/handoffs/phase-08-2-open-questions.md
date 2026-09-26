@@ -8,14 +8,6 @@
 
 _(none)_
 
-- **Q8: Encounter size cap.** Run creation allows at most 100 combatants (`MAX_ENCOUNTER_ACTORS`).
-  - **How it's tested:**
-    - One convex-test case proves the room's capture stays within Convex's limits at that cap. It runs in seconds and checks limits, not speed. It caught a failure that made every command in a large Encounter fail.
-    - Speed targets (V15) use the typical table: 5 players and 11 actors.
-  - **Recommendation:** keep 100 as the safety cap (Foundry and Roll20 have none; sieges and hordes happen) and keep testing at whatever the cap is.
-  - **Alternative:** lower the cap to 50. That's one constant, and the test follows it.
-  - **Answer:**
-
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
@@ -128,6 +120,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+* **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
 * **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
 * **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
 
