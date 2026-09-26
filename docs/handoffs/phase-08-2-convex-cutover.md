@@ -79,6 +79,11 @@ Next (8.2 core, in order):
      - Encounter Run creation fails at the 100-actor cap (reads over 16 MiB).
      - A profiling and fix slice is running.
      - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
+   - Test-suite speed (user-approved 2026-09-26, safest steps first). Each step must show identical coverage and results before the next begins.
+     1. Measure per-file Convex suite timings (no code change). The suite is ~30 minutes because `apps/apis/vitest.config.ts` runs it serially: ~21 minutes of tests, ~8 minutes of per-file imports.
+     2. Validation cadence: affected tests per slice; reset and reseed only when schema or seed data changes; full integration at checkpoints and the final R08 run.
+     3. Parallelism trial at 2–3 workers, adopted only if repeated runs match the serial baseline exactly.
+     4. Trim heavy fixture setup one file at a time, each change proven order-independent and equivalent.
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
    - R08 prep: the local R2 fixture (`apps/apis/tests/localR2.ts`, served from the Convex container on 127.0.0.1:8026) was started by hand and stops when the container restarts. Its start command is undocumented. Script its start in the local proof tooling, checking health first, and document it in `apps/apis/README.md`. Map uploads, and so bound-move timing and browser proofs, need it.
