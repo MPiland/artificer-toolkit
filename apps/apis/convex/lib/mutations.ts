@@ -21,6 +21,26 @@ type ScopeSelector<TableName extends TableNames> = (
 
 const triggers = new Triggers<DataModel>()
 
+/**
+ * One transaction's trigger memory, keyed by its inner database writer: each Run's Campaign (a Run
+ * never changes Campaign) and the scopes already refreshed. A revision is only observable after the
+ * transaction commits, so one refresh per scope is enough however many rows change; without this,
+ * every Encounter child write re-read its whole Run and rewrote the same revision row.
+ */
+const transactionTriggerState = new WeakMap<
+  GenericDatabaseWriter<DataModel>,
+  { runCampaignIds: Map<string, string>; refreshedScopes: Set<string> }
+>()
+
+function triggerState(db: GenericDatabaseWriter<DataModel>) {
+  let state = transactionTriggerState.get(db)
+  if (!state) {
+    state = { runCampaignIds: new Map(), refreshedScopes: new Set() }
+    transactionTriggerState.set(db, state)
+  }
+  return state
+}
+
 function registerScope<TableName extends TableNames>(
   tableName: TableName,
   selectScope: ScopeSelector<TableName>
@@ -38,6 +58,9 @@ function registerScope<TableName extends TableNames>(
 
 async function refreshScope(db: GenericDatabaseWriter<DataModel>, scope: SceneVisionScope) {
   const id = scope.id.toLowerCase()
+  const { refreshedScopes } = triggerState(db)
+  if (refreshedScopes.has(`${scope.scope}:${id}`)) return
+  refreshedScopes.add(`${scope.scope}:${id}`)
   const current = await db
     .query('sceneVisionRevisions')
     .withIndex('by_scope_id', (query) => query.eq('scope', scope.scope).eq('id', id))
@@ -70,11 +93,16 @@ async function playScopeForEncounter(
   ctx: TriggerContext,
   encounterId: string
 ): Promise<SceneVisionScope | null> {
+  const { runCampaignIds } = triggerState(ctx.innerDb)
+  const known = runCampaignIds.get(encounterId)
+  if (known) return playScope(known)
   const encounter = await ctx.innerDb
     .query('encounterRuns')
     .withIndex('by_publicId', (query) => query.eq('id', encounterId))
     .unique()
-  return encounter ? playScope(encounter.campaignId) : null
+  if (!encounter) return null
+  runCampaignIds.set(encounterId, encounter.campaignId)
+  return playScope(encounter.campaignId)
 }
 
 // ponytail: source publications share a System marker; partition by source if measured contention requires it.
@@ -138,7 +166,10 @@ registerScope('authoredRouteIds', (_, document) =>
 )
 
 registerScope('campaignScenePresentations', (_, document) => playScope(document.campaignId))
-registerScope('encounterRuns', (_, document) => playScope(document.campaignId))
+registerScope('encounterRuns', (ctx, document) => {
+  triggerState(ctx.innerDb).runCampaignIds.set(document.id, document.campaignId)
+  return playScope(document.campaignId)
+})
 registerScope('encounterRunActors', (ctx, document) =>
   playScopeForEncounter(ctx, document.encounterId)
 )

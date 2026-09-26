@@ -37,7 +37,8 @@ import { input as characterInput } from '../../tests/fixtures/characters'
 import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, components, internal } from '../_generated/api'
 import { withSceneVisionTracking } from '../lib/mutations'
-import type { QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { createEncounterRun } from '../encounters/runs'
 import { readEncounterCaptureBundle } from './encounterCaptureBundle'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
@@ -524,7 +525,7 @@ it('refuses a stale plan and misses the cache when an import job changes visibil
  * Meters one transaction's reads as they execute: index ranges (each executed get or query),
  * documents, all bytes and distinct bytes. Building a query reads nothing.
  */
-function meteredReads(ctx: QueryCtx) {
+function meteredReads<Ctx extends QueryCtx | MutationCtx>(ctx: Ctx) {
   const usage = { ranges: 0, documents: 0, bytes: 0, distinctBytes: 0 }
   const distinct = new Set<string>()
   function record(value: unknown) {
@@ -592,7 +593,7 @@ function meteredReads(ctx: QueryCtx) {
       return value.bind(object)
     }
   })
-  const meteredCtx: QueryCtx = { ...ctx, db }
+  const meteredCtx: Ctx = { ...ctx, db }
   return { ctx: meteredCtx, usage }
 }
 
@@ -676,11 +677,19 @@ it('keeps the largest legal action bundle within the Convex transaction limits',
       sourceId: creatureId
     }))
   })
-  const run = await fixture.owner.caller.mutation(api.encounters.runs.create, {
-    campaignId: fixture.campaign.id,
-    blueprintId: blueprint.id,
-    commandId: crypto.randomUUID()
+  const { run, created } = await fixture.owner.caller.run(async (ctx) => {
+    const metered = meteredReads(ctx)
+    const run = await createEncounterRun(withSceneVisionTracking(metered.ctx), {
+      campaignId: fixture.campaign.id,
+      blueprintId: blueprint.id,
+      commandId: crypto.randomUUID()
+    })
+    return { run, created: metered.usage }
   })
+  // Creating the largest Run read 20.3 MB (over the 16 MiB limit) when every actor insert's
+  // trigger re-read the whole Run; measured now: 2.5 MB, 605 documents.
+  expect(created.bytes).toBeLessThan((16 * 1024 * 1024) / 4)
+  expect(created.documents).toBeLessThan(32_000 / 4)
   expect(run.actors).toHaveLength(MAX_ENCOUNTER_ACTORS)
   expect(run.actors.filter((actor) => actor.kind === 'CHARACTER')).toHaveLength(players)
   const attacker = run.actors.find((actor) => actor.kind === 'CREATURE')

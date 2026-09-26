@@ -1,6 +1,7 @@
 import { convexTest } from 'convex-test'
 import { expect, it } from 'vitest'
 
+import type { MutationCtx } from '../_generated/server'
 import schema from '../schema'
 import { withSceneVisionTracking } from './mutations'
 
@@ -38,9 +39,8 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
     }
   })
 
-  await t.run(async (rawCtx) => {
-    const ctx = withSceneVisionTracking(rawCtx)
-    const revisions = async () => {
+  const revisions = () =>
+    t.run(async (ctx) => {
       const read = async (scope: 'CHARACTER' | 'PLAY', id: string) =>
         (
           await ctx.db
@@ -54,113 +54,113 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
         play: await read('PLAY', campaignId),
         otherPlay: await read('PLAY', otherCampaignId)
       }
+    })
+  // A marker is observable only after its transaction commits, so each write is its own transaction.
+  const check = async <T>(owner: 'character' | 'play', write: (ctx: MutationCtx) => Promise<T>) => {
+    const before = await revisions()
+    const result = await t.run((ctx) => write(withSceneVisionTracking(ctx)))
+    const after = await revisions()
+    for (const key of ['character', 'otherCharacter', 'play', 'otherPlay'] as const) {
+      if (key === owner) expect(after[key]).not.toBe(before[key])
+      else expect(after[key]).toBe(before[key])
     }
-    const check = async <T>(owner: 'character' | 'play', write: () => Promise<T>) => {
-      const before = await revisions()
-      const result = await write()
-      const after = await revisions()
-      for (const key of ['character', 'otherCharacter', 'play', 'otherPlay'] as const) {
-        if (key === owner) expect(after[key]).not.toBe(before[key])
-        else expect(after[key]).toBe(before[key])
-      }
-      return result
-    }
+    return result
+  }
 
-    const effect = {
+  const effect = {
+    id: crypto.randomUUID(),
+    createdOrdinal: 1,
+    version: 1,
+    definitionJson: '{}',
+    definitionChecksum: checksum,
+    lifecycle: { schemaVersion: 1 as const, remainingTicks: null },
+    lifecycleChecksum: checksum,
+    createdAt: now,
+    updatedAt: now
+  }
+  const characterEffectId = await check('character', (ctx) =>
+    ctx.db.insert('characterActiveRuleEffects', {
+      ...effect,
+      characterId,
+      maintainedEffectStateId: null,
+      sourceEncounterId: null
+    })
+  )
+  await check('character', (ctx) => ctx.db.patch(characterEffectId, { version: 2 }))
+  await check('character', (ctx) => ctx.db.delete(characterEffectId))
+
+  const encounterEffectId = await check('play', (ctx) =>
+    ctx.db.insert('encounterActiveRuleEffects', {
+      ...effect,
       id: crypto.randomUUID(),
-      createdOrdinal: 1,
+      encounterId,
+      maintainedEffectStateId: null,
+      targetActorId: crypto.randomUUID()
+    })
+  )
+  await check('play', (ctx) => ctx.db.patch(encounterEffectId, { version: 2 }))
+  await check('play', (ctx) => ctx.db.delete(encounterEffectId))
+
+  const maintainedId = await check('play', (ctx) =>
+    ctx.db.insert('encounterMaintainedEffectStates', {
+      id: crypto.randomUUID(),
+      encounterId,
+      ownerActorId: crypto.randomUUID(),
+      maintenanceDefinitionId: crypto.randomUUID(),
+      descriptorJson: '{}',
+      descriptorChecksum: checksum,
       version: 1,
-      definitionJson: '{}',
-      definitionChecksum: checksum,
-      lifecycle: { schemaVersion: 1 as const, remainingTicks: null },
-      lifecycleChecksum: checksum,
       createdAt: now,
       updatedAt: now
-    }
-    const characterEffectId = await check('character', () =>
-      ctx.db.insert('characterActiveRuleEffects', {
-        ...effect,
-        characterId,
-        maintainedEffectStateId: null,
-        sourceEncounterId: null
-      })
-    )
-    await check('character', () => ctx.db.patch(characterEffectId, { version: 2 }))
-    await check('character', () => ctx.db.delete(characterEffectId))
+    })
+  )
+  await check('play', (ctx) => ctx.db.patch(maintainedId, { version: 2 }))
+  await check('play', (ctx) => ctx.db.delete(maintainedId))
 
-    const encounterEffectId = await check('play', () =>
-      ctx.db.insert('encounterActiveRuleEffects', {
-        ...effect,
-        id: crypto.randomUUID(),
-        encounterId,
-        maintainedEffectStateId: null,
-        targetActorId: crypto.randomUUID()
-      })
-    )
-    await check('play', () => ctx.db.patch(encounterEffectId, { version: 2 }))
-    await check('play', () => ctx.db.delete(encounterEffectId))
-
-    const maintainedId = await check('play', () =>
-      ctx.db.insert('encounterMaintainedEffectStates', {
-        id: crypto.randomUUID(),
-        encounterId,
-        ownerActorId: crypto.randomUUID(),
-        maintenanceDefinitionId: crypto.randomUUID(),
-        descriptorJson: '{}',
-        descriptorChecksum: checksum,
-        version: 1,
-        createdAt: now,
-        updatedAt: now
-      })
-    )
-    await check('play', () => ctx.db.patch(maintainedId, { version: 2 }))
-    await check('play', () => ctx.db.delete(maintainedId))
-
-    const spatialId = await check('play', () =>
-      ctx.db.insert('encounterSpatialRuleEffects', {
-        ...effect,
-        id: crypto.randomUUID(),
-        encounterId,
-        sceneId: crypto.randomUUID(),
-        placement: {
-          schemaVersion: 1,
-          anchorKind: 'FIXED',
-          sourceTokenId: null,
-          geometry: {
-            frame: 'SCENE_ABSOLUTE',
-            shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 }
-          },
-          triggerModes: ['ENTER'],
-          movementKinds: ['VOLUNTARY'],
-          activation: 'ONE_SHOT',
-          visibility: 'PUBLIC',
-          revealOnTrigger: false
+  const spatialId = await check('play', (ctx) =>
+    ctx.db.insert('encounterSpatialRuleEffects', {
+      ...effect,
+      id: crypto.randomUUID(),
+      encounterId,
+      sceneId: crypto.randomUUID(),
+      placement: {
+        schemaVersion: 1,
+        anchorKind: 'FIXED',
+        sourceTokenId: null,
+        geometry: {
+          frame: 'SCENE_ABSOLUTE',
+          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 }
         },
-        placementChecksum: checksum,
-        spatialState: { schemaVersion: 1, revealed: false },
-        spatialStateChecksum: checksum
-      })
-    )
-    await check('play', () => ctx.db.patch(spatialId, { version: 2 }))
-    await check('play', () => ctx.db.delete(spatialId))
+        triggerModes: ['ENTER'],
+        movementKinds: ['VOLUNTARY'],
+        activation: 'ONE_SHOT',
+        visibility: 'PUBLIC',
+        revealOnTrigger: false
+      },
+      placementChecksum: checksum,
+      spatialState: { schemaVersion: 1, revealed: false },
+      spatialStateChecksum: checksum
+    })
+  )
+  await check('play', (ctx) => ctx.db.patch(spatialId, { version: 2 }))
+  await check('play', (ctx) => ctx.db.delete(spatialId))
 
-    const occurrenceId = await check('play', () =>
-      ctx.db.insert('encounterRuleOccurrences', {
-        id: crypto.randomUUID(),
-        campaignId,
-        encounterId,
-        rootCommandId: crypto.randomUUID(),
-        state: 'PENDING',
-        version: 0,
-        expectedEncounterVersion: 0,
-        pendingSnapshotJson: '{}',
-        pendingSnapshotChecksum: checksum,
-        completedAt: null,
-        createdAt: now,
-        updatedAt: now
-      })
-    )
-    await check('play', () => ctx.db.patch(occurrenceId, { version: 1 }))
-    await check('play', () => ctx.db.delete(occurrenceId))
-  })
+  const occurrenceId = await check('play', (ctx) =>
+    ctx.db.insert('encounterRuleOccurrences', {
+      id: crypto.randomUUID(),
+      campaignId,
+      encounterId,
+      rootCommandId: crypto.randomUUID(),
+      state: 'PENDING',
+      version: 0,
+      expectedEncounterVersion: 0,
+      pendingSnapshotJson: '{}',
+      pendingSnapshotChecksum: checksum,
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now
+    })
+  )
+  await check('play', (ctx) => ctx.db.patch(occurrenceId, { version: 1 }))
+  await check('play', (ctx) => ctx.db.delete(occurrenceId))
 })

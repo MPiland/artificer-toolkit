@@ -2524,8 +2524,11 @@ The geometry publication transaction validates those markers before committing d
 
 `sceneVisionRevisions` stores one marker per scope/UUID. All native mutation builders and migration
 builders use `lib/mutations`; lint rejects direct raw-builder imports outside that module. Its database
-triggers advance markers immediately in the same transaction as each relevant write, including both
-old and new scopes when an entity moves. An aborted write also rolls back its markers. System markers
+triggers advance each affected marker in the same transaction as the relevant writes, including both
+old and new scopes when an entity moves. A marker is observable only once its transaction commits, so
+it advances once per transaction, at the first relevant write; Run child writes also resolve their
+Run's Campaign once per transaction instead of re-reading the whole Run per row (a 100-actor Run
+creation otherwise exceeds the read limit). An aborted write also rolls back its markers. System markers
 cover current source/vocabulary/definition state; Campaign markers cover authority, assignments,
 sharing and configuration; Session markers cover attendance, presentation, Runs, actors and bindings;
 Character markers cover the Character, draft, Campaign overlay and Character route identity. Ordinary
