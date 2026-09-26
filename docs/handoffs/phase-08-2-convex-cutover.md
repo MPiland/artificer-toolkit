@@ -74,6 +74,13 @@ Next (8.2 core, in order):
    - The shield-stow AC delta counts only the shield's base value, not a magic shield's +N.
    - Add direct unit tests in `packages/rules-runtime` (it has none today).
    - Phase 8.3 (with spell casting): APPLY_GRANT effects (19; e.g. Shield, Aid), condition mechanics, long range, and the remaining modifier kinds. Add an acceptance criterion: in Assisted mode, a player's spell that forces a creature's save pauses for that creature's controller, unless their auto-roll is on (moved out of V11.4 by Q6).
+   - Performance (found 2026-09-25, [bundle timing](../validation/phase-08-2/bundle-timing-2026-09-25.md)):
+     - Typical room commands take ~1.1 s p95, against a 250 ms rule-bound budget.
+     - Encounter Run creation fails at the 100-actor cap (reads over 16 MiB).
+     - A profiling and fix slice is running.
+     - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
+   - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
+   - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
    - Phase 8.3 (user, 2026-09-25): Encounter combatant kinds beyond CHARACTER, CREATURE and CUSTOM:
      - mounts, with mounted-combat rules;
      - vehicles, including crewed vehicle combat;
