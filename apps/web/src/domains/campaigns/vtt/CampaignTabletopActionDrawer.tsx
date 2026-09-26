@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
+  EncounterBasicActionChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -23,17 +24,20 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
-  ResolveEncounterActionInputDto
+  ResolveEncounterActionInputDto,
+  UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
+import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 
 export function CampaignTabletopActionDrawer({
   actions,
+  basicActions,
   actionsLoading,
   actionChoicesError,
   optionalRules,
@@ -47,9 +51,11 @@ export function CampaignTabletopActionDrawer({
   scene,
   waitingOn,
   onResolve,
+  onUseBasicAction,
   onLoadOptionalChoices
 }: {
   actions: EncounterActionChoiceDto[]
+  basicActions: EncounterBasicActionChoiceDto[]
   actionsLoading: boolean
   actionChoicesError: string | null
   optionalRules: EncounterActionChoicesDto['optionalRules']
@@ -64,6 +70,7 @@ export function CampaignTabletopActionDrawer({
   /** Who must answer a pending decision the viewer can't; derived by the server. */
   waitingOn: EncounterSessionStateDto['waitingOn']
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
+  onUseBasicAction: (command: UseEncounterBasicActionInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
@@ -540,6 +547,19 @@ export function CampaignTabletopActionDrawer({
             </>
           ) : !actionsLoading && !actionChoicesError ? (
             <Text c='dimmed'>No structured actions are available for the active combatant.</Text>
+          ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && basicActions.length ? (
+            <CampaignTabletopBasicActions
+              actorId={currentActor.id}
+              allies={encounter.actors
+                .filter((actor) => actor.id !== currentActor.id)
+                .map((actor) => ({ id: actor.id, label: actor.label }))}
+              basicActions={basicActions}
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              onUse={onUseBasicAction}
+            />
           ) : null}
           {feedback ? (
             <Alert aria-live='polite' color='green'>

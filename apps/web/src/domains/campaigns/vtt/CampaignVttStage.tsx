@@ -1149,6 +1149,7 @@ export function CampaignVttStage({
           activeEncounter.automationMode !== 'MANUAL' ? (
             <CampaignTabletopActionDrawer
               actions={currentActionChoices?.actions ?? []}
+              basicActions={currentActionChoices?.basicActions ?? []}
               actionsLoading={
                 actionChoices.isPending || (actionChoices.isFetching && !currentActionChoices)
               }
@@ -1164,6 +1165,7 @@ export function CampaignVttStage({
               waitingOn={encounterSessionState.data?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
+              onUseBasicAction={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
             />
           ) : null}

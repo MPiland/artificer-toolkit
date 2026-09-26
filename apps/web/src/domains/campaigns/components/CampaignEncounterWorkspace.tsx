@@ -492,7 +492,7 @@ export function CampaignEncounterWorkspace({
                     >
                       <Group gap='xs'>
                         <Text fw={600} size='sm'>
-                          {encounterCommandLabel(entry.commandType)}
+                          {entry.label ?? encounterCommandLabel(entry.commandType)}
                         </Text>
                         {entry.ruleOverrides.map((override) => (
                           <Badge color='orange' key={override.code} variant='light'>

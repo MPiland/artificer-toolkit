@@ -3,11 +3,13 @@ import { useDisclosure } from '@mantine/hooks'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
-  ResolveEncounterActionInputDto
+  ResolveEncounterActionInputDto,
+  UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
+  EncounterBasicActionChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -125,9 +127,57 @@ async function resolveActionCommand(
   }
 }
 
+const basicActionSent = fn()
+const basicActions = [
+  {
+    definitionId: '00000000-0000-4000-8000-000000000b01',
+    label: 'Dash',
+    rulesText:
+      'You gain extra movement for the current turn, equal to your speed after applying any modifiers.',
+    actionCost: 'ACTION',
+    needsAlly: false,
+    warnings: []
+  },
+  {
+    definitionId: '00000000-0000-4000-8000-000000000b04',
+    label: 'Help',
+    rulesText: 'You aid an ally. Its next attack roll before your next turn has advantage.',
+    actionCost: 'ACTION',
+    needsAlly: true,
+    warnings: []
+  },
+  {
+    definitionId: '00000000-0000-4000-8000-000000000b05',
+    label: 'Hide',
+    rulesText: 'You make a Dexterity (Stealth) check to hide.',
+    actionCost: 'ACTION',
+    needsAlly: false,
+    warnings: []
+  }
+] satisfies EncounterBasicActionChoiceDto[]
+
+async function sendBasicActionCommand(
+  command: UseEncounterBasicActionInputDto
+): Promise<EncounterCommandResultDto> {
+  basicActionSent(command)
+  return {
+    projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
+    roll: null,
+    occurrence: null,
+    evidenceRoll: null
+  }
+}
+
 const meta = {
   component: CampaignTabletopActionDrawer,
-  args: { opened: false, waitingOn: null, onOpen: fn(), onClose: fn() },
+  args: {
+    opened: false,
+    waitingOn: null,
+    basicActions: [],
+    onUseBasicAction: sendBasicActionCommand,
+    onOpen: fn(),
+    onClose: fn()
+  },
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
     return <CampaignTabletopActionDrawer {...args} opened={opened} onOpen={open} onClose={close} />
@@ -465,5 +515,31 @@ export const WaitingOnGm: Story = {
     const { drawer } = await openActions(canvasElement)
     await expect(drawer.getByText('Waiting on the GM')).toBeVisible()
     await expect(drawer.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+  }
+}
+
+export const UseBasicActions: Story = {
+  args: { ...ResolveTargetedAction.args, basicActions },
+  play: async ({ canvasElement }) => {
+    basicActionSent.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Basic actions' }))
+
+    await expect(section.getByRole('button', { name: 'Use Help' })).toBeDisabled()
+    await userEvent.click(section.getByRole('combobox', { name: 'Ally to help' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
+    await expect(section.getByRole('button', { name: 'Use Help' })).toBeEnabled()
+    await userEvent.click(section.getByRole('button', { name: 'Use Dash' }))
+
+    await waitFor(() => expect(basicActionSent).toHaveBeenCalledTimes(1))
+    await expect(await section.findByText('Dash used.')).toBeVisible()
+    await expect(basicActionSent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'USE_BASIC_ACTION',
+        actorId: sourceActor.id,
+        definitionId: basicActions[0].definitionId,
+        allyActorId: null
+      })
+    )
   }
 }
