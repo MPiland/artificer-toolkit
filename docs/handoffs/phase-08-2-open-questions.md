@@ -6,15 +6,8 @@
 
 ## Open
 
-* **Q11: basic combat actions (Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object).** The SRD data has none of them. Encounter actions come only from authored Character, spell and creature features. So in Assisted mode:
-  * Dash can't double the movement budget (D38), so the budget warns wrongly after a real Dash.
-  * Disengage can't suppress opportunity-attack prompts. The reactor has to decline by hand.
-  * Dodge can't impose disadvantage on attacks against the dodger.
+_(none)_
 
-  Foundry leaves these to players narrating. D&D Beyond lists them and applies the simple ones.
-  * **Recommendation:** a catalogue of basic combat actions owned by the rules System, so homebrew Systems can edit or add their own. Every actor gets them through the normal action flow. Mechanics are limited to Dash (adds speed to the turn budget), Disengage (no opportunity attacks this turn), Dodge (disadvantage against you until your next turn) and Help (advantage for an ally). Hide, Ready, Search and Use an Object are logged, not automated. This needs new authored-data and action-option contracts, so it's its own slice before closed beta.
-  * **Alternative:** a small built-in command for Dash, Disengage and Dodge only. It's smaller, but it hard-codes D&D terms into shared infrastructure.
-  * **Answer:**
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
@@ -70,7 +63,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * This replaces "reload the Scene and verify its checksum". That check breaks as soon as a Sheet write changes Character vision.
   * Movement responses also advance the room sequence.
 - **D28** Movement responses skip the session-sequence check, because the Scene version pin already fences them.
-- **D29** Movement decisions on a Scene that isn't presented keep the native Convex path. Nothing about that Scene is live-owned.
+- **D29** (superseded by D42) Movement decisions on a Scene that isn't presented keep the native Convex path. Nothing about that Scene is live-owned.
 - **D30** When the GM grants a player control of a creature, the player also picks that creature's Legendary Actions at the end of other creatures' turns, not just its dice. This matches Foundry, where whoever owns a creature takes its actions, and follows the "players drive their own actors" rule. The GM can still pick or answer for it.
   * **Approved (user, 2026-09-25).** This is the rare case. A creature nobody has been granted, such as a typical boss, stays entirely with the GM: the GM picks its Legendary Actions and rolls its dice.
 - **D31** Every settled rule check gets its own chat card, whether it was rolled by the app or answered by hand. This meets the D23 condition.
@@ -124,7 +117,6 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * The budget is walking speed, doubled after Dash.
   * Players see "Movement 15 / 30 ft". Moving past the budget is allowed: Assisted mode shows a soft warning, and Manual mode shows the number only.
   * Foundry v13 tracks movement history per combat turn in the same way.
-
 * **D38** How remaining movement (D37) is built, following up S4-c:
   * **Walking speed** is stored on the Character record through the same persistence helper as maximum HP (D7). Creatures read their stat block speeds.
   * **Movement used** lives in a small per-turn record keyed by Run, round and turn, outside the Run version and checksum. The budget is shown, never enforced, so no fence needs it. Bound moves don't bump the Run version or add contention, and a new turn key starts at zero.
@@ -140,9 +132,20 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Disarm sees what the initiator sees:** a GM's Disarm reads the Scene with the GM's view, and a player's with the player's.
   * **Cards credit the answerer:** a Cleaving answer's Concentration cards are credited to whoever answered (D31).
   * **Old Convex paths go now (S4-d):** the Convex-side action, turn and Concentration resume paths that tests still reach are deleted in this slice, with those fixtures moved to the room path. They are not kept as a second path.
+* **D42** Three rulings from the S4-d cleanup:
+  * **D29 is superseded.** With a room active, bound-token movement and its decisions happen only on the presented Scene. Anything else is refused with "Present this Scene to move Encounter tokens." The native forward was unreachable in practice.
+  * **No internal IDs in persisted contracts.** They must carry public UUIDs, never Convex document ids.
+  * **Permission refusals say so.** A player sending a GM-only command, or acting for an actor they don't control, sees a permission message such as "Only the GM can do that." "The Encounter changed" is reserved for genuinely stale versions.
 
 ## Resolved
 
+* **Q11 (2026-09-26).** Basic combat actions come from a System-owned catalogue, split in two:
+  * **Mechanics** are closed, System-neutral rule kinds in `packages/shared` with the other core engine enums: a movement budget bonus equal to speed, suppressing opportunity attacks, disadvantage on attacks against the actor until its next turn, and advantage granted to an ally.
+  * **The catalogue entries** (Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object, with their names and text) are authored System data in the SRD source, so homebrew Systems can rename, change or add them.
+  * Hard-coding 'Dash' as a shared enum would put D&D terms into the core engine.
+  * Every actor gets the catalogue through the normal action flow. Hide, Ready, Search and Use an Object are logged, not automated.
+  * It ships as its own slice before closed beta.
+* **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
 * **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
 * **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
 * **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
