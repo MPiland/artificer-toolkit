@@ -66,16 +66,6 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **D29** Movement decisions on a Scene that isn't presented keep the native Convex path. Nothing about that Scene is live-owned.
 - **D30** When the GM grants a player control of a creature, the player also picks that creature's Legendary Actions at the end of other creatures' turns, not just its dice. This matches Foundry, where whoever owns a creature takes its actions, and follows the "players drive their own actors" rule. The GM can still pick or answer for it.
   * **Approved (user, 2026-09-25).** This is the rare case. A creature nobody has been granted, such as a typical boss, stays entirely with the GM: the GM picks its Legendary Actions and rolls its dice.
-- **D32** The room captures each Encounter command's volatile inputs in one bundled Convex read to reach the planned 3–4 round trips.
-  * The bundle covers admission, Run inputs, every actor, Character inputs and the maintenance slot, and each part keeps its own read checksum for the commit fences.
-  * The S4-b cache already made stable data free. After it, commands still take 6–8 round trips, all of them volatile reads.
-  * This changes only the private room-to-Convex route, not any public contract.
-  * Narrowing capture to the involved actors was dropped. Rules, Concentration and Cleaving read the whole Run, so a narrowed read would change results.
-- **D33** A bound drag preview on a Scene with Character vision checks only the Character revisions behind that vision (one small read), not a full capture.
-  * If the revisions are unchanged, the preview reuses the room's authority capture.
-  * Rejected: reusing the capture blindly for a 2-second window. That could briefly show a token to a player who just lost sight of it.
-  * Commits keep the full check.
-- **D34** Changing whether an import job is visible bumps the System revision, so commit fences and the room cache both see it. Before this, neither could.
 - **D31** Every settled rule check gets its own chat card, whether it was rolled by the app or answered by hand. This meets the D23 condition.
   * **Why:** today, auto-rolled checks leave no chat entry at all. Foundry posts every roll to chat.
   * **The card** carries a structured `ruleCheck` on the roll record. Concentration comes first, showing:
@@ -103,6 +93,30 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     * movement reaction attacks and saves;
     * Overrun and Tumble passage contests;
     * results of prompted rolls once they are answered.
+- **D32** The room captures each Encounter command's volatile inputs in one bundled Convex read to reach the planned 3–4 round trips.
+  * The bundle covers admission, Run inputs, every actor, Character inputs and the maintenance slot, and each part keeps its own read checksum for the commit fences.
+  * The S4-b cache already made stable data free. After it, commands still take 6–8 round trips, all of them volatile reads.
+  * This changes only the private room-to-Convex route, not any public contract.
+  * Narrowing capture to the involved actors was dropped. Rules, Concentration and Cleaving read the whole Run, so a narrowed read would change results.
+- **D33** A bound drag preview on a Scene with Character vision checks only the Character revisions behind that vision (one small read), not a full capture.
+  * If the revisions are unchanged, the preview reuses the room's authority capture.
+  * Rejected: reusing the capture blindly for a 2-second window. That could briefly show a token to a player who just lost sight of it.
+  * Commits keep the full check.
+- **D34** Changing whether an import job is visible bumps the System revision, so commit fences and the room cache both see it. Before this, neither could.
+- **D35** Health display details (S6h):
+  - Near death is 25% or less of maximum HP, including 0.
+  - An actor's controllers, including a Character's own player, always see exact HP.
+  - The GM always sees exact values, in the tabletop drawer too.
+  - "Share health state" applies only to public, non-Character creatures and reads "The ogre looks bloodied."
+  - Other players never see personality (traits, ideals, bonds, flaws), background (organizations, allies, enemies, backstory) or the Character concept.
+  - The new health-display and party-visibility fields are required in stored state. Their values are set when the record is created, not filled in by schema defaults (pre-launch policy).
+- **D36** The Campaign roster shows the portrait. Members get a read path for the portraits of Characters assigned in their Campaign, and nothing else.
+- **D37** Remaining movement (V07.5) ships with S4-c, because the room's bound-movement commit is where movement is recorded.
+  - Each Run actor stores the movement it has used this turn. The value resets when that actor's turn starts.
+  - Only voluntary movement counts, at the path's terrain-aware cost. Forced movement and teleports don't count.
+  - The budget is walking speed, doubled after Dash.
+  - Players see "Movement 15 / 30 ft". Moving past the budget is allowed: Assisted mode shows a soft warning, and Manual mode shows the number only.
+  - Foundry v13 tracks movement history per combat turn in the same way.
 
 ## Resolved
 

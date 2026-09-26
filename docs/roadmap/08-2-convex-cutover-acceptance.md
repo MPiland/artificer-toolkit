@@ -11,6 +11,14 @@ Work resumed on 2026-09-09. The exact workspace, completed architecture correcti
 deployment and ordered next steps are recorded in [the resume checkpoint](08-2-convex-cutover-resume.md).
 Acceptance is 53/75 cases and 195/276 criteria (2026-09-25). A further 44 criteria and 4 cases (P06, V03, V08, V10) are READY_FOR_ACCEPTANCE: implemented and covered by current tests, awaiting the final-source R08 run ([readiness review](../validation/phase-08-2/gate-readiness-2026-09-25.md)). The 22 open cases are P15, V05, V08, V09, V14, F12 (ADR 0033), P06, V03, V07, V10, V11, V12 (ADR 0034), V15, R01–R06 and R08–R10; the frozen Character/Encounter workload remains unproven.
 
+Status meanings (the same for cases and criteria):
+
+- **NOT_STARTED:** no implementation yet.
+- **IN_PROGRESS:** partly built, or built but at least one clause of the criterion lacks a test that proves it.
+- **READY_FOR_ACCEPTANCE:** every clause is implemented and asserted by in-process tests (convex-test, Worker, web or package Vitest) that pass on the current source. The criterion's `proof` names those tests and the implementing files. A case is READY when all of its open criteria are.
+- **ACCEPTED:** proven on the final source by the complete local lifecycle (`yarn validate:pre-staging:local`, case R08). Staging and production cases need their own runs. Code changes after READY can still break a criterion, which is why READY is not ACCEPTED.
+- **BLOCKED:** cannot proceed until an external dependency or decision is resolved.
+
 **Criteria and progress (2026-09-25).** Every case in the JSON ledger has a `criteria` array of
 `{ id, text, status, proof }` entries (for example `V09.3`), derived from the case's notes, ADR 0033
 and ADR 0034, using the ledger's status vocabulary. `proof` names the tests, proof modes or browser
