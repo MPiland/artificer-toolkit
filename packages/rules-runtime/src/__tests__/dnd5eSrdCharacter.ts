@@ -114,6 +114,8 @@ export type SrdCharacterInput = {
 
 export type SrdCharacter = {
   facts: CharacterRulePolicyInput
+  /** Server-only authored action entries, index-aligned with `facts.actionCandidates`. */
+  entryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
   output: CharacterRulePolicyOutput
   itemInstanceId: (label: string) => string
 }
@@ -174,6 +176,12 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     equipmentItems: items
   }
   const grantFoldFacts = compileCharacterGrantFoldRuleFacts({ snapshot, registry })
+  const actionFacts = buildCharacterActionRuleFacts({
+    snapshot,
+    registry,
+    grantFoldFacts,
+    resourcePoolCandidates: []
+  })
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
     grantFoldFacts,
@@ -192,17 +200,13 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     spellCastResources: [],
     spellcastingClasses: [],
     chargeCalculations: [],
-    actionCandidates: buildCharacterActionRuleFacts({
-      snapshot,
-      registry,
-      grantFoldFacts,
-      resourcePoolCandidates: []
-    }).actionCandidates,
+    actionCandidates: actionFacts.actionCandidates,
     eligibilityFacets: [],
     rest: { totalHitDice: totalLevel, currentExhaustion: 0, attunementSlotOverride: null }
   })
   return {
     facts,
+    entryPoints: actionFacts.entryPoints,
     output: resolveCharacterRulePolicyRollModes(
       evaluateDnd5e2014CharacterPolicy(facts),
       vocabulary
