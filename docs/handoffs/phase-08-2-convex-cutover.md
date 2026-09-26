@@ -93,6 +93,27 @@ Next (8.2 core, in order):
         Each goes through the equivalence protocol: identical test IDs and results, three shuffled seeds, and each changed file run alone.
      - **Never:** share database state across tests, replay seeded snapshots, or set `isolate: false`. convex-test 0.0.56 has no snapshot or clone, and tests assert whole tables and use global mocks (read-only analysis, 2026-09-26).
      - Remove the dead fixture `apps/apis/tests/fixtures/movementPassageFixture.ts` (imported nowhere).
+     - Move the 12 already-pure test files out of the Convex suite (for example `encounters/actionExecution`, `actionEffectBaseline`, `wieldConflict` → `packages/rules-runtime/src/__tests__`). The test IDs and results must stay identical.
+   - Rules test coverage, a quality project (read-only audit, 2026-09-26):
+     - **The gap:** `packages/rules-runtime` has 7 test files for about 270 source files. The largest planners have no fast tests: the effect compiler, initiative lifecycle, ties and order, turn effects, Legendary Actions, Recharge, Concentration, Disarm preparation, and the spatial movement service. Most rules coverage is end-to-end through Convex tests, and many of those assertions are loose ("HP decreased").
+     - **Plan:** build strict pure tests family by family, in this order:
+       1. action warnings and target policy;
+       2. saves and immunity;
+       3. initiative;
+       4. turn effects, Legendary Actions, Recharge and Concentration;
+       5. movement.
+
+       Use `createPlatformRulesRuntime`, `inMemoryInitiativeRepository` and `dnd5eSrdCharacter.ts`, and inject `random`. Prove each new test fails when the logic is deliberately broken. Only then slim the matching Convex test.
+     - **Never remove the last proof of a Convex guarantee:**
+       - tampered receipt refusal;
+       - stale source-identity refusal;
+       - the Scene version fence;
+       - no writes on refusal;
+       - command-id reuse;
+       - `NOT_ACTOR_CONTROLLER`;
+       - roll draw mismatch;
+       - exactly-once undo.
+     - **Expected payoff:** mainly precision and catching regressions. Speed gains are small, about 2–4 minutes.
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
    - R08 prep: the local R2 fixture (`apps/apis/tests/localR2.ts`, served from the Convex container on 127.0.0.1:8026) was started by hand and stops when the container restarts. Its start command is undocumented. Script its start in the local proof tooling, checking health first, and document it in `apps/apis/README.md`. Map uploads, and so bound-move timing and browser proofs, need it.
