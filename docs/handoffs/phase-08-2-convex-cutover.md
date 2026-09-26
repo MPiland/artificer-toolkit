@@ -131,6 +131,14 @@ Next (8.2 core, in order):
          - `discoverEncounterMovementPassageContact` / `discoverEncounterMovementPassage` (endpoint occupied, next passage stop);
          - `deriveCharacterSceneVision` (sense range, non-visual channel);
          - fog exploration truncated at a pending contact (`planSceneCommandExploration`).
+       - From the encounters audit:
+         - Disarm: `disarmSourceWins`, `disarmApplicationOutputs`, `planEncounterDisarmSuccess` (`encounterDisarmPreparation.ts`). Add these before trimming any Disarm it.each rows.
+         - `applyCharacterScalarValuesToFacts` / `foldActiveScalarReductions`.
+         - `buildMovementTarget` (the Creature branch).
+         - `prepareNativeCharacterActionState`.
+         - The wield-conflict NONE case.
+         - A carried weapon having the same modifier as an equipped one.
+       - Test cleanup: `encounters/actionCharacterSources.test.ts:627-664` runs a second full setup and compares two snapshots with nothing executed between them. That proves nothing and doubles the test's cost. Remove it together with the redundant re-reads.
        - Worker-level tests with injected capture fakes, the medium-effort precedent being `apps/session-worker/test/nativeTurnEffectPerception.test.ts`:
          - movement Concentration;
          - maintenance forecasting;
