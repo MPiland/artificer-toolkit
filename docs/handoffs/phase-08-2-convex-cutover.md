@@ -117,6 +117,22 @@ Next (8.2 core, in order):
        - roll draw mismatch;
        - exactly-once undo.
      - **Expected payoff:** mainly precision and catching regressions. Speed gains are small, about 2–4 minutes.
+     - **Next pure targets, confirmed untested by the liveSessions audit:**
+       - Initiative:
+         - `planEncounterInitiativeAdvance` (`encounterInitiativeStateSettlement.ts:201`): SAME_ROUND and ROUND_WRAP; inputs are cheap.
+         - Initiative tie settlement.
+       - Concentration:
+         - `resolveDnd5eConcentrationSaveFacts` / `dnd5eConcentrationDamageDc` (`systems/dnd5e/concentrationPolicy.ts`);
+         - `evaluateNativeConcentrationEvidence` / `completeNativeConcentrationResult`;
+         - `projectEncounterMovementConcentrationEnd` (cleanup of dependent effects).
+       - Action economy: `evaluateEncounterActionEconomy` (warning).
+     - **Also Convex-only proofs to keep:**
+       - the `roomCaptureCache` transaction-limits test at the actor cap;
+       - action commit rollback;
+       - capture bundle ≡ separate-capture parity;
+       - revision stamps (CAMPAIGN, and SYSTEM via import jobs);
+       - external-commit resolve;
+       - `characterRulesCapture` privacy and no-hydration checks.
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
    - R08 prep: the local R2 fixture (`apps/apis/tests/localR2.ts`, served from the Convex container on 127.0.0.1:8026) was started by hand and stops when the container restarts. Its start command is undocumented. Script its start in the local proof tooling, checking health first, and document it in `apps/apis/README.md`. Map uploads, and so bound-move timing and browser proofs, need it.
