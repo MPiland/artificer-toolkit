@@ -7,6 +7,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
 import { getAuthenticatedProfile } from '../lib/identity'
+import { requireCampaignAuthorUsername } from './authorLabels'
 import type { requireCampaignAuthority } from './authority'
 import {
   insertConversationEntry,
@@ -27,7 +28,7 @@ export async function insertPreEvaluatedCampaignTableRoll(
 ): Promise<CampaignChatEntryDto> {
   const actor = await getAuthenticatedProfile(ctx)
   if (!actor || actor.identity.userId !== userId) throw new Error('Unauthenticated')
-  if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
+  requireCampaignAuthorUsername(actor.username)
   const { conversation, member } = await openConversation(ctx, authority, 'TABLE')
   const normalizedNonce = clientNonce.toLowerCase()
   const prior = await ctx.db

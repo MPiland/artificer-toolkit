@@ -225,6 +225,11 @@ export function SessionSectionEditor({
           {save.error.message} Your local text was not overwritten.
         </Alert>
       ) : null}
+      {section.visibility === 'SHARED' ? (
+        <Text c='dimmed' size='xs'>
+          Note by {section.authorLabel}
+        </Text>
+      ) : null}
       <TextInput
         classNames={{ input: sharedStyles.input }}
         disabled={!editable}

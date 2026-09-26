@@ -12,11 +12,13 @@ import {
 } from '@artificer-toolkit/schema/api/campaignAttachments'
 import {
   campaignFileDeliverySourceSchema,
+  campaignStoredAttachmentSchema,
   campaignStoredFileAssetSchema
 } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
 import { query, internalQuery } from '../_generated/server'
 import { mutation } from '../lib/mutations'
-import { requireIdentity } from '../lib/identity'
+import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
+import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { removeCampaignAttachment } from './attachmentDocuments'
 
@@ -76,9 +78,16 @@ export const list = query({
       .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
       .order('desc')
       .paginate({ ...input.paginationOpts, maximumRowsRead: 48, maximumBytesRead: 1024 * 1024 })
+    const uploaderLabels = await readCampaignAuthorLabels(
+      ctx,
+      result.page.map((attachment) => ({ userId: attachment.uploaderUserId }))
+    )
     return campaignAttachmentListPageSchema.parse({
       ...result,
-      page: result.page.map(({ _id, _creationTime, ...attachment }) => attachment)
+      page: result.page.map(({ _id, _creationTime, ...attachment }, index) => ({
+        ...attachment,
+        uploaderLabel: uploaderLabels[index]
+      }))
     })
   }
 })
@@ -88,9 +97,12 @@ export const create = mutation({
   returns: zodToConvex(campaignAttachmentDtoSchema),
   handler: async (ctx, args): Promise<CampaignAttachmentDto> => {
     const input = createCampaignAttachmentInputSchema.parse(args)
-    const { userId } = await requireIdentity(ctx)
+    const actor = await getAuthenticatedProfile(ctx)
+    if (!actor) throw new Error('Unauthenticated')
+    const { userId } = actor.identity
     const { campaign } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    requireCampaignAuthorUsername(actor.username)
     const sessionId = input.sessionId?.toLowerCase() ?? null
     const noteSectionId = input.noteSectionId?.toLowerCase() ?? null
     if (
@@ -123,7 +135,7 @@ export const create = mutation({
       asset.campaignId !== campaign.id
     )
       throw new Error('Campaign attachment is unavailable.')
-    const attachment = campaignAttachmentDtoSchema.parse({
+    const attachment = campaignStoredAttachmentSchema.parse({
       id: crypto.randomUUID(),
       campaignId: campaign.id,
       assetId: asset.id,
@@ -137,7 +149,8 @@ export const create = mutation({
     })
     await ctx.db.insert('campaignAttachments', attachment)
     await ctx.db.patch(asset._id, { cleanupAt: null })
-    return attachment
+    const [uploaderLabel] = await readCampaignAuthorLabels(ctx, [{ userId }])
+    return campaignAttachmentDtoSchema.parse({ ...attachment, uploaderLabel })
   }
 })
 

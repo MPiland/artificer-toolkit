@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
-import { createFunctionHandle } from 'convex/server'
+import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from 'convex-test'
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { MediaProcessClaim } from '@artificer-toolkit/schema/api/mediaAssets'
 import schema from '../schema'
+import type { TableNames } from '../_generated/dataModel'
 import authSchema from '../betterAuth/schema'
 import { api, components, internal } from '../_generated/api'
 import { startLocalR2 } from '../../tests/localR2'
@@ -360,6 +361,60 @@ it('cleans pending and ready keys after account deletion, without touching anoth
     assetId: foreignIntent.assetId,
     revision: 1
   })
+}, 20_000)
+
+it('converges identically when every deferred account cleanup reruns', async () => {
+  const owner = await actor()
+  const image = await picture()
+  const ready = await owner.client.mutation(
+    api.media.assets.createAvatarUpload,
+    upload(image.byteLength)
+  )
+  await put(ready.url, image)
+  await owner.client.action(api.media.avatarActions.saveAvatar, { assetId: ready.assetId, crop })
+  const pending = await owner.client.mutation(
+    api.media.assets.createAvatarUpload,
+    upload(image.byteLength)
+  )
+  await put(pending.url, image)
+  const scheduledBefore = new Set(
+    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).map(
+      (job) => job._id
+    )
+  )
+  await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
+  const deferred = (
+    await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+  ).filter((job) => !scheduledBefore.has(job._id))
+  expect(deferred.map((job) => job.name).sort()).toEqual([
+    'media/assets:purgeAccount',
+    'notifications/delivery:purgeRecipient',
+    'social/accountCleanup:run'
+  ])
+  const converged = async () => {
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    return {
+      app: await t.run(async (ctx) =>
+        Object.fromEntries(
+          await Promise.all(
+            (Object.keys(schema.tables) as TableNames[]).map(async (name) => [
+              name,
+              await ctx.db.query(name).collect()
+            ])
+          )
+        )
+      ),
+      objects: [...server.objects.keys()].sort()
+    }
+  }
+  const first = await converged()
+  expect(first.app.mediaAssets).toEqual([])
+  for (const job of deferred)
+    await t.mutation(
+      makeFunctionReference<'mutation', Record<string, unknown>, null>(job.name),
+      job.args[0]
+    )
+  expect(await converged()).toEqual(first)
 }, 20_000)
 
 it('retains deletion obligations beyond four failed attempts and recovers after R2 returns', async () => {

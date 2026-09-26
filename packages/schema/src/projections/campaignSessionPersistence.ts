@@ -15,9 +15,10 @@ const campaignStoredCommandBaseSchema = z.strictObject({
   createdAt: timestampSchema
 })
 
-export const campaignStoredSessionNoteSchema = z.extend(campaignSessionNoteSectionDtoSchema, {
-  updatedBy: uuidSchema
-})
+export const campaignStoredSessionNoteSchema = z.extend(
+  z.omit(campaignSessionNoteSectionDtoSchema, { authorLabel: true }),
+  { updatedBy: uuidSchema }
+)
 
 export const campaignStoredSessionReferenceSchema = z.omit(campaignSessionReferencePinDtoSchema, {
   label: true

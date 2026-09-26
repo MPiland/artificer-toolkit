@@ -35,6 +35,9 @@ export async function fixture() {
           data: {
             name,
             email: `${name}@example.invalid`,
+            // Registered accounts always have a username; shared Campaign authorship requires one.
+            username: name.toLowerCase(),
+            displayUsername: name,
             emailVerified: true,
             createdAt: Date.now(),
             updatedAt: Date.now()

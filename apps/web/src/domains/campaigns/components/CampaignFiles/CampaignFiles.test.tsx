@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CampaignAttachmentDto } from '@artificer-toolkit/schema/api/campaignAttachments'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignFileList } from './CampaignFileList'
@@ -9,18 +10,7 @@ import { CampaignFileUploader } from './CampaignFileUploader'
 
 const mocks = vi.hoisted(() => ({
   attachments: {
-    results: [] as Array<{
-      id: string
-      assetId: string
-      campaignId: string
-      uploaderUserId: string
-      profile: 'CAMPAIGN_FILE' | 'CAMPAIGN_HANDOUT_MAP'
-      displayName: string
-      description: string | null
-      sessionId: string | null
-      noteSectionId: string | null
-      createdAt: string
-    }>,
+    results: [] as CampaignAttachmentDto[],
     status: 'Exhausted' as 'CanLoadMore' | 'Exhausted' | 'LoadingFirstPage' | 'LoadingMore',
     loadMore: vi.fn()
   },
@@ -172,6 +162,7 @@ describe('CampaignFiles', () => {
         assetId: '22222222-2222-4222-8222-222222222222',
         campaignId: campaign.id,
         uploaderUserId: '44444444-4444-4444-8444-444444444444',
+        uploaderLabel: 'Mira',
         profile: 'CAMPAIGN_HANDOUT_MAP',
         displayName: 'Dungeon map',
         description: 'Lower level',
@@ -184,6 +175,7 @@ describe('CampaignFiles', () => {
         assetId: '77777777-7777-4777-8777-777777777777',
         campaignId: campaign.id,
         uploaderUserId: '44444444-4444-4444-8444-444444444444',
+        uploaderLabel: 'Mira',
         profile: 'CAMPAIGN_FILE',
         displayName: 'Other session',
         description: null,
@@ -211,6 +203,7 @@ describe('CampaignFiles', () => {
     )
 
     expect(screen.getByText('Dungeon map')).toBeVisible()
+    expect(screen.getByText('Uploaded by Mira')).toBeVisible()
     expect(screen.queryByText('Other session')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Load more files' }))
     expect(mocks.attachments.loadMore).toHaveBeenCalledWith(48)

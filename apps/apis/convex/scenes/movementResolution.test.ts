@@ -2,6 +2,7 @@ import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterCommandResultDto,
+  EncounterExecuteInput,
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -69,6 +70,14 @@ const responseResult = makeFunctionReference<
   ResolveRuleOccurrenceInputDto,
   EncounterCommandResultDto
 >('scenes/movementResolutionReads:result')
+const executeResponse = makeFunctionReference<
+  'action',
+  EncounterExecuteInput,
+  EncounterCommandResultDto
+>('encounters/commandActions:execute')
+// A loser reads the winner's occurrence version, Encounter scope, published Scene or vision.
+const staleResponse =
+  /Movement response (?:occurrence|Encounter scope) is stale\.|Scene changed before geometry publication\.|Rule occurrence is unavailable\.|Scene vision dependencies changed; capture a fresh play snapshot\./
 const observe = makeFunctionReference<
   'mutation',
   { saveId: string; characterRevisions: [] },
@@ -443,6 +452,110 @@ describe('native movement response publication', () => {
       }))
     ).toEqual(completed)
   })
+
+  it('races every reaction response to one winner and one stale loser, spending the reaction once', async () => {
+    const value = await setup(true)
+    const { t, owner, run } = value.base
+    await owner.caller.mutation(observe, {
+      saveId: value.rootRequest.saveId,
+      characterRevisions: []
+    })
+    await owner.caller.mutation(prepare, value.rootRequest)
+    const root = await owner.caller.mutation(finish, value.rootRequest)
+    const stored = () =>
+      t.run(async (ctx) => ({
+        runs: await ctx.db.query('encounterRuns').collect(),
+        actors: await ctx.db.query('encounterRunActors').collect(),
+        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+        commands: await ctx.db.query('encounterRunCommands').collect(),
+        sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+      }))
+    const reactionStart = await stored()
+    const losers: string[] = []
+    let selected = false
+    let pending = root.occurrence?.pending ?? null
+    while (pending) {
+      if (
+        pending.kind !== 'MOVEMENT_REACTION' &&
+        pending.kind !== 'D20_EVIDENCE' &&
+        pending.kind !== 'ACTION_OUTCOME_EVIDENCE'
+      )
+        throw new Error('Expected a movement reaction response.')
+      const current = pending
+      const option = pending.kind === 'MOVEMENT_REACTION' ? pending.choice.options[0] : undefined
+      const resolution: ResolveRuleOccurrenceInputDto['resolution'] =
+        pending.kind === 'MOVEMENT_REACTION'
+          ? !selected && option
+            ? { kind: 'OPTION', optionId: option.optionId }
+            : { kind: 'DECLINE' }
+          : pending.kind === 'D20_EVIDENCE'
+            ? {
+                kind: 'ENTER_DICE',
+                requestId: pending.request.requestId,
+                rawFaces: pending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+                rollMode: pending.request.rollMode
+              }
+            : {
+                kind: 'ENTER_INTEGER',
+                requestId: pending.request.requestId,
+                value: pending.request.max
+              }
+      if (resolution.kind === 'OPTION') selected = true
+      const contenders = [crypto.randomUUID(), crypto.randomUUID()].map((commandId) => ({
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE' as const,
+          commandId,
+          encounterId: run.id,
+          expectedVersion: current.encounterVersion,
+          occurrenceId: current.occurrenceId,
+          expectedOccurrenceVersion: current.occurrenceVersion,
+          correlationId: null,
+          resolution
+        }
+      }))
+      const raced = await Promise.allSettled(
+        contenders.map((input) => owner.caller.action(executeResponse, input))
+      )
+      const winnerIndex = raced.findIndex((result) => result.status === 'fulfilled')
+      const winner = raced[winnerIndex]
+      const loser = raced[1 - winnerIndex]
+      if (winner?.status !== 'fulfilled' || loser?.status !== 'rejected')
+        throw new Error('Reaction response contention needs one winner and one stale loser.')
+      expect(String(loser.reason)).toMatch(staleResponse)
+      losers.push(contenders[1 - winnerIndex]!.command.commandId)
+      const settled = await stored()
+      await expect(owner.caller.action(executeResponse, contenders[winnerIndex]!)).resolves.toEqual(
+        winner.value
+      )
+      await expect(
+        owner.caller.action(executeResponse, contenders[1 - winnerIndex]!)
+      ).rejects.toThrow(staleResponse)
+      expect(await stored()).toEqual(settled)
+      pending =
+        winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
+    }
+    expect(selected).toBe(true)
+    const final = await stored()
+    const choice = root.occurrence?.pending
+    if (choice?.kind !== 'MOVEMENT_REACTION')
+      throw new Error('Expected the issued reaction choice.')
+    const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
+    if (!reactor) throw new Error('Expected the selected reactor.')
+    expect(
+      encounterRunActorStateSchema.parse(JSON.parse(reactor.stateJson)).resources
+    ).toMatchObject({ ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 } })
+    // A stale loser leaves no command, receipt, occurrence or Scene trace.
+    expect(JSON.stringify(final)).not.toMatch(new RegExp(losers.join('|')))
+    // Each Run version the winners committed carries exactly one command receipt.
+    const committed = final.runs[0]!.version - reactionStart.runs[0]!.version
+    expect(committed).toBeGreaterThan(0)
+    expect(final.commands.length - reactionStart.commands.length).toBe(committed)
+    await expect(owner.caller.mutation(finish, value.rootRequest)).resolves.toMatchObject({
+      occurrence: { status: 'COMPLETE', pending: null }
+    })
+    expect(await stored()).toEqual(final)
+  }, 90_000)
 
   it('publishes repeated GM declines with fog and replays the current complete occurrence', async () => {
     const value = await setup()

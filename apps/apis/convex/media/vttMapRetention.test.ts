@@ -500,7 +500,8 @@ it.each(['CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP'] as const)(
       _creationTime: _attachmentCreated,
       ...storedAttachment
     } = after.attachment
-    expect(storedAttachment).toEqual(attachment)
+    const { uploaderLabel: _uploaderLabel, ...storedFields } = attachment
+    expect(storedAttachment).toEqual(storedFields)
     expect(after.source).toBeNull()
     expect(after.owner!.mediaBytes).toBe(
       (beforeRollback.profiles.find((profile) => profile.userId === base.owner.userId)

@@ -8,6 +8,12 @@ export const shortTextSchema = z
   .check(z.trim())
   .check(z.minLength(1))
   .check(z.maxLength(120))
+/** An author's current username, or `deletedCampaignAuthorLabel` once their account is deleted. */
+export const campaignAuthorLabelSchema = z
+  .string()
+  .check(z.trim())
+  .check(z.minLength(1))
+  .check(z.maxLength(30))
 export const jsonSchema = z.json()
 export const timeZoneSchema = z
   .string()

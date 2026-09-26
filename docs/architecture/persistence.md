@@ -211,7 +211,10 @@ history must not require a surviving Character or account to remain readable by 
 ## Account deletion and Rule Studio retirement — approved cutover policy
 
 Account deletion keeps messages, rolls and Session history in shared Campaigns, with the deleted
-account's author shown as `Deleted user`. Private Characters and personal data are removed through
+account's author shown as `Deleted user`. Shared Session notes and Campaign handouts likewise name
+their author or uploader. Records store only the opaque account id; every read resolves the label
+through `readCampaignAuthorLabels` (`apps/apis/convex/campaigns/authorLabels.ts`), which chat also
+uses, so a deleted account reads as `Deleted user`. Private Characters and personal data are removed through
 the native lifecycle cleanup. Retained history does not grant access to a deleted account or bypass
 current Campaign authority and visibility. F12 still requires the complete native deletion transaction
 and its cleanup, rollback, privacy and account-settings proofs.

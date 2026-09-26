@@ -17,15 +17,12 @@ import type {
   createCampaignNotebookSectionInputSchema,
   createCampaignSessionInputSchema
 } from '@artificer-toolkit/schema/api/campaignSessions'
-import {
-  campaignStoredFileAssetSchema,
-  type CampaignFileDeliverySource,
-  type CampaignStoredFileAsset
-} from '@artificer-toolkit/schema/projections/campaignFilePersistence'
+import type { CampaignFileDeliverySource } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
+import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -100,55 +97,6 @@ async function setup() {
   return { ...base, campaign, membershipId }
 }
 
-async function readyFile(
-  t: Awaited<ReturnType<typeof fixture>>['t'],
-  userId: string,
-  campaignId: string,
-  profile: CampaignStoredFileAsset['profile'] = 'CAMPAIGN_FILE'
-) {
-  const id = crypto.randomUUID()
-  const text = profile === 'CAMPAIGN_FILE'
-  const asset = campaignStoredFileAssetSchema.parse({
-    id,
-    ownerUserId: userId,
-    campaignId,
-    profile,
-    upload: {
-      originalFileName: text ? 'notes.txt' : 'handout.png',
-      declaredMimeType: text ? 'text/plain' : 'image/png',
-      declaredBytes: 12,
-      idempotencyKey: crypto.randomUUID()
-    },
-    status: 'READY',
-    rawObjectKey: null,
-    uploadExpiresAt: 0,
-    chargedBytes: 12,
-    variants: [
-      {
-        kind: 'SOURCE',
-        objectKey: `ready/${id}/source`,
-        byteSize: 12,
-        mimeType: text ? 'text/plain' : 'image/webp',
-        width: text ? null : 40,
-        height: text ? null : 20
-      }
-    ],
-    crop: null,
-    operation: null,
-    cleanupAt: Date.now() + 86_400_000
-  })
-  const rowId = await t.run(async (ctx) => {
-    const ownerProfile = await ctx.db
-      .query('userProfiles')
-      .withIndex('by_userId', (q) => q.eq('userId', userId))
-      .unique()
-    if (!ownerProfile) throw new Error('Missing fixture profile.')
-    await ctx.db.patch(ownerProfile._id, { mediaBytes: (ownerProfile.mediaBytes ?? 0) + 12 })
-    return ctx.db.insert('mediaAssets', asset)
-  })
-  return { ...asset, rowId }
-}
-
 const pageInput = (
   campaignId: string,
   cursor: string | null = null
@@ -166,8 +114,8 @@ describe('native Campaign attachments', () => {
       content: ''
     })
     const session = await owner.caller.mutation(createSession, { campaignId: campaign.id })
-    const file = await readyFile(t, other.userId, campaign.id)
-    const handout = await readyFile(t, owner.userId, campaign.id, 'CAMPAIGN_HANDOUT_MAP')
+    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const handout = await readyCampaignFile(t, owner.userId, campaign.id, 'CAMPAIGN_HANDOUT_MAP')
     const attachments: CampaignAttachmentDto[] = []
     for (let index = 0; index < 5; index++) {
       attachments.push(
@@ -284,10 +232,10 @@ describe('native Campaign attachments', () => {
     const foreignSession = await other.caller.mutation(createSession, {
       campaignId: foreignCampaign.id
     })
-    const ownFile = await readyFile(t, owner.userId, campaign.id)
-    const wrongCampaign = await readyFile(t, owner.userId, foreignCampaign.id)
-    const otherFile = await readyFile(t, other.userId, campaign.id)
-    const pending = await readyFile(t, owner.userId, campaign.id)
+    const ownFile = await readyCampaignFile(t, owner.userId, campaign.id)
+    const wrongCampaign = await readyCampaignFile(t, owner.userId, foreignCampaign.id)
+    const otherFile = await readyCampaignFile(t, other.userId, campaign.id)
+    const pending = await readyCampaignFile(t, owner.userId, campaign.id)
     await t.run((ctx) => ctx.db.patch(pending.rowId, { status: 'PENDING_UPLOAD' }))
     const avatarId = await t.run(async (ctx) => {
       const id = crypto.randomUUID()
@@ -356,7 +304,7 @@ describe('native Campaign attachments', () => {
 
   it('removes a retained attachment after its storage ownership transfers', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId, campaign.id)
     const attachment = await other.caller.mutation(create, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -377,7 +325,7 @@ describe('native Campaign attachments', () => {
 
   it('restricts deletion and protects shared references through rollback, reattachment and quota cleanup', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, owner.userId, campaign.id)
     const input = { campaignId: campaign.id, assetId: file.id, displayName: 'Keep bytes' }
     const first = await owner.caller.mutation(create, input)
     const second = await owner.caller.mutation(create, input)
@@ -446,7 +394,7 @@ describe('native Campaign attachments', () => {
 
   it('fails closed on unavailable or inconsistent attached asset records without selecting raw or preview bytes', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, owner.userId, campaign.id)
     const attachment = await owner.caller.mutation(create, {
       campaignId: campaign.id,
       assetId: file.id,
@@ -489,7 +437,7 @@ describe('native Campaign attachments', () => {
       title: 'Keep',
       content: ''
     })
-    const file = await readyFile(t, other.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId, campaign.id)
     const input = { campaignId: campaign.id, assetId: file.id, displayName: 'Player file' }
     for (let index = 0; index < 51; index++)
       await other.caller.mutation(create, { ...input, noteSectionId: note.id })
@@ -512,7 +460,9 @@ describe('native Campaign attachments', () => {
     expect(await read()).toEqual(before)
     await owner.caller.mutation(removeNotebook, { campaignId: campaign.id, sectionId: note.id })
     const after = await read()
-    expect(after.attachments.map(({ _id, _creationTime, ...row }) => row)).toEqual([retained])
+    // Stored rows omit the uploader label that reads resolve.
+    const { uploaderLabel: _retainedLabel, ...retainedRow } = retained
+    expect(after.attachments.map(({ _id, _creationTime, ...row }) => row)).toEqual([retainedRow])
     expect(after.notes).toEqual(before.notes.filter((row) => row.id !== note.id))
     expect(after.asset?.cleanupAt).toBeNull()
     // The GM can remove another uploader's surviving attachment.
@@ -522,8 +472,8 @@ describe('native Campaign attachments', () => {
 
   it('purges deleted-account attachment references in bounded batches before retiring asset keys', async () => {
     const { t, owner, other, campaign } = await setup()
-    const file = await readyFile(t, other.userId, campaign.id)
-    const keepFile = await readyFile(t, owner.userId, campaign.id)
+    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    const keepFile = await readyCampaignFile(t, owner.userId, campaign.id)
     for (let index = 0; index < 35; index++)
       await other.caller.mutation(create, {
         campaignId: campaign.id,
@@ -550,8 +500,9 @@ describe('native Campaign attachments', () => {
     await t.mutation(internal.media.assets.purgeAccount, { userId: other.userId })
     expect(await t.run((ctx) => ctx.db.get(file.rowId))).toBeNull()
     expect(await t.run((ctx) => ctx.db.get(keepFile.rowId))).not.toBeNull()
+    const { uploaderLabel: _keepLabel, ...keepRow } = keep
     expect(await t.run((ctx) => ctx.db.query('campaignAttachments').collect())).toMatchObject([
-      keep
+      keepRow
     ])
     const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
     expect(

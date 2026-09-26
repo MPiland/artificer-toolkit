@@ -4,7 +4,9 @@ import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabula
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { api } from '../convex/_generated/api'
 
-type FixtureClient = { client: ConvexHttpClient; identity: { userId: string } }
+// The real HTTP client and the in-process convex-test adapter both satisfy this surface.
+export type SessionControlClient = Pick<ConvexHttpClient, 'query' | 'mutation'>
+type FixtureClient = { client: SessionControlClient; identity: { userId: string } }
 
 function settled<T>(results: PromiseSettledResult<T>[], conflict: RegExp) {
   assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1)
@@ -20,7 +22,7 @@ function settled<T>(results: PromiseSettledResult<T>[], conflict: RegExp) {
 export async function verifySessionControl(input: {
   owner: FixtureClient
   player: FixtureClient
-  anonymous: ConvexHttpClient
+  anonymous: SessionControlClient
   campaignId: string
   characterId: string
 }) {

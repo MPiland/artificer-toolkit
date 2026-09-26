@@ -14,6 +14,7 @@ import {
   executeEncounterCommand,
   playerControlFixture,
   setActorControllers,
+  storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 
@@ -226,6 +227,43 @@ describe('Encounter roll prompts', () => {
         derivedRollMode: 'NORMAL'
       })
     ])
+  })
+
+  it('raises no save prompt in a Manual Run, where a save-forcing action is refused whole', async () => {
+    const base = await playerControlFixture({ bite: 'SAVE', promptRolls: true })
+    await setActorControllers(base, base.companion.id, [base.other.userId])
+    await storeRunAutomationMode(base.t, base.run.id, 'MANUAL')
+    const stored = () =>
+      base.t.run(async (ctx) => ({
+        run: await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+          .unique(),
+        actors: await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
+          .collect(),
+        occurrences: await ctx.db
+          .query('encounterRuleOccurrences')
+          .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
+          .collect(),
+        receipts: await ctx.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+          .collect()
+      }))
+    const before = await stored()
+    // Manual mode runs no rules: neither the controlling player nor the GM can start the action.
+    for (const member of [base.other, base.owner])
+      await expect(
+        member.caller.mutation(executeEncounterCommand, {
+          command: await base.bite(base.companion.id, base.enemy.id)
+        })
+      ).rejects.toThrow('Native action execution requires an Assisted Encounter.')
+    expect(await stored()).toEqual(before)
+    for (const member of [base.owner, base.other, base.player])
+      await expect(readPending(base, member)).resolves.toBeNull()
+    expect(await storedD20Evidence(base)).toEqual([])
   })
 
   it('rolls on the server without a prompt when the roller auto-rolls', async () => {

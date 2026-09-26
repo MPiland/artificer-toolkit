@@ -1032,10 +1032,10 @@ Worker with its documented `--local` command on port 8787. The isolated Vite env
 `VITE_MEDIA_STORAGE_ORIGIN=http://127.0.0.1:8026`; restart Vite after changing them and verify the
 Worker health and browser CSP before creating fixtures.
 
-The existing `tests/developmentDrafts.ts` driver accepts `--encounter-action-contention` and
-`--encounter-reaction-contention` for the real native transaction schedules. Both reuse the existing
-account and Campaign fixture cleanup. The action proof reuses its Campaign; the movement proof enables
-its published initiative catalogue before starting the Run. These schedules are scoped V14 evidence.
+The existing `tests/developmentDrafts.ts` driver accepts `--encounter-action-contention` for the real
+native action transaction schedule; it reuses the existing account and Campaign fixture cleanup and its
+Campaign. Movement reaction response contention (V14.4) is proved in-process by
+`convex/scenes/movementResolution.test.ts`. These schedules are scoped V14 evidence.
 
 For the retained Windows backend setup,
 Its native dependency archive is renamed into local storage, so temporary files must use the same

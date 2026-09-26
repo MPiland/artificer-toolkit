@@ -4,6 +4,7 @@ import { authoredRichTextSchema } from '../shared/authoredLimits.js'
 import { authoredSubjectKindSchema } from '../projections/identity.js'
 import { campaignListInputSchema, campaignListPageSchema } from './campaignList.js'
 import {
+  campaignAuthorLabelSchema,
   shortTextSchema,
   timeZoneSchema,
   timestampSchema,
@@ -254,6 +255,7 @@ export const campaignSessionNoteSectionDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   sessionId: uuidSchema,
   authorUserId: uuidSchema,
+  authorLabel: campaignAuthorLabelSchema,
   title: shortTextSchema,
   content: authoredRichTextSchema,
   visibility: z.enum(['SHARED', 'GM_PRIVATE']),

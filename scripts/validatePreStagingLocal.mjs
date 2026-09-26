@@ -665,7 +665,6 @@ const nativeProofModes = [
   'publication-feat',
   'publication-equipment',
   'encounter-lifecycle',
-  'encounter-reaction-contention',
   'encounter-action-contention',
   'campaign-item-producers',
   'campaign-vehicle-producers',

@@ -294,6 +294,32 @@ async function readRunVersion(base: {
   })
 }
 
+/** Rewrites the stored Run as if it had started in `automationMode`, which START freezes. */
+export async function storeRunAutomationMode(
+  t: Awaited<ReturnType<typeof setupCharacterRun>>['t'],
+  runId: string,
+  automationMode: 'MANUAL' | 'ASSISTED'
+) {
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (query) => query.eq('id', runId))
+      .unique()
+    if (!row) throw new Error('Missing fixture Run.')
+    const state = encounterRunStateSchema.parse({ ...JSON.parse(row.stateJson), automationMode })
+    const projection = encounterGmProjectionDtoSchema.parse({
+      ...JSON.parse(row.projectionJson),
+      automationMode
+    })
+    await ctx.db.patch(row._id, {
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state),
+      projectionJson: JSON.stringify(projection),
+      projectionChecksum: checksumCanonicalJson(projection)
+    })
+  })
+}
+
 /** GM: sets the actor's granted controllers (UPDATE_ACTOR `controllerUserIds`). */
 export async function setActorControllers(
   base: PlayerControlFixture,

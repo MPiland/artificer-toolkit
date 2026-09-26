@@ -65,6 +65,9 @@ export function CampaignFileList({
                   {attachment.description}
                 </Text>
               ) : null}
+              <Text c='dimmed' size='xs'>
+                Uploaded by {attachment.uploaderLabel}
+              </Text>
             </div>
             <Group gap='xs'>
               <Button

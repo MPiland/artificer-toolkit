@@ -30,6 +30,7 @@ import {
   retainUserRoll
 } from '../rollDocuments'
 import { requireSystem } from '../content/systemDocuments'
+import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { requireCampaignCharacterAuthority } from './characterState'
 import {
@@ -199,7 +200,7 @@ export const execute = mutation({
         access.conversation,
         authority.campaign.contentMaturity
       )
-    if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
+    requireCampaignAuthorUsername(actor.username)
     const { record } = await evaluateCampaignRoll(
       ctx,
       authority.campaign,
@@ -230,7 +231,7 @@ export const executePrivate = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (membership.role !== 'OWNER') throw new Error('Only the Campaign owner may roll privately.')
-    if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
+    requireCampaignAuthorUsername(actor.username)
     const { record, maturity } = await evaluateCampaignRoll(
       ctx,
       campaign,
@@ -280,7 +281,7 @@ export const reveal = mutation({
     }
     if (retained.gmCampaignRoll.revealedAt !== null)
       throw new Error('This roll was already revealed.')
-    if (!actor.username) throw new Error('A username is required to participate in Campaign chat.')
+    requireCampaignAuthorUsername(actor.username)
     const entry = await insertRollEntry(ctx, {
       authority,
       access,

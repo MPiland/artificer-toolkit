@@ -1,6 +1,5 @@
 import {
   campaignChatEntryDtoSchema,
-  deletedCampaignAuthorLabel,
   campaignConversationDtoSchema,
   type CampaignChatEntryDto,
   type CampaignConversationDto
@@ -12,6 +11,7 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { readCampaignAuthorLabels } from './authorLabels'
 import { requireCampaignAuthority, readActiveCampaignMembers } from './authority'
 
 export const conversationEntryLimit = 500
@@ -231,10 +231,9 @@ export async function presentChatEntry(
   conversation: Doc<'campaignConversations'>,
   maturity: 'STANDARD' | 'MATURE'
 ): Promise<CampaignChatEntryDto> {
-  const author = await ctx.db
-    .query('userProfiles')
-    .withIndex('by_userId', (q) => q.eq('userId', entry.authorUserId))
-    .unique()
+  const [authorUsername] = await readCampaignAuthorLabels(ctx, [
+    { userId: entry.authorUserId, username: payload.authorUsername }
+  ])
   return campaignChatEntryDtoSchema.parse({
     id: entry.id,
     campaignId: entry.campaignId,
@@ -278,7 +277,7 @@ export async function presentChatEntry(
           },
     revealedByGm: payload.revealedByGm,
     authorUserId: entry.authorUserId,
-    authorUsername: author ? payload.authorUsername : deletedCampaignAuthorLabel,
+    authorUsername,
     characterId: payload.characterId,
     characterLabel:
       payload.characterLabel === null

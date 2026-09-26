@@ -12,7 +12,13 @@ import {
   finalizeImageUploadOutputSchema,
   signedCampaignFileDeliveryDtoSchema
 } from '../api/media.js'
+import { campaignAttachmentDtoSchema } from '../api/campaignAttachments.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+
+/** The uploader label is resolved on read so a deleted account never keeps its username. */
+export const campaignStoredAttachmentSchema = z.omit(campaignAttachmentDtoSchema, {
+  uploaderLabel: true
+})
 
 export const campaignStoredFileVariantSchema = z.discriminatedUnion('mimeType', [
   mediaStoredVariantSchema,

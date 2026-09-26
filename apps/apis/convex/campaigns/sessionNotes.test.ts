@@ -22,6 +22,8 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSessionLists'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { api, components } from '../_generated/api'
+import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -355,5 +357,66 @@ describe('native Session finish and notes', () => {
       owner.caller.mutation(update, { ...target, expectedVersion: 2, title: 'Archived' })
     ).rejects.toThrow('read-only')
     await expect(owner.caller.mutation(remove, target)).rejects.toThrow('read-only')
+  })
+  it('refuses shared notes and handouts from a member without a username, as chat does', async () => {
+    const { t, owner, other, campaign, session } = await setup()
+    await t.run(async (ctx) => {
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', other.userId))
+        .unique()
+      if (!profile) throw new Error('Missing player profile.')
+      await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+        input: {
+          model: 'user',
+          where: [{ field: '_id', value: profile.authUserId }],
+          update: { username: null, displayUsername: null }
+        }
+      })
+    })
+    const usernameRequired = 'A username is required to post in this Campaign.'
+    await expect(
+      other.caller.mutation(create, {
+        campaignId: campaign.id,
+        sessionId: session.id,
+        title: 'Unnamed recap',
+        content: '<p>Recap</p>',
+        visibility: 'SHARED',
+        kind: 'SHARED_NOTE'
+      })
+    ).rejects.toThrow(usernameRequired)
+    const file = await readyCampaignFile(t, other.userId, campaign.id)
+    await expect(
+      other.caller.mutation(api.campaigns.attachments.create, {
+        campaignId: campaign.id,
+        assetId: file.id,
+        displayName: 'Unnamed handout'
+      })
+    ).rejects.toThrow(usernameRequired)
+    await expect(
+      other.caller.mutation(api.campaigns.chat.send, {
+        campaignId: campaign.id,
+        room: 'TABLE',
+        mode: 'OOC',
+        body: 'Hello',
+        clientNonce: crypto.randomUUID()
+      })
+    ).rejects.toThrow(usernameRequired)
+    expect(
+      await t.run(async (ctx) => ({
+        notes: await ctx.db.query('campaignSessionNotes').collect(),
+        attachments: await ctx.db.query('campaignAttachments').collect()
+      }))
+    ).toEqual({ notes: [], attachments: [] })
+    await expect(
+      owner.caller.mutation(create, {
+        campaignId: campaign.id,
+        sessionId: session.id,
+        title: 'Named recap',
+        content: '<p>Recap</p>',
+        visibility: 'SHARED',
+        kind: 'SHARED_NOTE'
+      })
+    ).resolves.toMatchObject({ authorLabel: 'Owner' })
   })
 })

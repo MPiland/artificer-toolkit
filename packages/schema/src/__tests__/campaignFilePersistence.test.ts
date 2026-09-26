@@ -4,9 +4,11 @@ import {
   campaignStoredFileAssetSchema,
   campaignFileFinalizeInputSchema,
   campaignFileProcessClaimSchema,
-  campaignFileDeliverySourceSchema
+  campaignFileDeliverySourceSchema,
+  campaignStoredAttachmentSchema
 } from '../projections/campaignFilePersistence.js'
 import {
+  campaignAttachmentDtoSchema,
   campaignAttachmentListInputSchema,
   campaignAttachmentListPageSchema
 } from '../api/campaignAttachments.js'
@@ -196,5 +198,28 @@ describe('native Campaign file persistence contracts', () => {
       pageStatus: 'SplitRecommended'
     }
     expect(campaignAttachmentListPageSchema.parse(emptyPage)).toEqual(emptyPage)
+  })
+
+  it('resolves the uploader label on read and never stores it', () => {
+    const stored = {
+      id,
+      campaignId: id,
+      assetId: id,
+      uploaderUserId: id,
+      displayName: 'Dungeon map',
+      description: null,
+      profile: 'CAMPAIGN_HANDOUT_MAP',
+      sessionId: null,
+      noteSectionId: null,
+      createdAt: '2026-09-25T12:00:00.000Z'
+    }
+    expect(campaignStoredAttachmentSchema.parse(stored)).toEqual(stored)
+    expect(campaignAttachmentDtoSchema.safeParse(stored).success).toBe(false)
+    expect(
+      campaignAttachmentDtoSchema.parse({ ...stored, uploaderLabel: 'Deleted user' })
+    ).toMatchObject({ uploaderLabel: 'Deleted user' })
+    expect(
+      campaignStoredAttachmentSchema.safeParse({ ...stored, uploaderLabel: 'Mira' }).success
+    ).toBe(false)
   })
 })

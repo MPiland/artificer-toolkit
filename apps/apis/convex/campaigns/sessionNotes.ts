@@ -19,17 +19,23 @@ import {
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { query, type QueryCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
-import { requireIdentity } from '../lib/identity'
+import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
+import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { requireSession } from './sessionDocuments'
 
-function present(note: CampaignSessionNoteSectionDto, maturity: 'STANDARD' | 'MATURE') {
+function present(
+  note: Omit<CampaignSessionNoteSectionDto, 'authorLabel'>,
+  authorLabel: string,
+  maturity: 'STANDARD' | 'MATURE'
+) {
   const privateNote = note.visibility === 'GM_PRIVATE'
   return campaignSessionNoteSectionDtoSchema.parse({
     id: note.id,
     campaignId: note.campaignId,
     sessionId: note.sessionId,
     authorUserId: note.authorUserId,
+    authorLabel,
     title: privateNote ? note.title : presentCampaignPlainText(note.title, maturity),
     content: privateNote ? note.content : presentCampaignRichText(note.content, maturity),
     visibility: note.visibility,
@@ -82,9 +88,15 @@ export const list = query({
       maximumRowsRead: 8,
       maximumBytesRead: 1024 * 1024
     })
+    const authorLabels = await readCampaignAuthorLabels(
+      ctx,
+      result.page.map((note) => ({ userId: note.authorUserId }))
+    )
     return campaignSessionNoteListPageSchema.parse({
       ...result,
-      page: result.page.map((note) => present(note, campaign.contentMaturity))
+      page: result.page.map((note, index) =>
+        present(note, authorLabels[index], campaign.contentMaturity)
+      )
     })
   }
 })
@@ -94,9 +106,12 @@ export const create = mutation({
   returns: zodToConvex(campaignSessionNoteSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionNoteSectionDto> => {
     const input = createCampaignSessionNoteSectionInputSchema.parse(args)
-    const { userId } = await requireIdentity(ctx)
+    const actor = await getAuthenticatedProfile(ctx)
+    if (!actor) throw new Error('Unauthenticated')
+    const { userId } = actor.identity
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    if (input.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
     if (input.visibility === 'GM_PRIVATE' && membership.role !== 'OWNER')
       throw new Error('Campaign not found.')
     const session = await requireSession(ctx, campaign.id, input.sessionId)
@@ -114,7 +129,8 @@ export const create = mutation({
       updatedAt: now
     })
     await ctx.db.insert('campaignSessionNotes', note)
-    return present(note, campaign.contentMaturity)
+    const [authorLabel] = await readCampaignAuthorLabels(ctx, [{ userId: note.authorUserId }])
+    return present(note, authorLabel, campaign.contentMaturity)
   }
 })
 
@@ -152,7 +168,8 @@ export const update = mutation({
       updatedAt: new Date().toISOString()
     }
     await ctx.db.patch(existing._id, patch)
-    return present({ ...existing, ...patch }, campaign.contentMaturity)
+    const [authorLabel] = await readCampaignAuthorLabels(ctx, [{ userId: existing.authorUserId }])
+    return present({ ...existing, ...patch }, authorLabel, campaign.contentMaturity)
   }
 })
 

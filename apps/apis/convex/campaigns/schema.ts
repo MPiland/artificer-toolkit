@@ -14,7 +14,7 @@ import { campaignPlaySettingsDtoSchema } from '@artificer-toolkit/schema/api/cam
 import { campaignStoredVehicleSchema } from '@artificer-toolkit/schema/projections/campaignVehicleCleanupPersistence'
 import { vehicleCleanupTables } from './vehicleCleanupSchema'
 import { campaignDeletionJobSchema } from '@artificer-toolkit/schema/projections/campaignDeletion'
-import { campaignAttachmentDtoSchema } from '@artificer-toolkit/schema/api/campaignAttachments'
+import { campaignStoredAttachmentSchema } from '@artificer-toolkit/schema/projections/campaignFilePersistence'
 import { campaignStoredContentShareSchema } from '@artificer-toolkit/schema/projections/campaignContentPersistence'
 import { campaignStoredCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterStatePersistence'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
@@ -93,7 +93,7 @@ export const campaignTables = {
     .index('by_listingId_status_createdAt_id', ['listingId', 'status', 'createdAt', 'id'])
     .index('by_listingId_recipientUserId_status', ['listingId', 'recipientUserId', 'status'])
     .index('by_status_expiresAt_id', ['status', 'expiresAt', 'id']),
-  campaignAttachments: defineTable(zodToConvexFields(campaignAttachmentDtoSchema.shape))
+  campaignAttachments: defineTable(zodToConvexFields(campaignStoredAttachmentSchema.shape))
     .index('by_campaignId_id', ['campaignId', 'id'])
     .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id'])
     .index('by_campaignId_noteSectionId', ['campaignId', 'noteSectionId'])

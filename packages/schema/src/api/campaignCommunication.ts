@@ -2,7 +2,11 @@ import { z } from '../zod.js'
 import { parseRollExpression, validateRollMode } from '@artificer-toolkit/shared/rolls'
 
 import { rollRecordDtoSchema, rollSourceDtoSchema } from './rolls.js'
-import { timestampSchema, uuidSchema } from './campaignContractSchemas.js'
+import {
+  campaignAuthorLabelSchema,
+  timestampSchema,
+  uuidSchema
+} from './campaignContractSchemas.js'
 
 export const campaignRealtimeScopeDtoSchema = z.enum(['TABLE', 'PARTY', 'DIRECT', 'OWNER', 'USER'])
 export function getCampaignRealtimeTopic(input: {
@@ -74,6 +78,8 @@ export const campaignChatModeDtoSchema = z.enum(['OOC', 'ROLEPLAY'])
 export const deletedCampaignAuthorLabel = 'Deleted user'
 /** The author shown on roll entries the rules write, such as a settled Concentration check. */
 export const ruleCheckAuthorLabel = 'Rules'
+/** The chat line the table sees when the GM skips a pending movement decision (D26). */
+export const MOVEMENT_DECISION_SKIPPED_MESSAGE = 'The GM skipped this decision.'
 export const campaignChatEntryDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
@@ -85,7 +91,7 @@ export const campaignChatEntryDtoSchema = z.strictObject({
   roll: z.nullable(rollRecordDtoSchema),
   revealedByGm: z.boolean(),
   authorUserId: uuidSchema,
-  authorUsername: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(30)),
+  authorUsername: campaignAuthorLabelSchema,
   characterId: z.nullable(uuidSchema),
   characterLabel: z.nullable(
     z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100))

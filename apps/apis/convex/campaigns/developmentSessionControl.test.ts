@@ -1,4 +1,4 @@
-import { makeFunctionReference } from 'convex/server'
+import { makeFunctionReference, type OptionalRestArgs } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
 import type {
@@ -14,6 +14,10 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, internal, components } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import {
+  type SessionControlClient,
+  verifySessionControl
+} from '../../tests/developmentSessionControl'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -104,6 +108,33 @@ async function setup(admit = true) {
   }
   return { ...base, character, campaign }
 }
+
+type TestCaller = Pick<Awaited<ReturnType<typeof setup>>['t'], 'run'>
+
+// convex-test runs one transaction at a time, so concurrent contenders commit in turn and every
+// loser reads the winner's version. HTTP mutation options (skipQueue) have no in-process meaning.
+function sessionControlClient(caller: TestCaller): SessionControlClient {
+  return {
+    query: (query, ...args) => caller.run((ctx) => ctx.runQuery(query, ...args)),
+    mutation: (mutation, ...args) =>
+      caller.run((ctx) =>
+        ctx.runMutation(mutation, ...(args.slice(0, 1) as OptionalRestArgs<typeof mutation>))
+      )
+  }
+}
+
+describe('P15 Session control proof', () => {
+  it('runs Session, Clock and GM control contention, replay and authority through public commands', async () => {
+    const base = await setup()
+    await verifySessionControl({
+      owner: { client: sessionControlClient(base.other.caller), identity: base.other },
+      player: { client: sessionControlClient(base.owner.caller), identity: base.owner },
+      anonymous: sessionControlClient(base.t),
+      campaignId: base.campaign.id,
+      characterId: base.character.id
+    })
+  }, 30000)
+})
 
 describe('P15 Session fixture cleanup', () => {
   it('cleans archived Session and Clock recovery state before Campaign and personal Character cleanup', async () => {

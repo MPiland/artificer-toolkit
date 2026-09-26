@@ -1,7 +1,12 @@
 import { z } from '../zod.js'
 
 import { campaignFileProfileSchema } from './media.js'
-import { shortTextSchema, timestampSchema, uuidSchema } from './campaignContractSchemas.js'
+import {
+  campaignAuthorLabelSchema,
+  shortTextSchema,
+  timestampSchema,
+  uuidSchema
+} from './campaignContractSchemas.js'
 import { campaignListInputSchema, campaignListPageSchema } from './campaignList.js'
 
 export const campaignAttachmentDtoSchema = z.strictObject({
@@ -9,6 +14,7 @@ export const campaignAttachmentDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   assetId: uuidSchema,
   uploaderUserId: uuidSchema,
+  uploaderLabel: campaignAuthorLabelSchema,
   displayName: shortTextSchema,
   description: z.nullable(
     z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))

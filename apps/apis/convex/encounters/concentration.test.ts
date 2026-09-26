@@ -13,7 +13,7 @@ import {
 } from '../../tests/fixtures/concentration'
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, internal } from '../_generated/api'
-import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
+import { executeEncounterCommand, storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import type { FixtureRolls } from '../../tests/fixtures/rollPreferences'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
@@ -156,6 +156,26 @@ it('pauses an Assisted concentration child and settles success without cleanup',
     await fixture.owner.caller.mutation(internal.encounters.commands.execute, { command: root })
   ).toEqual(parent)
   expect(await concentrationRecords(fixture)).toEqual(after)
+}, 60_000)
+
+it('raises no concentration prompt in a Manual Run, where the damaging action is refused whole', async () => {
+  const fixture = await setupFixture('PROMPT')
+  const seeded = await seedConcentration(fixture)
+  await storeRunAutomationMode(fixture.t, fixture.run.id, 'MANUAL')
+  const before = await concentrationRecords(fixture)
+  await expect(
+    fixture.owner.caller.mutation(internal.encounters.commands.execute, {
+      command: concentrationAction(fixture)
+    })
+  ).rejects.toThrow('Native action execution requires an Assisted Encounter.')
+  expect(await concentrationRecords(fixture)).toEqual(before)
+  expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
+  for (const member of [fixture.owner, fixture.player])
+    expect(
+      await member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: fixture.run.id
+      })
+    ).toBeNull()
 }, 60_000)
 
 it('does not create a concentration child when finalized applied damage is zero', async () => {

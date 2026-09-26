@@ -18,6 +18,7 @@ import { query, type MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import {
   conversationAccess,
@@ -134,7 +135,7 @@ export async function postCampaignChatEntry(
     (!character || character.id !== input.assignedCharacterId!.toLowerCase())
   )
     throw new Error('Assigned Character is unavailable.')
-  if (!username) throw new Error('A username is required to participate in Campaign chat.')
+  requireCampaignAuthorUsername(username)
   const header = campaignStoredEntryHeaderSchema.parse({
     id: crypto.randomUUID(),
     campaignId: authority.campaign.id,

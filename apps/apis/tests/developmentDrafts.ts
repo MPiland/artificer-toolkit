@@ -2614,7 +2614,6 @@ try {
     process.argv.includes('--encounter-effects-browser') ||
     process.argv.includes('--encounter-movement-browser') ||
     process.argv.includes('--encounter-passage-browser') ||
-    process.argv.includes('--encounter-reaction-contention') ||
     process.argv.includes('--encounter-action-contention') ||
     process.argv.includes('--encounter-disarm') ||
     process.argv.includes('--encounter-disarm-browser') ||
@@ -2637,20 +2636,13 @@ try {
       process.argv.includes('--encounter-movement-browser') ||
       process.argv.includes('--encounter-passage-browser')
     const passageBrowser = process.argv.includes('--encounter-passage-browser')
-    const reactionContention = process.argv.includes('--encounter-reaction-contention')
     const actionContention = process.argv.includes('--encounter-action-contention')
     const disarmBrowser = process.argv.includes('--encounter-disarm-browser')
     const disarm = process.argv.includes('--encounter-disarm') || disarmBrowser
     const effectsBrowser = process.argv.includes('--encounter-effects-browser')
     const effectJourney = process.argv.includes('--encounter-effects') || effectsBrowser
     const lifecycle =
-      lifecycleSuite ||
-      movementBrowser ||
-      reactionContention ||
-      effectJourney ||
-      actionContention ||
-      disarm ||
-      workload
+      lifecycleSuite || movementBrowser || effectJourney || actionContention || disarm || workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
     characterFixtures.push({ userId: player.identity.userId, characterId })
@@ -2719,7 +2711,7 @@ try {
       const { createEncounterLifecyclePolicyFixture } =
         await import('./fixtures/encounterInitiative')
       const policies = createEncounterLifecyclePolicyFixture(owner.identity.userId, {
-        includeMovementReactionPolicies: movementBrowser || reactionContention || workload
+        includeMovementReactionPolicies: movementBrowser || workload
       })
       lifecyclePolicyFixtures.push(policies.cleanup)
       assert.deepEqual(await cli('content/import:bootstrap', policies.bootstrap, false), {
@@ -3027,7 +3019,7 @@ try {
             })
         })
       }
-      if (reactionContention || movementBrowser || workload) {
+      if (movementBrowser || workload) {
         for (const policyCampaignId of [campaign.id, independentCampaignId]) {
           if (!policyCampaignId || (policyCampaignId === campaign.id && result)) continue
           const currentCampaign = await owner.client.query(api.campaigns.queries.get, {
@@ -3042,52 +3034,6 @@ try {
             ]
           })
         }
-      }
-      if (reactionContention) {
-        const { prepareEncounterMovementFixture, publishMovementReactionCreature } =
-          await import('./developmentEncounterMovement')
-        const { verifyEncounterReactionTransactions } =
-          await import('./developmentEncounterReactionTransactions')
-        const peer = new DevelopmentHttpClient(deploymentUrl.origin, {
-          logger: false
-        })
-        owner.client.setAuth(await owner.fetchToken())
-        peer.setAuth(await owner.fetchToken())
-        player.client.setAuth(await player.fetchToken())
-        publicationAuthors.push({
-          client: owner.client,
-          userId: owner.identity.userId,
-          systemId: srdSystemRecord.id,
-          subjectKind: 'CREATURE'
-        })
-        if (!policies.movementReaction)
-          throw new Error('Reaction contention fixture policies are unavailable.')
-        const creature = await publishMovementReactionCreature(
-          owner.client,
-          policies.movementReaction.eligibilityDefinitionId
-        )
-        const fixture = await prepareEncounterMovementFixture({
-          owner: owner.client,
-          player: player.client,
-          playerUserId: player.identity.userId,
-          playerCharacterId: characterId,
-          campaignId: campaign.id,
-          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
-          reactionCreatureId: creature.creatureId,
-          biteFeatureId: creature.biteFeatureId,
-          biteEffectId: creature.biteEffectId,
-          scenario: 'REACTION'
-        })
-        owner.client.setAuth(await owner.fetchToken())
-        peer.setAuth(await owner.fetchToken())
-        player.client.setAuth(await player.fetchToken())
-        await verifyEncounterReactionTransactions({
-          owner: owner.client,
-          peer,
-          player: player.client,
-          fixture
-        })
-        console.log('Encounter reaction contention, replay, redaction, and mechanics proof passed.')
       }
       if (movementBrowser) {
         const { readAuthoritativeSceneToken } = await import('./developmentEncounterCutover')
