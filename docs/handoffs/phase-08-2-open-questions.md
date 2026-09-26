@@ -6,8 +6,18 @@
 
 ## Open
 
-_(none)_
-
+* **Q9: acceptance wording for V05.4.** The criterion says renewal "rotates authority to another current member". Since ADR 0033, room authority belongs to the Campaign room's epoch, not to a member.
+  * **What the new tests prove:**
+    * Authority survives the activating member leaving.
+    * The next member is admitted under the same epoch.
+    * Sockets whose role went stale are closed.
+    * Valid members stay connected.
+  * **Recommendation:** reword to "keeps valid users and keeps room authority serving the remaining current members".
+  * **Answer:**
+* **Q10: F12.3 "Deleted user" attribution.** After account deletion, every listed history survives (proven by a test). Only chat and rolls show an author name, though, so only they can show "Deleted user". Shared Session notes and handouts carry an internal user id that the web never displays. The Encounter timeline names actors, not users.
+  * **Recommendation (product):** show the author on shared Session notes ("Note by Mira") and the uploader on handouts, resolved on the server. Both then read "Deleted user" after deletion, through the same function chat uses. Players benefit from knowing who wrote a shared note, and Foundry shows authorship on journal entries and chat. The timeline keeps naming actors.
+  * **Alternative:** reword F12.3 to "surfaces that display an author show Deleted user; the others keep only an unresolvable id".
+  * **Answer:**
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.

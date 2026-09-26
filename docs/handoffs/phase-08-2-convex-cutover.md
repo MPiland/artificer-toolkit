@@ -81,6 +81,10 @@ Next (8.2 core, in order):
      - If contract-preserving fixes aren't enough, the next lever is a warm path: the room plans from the volatile state returned by its last commit, and a fence refusal forces a recapture.
    - Observability: room planner failures surface only as a generic "UNAVAILABLE" and aren't logged. Add structured, secret-free error logging.
    - R08 prep: the development proof drivers can't load under `yarn tsx`. Test-only fixtures import convex-test, which uses `import.meta.glob`.
+   - R08 prep: rebuild a room-driven, real-backend reaction contention proof for V14.4 once S4-c lands.
+     - The stale driver (`developmentEncounterReactionTransactions.ts`) was deleted and replaced by an in-process test.
+     - convex-test runs one transaction at a time, so the in-process test proves winner and loser semantics but not true parallel transactions.
+     - Only the real backend can prove true parallelism.
    - Phase 8.3 (user, 2026-09-25): Encounter combatant kinds beyond CHARACTER, CREATURE and CUSTOM:
      - mounts, with mounted-combat rules;
      - vehicles, including crewed vehicle combat;
