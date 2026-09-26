@@ -125,6 +125,7 @@ This repo runs on Windows, and several frontend tools spawn native child process
 
 - Never open, print or grep the contents of `.env*` files, credential files or secret stores. To learn which variables exist, list only the names (for example `(Get-Content .env.local) -replace '=.*', '='`), and never echo values.
 - Never print, log or write tokens, JWTs, admin keys or connection strings. Generate the local Convex admin key at run time inside the container and pass it in memory.
+- Never list process command lines or environments inside containers or on the host (`docker exec … ps aux`, `docker inspect` env or args, `/proc/*/cmdline`). The local Convex backend's command line carries its instance secret. Use `docker stats` for resource checks.
 - If a secret value is exposed anyway, stop, tell the user which secret it was and where it appeared, and recommend rotating it.
 
 ## GitHub CLI Auth On Windows
