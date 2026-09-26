@@ -138,6 +138,14 @@ Next (8.2 core, in order):
          - `prepareNativeCharacterActionState`.
          - The wield-conflict NONE case.
          - A carried weapon having the same modifier as an equipped one.
+       - From the characters audit. The Character domain has no pure tests for its reducer, projection, rest or builder:
+         - Easy, no harness needed: the Sheet command reducer `applyCharacterSheetCommand` (`sheetCommandReducer.ts:1269`) for notes and groups, and extras (add, clamp, exclusive, remove).
+         - Needs a pure Character-context harness, built on `prepareCharacterRuleContext` with in-memory `Readers` as `apps/session-worker/src/nativeCharacterRules.ts:329` does:
+           - builder resolution and reconciliation (`resolveCharacterBuilder`, `reconcileCharacterBuilderCharacter`, chosen-grant choices);
+           - rest preview and completion (`buildCharacterRestPreview`, `applyCompletedCharacterRest`);
+           - `resolveCharacterRecordStats`.
+         - Before those assertions can move, extract the inline Convex rest and extras cleanup (`characters/sheetCommands.ts:383-384, 423, 462, 481-484`: resourceUsage and max-HP-modifier filters) into pure functions.
+         - Keep in Convex: `drafts.test.ts` (all), `characterMaximumHitPoints.test.ts` (stored-stat sync across every write path), Sheet extras source visibility, and Campaign masking wiring.
        - Test cleanup: `encounters/actionCharacterSources.test.ts:627-664` runs a second full setup and compares two snapshots with nothing executed between them. That proves nothing and doubles the test's cost. Remove it together with the redundant re-reads.
        - Worker-level tests with injected capture fakes, the medium-effort precedent being `apps/session-worker/test/nativeTurnEffectPerception.test.ts`:
          - movement Concentration;
