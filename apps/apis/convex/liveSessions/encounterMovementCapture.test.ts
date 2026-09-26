@@ -22,6 +22,7 @@ import {
   createSpatialPreparationFixture,
   grantFixtureActorControl
 } from '../../tests/fixtures/spatialPreparation'
+import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
 import { readRunProjection, readRunState } from '../encounters/documents'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
@@ -489,4 +490,23 @@ it('rejects unbound movement and mixed concentration or turn command scopes', as
       }
     })
   ).rejects.toThrow('cannot use movement')
+})
+
+it('bundles exactly the movement parts the separate captures return, with the System once', async () => {
+  const base = await setup()
+  const staged = await base.other.caller.mutation(begin, base.ownerBegin)
+  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const { bundle, separate } = await base.other.caller.run((ctx) =>
+    readBundleAndSeparateCaptures(
+      ctx,
+      { ...base.ownerCapture, movement: { ...base.ownerCapture.movement!, saveId: staged.saveId } },
+      base.run.actors
+    )
+  )
+  expect(bundle.encounter[0]).toMatchObject({ kind: 'MOVEMENT_INPUTS' })
+  expect(bundle.encounter).toHaveLength(2 + 2 * base.run.actors.length)
+  expect(bundle.characters).toHaveLength(
+    base.run.actors.filter((actor) => actor.kind === 'CHARACTER').length
+  )
+  expect(bundle).toEqual(separate)
 })

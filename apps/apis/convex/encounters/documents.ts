@@ -12,6 +12,7 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { deriveOnce } from '../lib/transactionReads'
 
 type Context = MutationCtx | QueryCtx
 
@@ -109,14 +110,16 @@ export async function readRunActors(ctx: Context, state: EncounterRunState) {
   return actors
 }
 
-function parseRunActor(row: Doc<'encounterRunActors'>, state: EncounterRunState) {
+function readRunActorDocument(row: Doc<'encounterRunActors'>) {
   const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-  if (
-    actor.id !== row.id ||
-    actor.encounterId !== state.id ||
-    checksumCanonicalJson(actor) !== row.stateChecksum
-  )
+  if (actor.id !== row.id || checksumCanonicalJson(actor) !== row.stateChecksum)
     throw new Error('Encounter actor state checksum mismatch.')
+  return actor
+}
+
+function parseRunActor(row: Doc<'encounterRunActors'>, state: EncounterRunState) {
+  const actor = deriveOnce(row, readRunActorDocument)
+  if (actor.encounterId !== state.id) throw new Error('Encounter actor state checksum mismatch.')
   return actor
 }
 

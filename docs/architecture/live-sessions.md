@@ -368,19 +368,29 @@ admission capture (`ACTION_COMMAND`, `ACTION_RESPONSE`, `TURN_COMMAND`, `CONCENT
 capture builders for the admission, Run `INPUTS`, the `INITIATIVE_ROUND` of a turn, one `ACTOR`
 (first effect page) per Run actor, the Concentration `MAINTENANCE_SLOT` per Run actor, and each
 Character actor's `INPUTS`. Each part is exactly the response its own capture returns, with its own
-read checksum and revisions, so commit fences are unchanged. The DO hands each part, once, to the
+read checksum and revisions, so commit fences are unchanged. The scope is admitted once for the
+Encounter parts (`admitEncounterCaptureParts`) and once for the Character parts
+(`admitCharacterInputsCaptures`): those guards do not depend on the part's request, and a Character
+part still checks that the admitted command covers its Character. A movement scope names each
+Character's own actor, so there each Character part is admitted separately. The Run's System travels once, as
+the bundle's `system`; the Run `inputs` and each Character's `INPUTS` omit it (their read checksums
+still cover it) and `captureBundle` restores it before handing the parts out. Parity tests compare
+every part of action, turn and movement bundles with its separate capture. The DO hands each part, once, to the
 capture with the same complete input; anything else (later effect pages, other maintenance, Scene
 reads, System-level content) is read as before. The bundle stops at the first failing part, and the
 planner then reads that part separately and meets the same refusal. `liveSessionCharacterRulesScope`
 derives a Character capture scope from an Encounter one for both sides. Warm commands now take two
 round trips (the bundle and the commit); a decision answer adds its `encounter-route` read.
-Every part reruns its builder, so the bundle reads through a transaction-local memo
-(`lib/transactionReads.ts`): an identical `get`, or the same table, index range, order and read, is
-served once and deeply frozen, so no part can change another part's view; filtered, search and
-streamed reads pass through. At the legal maxima (100 actors: 12 Characters, one per player seat, and
+Parts still repeat reads (actors, Characters, the System), so the bundle reads through a
+transaction-local memo (`lib/transactionReads.ts`): an identical `get`, or the same table, index
+range, order and read, is served once and deeply frozen, so no part can change another part's view;
+filtered, search and streamed reads pass through. `deriveOnce` parses and verifies a memoized
+document once per transaction (System, Run actor and Character documents) and shares the frozen
+result; documents from an ordinary reader derive on every call. At the legal maxima (100 actors: 12 Characters, one per player seat, and
 88 Creatures) the largest action bundle reads 437 index ranges, 307 documents and 1.4 MB (0.85 MB
-distinct) and returns 1.1 MB, each under a quarter of its Convex limit; without the memo it read
-38.8 MB, over the 16 MiB limit.
+distinct) and returns 0.7 MB (1.1 MB before the System travelled once), each under a quarter of its
+Convex limit; without the memo it read 38.8 MB, over the 16 MiB limit. At 11 actors the returned
+bundle fell from 269 KB to 116 KB, and its JavaScript time (in-process profile) by about 60%.
 
 **Import visibility (CURRENT, D34).** Imported rows are readable only while their import job is
 `COMPLETED` (`imports/visibility.ts`). A trigger in `lib/mutations.ts` bumps the SYSTEM revision of

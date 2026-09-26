@@ -2,6 +2,8 @@ import { v } from 'convex/values'
 import {
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterRulesResponseSchema,
+  type LiveSessionEncounterRulesInput,
+  type LiveSessionEncounterRulesRequest,
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -119,38 +121,13 @@ export async function readEncounterRulesCapture(
     ((input.expectedRole !== 'OWNER' && !input.turnCommand) || input.concentrationResponse)
   )
     throw new Error('Turn capture requires owner or admitted response scope.')
-  const { userId } = await requireIdentity(ctx)
-  if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   if (
     (input.concentrationResponse || input.movement || input.turnCommand) &&
     (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE')
   )
     throw new Error('Ordinary action capture cannot use another command scope.')
-  const movementAdmission = input.movement
-    ? await readLiveMovementAdmission(ctx, { ...input, movement: input.movement })
-    : null
-  if (
-    movementAdmission &&
-    (movementAdmission.state.id !== input.encounterId ||
-      movementAdmission.state.version !== input.expectedVersion)
-  )
-    throw new Error('Live movement Encounter scope or version mismatch.')
-  const concentrationAdmission = input.concentrationResponse
-    ? await readLiveConcentrationResponseAdmission(ctx, {
-        ...input,
-        concentrationResponse: input.concentrationResponse
-      })
-    : null
-  const turnAdmission = input.turnCommand
-    ? await readLiveEncounterTurnAdmission(ctx, input, input.turnCommand)
-    : null
-  if (
-    turnAdmission &&
-    (turnAdmission.kind !== 'READY' ||
-      turnAdmission.state.id !== input.encounterId ||
-      turnAdmission.state.version !== input.expectedVersion)
-  )
-    throw new Error('Live Session turn response is unavailable.')
+  const scopeAdmission = await admitEncounterCaptureScope(ctx, input)
+  const { userId, concentrationAdmission } = scopeAdmission
   if (input.request.kind === 'CONCENTRATION_RESPONSE') {
     if (!concentrationAdmission) throw new Error('Concentration response is unavailable.')
     const response: SemanticResponse = {
@@ -180,8 +157,6 @@ export async function readEncounterRulesCapture(
       readChecksum: checksumCanonicalJson({ input, userId, response })
     })
   }
-  if (concentrationAdmission?.kind === 'REPLAY')
-    throw new Error('Completed concentration response cannot capture rules inputs.')
   if (input.request.kind === 'ACTION_COMMAND' || input.request.kind === 'ACTION_RESPONSE') {
     // A player's planner carries its admitted action so the follow-up captures pass.
     if (
@@ -269,6 +244,104 @@ export async function readEncounterRulesCapture(
       readChecksum: checksumCanonicalJson({ input, userId, response })
     })
   }
+  return readOrdinaryEncounterCapture(
+    ctx,
+    { ...input, request: input.request },
+    await admitOrdinaryEncounterCapture(ctx, input, scopeAdmission)
+  )
+}
+
+/** Every request but the command admissions, which admit their own scope. */
+type OrdinaryEncounterRequest = Exclude<
+  LiveSessionEncounterRulesRequest,
+  { kind: 'TURN_COMMAND' | 'CONCENTRATION_RESPONSE' | 'ACTION_COMMAND' | 'ACTION_RESPONSE' }
+>
+
+/** The request kinds a capture bundle reads after its admission, under the admission's scope. */
+type BundledEncounterRequest = Extract<
+  LiveSessionEncounterRulesRequest,
+  { kind: 'INPUTS' | 'INITIATIVE_ROUND' | 'ACTOR' | 'MAINTENANCE_SLOT' }
+>
+
+/**
+ * Admits one capture scope once for a capture bundle's ordinary parts. Every guard the separate
+ * reads apply to these request kinds is request-independent, so each part is still exactly the
+ * response its separate read returns, with the same read checksum and revisions.
+ */
+export async function admitEncounterCaptureParts(
+  ctx: QueryCtx,
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>
+) {
+  const admission = await admitOrdinaryEncounterCapture(
+    ctx,
+    scope,
+    await admitEncounterCaptureScope(ctx, scope)
+  )
+  return (request: BundledEncounterRequest) => {
+    const input = liveSessionEncounterRulesInputSchema.parse({ ...scope, request })
+    const parsed = input.request
+    if (
+      parsed.kind === 'TURN_COMMAND' ||
+      parsed.kind === 'CONCENTRATION_RESPONSE' ||
+      parsed.kind === 'ACTION_COMMAND' ||
+      parsed.kind === 'ACTION_RESPONSE'
+    )
+      throw new Error('A command admission admits its own scope.')
+    return readOrdinaryEncounterCapture(ctx, { ...input, request: parsed }, admission)
+  }
+}
+
+type EncounterCaptureScopeAdmission = Awaited<ReturnType<typeof admitEncounterCaptureScope>>
+type OrdinaryEncounterCaptureAdmission = Awaited<ReturnType<typeof admitOrdinaryEncounterCapture>>
+
+/** The scope authorization every capture but a turn admission makes; it ignores the request. */
+async function admitEncounterCaptureScope(
+  ctx: QueryCtx,
+  input: Omit<LiveSessionEncounterRulesInput, 'request'>
+) {
+  const { userId } = await requireIdentity(ctx)
+  if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
+  const movementAdmission = input.movement
+    ? await readLiveMovementAdmission(ctx, { ...input, movement: input.movement })
+    : null
+  if (
+    movementAdmission &&
+    (movementAdmission.state.id !== input.encounterId ||
+      movementAdmission.state.version !== input.expectedVersion)
+  )
+    throw new Error('Live movement Encounter scope or version mismatch.')
+  const concentrationAdmission = input.concentrationResponse
+    ? await readLiveConcentrationResponseAdmission(ctx, {
+        ...input,
+        concentrationResponse: input.concentrationResponse
+      })
+    : null
+  const turnAdmission = input.turnCommand
+    ? await readLiveEncounterTurnAdmission(ctx, input, input.turnCommand)
+    : null
+  if (
+    turnAdmission &&
+    (turnAdmission.kind !== 'READY' ||
+      turnAdmission.state.id !== input.encounterId ||
+      turnAdmission.state.version !== input.expectedVersion)
+  )
+    throw new Error('Live Session turn response is unavailable.')
+  return { userId, movementAdmission, concentrationAdmission, turnAdmission }
+}
+
+/** The authorization every ordinary (non-admission) capture makes; it ignores the request. */
+async function admitOrdinaryEncounterCapture(
+  ctx: QueryCtx,
+  input: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  {
+    userId,
+    movementAdmission,
+    concentrationAdmission,
+    turnAdmission
+  }: EncounterCaptureScopeAdmission
+) {
+  if (concentrationAdmission?.kind === 'REPLAY')
+    throw new Error('Completed concentration response cannot capture rules inputs.')
   const actionAdmission = input.action
     ? await readLiveEncounterActionScope(ctx, { ...input, action: input.action })
     : null
@@ -300,7 +373,22 @@ export async function readEncounterRulesCapture(
     state.version !== input.expectedVersion
   )
     throw new Error('Live Session Encounter scope or version mismatch.')
+  return { userId, campaign, membership, admitted: Boolean(admitted), movementAdmission, state }
+}
 
+/** One ordinary capture under its admitted scope: the response its separate read returns. */
+async function readOrdinaryEncounterCapture(
+  ctx: QueryCtx,
+  input: LiveSessionEncounterRulesInput & { request: OrdinaryEncounterRequest },
+  {
+    userId,
+    campaign,
+    membership,
+    admitted,
+    movementAdmission,
+    state
+  }: OrdinaryEncounterCaptureAdmission
+) {
   let response: SemanticResponse
   let characterId: string | undefined
   if (input.request.kind === 'MOVEMENT_INPUTS') {

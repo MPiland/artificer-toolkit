@@ -2,6 +2,7 @@ import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/sy
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { deriveOnce } from '../lib/transactionReads'
 
 export function readSystem(record: Doc<'systems'>) {
   if (checksumRuleDocument(record.document) !== record.checksum) {
@@ -18,5 +19,5 @@ export async function requireSystem(ctx: QueryCtx, systemId: string) {
     .withIndex('by_publicId', (q) => q.eq('id', systemId))
     .unique()
   if (!record) throw new Error('The selected Game System is unavailable.')
-  return readSystem(record)
+  return deriveOnce(record, readSystem)
 }

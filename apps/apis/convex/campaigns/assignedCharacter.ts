@@ -3,6 +3,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
+import { deriveOnce } from '../lib/transactionReads'
 
 export async function readCampaignAssignedCharacter(
   ctx: QueryCtx,
@@ -38,7 +39,7 @@ export async function readCampaignAssignedCharacter(
     record.systemId !== campaign.gameSystemId
   )
     throw new Error('Stored Campaign Character assignment mismatch.')
-  const character = readCharacterRecord(record)
+  const character = deriveOnce(record, readCharacterRecord)
   return {
     id: character.id,
     publicId: route.publicId,

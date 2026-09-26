@@ -33,6 +33,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
+import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
 import { refreshMovementSaveVision } from '../../tests/fixtures/automaticSceneMovement'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 import { seedConcentration } from '../../tests/fixtures/concentration'
@@ -867,3 +868,70 @@ it.each([
   },
   120_000
 )
+
+it('bundles exactly the parts of a Character mover response the separate captures return', async () => {
+  // The GM answers a reaction to a bound Character's move, with a second Character in the Run.
+  const value = await setupAutomaticCharacterMovement(['CHOICE'], false, {}, true)
+  if (!value.additionalCharacterActor) throw new Error('Expected the second Character actor.')
+  const epoch = crypto.randomUUID()
+  await value.base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: value.base.campaign.id,
+      epoch,
+      createdAt: value.base.campaign.createdAt
+    })
+  )
+  await refreshMovementSaveVision(value)
+  await value.owner.caller.mutation(observe, { saveId: value.saveId, characterRevisions: [] })
+  await value.owner.caller.mutation(prepareRoot, value.request)
+  const choice = (await value.owner.caller.mutation(finishRoot, value.request)).occurrence?.pending
+  if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    throw new Error('Expected the reaction choice.')
+  vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
+  vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
+  stubLiveSessionFetch((pathname, init) => value.owner.caller.fetch(pathname, init))
+  const scope = {
+    campaignId: value.base.campaign.id,
+    authorityEpoch: epoch,
+    expectedUserId: value.owner.userId,
+    expectedRole: 'OWNER' as const
+  }
+  const staged = await callLiveSessionRoute(
+    environment,
+    'fixture-access-token',
+    'encounterMovementBegin',
+    {
+      ...scope,
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        commandId: crypto.randomUUID(),
+        encounterId: value.base.run.id,
+        expectedVersion: choice.encounterVersion,
+        occurrenceId: choice.occurrenceId,
+        expectedOccurrenceVersion: choice.occurrenceVersion,
+        correlationId: null,
+        resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
+      }
+    }
+  )
+  if (staged.kind !== 'READY') throw new Error('Expected a receiving geometry save.')
+  const { bundle, separate } = await value.owner.caller.run((ctx) =>
+    readBundleAndSeparateCaptures(
+      ctx,
+      {
+        ...scope,
+        encounterId: value.base.run.id,
+        expectedVersion: choice.encounterVersion,
+        movement: { encounterId: value.base.run.id, saveId: staged.saveId, baseTokenOrdinal: 1 },
+        request: { kind: 'MOVEMENT_INPUTS' }
+      },
+      value.base.run.actors
+    )
+  )
+  expect(bundle.encounter[0]).toMatchObject({ kind: 'MOVEMENT_INPUTS' })
+  // Each Character is admitted under its own movement scope; both INPUTS are bundled.
+  expect(bundle.characters.map(({ character }) => character.id).sort()).toEqual(
+    [value.base.character.id, value.additionalCharacter!.id].sort()
+  )
+  expect(bundle).toEqual(separate)
+})

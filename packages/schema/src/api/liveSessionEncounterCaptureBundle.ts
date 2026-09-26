@@ -1,11 +1,13 @@
 import { z } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
 import {
-  liveSessionCharacterRulesResponseSchema,
+  liveSessionCharacterInputsResponseSchema,
   type LiveSessionCharacterRulesInput
 } from './liveSessionCharacterRules.js'
 import {
+  liveSessionEncounterInputsResponseSchema,
   liveSessionEncounterRulesInputSchema,
   liveSessionEncounterRulesRequestSchema,
   liveSessionEncounterRulesResponseSchema,
@@ -47,27 +49,42 @@ export const liveSessionEncounterCaptureBundleInputSchema = z
 
 /**
  * Each part is exactly the response its own capture returns, with its own read checksum and
- * revisions. A bundle stops before the first part that would fail; the planner then reads that part
- * separately and meets the same refusal.
+ * revisions, except that the Run's System travels once: the Run `inputs` and each Character's
+ * INPUTS omit it (their read checksums still cover it) and the receiver restores `system`. A bundle
+ * stops before the first part that would fail; the planner then reads that part separately and
+ * meets the same refusal.
  */
-export const liveSessionEncounterCaptureBundleSchema = z.strictObject({
-  encounter: z
-    .array(
-      z.strictObject({
-        request: liveSessionEncounterRulesRequestSchema,
-        response: liveSessionEncounterRulesResponseSchema
-      })
+export const liveSessionEncounterCaptureBundleSchema = z
+  .strictObject({
+    /** Every part except the Run INPUTS, in read order. */
+    encounter: z
+      .array(
+        z.strictObject({
+          request: liveSessionEncounterRulesRequestSchema,
+          response: liveSessionEncounterRulesResponseSchema
+        })
+      )
+      .check(z.maxLength(2 + MAX_ENCOUNTER_ACTORS * (1 + MAX_BUNDLED_MAINTENANCE_DEFINITIONS))),
+    /** The Run's System; null only when the bundle stopped before the Run INPUTS. */
+    system: z.nullable(systemAuthoredDtoSchema),
+    inputs: z.nullable(z.omit(liveSessionEncounterInputsResponseSchema, { system: true })),
+    characters: z
+      .array(
+        z.strictObject({
+          actorId: postgresUuidSchema,
+          response: z.omit(liveSessionCharacterInputsResponseSchema, { system: true })
+        })
+      )
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+  .check(
+    z.refine(
+      (bundle) =>
+        (bundle.system === null) === (bundle.inputs === null) &&
+        (bundle.system !== null || bundle.characters.length === 0),
+      'A bundle carries its System exactly when it carries Run inputs.'
     )
-    .check(z.maxLength(3 + MAX_ENCOUNTER_ACTORS * (1 + MAX_BUNDLED_MAINTENANCE_DEFINITIONS))),
-  characters: z
-    .array(
-      z.strictObject({
-        actorId: postgresUuidSchema,
-        response: liveSessionCharacterRulesResponseSchema
-      })
-    )
-    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-})
+  )
 
 export type LiveSessionEncounterCaptureBundleInput = z.infer<
   typeof liveSessionEncounterCaptureBundleInputSchema

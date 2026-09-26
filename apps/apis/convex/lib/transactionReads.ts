@@ -46,6 +46,37 @@ function deepFreeze<T>(value: T): T {
   return value
 }
 
+/** Documents a memoized reader served: deeply frozen and shared by every identical read. */
+const memoizedDocuments = new WeakSet<object>()
+const derivations = new WeakMap<object, Map<unknown, unknown>>()
+
+function rememberDocuments(value: unknown) {
+  if (typeof value !== 'object' || value === null) return
+  if (Array.isArray(value)) for (const entry of value) rememberDocuments(entry)
+  else if ('_id' in value) memoizedDocuments.add(value)
+  else if ('page' in value) rememberDocuments(value.page)
+}
+
+/**
+ * A pure derivation (parse, checksum verification) of a stored document. For a document a
+ * memoized reader served, it runs once per transaction and its deeply frozen result is shared, so
+ * callers must not mutate it; any other document derives on every call. `derive` must be a stable
+ * module-level function, since it keys the cache.
+ */
+export function deriveOnce<Document extends object, Value>(
+  document: Document,
+  derive: (document: Document) => Value
+): Value {
+  if (!memoizedDocuments.has(document)) return derive(document)
+  let values = derivations.get(document)
+  if (!values) {
+    values = new Map()
+    derivations.set(document, values)
+  }
+  if (!values.has(derive)) values.set(derive, deepFreeze(derive(document)))
+  return values.get(derive) as Value
+}
+
 /**
  * One query transaction's reader that serves each identical read once: the same `get`, or the same
  * table, index range, order and terminal call. Reads in one query see one snapshot, so a repeat
@@ -58,7 +89,10 @@ export function memoizeTransactionReads(db: DatabaseReader): DatabaseReader {
   function once(key: string, read: () => Promise<unknown>): Promise<unknown> {
     let result = reads.get(key)
     if (!result) {
-      result = read().then(deepFreeze)
+      result = read().then((value) => {
+        rememberDocuments(value)
+        return deepFreeze(value)
+      })
       reads.set(key, result)
     }
     return result

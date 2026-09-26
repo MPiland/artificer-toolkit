@@ -9,6 +9,7 @@ import {
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput,
+  type LiveSessionEncounterRulesRequest,
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
@@ -186,15 +187,23 @@ async function captureBundle(
     // Concentration checks read each damaged actor's Concentration slot.
     maintenanceDefinitionIds: [DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID]
   })
-  for (const { request, response } of bundle.encounter) {
+  // The Run's System travels once; its INPUTS responses get it back.
+  const { system, inputs } = bundle
+  const parts: Array<{
+    request: LiveSessionEncounterRulesRequest
+    response: LiveSessionEncounterRulesResponse
+  }> = [...bundle.encounter]
+  if (inputs && system) parts.push({ request: { kind: 'INPUTS' }, response: { ...inputs, system } })
+  for (const { request, response } of parts) {
     const input = liveSessionEncounterRulesInputSchema.parse({ ...admission, request })
     captures.bundle(bundledCaptureKey('encounterRules', input), {
       route: 'encounterRules',
       response
     })
   }
-  for (const { actorId, response } of bundle.characters) {
-    if (response.kind !== 'INPUTS') throw new Error('Bundled Character inputs are unavailable.')
+  for (const { actorId, response: characterInputs } of bundle.characters) {
+    if (!system) throw new Error('Bundled Character inputs are unavailable.')
+    const response = { ...characterInputs, system }
     const input = liveSessionCharacterRulesInputSchema.parse({
       ...liveSessionCharacterRulesScope(admission, {
         id: actorId,

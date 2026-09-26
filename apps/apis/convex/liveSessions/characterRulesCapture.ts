@@ -5,8 +5,12 @@ import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/
 import {
   liveSessionCharacterRulesInputSchema,
   liveSessionCharacterRulesResponseSchema,
+  type LiveSessionCharacterRulesInput,
   type LiveSessionCharacterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
+import { liveSessionCharacterRulesScope } from '@artificer-toolkit/schema/api/liveSessionEncounterCaptureBundle'
+import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internalQuery, type QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
@@ -30,6 +34,7 @@ import { readVisibleAuthoredRouteId } from '../content/routeIds'
 import { requireSystem } from '../content/systemDocuments'
 import { isImportRowVisible } from '../imports/visibility'
 import { requireIdentity } from '../lib/identity'
+import { deriveOnce } from '../lib/transactionReads'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readLiveConcentrationResponseAdmission } from './concentrationResponseAdmission'
@@ -44,6 +49,42 @@ export async function readCharacterRulesCapture(
   args: unknown
 ): Promise<LiveSessionCharacterRulesResponse> {
   const input = liveSessionCharacterRulesInputSchema.parse(args)
+  return readAdmittedCharacterCapture(ctx, input, await admitCharacterCaptureScope(ctx, input))
+}
+
+/**
+ * Admits one Encounter capture scope once for several Character actors' INPUTS (a capture bundle).
+ * The scope's authorization does not depend on the Character, so each response is still exactly
+ * what its separate read returns. A movement scope names each Character's own actor, so each
+ * Character is admitted separately there.
+ */
+export function admitCharacterInputsCaptures(
+  ctx: QueryCtx,
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>
+) {
+  let admission: Promise<CharacterCaptureScopeAdmission> | undefined
+  return async (actor: { id: string; sourceId: string }) => {
+    const input = liveSessionCharacterRulesInputSchema.parse({
+      ...liveSessionCharacterRulesScope(scope, actor),
+      request: { kind: 'INPUTS' }
+    })
+    const admitted =
+      scope.movement || !admission ? admitCharacterCaptureScope(ctx, input) : admission
+    admission = admitted
+    return readAdmittedCharacterCapture(ctx, input, await admitted)
+  }
+}
+
+type CharacterCaptureScopeAdmission = Awaited<ReturnType<typeof admitCharacterCaptureScope>>
+
+/**
+ * The authorization every Character capture of one scope makes, and the Character sources an
+ * admitted command scope covers (null: an owner read covers any assigned Character).
+ */
+async function admitCharacterCaptureScope(
+  ctx: QueryCtx,
+  input: Omit<LiveSessionCharacterRulesInput, 'request' | 'characterId'>
+) {
   const { userId } = await requireIdentity(ctx)
   if (userId !== input.expectedUserId) throw new Error('Live Session identity mismatch.')
   if (
@@ -52,14 +93,19 @@ export async function readCharacterRulesCapture(
     ).length > 1
   )
     throw new Error('Live Session capture scopes cannot be combined.')
+  let characters: { sourceIds: ReadonlySet<string>; refusal: string } | null = null
+  const characterSources = (actors: readonly EncounterRunActorState[]) =>
+    new Set(actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])))
   const movementAdmission = input.movement
     ? await readLiveMovementAdmission(ctx, { ...input, movement: input.movement })
     : null
-  if (movementAdmission && input.movement) {
-    const actor = await readRunActor(ctx, movementAdmission.state, input.movement.actorId)
-    if (actor.kind !== 'CHARACTER' || actor.sourceId !== input.characterId)
-      throw new Error('Movement Character source is unavailable.')
-  }
+  if (movementAdmission && input.movement)
+    characters = {
+      sourceIds: characterSources([
+        await readRunActor(ctx, movementAdmission.state, input.movement.actorId)
+      ]),
+      refusal: 'Movement Character source is unavailable.'
+    }
   const concentrationAdmission = input.concentrationResponse
     ? await readLiveConcentrationResponseAdmission(ctx, {
         campaignId: input.campaignId,
@@ -71,14 +117,14 @@ export async function readCharacterRulesCapture(
         concentrationResponse: input.concentrationResponse
       })
     : null
-  if (
-    concentrationAdmission &&
-    (concentrationAdmission.kind !== 'READY' ||
-      !concentrationAdmission.actors.some(
-        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
-      ))
-  )
-    throw new Error('Concentration Character is unavailable.')
+  if (concentrationAdmission) {
+    if (concentrationAdmission.kind !== 'READY')
+      throw new Error('Concentration Character is unavailable.')
+    characters = {
+      sourceIds: characterSources(concentrationAdmission.actors),
+      refusal: 'Concentration Character is unavailable.'
+    }
+  }
   const turnAdmission = input.turnCommand
     ? await readLiveEncounterTurnAdmission(
         ctx,
@@ -94,12 +140,13 @@ export async function readCharacterRulesCapture(
     if (
       turnAdmission.kind !== 'READY' ||
       turnAdmission.state.id !== input.turnCommand.encounterId.toLowerCase() ||
-      turnAdmission.state.version !== input.turnCommand.expectedVersion ||
-      !(await readRunActors(ctx, turnAdmission.state)).some(
-        (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
-      )
+      turnAdmission.state.version !== input.turnCommand.expectedVersion
     )
       throw new Error('Turn Character source is unavailable.')
+    characters = {
+      sourceIds: characterSources(await readRunActors(ctx, turnAdmission.state)),
+      refusal: 'Turn Character source is unavailable.'
+    }
   }
   const actionCommand =
     input.action?.kind === 'ACTION_COMMAND' ? input.action.command : input.action?.response
@@ -112,13 +159,11 @@ export async function readCharacterRulesCapture(
           action: input.action
         })
       : null
-  if (
-    actionAdmission &&
-    !(await readRunActors(ctx, actionAdmission.state)).some(
-      (actor) => actor.kind === 'CHARACTER' && actor.sourceId === input.characterId
-    )
-  )
-    throw new Error('Action Character source is unavailable.')
+  if (actionAdmission)
+    characters = {
+      sourceIds: characterSources(await readRunActors(ctx, actionAdmission.state)),
+      refusal: 'Action Character source is unavailable.'
+    }
   const { campaign, membership } =
     movementAdmission ?? (await requireCampaignAuthority(ctx, input.campaignId, userId))
   const admitted = concentrationAdmission || movementAdmission || turnAdmission || actionAdmission
@@ -131,6 +176,17 @@ export async function readCharacterRulesCapture(
       epoch: input.authorityEpoch
     })
   }
+  return { userId, campaign, admitted: Boolean(admitted), characters }
+}
+
+/** One Character capture under its admitted scope: the response its separate read returns. */
+async function readAdmittedCharacterCapture(
+  ctx: QueryCtx,
+  input: LiveSessionCharacterRulesInput,
+  { userId, campaign, admitted, characters }: CharacterCaptureScopeAdmission
+): Promise<LiveSessionCharacterRulesResponse> {
+  if (characters && !characters.sourceIds.has(input.characterId))
+    throw new Error(characters.refusal)
   const { assignment } = await requireCampaignCharacterAuthority(
     ctx,
     campaign.id,
@@ -159,7 +215,7 @@ export async function readCharacterRulesCapture(
   if (input.request.kind === 'INPUTS') {
     const response = {
       kind: 'INPUTS' as const,
-      character: readCharacterRecord(active),
+      character: deriveOnce(active, readCharacterRecord),
       ...(input.movement ? { movementOwner: active } : {}),
       updatedAt: active.updatedAt,
       characterChecksum: active.checksum,

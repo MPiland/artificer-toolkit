@@ -53,27 +53,30 @@ export const liveSessionCharacterRulesInputSchema = z.extend(liveSessionBootstra
   request: liveSessionCharacterRulesRequestSchema
 })
 
+/** A Character capture's INPUTS: the stored Character, its System and Campaign overlay. */
+export const liveSessionCharacterInputsResponseSchema = z.strictObject({
+  kind: z.literal('INPUTS'),
+  revisions: liveSessionRulesRevisionsSchema,
+  readChecksum: projectionChecksumSchema,
+  character: characterAuthoredDtoSchema,
+  movementOwner: z.optional(characterStoredRowSchema),
+  updatedAt: z.iso.datetime(),
+  characterChecksum: projectionChecksumSchema,
+  streamVersion: z.number().check(z.int()).check(z.nonnegative()),
+  sheetState: characterSheetStateSchema,
+  system: systemAuthoredDtoSchema,
+  campaign: z.strictObject({
+    id: postgresUuidSchema,
+    status: z.literal('ACTIVE'),
+    contentMaturity: z.enum(['STANDARD', 'MATURE']),
+    attunementSlotOverride: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    state: campaignCharacterStateSchema,
+    currencyOptions: z.array(characterSheetCurrencyOptionDtoSchema)
+  })
+})
+
 export const liveSessionCharacterRulesResponseSchema = z.discriminatedUnion('kind', [
-  z.strictObject({
-    kind: z.literal('INPUTS'),
-    revisions: liveSessionRulesRevisionsSchema,
-    readChecksum: projectionChecksumSchema,
-    character: characterAuthoredDtoSchema,
-    movementOwner: z.optional(characterStoredRowSchema),
-    updatedAt: z.iso.datetime(),
-    characterChecksum: projectionChecksumSchema,
-    streamVersion: z.number().check(z.int()).check(z.nonnegative()),
-    sheetState: characterSheetStateSchema,
-    system: systemAuthoredDtoSchema,
-    campaign: z.strictObject({
-      id: postgresUuidSchema,
-      status: z.literal('ACTIVE'),
-      contentMaturity: z.enum(['STANDARD', 'MATURE']),
-      attunementSlotOverride: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-      state: campaignCharacterStateSchema,
-      currencyOptions: z.array(characterSheetCurrencyOptionDtoSchema)
-    })
-  }),
+  liveSessionCharacterInputsResponseSchema,
   z.strictObject({
     kind: z.literal('PUBLICATIONS'),
     readChecksum: projectionChecksumSchema,

@@ -2,7 +2,7 @@ import { convexTest } from 'convex-test'
 import { expect, it } from 'vitest'
 
 import schema from '../schema'
-import { memoizeTransactionReads } from './transactionReads'
+import { deriveOnce, memoizeTransactionReads } from './transactionReads'
 
 it('serves identical reads once, frozen, and keeps different ranges apart', async () => {
   const t = convexTest(schema)
@@ -46,5 +46,30 @@ it('serves identical reads once, frozen, and keeps different ranges apart', asyn
         .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER'))
         .take(4)
     )
+  })
+})
+
+it('derives a memoized document once, frozen, and any other document on every call', async () => {
+  const t = convexTest(schema)
+  const id = crypto.randomUUID()
+  const documentId = await t.run((ctx) =>
+    ctx.db.insert('sceneVisionRevisions', { scope: 'CHARACTER', id, revision: 'first' })
+  )
+  let derived = 0
+  const derive = (document: { revision: string }) => {
+    derived += 1
+    return { revision: document.revision }
+  }
+  await t.run(async (ctx) => {
+    const memoized = await memoizeTransactionReads(ctx.db).get(documentId)
+    if (!memoized) throw new Error('Missing the memoized document.')
+    const first = deriveOnce(memoized, derive)
+    expect(deriveOnce(memoized, derive)).toBe(first)
+    expect(Object.isFrozen(first)).toBe(true)
+    expect(derived).toBe(1)
+    const plain = await ctx.db.get(documentId)
+    if (!plain) throw new Error('Missing the document.')
+    expect(deriveOnce(plain, derive)).not.toBe(deriveOnce(plain, derive))
+    expect(derived).toBe(3)
   })
 })

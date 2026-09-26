@@ -169,6 +169,15 @@ export const liveSessionEncounterRulesInputSchema = z.extend(liveSessionBootstra
   request: liveSessionEncounterRulesRequestSchema
 })
 
+/** An Encounter capture's Run INPUTS: its state and System. */
+export const liveSessionEncounterInputsResponseSchema = z.strictObject({
+  kind: z.literal('INPUTS'),
+  revisions: liveSessionRulesRevisionsSchema,
+  readChecksum: projectionChecksumSchema,
+  state: encounterRunStateSchema,
+  system: systemAuthoredDtoSchema
+})
+
 export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('MOVEMENT_INPUTS'),
@@ -338,13 +347,7 @@ export const liveSessionEncounterRulesResponseSchema = z.discriminatedUnion('kin
     result: z.nullable(encounterCommandResultDtoSchema),
     snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema)
   }),
-  z.strictObject({
-    kind: z.literal('INPUTS'),
-    revisions: liveSessionRulesRevisionsSchema,
-    readChecksum: projectionChecksumSchema,
-    state: encounterRunStateSchema,
-    system: systemAuthoredDtoSchema
-  }),
+  liveSessionEncounterInputsResponseSchema,
   z.strictObject({
     kind: z.literal('ACTOR'),
     revisions: liveSessionRulesRevisionsSchema,

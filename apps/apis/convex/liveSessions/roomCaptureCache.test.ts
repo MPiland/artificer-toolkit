@@ -34,6 +34,7 @@ import {
   workerEnvironment
 } from '../../tests/fixtures/liveSessionWorker'
 import { input as characterInput } from '../../tests/fixtures/characters'
+import { readBundleAndSeparateCaptures } from '../../tests/fixtures/captureBundleParity'
 import { executeEncounterCommand } from '../../tests/fixtures/playerControl'
 import { api, components, internal } from '../_generated/api'
 import { withSceneVisionTracking } from '../lib/mutations'
@@ -521,6 +522,31 @@ it('refuses a stale plan and misses the cache when an import job changes visibil
   expect((await fixture.plan(command, fixture.captureCache)).routes).toEqual(stale.routes)
 }, 120_000)
 
+it('bundles exactly the responses the separate captures return, with the System once', async () => {
+  const fixture = await roomFixture('AUTO_ROLL')
+  const action = concentrationAction(fixture)
+  const scope = fixture.scope(action)
+  const admissions = [
+    { kind: 'ACTION_COMMAND' as const, command: action },
+    {
+      kind: 'TURN_COMMAND' as const,
+      command: {
+        type: 'ADVANCE_TURN' as const,
+        encounterId: fixture.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: fixture.run.version
+      }
+    }
+  ]
+  for (const request of admissions) {
+    const { bundle, separate } = await fixture.owner.caller.run((ctx) =>
+      readBundleAndSeparateCaptures(ctx, { ...scope, request }, fixture.run.actors)
+    )
+    expect(bundle.characters).toHaveLength(1)
+    expect(bundle.encounter.length).toBe(request.kind === 'TURN_COMMAND' ? 7 : 6)
+    expect(bundle).toEqual(separate)
+  }
+}, 120_000)
 /**
  * Meters one transaction's reads as they execute: index ranges (each executed get or query),
  * documents, all bytes and distinct bytes. Building a query reads nothing.
@@ -746,12 +772,13 @@ it('keeps the largest legal action bundle within the Convex transaction limits',
     })
     return { bundle, usage: metered.usage, returned: JSON.stringify(bundle).length }
   })
-  expect(bundle.encounter).toHaveLength(2 + 2 * MAX_ENCOUNTER_ACTORS)
+  expect(bundle.encounter).toHaveLength(1 + 2 * MAX_ENCOUNTER_ACTORS)
+  expect(bundle.inputs).not.toBeNull()
   expect(bundle.characters).toHaveLength(players)
   // Convex limits per query: 4,096 index ranges, 32,000 documents, 16 MiB read, 16 MiB returned.
   // Each is asserted under a quarter of its limit. Measured with the read memo: 437 ranges, 307
-  // documents, 1.4 MB read with repeats (0.85 MB distinct), 1.1 MB returned. Without it: 2,922
-  // ranges, 2,543 documents and 38.8 MB read, over the read limit.
+  // documents, 1.4 MB read with repeats (0.85 MB distinct), 0.7 MB returned (1.1 MB before the System
+  // travelled once). Without the memo: 2,922 ranges, 2,543 documents and 38.8 MB read, over the limit.
   expect(usage.ranges).toBeLessThan(4_096 / 4)
   expect(usage.documents).toBeLessThan(32_000 / 4)
   expect(usage.bytes).toBeLessThan((16 * 1024 * 1024) / 4)
