@@ -28,6 +28,7 @@ import { nativeActionPendingResult } from '../encounters/actionPending'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readDisarmAdmission } from '../encounters/disarmAdmission'
+import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
 import { readRunActors } from '../encounters/documents'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { presentEncounterResultForMember } from '../encounters/resultPresentation'
@@ -199,13 +200,17 @@ export const commit = internalMutation({
     })
     if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
       throw new Error('Live Session Disarm settlement mismatch.')
-    const nextActors = actors.map((actor) =>
-      actor.id === settled.actor.id
-        ? settled.actor
-        : actor.id === settled.target.id
-          ? settled.target
-          : actor
-    )
+    const nextActors = await consumeEncounterAllyAdvantages(ctx, {
+      actors: actors.map((actor) =>
+        actor.id === settled.actor.id
+          ? settled.actor
+          : actor.id === settled.target.id
+            ? settled.target
+            : actor
+      ),
+      uses: input.allyAdvantageUses,
+      rollerActorIds: [root.actorId, root.targetActorId]
+    })
     const nextState = encounterRunStateSchema.parse({
       ...state,
       version: state.version + 1,

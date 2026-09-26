@@ -13,6 +13,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { MutationCtx } from '../_generated/server'
+import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
 import { applyLiveEncounterMechanicsBatch } from './encounterActionMechanics'
 import {
   prepareLiveEncounterActionMaintenance,
@@ -335,5 +336,9 @@ export async function persistLiveMovementReaction(
     ) !== checksumCanonicalJson(receipt.characterTransitions)
   )
     throw new Error('Live movement reaction Character transition receipt is incomplete.')
-  return actors
+  return consumeEncounterAllyAdvantages(ctx, {
+    actors,
+    uses: step.allyAdvantageUses,
+    rollerActorIds: [source.id]
+  })
 }

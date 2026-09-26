@@ -11,8 +11,14 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import {
+  encounterBasicActionEffects,
+  withEncounterBasicActionDefense
+} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { prepareNativeLiveCharacterSheet } from './nativeCharacterRules.js'
-import type { LiveCaptureReads } from './nativeCaptureCache.js'
+import { captureEncounterRules, type LiveCaptureReads } from './nativeCaptureCache.js'
+import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 export async function readNativeLiveActorsAndEffects(input: {
@@ -112,15 +118,43 @@ export async function prepareNativeLiveMovementTarget(input: {
       : null
   const activeEffects = input.activeEffectsByActorId.get(actor.id)
   if (!activeEffects) throw new Error('Encounter actor effects are unavailable.')
-  return {
-    target: buildMovementTarget({
-      actor,
-      activeEffects,
-      gameSystemId: state.gameSystemId,
-      campaignId: state.campaignId,
-      characterFacts,
-      includeReactionSources: true
-    }),
-    revisions: characterFacts?.revisions ?? []
+  let revisions = characterFacts?.revisions ?? []
+  const capture = async (request: LiveSessionEncounterRulesRequest) => {
+    const read = await captureEncounterRules(
+      input.environment,
+      input.accessToken,
+      liveSessionEncounterRulesInputSchema.parse({ ...scope, request }),
+      revisions,
+      input.captures
+    )
+    revisions = mergeNativeRulesRevisions(revisions, read.revisions)
+    return read.response
   }
+  const target = buildMovementTarget({
+    actor,
+    activeEffects,
+    gameSystemId: state.gameSystemId,
+    campaignId: state.campaignId,
+    characterFacts,
+    includeReactionSources: true
+  })
+  // Only an actor with a defensive basic-action effect (Dodge) reads its condition definitions.
+  const defended = encounterBasicActionEffects(actor).some(
+    (effect) =>
+      effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' || effect.mechanic === 'SAVE_ADVANTAGE'
+  )
+    ? await withEncounterBasicActionDefense({
+        target,
+        gameSystemId: state.gameSystemId,
+        definitions: {
+          requireCurrent: async (definitionId) => {
+            const response = await capture({ kind: 'DEFINITION', definitionId })
+            if (response.kind !== 'DEFINITION' || !response.definition)
+              throw new Error('Basic action defense definition is unavailable.')
+            return response.definition
+          }
+        }
+      })
+    : target
+  return { target: defended, revisions }
 }

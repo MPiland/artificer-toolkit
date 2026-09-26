@@ -1,27 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import type { BasicActionReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/basicActions'
-import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
-  encounterRunActorStateSchema,
-  type EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+  reusableDefinitionDocumentDtoSchema,
+  type ReusableDefinitionCurrentDto
+} from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
   encounterBasicActionAllyAdvantage,
-  encounterBasicActionDefenseContributors,
   encounterBasicActionEffects,
   planEncounterBasicAction,
   requireEncounterBasicActionDefinition,
   suppressesEncounterOpportunityAttacks,
+  withEncounterBasicActionDefense,
   withEncounterBasicActionEffects,
   withoutEncounterAllyAdvantage
 } from '../encounterBasicActions.js'
+import type { MovementTarget } from '../encounterMovementTargets.js'
 import { labelEncounterRollModeReasons } from '../encounterRollModeReasons.js'
 
 const SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const HOMEBREW_SYSTEM_ID = '00000000-0000-0000-0000-0000000000aa'
 const ENCOUNTER_ID = '11111111-1111-4111-8111-111111111111'
+const DEXTERITY_ID = '00000000-0000-0000-0011-000200000000'
+const ACTOR_ACTION_CAPABILITY_ID = '00000000-0000-4000-8000-0000000000d4'
+const INCAPACITATED_ID = '00000000-0000-0000-0002-000700000000'
 const IDS = {
   dash: '00000000-0000-4000-8000-000000000b01',
   disengage: '00000000-0000-4000-8000-000000000b02',
@@ -63,8 +67,90 @@ const fighter = actor('33333333-3333-4333-8333-333333333331')
 const rogue = actor('33333333-3333-4333-8333-333333333332')
 const ogre = actor('33333333-3333-4333-8333-333333333333', 'HOSTILE')
 
-function turn(round: number, currentActorId: string) {
-  return { round, currentActorId, gameSystemId: SYSTEM_ID } as EncounterRunState
+const WISDOM_ID = '00000000-0000-0000-0011-000500000000'
+const WALK_ID = '00000000-0000-0000-000c-000100000000'
+
+function currentDefinition(
+  document: { id: string },
+  definitionFamilyKey: string
+): ReusableDefinitionCurrentDto {
+  return {
+    id: document.id,
+    gameSystemId: SYSTEM_ID,
+    contentSourceId: '44444444-4444-4444-8444-444444444444',
+    definitionFamilyKey,
+    label: definitionFamilyKey,
+    description: null,
+    document: reusableDefinitionDocumentDtoSchema.parse(document),
+    checksum: checksumRuleDocument(document),
+    contractVersion: 1,
+    version: 1,
+    publishedAt: '2026-09-26T00:00:00.000Z',
+    publishedBy: '55555555-5555-4555-8555-555555555555'
+  }
+}
+
+/** The SRD actor-action capability and the Incapacitated condition that suppresses it. */
+const definitions = {
+  requireCurrent: async (id: string) => {
+    if (id === ACTOR_ACTION_CAPABILITY_ID)
+      return currentDefinition(
+        { schemaVersion: 1, kind: 'RULE_CAPABILITY', id, gameSystemId: SYSTEM_ID, usage: null },
+        'rule-capability'
+      )
+    if (id === INCAPACITATED_ID)
+      return currentDefinition(
+        {
+          schemaVersion: 1,
+          kind: 'CONDITION_RULE_STATE',
+          id,
+          gameSystemId: SYSTEM_ID,
+          capabilitySuppressions: [
+            {
+              id,
+              order: 0,
+              kind: 'CAPABILITY_SUPPRESS',
+              capabilityDefinitionIds: [ACTOR_ACTION_CAPABILITY_ID]
+            }
+          ],
+          perceptionContributions: []
+        },
+        'condition-rule-state'
+      )
+    throw new Error(`Unexpected definition ${id}.`)
+  }
+}
+
+function target(
+  actorState: ReturnType<typeof actor>,
+  options: { conditions?: string[] } = {}
+): MovementTarget {
+  return {
+    characterFacts: null,
+    actor: actorState,
+    activeEffects: [],
+    state: { current: 10, temporary: 0, conditions: options.conditions ?? [] },
+    initialConditionRows: null,
+    effectiveMaximumHitPoints: 10,
+    baseScalarValues: {},
+    effectiveScalarValues: {},
+    baseRulePolicyOutput: null,
+    effectiveRulePolicyOutput: null,
+    targetDerivedFacts: {
+      savingThrowDefinitions: [
+        { abilityDefinitionId: DEXTERITY_ID, rollMode: 'NORMAL', contributors: [] },
+        { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
+      ]
+    },
+    defenses: [],
+    qualifiedDefenses: [],
+    conditionImmunityIds: [],
+    characterCurrentness: null,
+    basicActionAttackContributors: []
+  }
+}
+function turn(turnSequence: number, currentActorId: string) {
+  return { turnSequence, currentActorId }
 }
 
 function document(
@@ -79,7 +165,9 @@ function document(
     gameSystemId,
     rulesText: 'Rules text.',
     actionCost: 'ACTION',
-    mechanics
+    mechanics,
+    saveAbilityIds: mechanics.includes('SAVE_ADVANTAGE') ? [DEXTERITY_ID] : [],
+    suspendedWhileUnableToActOrMove: mechanics.includes('SAVE_ADVANTAGE')
   }
 }
 
@@ -136,32 +224,76 @@ describe('basic action mechanics (Q11)', () => {
     })
     expect(suppressesEncounterOpportunityAttacks(state, disengaged)).toBe(true)
     expect(suppressesEncounterOpportunityAttacks(state, fighter)).toBe(false)
-    // Its turn ended: another actor is current, or a later round began.
-    expect(suppressesEncounterOpportunityAttacks(turn(2, ogre.id), disengaged)).toBe(false)
-    expect(suppressesEncounterOpportunityAttacks(turn(3, fighter.id), disengaged)).toBe(false)
+    // Its turn ended: another actor is current, or the turn later returned to the actor (D45).
+    expect(suppressesEncounterOpportunityAttacks(turn(3, ogre.id), disengaged)).toBe(false)
+    expect(suppressesEncounterOpportunityAttacks(turn(4, fighter.id), disengaged)).toBe(false)
   })
 
-  it('Dodge gives attacks against the actor disadvantage, and the reason reads "Dodge"', () => {
+  it('Dodge gives attacks against the actor disadvantage and its Dexterity saves advantage', async () => {
     const { actor: dodging } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
       ally: null,
-      document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST'])
+      document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
     })
-    const contributors = encounterBasicActionDefenseContributors(dodging)
-    expect(contributors).toEqual([
+    const defended = await withEncounterBasicActionDefense({
+      target: target(dodging),
+      gameSystemId: SYSTEM_ID,
+      definitions
+    })
+    const contributor = (influence: 'ADVANTAGE' | 'DISADVANTAGE') => ({
+      sourceId: `basic-action:${IDS.dodge}`,
+      grantId: null,
+      domainKey: `basic-action:${fighter.id}`,
+      influence
+    })
+    expect(defended.basicActionAttackContributors).toEqual([contributor('DISADVANTAGE')])
+    expect(defended.targetDerivedFacts.savingThrowDefinitions).toEqual([
       {
-        sourceId: `basic-action:${IDS.dodge}`,
-        grantId: null,
-        domainKey: `basic-action:${fighter.id}`,
-        influence: 'DISADVANTAGE'
-      }
+        abilityDefinitionId: DEXTERITY_ID,
+        rollMode: 'ADVANTAGE',
+        contributors: [contributor('ADVANTAGE')]
+      },
+      { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
     ])
-    expect(encounterBasicActionDefenseContributors(fighter)).toEqual([])
     const reasons = labelEncounterRollModeReasons(new Map([[`basic-action:${IDS.dodge}`, 'Dodge']]))
-    expect(reasons({ rollMode: 'DISADVANTAGE', contributors })).toEqual(['Dodge'])
+    expect(
+      reasons({ rollMode: 'DISADVANTAGE', contributors: defended.basicActionAttackContributors })
+    ).toEqual(['Dodge'])
+    expect(
+      await withEncounterBasicActionDefense({
+        target: target(fighter),
+        gameSystemId: SYSTEM_ID,
+        definitions
+      })
+    ).toEqual(target(fighter))
   })
 
+  it('Dodge applies nothing while the actor is incapacitated or its speed is 0', async () => {
+    const { actor: dodging } = planEncounterBasicAction({
+      state: turn(2, fighter.id),
+      actor: fighter,
+      ally: null,
+      document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
+    })
+    for (const suspended of [
+      target(dodging, { conditions: [INCAPACITATED_ID] }),
+      target(
+        encounterRunActorStateSchema.parse({
+          ...dodging,
+          snapshot: { payload: { speeds: [{ speedId: WALK_ID, amount: 0, unit: 'FEET' }] } }
+        })
+      )
+    ]) {
+      const defended = await withEncounterBasicActionDefense({
+        target: suspended,
+        gameSystemId: SYSTEM_ID,
+        definitions
+      })
+      expect(defended.basicActionAttackContributors).toEqual([])
+      expect(defended.targetDerivedFacts).toEqual(suspended.targetDerivedFacts)
+    }
+  })
   it('Help grants one attack advantage to the named ally', () => {
     const { actor: helper, warnings } = planEncounterBasicAction({
       state: turn(2, fighter.id),

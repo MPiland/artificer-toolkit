@@ -26,8 +26,8 @@ import {
 } from '../shared/encounterRuleWarnings.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
-  encounterBasicActionEffectDtoSchema,
-  type EncounterBasicActionEffectDto
+  encounterAllyAdvantageUsesDtoSchema,
+  type EncounterAllyAdvantageUseDto
 } from '../shared/basicActions.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
@@ -96,8 +96,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   }[]
   pendingConcentration: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
-  /** The helper's ally advantage (Help, Q11) this attack used; its commit removes it. */
-  allyAdvantageUse: { helperActorId: string; effect: EncounterBasicActionEffectDto } | null
+  /** The helpers' ally advantages (Help, Q11) this attack used; its commit removes them. */
+  allyAdvantageUses: EncounterAllyAdvantageUseDto[]
 }
 export const liveSessionEncounterConcentrationFields = {
   concentration: z
@@ -129,10 +129,5 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
     maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
     ...liveSessionEncounterConcentrationFields,
     cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-    allyAdvantageUse: z.nullable(
-      z.strictObject({
-        helperActorId: postgresUuidSchema,
-        effect: encounterBasicActionEffectDtoSchema
-      })
-    )
+    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
   })

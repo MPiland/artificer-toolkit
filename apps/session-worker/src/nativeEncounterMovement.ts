@@ -6,6 +6,7 @@ import {
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import type { EncounterAllyAdvantageUseDto } from '@artificer-toolkit/schema/shared/basicActions'
 import {
   liveSessionMovementSettlementSchema,
   type LiveSessionMovementSettlement
@@ -46,7 +47,14 @@ import { evaluateEncounterMovementPassageContest } from '@artificer-toolkit/rule
 import { prepareEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import {
+  lockedRelationshipActionFacts,
+  mergeCanonicalD20Contributors
+} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import {
+  encounterAllyAdvantageUses,
+  encounterBasicActionAllyAdvantage
+} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -82,6 +90,7 @@ export type NativeLiveMovementSettlement =
       plan: {
         actor: EncounterRunActorState
         consumption: EncounterActionEconomyConsumption
+        allyAdvantageUses: EncounterAllyAdvantageUseDto[]
       }
     }
 
@@ -178,17 +187,26 @@ export async function prepareNativeLiveMovement(
           ...mechanics,
           overridable: false,
           loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
-          loadRelationshipFacts: async (relationship) =>
-            lockedRelationshipActionFacts({
-              actionEffectId: relationship.actionEffectId,
-              sourceActorId: relationship.sourceActorId,
-              targetActorId: relationship.targetActorId,
-              targets: {
-                activeEffectsByActorId: new Map(
-                  [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
-                )
-              }
+          loadRelationshipFacts: async (relationship) => {
+            // The reaction's actors carry the Helps (basic action, Q11) this movement left unused.
+            const allyAdvantage = encounterBasicActionAllyAdvantage({
+              actors: relationship.actors,
+              attackerId: relationship.sourceActorId
             })
+            return mergeCanonicalD20Contributors(
+              lockedRelationshipActionFacts({
+                actionEffectId: relationship.actionEffectId,
+                sourceActorId: relationship.sourceActorId,
+                targetActorId: relationship.targetActorId,
+                targets: {
+                  activeEffectsByActorId: new Map(
+                    [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
+                  )
+                }
+              }),
+              allyAdvantage ? [allyAdvantage.contributor] : []
+            )
+          }
         }),
       prepareMaintenance: (prepared, _actorUserId, maintenanceProjection) =>
         prepareNativeLiveActionMaintenance({
@@ -212,8 +230,19 @@ export async function prepareNativeLiveMovement(
     )
     for (const target of result.projectedTargets.values())
       finalActors.set(target.actor.id, target.actor)
+    const { prepared } = plan.prepared
     reactionSettlements.set(plan, {
       kind: 'REACTION',
+      // Only an attack roll uses the reactor's Help (basic action, Q11).
+      allyAdvantageUses:
+        typeof prepared.binding.actionMechanic.attackBonus === 'number'
+          ? encounterAllyAdvantageUses({
+              actors: prepared.actors,
+              participants: [
+                { actorId: prepared.actor.id, contributors: prepared.relationshipContributors }
+              ]
+            })
+          : [],
       execution: result.reactionExecution,
       resourceConsumption: plan.prepared.prepared.characterActionState?.resourceConsumption ?? null,
       createdEffects: result.effects.createdEffects,
@@ -485,7 +514,13 @@ export async function prepareNativeLiveMovement(
                       ...economy,
                       loadTarget: async () => economy.target,
                       definitions
-                    })
+                    }),
+                  // The contest is its call's first roll, so every Help it reads is unused.
+                  allyAdvantage: (actorId) =>
+                    encounterBasicActionAllyAdvantage({
+                      actors: captured.actors,
+                      attackerId: actorId
+                    })?.contributor ?? null
                 },
                 choice
               ),
@@ -580,7 +615,8 @@ export async function prepareNativeLiveMovement(
       return liveSessionMovementSettlementSchema.parse({
         kind: 'PASSAGE',
         actorId: settlement.plan.actor.id,
-        consumption: settlement.plan.consumption
+        consumption: settlement.plan.consumption,
+        allyAdvantageUses: settlement.plan.allyAdvantageUses
       })
     return liveSessionMovementSettlementSchema.parse({
       kind: 'SPATIAL',

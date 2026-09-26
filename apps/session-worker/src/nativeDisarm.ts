@@ -31,7 +31,11 @@ import {
   withEncounterAppRoll
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import {
+  lockedRelationshipActionFacts,
+  mergeCanonicalD20Contributors
+} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
@@ -117,6 +121,10 @@ export async function planNativeLiveDisarm(
     target,
     command: { ...root, definitionId: intent.definitionId }
   })
+  // An ally's Help (basic action, Q11) gives the initiator's attack roll or the defender's check
+  // advantage; the Disarm's commit uses each up.
+  const initiatorHelp = encounterBasicActionAllyAdvantage({ actors, attackerId: actor.id })
+  const defenderHelp = encounterBasicActionAllyAdvantage({ actors, attackerId: target.id })
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor,
@@ -128,12 +136,15 @@ export async function planNativeLiveDisarm(
     movementTargets,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
-      lockedRelationshipActionFacts({
-        actionEffectId: input.actionEffectId,
-        sourceActorId: input.sourceActorId,
-        targetActorId: input.targetActorId,
-        targets: { activeEffectsByActorId }
-      })
+      mergeCanonicalD20Contributors(
+        lockedRelationshipActionFacts({
+          actionEffectId: input.actionEffectId,
+          sourceActorId: input.sourceActorId,
+          targetActorId: input.targetActorId,
+          targets: { activeEffectsByActorId }
+        }),
+        initiatorHelp ? [initiatorHelp.contributor] : []
+      )
   })
   const scene = root.sceneContext
     ? (
@@ -206,6 +217,7 @@ export async function planNativeLiveDisarm(
     sceneContext,
     selection,
     actionEconomy,
+    defenderAllyAdvantage: defenderHelp?.contributor ?? null,
     ...(priorContext ? { priorContest: priorContext.contest } : {})
   })
   if (priorContext && preparation.currentnessChecksum !== priorContext.currentnessChecksum)
@@ -360,6 +372,9 @@ export async function planNativeLiveDisarm(
       ...planned,
       occurredAt: new Date().toISOString(),
       contest,
+      allyAdvantageUses: [initiatorHelp, defenderHelp].flatMap((help) =>
+        help ? [{ helperActorId: help.helperActorId, effect: help.effect }] : []
+      ),
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,

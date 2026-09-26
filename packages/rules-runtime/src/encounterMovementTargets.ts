@@ -1,3 +1,4 @@
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
@@ -73,6 +74,11 @@ export type MovementTarget<
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
+  /**
+   * Contributors attack rolls against the actor gain from its basic-action defense (Dodge), set by
+   * `withEncounterBasicActionDefense`; empty until a flow applies it.
+   */
+  basicActionAttackContributors: readonly EncounterRelationshipD20Contributor[]
 }
 
 function maximumReduction(effects: ActiveRuleEffectRecord[]) {
@@ -262,7 +268,8 @@ export function buildMovementTarget<
       },
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
-      conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
+      conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      basicActionAttackContributors: []
     }
   }
   const baseScalarValues: Record<string, number> =
@@ -325,6 +332,7 @@ export function buildMovementTarget<
     },
     defenses: actorRule.targetProtection.defenses,
     qualifiedDefenses: actorRule.targetProtection.qualifiedDefenses,
-    conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds
+    conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds,
+    basicActionAttackContributors: []
   }
 }

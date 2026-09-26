@@ -468,6 +468,8 @@ async function removeEncounterActorCore(
     ...state,
     actorIds: state.actorIds.filter((id) => id !== input.actorId),
     currentActorId,
+    turnSequence:
+      currentActorId === state.currentActorId ? state.turnSequence : state.turnSequence + 1,
     reminders,
     version,
     updatedAt: now

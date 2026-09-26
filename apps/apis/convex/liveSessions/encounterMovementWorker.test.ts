@@ -395,6 +395,7 @@ it.each([
     const { concentrationChecks: _checks, ...reactionWithoutConcentration } = reaction
     expect(prepared.settlementInputs[0]).toEqual({
       kind: 'REACTION',
+      allyAdvantageUses: [],
       execution: reactionWithoutConcentration,
       resourceConsumption: null,
       createdEffects: [],

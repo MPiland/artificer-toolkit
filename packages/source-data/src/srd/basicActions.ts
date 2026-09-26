@@ -5,7 +5,7 @@ import {
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_SYSTEM_ID } from './vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_SYSTEM_ID } from './vocabulary.js'
 
 /** Stable catalogue identities of the SRD basic combat actions (Q11). */
 export const SRD_BASIC_ACTION_IDS = {
@@ -24,6 +24,8 @@ function defineBasicAction(input: {
   label: string
   rulesText: string
   mechanics: BasicActionReusableDefinitionDocumentDto['mechanics']
+  saveAbilityIds?: string[]
+  suspendedWhileUnableToActOrMove?: boolean
 }) {
   const document = basicActionReusableDefinitionDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -32,7 +34,9 @@ function defineBasicAction(input: {
     gameSystemId: SRD_SYSTEM_ID,
     rulesText: input.rulesText,
     actionCost: 'ACTION',
-    mechanics: input.mechanics
+    mechanics: input.mechanics,
+    saveAbilityIds: input.saveAbilityIds ?? [],
+    suspendedWhileUnableToActOrMove: input.suspendedWhileUnableToActOrMove ?? false
   })
   return {
     id: input.id,
@@ -67,7 +71,9 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     label: 'Dodge',
     rulesText:
       'Until the start of your next turn, any attack roll made against you has disadvantage if you can see the attacker, and you make Dexterity saving throws with advantage. You lose this benefit if you are incapacitated or your speed drops to 0.',
-    mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST']
+    mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'],
+    saveAbilityIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY],
+    suspendedWhileUnableToActOrMove: true
   }),
   defineBasicAction({
     id: SRD_BASIC_ACTION_IDS.HELP,

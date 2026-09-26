@@ -17,8 +17,11 @@ const dodge = {
   gameSystemId: '00000000-0000-0000-0000-000000000001',
   rulesText: 'Attacks against you have disadvantage until your next turn.',
   actionCost: 'ACTION',
-  mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST']
+  mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST'],
+  saveAbilityIds: [],
+  suspendedWhileUnableToActOrMove: true
 }
+const dexterityId = '00000000-0000-4000-8000-00000000a002'
 
 describe('basic-action catalogue contracts (Q11)', () => {
   it('parses a catalogue entry as its own reusable-definition family', () => {
@@ -34,18 +37,28 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(parse(['SPEED_MOVEMENT_BONUS', 'ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['ALLY_ADVANTAGE', 'ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['DASH'])).toBe(false)
+    expect(parse(['SAVE_ADVANTAGE'])).toBe(false)
+    expect(
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
+        ...dodge,
+        mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'],
+        saveAbilityIds: [dexterityId]
+      }).success
+    ).toBe(true)
     expect(
       basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, actionCost: 'REACTION' })
         .success
     ).toBe(false)
   })
 
-  it('names an ally only on an ally-advantage effect', () => {
+  it('names an ally only on an ally-advantage effect and abilities only on a save one', () => {
     const effect = {
       definitionId: dodge.id,
       mechanic: 'ALLY_ADVANTAGE',
-      round: 2,
-      allyActorId: '33333333-3333-4333-8333-333333333332'
+      turnSequence: 4,
+      allyActorId: '33333333-3333-4333-8333-333333333332',
+      saveAbilityIds: [],
+      suspendedWhileUnableToActOrMove: false
     }
     expect(encounterBasicActionEffectDtoSchema.safeParse(effect).success).toBe(true)
     expect(
@@ -57,6 +70,12 @@ describe('basic-action catalogue contracts (Q11)', () => {
         mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST'
       }).success
     ).toBe(false)
+    const save = { ...effect, mechanic: 'SAVE_ADVANTAGE', allyActorId: null }
+    expect(
+      encounterBasicActionEffectDtoSchema.safeParse({ ...save, saveAbilityIds: [dexterityId] })
+        .success
+    ).toBe(true)
+    expect(encounterBasicActionEffectDtoSchema.safeParse(save).success).toBe(false)
   })
 
   it('defaults the acknowledged warnings of a basic-action command', () => {

@@ -9,6 +9,10 @@ import {
 } from './encounterRuleCommands.js'
 import { liveSessionEncounterRulesInputSchema } from './liveSessionEncounterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
+import {
+  encounterAllyAdvantageUsesDtoSchema,
+  type EncounterAllyAdvantageUseDto
+} from '../shared/basicActions.js'
 
 const disarmScope = z.extend(
   z.omit(liveSessionEncounterRulesInputSchema, {
@@ -49,6 +53,8 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
   contest: z.infer<typeof serverOptionalCombatContestPendingContextDtoSchema>
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   rules: z.infer<typeof encounterActorRuleOutputSchema>
+  /** The Helps (basic action, Q11) the contest's rolls used; the commit removes them. */
+  allyAdvantageUses: EncounterAllyAdvantageUseDto[]
 }
 
 export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSessionEncounterDisarmCommitInput> =
@@ -56,5 +62,6 @@ export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSess
     occurredAt: z.iso.datetime(),
     contest: serverOptionalCombatContestPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
-    rules: encounterActorRuleOutputSchema
+    rules: encounterActorRuleOutputSchema,
+    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
   })

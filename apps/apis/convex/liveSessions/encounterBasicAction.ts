@@ -63,9 +63,15 @@ export const commit = internalMutation({
       input.effects.some(
         (effect) =>
           effect.definitionId !== definition.id ||
-          effect.round !== state.round ||
+          effect.turnSequence !== state.turnSequence ||
           !document.mechanics.includes(effect.mechanic) ||
-          effect.allyActorId !== (effect.mechanic === 'ALLY_ADVANTAGE' ? command.allyActorId : null)
+          effect.allyActorId !==
+            (effect.mechanic === 'ALLY_ADVANTAGE' ? command.allyActorId : null) ||
+          effect.suspendedWhileUnableToActOrMove !== document.suspendedWhileUnableToActOrMove ||
+          checksumCanonicalJson(effect.saveAbilityIds) !==
+            checksumCanonicalJson(
+              effect.mechanic === 'SAVE_ADVANTAGE' ? document.saveAbilityIds : []
+            )
       ) ||
       input.rules.actors.length !== ruleActors.length ||
       input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))

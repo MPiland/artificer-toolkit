@@ -18,6 +18,22 @@ import type { EncounterActionEconomyConsumption } from './encounterActionEconomy
 
 type ActionEconomyTarget = Pick<MovementTarget, 'actor' | 'state' | 'activeEffects'>
 
+/** The capabilities an actor's active relationship effects suppress. */
+export function activeEffectCapabilitySuppressions(effects: ActionEconomyTarget['activeEffects']) {
+  return effects.flatMap((effect) =>
+    effect.definition.schemaVersion === 2
+      ? effect.definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP'
+            ? contribution.capabilitySuppressions.map((suppression) => ({
+                activeEffectId: effect.id,
+                contributionId: suppression.contributionId,
+                capabilityDefinitionIds: suppression.capabilityDefinitionIds
+              }))
+            : []
+        )
+      : []
+  )
+}
 export async function stageEncounterActionEconomyRefreshes(input: {
   actor: EncounterRunActorState
   state: EncounterRunState
@@ -111,19 +127,7 @@ export async function evaluateEncounterActionEconomy(
     gameSystemId: input.state.gameSystemId,
     activeConditionDefinitionIds: target.state.conditions,
     capabilityDefinitionIds: [binding.capabilityDefinitionId],
-    activeEffectSuppressions: target.activeEffects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'ACTOR_RELATIONSHIP'
-              ? contribution.capabilitySuppressions.map((suppression) => ({
-                  activeEffectId: effect.id,
-                  contributionId: suppression.contributionId,
-                  capabilityDefinitionIds: suppression.capabilityDefinitionIds
-                }))
-              : []
-          )
-        : []
-    )
+    activeEffectSuppressions: activeEffectCapabilitySuppressions(target.activeEffects)
   })
   const capability = capabilityState.capabilities[0]
   const usage = capability?.capability.document.usage

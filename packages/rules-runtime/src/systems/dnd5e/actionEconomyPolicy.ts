@@ -1,5 +1,6 @@
 import type { ActionEconomyCapabilityAdapter } from '../../actionEconomyCapabilityRegistry.js'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID, DND5E_SYSTEM_ID } from './identity.js'
+import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 
 export const DND5E_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d7'
 export const DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d8'
@@ -19,6 +20,9 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
       }
     }
     return { kind: 'NONE' }
+  },
+  actorActionCapabilityDefinitionId() {
+    return DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
   },
   refreshCapabilityDefinitionIds() {
     return [

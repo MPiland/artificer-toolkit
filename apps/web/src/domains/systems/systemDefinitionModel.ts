@@ -30,7 +30,9 @@ function createStarterDocument(workspace: ReusableDefinitionWorkspaceDto): unkno
       gameSystemId: workspace.gameSystemId,
       rulesText: 'Describe what this action does.',
       actionCost: 'ACTION',
-      mechanics: []
+      mechanics: [],
+      saveAbilityIds: [],
+      suspendedWhileUnableToActOrMove: false
     }
   }
   return {

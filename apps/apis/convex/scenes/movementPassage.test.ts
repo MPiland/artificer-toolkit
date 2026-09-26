@@ -15,6 +15,8 @@ import {
   encounterRuleUsageSnapshot,
   withEncounterRuleUsageUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
@@ -32,7 +34,9 @@ import {
   privateMovementEnvironment
 } from '../../tests/fixtures/liveMovementResponse'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import {
+  executeInRoom,
   insertActiveLiveAuthority,
   planStagedMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
@@ -52,6 +56,8 @@ const pendingRuleOccurrence = makeFunctionReference<
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
 
+const help = SRD_BASIC_ACTION_DEFINITIONS.find((definition) => definition.label === 'Help')
+
 function optional(kind: 'OVERRUN' | 'TUMBLE') {
   const definition = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (candidate) => candidate.document.kind === kind
@@ -66,15 +72,19 @@ async function setupPassageScene(
     rolls?: FixtureRolls
     perceptionRequirement?: 'SEE'
     laterBlocker?: boolean
+    /** The blocker's ally (off the Scene) Helps it on its own turn before the mover's turn. */
+    blockerHelp?: boolean
     path?: { x: number; y: number }[]
   } = {}
 ) {
   const base = await setupCreatureReactionRun(
     input.perceptionRequirement ?? null,
     true,
-    input.laterBlocker ?? false,
+    Boolean(input.laterBlocker || input.blockerHelp),
     'AUTOMATIC'
   )
+  const helper = input.blockerHelp ? base.additionalReactorActor : null
+  if (input.blockerHelp && !helper) throw new Error('Passage helper fixture is unavailable.')
   if (input.rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   for (const definitions of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
@@ -114,7 +124,7 @@ async function setupPassageScene(
       status: 'ACTIVE',
       automationMode: 'ASSISTED',
       round: 1,
-      currentActorId: base.mover.id,
+      currentActorId: helper?.id ?? base.mover.id,
       optionalCombatSnapshot: optionalSnapshot,
       optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalSnapshot)
     })
@@ -129,7 +139,44 @@ async function setupPassageScene(
       projectionJson: JSON.stringify(projection),
       projectionChecksum: checksumCanonicalJson(projection)
     })
+    if (helper) await seedActiveInitiative(ctx, active, [helper.id, base.mover.id, base.reactor.id])
   })
+  const runVersion = async () => {
+    const run = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique()
+    )
+    if (!run) throw new Error('Passage fixture run is unavailable.')
+    return run.version
+  }
+  if (helper) {
+    await base.t.mutation(importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: SRD_BASIC_ACTION_DEFINITIONS
+    })
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'USE_BASIC_ACTION',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await runVersion(),
+        actorId: helper.id,
+        definitionId: help!.id,
+        allyActorId: base.reactor.id
+      }
+    })
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await runVersion(),
+        actorId: base.mover.id
+      }
+    })
+  }
   const additionalReactor = base.additionalReactorActor
   const actors = [base.reactor, base.mover]
   if (input.laterBlocker) {
@@ -137,7 +184,7 @@ async function setupPassageScene(
     actors.push(additionalReactor)
   }
   const scene = await setupReactionMovementScene(
-    base,
+    { ...base, run: { ...base.run, version: await runVersion() } },
     actors,
     input.laterBlocker ? [350, 550] : [350],
     input.path ?? [
@@ -510,6 +557,73 @@ describe('native Scene movement passage', () => {
     expect(after.map((actor) => actor.stateChecksum)).not.toEqual(
       before.map((actor) => actor.stateChecksum)
     )
+  }, 30_000)
+
+  it("an ally's Help gives the blocker's contest check advantage, and its later reaction none (Q11)", async () => {
+    const value = await setupPassageScene({
+      rolls: 'PROMPT',
+      perceptionRequirement: 'SEE',
+      blockerHelp: true
+    })
+    const helper = value.base.additionalReactorActor!
+    const helperEffects = async () => {
+      const row = await value.base.t.run((ctx) =>
+        ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) =>
+            q.eq('encounterId', value.base.run.id).eq('id', helper.id)
+          )
+          .unique()
+      )
+      if (!row) throw new Error('Passage helper is unavailable.')
+      return encounterBasicActionEffects(
+        encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      )
+    }
+    const { choice } = await issuePassage(value)
+    const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
+    if (!option) throw new Error('Expected an Overrun passage option.')
+    const selected = await respond(value, choice, {
+      kind: 'PASSAGE_OPTION',
+      optionId: option.optionId
+    })
+    const initiator = selected.result.occurrence?.pending
+    if (!initiator || initiator.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the assisted initiator d20 request.')
+    expect(initiator.request.rollMode).toBe('NORMAL')
+    const defender = await respond(value, initiator, {
+      kind: 'ENTER_DICE',
+      requestId: initiator.request.requestId,
+      rawFaces: [20],
+      rollMode: 'NORMAL'
+    })
+    const pending = defender.result.occurrence?.pending
+    if (!pending || pending.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the assisted defender d20 request.')
+    await expect(
+      value.owner.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
+    ).resolves.toMatchObject({
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+    })
+    expect(await helperEffects()).toHaveLength(1)
+    const completed = await respond(value, pending, {
+      kind: 'ENTER_DICE',
+      requestId: pending.request.requestId,
+      rawFaces: [1, 1],
+      rollMode: 'ADVANTAGE'
+    })
+    expect(await helperEffects()).toEqual([])
+    // The blocker's retained opportunity attack can't use the Help again.
+    const reactionChoice = completed.result.occurrence?.pending
+    if (reactionChoice?.kind !== 'MOVEMENT_REACTION' || !reactionChoice.choice.options[0])
+      throw new Error('Expected the retained reaction choice after the contest.')
+    const used = await respond(value, reactionChoice, {
+      kind: 'OPTION',
+      optionId: reactionChoice.choice.options[0].optionId
+    })
+    const reaction = used.result.occurrence?.pending
+    if (reaction?.kind !== 'D20_EVIDENCE') throw new Error('Expected the reaction d20.')
+    expect(reaction.request.rollMode).toBe('NORMAL')
   }, 30_000)
 
   it.each(['native', 'private'] as const)(

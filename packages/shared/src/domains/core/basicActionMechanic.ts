@@ -11,8 +11,10 @@ export const BASIC_ACTION_MECHANIC_CODE = {
   NO_OPPORTUNITY_ATTACKS: 'NO_OPPORTUNITY_ATTACKS',
   /** Attack rolls against the actor have disadvantage until the start of its next turn. */
   DISADVANTAGE_ON_ATTACKS_AGAINST: 'DISADVANTAGE_ON_ATTACKS_AGAINST',
-  /** The chosen ally's next attack roll has advantage, before the actor's next turn. */
-  ALLY_ADVANTAGE: 'ALLY_ADVANTAGE'
+  /** The chosen ally's next attack roll or ability check has advantage, before the actor's next turn. */
+  ALLY_ADVANTAGE: 'ALLY_ADVANTAGE',
+  /** The actor's saving throws of the entry's abilities have advantage until its next turn. */
+  SAVE_ADVANTAGE: 'SAVE_ADVANTAGE'
 } as const
 
 export type BasicActionMechanicCode = keyof typeof BASIC_ACTION_MECHANIC_CODE
@@ -39,6 +41,13 @@ export const BASIC_ACTION_MECHANIC_REGISTRY: Record<
   [BASIC_ACTION_MECHANIC_CODE.ALLY_ADVANTAGE]: {
     code: BASIC_ACTION_MECHANIC_CODE.ALLY_ADVANTAGE,
     label: 'Aid an ally',
-    description: "The chosen ally's next attack roll has advantage before the actor's next turn."
+    description:
+      "The chosen ally's next attack roll or ability check has advantage before the actor's next turn."
+  },
+  [BASIC_ACTION_MECHANIC_CODE.SAVE_ADVANTAGE]: {
+    code: BASIC_ACTION_MECHANIC_CODE.SAVE_ADVANTAGE,
+    label: 'Save advantage',
+    description:
+      "The actor's saving throws of the chosen abilities have advantage until its next turn."
   }
 }

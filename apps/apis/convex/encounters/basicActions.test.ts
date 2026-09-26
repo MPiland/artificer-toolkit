@@ -18,7 +18,11 @@ import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encount
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import {
+  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_RULE_STATE_DEFINITIONS
+} from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   domainRejection,
   playerControlFixture,
@@ -33,6 +37,7 @@ import {
 import { planNativeLiveBasicAction } from '../../../session-worker/src/nativeBasicAction'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
 import { internal } from '../_generated/api'
+import { sourceImportBatches } from '../content/importBatches'
 
 const actionChoices = makeFunctionReference<
   'query',
@@ -55,12 +60,17 @@ const pendingRuleOccurrence = makeFunctionReference<
 
 const [dash, disengage, dodge, help, hide] = SRD_BASIC_ACTION_DEFINITIONS
 
+/** The player-control Run with the System's rule states (conditions, capabilities) and catalogue. */
 async function basicActionFixture(options: Parameters<typeof playerControlFixture>[0] = {}) {
   const base = await playerControlFixture(options)
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_BASIC_ACTION_DEFINITIONS
-  })
+  for (const definitions of sourceImportBatches([
+    ...SRD_RULE_STATE_DEFINITIONS,
+    ...SRD_BASIC_ACTION_DEFINITIONS
+  ]))
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions
+    })
   return base
 }
 
@@ -99,6 +109,23 @@ async function setCurrentActor(base: PlayerControlFixture, actorId: string) {
     expectedVersion: await base.version(),
     actorId
   })
+}
+
+async function setConditions(base: PlayerControlFixture, actorId: string, conditions: string[]) {
+  return base.gm({
+    type: 'UPDATE_ACTOR',
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await base.version(),
+    actorId,
+    conditions
+  })
+}
+
+/** The actor's walking-speed budget for the current turn, as the tabletop reads it. */
+async function turnBudget(base: PlayerControlFixture, actorId: string) {
+  const state = await base.owner.caller.query(sessionState, { campaignId: base.campaign.id })
+  return state.turnMovement.find((entry) => entry.actorId === actorId)?.budget
 }
 
 async function advanceTurn(base: PlayerControlFixture) {
@@ -179,10 +206,7 @@ describe('basic combat actions in the room (Q11)', () => {
 
   it('Dash spends the action and adds the speed to this turn’s budget; a second one warns first', async () => {
     const base = await basicActionFixture()
-    const budget = async () =>
-      (
-        await base.owner.caller.query(sessionState, { campaignId: base.campaign.id })
-      ).turnMovement.find((entry) => entry.actorId === base.companion.id)?.budget
+    const budget = () => turnBudget(base, base.companion.id)
     const walking = await budget()
     expect(walking).toBeGreaterThan(0)
 
@@ -229,7 +253,7 @@ describe('basic combat actions in the room (Q11)', () => {
       encounterBasicActionEffects(await actorState(base, base.enemy.id)).map(
         (effect) => effect.mechanic
       )
-    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST'])
+    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
 
     await setCurrentActor(base, base.companion.id)
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
@@ -242,9 +266,46 @@ describe('basic combat actions in the room (Q11)', () => {
 
     // The enemy's next turn starts: its Dodge ends.
     await advanceTurn(base)
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toHaveLength(1)
+    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toHaveLength(2)
     await advanceTurn(base)
     expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
+  })
+
+  it("Dodge gives the dodger's Dexterity saves advantage", async () => {
+    const base = await basicActionFixture({ bite: 'SAVE', promptRolls: true })
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await setCurrentActor(base, base.companion.id)
+    await base.gm(await base.bite(base.companion.id, base.enemy.id))
+    expect((await d20Pending(base)).request).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      derivedRollModeReasons: ['Dodge']
+    })
+  })
+
+  it('Dodge applies nothing while the dodger is incapacitated, and again once it can act', async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
+    const incapacitated = srdSystemRecord.conditionTypes.find(
+      (condition) => condition.code === 'INCAPACITATED'
+    )
+    if (!incapacitated) throw new Error('Missing Incapacitated condition.')
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(await useBasicAction(base, { actorId: base.enemy.id, definitionId: dodge!.id }))
+    await setConditions(base, base.enemy.id, [incapacitated.id])
+    await setCurrentActor(base, base.companion.id)
+
+    await base.gm(await base.bite(base.companion.id, base.enemy.id))
+    const suspended = await d20Pending(base)
+    expect(suspended.request.rollMode).toBe('NORMAL')
+    await base.gm(enterFaces(base, suspended))
+
+    await setConditions(base, base.enemy.id, [])
+    await base.gm(
+      await base.bite(base.companion.id, base.enemy.id, {
+        acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE']
+      })
+    )
+    expect((await d20Pending(base)).request.rollMode).toBe('DISADVANTAGE')
   })
 
   it("Help gives the ally's next attack roll advantage once", async () => {
@@ -344,7 +405,10 @@ describe('basic combat actions in the room (Q11)', () => {
       if (plan.kind !== 'PLANNED') throw new Error('Expected a planned basic action.')
       expect(plan.input).toMatchObject({
         speedMovementBonus: false,
-        effects: [expect.objectContaining({ mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST' })],
+        effects: [
+          expect.objectContaining({ mechanic: 'DISADVANTAGE_ON_ATTACKS_AGAINST' }),
+          expect.objectContaining({ mechanic: 'SAVE_ADVANTAGE' })
+        ],
         actionEconomy: expect.objectContaining({ beforeUsed: 0, afterUsed: 1 })
       })
       // A plan with an effect its entry lacks is refused without writes.
@@ -369,6 +433,6 @@ describe('basic combat actions in the room (Q11)', () => {
       encounterBasicActionEffects(await actorState(base, base.companion.id)).map(
         (effect) => effect.mechanic
       )
-    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST'])
+    ).toEqual(['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
   })
 })

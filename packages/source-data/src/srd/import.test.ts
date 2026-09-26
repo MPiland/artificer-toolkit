@@ -8,6 +8,7 @@ import {
 } from './concentration.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
+import { SRD_ABILITY_DEFINITION_IDS } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {
@@ -43,7 +44,7 @@ describe('canonical Convex import preparation', () => {
     ).toEqual({
       Dash: ['ACTION', ['SPEED_MOVEMENT_BONUS']],
       Disengage: ['ACTION', ['NO_OPPORTUNITY_ATTACKS']],
-      Dodge: ['ACTION', ['DISADVANTAGE_ON_ATTACKS_AGAINST']],
+      Dodge: ['ACTION', ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE']],
       Help: ['ACTION', ['ALLY_ADVANTAGE']],
       Hide: ['ACTION', []],
       Ready: ['ACTION', []],
@@ -53,6 +54,11 @@ describe('canonical Convex import preparation', () => {
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
     )
+    // Dodge improves Dexterity saves and lapses while its actor can't act or move.
+    expect(catalogue.find((definition) => definition.label === 'Dodge')?.document).toMatchObject({
+      saveAbilityIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY],
+      suspendedWhileUnableToActOrMove: true
+    })
     for (const definition of catalogue) {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))

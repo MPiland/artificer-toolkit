@@ -24,6 +24,8 @@ import {
 import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
+import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -294,6 +296,8 @@ export function prepareEncounterDisarmContest(input: {
   sceneContext: SceneContext
   selection: ReturnType<typeof readEncounterDisarmSelection>
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
+  /** An ally's Help (basic action, Q11) the defender's check uses. */
+  defenderAllyAdvantage: EncounterRelationshipD20Contributor | null
   priorContest?: ServerOptionalCombatContestPendingApplicationContextDto
 }) {
   const { state, actor, target, command, prepared, sceneContext, actionEconomy } = input
@@ -387,6 +391,15 @@ export function prepareEncounterDisarmContest(input: {
         targetTokenId: sceneContext.targetToken.tokenId
       }
     : null
+  const defenderRoll = input.defenderAllyAdvantage
+    ? withEncounterD20Contributor(
+        preparation.proposal.contest.targetContributors,
+        input.defenderAllyAdvantage
+      )
+    : {
+        rollMode: preparation.proposal.contest.targetMode,
+        contributors: [...preparation.proposal.contest.targetContributors]
+      }
   const current: Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0] = {
     actionKind: 'DISARM',
     actionId: command.actionId,
@@ -435,9 +448,8 @@ export function prepareEncounterDisarmContest(input: {
     defender: {
       actorId: target.id,
       requestNodeId: 'target_d20',
-      rollMode: preparation.proposal.contest.targetMode,
-      contributors: [...preparation.proposal.contest.targetContributors],
-      contributorChecksum: checksumRuleDocument(preparation.proposal.contest.targetContributors),
+      ...defenderRoll,
+      contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
       modifier: targetCheckTotal,
       checkDefinitionId
     },

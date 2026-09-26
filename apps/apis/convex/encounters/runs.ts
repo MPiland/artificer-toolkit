@@ -189,6 +189,7 @@ export async function createEncounterRun(
     version: 0,
     round: 0,
     currentActorId: null,
+    turnSequence: 0,
     // Enemies' and NPCs' health is Hidden until the GM chooses otherwise (ADR 0034).
     healthDisplayDefault: 'HIDDEN',
     ...policies,

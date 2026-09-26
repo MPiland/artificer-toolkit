@@ -13,12 +13,15 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
+import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmInRoom, disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { withRoomConvex } from '../../tests/fixtures/liveSessionWorker'
 import { planNativeLiveDisarm } from '../../../session-worker/src/nativeDisarm'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
 
 function evidence(
@@ -507,6 +510,69 @@ describe('room Disarm commands', () => {
     } finally {
       random.mockRestore()
     }
+  }, 30000)
+
+  it('a Help gives the Disarm attack roll advantage, used once (Q11)', async () => {
+    const base = await nativeDisarmFixture('PROMPT')
+    const helper = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
+    const help = SRD_BASIC_ACTION_DEFINITIONS.find((definition) => definition.label === 'Help')
+    if (!helper || !help) throw new Error('Missing the Help fixture.')
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: SRD_BASIC_ACTION_DEFINITIONS
+    })
+    const version = async () => {
+      const { run } = await disarmRecords(base)
+      if (!run) throw new Error('Missing Disarm Run.')
+      return run.version
+    }
+    const setCurrentActor = async (actorId: string) =>
+      disarmInRoom(base, base.owner, {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await version(),
+        actorId
+      })
+    await setCurrentActor(helper.id)
+    // The Character helps an enemy Creature, which Assisted mode warns about first.
+    await disarmInRoom(base, base.owner, {
+      type: 'USE_BASIC_ACTION',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await version(),
+      actorId: helper.id,
+      definitionId: help.id,
+      allyActorId: base.actor.id,
+      acknowledgedWarnings: ['TARGET_DISPOSITION']
+    })
+    await setCurrentActor(base.actor.id)
+    const command = {
+      ...base.command,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await version()
+    }
+    const helped = { ...base, command }
+    const started = await disarmInRoom(base, base.owner, command)
+    await expect(
+      base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: base.run.id
+      })
+    ).resolves.toMatchObject({
+      rollerActorId: base.actor.id,
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+    })
+    const answered = await disarmInRoom(base, base.owner, evidence(helped, started, 20))
+    const defender = await base.owner.caller.query(
+      api.encounters.pendingReads.pendingRuleOccurrence,
+      { encounterId: base.run.id }
+    )
+    if (defender?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
+    expect(defender.request.rollMode).toBe('NORMAL')
+    await disarmInRoom(base, base.owner, evidence(helped, answered, 1))
+    expect(encounterBasicActionEffects(actorState(await disarmRecords(base), helper.id))).toEqual(
+      []
+    )
   }, 30000)
 
   it('refuses stale selections and changed pending participants without writes', async () => {

@@ -1,3 +1,5 @@
+import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
   ServerOptionalCombatContestPendingApplicationContextDto
@@ -33,6 +35,8 @@ type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
     activation: { code: string; amount: number }
     target: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterActionEconomyConsumption | null>
+  /** An ally's Help (basic action, Q11) the actor's next check uses, if any. */
+  allyAdvantage: (actorId: string) => EncounterRelationshipD20Contributor | null
 }
 
 const sizeRankTable = { TINY: 0, SMALL: 1, MEDIUM: 2, LARGE: 3, HUGE: 4, GARGANTUAN: 5 } as const
@@ -161,13 +165,22 @@ export async function prepareEncounterMovementPassageContest<
     target: source
   })
   if (!economy) throw new Error('Movement passage allowance is unavailable.')
-  return prepareMovementPassageContest(input, economy)
+  const { blocker } = passageActors(input)
+  return prepareMovementPassageContest(input, economy, {
+    initiator: reads.allyAdvantage(source.actor.id),
+    defender: reads.allyAdvantage(blocker.actor.id)
+  })
 }
 
 /** All options in one read-only choice share the same current allowance observations. */
 function prepareMovementPassageContest<TCharacterFacts extends CharacterMovementFacts>(
   input: PassageContestInput<TCharacterFacts>,
-  economy: EncounterActionEconomyConsumption
+  economy: EncounterActionEconomyConsumption,
+  /** Each participant's Help (basic action, Q11) for its check. */
+  help: {
+    initiator: EncounterRelationshipD20Contributor | null
+    defender: EncounterRelationshipD20Contributor | null
+  }
 ): ServerOptionalCombatContestPendingApplicationContextDto {
   const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
   if (!option) throw new Error('Movement passage option is unavailable.')
@@ -262,6 +275,14 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     )
     initiatorRollMode = overrun.result.proposal.contest.initiatorMode
   }
+  if (help.initiator) {
+    const helped = withEncounterD20Contributor(initiatorContributors, help.initiator)
+    initiatorContributors = helped.contributors
+    initiatorRollMode = helped.rollMode
+  }
+  const defenderRoll = help.defender
+    ? withEncounterD20Contributor(defender.contributors, help.defender)
+    : { contributors: defender.contributors, rollMode: defender.rollMode }
   const graph = createDnd5eOptionalCombatContestGraph(proposal.pin)
   return prepareDnd5eOptionalCombatContestPendingContext({
     actionKind: option.ruleKind,
@@ -315,9 +336,9 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     defender: {
       actorId: blocker.actor.id,
       requestNodeId: 'target_d20',
-      rollMode: defender.rollMode,
-      contributors: defender.contributors,
-      contributorChecksum: checksumRuleDocument(defender.contributors),
+      rollMode: defenderRoll.rollMode,
+      contributors: defenderRoll.contributors,
+      contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
       modifier: defender.modifier,
       checkDefinitionId: proposal.contest.targetCheckDefinitionId
     },
@@ -349,7 +370,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
 export async function availableEncounterMovementPassageChoice<
   TCharacterFacts extends CharacterMovementFacts
 >(
-  reads: PassageReads<TCharacterFacts>,
+  reads: Omit<PassageReads<TCharacterFacts>, 'allyAdvantage'>,
   input: PassagePreparationInput<TCharacterFacts>
 ): Promise<OptionalCombatPassageChoicePendingContextDto | null> {
   if (input.state.automationMode === 'MANUAL' || !input.state.optionalCombatSnapshotChecksum)
@@ -430,7 +451,9 @@ export async function availableEncounterMovementPassageChoice<
           optionId: option.optionId,
           targets: input.targets
         },
-        economy.prepared
+        economy.prepared,
+        // Help changes only a check's roll mode, never whether an option can be taken.
+        { initiator: null, defender: null }
       )
       executable.add(option.optionId)
     } catch {

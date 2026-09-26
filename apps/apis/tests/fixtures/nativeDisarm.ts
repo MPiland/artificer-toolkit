@@ -432,7 +432,8 @@ export async function prepareStoredDisarm(
     prepared,
     sceneContext,
     selection,
-    actionEconomy
+    actionEconomy,
+    defenderAllyAdvantage: null
   })
   return { prepared, contest, graph, actionEconomy, currentnessChecksum, sceneContext }
 }

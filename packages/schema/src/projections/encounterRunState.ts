@@ -60,6 +60,11 @@ export const encounterRunStateSchema = z.extend(
     initiativePolicySnapshotChecksum: z.nullable(projectionChecksumSchema),
     optionalCombatSnapshot: encounterOptionalCombatSnapshotDtoSchema,
     optionalCombatSnapshotChecksum: projectionChecksumSchema,
+    /**
+     * The turn's identity: it grows whenever a turn starts or the GM moves the turn to another actor
+     * or round, so an effect scoped to one turn never revives when the turn returns to its actor.
+     */
+    turnSequence: z.number().check(z.int()).check(z.nonnegative()),
     sides: z
       .array(
         z.strictObject({

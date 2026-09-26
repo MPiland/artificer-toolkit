@@ -28,8 +28,8 @@ import { internalMutation } from '../lib/mutations'
 import { readLiveEncounterActionAdmission } from './encounterActionAdmission'
 import { insertActionEvidenceReceipt } from '../encounters/actionEvidenceReceipt'
 import { readNativeActionSceneInputs } from '../encounters/actionSceneInputs'
-import { readRunActors, replaceRunActor } from '../encounters/documents'
-import { withoutEncounterAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { readRunActors } from '../encounters/documents'
+import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
 import { readEncounterCharacterStates } from '../encounters/characterStates'
 import { readEncounterInitiativeRound } from '../encounters/initiativeStore'
 import { insertRunCommand } from '../encounters/timelineEntries'
@@ -286,15 +286,11 @@ export const commit = internalMutation({
       occurredAt: input.occurredAt
     })
     // The helper's ally advantage (Help) this attack used ends now.
-    const allyAdvantage = input.allyAdvantageUse
-    if (allyAdvantage) {
-      const helper = nextActors.find((actor) => actor.id === allyAdvantage.helperActorId)
-      if (!helper || allyAdvantage.effect.allyActorId !== source.id)
-        throw new Error('Live Session ally advantage scope mismatch.')
-      const helped = withoutEncounterAllyAdvantage(helper, allyAdvantage.effect)
-      await replaceRunActor(ctx, helper, helped)
-      nextActors = nextActors.map((actor) => (actor.id === helped.id ? helped : actor))
-    }
+    nextActors = await consumeEncounterAllyAdvantages(ctx, {
+      actors: nextActors,
+      uses: input.allyAdvantageUses,
+      rollerActorIds: [source.id]
+    })
     const sourceVersion =
       sourceMechanics?.characterStreamVersion ??
       (source.kind === 'CHARACTER' && source.id !== target.id

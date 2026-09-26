@@ -15,6 +15,8 @@ export interface ActionEconomyCapabilityAdapter {
     activationKind: string
     activationAmount: number
   }): ActionEconomyCapabilityBinding
+  /** The capability an actor that can't act (incapacitated) has suppressed. */
+  actorActionCapabilityDefinitionId(): string
   refreshCapabilityDefinitionIds(): readonly string[]
 }
 
@@ -49,6 +51,11 @@ export function createActionEconomyCapabilityRegistry(
         activationKind: input.activationKind,
         activationAmount: input.activationAmount
       })
+    },
+    requireActorActionCapabilityDefinitionId(gameSystemId: string): string {
+      const adapter = bySystemId.get(canonicalSystemId(gameSystemId))
+      if (!adapter) throw new Error('The Game System does not provide action-economy policy.')
+      return adapter.actorActionCapabilityDefinitionId()
     },
     requireRefreshCapabilityDefinitionIds(gameSystemId: string): readonly string[] {
       const adapter = bySystemId.get(canonicalSystemId(gameSystemId))

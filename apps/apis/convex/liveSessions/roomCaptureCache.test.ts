@@ -230,7 +230,8 @@ function committed(plan: Awaited<ReturnType<typeof planNativeLiveEncounterAction
     maintainedState: plan.settlement.maintainedState,
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
-    cleaving: plan.cleaving
+    cleaving: plan.cleaving,
+    allyAdvantageUses: plan.allyAdvantageUses
   }
 }
 

@@ -9,7 +9,12 @@ import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schem
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
+import type { EncounterAllyAdvantageUseDto } from '@artificer-toolkit/schema/shared/basicActions'
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
+import {
+  encounterAllyAdvantageUses,
+  withoutEncounterAllyAdvantage
+} from './encounterBasicActions.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import { evaluateEncounterMovementPassageContest } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
@@ -23,7 +28,12 @@ type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTE
 type ResolutionCommand = ReturnType<typeof movementRuleResolutionCommandDtoSchema.parse>
 type PassageSettlement = {
   kind: 'PASSAGE'
-  plan: { actor: EncounterRunActorState; consumption: EncounterActionEconomyConsumption }
+  plan: {
+    actor: EncounterRunActorState
+    consumption: EncounterActionEconomyConsumption
+    /** The Helps (basic action, Q11) the contest's checks used. */
+    allyAdvantageUses: EncounterAllyAdvantageUseDto[]
+  }
 }
 
 /** Contest evidence is evaluated before the same Scene transaction consumes its allowance. */
@@ -164,33 +174,50 @@ export async function evaluateEncounterMovementPassageResponse<
   }
   const root = remainder.root
   const settlements: (PassageSettlement | TSettlement)[] = []
-  if (evaluated.kind === 'COMPLETE') {
-    const source = targets.get(evaluated.pending.sourceActorId)
-    const economy = evaluated.pending.actionEconomy
-    if (!source || !economy) throw new Error('Movement passage allowance is unavailable.')
-    const consumption = { ...economy, afterUsed: economy.beforeUsed + 1 }
-    settlements.push({ kind: 'PASSAGE', plan: { actor: source.actor, consumption } })
-    const actor = encounterRunActorStateSchema.parse({
-      ...source.actor,
-      resources: withEncounterRuleUsageUsed(
-        source.actor,
-        consumption.definitionId,
-        consumption.afterUsed
-      )
-    })
+  const withTargetActor = (actor: EncounterRunActorState) => {
+    const target = targets.get(actor.id)
+    if (!target) throw new Error('Movement passage target is unavailable.')
     targets = new Map([
       ...targets,
       [
         actor.id,
         {
-          ...source,
+          ...target,
           actor,
-          ...(source.characterReactionSource
-            ? { characterReactionSource: { ...source.characterReactionSource, actor } }
+          ...(target.characterReactionSource
+            ? { characterReactionSource: { ...target.characterReactionSource, actor } }
             : {})
         }
       ]
     ])
+  }
+  // The contest's checks used these Helps (basic action, Q11); the continuation can't reuse them.
+  const allyAdvantageUses =
+    evaluated.kind === 'COMPLETE'
+      ? encounterAllyAdvantageUses({
+          actors: input.actors,
+          participants: [evaluated.pending.initiator, evaluated.pending.defender]
+        })
+      : []
+  if (evaluated.kind === 'COMPLETE') {
+    const source = targets.get(evaluated.pending.sourceActorId)
+    const economy = evaluated.pending.actionEconomy
+    if (!source || !economy) throw new Error('Movement passage allowance is unavailable.')
+    const consumption = { ...economy, afterUsed: economy.beforeUsed + 1 }
+    settlements.push({
+      kind: 'PASSAGE',
+      plan: { actor: source.actor, consumption, allyAdvantageUses }
+    })
+    withTargetActor(
+      encounterRunActorStateSchema.parse({
+        ...source.actor,
+        resources: withEncounterRuleUsageUsed(
+          source.actor,
+          consumption.definitionId,
+          consumption.afterUsed
+        )
+      })
+    )
   }
   if (evaluated.kind === 'DECLINED' || evaluated.execution.outcome === 'TIE_OR_FAILURE')
     return {
@@ -222,6 +249,11 @@ export async function evaluateEncounterMovementPassageResponse<
     const remainingTargets = await callbacks.loadTargets(remainingActorIds)
     targets = new Map([...targets, ...remainingTargets])
     for (const [id, target] of remainingTargets) currentTargets.set(id, target)
+  }
+  for (const use of allyAdvantageUses) {
+    const helper = targets.get(use.helperActorId)
+    if (!helper) throw new Error('Movement passage helper is unavailable.')
+    withTargetActor(withoutEncounterAllyAdvantage(helper.actor, use.effect))
   }
   const continued = await callbacks.continueMovement({
     state,

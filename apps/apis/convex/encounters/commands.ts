@@ -746,6 +746,10 @@ export async function recordEncounterCommand(
     status,
     round,
     currentActorId,
+    turnSequence:
+      currentActorId !== state.currentActorId || round !== state.round
+        ? state.turnSequence + 1
+        : state.turnSequence,
     reminders,
     optionalCombatSnapshot,
     optionalCombatSnapshotChecksum,

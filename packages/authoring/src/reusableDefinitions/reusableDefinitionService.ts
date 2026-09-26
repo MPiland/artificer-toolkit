@@ -21,6 +21,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { reusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
   compileRuleGraph,
@@ -186,16 +187,41 @@ function validateRuleMaintenanceDefinition(root: ReusableDefinitionRootRecord, d
   return parsed
 }
 
-/** A System's basic-action catalogue entry (Q11): its closed mechanics need no further binding. */
-function validateBasicActionDefinition(root: ReusableDefinitionRootRecord, document: unknown) {
+/**
+ * A System's basic-action catalogue entry (Q11): its closed mechanics need no further binding, and
+ * its save abilities must be abilities of the same System.
+ */
+async function validateBasicActionDefinition(input: {
+  root: ReusableDefinitionRootRecord
+  document: unknown
+  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
+}) {
+  const { root } = input
   if (root.definitionFamilyKey !== BASIC_ACTION_DEFINITION_FAMILY_KEY)
     throw new ReusableDefinitionValidationError(
       'No publisher is registered for this definition family.'
     )
-  const parsed = basicActionReusableDefinitionDocumentDtoSchema.parse(document)
+  const parsed = basicActionReusableDefinitionDocumentDtoSchema.parse(input.document)
   if (parsed.id !== root.id || parsed.gameSystemId !== root.gameSystemId)
     throw new ReusableDefinitionValidationError(
       'Published definition identity must match its reusable definition root.'
+    )
+  if (!parsed.saveAbilityIds.length) return parsed
+  if (!input.resolveSystemVocabulary)
+    throw new ReusableDefinitionValidationError(
+      'Basic action save abilities require a server-owned System vocabulary resolver.'
+    )
+  const system = systemAuthoredDtoSchema.safeParse(
+    await input.resolveSystemVocabulary(root.gameSystemId)
+  )
+  const abilityIds = new Set(
+    system.success && 'abilities' in system.data
+      ? system.data.abilities.map((ability) => ability.id)
+      : []
+  )
+  if (parsed.saveAbilityIds.some((abilityId) => !abilityIds.has(abilityId)))
+    throw new ReusableDefinitionValidationError(
+      'Basic action save abilities must be abilities of the same Game System.'
     )
   return parsed
 }
@@ -594,7 +620,7 @@ async function validateReusableDefinition(input: {
       return validateDnd5eOptionalCombatDefinition(input)
     case BASIC_ACTION_DEFINITION_FAMILY_KEY:
       requirePermittedDefinitionFamily(input)
-      return validateBasicActionDefinition(input.root, input.document)
+      return validateBasicActionDefinition(input)
     default:
       throw new ReusableDefinitionValidationError(
         'No publisher is registered for this definition family.'

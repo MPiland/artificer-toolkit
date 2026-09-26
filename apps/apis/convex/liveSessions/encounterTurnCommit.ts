@@ -154,6 +154,8 @@ export const commit = internalMutation({
     const nextState = encounterRunStateSchema.parse({
       ...state,
       ...root.proposedTerminalTransition,
+      // START and ADVANCE_TURN always begin a new turn, even for the same actor.
+      turnSequence: state.turnSequence + 1,
       version: state.version + 1,
       updatedAt: input.occurredAt
     })

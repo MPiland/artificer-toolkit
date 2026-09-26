@@ -43,6 +43,7 @@ import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readLiveMovementWriteAdmission } from './encounterMovementWriteAdmission'
 import { persistLiveMovementSpatial } from './encounterMovementSpatialCommit'
 import { persistLiveMovementReaction } from './encounterMovementReactionCommit'
+import { consumeEncounterAllyAdvantages } from '../encounters/allyAdvantage'
 import { persistLiveMovementConcentration } from './encounterMovementConcentrationCommit'
 import { publishWithAuthorityAdvance } from './externalCommit'
 
@@ -308,7 +309,11 @@ export async function commitLiveMovement(
           consumption: step.consumption,
           overridden: false
         })
-        actors = actors.map((entry) => (entry.id === next.id ? next : entry))
+        actors = await consumeEncounterAllyAdvantages(ctx, {
+          actors: actors.map((entry) => (entry.id === next.id ? next : entry)),
+          uses: step.allyAdvantageUses,
+          rollerActorIds: [passage.audit.sourceActorId, passage.audit.blockerActorId]
+        })
         passageSettled = true
       } else {
         const expected = checks.shift()

@@ -33,6 +33,7 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_SPATIAL_CANDIDATES } from '../shared/spatialFacts.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { encounterAllyAdvantageUsesDtoSchema } from '../shared/basicActions.js'
 
 /** Ordered domain outcomes only; Character documents and arbitrary patches never cross this seam. */
 export const liveSessionMovementSettlementSchema = z.discriminatedUnion('kind', [
@@ -52,7 +53,9 @@ export const liveSessionMovementSettlementSchema = z.discriminatedUnion('kind', 
     execution: movementReactionActionExecutionDtoSchema,
     resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
     createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
-    maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema)
+    maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
+    /** The Help (basic action, Q11) the reactor's attack roll used. */
+    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
   }),
   z.strictObject({
     kind: z.literal('CONCENTRATION'),
@@ -61,7 +64,9 @@ export const liveSessionMovementSettlementSchema = z.discriminatedUnion('kind', 
   z.strictObject({
     kind: z.literal('PASSAGE'),
     actorId: postgresUuidSchema,
-    consumption: movementPassageContestReceiptDtoSchema.shape.actionEconomy
+    consumption: movementPassageContestReceiptDtoSchema.shape.actionEconomy,
+    /** The Helps (basic action, Q11) the contest's checks used. */
+    allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
   })
 ])
 

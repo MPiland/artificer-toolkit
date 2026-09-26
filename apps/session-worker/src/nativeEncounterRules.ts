@@ -234,10 +234,10 @@ export async function planNativeLiveEncounterAction(
       )
   })
   // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
-  const allyAdvantageUse =
+  const allyAdvantageUses =
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? { helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }
-      : null
+      ? [{ helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }]
+      : []
   const capturedScene = command.sceneContext
     ? await capture({
         kind: 'ACTION_SCENE',
@@ -403,7 +403,7 @@ export async function planNativeLiveEncounterAction(
     sceneContext,
     currentnessChecksum,
     activeEffectsByActorId,
-    allyAdvantageUse,
+    allyAdvantageUses,
     dependencies,
     revisions
   }
@@ -622,7 +622,7 @@ export async function commitNativeLiveEncounterAction(
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
     cleaving: plan.cleaving,
-    allyAdvantageUse: plan.allyAdvantageUse
+    allyAdvantageUses: plan.allyAdvantageUses
   })
   return callLiveSessionRoute(environment, accessToken, 'encounterActionCommit', input)
 }
