@@ -1,0 +1,80 @@
+# Manual-only test run. Nothing here runs on push, pull request or a schedule:
+# start it from GitHub (Actions → Tests → Run workflow) or with `gh workflow run tests.yml`.
+name: Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      convex_shards:
+        description: Number of parallel runners for the Convex suite
+        type: choice
+        options: ['4', '6']
+        default: '4'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  convex-shards:
+    name: Convex suite ${{ matrix.shard }}/${{ inputs.convex_shards }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # The matrix lists the maximum; jobs above the chosen shard count exit immediately.
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Skip shard outside the chosen count
+        id: gate
+        run: echo "run=$([ ${{ matrix.shard }} -le ${{ inputs.convex_shards }} ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 24
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: corepack enable && yarn install --immutable
+      - name: Build packages
+        if: steps.gate.outputs.run == 'true'
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose
+      - name: Convex tests (shard ${{ matrix.shard }})
+        if: steps.gate.outputs.run == 'true'
+        run: yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/${{ inputs.convex_shards }}
+
+  packages-worker-web:
+    name: Packages, Worker, web and typechecks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install
+        run: corepack enable && yarn install --immutable
+      - name: Build packages
+        run: yarn turbo run build --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --env-mode=loose
+      - name: Package tests
+        run: |
+          yarn workspace @artificer-toolkit/schema test
+          yarn workspace @artificer-toolkit/shared test
+          yarn workspace @artificer-toolkit/source-data test
+          yarn workspace @artificer-toolkit/rules-runtime test
+      - name: Worker tests
+        run: |
+          yarn workspace @artificer-toolkit/session-worker types
+          yarn workspace @artificer-toolkit/session-worker test
+          yarn workspace @artificer-toolkit/session-worker test:unit
+      - name: Web tests
+        run: yarn workspace @artificer-toolkit/web test
+      - name: Typechecks
+        run: |
+          yarn turbo run typecheck typecheck:convex --filter=@artificer-toolkit/apis --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --env-mode=loose --continue
+          yarn turbo run typecheck:app typecheck:stories typecheck:tests --filter=@artificer-toolkit/web --env-mode=loose --continue
