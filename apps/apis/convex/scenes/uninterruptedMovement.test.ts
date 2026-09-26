@@ -91,6 +91,7 @@ async function setup(
   const request = {
     saveId,
     baseOrdinal: 0,
+    movementCost: 0,
     tokenOrdinals: base.tokens.map((token, baseOrdinal) => ({
       tokenId: token.id.toLowerCase(),
       baseOrdinal

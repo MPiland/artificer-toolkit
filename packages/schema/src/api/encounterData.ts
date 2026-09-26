@@ -381,9 +381,33 @@ export const encounterSessionStateDtoSchema = z.strictObject({
    * Who the table waits on when a decision is pending that this member can't answer: the GM, or
    * another player. Null when nothing is pending or the decision is this member's own.
    */
-  waitingOn: z.nullable(z.enum(['GM', 'PLAYER']))
+  waitingOn: z.nullable(z.enum(['GM', 'PLAYER'])),
+  /**
+   * Movement spent this turn, in feet, for each actor the viewer controls (every actor for the GM).
+   * The budget is the walking speed (null when the actor has none); it is shown, never enforced.
+   */
+  turnMovement: z
+    .array(
+      z.strictObject({
+        actorId: postgresUuidSchema,
+        used: z.number().check(z.nonnegative()),
+        budget: z.nullable(z.number().check(z.nonnegative()))
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 })
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>
+export const getEncounterDecisionSettlementInputDtoSchema = z.strictObject({
+  encounterId: uuidSchema,
+  occurrenceId: uuidSchema,
+  occurrenceVersion: versionSchema
+})
+export type GetEncounterDecisionSettlementInputDto = z.infer<
+  typeof getEncounterDecisionSettlementInputDtoSchema
+>
+/** Who settled a decision the viewer was shown (D39); null while it is still pending. */
+export const encounterDecisionSettlementDtoSchema = z.nullable(z.enum(['ANSWER', 'GM_SKIP']))
+export type EncounterDecisionSettlementDto = z.infer<typeof encounterDecisionSettlementDtoSchema>
 
 export type EncounterPlayerProjectionDto = z.infer<typeof encounterPlayerProjectionDtoSchema>
 export type EncounterGmProjectionDto = z.infer<typeof encounterGmProjectionDtoSchema>

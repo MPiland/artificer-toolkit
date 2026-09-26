@@ -33,6 +33,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
+import { readRunState } from './documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -124,7 +125,8 @@ it('reads the active projection and pending decision together with existing visi
   expect(await base.owner.caller.query(activeState, input)).toEqual({
     encounter: null,
     pending: null,
-    waitingOn: null
+    waitingOn: null,
+    turnMovement: []
   })
   await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
   await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
@@ -206,14 +208,30 @@ it('reads the active projection and pending decision together with existing visi
       projectionJson: JSON.stringify(changed),
       projectionChecksum: checksumCanonicalJson(changed)
     })
+    const state = readRunState(row)
+    if (!state.currentActorId) throw new Error('Missing current actor.')
+    await ctx.db.insert('encounterTurnMovements', {
+      encounterId: run.id,
+      round: state.round,
+      turnActorId: state.currentActorId,
+      actorId: hidden.id,
+      usedFeet: 15
+    })
   })
 
   const ownerState = await base.owner.caller.query(activeState, input)
+  const [visible, hidden] = ownerState.encounter?.actors ?? []
   expect(ownerState).toEqual({
     encounter: await base.owner.caller.query(active, { campaignId: campaign.id }),
     pending: await base.owner.caller.query(pending, { encounterId: run.id }),
-    waitingOn: null
+    waitingOn: null,
+    // The GM sees every actor's movement this turn against its stat block's walking speed.
+    turnMovement: expect.arrayContaining([
+      { actorId: visible?.id, used: 0, budget: 40 },
+      { actorId: hidden?.id, used: 15, budget: 40 }
+    ])
   })
+  expect(ownerState.turnMovement).toHaveLength(2)
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
   expect(ownerState.pending).not.toBeNull()
   const playerState = await base.other.caller.query(activeState, input)
@@ -221,7 +239,9 @@ it('reads the active projection and pending decision together with existing visi
     encounter: await base.other.caller.query(active, { campaignId: campaign.id }),
     pending: await base.other.caller.query(pending, { encounterId: run.id }),
     // The player can't answer the GM's pending turn step, and the signal survives a reload.
-    waitingOn: 'GM'
+    waitingOn: 'GM',
+    // A player sees movement only for actors they control.
+    turnMovement: []
   })
   expect(playerState.pending).toBeNull()
   expect(playerState.encounter?.actors).toHaveLength(1)

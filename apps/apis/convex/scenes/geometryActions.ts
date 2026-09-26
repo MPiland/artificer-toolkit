@@ -31,7 +31,10 @@ import {
 } from '@artificer-toolkit/shared/vtt/scene'
 import { makeFunctionReference } from 'convex/server'
 import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
-import { preparedMovementSegment } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
+import {
+  preparedMovementCost,
+  preparedMovementSegment
+} from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import { action, type ActionCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { geometryTarget } from './geometryValues'
@@ -142,6 +145,7 @@ export async function completeSceneGeometry(
   }
   let delta = target.delta
   let movementPath: ScenePoint[] | undefined
+  let movementCost: number | undefined
   let prepared: Awaited<ReturnType<typeof prepareSceneMovement>> | undefined
   if (input.type === 'MOVE_SCENE_TOKEN') {
     const startDistance = begin.movementStartDistance ?? 0
@@ -157,12 +161,11 @@ export async function completeSceneGeometry(
     if (failure) throw new Error(failure)
     if (input.expectedEncounterVersion !== null)
       prepared = await prepareSceneMovement(ctx, { saveId, baseOrdinal, tokenOrdinals })
-    const segment = preparedMovementSegment({
-      path: input.path,
-      startDistance,
-      outcome: prepared?.preparation.outcome ?? null
-    })
+    const walk = { path: input.path, startDistance, outcome: prepared?.preparation.outcome ?? null }
+    const segment = preparedMovementSegment(walk)
     movementPath = segment.path
+    // The walked segment's cost becomes a bound actor's turn movement (D38).
+    movementCost = preparedMovementCost({ ...walk, grid: prior.grid, scene: prior })
     delta = { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: segment.position }
   }
   const after = applySceneGeometryDelta(prior, delta)
@@ -269,7 +272,7 @@ export async function completeSceneGeometry(
       saveId,
       baseOrdinal,
       ...(prepared
-        ? { tokenOrdinals, perceptionEnvironments: prepared.perceptionEnvironments }
+        ? { tokenOrdinals, perceptionEnvironments: prepared.perceptionEnvironments, movementCost }
         : {})
     })
   )

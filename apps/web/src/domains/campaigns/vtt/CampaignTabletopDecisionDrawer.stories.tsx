@@ -152,6 +152,7 @@ const meta = {
     encounter: tabletopGmEncounter,
     latestRoll: null,
     pending: d20Pending,
+    skipped: null,
     submitting: false,
     onResolve: resolveDecisionCommand
   },

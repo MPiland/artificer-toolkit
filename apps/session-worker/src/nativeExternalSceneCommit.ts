@@ -21,6 +21,7 @@ import type {
   SceneTokenMovementCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  preparedMovementCost,
   preparedMovementSceneDelta,
   preparedMovementSegment
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
@@ -165,14 +166,18 @@ export async function prepareExternalSceneCommit(input: {
   let explorationDelta: Extract<SceneAtomicDelta, { kind: 'TOKEN_MOVED' | 'DOOR_STATE_SET' }>
   let publishedDelta: typeof explorationDelta | null
   let explorationPath: ScenePoint[] | null = null
+  // The walked segment's cost becomes a bound actor's turn movement (D38).
+  let movementCost: number | undefined
   if (staged.type === 'MOVE_SCENE_TOKEN') {
-    const segment = preparedMovementSegment({
+    const walk = {
       path: staged.path,
       startDistance: begun.movementStartDistance ?? 0,
       outcome
-    })
+    }
+    const segment = preparedMovementSegment(walk)
     explorationDelta = { kind: 'TOKEN_MOVED', tokenId: staged.tokenId, position: segment.position }
     explorationPath = segment.path
+    movementCost = preparedMovementCost({ ...walk, grid: scene.grid, scene })
     publishedDelta = preparedMovementSceneDelta({
       tokenId: staged.tokenId,
       path: staged.path,
@@ -236,7 +241,7 @@ export async function prepareExternalSceneCommit(input: {
     fogChanged: layers.length > 0,
     commit: {
       ...movement.prepareInput,
-      finish: { ...finish, tokenOrdinals: context.baseOrdinals.tokens },
+      finish: { ...finish, tokenOrdinals: context.baseOrdinals.tokens, movementCost },
       rules: movement.planned.rules,
       settlements: movement.planned.settlementInputs,
       ...(command.type === 'VOID_RULE_OCCURRENCE' ? { voidCommand: command } : {})

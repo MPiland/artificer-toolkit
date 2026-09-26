@@ -259,6 +259,7 @@ async function setup(withVision = false, returnsToOrigin = false) {
     request: {
       saveId,
       baseOrdinal: 1,
+      movementCost: 0,
       tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
     }
   }

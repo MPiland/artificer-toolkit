@@ -124,7 +124,13 @@ export const sceneBaseOrdinalsSchema = z.strictObject({
 })
 export const sceneGeometryFinishInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
   baseOrdinal: z.nullable(version),
-  tokenOrdinals: z.optional(sceneTokenOrdinalsSchema)
+  tokenOrdinals: z.optional(sceneTokenOrdinalsSchema),
+  /**
+   * An Encounter-bound move's walked segment cost in Scene units, terrain included, measured by the
+   * caller that holds the whole Scene (the room or the geometry action). Publication requires it for
+   * a voluntary move and records it as the actor's turn movement (D38).
+   */
+  movementCost: z.optional(z.number().check(z.nonnegative()))
 })
 export const sceneGeometryObserveInputSchema = z.extend(sceneGeometrySaveLookupSchema, {
   characterRevisions: sceneSessionVisionCharacterRevisionsSchema

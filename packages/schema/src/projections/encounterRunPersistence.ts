@@ -49,6 +49,28 @@ export const encounterStoredEvidenceRollSchema = z.strictObject({
 })
 export type EncounterStoredEvidenceRoll = z.infer<typeof encounterStoredEvidenceRollSchema>
 
+/**
+ * The voluntary movement an actor spent during one turn, in feet (D38). The turn is the Run's round
+ * and current actor, so a new turn reads a new key and starts at zero. It sits outside the Run's
+ * version and checksum: the budget is displayed, never enforced, so no fence reads it.
+ */
+export const encounterStoredTurnMovementSchema = z.strictObject({
+  encounterId: postgresUuidSchema,
+  round: z.number().check(z.int()).check(z.positive()),
+  turnActorId: postgresUuidSchema,
+  actorId: postgresUuidSchema,
+  usedFeet: z.number().check(z.nonnegative())
+})
+export type EncounterStoredTurnMovement = z.infer<typeof encounterStoredTurnMovementSchema>
+
+/** A movement decision the GM skipped (D26, D39), so its player's drawer can say so. */
+export const encounterStoredDecisionSkipSchema = z.strictObject({
+  encounterId: postgresUuidSchema,
+  occurrenceId: postgresUuidSchema,
+  occurrenceVersion: z.number().check(z.int()).check(z.nonnegative()),
+  voidCommandId: postgresUuidSchema
+})
+
 export const encounterSceneBindingSchema = z.strictObject({
   encounterId: postgresUuidSchema,
   campaignId: postgresUuidSchema,

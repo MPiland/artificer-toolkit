@@ -57,6 +57,7 @@ import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
 import {
   getCampaignEncounterActionChoices,
+  getEncounterDecisionSettlement,
   getEncounterLatestEvidenceRoll,
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
@@ -75,6 +76,7 @@ import {
   encounterProjectionListDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterSessionStateDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
+import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { bindEncounterToPresentedSceneResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   encounterActorTokenBindingCommandInputDtoSchema,
@@ -100,6 +102,7 @@ import {
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
+import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReadout'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import * as styles from './CampaignVttStage.css'
@@ -141,6 +144,9 @@ export function CampaignVttStage({
   const currentActorMine = currentActor
     ? isEncounterActorMine(campaign, currentUserId, currentActor)
     : false
+  const currentTurnMovement = currentActorMine
+    ? encounterSessionState.data?.turnMovement.find((entry) => entry.actorId === currentActor?.id)
+    : undefined
   useEffect(() => {
     if (
       !currentActorMine ||
@@ -166,6 +172,28 @@ export function CampaignVttStage({
   const latestEvidenceRoll = useQuery(
     getEncounterLatestEvidenceRoll(pendingOccurrence && activeEncounter ? activeEncounter.id : null)
   )
+  // A player's last shown decision stays in its drawer to say whether the GM skipped it (D39).
+  const [shownDecision, setShownDecision] =
+    useState<PendingEncounterRuleOccurrenceSummaryDto | null>(null)
+  useEffect(() => {
+    if (pendingOccurrence && campaign.role !== 'OWNER') setShownDecision(pendingOccurrence)
+  }, [campaign.role, pendingOccurrence])
+  const settledDecision = pendingOccurrence ? null : shownDecision
+  const decisionSettlement = useQuery(
+    getEncounterDecisionSettlement(
+      settledDecision && activeEncounter
+        ? {
+            encounterId: activeEncounter.id,
+            occurrenceId: settledDecision.occurrenceId,
+            occurrenceVersion: settledDecision.occurrenceVersion
+          }
+        : null
+    )
+  )
+  useEffect(() => {
+    if (decisionSettlement.data === 'ANSWER') setShownDecision(null)
+  }, [decisionSettlement.data])
+  const drawerDecision = pendingOccurrence ?? settledDecision
   const currentActionChoices =
     actionChoiceScope &&
     actionChoices.data?.encounterId === actionChoiceScope.encounterId &&
@@ -1115,6 +1143,13 @@ export function CampaignVttStage({
               onCommand={(command) => encounterCommand.mutate(command)}
             />
           ) : null}
+          {activeEncounter && currentTurnMovement ? (
+            <CampaignTabletopMovementReadout
+              automationMode={activeEncounter.automationMode}
+              budget={currentTurnMovement.budget}
+              used={currentTurnMovement.used}
+            />
+          ) : null}
           {currentActorMine &&
           activeEncounter &&
           currentActor &&
@@ -1139,14 +1174,19 @@ export function CampaignVttStage({
               onLoadOptionalChoices={loadOptionalActionChoices}
             />
           ) : null}
-          {pendingOccurrence && activeEncounter ? (
+          {drawerDecision && activeEncounter ? (
             <CampaignTabletopDecisionDrawer
               canVoid={campaign.role === 'OWNER'}
               connected
               encounter={activeEncounter}
               latestRoll={latestEvidenceRoll.data ?? null}
-              pending={pendingOccurrence}
-              submitting={encounterCommand.isPending}
+              pending={drawerDecision}
+              skipped={
+                !pendingOccurrence && decisionSettlement.data === 'GM_SKIP'
+                  ? { onDismiss: () => setShownDecision(null) }
+                  : null
+              }
+              submitting={encounterCommand.isPending || !pendingOccurrence}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}

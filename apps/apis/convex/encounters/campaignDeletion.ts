@@ -30,6 +30,18 @@ export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: 
     ctx.db
       .query('encounterEvidenceRolls')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      .take(8),
+    ctx.db
+      .query('encounterTurnMovements')
+      .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
+        q.eq('encounterId', encounterId)
+      )
+      .take(8),
+    ctx.db
+      .query('encounterDecisionSkips')
+      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
+        q.eq('encounterId', encounterId)
+      )
       .take(8)
   ])
   for (const rows of groups) for (const row of rows) await ctx.db.delete(row._id)

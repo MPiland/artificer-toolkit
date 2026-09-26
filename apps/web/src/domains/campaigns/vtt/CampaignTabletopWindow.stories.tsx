@@ -381,7 +381,7 @@ function renderWindow(
     queryFn: async () => [encounter]
   })
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
-    queryFn: async () => ({ encounter, pending: null, waitingOn: null })
+    queryFn: async () => ({ encounter, pending: null, waitingOn: null, turnMovement: [] })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
   const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
@@ -398,7 +398,8 @@ function renderWindow(
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
     pending: null,
-    waitingOn: null
+    waitingOn: null,
+    turnMovement: []
   })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, { autoRollDice: true })
@@ -410,7 +411,7 @@ function renderWindow(
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.projectionReads.list)) return [encounter]
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
-        return { encounter, pending: null, waitingOn: null }
+        return { encounter, pending: null, waitingOn: null, turnMovement: [] }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.presentations.get)) return presentation
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header

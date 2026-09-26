@@ -62,7 +62,8 @@ async function activate(
       updatedAt: now,
       documentJson: canonicalizeRuleDocument(character),
       checksum: checksumRuleDocument(character),
-      maximumHitPoints: 0
+      maximumHitPoints: 0,
+      walkingSpeed: 0
     })
   })
 }

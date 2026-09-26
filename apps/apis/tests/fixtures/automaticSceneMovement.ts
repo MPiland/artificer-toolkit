@@ -262,6 +262,7 @@ export async function setupReactionMovementScene<
   const request = {
     saveId,
     baseOrdinal: 1,
+    movementCost: 0,
     tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
   }
   return {

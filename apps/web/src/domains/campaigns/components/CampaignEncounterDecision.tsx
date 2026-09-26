@@ -54,6 +54,7 @@ export function CampaignEncounterDecision({
       encounter={encounter}
       latestRoll={latestRoll.data ?? null}
       pending={pending.data}
+      skipped={null}
       submitting={resolve.isPending}
       onResolve={resolve.mutateAsync}
     />

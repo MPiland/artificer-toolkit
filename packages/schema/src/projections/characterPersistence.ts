@@ -27,6 +27,8 @@ export const characterStoredRecordSchema = z.strictObject({
    * live. Published-content changes reach it on the Character's next write.
    */
   maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+  /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */
+  walkingSpeed: z.number().check(z.nonnegative()),
   portraitAssetId: z.optional(uuid),
   portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
   sheetState: z.optional(

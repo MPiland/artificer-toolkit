@@ -168,6 +168,7 @@ function finishWithHints(
   const input: ReturnType<typeof sceneGeometryFinishInputSchema.parse> = {
     saveId: value.saveId,
     baseOrdinal: 0,
+    movementCost: 0,
     ...(tokenOrdinals === undefined ? {} : { tokenOrdinals })
   }
   return value.base.owner.caller.mutation(internal.scenes.geometryCommands.finish, input)
@@ -704,6 +705,7 @@ it('prepares and replays authoritative movement evidence before one atomic Scene
   const request = {
     saveId: value.saveId,
     baseOrdinal: 0,
+    movementCost: 0,
     tokenOrdinals: value.geometry.sceneTokens.map((token, baseOrdinal) => ({
       tokenId: token.id,
       baseOrdinal

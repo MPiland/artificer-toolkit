@@ -12,7 +12,11 @@ import {
   sceneStoredLiveStateSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { applySceneGeometryDelta, sceneDoorChangeFailure } from '@artificer-toolkit/shared/vtt'
+import {
+  applySceneGeometryDelta,
+  sceneDoorChangeFailure,
+  sceneLengthInFeet
+} from '@artificer-toolkit/shared/vtt'
 import { preparedMovementSceneDelta } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import type { MutationCtx } from '../_generated/server'
 import { parseFogSave } from './fogDocuments'
@@ -30,6 +34,7 @@ import { readSessionVisionScope } from './sessionVisionDocuments'
 import { readSpatialSceneGeometry } from './spatialGeometry'
 import { assertSceneVisionCharacters } from './visionFreshness'
 import { requireBoundTokenMoveControl } from '../encounters/actorController'
+import { recordTurnMovement } from '../encounters/turnMovement'
 
 type SceneGeometryFinishInput = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 type SceneGeometrySaveRead = Awaited<ReturnType<typeof readGeometrySave>>
@@ -291,6 +296,15 @@ export async function publishSceneGeometry(
         ? await publicationCallbacks.publishPreparedSpatialPending(ctx, input, geometry)
         : await publicationCallbacks.publishPreparedSpatialTerminal(ctx, save.id, geometry, input)
       occurrence = publication.occurrence
+    }
+    // Each published segment of a voluntary move counts toward the actor's turn (D38).
+    if (save.input.type === 'MOVE_SCENE_TOKEN' && save.input.movementKind === 'VOLUNTARY') {
+      if (input.movementCost === undefined) throw new Error('Bound movement cost is missing.')
+      const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
+      // An uncalibrated SQUARES Scene has no feet to count.
+      const feet = sceneLengthInFeet(input.movementCost, header.grid)
+      if (actorId && feet !== null)
+        await recordTurnMovement(ctx, { state: geometry.encounter, actorId, feet })
     }
   }
   const reduced = applySceneGeometryDelta(

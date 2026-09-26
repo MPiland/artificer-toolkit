@@ -301,7 +301,26 @@ A forwarded Encounter command rereads the flag with one authority capture while 
 decision drawer offers "Skip decision" on a movement reaction or passage choice: a void routed
 `MOVEMENT` that declines it (the movement continues). A decision on a Scene that is not presented
 keeps the native path (D29). A player's Convex-first Scene command counts against the one-in-flight
-limit.
+limit. The skip also writes an `encounterDecisionSkips` row keyed by the decision's occurrence and
+version, so `encounters/activeReads:decisionSettlement` answers `GM_SKIP` (or `ANSWER`) for the
+decision a player was shown, and their drawer says "The GM skipped this decision." (D39). A skip on
+the native path (D29) posts the same chat line and skip row through the same function, in
+`occurrenceVoid:record` after its decline commits. It knows a movement decision from state that
+survives the decline (the decline's receipt and a `MOVE_SCENE_TOKEN` root receipt), so a retry after
+a crash still announces it; the skipped occurrence and version key both writes, so nothing repeats.
+
+**Turn movement (CURRENT, D37-D38, V07.5).** The caller that holds the whole Scene (the room's
+`prepareExternalSceneCommit`, or the native geometry action) measures each published segment of a
+bound move with `measureScenePathMovementCost` (terrain included) and sends it as the finish input's
+`movementCost`. `publishSceneGeometry` requires it for a voluntary bound move and adds it, in feet,
+to an `encounterTurnMovements` row keyed by Run, round, the turn's current actor and the moving actor
+(`encounters/turnMovement.ts`); forced movement and teleports add nothing. The row is outside the Run
+version and checksum and fences nothing: the budget is shown, never enforced. A new turn reads a new
+key, so it starts at zero; completing the Run deletes the rows. `encounters/activeReads:active`
+returns `turnMovement` (`{actorId, used, budget}`) for the actors the viewer controls, every actor for
+the GM; the budget is a Character's stored `walkingSpeed` or a creature stat block's walking speed.
+The tabletop shows "Movement 15 / 30 ft" for the active controlled actor; past the budget Assisted
+uses the soft-warning style and Manual shows the number only. Dash is not modeled yet (escalated).
 
 **Single Encounter command door.** Browsers cannot execute Encounter commands directly:
 `encounters/commands:execute` and `encounters/commandActions:execute` are internal. Every Encounter

@@ -632,6 +632,27 @@ export function measureSceneMovementCost(
   return measureSceneDistance(grid, from, to) * terrainMovementMultiplier(state, from, to, index)
 }
 
+/**
+ * The movement a walked path spends: each segment's share of the path distance (so alternating
+ * diagonals count across segments) times the highest terrain multiplier that segment crosses.
+ */
+export function measureScenePathMovementCost(
+  grid: SceneGrid,
+  state: { readonly barriers: readonly SceneBarrier[] },
+  path: readonly ScenePoint[]
+): number {
+  const index = new SceneBarrierIndex(state.barriers)
+  let cost = 0
+  let walked = 0
+  for (let end = 1; end < path.length; end += 1) {
+    const distance = measureScenePathDistance(grid, path.slice(0, end + 1))
+    cost +=
+      (distance - walked) * terrainMovementMultiplier(state, path[end - 1]!, path[end]!, index)
+    walked = distance
+  }
+  return cost
+}
+
 function toMultiPolygon(polygon: ScenePolygon): MultiPolygon {
   return [[polygon.points.map((point) => [point.x, point.y])]]
 }

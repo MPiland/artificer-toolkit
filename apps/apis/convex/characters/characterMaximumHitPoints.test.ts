@@ -12,7 +12,7 @@ import type {
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_SPEEDS, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
 
@@ -175,5 +175,24 @@ describe('stored Character effective maximum hit points', () => {
     const moved = await fixture.read()
     expect(moved.row.maximumHitPoints).toBe(moved.sheet.overview.maxHitPoints)
     expect(moved.row.maximumHitPoints).toBe(equipped.row.maximumHitPoints - 5)
+  })
+})
+
+describe('stored Character walking speed (D38)', () => {
+  it('is set on creation and follows a Sheet speed override', async () => {
+    const fixture = await setup()
+    const created = await fixture.read()
+    expect(created.row.walkingSpeed).toBeGreaterThan(0)
+    const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
+    await fixture.owner.caller.mutation(api.characters.sheetCommands.execute, {
+      id: fixture.character.id,
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: created.row.streamVersion,
+        adjustment: { family: 'MOVEMENT', speedId: walk.id, field: 'SPEED_OVERRIDE', value: 45 }
+      }
+    })
+    expect((await fixture.read()).row.walkingSpeed).toBe(45)
   })
 })

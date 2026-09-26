@@ -22,11 +22,13 @@ import {
   measureSceneDistance,
   measureScenePathDistance,
   measureSceneMovementCost,
+  measureScenePathMovementCost,
   projectSceneForViewer,
   replaySceneEvents,
   resolveSceneCharacterVision,
   sceneDeltaConflictKeys,
   sceneDerivesExploration,
+  sceneLengthInFeet,
   sceneTokenIdsAffectedByBarriers,
   SceneBarrierIndex,
   segmentsIntersect,
@@ -1320,5 +1322,28 @@ describe('VTT scene geometry', () => {
       ]
     } as const
     expect(measureSceneMovementCost(grid, terrain, { x: 0, y: 0 }, { x: 100, y: 0 })).toBe(30)
+    // A walked path pays each segment's terrain only for that segment.
+    expect(
+      measureScenePathMovementCost(grid, terrain, [
+        { x: 0, y: 0 },
+        { x: 30, y: 0 },
+        { x: 50, y: 0 },
+        { x: 100, y: 0 }
+      ])
+    ).toBe(3 + 4 + 15)
+    expect(sceneLengthInFeet(3, { ...grid, unit: 'METERS' })).toBeCloseTo(9.8425, 3)
+    expect(sceneLengthInFeet(3, { ...grid, unit: 'SQUARES' })).toBeNull()
+  })
+
+  it('keeps alternating diagonals across walked segments', () => {
+    const grid = definition().grid
+    const path = [
+      { x: 0, y: 0 },
+      { x: 50, y: 50 },
+      { x: 100, y: 100 }
+    ]
+    expect(measureScenePathMovementCost(grid, { barriers: [] }, path)).toBe(
+      measureScenePathDistance(grid, path)
+    )
   })
 })

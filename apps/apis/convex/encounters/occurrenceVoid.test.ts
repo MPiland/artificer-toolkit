@@ -4,9 +4,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   EncounterCommandResultDto,
   EncounterExecuteInput,
+  ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
+import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/api/sceneMovementPerception'
@@ -41,6 +43,11 @@ const prepare = makeFunctionReference<'mutation', Request, SceneSpatialPreparati
 const finish = makeFunctionReference<'mutation', Request, SceneGeometryCommandResult>(
   'scenes/geometryCommands:finish'
 )
+const prepareVoid = makeFunctionReference<
+  'mutation',
+  VoidRuleOccurrenceInputDto,
+  { kind: 'DECLINE'; command: ResolveRuleOccurrenceInputDto } | { kind: 'COMPLETE' | 'RECORD' }
+>('encounters/occurrenceVoid:prepare')
 
 function voidCommand(input: {
   encounterId: string
@@ -237,21 +244,33 @@ describe('GM void command', () => {
     const before = await commands()
 
     // The move pauses again at the next reactor, so the void adds no Run version or timeline entry.
-    const continued = await value.owner.caller.action(
-      executeCommand,
-      voidCommand({ encounterId: value.base.run.id, pending: choice })
-    )
+    const firstSkip = voidCommand({ encounterId: value.base.run.id, pending: choice })
+    const continued = await value.owner.caller.action(executeCommand, firstSkip)
     const next = continued.occurrence?.pending
     if (continued.occurrence?.status !== 'PENDING' || next?.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the next movement choice.')
     expect(next.encounterVersion).toBe(choice.encounterVersion)
     expect(await commands()).toEqual(before)
 
-    const voided = await value.owner.caller.action(
-      executeCommand,
-      voidCommand({ encounterId: value.base.run.id, pending: next })
-    )
+    const secondSkip = voidCommand({ encounterId: value.base.run.id, pending: next })
+    const skipRows = () =>
+      value.base.t.run((ctx) =>
+        ctx.db
+          .query('encounterDecisionSkips')
+          .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (query) =>
+            query.eq('encounterId', value.base.run.id)
+          )
+          .collect()
+      )
+    // Crash window: the decline commits, then the orchestrator dies before recording the void.
+    const planned = await value.owner.caller.mutation(prepareVoid, secondSkip.command)
+    if (planned.kind !== 'DECLINE') throw new Error('Expected the void to decline the choice.')
+    await value.owner.caller.action(executeCommand, { command: planned.command })
+    expect(await skipRows()).toHaveLength(1)
+    // The retry finds the committed decline and announces the skip once; a replay adds nothing.
+    const voided = await value.owner.caller.action(executeCommand, secondSkip)
     expect(voided.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(await value.owner.caller.action(executeCommand, secondSkip)).toEqual(voided)
     const stored = await value.base.t.run(async (ctx) => ({
       occurrence: await ctx.db
         .query('encounterRuleOccurrences')
@@ -269,5 +288,60 @@ describe('GM void command', () => {
     expect(voided.projection.version).toBe(
       Math.max(...stored.commands.map((row) => row.version ?? 0))
     )
+    // The native path (a Scene the room does not own, D29) announces each skip like the room does:
+    // a TABLE chat line and the skip record the player's drawer reads (D26, D39).
+    const announced = await value.base.t.run(async (ctx) => {
+      const skips = await ctx.db
+        .query('encounterDecisionSkips')
+        .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (query) =>
+          query.eq('encounterId', value.base.run.id)
+        )
+        .collect()
+      const bodies = []
+      for (const skip of [firstSkip, secondSkip]) {
+        const entry = await ctx.db
+          .query('campaignConversationEntries')
+          .withIndex('by_campaignId_authorUserId_clientNonce', (query) =>
+            query
+              .eq('campaignId', value.base.campaign.id)
+              .eq('authorUserId', value.owner.userId)
+              .eq('clientNonce', skip.command.commandId)
+          )
+          .unique()
+        const payload = entry
+          ? await ctx.db
+              .query('campaignConversationEntryPayloads')
+              .withIndex('by_entryId', (query) => query.eq('entryId', entry.id))
+              .unique()
+          : null
+        bodies.push(payload?.kind === 'CHAT' ? payload.body : null)
+      }
+      return { skips, bodies }
+    })
+    expect(announced.bodies).toEqual([
+      MOVEMENT_DECISION_SKIPPED_MESSAGE,
+      MOVEMENT_DECISION_SKIPPED_MESSAGE
+    ])
+    expect(
+      announced.skips.map(({ occurrenceId, occurrenceVersion, voidCommandId }) => ({
+        occurrenceId,
+        occurrenceVersion,
+        voidCommandId
+      }))
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          occurrenceId: choice.occurrenceId,
+          occurrenceVersion: choice.occurrenceVersion,
+          voidCommandId: firstSkip.command.commandId
+        },
+        {
+          occurrenceId: next.occurrenceId,
+          occurrenceVersion: next.occurrenceVersion,
+          voidCommandId: secondSkip.command.commandId
+        }
+      ])
+    )
+    expect(announced.skips).toHaveLength(2)
   }, 60_000)
 })

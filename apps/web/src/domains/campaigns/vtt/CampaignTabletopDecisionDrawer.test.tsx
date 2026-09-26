@@ -173,6 +173,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -207,6 +208,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -245,6 +247,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
@@ -264,6 +267,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -288,6 +292,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
@@ -302,6 +307,7 @@ describe('CampaignTabletopDecisionDrawer action outcome evidence', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -322,6 +328,7 @@ describe('CampaignTabletopDecisionDrawer void', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid
         connected
         encounter={tabletopGmEncounter}
@@ -347,6 +354,7 @@ describe('CampaignTabletopDecisionDrawer void', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -366,6 +374,7 @@ describe('CampaignTabletopDecisionDrawer movement skip', () => {
     const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid
         connected
         encounter={tabletopGmEncounter}
@@ -388,6 +397,30 @@ describe('CampaignTabletopDecisionDrawer movement skip', () => {
     )
     expect(await screen.findByText('Decision skipped.')).toBeVisible()
   })
+
+  it('tells the waiting player the GM skipped their decision, and closing dismisses it (D39)', async () => {
+    const user = userEvent.setup()
+    const onDismiss = vi.fn()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={{ onDismiss }}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={passagePending}
+        submitting
+        onResolve={vi.fn(async () => resolved())}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(await screen.findByText('The GM skipped this decision.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Overrun|Tumble/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Decline passage' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Close pending decision' }))
+    expect(onDismiss).toHaveBeenCalledOnce()
+  })
 })
 
 describe('CampaignTabletopDecisionDrawer passage choice', () => {
@@ -396,6 +429,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
     const onResolve = vi.fn(async () => resolved())
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -424,6 +458,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
@@ -440,6 +475,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -453,6 +489,7 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -473,6 +510,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
     const onResolve = vi.fn(async () => resolved())
     const { rerender } = renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -491,6 +529,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected={false}
         encounter={tabletopGmEncounter}
@@ -506,6 +545,7 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
 
     rerender(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -555,6 +595,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     const user = userEvent.setup()
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -585,6 +626,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     const onResolve = rollingResolver([appRoll(1, [4, 17]), appRoll(2, [12, 9])])
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}
@@ -632,6 +674,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     const onResolve = rollingResolver([])
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
+        skipped={null}
         canVoid={false}
         connected
         encounter={tabletopGmEncounter}

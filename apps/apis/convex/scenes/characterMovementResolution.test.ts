@@ -565,6 +565,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
   const rootRequest = {
     saveId: rootSaveId,
     baseOrdinal: tokens.length - 1,
+    movementCost: 0,
     tokenOrdinals: tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
   }
   return {
@@ -658,6 +659,7 @@ async function stageDecline(
   const request = {
     saveId: begin.saveId,
     baseOrdinal: value.rootRequest.baseOrdinal,
+    movementCost: 0,
     tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
   }
   await caller.caller.mutation(observe, { saveId: begin.saveId, characterRevisions: [] })
@@ -706,6 +708,7 @@ describe('native Character movement-decision authority', () => {
       const request = {
         saveId: staged.saveId,
         baseOrdinal: value.rootRequest.baseOrdinal,
+        movementCost: 0,
         tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
           tokenId: token.id,
           baseOrdinal
@@ -824,6 +827,7 @@ describe('native Character movement-decision authority', () => {
     let request = {
       saveId: selected.saveId,
       baseOrdinal: value.rootRequest.baseOrdinal,
+      movementCost: 0,
       tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
     }
     await value.player.caller.mutation(observe, { saveId: request.saveId, characterRevisions: [] })
@@ -960,6 +964,7 @@ describe('native Character movement-decision authority', () => {
       const request = {
         saveId: begin.saveId,
         baseOrdinal: value.rootRequest.baseOrdinal,
+        movementCost: 0,
         tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
           tokenId: token.id,
           baseOrdinal
@@ -1036,6 +1041,7 @@ describe('native Character movement-decision authority', () => {
     const request = {
       saveId: begin.saveId,
       baseOrdinal: value.rootRequest.baseOrdinal,
+      movementCost: 0,
       tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
     }
     await value.player.caller.mutation(observe, { saveId: begin.saveId, characterRevisions: [] })
@@ -1073,6 +1079,7 @@ describe('native Character movement-decision authority', () => {
     const stagedRequest = {
       saveId: staged.saveId,
       baseOrdinal: value.rootRequest.baseOrdinal,
+      movementCost: 0,
       tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({ tokenId: token.id, baseOrdinal }))
     }
     await value.player.caller.mutation(observe, {

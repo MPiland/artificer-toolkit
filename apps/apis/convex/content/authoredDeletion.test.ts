@@ -268,7 +268,8 @@ describe('native authored deletion source-loss cleanup', () => {
         updatedAt: now,
         documentJson: JSON.stringify(encoded),
         checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0
+        maximumHitPoints: 0,
+        walkingSpeed: 0
       })
       const storedDraft = await ctx.db
         .query('characterDrafts')
@@ -322,7 +323,8 @@ describe('native authored deletion source-loss cleanup', () => {
         updatedAt: now,
         documentJson: JSON.stringify(encoded),
         checksum: checksumRuleDocument(encoded),
-        maximumHitPoints: 0
+        maximumHitPoints: 0,
+        walkingSpeed: 0
       })
       const storedDraft = await ctx.db
         .query('characterDrafts')

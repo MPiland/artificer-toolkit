@@ -12,6 +12,12 @@ import {
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
+  encounterDecisionSettlementDtoSchema,
+  getEncounterDecisionSettlementInputDtoSchema,
+  type EncounterDecisionSettlementDto,
+  type GetEncounterDecisionSettlementInputDto
+} from '@artificer-toolkit/schema/api/encounterData'
+import {
   encounterEvidenceRollDtoSchema,
   type EncounterEvidenceRollDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -31,6 +37,11 @@ const getLatestEvidenceRolls = makeFunctionReference<
   { encounterId: string },
   EncounterEvidenceRollDto[]
 >('encounters/evidenceRolls:latest')
+const getDecisionSettlement = makeFunctionReference<
+  'query',
+  GetEncounterDecisionSettlementInputDto,
+  EncounterDecisionSettlementDto
+>('encounters/activeReads:decisionSettlement')
 
 export function getCampaignEncounterActionChoices(input: GetEncounterActionChoicesInputDto | null) {
   return {
@@ -39,6 +50,19 @@ export function getCampaignEncounterActionChoices(input: GetEncounterActionChoic
       input ? getEncounterActionChoicesInputDtoSchema.parse(input) : 'skip'
     ),
     select: encounterActionChoicesResponseDtoSchema.parse
+  }
+}
+
+/** Who settled a decision the viewer was shown once it leaves `pending` (D39). */
+export function getEncounterDecisionSettlement(
+  input: GetEncounterDecisionSettlementInputDto | null
+) {
+  return {
+    ...convexQuery(
+      getDecisionSettlement,
+      input ? getEncounterDecisionSettlementInputDtoSchema.parse(input) : 'skip'
+    ),
+    select: encounterDecisionSettlementDtoSchema.parse
   }
 }
 

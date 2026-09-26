@@ -11,6 +11,13 @@ import type {
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
+  EncounterDecisionSettlementDto,
+  EncounterSessionStateDto,
+  GetEncounterDecisionSettlementInputDto
+} from '@artificer-toolkit/schema/api/encounterData'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type {
   SceneGeometryCommandInputDto,
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
@@ -55,6 +62,16 @@ const setPresentation = makeFunctionReference<
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 >('scenes/presentations:set')
+const activeState = makeFunctionReference<
+  'query',
+  { campaignId: string },
+  EncounterSessionStateDto
+>('encounters/activeReads:active')
+const decisionSettlement = makeFunctionReference<
+  'query',
+  GetEncounterDecisionSettlementInputDto,
+  EncounterDecisionSettlementDto
+>('encounters/activeReads:decisionSettlement')
 
 type Caller = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>['owner']['caller']
 type Base = Pick<Awaited<ReturnType<typeof setupAutomaticSceneMovement>>['base'], 't' | 'campaign'>
@@ -289,6 +306,23 @@ it('runs a bound move, its answer and a GM skip through the room pipeline, advan
       .unique()
   )
   expect(payload).toMatchObject({ kind: 'CHAT', body: MOVEMENT_DECISION_SKIPPED_MESSAGE })
+  // The decision read model records who settled each decision, for the player's drawer (D39).
+  const settlement = (decision: { occurrenceId: string; occurrenceVersion: number }) =>
+    value.player.caller.query(decisionSettlement, {
+      encounterId: value.base.run.id,
+      occurrenceId: decision.occurrenceId,
+      occurrenceVersion: decision.occurrenceVersion
+    })
+  expect(await settlement(choice)).toBe('ANSWER')
+  expect(await settlement(next)).toBe('GM_SKIP')
+  // Every published segment of the move, before and after both decisions, counts toward the
+  // mover's turn: the whole 300 px path over 100 px, 5 ft cells (D38).
+  const state = await value.owner.caller.query(activeState, { campaignId: value.base.campaign.id })
+  expect(state.turnMovement).toContainEqual({
+    actorId: value.geometry.actorIdByTokenId.get(value.moverTokenId),
+    used: 15,
+    budget: 40
+  })
 }, 120_000)
 
 it('publishes the same bound move and Scene through the room as the native path (parity)', async () => {
@@ -526,4 +560,217 @@ it('commits an unbound fog-deriving move under live authority and stages its own
   ])
   expect(committed.scene).toMatchObject({ version: 2, delta: moved.prepared.expectedScene.delta })
   expect(await persisted(base)).toEqual({ sequence: 1, checksum: moved.authority.stateChecksum })
+}, 120_000)
+
+it('counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)', async () => {
+  // Reactors far from the path, so each move publishes uninterrupted.
+  const value = await setupAutomaticSceneMovement({ reactorPositions: [850, 850] })
+  const epoch = await activateRoom(value.base)
+  routeRoom(value.owner)
+  const moverId = value.geometry.actorIdByTokenId.get(value.moverTokenId)!
+  const readRun = () =>
+    value.base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
+        .unique()
+      if (!row) throw new Error('Missing Encounter Run.')
+      return row
+    })
+  const move = async (
+    path: { x: number; y: number }[],
+    movementKind: 'VOLUNTARY' | 'FORCED',
+    expectedSceneVersion: number
+  ) =>
+    (
+      await runRoomCommit({
+        base: value.base,
+        member: value.owner,
+        role: 'OWNER',
+        epoch,
+        command: {
+          ...value.rootInput,
+          commandId: crypto.randomUUID(),
+          expectedSceneVersion,
+          movementKind,
+          path
+        }
+      })
+    ).commit()
+  const moverMovement = async () =>
+    (
+      await value.owner.caller.query(activeState, { campaignId: value.base.campaign.id })
+    ).turnMovement.find((entry) => entry.actorId === moverId)
+  const before = await readRun()
+
+  const first = await move(
+    [
+      { x: 150, y: 50 },
+      { x: 350, y: 50 }
+    ],
+    'VOLUNTARY',
+    0
+  )
+  expect(first.scene.occurrence).toBeNull()
+  expect(await moverMovement()).toEqual({ actorId: moverId, used: 10, budget: 40 })
+  // Moves in one turn accumulate.
+  const second = await move(
+    [
+      { x: 350, y: 50 },
+      { x: 250, y: 50 }
+    ],
+    'VOLUNTARY',
+    first.scene.version
+  )
+  expect(await moverMovement()).toMatchObject({ used: 15 })
+  // Forced movement does not spend the mover's own movement.
+  await move(
+    [
+      { x: 250, y: 50 },
+      { x: 150, y: 50 }
+    ],
+    'FORCED',
+    second.scene.version
+  )
+  expect(await moverMovement()).toMatchObject({ used: 15 })
+  // The record bumps nothing on the Run: no version, no state change.
+  const after = await readRun()
+  expect({ version: after.version, stateChecksum: after.stateChecksum }).toEqual({
+    version: before.version,
+    stateChecksum: before.stateChecksum
+  })
+  // A new turn reads a new key and starts at zero.
+  await value.base.t.run(async (ctx) => {
+    const next = encounterRunStateSchema.parse({
+      ...JSON.parse(after.stateJson),
+      currentActorId: moverId
+    })
+    await ctx.db.patch(after._id, {
+      stateJson: JSON.stringify(next),
+      stateChecksum: checksumCanonicalJson(next)
+    })
+  })
+  expect(await moverMovement()).toMatchObject({ used: 0 })
+}, 120_000)
+
+/** A presented, fog-on Scene with a player's seeing token and one door per state (V03.4, V07.4). */
+async function setupPlayerScene() {
+  const base = await createSceneDefinitionFixture()
+  const { sceneId } = await publishEmptyScene(base)
+  await base.owner.caller.mutation(setPresentation, {
+    commandId: crypto.randomUUID(),
+    expectedPresentationVersion: null,
+    campaignId: base.campaign.id,
+    sceneId,
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+  })
+  const token = (label: string, controlledByUserIds: string[], x: number) => ({
+    assetId: null,
+    controlledByUserIds,
+    height: 1,
+    hidden: false,
+    id: crypto.randomUUID(),
+    label,
+    locked: false,
+    position: { x, y: 100 },
+    rotationDegrees: 0,
+    vision: { angleDegrees: 360, brightRange: 0, dimRange: 60, directionDegrees: 0, enabled: true },
+    width: 1
+  })
+  const door = (initialState: 'CLOSED' | 'LOCKED', x: number) => ({
+    a: { x, y: 0 },
+    b: { x, y: 400 },
+    blocksLightWhenClosed: true,
+    blocksMovementWhenClosed: true,
+    id: crypto.randomUUID(),
+    initialState,
+    kind: 'DOOR' as const,
+    openAngleDegrees: 90
+  })
+  const scout = token('Scout', [base.other.userId], 100)
+  const sentry = token('Sentry', [], 700)
+  const closed = door('CLOSED', 200)
+  const locked = door('LOCKED', 600)
+  let version = 0
+  // Doors first, so the scout's first view stops at the closed door.
+  for (const input of [
+    { type: 'UPSERT_SCENE_BARRIER' as const, barrier: closed },
+    { type: 'UPSERT_SCENE_BARRIER' as const, barrier: locked },
+    { type: 'UPSERT_SCENE_TOKEN' as const, token: scout },
+    { type: 'UPSERT_SCENE_TOKEN' as const, token: sentry }
+  ])
+    version = (
+      await base.owner.caller.action(executeGeometry, {
+        input: { ...input, commandId: crypto.randomUUID(), expectedSceneVersion: version, sceneId }
+      })
+    ).version
+  const epoch = await activateRoom(base)
+  routeRoom(base.other)
+  const player = (command: ExternalSceneCommand) =>
+    runRoomCommit({ base, member: base.other, role: 'PLAYER', epoch, command })
+  return { base, sceneId, scout, sentry, closed, locked, version, player }
+}
+
+it("commits a player's door change on a fog-on Scene through the room, refusing a locked door (V03.4)", async () => {
+  const value = await setupPlayerScene()
+  const door = (barrierId: string, expectedSceneVersion: number) => ({
+    type: 'SET_SCENE_DOOR_STATE' as const,
+    commandId: crypto.randomUUID(),
+    sceneId: value.sceneId,
+    expectedSceneVersion,
+    barrierId,
+    state: 'OPEN' as const
+  })
+  const opened = await value.player(door(value.closed.id, value.version))
+  const committed = await opened.commit()
+  // The player's opened door explores through it: the room stages the fog, then commits first.
+  expect(calls).toEqual([
+    '/live-sessions/encounter-movement-begin',
+    '/live-sessions/encounter-movement-observe',
+    '/live-sessions/encounter-movement-stage-fog',
+    '/live-sessions/scene-geometry'
+  ])
+  expect(opened.prepared.fogChanged).toBe(true)
+  expect(committed.scene).toMatchObject({
+    version: value.version + 1,
+    delta: { kind: 'DOOR_STATE_SET', barrierId: value.closed.id, state: 'OPEN' },
+    fogPatches: [expect.objectContaining({ ownerUserId: value.base.other.userId })]
+  })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
+
+  // Only the GM changes a locked door; publication refuses the player and nothing advances.
+  await expect(
+    value.player(door(value.locked.id, value.version + 1)).then((refused) => refused.commit())
+  ).rejects.toMatchObject({ status: 409 })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
+}, 120_000)
+
+it('commits a player move of a controlled unbound token through the room, refusing others (V07.4)', async () => {
+  const value = await setupPlayerScene()
+  const move = (tokenId: string, from: { x: number; y: number }, expectedSceneVersion: number) => ({
+    type: 'MOVE_SCENE_TOKEN' as const,
+    commandId: crypto.randomUUID(),
+    sceneId: value.sceneId,
+    tokenId,
+    expectedSceneVersion,
+    expectedEncounterVersion: null,
+    correlationId: null,
+    movementKind: 'VOLUNTARY' as const,
+    path: [from, { x: from.x + 50, y: from.y }]
+  })
+  const moved = await value.player(move(value.scout.id, value.scout.position, value.version))
+  const committed = await moved.commit()
+  expect(committed.scene).toMatchObject({
+    version: value.version + 1,
+    delta: { kind: 'TOKEN_MOVED', tokenId: value.scout.id, position: { x: 150, y: 100 } }
+  })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
+
+  // The player does not control the sentry: publication refuses the move.
+  await expect(
+    value
+      .player(move(value.sentry.id, value.sentry.position, value.version + 1))
+      .then((refused) => refused.commit())
+  ).rejects.toMatchObject({ status: 409 })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 }, 120_000)

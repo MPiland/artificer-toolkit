@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
+  encounterStoredDecisionSkipSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -217,19 +218,19 @@ async function recordVoid(ctx: MutationCtx, scope: VoidScope, status: 'COMPLETE'
   return result
 }
 
-async function hasDeclineReceipt(ctx: MutationCtx, scope: VoidScope) {
-  const commandId = voidDeclineCommandId(scope.input.commandId)
+async function hasDeclineReceipt(ctx: MutationCtx, campaignId: string, voidCommandId: string) {
+  const commandId = voidDeclineCommandId(voidCommandId)
   const [runCommand, ruleReceipt] = await Promise.all([
     ctx.db
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', scope.campaign.id).eq('commandId', commandId)
+        q.eq('campaignId', campaignId).eq('commandId', commandId)
       )
       .unique(),
     ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', scope.campaign.id).eq('commandId', commandId)
+        q.eq('campaignId', campaignId).eq('commandId', commandId)
       )
       .unique()
   ])
@@ -251,7 +252,8 @@ async function planRuleOccurrenceVoid(
   if (admission.kind === 'REPLAY') return { kind: 'COMPLETE', result: admission.result }
   const { input, run, occurrence } = admission
   if (occurrence.state !== 'PENDING') {
-    if (await hasDeclineReceipt(ctx, admission)) return { kind: 'RECORD' }
+    if (await hasDeclineReceipt(ctx, admission.campaign.id, input.commandId))
+      return { kind: 'RECORD' }
     rejectDomain('DECISION_NOT_PENDING')
   }
   if (
@@ -362,26 +364,34 @@ export async function recordRuleOccurrenceVoid(
 }
 
 /**
- * Tells the table in chat that the GM skipped a movement decision (D26). The void command ID keys
- * the entry, so a replay adds nothing; like other rules entries it spends no chat rate limit.
+ * Tells the table in chat that the GM skipped a movement decision (D26) and records the skip, so the
+ * decision's player sees it in their drawer too (D39). The skipped occurrence and version key both
+ * writes, so a replay or retry adds nothing; like other rules entries it spends no chat rate limit.
  */
 export async function postMovementDecisionSkipped(
   ctx: MutationCtx,
-  input: { campaignId: string; gmUserId: string; voidCommandId: string }
+  input: { campaignId: string; gmUserId: string; voidCommand: VoidRuleOccurrenceInputDto }
 ) {
   const authority = await requireCampaignAuthority(ctx, input.campaignId, input.gmUserId)
   const { campaign } = authority
-  const clientNonce = input.voidCommandId.toLowerCase()
+  const skip = encounterStoredDecisionSkipSchema.parse({
+    encounterId: input.voidCommand.encounterId.toLowerCase(),
+    occurrenceId: input.voidCommand.occurrenceId.toLowerCase(),
+    occurrenceVersion: input.voidCommand.expectedOccurrenceVersion,
+    voidCommandId: input.voidCommand.commandId.toLowerCase()
+  })
   const prior = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+    .query('encounterDecisionSkips')
+    .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
       q
-        .eq('campaignId', campaign.id)
-        .eq('authorUserId', input.gmUserId)
-        .eq('clientNonce', clientNonce)
+        .eq('encounterId', skip.encounterId)
+        .eq('occurrenceId', skip.occurrenceId)
+        .eq('occurrenceVersion', skip.occurrenceVersion)
     )
     .unique()
   if (prior) return
+  await ctx.db.insert('encounterDecisionSkips', skip)
+  const clientNonce = skip.voidCommandId
   const { conversation } = await openConversation(ctx, authority, 'TABLE')
   const header = campaignStoredEntryHeaderSchema.parse({
     id: crypto.randomUUID(),
@@ -411,8 +421,56 @@ export async function postMovementDecisionSkipped(
   )
 }
 
+/**
+ * Whether a void declined a movement decision (D26): its decline committed a receipt, and the
+ * occurrence's root is a Scene move. Both survive the decline, so a retry after a crash between the
+ * decline and the void record reaches the same answer.
+ */
+async function declinedMovementDecision(
+  ctx: MutationCtx,
+  run: Doc<'encounterRuns'>,
+  voidCommand: VoidRuleOccurrenceInputDto
+) {
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', voidCommand.occurrenceId.toLowerCase()))
+    .unique()
+  if (!occurrence || occurrence.encounterId !== run.id) return false
+  const root = await ctx.db
+    .query('encounterRuleReceipts')
+    .withIndex('by_encounterId_commandId', (q) =>
+      q.eq('encounterId', run.id).eq('commandId', occurrence.rootCommandId)
+    )
+    .unique()
+  return (
+    root?.commandType === 'MOVE_SCENE_TOKEN' &&
+    (await hasDeclineReceipt(ctx, run.campaignId, voidCommand.commandId.toLowerCase()))
+  )
+}
+
+/**
+ * Records a native void after its decline committed, and announces a skipped movement decision on
+ * a Scene the room does not own (D29) exactly as the room does (D26, D39).
+ */
 // Internal to the void orchestrator: the handler's Zod contract validates input.
 export const record = internalMutation({
   args: v.any(),
-  handler: recordRuleOccurrenceVoid
+  handler: async (ctx, args: unknown): Promise<EncounterCommandResultDto> => {
+    const result = await recordRuleOccurrenceVoid(ctx, args)
+    const voidCommand = voidRuleOccurrenceInputDtoSchema.parse(args)
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', voidCommand.encounterId.toLowerCase()))
+      .unique()
+    if (!run) throw new Error('Encounter is unavailable.')
+    if (await declinedMovementDecision(ctx, run, voidCommand)) {
+      const { userId } = await requireIdentity(ctx)
+      await postMovementDecisionSkipped(ctx, {
+        campaignId: run.campaignId,
+        gmUserId: userId,
+        voidCommand
+      })
+    }
+    return result
+  }
 })

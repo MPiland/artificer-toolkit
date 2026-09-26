@@ -429,7 +429,7 @@ export async function commitLiveMovement(
   await postMovementDecisionSkipped(ctx, {
     campaignId: input.campaignId,
     gmUserId: userId,
-    voidCommandId: input.voidCommand.commandId
+    voidCommand: input.voidCommand
   })
   return { scene, encounter: await recordRuleOccurrenceVoid(ctx, input.voidCommand) }
 }

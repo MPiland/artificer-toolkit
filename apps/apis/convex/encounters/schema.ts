@@ -12,7 +12,9 @@ import {
   encounterStoredRunCommandSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema,
-  encounterStoredEvidenceRollSchema
+  encounterStoredEvidenceRollSchema,
+  encounterStoredTurnMovementSchema,
+  encounterStoredDecisionSkipSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
   encounterInitiativeParticipantDtoSchema,
@@ -77,6 +79,21 @@ export const encounterTables = {
       'userId',
       'attempt'
     ]),
+  encounterTurnMovements: defineTable(
+    zodToConvexFields(encounterStoredTurnMovementSchema.shape)
+  ).index('by_encounterId_round_turnActorId_actorId', [
+    'encounterId',
+    'round',
+    'turnActorId',
+    'actorId'
+  ]),
+  encounterDecisionSkips: defineTable(
+    zodToConvexFields(encounterStoredDecisionSkipSchema.shape)
+  ).index('by_encounterId_occurrenceId_occurrenceVersion', [
+    'encounterId',
+    'occurrenceId',
+    'occurrenceVersion'
+  ]),
   encounterBlueprints: defineTable(zodToConvexFields(encounterStoredBlueprintSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_ownerUserId_commandId', ['ownerUserId', 'commandId'])

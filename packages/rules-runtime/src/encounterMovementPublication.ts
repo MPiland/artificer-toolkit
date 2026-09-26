@@ -1,4 +1,9 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import {
+  measureScenePathMovementCost,
+  type SceneBarrier,
+  type SceneGrid
+} from '@artificer-toolkit/shared/vtt'
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import { sliceMovementPath } from './encounterMovementPath.js'
@@ -87,4 +92,24 @@ export function preparedMovementSceneDelta(input: {
   if (outcome?.kind === 'PENDING')
     return outcome.movementIntent ? { kind: 'TOKEN_MOVED', ...outcome.movementIntent } : null
   return { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: input.path.at(-1)! }
+}
+
+/**
+ * The movement a published segment spends (D38): the path's terrain-aware cost walked to the
+ * segment's end less its cost to the segment's start. Measuring from the path's origin keeps grid
+ * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
+ */
+export function preparedMovementCost(input: {
+  grid: SceneGrid
+  scene: { readonly barriers: readonly SceneBarrier[] }
+  path: readonly Point[]
+  startDistance: number
+  outcome: MovementOutcome | null
+}): number {
+  const walked = (path: readonly Point[]) =>
+    measureScenePathMovementCost(input.grid, input.scene, path)
+  const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
+  const toStart =
+    input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0
+  return Math.max(walked(toEnd) - toStart, 0)
 }

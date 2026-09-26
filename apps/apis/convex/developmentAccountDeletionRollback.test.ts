@@ -210,6 +210,7 @@ async function fixture() {
         status: authored.status,
         streamVersion: 0,
         maximumHitPoints: 0,
+        walkingSpeed: 0,
         documentJson: canonicalizeRuleDocument(encoded),
         checksum: checksumRuleDocument(encoded),
         createdAt: new Date().toISOString(),

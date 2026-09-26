@@ -466,6 +466,7 @@ async function prepareBoundMovement(base: Awaited<ReturnType<typeof setup>>) {
   const preparation = await base.owner.caller.mutation(spatialPreparationReference, {
     saveId,
     baseOrdinal: 0,
+    movementCost: 0,
     tokenOrdinals: [{ tokenId: token.id, baseOrdinal: 0 }]
   })
   return { saveId, commandId, token, vision, preparation }
@@ -542,6 +543,7 @@ describe('native play Character vision boundary', () => {
       base.owner.caller.mutation(spatialFinishReference, {
         saveId: prepared.saveId,
         baseOrdinal: 0,
+        movementCost: 0,
         tokenOrdinals: [{ tokenId: prepared.token.id, baseOrdinal: 0 }]
       })
     ).rejects.toThrow('Character changed')

@@ -8,7 +8,7 @@ import {
   type CharacterSourceLossTarget
 } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { evaluateCharacterRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
-import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
+import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { mergeCampaignSheetAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
@@ -215,7 +215,7 @@ export async function reconcileCharacterSourceLoss(input: {
     currentChoiceKinds
   )
   let character: CharacterAuthored = { ...pruned, status: 'DRAFT' }
-  let maximumHitPoints: number | undefined
+  let stats: ReturnType<typeof resolveCharacterRecordStats> | undefined
   if (input.record.status === 'ACTIVE') {
     const prepared = await prepareCharacterBuilder(input.ctx, {
       character,
@@ -252,9 +252,7 @@ export async function reconcileCharacterSourceLoss(input: {
         resourceUsage: sheetState.resourceUsage,
         movementDisplayPreference: sheetState.movementDisplayPreference
       })
-      maximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
-        evaluation.output.derivedStats.maxHitPoints.effective
-      )
+      stats = resolveCharacterRecordStats(evaluation)
       character = {
         ...prepared.character,
         status: 'ACTIVE',
@@ -264,7 +262,7 @@ export async function reconcileCharacterSourceLoss(input: {
             ...prepared.character.state.hitpoints,
             current: Math.min(
               Math.max(prepared.character.state.hitpoints.current, 0),
-              maximumHitPoints
+              stats.maximumHitPoints
             )
           }
         }
@@ -283,7 +281,7 @@ export async function reconcileCharacterSourceLoss(input: {
       current: input.record,
       fields: { label: committed.label, status, streamVersion, updatedAt },
       document: encoded,
-      ...(maximumHitPoints === undefined ? {} : { maximumHitPoints })
+      ...(stats === undefined ? {} : { stats })
     })
 
   let draftChanged = false

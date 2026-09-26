@@ -1,4 +1,5 @@
 import { insertRunCommand } from './timelineEntries'
+import { removeCompletedRunTurnRecords } from './turnMovement'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
 import { makeFunctionReference } from 'convex/server'
@@ -2179,6 +2180,7 @@ export const execute = internalMutation({
       })
       status = 'COMPLETED'
       currentActorId = null
+      await removeCompletedRunTurnRecords(ctx, row.id)
     }
     const nextState = encounterRunStateSchema.parse({
       ...state,

@@ -26,6 +26,7 @@ import type {
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { initiativeDeclarationSelectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   adjudicationSelectionValues,
@@ -41,6 +42,7 @@ export function CampaignTabletopDecisionDrawer({
   encounter,
   latestRoll,
   pending,
+  skipped,
   submitting,
   onResolve
 }: {
@@ -51,6 +53,11 @@ export function CampaignTabletopDecisionDrawer({
   /** The viewer's latest "Roll dice" attempt for this decision's request, if any. */
   latestRoll: EncounterEvidenceRollDto | null
   pending: PendingEncounterRuleOccurrenceSummaryDto
+  /**
+   * Set once the GM skipped this decision after it was shown (D39): the drawer says so instead of
+   * asking, and closing it dismisses the decision.
+   */
+  skipped: { onDismiss: () => void } | null
   submitting: boolean
   onResolve: (
     command: ResolveRuleOccurrenceInputDto | RollRuleEvidenceInputDto | VoidRuleOccurrenceInputDto
@@ -159,7 +166,10 @@ export function CampaignTabletopDecisionDrawer({
         size='min(30rem, 100vw)'
         title='Pending decision'
         zIndex={410}
-        onClose={close}
+        onClose={() => {
+          close()
+          skipped?.onDismiss()
+        }}
       >
         <Stack gap='md' aria-busy={localPending || undefined}>
           <div>
@@ -170,17 +180,23 @@ export function CampaignTabletopDecisionDrawer({
                   ? 'Concentration check'
                   : decisionTitle(pending.kind)}
             </Text>
-            <Text c='dimmed' size='sm'>
-              This choice is durable. Reconnecting returns to the same decision.
-            </Text>
+            {skipped ? null : (
+              <Text c='dimmed' size='sm'>
+                This choice is durable. Reconnecting returns to the same decision.
+              </Text>
+            )}
           </div>
-          {!connected ? (
+          {!connected && !skipped ? (
             <Alert color='yellow'>Decision controls will return when live play reconnects.</Alert>
           ) : null}
-          {pending.kind === 'D20_EVIDENCE' ||
-          pending.kind === 'INITIATIVE_EVIDENCE' ||
-          pending.kind === 'RECHARGE_EVIDENCE' ||
-          pending.kind === 'ACTION_OUTCOME_EVIDENCE' ? (
+          {skipped ? (
+            <Alert aria-live='polite' color='blue'>
+              {MOVEMENT_DECISION_SKIPPED_MESSAGE}
+            </Alert>
+          ) : pending.kind === 'D20_EVIDENCE' ||
+            pending.kind === 'INITIATIVE_EVIDENCE' ||
+            pending.kind === 'RECHARGE_EVIDENCE' ||
+            pending.kind === 'ACTION_OUTCOME_EVIDENCE' ? (
             <>
               {'rollerActorId' in pending && pending.rollerActorId ? (
                 <Text size='sm'>
@@ -332,7 +348,7 @@ export function CampaignTabletopDecisionDrawer({
               onSubmit={(resolution) => void resolve(resolution)}
             />
           ) : null}
-          {canVoid ? (
+          {canVoid && !skipped ? (
             <Stack gap={4}>
               <Button
                 color='red'

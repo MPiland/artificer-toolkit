@@ -299,16 +299,19 @@ schedules bounded usage-entry cleanup; full owned-source deletion remains F12 wo
 profile and existing shared tier enum. The public read accepts no account ID or tier override. Account
 settings subscribe to this native projection. Customer-facing billing remains Phase 09 work.
 
-## Character stored effective maximum hit points — local implementation
+## Character stored effective maximum hit points and walking speed — local implementation
 
 Every write of a `characters` row goes through `characters/characterWrites.writeCharacterRecord`.
 It stores the caller's document, Sheet state, status and stream version, then evaluates the written
 Character with the existing Sheet evaluation and stores `maximumHitPoints` (the Sheet's effective
-maximum, before Encounter effect reductions) in the same transaction. Callers keep authority, replay,
-receipts and the one-stream-advance-per-transaction invariant. A caller that already evaluated the
-written Character passes its maximum (source-loss reconciliation) or reuses the returned facts for its
-own response (Sheet commands); others pass their loaded authored sources to avoid catalogue reloads.
-A DRAFT Character has no readable Sheet and keeps its last stored maximum.
+maximum, before Encounter effect reductions) and `walkingSpeed` (the effective `WALK` speed in feet,
+the Encounter movement budget, D38) in the same transaction, both through
+`resolveCharacterRecordStats` (`packages/rules-runtime/src/character/characterRecordStats.ts`).
+Callers keep authority, replay, receipts and the one-stream-advance-per-transaction invariant. A
+caller that already evaluated the written Character passes those stats (source-loss reconciliation)
+or reuses the returned facts for its own response (Sheet commands); others pass their loaded authored
+sources to avoid catalogue reloads. A DRAFT Character has no readable Sheet and keeps its last stored
+stats.
 
 Writers: Builder commit (creation sets the field), Sheet commands, source-loss reconciliation, the
 Encounter mechanics batch, Disarm, maintenance-owner cleanup, actor-removal cleanup, Campaign
@@ -316,8 +319,9 @@ currency rewrites and inventory custody. Campaign-owned inputs refresh it throug
 without advancing the stream: GM Campaign adjustments (`campaigns/gmWrites`), a Campaign attunement
 override change (`campaigns/updateDependencies`), Campaign assignment and Character departure.
 
-Rules never read the stored value; Encounter projections display it. Known lag: a published-content
-change (for example a homebrew republish) reaches a Character's stored maximum on that Character's
+Rules never read the stored values; Encounter projections display the maximum and the tabletop's
+movement readout reads the walking speed. Known lag: a published-content change (for example a
+homebrew republish) reaches a Character's stored stats on that Character's
 next write, while the Sheet always shows the live value. Follow-up: a publish-time background
 recompute for Characters that use the republished source.
 

@@ -440,7 +440,8 @@ describe('Character authored source access loss', () => {
             updatedAt: now,
             documentJson: JSON.stringify(encoded),
             checksum: checksumRuleDocument(encoded),
-            maximumHitPoints: 0
+            maximumHitPoints: 0,
+            walkingSpeed: 0
           })
           await ctx.db.patch(draft._id, {
             mode: 'edit',

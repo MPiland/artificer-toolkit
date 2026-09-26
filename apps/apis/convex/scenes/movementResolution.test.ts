@@ -281,6 +281,7 @@ async function setup(selected = false) {
   const rootRequest = {
     saveId: rootSaveId,
     baseOrdinal: 1,
+    movementCost: 0,
     tokenOrdinals: tokens.map((token, baseOrdinal) => ({
       tokenId: token.id,
       baseOrdinal
@@ -321,6 +322,7 @@ describe('native movement response publication', () => {
     const request = {
       saveId: start.saveId,
       baseOrdinal: 1,
+      movementCost: 0,
       tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
         tokenId: token.id,
         baseOrdinal
@@ -598,6 +600,7 @@ describe('native movement response publication', () => {
     const request = {
       saveId: begin.saveId,
       baseOrdinal: 1,
+      movementCost: 0,
       tokenOrdinals: value.tokens.map((token, baseOrdinal) => ({
         tokenId: token.id,
         baseOrdinal

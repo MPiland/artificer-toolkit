@@ -62,6 +62,13 @@ export function lengthMeasurementInSceneUnits(
   throw new Error('A typed length cannot be converted into an uncalibrated SQUARES Scene.')
 }
 
+/** Converts an authoritative Scene length to feet; an uncalibrated SQUARES Scene has none. */
+export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid']): number | null {
+  if (grid.unit === 'FEET') return amount
+  if (grid.unit === 'METERS') return amount / 0.3048
+  return null
+}
+
 function dimRangeInSceneUnits(
   vision: SceneCharacterVision,
   grid: CampaignSceneState['grid']

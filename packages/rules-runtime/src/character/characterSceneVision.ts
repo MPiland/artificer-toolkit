@@ -1,7 +1,8 @@
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 
-function toFeet(range: { amount: number; unit: string }): number | null {
+/** Feet in a typed length; a unit that is not a length in feet or its multiples has none. */
+export function lengthInFeet(range: { amount: number; unit: string }): number | null {
   switch (range.unit) {
     case 'FEET':
       return range.amount
@@ -34,7 +35,7 @@ export function resolveCharacterSceneVisionDimRangeFeet(
 ): number | null {
   return pinnedSenseDefinitions.reduce<number | null>((maximum, pin) => {
     if (!supportsOrdinaryDarknessVision(pin) || !pin.range) return maximum
-    const feet = toFeet(pin.range)
+    const feet = lengthInFeet(pin.range)
     if (feet === null) return maximum
     return maximum === null ? feet : Math.max(maximum, feet)
   }, null)

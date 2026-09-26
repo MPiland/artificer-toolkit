@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  preparedMovementCost,
   preparedMovementSceneDelta,
   preparedMovementSegment
 } from '../encounterMovementPublication.js'
@@ -13,6 +14,28 @@ const path = [
 ]
 
 describe('prepared movement publication', () => {
+  it('measures a segment from the path origin, so a mid-cell pause does not round twice', () => {
+    const grid = {
+      kind: 'SQUARE' as const,
+      origin: { x: 0, y: 0 },
+      cellSize: 100,
+      distancePerCell: 5,
+      diagonalPolicy: 'EQUAL' as const,
+      unit: 'FEET' as const
+    }
+    const walk = {
+      grid,
+      scene: { barriers: [] },
+      path: [
+        { x: 0, y: 0 },
+        { x: 300, y: 0 }
+      ]
+    }
+    // A pause half a cell in rounds to one cell; the rest of the walk then costs two.
+    expect(preparedMovementCost({ ...walk, startDistance: 50, outcome: null })).toBe(10)
+    expect(preparedMovementCost({ ...walk, startDistance: 0, outcome: null })).toBe(15)
+  })
+
   it('walks the whole remaining path when no rules interrupt it', () => {
     expect(preparedMovementSegment({ path, startDistance: 0, outcome: null })).toEqual({
       path,
