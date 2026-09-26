@@ -117,7 +117,7 @@ What was proven or remains to prove:
 - `V05.1` READY_FOR_ACCEPTANCE: Any ACTIVE Campaign member can get a ticket without an open Session; ticket issue and authority claim require current membership and an ACTIVE Campaign (ADR 0033).
 - `V05.2` READY_FOR_ACCEPTANCE: Tickets are signed, single-use, valid for one minute and bound to the Campaign's room.
 - `V05.3` IN_PROGRESS: The Durable Object rejects invalid origins, signatures, claims, rooms and replay, and renews current authority under a lock before READY.
-- `V05.4` IN_PROGRESS: Renewal closes removed or stale-role sockets, keeps valid users and rotates authority to another current member.
+- `V05.4` IN_PROGRESS: Renewal closes removed or stale-role sockets, keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
 - `V05.5` READY_FOR_ACCEPTANCE: The room activates on the first admitted socket, drains its outbox and releases authority after five minutes without one, and closes on Campaign archive or deletion (ADR 0033).
 
 Evidence:

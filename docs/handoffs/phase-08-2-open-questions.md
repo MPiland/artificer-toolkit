@@ -6,18 +6,8 @@
 
 ## Open
 
-* **Q9: acceptance wording for V05.4.** The criterion says renewal "rotates authority to another current member". Since ADR 0033, room authority belongs to the Campaign room's epoch, not to a member.
-  * **What the new tests prove:**
-    * Authority survives the activating member leaving.
-    * The next member is admitted under the same epoch.
-    * Sockets whose role went stale are closed.
-    * Valid members stay connected.
-  * **Recommendation:** reword to "keeps valid users and keeps room authority serving the remaining current members".
-  * **Answer:**
-* **Q10: F12.3 "Deleted user" attribution.** After account deletion, every listed history survives (proven by a test). Only chat and rolls show an author name, though, so only they can show "Deleted user". Shared Session notes and handouts carry an internal user id that the web never displays. The Encounter timeline names actors, not users.
-  * **Recommendation (product):** show the author on shared Session notes ("Note by Mira") and the uploader on handouts, resolved on the server. Both then read "Deleted user" after deletion, through the same function chat uses. Players benefit from knowing who wrote a shared note, and Foundry shows authorship on journal entries and chat. The timeline keeps naming actors.
-  * **Alternative:** reword F12.3 to "surfaces that display an author show Deleted user; the others keep only an unresolvable id".
-  * **Answer:**
+_(none)_
+
 ## Decisions to review
 
 Made on your behalf while you were away (Foundry baseline, Roll20 as a second reference). Say "override Dn" to change any of them.
@@ -114,26 +104,27 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * Commits keep the full check.
 - **D34** Changing whether an import job is visible bumps the System revision, so commit fences and the room cache both see it. Before this, neither could.
 - **D35** Health display details (S6h):
-  - Near death is 25% or less of maximum HP, including 0.
-  - An actor's controllers, including a Character's own player, always see exact HP.
-  - The GM always sees exact values, in the tabletop drawer too.
-  - "Share health state" applies only to public, non-Character creatures and reads "The ogre looks bloodied."
-  - Other players never see personality (traits, ideals, bonds, flaws), background (organizations, allies, enemies, backstory) or the Character concept.
-  - The new health-display and party-visibility fields are required in stored state. Their values are set when the record is created, not filled in by schema defaults (pre-launch policy).
+  * Near death is 25% or less of maximum HP, including 0.
+  * An actor's controllers, including a Character's own player, always see exact HP.
+  * The GM always sees exact values, in the tabletop drawer too.
+  * "Share health state" applies only to public, non-Character creatures and reads "The ogre looks bloodied."
+  * Other players never see personality (traits, ideals, bonds, flaws), background (organizations, allies, enemies, backstory) or the Character concept.
+  * The new health-display and party-visibility fields are required in stored state. Their values are set when the record is created, not filled in by schema defaults (pre-launch policy).
 - **D36** The Campaign roster shows the portrait. Members get a read path for the portraits of Characters assigned in their Campaign, and nothing else.
 - **D37** Remaining movement (V07.5) ships with S4-c, because the room's bound-movement commit is where movement is recorded.
-  - Each Run actor stores the movement it has used this turn. The value resets when that actor's turn starts.
-  - Only voluntary movement counts, at the path's terrain-aware cost. Forced movement and teleports don't count.
-  - The budget is walking speed, doubled after Dash.
-  - Players see "Movement 15 / 30 ft". Moving past the budget is allowed: Assisted mode shows a soft warning, and Manual mode shows the number only.
-  - Foundry v13 tracks movement history per combat turn in the same way.
+  * Each Run actor stores the movement it has used this turn. The value resets when that actor's turn starts.
+  * Only voluntary movement counts, at the path's terrain-aware cost. Forced movement and teleports don't count.
+  * The budget is walking speed, doubled after Dash.
+  * Players see "Movement 15 / 30 ft". Moving past the budget is allowed: Assisted mode shows a soft warning, and Manual mode shows the number only.
+  * Foundry v13 tracks movement history per combat turn in the same way.
 
 ## Resolved
 
+* **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
+* **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
 * **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
 * **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
 * **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.
-
 * **Q1 (2026-09-25).** The connection string labeled production is non-live. The user will rotate the credentials before go-live (added to the release checklist).
 * **Q2 (2026-09-25, amended).** Delete the whole Codex backup worktree only after the final R08 proof passes. 653 of the 725 evidence references in the acceptance ledger point at `.codex/validation/...` files that exist only in that worktree, so it is the only record behind the 59 accepted cases until R08 re-proves them on the final source.
 * **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.

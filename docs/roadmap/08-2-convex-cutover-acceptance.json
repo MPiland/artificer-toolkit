@@ -2575,7 +2575,7 @@
             },
             {
               "id": "V05.4",
-              "text": "Renewal closes removed or stale-role sockets, keeps valid users and rotates authority to another current member.",
+              "text": "Renewal closes removed or stale-role sockets, keeps valid users and keeps room authority serving the remaining current members (ADR 0033).",
               "status": "IN_PROGRESS",
               "proof": [
                 ".codex/validation/phase82-v05-final/acceptance.md (historical, Session-scoped)"
