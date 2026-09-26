@@ -126,6 +126,17 @@ Next (8.2 core, in order):
          - `evaluateNativeConcentrationEvidence` / `completeNativeConcentrationResult`;
          - `projectEncounterMovementConcentrationEnd` (cleanup of dependent effects).
        - Action economy: `evaluateEncounterActionEconomy` (warning).
+       - From the scenes audit. These have cheap inputs and currently no pure test:
+         - `sceneTokenMovementFailure` (`shared/domains/vtt/geometry.ts:293`);
+         - `discoverEncounterMovementPassageContact` / `discoverEncounterMovementPassage` (endpoint occupied, next passage stop);
+         - `deriveCharacterSceneVision` (sense range, non-visual channel);
+         - fog exploration truncated at a pending contact (`planSceneCommandExploration`).
+       - Worker-level tests with injected capture fakes, the medium-effort precedent being `apps/session-worker/test/nativeTurnEffectPerception.test.ts`:
+         - movement Concentration;
+         - maintenance forecasting;
+         - passage contests;
+         - reaction evidence order and STOP;
+         - the room-side maintenance currentness refusal. `movementMaintenance.test.ts:586` is its only proof today.
      - **Also Convex-only proofs to keep:**
        - the `roomCaptureCache` transaction-limits test at the actor cap;
        - action commit rollback;
