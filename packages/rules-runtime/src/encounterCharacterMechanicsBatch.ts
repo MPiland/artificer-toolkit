@@ -74,15 +74,23 @@ export function foldCharacterMechanicsApplications(input: {
   currentHitPoints: number
   temporaryHitPoints: number
   maximumHitPoints: number
+  /** Every present condition: the target's own and any the Campaign holds. */
   conditionIds: readonly string[]
   scalarValues?: Readonly<Record<string, number>>
   /** Conditions retained by another locked active-effect contribution. */
   retainedConditionIds?: readonly string[]
+  /**
+   * A Character's Sheet conditions and the Campaign's. A removal clears only the Sheet copy, so a
+   * condition the Campaign also holds stays present. Without them every condition is the target's own.
+   */
+  layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
 }): {
   before: TargetState
   after: TargetState
   applications: ReceiptApplications
+  /** The target's own conditions after the batch (the Sheet's, for a Character). */
+  afterOwnConditionIds: string[]
   stateChanged: boolean
 } {
   if (!Number.isSafeInteger(input.maximumHitPoints) || input.maximumHitPoints < 0)
@@ -127,6 +135,8 @@ export function foldCharacterMechanicsApplications(input: {
   let temporary = before.temporaryHitPoints
   let maximum = before.maximumHitPoints
   const conditions = new Set(before.conditionIds)
+  const ownConditions = new Set(input.layers?.ownConditionIds ?? before.conditionIds)
+  const campaignConditions = new Set(input.layers?.campaignConditionIds ?? [])
   const scalarValues = { ...before.scalarValues }
   const retainedConditions = new Set(input.retainedConditionIds ?? [])
   const receipt: ReceiptApplications = []
@@ -139,10 +149,17 @@ export function foldCharacterMechanicsApplications(input: {
         serverUuidIdentityDtoSchema.parse(application.conditionId) !== application.conditionId
       )
         throw new EncounterValidationError('The Character condition state is invalid.')
-      const beforePresent = conditions.has(application.conditionId)
-      if (application.kind === 'CONDITION_APPLY') conditions.add(application.conditionId)
-      else if (!retainedConditions.has(application.conditionId))
-        conditions.delete(application.conditionId)
+      const { conditionId } = application
+      const beforePresent = conditions.has(conditionId)
+      const ownBefore = ownConditions.has(conditionId)
+      const retained = application.kind === 'CONDITION_REMOVE' && retainedConditions.has(conditionId)
+      if (application.kind === 'CONDITION_APPLY') {
+        conditions.add(conditionId)
+        ownConditions.add(conditionId)
+      } else if (!retained) {
+        ownConditions.delete(conditionId)
+        if (!campaignConditions.has(conditionId)) conditions.delete(conditionId)
+      }
       if (application.kind === 'CONDITION_APPLY') {
         receipt.push({
           ordinal,
@@ -163,8 +180,9 @@ export function foldCharacterMechanicsApplications(input: {
           conditionId: application.conditionId,
           sourceActiveEffectId: application.sourceActiveEffectId,
           beforePresent,
-          afterPresent: retainedConditions.has(application.conditionId) ? beforePresent : false,
-          applied: retainedConditions.has(application.conditionId) ? false : beforePresent,
+          afterPresent: conditions.has(conditionId),
+          // Applied when it cleared the target's own copy, even if the Campaign still holds one.
+          applied: !retained && ownBefore,
           sourceNodeId: application.sourceNodeId,
           sourceOperationKey: application.sourceOperationKey,
           authoredPath: application.authoredPath,
@@ -335,6 +353,7 @@ export function foldCharacterMechanicsApplications(input: {
     before,
     after,
     applications: receipt,
+    afterOwnConditionIds: [...ownConditions],
     stateChanged:
       before.currentHitPoints !== after.currentHitPoints ||
       before.temporaryHitPoints !== after.temporaryHitPoints ||

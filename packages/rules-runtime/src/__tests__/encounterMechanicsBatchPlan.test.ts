@@ -479,6 +479,42 @@ describe('Character mechanics batch plan', () => {
     expect(plan.targetTransition.after.conditionIds).toEqual([FRIGHTENED, RESTRAINED])
   })
 
+  it('clears the Sheet copy of a condition the Campaign also holds and reports it applied', () => {
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([conditionRemove(FRIGHTENED)], {
+        expectedCharacterStreamVersion: STREAM_VERSION,
+        effectiveMaximumHitPoints: 12
+      }),
+      actor,
+      userId: USER_ID,
+      characterFacts: {
+        ...characterFacts,
+        character: {
+          ...document,
+          state: {
+            ...document.state,
+            conditions: [{ conditionTypeId: PRONE }, { conditionTypeId: FRIGHTENED }]
+          }
+        }
+      }
+    })
+    expect(plan.characterUpdate?.character.state.conditions).toEqual([{ conditionTypeId: PRONE }])
+    // The Campaign still holds it, so it stays present, but the removal did change the Sheet.
+    expect(plan.receiptApplications).toEqual([
+      {
+        ...origin,
+        ordinal: 0,
+        kind: 'CONDITION_REMOVE',
+        conditionId: FRIGHTENED,
+        sourceActiveEffectId: ACTIVE_EFFECT_ID,
+        beforePresent: true,
+        afterPresent: true,
+        applied: true
+      }
+    ])
+    expect(plan.targetTransition.after.conditionIds).toEqual([PRONE, FRIGHTENED])
+  })
+
   it('does not advance the Character for a batch that changes nothing', () => {
     const plan = planEncounterMechanicsBatch({
       batch: batch([], {

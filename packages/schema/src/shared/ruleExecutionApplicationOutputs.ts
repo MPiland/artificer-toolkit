@@ -134,7 +134,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = z.discriminatedUnion(
               application.kind === 'CONDITION_APPLY'
                 ? application.afterPresent && application.applied === !present
                 : application.applied
-                  ? present && !application.afterPresent
+                  ? // A cleared Sheet copy stays present while the Campaign holds the condition.
+                    present
                   : application.afterPresent === present
             if (application.beforePresent !== present || !validTransition)
               context.addIssue({

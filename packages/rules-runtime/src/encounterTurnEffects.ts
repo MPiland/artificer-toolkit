@@ -122,6 +122,11 @@ function executionState(target: MovementTarget) {
     current: target.state.current,
     temporary: target.state.temporary,
     conditions: [...target.state.conditions],
+    ownConditions: target.characterFacts
+      ? (target.characterFacts.character.state.conditions ?? []).map(
+          (condition) => condition.conditionTypeId
+        )
+      : [...target.state.conditions],
     scalarValues: { ...target.effectiveScalarValues }
   }
 }
@@ -212,7 +217,7 @@ function completeExecution(input: {
   state: ReturnType<typeof executionState>
   retainedConditionIds: readonly string[]
   result: TargetBoundActiveRuleEffectExecutionResult
-}): TurnExecution {
+}): { execution: TurnExecution; ownConditions: string[] } {
   const { target, effect, result } = input
   const folded = foldCharacterMechanicsApplications({
     targetActorId: target.actor.id,
@@ -221,17 +226,16 @@ function completeExecution(input: {
     maximumHitPoints: target.effectiveMaximumHitPoints,
     scalarValues: input.state.scalarValues,
     conditionIds: input.state.conditions,
-    retainedConditionIds: [
-      ...new Set([
-        ...input.retainedConditionIds,
-        ...(target.characterFacts?.campaignContext.conditions ?? []).map(
-          (condition) => condition.conditionTypeId
-        )
-      ])
-    ],
+    retainedConditionIds: input.retainedConditionIds,
+    layers: {
+      ownConditionIds: input.state.ownConditions,
+      campaignConditionIds: (target.characterFacts?.campaignContext.conditions ?? []).map(
+        (condition) => condition.conditionTypeId
+      )
+    },
     applications: result.applications
   })
-  return {
+  const execution: TurnExecution = {
     ordinal: input.ordinal,
     boundaryOrdinal: input.boundary.ordinal,
     stage: input.boundary.stage,
@@ -261,6 +265,7 @@ function completeExecution(input: {
     applications: folded.applications,
     lifecycle: lifecycle(effect, result.terminal)
   }
+  return { execution, ownConditions: folded.afterOwnConditionIds }
 }
 
 async function evaluateEncounterTurnEffects(input: {
@@ -483,7 +488,7 @@ async function evaluateEncounterTurnEffects(input: {
         })
       }
     }
-    const execution = completeExecution({
+    const { execution, ownConditions } = completeExecution({
       ordinal,
       boundary: input.boundary,
       target: input.target,
@@ -501,6 +506,7 @@ async function evaluateEncounterTurnEffects(input: {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
       conditions: after.conditionIds,
+      ownConditions,
       scalarValues: after.scalarValues
     }
     if (execution.lifecycle.kind === 'EXPIRE') expired.add(effect.id)
