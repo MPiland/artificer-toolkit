@@ -158,8 +158,9 @@ function resolveOutcomeValue(
   if (selected === null) return null
   if (outcome.valueKind === 'DICE') return selected.dice
   if (outcome.valueKind === 'POOL' && outcome.scalingKind !== 'NONE' && level !== null) {
+    // A per-level multiplier rounds down, as authored damage multipliers do (SRD).
     return clamp(
-      (selected.amount ?? 0) + level * (selected.multiplier ?? 1),
+      Math.floor((selected.amount ?? 0) + level * (selected.multiplier ?? 1)),
       selected.minimum,
       selected.maximum
     )

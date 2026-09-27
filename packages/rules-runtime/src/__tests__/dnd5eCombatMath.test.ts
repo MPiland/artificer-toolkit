@@ -853,3 +853,67 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     ).toBe('RANGED_SPELL')
   })
 })
+
+describe('D&D 5e healing', () => {
+  it('rounds a per-level healing pool multiplier down, as damage multipliers are', () => {
+    const output = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      spellEffects: [
+        {
+          spellId: 'mending-touch',
+          effects: [
+            {
+              effectId: FB_EFFECT,
+              mechanicFacts: {
+                invocation: {
+                  triggerCode: 'ACTIVATED',
+                  activation: null,
+                  range: { rangeKind: 'TOUCH', amount: null, unit: null },
+                  savingThrow: null,
+                  reactionMovementTrigger: null
+                },
+                outcomes: [
+                  {
+                    kind: 'HEAL',
+                    pathCode: 'ON_USE',
+                    label: null,
+                    valueKind: 'POOL',
+                    scalingKind: 'PER_LEVEL',
+                    scalingSource: 'CHARACTER_LEVEL',
+                    classId: null,
+                    temporary: false,
+                    // Half the Character's level: 3.5 at level 7, rounded down to 3.
+                    values: [
+                      {
+                        level: null,
+                        order: 0,
+                        amount: 0,
+                        dice: null,
+                        multiplier: 0.5,
+                        minimum: null,
+                        maximum: null
+                      }
+                    ],
+                    bonuses: []
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 7,
+      classLevels: [],
+      proficiencyBonus: 3,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+    const [heal] = output.spellReferenceMechanics[0]!.mechanics[0]!.outcomes
+    expect(heal).toMatchObject({ kind: 'HEAL', expression: '3' })
+  })
+})
