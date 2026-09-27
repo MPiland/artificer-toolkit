@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { BasicActionReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/basicActions'
 import {
   reusableDefinitionDocumentDtoSchema,
-  type ReusableDefinitionCurrentDto
+  type ReusableDefinitionCurrentDto,
+  type ReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -71,7 +72,7 @@ const WISDOM_ID = '00000000-0000-0000-0011-000500000000'
 const WALK_ID = '00000000-0000-0000-000c-000100000000'
 
 function currentDefinition(
-  document: { id: string },
+  document: ReusableDefinitionDocumentDto,
   definitionFamilyKey: string
 ): ReusableDefinitionCurrentDto {
   return {

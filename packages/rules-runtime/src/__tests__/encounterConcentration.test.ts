@@ -679,11 +679,14 @@ describe('nativeConcentrationDamageApplications', () => {
       ],
       effects: srdBite.effects?.map((effect) => ({
         ...effect,
-        paths: effect.paths.map((path) => ({
-          ...path,
-          groupType: 'SINGLE' as const,
-          resultBlock: { ...path.resultBlock, resultKind: 'SINGLE' as const }
-        }))
+        paths: effect.paths.map((path) => {
+          if (!('resultBlock' in path)) throw new Error('Expected a Bite result block.')
+          return {
+            ...path,
+            groupType: 'SINGLE' as const,
+            resultBlock: { ...path.resultBlock, resultKind: 'SINGLE' as const }
+          }
+        })
       }))
     }
     const prepared = await prepareCreatureAction({

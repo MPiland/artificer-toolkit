@@ -34,7 +34,7 @@ async function quillVolleyDamage(defenses: {
   return {
     disposition: damage.damageDisposition,
     resolvedAmount: damage.resolvedAmount,
-    currentHitPoints: mechanics.targetPlan.updatedActor.currentHitPoints
+    currentHitPoints: mechanics.mechanics.targetTransition.after.currentHitPoints
   }
 }
 
