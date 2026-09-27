@@ -247,6 +247,14 @@ describe('Cleaving target facts', () => {
     expect(canHit({ total: 30, naturalRoll: 1 })).toBe(false)
   })
 
+  it('counts grid squares for 5-foot reach: adjacent is in reach, two squares away is not', () => {
+    const inReach = (cellX: number) =>
+      candidate({ actor: goblinActor, cellX, originalAttack: { total: 15, naturalRoll: 11 } })
+        ?.withinAttackerReach
+    expect(inReach(1)).toBe(true)
+    expect(inReach(2)).toBe(false)
+  })
+
   it('places a target three squares away out of 5-foot reach', () => {
     expect(
       candidate({ actor: goblinActor, cellX: 4, originalAttack: { total: 15, naturalRoll: 11 } })
