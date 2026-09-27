@@ -211,6 +211,23 @@ describe('seeded SRD Creature hit riders in the room', () => {
     ])
   }, 30000)
 
+  it('rolls every damage die of the Hell Hound’s Bite twice on a critical hit', async () => {
+    const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })
+    // A natural 20: 2d8 + 3 piercing and 4d6 fire, every die rolling 1.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([19, 0, 0, 0, 0, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const batch = await settledBatch(base)
+    expect(batch.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
+    expect(batch.damage).toEqual([
+      [2 + 3, damageTypeId('PIERCING')],
+      [4, damageTypeId('FIRE')]
+    ])
+  }, 30000)
+
   it('routes the Giant Spider’s poison save to the Character’s player, then halves on a success', async () => {
     const base = await setup({ creature: 'Giant Spider', feature: 'Bite', playerAutoRoll: false })
     // The GM auto-rolls the hit and its piercing damage; the Character's save waits on its player.
