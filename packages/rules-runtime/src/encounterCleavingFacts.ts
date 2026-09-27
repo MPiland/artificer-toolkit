@@ -32,16 +32,7 @@ export function retainedCleavingDamage(result: CompleteAction) {
   )
     return null
   const application = batch.applications[0]
-  const { before, after } = batch.targetTransition
-  if (
-    !application ||
-    application.kind !== 'DAMAGE' ||
-    before.currentHitPoints !== before.maximumHitPoints ||
-    before.temporaryHitPoints !== 0 ||
-    after.currentHitPoints !== 0 ||
-    application.resolvedAmount <= application.appliedAmount
-  )
-    return null
+  if (!application || application.kind !== 'DAMAGE' || !cleavingCarriesOn(application)) return null
   return {
     initialTargetActorId: batch.targetActorId,
     originalAttack: { total: batch.d20.total, naturalRoll: batch.d20.selectedNatural },
@@ -120,11 +111,22 @@ export function cleavingDamageApplication(input: {
   }
 }
 
-/** An undamaged target reduced to 0 with damage to spare lets the attack carry on (overkill). */
-export function cleavingCarriesOn(application: ReturnType<typeof cleavingDamageApplication>) {
+/**
+ * An undamaged target (full hit points; temporary hit points don't count as damage) reduced to 0
+ * with damage to spare lets the attack carry on (overkill).
+ */
+export function cleavingCarriesOn(
+  application: Pick<
+    ReturnType<typeof cleavingDamageApplication>,
+    | 'beforeCurrentHitPoints'
+    | 'maximumHitPoints'
+    | 'afterCurrentHitPoints'
+    | 'resolvedAmount'
+    | 'appliedAmount'
+  >
+) {
   return (
     application.beforeCurrentHitPoints === application.maximumHitPoints &&
-    application.beforeTemporaryHitPoints === 0 &&
     application.afterCurrentHitPoints === 0 &&
     application.resolvedAmount > application.appliedAmount
   )

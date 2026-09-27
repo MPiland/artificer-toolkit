@@ -126,6 +126,16 @@ describe('Cleaving damage carry-over', () => {
     expect(cleavingCarriesOn(injured)).toBe(false)
   })
 
+  it('carries on from an undamaged target that also had temporary hit points', () => {
+    const shielded = cleavingDamageApplication({
+      damage: cleavingDamageEnvelope(initialHit),
+      targetActorId: SECOND_ID,
+      before: { current: 7, temporary: 3, maximum: 7 }
+    })
+    expect(shielded).toMatchObject({ requestedAmount: 13, appliedAmount: 10 })
+    expect(cleavingCarriesOn(shielded)).toBe(true)
+  })
+
   it('stops when the carried damage is exactly lethal', () => {
     const exact = cleavingDamageApplication({
       damage: cleavingDamageEnvelope({ ...initialHit, requestedAmount: 14, resolvedAmount: 14 }),
