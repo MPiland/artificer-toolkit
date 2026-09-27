@@ -119,6 +119,39 @@ effect, lost Concentration, Cleaving damage to a Character, Disarm and other con
 undo is its own `REVERT_LAST_ACTION` run command and timeline entry ("Undone by the GM"); a second
 undo is refused. Unused counters restored to 0 may stay stored as 0 rather than absent.
 
+### 0 hit points (D63, current)
+
+A Creature or custom Run actor stores `defeated` (required, set to false at creation).
+`nextEncounterActorDefeated` (`rules-runtime/encounterActorDefeat`) sets it when a change takes the
+actor from above 0 hit points to 0 and clears it once the actor has any; an actor at 0 of 0 (a lair
+or hazard) is never defeated. Every Run hit-point write uses it: `planEncounterMechanicsBatch`,
+which every damage and healing path commits through (actions, turn effects, movement reactions and
+spatial effects, Cleaving, Legendary Actions), the GM's `UPDATE_ACTOR` hit point edit (the GM
+revive) and `REVERT_LAST_ACTION`. Actor DTOs carry `defeated` for the GM and players; the GM health
+band no longer has a defeated band.
+
+A defeated actor:
+
+- takes no turns: initiative skips it but keeps its place ([live sessions](live-sessions.md));
+- takes no reactions or opportunity attacks (`encounterMovementReactionSources`) and no Legendary
+  Actions, and is no Legendary target (`encounterTurnLegendaryDiscovery`);
+- is never a Cleaving continuation target (`buildEncounterCleavingCandidate`);
+- has no action choices and can't be the actor of `RESOLVE_ACTION`, `USE_BASIC_ACTION` or Disarm
+  (`ACTOR_DEFEATED`), nor move its token for a player (the GM may still reposition it);
+- is left out of the web's target lists. Naming one as a `RESOLVE_ACTION` target is the overridable
+  `TARGET_DEFEATED` warning (healing or reviving magic can target the dead); Help and Disarm refuse it.
+
+A Character at 0 hit points is never defeated. Dropping to 0 adds the System's 0 hit point
+condition (`characterZeroHitPointsConditionId`; D&D: Unconscious) to the Character's own conditions,
+and regaining hit points from 0 removes it, in `planEncounterMechanicsBatch` and in the Sheet's hit
+point commands. It follows from the recorded hit point transition, so receipts and their target
+transitions list only rule applications; `REVERT_LAST_ACTION` removes the condition with the damage
+that caused it and refuses to undo a heal that woke the Character. Unconscious already suppresses actions, bonus actions and reactions through its condition
+rule state. Dying is being at 0 hit points; death saving throws are a queued slice, and a dying
+Character's turns are not skipped. Not yet modeled for any condition: automatic failure of Strength
+and Dexterity saves, advantage on attacks against the creature, and critical hits from melee attacks
+within 5 feet.
+
 ## Initiative and live delivery
 
 Encounter initiative, active reordering, actor removal, and reinforcement timing are application

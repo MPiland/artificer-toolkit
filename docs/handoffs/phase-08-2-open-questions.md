@@ -180,8 +180,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   * **Characters:** a Character at 0 HP becomes unconscious and dying, and enters the death-save flow (queued).
   * **Scope:** this applies everywhere: turns, reactions, opportunity attacks, Legendary windows, Cleaving targets and action eligibility.
   * **Legendary options through RESOLVE_ACTION:** the server refuses them, not only the drawer. A Legendary option can be used only in a Legendary window.
+  * **Built** ([rules runtime](../architecture/rules-runtime.md#0-hit-points-d63-current)):
+    * Creatures and custom actors store `defeated`, set by every hit-point write that takes them to 0, and the GM revives by editing hit points above 0. A 0-of-0 hazard is never defeated.
+    * Turns, reactions and opportunity attacks, Legendary windows and targets, Cleaving targets, action choices and every acting command exclude defeated actors (`ACTOR_DEFEATED`). The GM may still move a defeated token.
+    * Web target lists leave defeated actors out. Naming one anyway is the overridable `TARGET_DEFEATED` warning, because healing magic can target the dead. Help and Disarm refuse a defeated target.
+    * Characters at 0 gain Unconscious, which suppresses actions and reactions, and lose it on regaining hit points. Their turns are not skipped.
+    * The room refuses Legendary options with `LEGENDARY_WINDOW_ONLY`.
+    * Tokens and turn order show "Defeated" to everyone.
+  * **Gaps:**
+    * An actor defeated during a turn transition, by the outgoing turn's effects or Legendary Actions, still starts its turn; only a new round's opener is judged after them.
+    * Unconscious's automatic Strength and Dexterity save failures, advantage on attacks against it, and melee critical hits within 5 feet are not modeled for any condition yet.
+  * **Decisions on the D63 questions (2026-09-27):** defeated targets are left out of lists, and naming one gives an overridable warning (accepted). The GM may move defeated tokens and players may not (accepted). The turn-transition gap gets fixed before closed beta, not accepted as permanent.
 - **D62** Rulings on M8's questions, and slice M9:
-
   1. **Ranged range.** Ranged attacks author normal and long range (SRD).
 
      * Beyond normal and up to long range, the attack roll has disadvantage with the reason "Long range". This is derived automatically in Assisted mode, like other roll-mode reasons.

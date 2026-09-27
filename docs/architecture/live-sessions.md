@@ -176,6 +176,19 @@ reload an uncommitted Character version from storage. Private `TURN_COMMAND` adm
 terminal and pending receipt checks. A pending initiative retry reconstructs its retained outgoing
 decisions in the DO before returning its original result, without new initiative rolls.
 
+Defeated actors (D63, [rules runtime](rules-runtime.md#0-hit-points-d63-current)) keep their
+initiative place but lose their turns. The room plans `ADVANCE_TURN` with the Run's defeated actors:
+`planEncounterInitiativeAdvance` moves to the next actor that isn't defeated (wrapping the round when
+none remains), and the commit's `applyEncounterInitiativeAdvance` marks each skipped actor as having
+acted and completes each side it leaves, so the stored cursor stays contiguous. Convex replans with
+its durable actors and must reach the same plan. A new round (initiative at START or each round)
+opens with its first actor that isn't defeated, judged after the outgoing turn's effects and
+Legendary Actions; Convex checks only that the staged cursor is valid and names a settled actor.
+Known gap: within one `SAME_ROUND` or encounter-start round wrap, the next actor is chosen before
+outgoing effects and Legendary Actions run, so an actor they defeat still starts that turn. The GM
+ends it. `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused in the room with
+`LEGENDARY_WINDOW_ONLY`; the option runs only in its window.
+
 Turn captures expose bounded maintained state and the Run's bound Scene geometry/spatial effects.
 The planner retains the Scene version and definition save as well as the merged source revisions,
 because Scene geometry changes do not advance the rules revision markers. Private Character inputs
