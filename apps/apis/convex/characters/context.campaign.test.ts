@@ -14,7 +14,7 @@ import type {
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
-import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { cat as rawCat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
@@ -28,6 +28,9 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterBuilderContext } from './builderContext'
 import { loadCharacterRuleContext, readCharacterSources } from './context'
+import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
+
+const cat = srdCreatureRecord(rawCat.id)
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'

@@ -4,12 +4,15 @@ import type {
   CharacterSheetExtraCatalogReadInput,
   CharacterSheetExtraCatalogResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
-import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { cat as rawCat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api, internal } from '../_generated/api'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
+
+const cat = srdCreatureRecord(rawCat.id)
 
 const list = makeFunctionReference<
   'query',

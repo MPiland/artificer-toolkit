@@ -45641,7 +45641,11 @@ export declare const api: {
           encounterId: string;
           encounterVersion: number;
           optionalRules: Array<{ definitionId: string; label: string }>;
-          unavailableActions: Array<{ id: string; label: string; reason: string }>;
+          unavailableActions: Array<{
+            id: string;
+            label: string;
+            reason: string;
+          }>;
         } | null
       >;
       optional: FunctionReference<

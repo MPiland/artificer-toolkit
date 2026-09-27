@@ -27,13 +27,17 @@ import type { AuthoredDraftResult } from '@artificer-toolkit/schema/api/authored
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { api, components, internal } from '../_generated/api'
-import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
-import { owl } from '@artificer-toolkit/source-data/srd/creatures/owl.js'
+import { cat as rawCat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { owl as rawOwl } from '@artificer-toolkit/source-data/srd/creatures/owl.js'
 import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { startLocalR2 } from '../../tests/localR2'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readImageSlot } from '../content/imageSlots'
+import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
+
+const cat = srdCreatureRecord(rawCat.id)
+const owl = srdCreatureRecord(rawOwl.id)
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'

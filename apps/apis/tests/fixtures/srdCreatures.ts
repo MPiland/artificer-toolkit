@@ -4,11 +4,15 @@ import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 
-const seededWolf = srdCreatureRecords.find((record) => record.id === wolf.id)
-if (!seededWolf) throw new Error('The seeded SRD Wolf is missing.')
+/** An SRD Creature record as the corpus seeds it, with the ATTACK rolls its raw stat block module lacks. */
+export function srdCreatureRecord(id: string): CreatureAuthored {
+  const record = srdCreatureRecords.find((candidate) => candidate.id === id)
+  if (!record) throw new Error(`The seeded SRD Creature ${id} is missing.`)
+  return record
+}
 
-/** The SRD Wolf as seeded, with the corpus-applied ATTACK roll its raw stat block module lacks. */
-export const srdWolf = seededWolf
+/** The SRD Wolf as seeded. */
+export const srdWolf = srdCreatureRecord(wolf.id)
 
 let seededCreatures: readonly CreatureAuthored[] | null = null
 
