@@ -28,7 +28,7 @@ it('keeps builder resolution exact while reading fewer structural publications',
     import.meta.glob('../betterAuth/**/*.*s'),
     []
   )
-  expect(await t.action(internal.content.seed.seed, {})).toMatchObject({ subjects: 1051 })
+  expect(await t.action(internal.content.seed.seed, {})).toMatchObject({ subjects: 1057 })
   const draft = await first.caller.mutation(api.characters.drafts.create, {
     id: crypto.randomUUID(),
     systemId: fighter.systemId

@@ -27,7 +27,7 @@ it('reconciles Equipment loss through public authoring, Builder and Sheet comman
     []
   )
   expect(await t.action(internal.content.seed.seed, {})).toMatchObject({
-    subjects: 1051
+    subjects: 1057
   })
   const owner: Parameters<typeof verifyEquipmentCharacterDeletion>[0]['owner'] = {
     query: (query, ...args) => first.caller.run((ctx) => ctx.runQuery(query, ...args)),

@@ -2,11 +2,13 @@
 
 > Living list of questions waiting for the user's answer. Answer inline under **Answer** (or in chat); answered items move to [Resolved](#resolved) with the decision. Decisions made on the user's behalf are summarized in [Decisions to review](#decisions-to-review); the full reasoning is in the [handoff Decision log](phase-08-2-convex-cutover.md#decision-log-delegated-for-user-review).
 >
-> Updated: 2026-09-26.
+> Updated: 2026-09-27.
 
 ## Open
 
-_(none)_
+- **D60 model gaps (M7).** Neither is small enough to add without a contract decision.
+  - **Flat skill bonus (Half-Red Dragon Veteran, Lich, Night Hag, Priest).** Creature check totals are computed in `compileDnd5eCreatureRuleFacts` from the shared proficiency grant, which classes, backgrounds and feats also use. A flat bonus on that grant would be ignored by the Character fold unless it learns it too. **Options:** (a) an optional integer `bonus` on SKILL proficiency grants, read by both the Creature compiler and the Character fold; (b) a Creature-only printed total per skill, which AUTHORING_PRINCIPLES rules out as a second proficiency shape; (c) keep the four printed inconsistencies allowlisted. **Recommendation:** (c) for closed beta. The four look like SRD printing errors (the Lich's Arcana +18 is neither proficiency nor expertise), so they don't justify a shared contract field.
+  - **Damage-defense conditions (Archmage "damage from spells", Rakshasa "piercing from magic weapons wielded by good creatures").** Qualified defenses only know bypass codes. Honouring these needs the damage pipeline to know whether the damage comes from a spell, and the attacker's alignment and whether its weapon is magical. **Options:** (a) extend the qualified defense with a source condition (`SPELL`, or `MAGIC_WEAPON` with wielder alignments), evaluated in `attackDamageDefenses.ts` from damage-source facts; (b) keep both allowlisted and show the printed text to the GM. **Recommendation:** (a) for spells once damage carries whether a spell caused it, and (b) for the Rakshasa until alignment facts reach the damage pipeline.
 
 ## Decisions to review
 
@@ -181,63 +183,70 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
 * **D60 (blocks closed beta) Monster completeness, following the M6 audit.** The audit fixed 388 of 457 stat-block differences. The printed content that is still missing is queued as slice M7:
-  * **Breath weapons:**
-    * The metallic dragons share one Breath Weapons action with one Recharge 5–6, per the SRD. Today each breath has its own charge.
-    * Young Copper and Young Gold dragons are missing their second breath.
-  * **Missing actions:**
-    * Actions: Aboleth Tentacle, Tail and Enslave (and clean up the stray legendary Effects on its Multiattack); Ice Devil Wall of Ice; Kraken Fling; Oni Glaive; Solar Flying Sword; Succubus/Incubus Charm and Etherealness; Werebear Greataxe.
-    * Reactions: Marilith Parry and Stone Giant Rock Catching.
-    * Spellcasting: Androsphinx and Solar.
-    * Legendary options: Aboleth, Kraken, Solar and Tarrasque.
-  * **Missing creatures:** the six SRD swarms (Bats, Insects, Poisonous Snakes, Quippers, Rats, Ravens).
-  * **Model gaps:**
-    * A flat skill bonus on Creature proficiency grants.
-    * Damage-defense conditions such as "from spells" and "from magic weapons wielded by good creatures".
-  * **Mechanics** for description-only traits (Water Breathing, Sunlight Weakness, Rust Metal, Acid Absorption and similar) and the description-only Multiattacks.
-  * **Extraction source:** `pdftotext` is accepted as a one-time authoring tool for the stat-block extractor. It isn't a runtime dependency.
+  - **Breath weapons:**
+    - The metallic dragons share one Breath Weapons action with one Recharge 5–6, per the SRD. Today each breath has its own charge.
+    - Young Copper and Young Gold dragons are missing their second breath.
+  - **Missing actions:**
+    - Actions: Aboleth Tentacle, Tail and Enslave (and clean up the stray legendary Effects on its Multiattack); Ice Devil Wall of Ice; Kraken Fling; Oni Glaive; Solar Flying Sword; Succubus/Incubus Charm and Etherealness; Werebear Greataxe.
+    - Reactions: Marilith Parry and Stone Giant Rock Catching.
+    - Spellcasting: Androsphinx and Solar.
+    - Legendary options: Aboleth, Kraken, Solar and Tarrasque.
+  - **Missing creatures:** the six SRD swarms (Bats, Insects, Poisonous Snakes, Quippers, Rats, Ravens).
+  - **Model gaps:**
+    - A flat skill bonus on Creature proficiency grants.
+    - Damage-defense conditions such as "from spells" and "from magic weapons wielded by good creatures".
+  - **Mechanics** for description-only traits (Water Breathing, Sunlight Weakness, Rust Metal, Acid Absorption and similar) and the description-only Multiattacks.
+  - **Extraction source:** `pdftotext` is accepted as a one-time authoring tool for the stat-block extractor. It isn't a runtime dependency.
+  - **M7 done (authoring with existing shapes).** Stat-block exceptions went from 69 to 24: 12 legendary options (D51 B), 4 skill bonuses, 2 damage defenses and 6 swarm member sizes.
+    - **Breath weapons.** All 20 metallic dragons author one Breath Weapons (Recharge 5–6) Feature with one charge and both breath Effects. Young Copper and Young Gold gain their second breath. Young Bronze and the Gold Wyrmling now author their breath Effects, and Young Bronze its Bite and Claw. Also fixed: Young Brass sleep lasts 5 minutes and the Brass Wyrmling's 1; the Bronze and Copper Wyrmlings' second breath ran a placeholder rule (now push and slow; `DRAGON_BREATH_WEAPON_CHOICE` is removed); the Young Silver and Silver Wyrmling repeat the Paralyzing Breath save. Breaths keep `SPECIAL` range, so the line or cone waits on area targeting.
+    - **Actions.** Aboleth Tentacle, Tail and Enslave (3/Day); its Multiattack lost the stray legendary Effects. Oni Glaive and Werebear Greataxe. Succubus/Incubus Charm (save or charmed for 1 day). Ice Devil Wall of Ice (Recharge 6) manifests a zone, as the spell does. Marilith Parry uses the shared parry reaction. Androsphinx and Solar spell grants. The new attacks run in the room.
+    - **Description-only (mechanics follow-up):** Kraken Fling, Solar Flying Sword, Succubus/Incubus Etherealness, Stone Giant Rock Catching, the Aboleth Tentacle's disease, Enslave's control and repeat saves, Charm's repeat saves and immunity, and Wall of Ice's save damage and frigid air.
+    - **Swarms.** The six SRD swarms are seeded as Medium beasts with description-only Swarm traits. The Swarm of Ravens' Beaks run in the room. The other five bite at reach 0 ft. a creature in the swarm's space, which waits on a swarm model (sweep reason `SWARM_SPACE`).
+    - **Found outside M7:** 45 printed attacks on 31 Creatures are description-only, with no Effect, so they never reach the sweep and the Behir's Lightning Breath has none either. They are the Ape (Fist, Rock), Behir (Bite, Constrict), Doppelganger (Slam), Dryad (Club), Duergar (War Pick, Javelin), Earth Elemental (Slam), Ettin (Battleaxe), Fire Elemental (Touch), Frost Giant (Greataxe, Rock), Gargoyle (Bite, Claws), Giant Crocodile (Bite), Gibbering Mouther (Bites), Gladiator (Spear, Shield Bash), Gnoll (Bite, Spear, Longbow), Gold Dragon Wyrmling (Bite), Gray Ooze (Pseudopod), Half-Red Dragon Veteran (Longsword), Harpy (Claws, Club), Hippogriff (Beak, Claws), Homunculus (Bite), Magmin (Touch), Otyugh (Bite, Tentacle), Polar Bear (Bite, Claws), Sahuagin (Bite), Salamander (Spear, Tail), Stone Giant (Rock), Tyrannosaurus Rex (Bite, Tail), Violet Fungus (Rotting Touch), Wyvern (Bite), and the Young Brass and Young Green Dragons (Bite).
+    - **Model gaps, escalated.** See [the M7 model gaps question](#open).
 
 * **D59** Adopt lazy schemas (spike branch `worktree-agent-a007a1dd573f90707`; write-up `d55-lazy-schema-spike-2026-09-27.md`).
-  * **Measured:** module load drops 73–84% on every hot function, and all 2,168 exported schemas, Convex validators, JSON Schema, parse results and deploy metadata are identical.
-  * **What's included:**
-    * `lazySchema` wrapping applied by a committed codemod, with a lint `--check` so no new eager schemas creep back in. `z.json()` stays eager.
-    * A test that builds every exported schema.
-    * Content tables built on demand.
-  * **Dropped:** the blanket args/returns getters. They measured no gain.
-  * **Sequencing:** roll out last, by re-running the codemod on the latest branch after M2, M6 and D58 merge, to avoid conflicts in schema files.
-  * **Proof required:** the equivalence script against the merge base, the full suites and codegen, then the browserless re-run. The 6-browser V15 runs only when both budgets pass with margin.
+  - **Measured:** module load drops 73–84% on every hot function, and all 2,168 exported schemas, Convex validators, JSON Schema, parse results and deploy metadata are identical.
+  - **What's included:**
+    - `lazySchema` wrapping applied by a committed codemod, with a lint `--check` so no new eager schemas creep back in. `z.json()` stays eager.
+    - A test that builds every exported schema.
+    - Content tables built on demand.
+  - **Dropped:** the blanket args/returns getters. They measured no gain.
+  - **Sequencing:** roll out last, by re-running the codemod on the latest branch after M2, M6 and D58 merge, to avoid conflicts in schema files.
+  - **Proof required:** the equivalence script against the merge base, the full suites and codegen, then the browserless re-run. The 6-browser V15 runs only when both budgets pass with margin.
 
 * **D58 (blocks closed beta) Critical hits must double every damage die.** Found by M2: on a critical hit, Creature attacks roll normal dice and add only an authored `ON_CRIT` result. So a critical Adult Red Dragon Bite deals 2d10+8 and 2d6 instead of 4d10+8 and 4d6. The one exception, the hit-then-save shape, already doubles.
-  * **Rule (SRD 5.1):** a critical hit doubles every damage die of the attack's damage parts, including extra dice such as Sneak Attack or Divine Smite. Flat modifiers are not doubled.
-  * **Fix:** apply this in one place for Creature and Character attacks alike, with pure tests.
-  * **Audit:** check whether any authored `ON_CRIT` data exists only to fake doubling. If it does, remove it.
-  * **Done.** Every attack's hit damage is rolled in one OUTCOME specializer, so `diceGraphDefinition` is the one place that doubles: Creature and Character attacks, opportunity attacks (movement reactions run the same phased plan) and each part of a multi-part hit. Single-graph attacks carry only fixed amounts. The Adult Red Dragon Bite now crits for 4d10 + 8 and 4d6, and a STR 16 Fighter's Longsword for 2d8 + 3. The SRD sweep checks that every working Creature attack's critical rolls exactly twice its printed hit dice.
-    * **Not doubled:** the damage of a save the hit forces (the Giant Spider's poison is the save's damage, not the attack's, which matches the prior shape), non-damage dice such as the Shadow's 1d4 Strength drain, and an authored `ON_CRIT` rider's own dice.
-    * **`ON_CRIT` audit:** removed Arcane Sword's 6d10 and Spiritual Weapon's doubled dice. Both only faked doubling, and a critical would have added them to the hit (9d10 for the sword). Kept Barbarian Brutal Critical, a genuine crit rider (still a `CLOSED_RULE`). No Creature authors `ON_CRIT`.
-    * **Bound:** an unscaled hit may author at most 15 dice, so its critical fits the 31-dice contract. It is checked when TEST is published.
-    * **Not yet executable:** extra-dice riders such as Sneak Attack, Divine Smite and Brutal Critical are still `CLOSED_RULE`s. When they become executable `ON_HIT` damage they are doubled by the same code. Brutal Critical's extra die must not be, because it is a critical-only rider.
+  - **Rule (SRD 5.1):** a critical hit doubles every damage die of the attack's damage parts, including extra dice such as Sneak Attack or Divine Smite. Flat modifiers are not doubled.
+  - **Fix:** apply this in one place for Creature and Character attacks alike, with pure tests.
+  - **Audit:** check whether any authored `ON_CRIT` data exists only to fake doubling. If it does, remove it.
+  - **Done.** Every attack's hit damage is rolled in one OUTCOME specializer, so `diceGraphDefinition` is the one place that doubles: Creature and Character attacks, opportunity attacks (movement reactions run the same phased plan) and each part of a multi-part hit. Single-graph attacks carry only fixed amounts. The Adult Red Dragon Bite now crits for 4d10 + 8 and 4d6, and a STR 16 Fighter's Longsword for 2d8 + 3. The SRD sweep checks that every working Creature attack's critical rolls exactly twice its printed hit dice.
+    - **Not doubled:** the damage of a save the hit forces (the Giant Spider's poison is the save's damage, not the attack's, which matches the prior shape), non-damage dice such as the Shadow's 1d4 Strength drain, and an authored `ON_CRIT` rider's own dice.
+    - **`ON_CRIT` audit:** removed Arcane Sword's 6d10 and Spiritual Weapon's doubled dice. Both only faked doubling, and a critical would have added them to the hit (9d10 for the sword). Kept Barbarian Brutal Critical, a genuine crit rider (still a `CLOSED_RULE`). No Creature authors `ON_CRIT`.
+    - **Bound:** an unscaled hit may author at most 15 dice, so its critical fits the 31-dice contract. It is checked when TEST is published.
+    - **Not yet executable:** extra-dice riders such as Sneak Attack, Divine Smite and Brutal Critical are still `CLOSED_RULE`s. When they become executable `ON_HIT` damage they are doubled by the same code. Brutal Critical's extra die must not be, because it is a critical-only rider.
 
 * **D56** Audit every SRD Creature stat block against the SRD 5.1 text, before closed beta. The D54 damage audit fixed 16 Creatures, and the Ice Devil also shows cold as a resistance where the SRD says immunity, plus a wrong passive Perception and senses. So the damage errors are probably not isolated.
-  * **What to check:** AC, HP and hit dice, speeds, ability scores, saving throws (with M5), skills, damage and condition immunities, resistances and vulnerabilities, senses and passive Perception, languages, CR and XP, and trait, action and reaction text versus the mechanics.
-  * **How:** extract the printed values once into committed tables by script, the same pattern as the attack-bonus and damage tables. Add a source-data test that compares every Creature against them. Fix mismatches in authored data, and allowlist any justified exceptions with a reason.
-  * **Tracking:** slice M6 on the dashboard.
-  * **Done (audit).** `stat-blocks.ts` holds all 311 authored Creatures' printed stat blocks, read from the PDF (the committed `.txt` interleaves stat blocks and drops lines, such as the Badger's ability scores). The source-data audit found 457 differences on 161 Creatures: 320 in header fields and 137 in trait, action and legendary action names. 388 are fixed in authored data, and 159 Creatures changed. The worst: the Stone Giant was Large with the wrong Constitution, Wisdom, Charisma and hit dice; the Ice Devil resisted cold instead of being immune, with invented skills and wrong senses; the Quasit had the Imp's speeds and no damage resistances; the Treant lacked its fire vulnerability and bludgeoning and piercing resistance; the Purple Worm had no walking speed; the Balor and Treant had a Perception skill they don't print; the Black Pudding and Rug of Smothering had the wrong hit dice; and 109 skills on 95 Creatures were authored as proficiency where the stat block prints expertise (every dragon's Perception). Saving throw proficiencies now match every stat block, and every printed save bonus equals the ability modifier plus the proficiency bonus.
-  * **Remaining, allowlisted with reasons (69):** 37 metallic dragon breath weapons authored as separate Features with independent recharges (the stat block prints one shared Recharge 5-6; the Young Copper and Young Gold also lack their second breath). 26 printed actions, reactions, spellcasting traits or legendary options not authored: the Aboleth (Tentacle, Tail, Enslave, all legendary actions), Kraken, Solar and Tarrasque legendary actions, and single actions on the Ice Devil, Marilith, Oni, Stone Giant, Succubus/Incubus, Werebear and Androsphinx. 4 skill bonuses the model cannot reach (no flat skill bonus), and 2 damage defenses with conditions it cannot represent. Each needs a follow-up; none is a stat-block fact the audit could fix.
-  * **Not in the corpus:** the six SRD swarms (Bats, Insects, Poisonous Snakes, Quippers, Rats, Ravens) have no authored Creature.
+  - **What to check:** AC, HP and hit dice, speeds, ability scores, saving throws (with M5), skills, damage and condition immunities, resistances and vulnerabilities, senses and passive Perception, languages, CR and XP, and trait, action and reaction text versus the mechanics.
+  - **How:** extract the printed values once into committed tables by script, the same pattern as the attack-bonus and damage tables. Add a source-data test that compares every Creature against them. Fix mismatches in authored data, and allowlist any justified exceptions with a reason.
+  - **Tracking:** slice M6 on the dashboard.
+  - **Done (audit).** `stat-blocks.ts` holds all 311 authored Creatures' printed stat blocks, read from the PDF (the committed `.txt` interleaves stat blocks and drops lines, such as the Badger's ability scores). The source-data audit found 457 differences on 161 Creatures: 320 in header fields and 137 in trait, action and legendary action names. 388 are fixed in authored data, and 159 Creatures changed. The worst: the Stone Giant was Large with the wrong Constitution, Wisdom, Charisma and hit dice; the Ice Devil resisted cold instead of being immune, with invented skills and wrong senses; the Quasit had the Imp's speeds and no damage resistances; the Treant lacked its fire vulnerability and bludgeoning and piercing resistance; the Purple Worm had no walking speed; the Balor and Treant had a Perception skill they don't print; the Black Pudding and Rug of Smothering had the wrong hit dice; and 109 skills on 95 Creatures were authored as proficiency where the stat block prints expertise (every dragon's Perception). Saving throw proficiencies now match every stat block, and every printed save bonus equals the ability modifier plus the proficiency bonus.
+  - **Remaining, allowlisted with reasons (69):** 37 metallic dragon breath weapons authored as separate Features with independent recharges (the stat block prints one shared Recharge 5-6; the Young Copper and Young Gold also lack their second breath). 26 printed actions, reactions, spellcasting traits or legendary options not authored: the Aboleth (Tentacle, Tail, Enslave, all legendary actions), Kraken, Solar and Tarrasque legendary actions, and single actions on the Ice Devil, Marilith, Oni, Stone Giant, Succubus/Incubus, Werebear and Androsphinx. 4 skill bonuses the model cannot reach (no flat skill bonus), and 2 damage defenses with conditions it cannot represent. Each needs a follow-up; none is a stat-block fact the audit could fix.
+  - **Not in the corpus:** the six SRD swarms (Bats, Insects, Poisonous Snakes, Quippers, Rats, Ravens) have no authored Creature.
 
 * **D55** Speed after D52: the browserless check re-run shows command p95 at 1,089–1,090 ms (budget 1,000; was 2,528–2,785) and convergence p95 at 251–252 ms (budget 250). Fixed per-call setup is about 58% of each call: Zod schema construction at module load, plus the HTTP router's full module graph (40–65 ms, paid twice per command).
-  * **Ruling:** build schemas lazily (constructed on first use, memoized), covering the HTTP router path.
-  * **Approach:** a design spike first. Prototype the pattern on the heaviest graphs (`projectionReads:get`, the capture bundle, one commit, the router). Measure the import saving, and prove types and validation are unchanged. Roll out only after that, then re-run the browserless check. The 6-browser V15 run follows only when both budgets pass.
+  - **Ruling:** build schemas lazily (constructed on first use, memoized), covering the HTTP router path.
+  - **Approach:** a design spike first. Prototype the pattern on the heaviest graphs (`projectionReads:get`, the capture bundle, one commit, the router). Measure the import saving, and prove types and validation are unchanged. Roll out only after that, then re-run the browserless check. The 6-browser V15 run follows only when both budgets pass.
 
 * **D57 SRD hit riders, slice M2.** The 108 `SEQUENTIAL_PATHS` attacks were grouped by authored shape, and 67 of them now run, plus the Guardian Naga Bite, Scorpion Sting and Spider Bite. 376 of 516 SRD attack Effects work (309 before M2), and 247 Creatures have a working attack (was 215). The sweep allowlist shrinks from 207 to 140, and every SRD attack now resolves to its printed hit damage, so the damage-mismatch list is gone.
-  * **Now running:**
-    * Several damage parts on one hit (dragon Bites, Hell Hound, Deva Mace, Ettercap Bite and others) and single-damage sequences: one damage source, one Concentration check at the total (D50.4).
-    * A hit followed by a Constitution save for poison damage, half on a success (Giant Spider, Wyvern, Scorpion and 7 more), or none on a success (Spider). Their stat blocks applied the poison with no save; they now author the save.
-    * Save or prone (Mastiff, Giant Crocodile Tail), applied once.
-    * Save or paralyzed/poisoned, repeating the save at the end of each of the target's turns and ending after 1 minute (10 turns): Ghoul, Ghast, Lich, Ettercap, Bearded Devil and the Quasit's Claws.
-    * Grapple on hit (Constrictor Snake, Crocodile, Chuul, Giant Crab, Giant Scorpion Claw, Roc, Ankheg, Giant Constrictor Snake): a bare `GRAPPLED` condition (ruling 2).
-  * **Still blocked, by their real blocker:** `CLOSED_RULE` riders and hits that apply two conditions (grappled and restrained) are `OUTCOME_KIND`; the Cockatrice and Dragon Turtle Tail saves (now authored) are unsupported follow-up saves; Mimic Pseudopod's unconditional grapple was removed because its Adhesive rule carries it.
-  * **Not modeled:** "can't regain hit points while poisoned" (Bearded Devil) and the Pseudodragon's "fails by 5 or more" unconsciousness. The Pseudodragon keeps its separately authored save action with its `CLOSED_RULE`; merging it needs a "fails by N" result.
-  * **Rulings:**
+  - **Now running:**
+    - Several damage parts on one hit (dragon Bites, Hell Hound, Deva Mace, Ettercap Bite and others) and single-damage sequences: one damage source, one Concentration check at the total (D50.4).
+    - A hit followed by a Constitution save for poison damage, half on a success (Giant Spider, Wyvern, Scorpion and 7 more), or none on a success (Spider). Their stat blocks applied the poison with no save; they now author the save.
+    - Save or prone (Mastiff, Giant Crocodile Tail), applied once.
+    - Save or paralyzed/poisoned, repeating the save at the end of each of the target's turns and ending after 1 minute (10 turns): Ghoul, Ghast, Lich, Ettercap, Bearded Devil and the Quasit's Claws.
+    - Grapple on hit (Constrictor Snake, Crocodile, Chuul, Giant Crab, Giant Scorpion Claw, Roc, Ankheg, Giant Constrictor Snake): a bare `GRAPPLED` condition (ruling 2).
+  - **Still blocked, by their real blocker:** `CLOSED_RULE` riders and hits that apply two conditions (grappled and restrained) are `OUTCOME_KIND`; the Cockatrice and Dragon Turtle Tail saves (now authored) are unsupported follow-up saves; Mimic Pseudopod's unconditional grapple was removed because its Adhesive rule carries it.
+  - **Not modeled:** "can't regain hit points while poisoned" (Bearded Devil) and the Pseudodragon's "fails by 5 or more" unconsciousness. The Pseudodragon keeps its separately authored save action with its `CLOSED_RULE`; merging it needs a "fails by N" result.
+  - **Rulings:**
     1. **Versatile weapons (Drider and Erinyes Longsword, `CHOICE`).** The controller picks one- or two-handed when declaring the attack, offered as two action variants (Foundry-style). Not small (new action identities through discovery, choices and receipts), so both stay listed as `SEQUENTIAL_PATHS`.
     2. **Grapples.** Option (a) for now: a bare condition the GM removes. Option (b), a target-owned grapple relationship with an escape DC, ending when the grappler is incapacitated or moves away, and size limits, is queued before closed beta.
     3. **Repeating saves** may carry a `ROUND` or `MINUTE` duration (a minute is 10 of the target's turns). Only the repeating shape may carry a duration. The SRD stat blocks that print one author it.
