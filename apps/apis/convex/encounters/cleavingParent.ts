@@ -142,7 +142,6 @@ export async function verifyNativeCleavingParentChain(
       output.damage.damageTypeId !== damage.damageTypeId ||
       output.targetTransition.before.currentHitPoints !==
         output.targetTransition.before.maximumHitPoints ||
-      output.targetTransition.before.temporaryHitPoints !== 0 ||
       output.targetTransition.after.currentHitPoints !== 0
     )
       throw new Error('Cleaving retained damage chain is invalid.')
