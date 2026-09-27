@@ -228,6 +228,36 @@ describe('seeded SRD Creature hit riders in the room', () => {
     ])
   }, 30000)
 
+  it('hits with the Aboleth’s newly authored Tentacle (D60)', async () => {
+    const base = await setup({ creature: 'Aboleth', feature: 'Tentacle', playerAutoRoll: true })
+    // A natural 19 hits; 2d6 + 5 bludgeoning with both dice rolling 1.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const batch = await settledBatch(base)
+    expect(batch.d20).toMatchObject({ selectedNatural: 19, resultPath: 'ON_HIT' })
+    expect(batch.damage).toEqual([[7, damageTypeId('BLUDGEONING')]])
+  }, 30000)
+
+  it('hits with the new Swarm of Ravens’ Beaks, which add no ability modifier (D60)', async () => {
+    const base = await setup({
+      creature: 'Swarm of Ravens',
+      feature: 'Beaks',
+      playerAutoRoll: true
+    })
+    // A natural 19 hits; 2d6 piercing with both dice rolling 1.
+    const result = await executeInRoom(
+      base.owner.caller,
+      { command: base.command },
+      scripted([18, 0, 0])
+    )
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect((await settledBatch(base)).damage).toEqual([[2, damageTypeId('PIERCING')]])
+  }, 30000)
+
   it('routes the Giant Spider’s poison save to the Character’s player, then halves on a success', async () => {
     const base = await setup({ creature: 'Giant Spider', feature: 'Bite', playerAutoRoll: false })
     // The GM auto-rolls the hit and its piercing damage; the Character's save waits on its player.

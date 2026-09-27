@@ -51,6 +51,7 @@ interface StatBlock extends PrintedNames {
   name: string
   size: string
   creatureType: string
+  swarmOf?: string
   tags: string[]
   alignment: string
   armorClass?: number
@@ -384,12 +385,16 @@ function scan(lines: readonly string[]): StatBlock[] {
       flushField()
       if (header !== line) index++
       const [, prefix, sizeLabel, typeLabel, subtypes, alignment] = size
+      // "swarm of Tiny beasts": a swarm of the named size and creature type.
+      const [, swarmOf, memberType] = /^swarm of (\w+) (\w+?)s?$/.exec(typeLabel!) ?? []
       block = {
         name: prefix ?? content[index - (header === line ? 1 : 2)]!,
         size: sizeLabel!.toUpperCase(),
-        creatureType: typeLabel!.startsWith('swarm of')
-          ? typeLabel!
-          : required(creatureTypeCodeByLabel.get(typeLabel!), `creature type ${typeLabel}`),
+        creatureType: required(
+          creatureTypeCodeByLabel.get(memberType ?? typeLabel!),
+          `creature type ${typeLabel}`
+        ),
+        ...(swarmOf ? { swarmOf: swarmOf.toUpperCase() } : {}),
         tags: subtypes ? listOf(subtypes) : [],
         alignment: alignment!.trim(),
         traits: [],
@@ -537,6 +542,8 @@ await writeFile(
     'export interface SrdCreatureStatBlock {',
     '  size: SizeCode',
     '  creatureType: string',
+    '  /** The size of each creature in a swarm ("swarm of Tiny beasts"). */',
+    '  swarmOf?: SizeCode',
     '  tags: readonly string[]',
     '  alignment: string',
     '  alignmentCode?: string',

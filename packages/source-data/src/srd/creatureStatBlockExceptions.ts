@@ -12,6 +12,9 @@ const UNREACHABLE_SKILL =
 const UNREPRESENTED_DEFENSE =
   'The printed damage defense condition has no model (only bypass by magical, silvered or adamantine attacks), so the SRD import drops it (model gap, D56).'
 
+const UNMODELED_SWARM =
+  'A swarm prints the size of its members ("Medium swarm of Tiny beasts"); a Creature has no swarm model, so the swarm is authored as a Medium beast and its Swarm trait is description-only (model gap, D60).'
+
 const entries = (reason: string, keys: readonly string[]) =>
   keys.map((key) => [key, reason] as const)
 
@@ -45,5 +48,13 @@ export const SRD_CREATURE_STAT_BLOCK_EXCEPTIONS: ReadonlyMap<string, string> = n
     'Archmage|unrepresentedDamageDefenses',
     // Vulnerability to "piercing from magic weapons wielded by good creatures".
     'Rakshasa|unrepresentedDamageDefenses'
+  ]),
+  ...entries(UNMODELED_SWARM, [
+    'Swarm of Bats|swarmOf',
+    'Swarm of Insects|swarmOf',
+    'Swarm of Poisonous Snakes|swarmOf',
+    'Swarm of Quippers|swarmOf',
+    'Swarm of Rats|swarmOf',
+    'Swarm of Ravens|swarmOf'
   ])
 ])

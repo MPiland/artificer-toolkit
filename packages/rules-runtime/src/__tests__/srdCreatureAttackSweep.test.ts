@@ -158,6 +158,8 @@ function unsupportedReason(
   const message = error instanceof Error ? error.message : String(error)
   if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_BASE_DAMAGE'
   if (/paths must be unique direct outcomes/.test(message)) return 'SEQUENTIAL_PATHS'
+  const { range } = unit.effect.invocation
+  if (range.rangeKind === 'DISTANCE' && range.amount === 0) return 'SWARM_SPACE'
   if (/unsupported bounded shape/.test(message)) {
     return unit.owner.section === 'LEGENDARY_ACTION' ? 'LEGENDARY_OPTION' : 'SPECIAL_RANGE'
   }
@@ -284,7 +286,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(522)
+    expect(effectIds.size).toBe(528)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)

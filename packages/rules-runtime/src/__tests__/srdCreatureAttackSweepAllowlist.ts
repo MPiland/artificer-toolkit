@@ -9,6 +9,8 @@
  * - LEGENDARY_OPTION: Legendary options still resolve as RESOLVE_ACTION (D51).
  * - OUTCOME_KIND: an outcome the room does not execute yet: a CLOSED_RULE rider or other
  *   unsupported kind, or two conditions on one hit (a grapple that also restrains).
+ * - SWARM_SPACE: a swarm's reach 0 ft. attack on a creature in the swarm's space, which waits on a
+ *   swarm model (D60).
  */
 export type SrdCreatureAttackUnsupportedReason =
   | 'SEQUENTIAL_PATHS'
@@ -16,6 +18,7 @@ export type SrdCreatureAttackUnsupportedReason =
   | 'EQUIPMENT_BASE_DAMAGE'
   | 'LEGENDARY_OPTION'
   | 'OUTCOME_KIND'
+  | 'SWARM_SPACE'
 
 /**
  * The SRD Creature attack Effects the sweep expects to fail, keyed by Effect ID. It may only
@@ -168,5 +171,11 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-0008-0070-010a00000000': 'SPECIAL_RANGE', // Storm Giant: Rock
   '00000000-0002-0009-0070-011000000000': 'SPECIAL_RANGE', // Tribal Warrior: Spear
   '00000000-0002-000f-0070-011700000000': 'SPECIAL_RANGE', // Veteran: Heavy Crossbow
-  '00000000-0002-0015-0070-012300000000': 'SPECIAL_RANGE' // Werewolf: Spear (Humanoid Form Only)
+  '00000000-0002-0015-0070-012300000000': 'SPECIAL_RANGE', // Werewolf: Spear (Humanoid Form Only)
+  // SWARM_SPACE
+  '00000000-0002-0001-0070-013800000000': 'SWARM_SPACE', // Swarm of Bats: Bites
+  '00000000-0002-0001-0070-013900000000': 'SWARM_SPACE', // Swarm of Insects: Bites
+  '00000000-0002-0001-0070-013a00000000': 'SWARM_SPACE', // Swarm of Poisonous Snakes: Bites
+  '00000000-0002-0001-0070-013b00000000': 'SWARM_SPACE', // Swarm of Quippers: Bites
+  '00000000-0002-0001-0070-013c00000000': 'SWARM_SPACE' // Swarm of Rats: Bites
 }

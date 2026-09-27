@@ -113,6 +113,8 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
   return {
     size: [block.size, creature.size],
     creatureType: [block.creatureType, codeById.get(creature.creatureTypeId)],
+    // A Creature has no swarm model yet: each swarm's member size is an exception (D60).
+    swarmOf: [block.swarmOf, undefined],
     tags: [sorted(block.tags), sorted(creature.tags?.filter((tag) => tag !== 'hover'))],
     hover: [block.hover === true, creature.tags?.includes('hover') === true],
     alignment: [block.alignmentCode, codeById.get(creature.alignmentId ?? '')],

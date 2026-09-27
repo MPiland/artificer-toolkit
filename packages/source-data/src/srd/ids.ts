@@ -738,7 +738,14 @@ export const CREATURE_IDS = {
   YOUNG_RED_DRAGON: subjectId('0070', 308),
   YOUNG_SILVER_DRAGON: subjectId('0070', 309),
   YOUNG_WHITE_DRAGON: subjectId('0070', 310),
-  ZOMBIE: subjectId('0070', 311)
+  ZOMBIE: subjectId('0070', 311),
+  // Added after the alphabetical index; IDs never move.
+  SWARM_OF_BATS: subjectId('0070', 312),
+  SWARM_OF_INSECTS: subjectId('0070', 313),
+  SWARM_OF_POISONOUS_SNAKES: subjectId('0070', 314),
+  SWARM_OF_QUIPPERS: subjectId('0070', 315),
+  SWARM_OF_RATS: subjectId('0070', 316),
+  SWARM_OF_RAVENS: subjectId('0070', 317)
 } as const
 
 // ─── Vehicles (domain 0080) ──────────────────────────────────────────────────

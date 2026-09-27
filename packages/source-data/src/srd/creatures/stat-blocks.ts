@@ -18,6 +18,8 @@ export interface SrdPrintedDamageDefense {
 export interface SrdCreatureStatBlock {
   size: SizeCode
   creatureType: string
+  /** The size of each creature in a swarm ("swarm of Tiny beasts"). */
+  swarmOf?: SizeCode
   tags: readonly string[]
   alignment: string
   alignmentCode?: string
@@ -9772,6 +9774,253 @@ export const SRD_CREATURE_STAT_BLOCKS: ReadonlyMap<string, SrdCreatureStatBlock>
       actions: ['Bite']
     }
   ], // Spider
+  [
+    '00000000-0000-0000-0070-013800000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 12,
+      hitPoints: 22,
+      hitDice: '5d8',
+      speeds: { WALK: 0, FLY: 30 },
+      abilityScores: {
+        STRENGTH: 5,
+        DEXTERITY: 15,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 2,
+        WISDOM: 12,
+        CHARISMA: 4
+      },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      senses: ['blindsight 60 ft.'],
+      passivePerception: 11,
+      languages: '-',
+      challengeRating: 'CR_1_4',
+      xp: 50,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Echolocation', 'Keen Hearing', 'Swarm'],
+      actions: ['Bites']
+    }
+  ], // Swarm of Bats
+  [
+    '00000000-0000-0000-0070-013900000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 12,
+      armorClassNote: 'natural armor',
+      hitPoints: 22,
+      hitDice: '5d8',
+      speeds: { WALK: 20, CLIMB: 20 },
+      abilityScores: {
+        STRENGTH: 3,
+        DEXTERITY: 13,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 1,
+        WISDOM: 7,
+        CHARISMA: 1
+      },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      senses: ['blindsight 10 ft.'],
+      passivePerception: 8,
+      languages: '-',
+      challengeRating: 'CR_1_2',
+      xp: 100,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Swarm'],
+      actions: ['Bites']
+    }
+  ], // Swarm of Insects
+  [
+    '00000000-0000-0000-0070-013a00000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 14,
+      hitPoints: 36,
+      hitDice: '8d8',
+      speeds: { WALK: 30, SWIM: 30 },
+      abilityScores: {
+        STRENGTH: 8,
+        DEXTERITY: 18,
+        CONSTITUTION: 11,
+        INTELLIGENCE: 1,
+        WISDOM: 10,
+        CHARISMA: 3
+      },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      senses: ['blindsight 10 ft.'],
+      passivePerception: 10,
+      languages: '-',
+      challengeRating: 'CR_2',
+      xp: 450,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Swarm'],
+      actions: ['Bites']
+    }
+  ], // Swarm of Poisonous Snakes
+  [
+    '00000000-0000-0000-0070-013b00000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 13,
+      hitPoints: 28,
+      hitDice: '8d8-8',
+      speeds: { WALK: 0, SWIM: 40 },
+      abilityScores: {
+        STRENGTH: 13,
+        DEXTERITY: 16,
+        CONSTITUTION: 9,
+        INTELLIGENCE: 1,
+        WISDOM: 7,
+        CHARISMA: 2
+      },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      senses: ['darkvision 60 ft.'],
+      passivePerception: 8,
+      languages: '-',
+      challengeRating: 'CR_1',
+      xp: 200,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Blood Frenzy', 'Swarm', 'Water Breathing'],
+      actions: ['Bites']
+    }
+  ], // Swarm of Quippers
+  [
+    '00000000-0000-0000-0070-013c00000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 10,
+      hitPoints: 24,
+      hitDice: '7d8-7',
+      speeds: { WALK: 30 },
+      abilityScores: {
+        STRENGTH: 9,
+        DEXTERITY: 11,
+        CONSTITUTION: 9,
+        INTELLIGENCE: 2,
+        WISDOM: 10,
+        CHARISMA: 3
+      },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      senses: ['darkvision 30 ft.'],
+      passivePerception: 10,
+      languages: '-',
+      challengeRating: 'CR_1_4',
+      xp: 50,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Keen Smell', 'Swarm'],
+      actions: ['Bites']
+    }
+  ], // Swarm of Rats
+  [
+    '00000000-0000-0000-0070-013d00000000',
+    {
+      size: 'MEDIUM',
+      creatureType: 'BEAST',
+      swarmOf: 'TINY',
+      tags: [],
+      alignment: 'unaligned',
+      armorClass: 12,
+      hitPoints: 24,
+      hitDice: '7d8-7',
+      speeds: { WALK: 10, FLY: 50 },
+      abilityScores: {
+        STRENGTH: 6,
+        DEXTERITY: 14,
+        CONSTITUTION: 8,
+        INTELLIGENCE: 3,
+        WISDOM: 12,
+        CHARISMA: 6
+      },
+      skills: { PERCEPTION: 5 },
+      damageResistances: [{ damageTypes: ['BLUDGEONING', 'PIERCING', 'SLASHING'] }],
+      conditionImmunities: [
+        'CHARMED',
+        'FRIGHTENED',
+        'GRAPPLED',
+        'PARALYZED',
+        'PETRIFIED',
+        'PRONE',
+        'RESTRAINED',
+        'STUNNED'
+      ],
+      passivePerception: 15,
+      languages: '-',
+      challengeRating: 'CR_1_4',
+      xp: 50,
+      alignmentCode: 'UNALIGNED',
+      traits: ['Swarm'],
+      actions: ['Beaks']
+    }
+  ], // Swarm of Ravens
   [
     '00000000-0000-0000-0070-010e00000000',
     {

@@ -268,6 +268,12 @@ import { stoneGiant } from './stone-giant.js'
 import { stoneGolem } from './stone-golem.js'
 import { stormGiant } from './storm-giant.js'
 import { succubusIncubus } from './succubus-incubus.js'
+import { swarmOfBats } from './swarm-of-bats.js'
+import { swarmOfInsects } from './swarm-of-insects.js'
+import { swarmOfPoisonousSnakes } from './swarm-of-poisonous-snakes.js'
+import { swarmOfQuippers } from './swarm-of-quippers.js'
+import { swarmOfRats } from './swarm-of-rats.js'
+import { swarmOfRavens } from './swarm-of-ravens.js'
 import { tarrasque } from './tarrasque.js'
 import { thug } from './thug.js'
 import { tiger } from './tiger.js'
@@ -581,6 +587,12 @@ const rawSrdCreatureRecords = [
   stoneGolem,
   stormGiant,
   succubusIncubus,
+  swarmOfBats,
+  swarmOfInsects,
+  swarmOfPoisonousSnakes,
+  swarmOfQuippers,
+  swarmOfRats,
+  swarmOfRavens,
   tarrasque,
   thug,
   tiger,

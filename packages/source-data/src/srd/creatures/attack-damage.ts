@@ -761,6 +761,12 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0004-0070-010a00000000', [['6d6+9', 'SLASHING']]], // Storm Giant: Greatsword
   ['00000000-0002-0008-0070-010a00000000', [['4d12+9', 'BLUDGEONING']]], // Storm Giant: Rock
   ['00000000-0002-0001-0070-1b6100000000', [['1d6+3', 'SLASHING']]], // Succubus/Incubus: Claw (Fiend Form Only)
+  ['00000000-0002-0001-0070-013800000000', [['2d4', 'PIERCING']]], // Swarm of Bats: Bites
+  ['00000000-0002-0001-0070-013900000000', [['4d4', 'PIERCING']]], // Swarm of Insects: Bites
+  ['00000000-0002-0001-0070-013a00000000', [['2d6', 'PIERCING']]], // Swarm of Poisonous Snakes: Bites
+  ['00000000-0002-0001-0070-013b00000000', [['4d6', 'PIERCING']]], // Swarm of Quippers: Bites
+  ['00000000-0002-0001-0070-013c00000000', [['2d6', 'PIERCING']]], // Swarm of Rats: Bites
+  ['00000000-0002-0001-0070-013d00000000', [['2d6', 'PIERCING']]], // Swarm of Ravens: Beaks
   ['00000000-0002-0001-0070-0ba600000000', [['4d12+10', 'PIERCING']]], // Tarrasque: Bite
   ['00000000-0002-00d1-0070-010c00000000', [['4d8+10', 'SLASHING']]], // Tarrasque: Claw
   ['00000000-0002-00d6-0070-010c00000000', [['4d10+10', 'PIERCING']]], // Tarrasque: Horns

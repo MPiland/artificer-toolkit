@@ -415,6 +415,12 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-010a00000000', 14], // Storm Giant: Greatsword
   ['00000000-0001-0005-0070-010a00000000', 14], // Storm Giant: Rock
   ['00000000-0001-0004-0070-010b00000000', 5], // Succubus/Incubus: Claw (Fiend Form Only)
+  ['00000000-0001-0004-0070-013800000000', 4], // Swarm of Bats: Bites
+  ['00000000-0001-0002-0070-013900000000', 3], // Swarm of Insects: Bites
+  ['00000000-0001-0002-0070-013a00000000', 6], // Swarm of Poisonous Snakes: Bites
+  ['00000000-0001-0004-0070-013b00000000', 5], // Swarm of Quippers: Bites
+  ['00000000-0001-0003-0070-013c00000000', 2], // Swarm of Rats: Bites
+  ['00000000-0001-0002-0070-013d00000000', 4], // Swarm of Ravens: Beaks
   ['00000000-0001-0005-0070-010c00000000', 19], // Tarrasque: Bite
   ['00000000-0001-0006-0070-010c00000000', 19], // Tarrasque: Claw
   ['00000000-0001-0007-0070-010c00000000', 19], // Tarrasque: Horns
