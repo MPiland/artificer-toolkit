@@ -479,7 +479,7 @@ export const adultBlackDragon: CreatureAuthored = {
                         damageTypeId: '00000000-0000-0000-0004-000200000000',
                         valueKind: 'DICE',
                         scalingKind: 'NONE',
-                        diceConfig: '2d8+6',
+                        diceConfig: '2d8',
                         bonuses: [
                           {
                             id: '00000000-0005-0020-0070-000300000000',

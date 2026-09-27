@@ -249,7 +249,7 @@ export const wererat: CreatureAuthored = {
                       {
                         id: S.actionId(289, 16),
                         bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
+                        ability: S.ABILITY_CODE.DEXTERITY,
                         order: 1
                       }
                     ]

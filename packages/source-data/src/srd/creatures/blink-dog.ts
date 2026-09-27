@@ -99,7 +99,7 @@ export const blinkDog: CreatureAuthored = {
                       {
                         id: S.actionId(48, 6),
                         bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.DEXTERITY,
+                        ability: S.ABILITY_CODE.STRENGTH,
                         order: 1
                       }
                     ]

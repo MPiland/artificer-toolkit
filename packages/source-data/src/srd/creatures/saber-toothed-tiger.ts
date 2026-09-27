@@ -89,15 +89,7 @@ export const saberToothedTiger: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('PIERCING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d10',
-                    bonuses: [
-                      {
-                        id: S.actionId(242, 4),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
+                    diceConfig: '1d10+5'
                   }
                 ]
               }
@@ -152,15 +144,7 @@ export const saberToothedTiger: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('SLASHING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6',
-                    bonuses: [
-                      {
-                        id: S.actionId(242, 8),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
+                    diceConfig: '2d6+5'
                   }
                 ]
               }

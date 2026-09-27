@@ -266,7 +266,7 @@ function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<s
  * bound.  Character callers continue to supply their already-resolved
  * expressions through their policy output.
  */
-function resolveCreatureDamageExpression(input: {
+export function resolveCreatureDamageExpression(input: {
   outcome: Record<string, unknown>
   sourceDerivedFacts: Record<string, unknown>
 }): string | null {

@@ -118,7 +118,8 @@ export const beardedDevil: CreatureAuthored = {
                     bonuses: [
                       {
                         id: S.actionId(3602, 4),
-                        bonusKind: S.DAMAGE_BONUS_KIND.PROFICIENCY_BONUS,
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.DEXTERITY,
                         order: 1
                       }
                     ]

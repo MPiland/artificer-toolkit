@@ -192,7 +192,7 @@ export const ogre: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('PIERCING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8',
+                    diceConfig: '2d6',
                     bonuses: [
                       {
                         id: S.actionId(209, 12),

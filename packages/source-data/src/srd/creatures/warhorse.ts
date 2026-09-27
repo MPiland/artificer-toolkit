@@ -93,7 +93,7 @@ export const warhorse: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8+4'
+                    diceConfig: '2d6+4'
                   }
                 ]
               }

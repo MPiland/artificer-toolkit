@@ -28,7 +28,15 @@ Every attack-triggered Creature Feature or option authors exactly one `ATTACK` r
 (D53). Most come from `src/srd/creatures/attack-bonuses.ts`, the printed "+N to hit" of each stat
 block keyed by source ID; attacks that print none take their named base attack's bonus. Regenerate
 it with `yarn workspace @artificer-toolkit/source-data generate:creature-attack-bonuses` after adding
-attack-triggered actions, and review the diff. Runtime code never parses the prose.
+attack-triggered actions, and review the diff. Runtime code never parses the prose. Creature publication
+(`creaturePublicationDtoSchema`, used by the SRD import and `publishDraft`) refuses an attack
+without exactly one `ATTACK` roll, for SRD and homebrew alike.
+
+`src/srd/creatures/attack-damage.ts` records each attack Effect's printed hit damage (D54), one
+`XdY±Z` or flat amount per damage part, generated with
+`yarn workspace @artificer-toolkit/source-data generate:creature-attack-damage`. The rules-runtime SRD
+attack sweep holds every attack's resolved damage (dice plus the Creature's authored ability
+modifiers) to it; a printed bonus no ability explains is authored as a flat modifier in `diceConfig`.
 
 The local Convex importer now preserves all 1,051 roots and 50 reusable definitions. Repeat seeding
 is a no-op; read-back verifies complete-record hashes against this package. Authored version payloads

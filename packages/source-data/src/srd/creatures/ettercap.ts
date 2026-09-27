@@ -111,8 +111,30 @@ export const ettercap: CreatureAuthored = {
               }
             },
             {
-              id: S.actionId(99, 7),
+              id: S.actionId(99, 14),
               order: 2,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(99, 14) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(99, 14),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(99, 7),
+              order: 3,
               pathCode: S.PATH_CODE.ON_HIT,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,

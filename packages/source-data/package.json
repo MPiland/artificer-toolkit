@@ -25,6 +25,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "generate:creature-attack-bonuses": "yarn --cwd ../.. exec tsx packages/source-data/scripts/generateCreatureAttackBonuses.ts",
+    "generate:creature-attack-damage": "yarn --cwd ../.. exec tsx packages/source-data/scripts/generateCreatureAttackDamage.ts",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/source-data/src"
   },
   "dependencies": {

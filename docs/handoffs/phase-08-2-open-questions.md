@@ -162,23 +162,23 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - Dodge benefits on saves forced by turn effects.
 
 * **D47** R08-prep rulings:
-  * **Binding while a room is live.** A GM can bind an Encounter to the presented Scene mid-session, the common "the fight starts here" case, so binding goes through the room like other Scene-owning changes. Today `sceneBindings:bind` refuses whenever a room owns the presented Scene, which is a product defect.
-  * **V15 schedule.** An actor's turn may end without a reaction, as the criterion's "up to one reaction" wording allows. With two dispositions, not every turn can provoke one.
-  * **Room replies:**
-    * An exact replay reports `replayed: true`, matching Convex.
-    * A capture timeout is reported as temporarily unavailable ("try again"), not as `STALE_STATE`.
-    * When the initiator can't see the result of their own command, the room acknowledges only the version, which is correct redaction. Any decision owed to them must still reach them through their pending reads.
-  * **Storybook failures are real defects to fix:**
-    * Dimmed unavailable actions need 4.5:1 text contrast.
-    * The GM Window story's token-binding select must offer the fixture's actors.
-  * **Fog exploration along a move (defect found by the T3 fast tests).** A move explores continuously along the walked line, as Foundry does and as the code comment says. Today `deriveSceneTokenPathExplorationPatch` (`packages/shared/src/domains/vtt/exploration.ts:361`) samples only the path's corner points. A straight drag is a two-point path, so short-sighted tokens leave the middle unexplored. Fix it with a test that fails today.
-  * **No commits during the final R08 run.**
+  - **Binding while a room is live.** A GM can bind an Encounter to the presented Scene mid-session, the common "the fight starts here" case, so binding goes through the room like other Scene-owning changes. Today `sceneBindings:bind` refuses whenever a room owns the presented Scene, which is a product defect.
+  - **V15 schedule.** An actor's turn may end without a reaction, as the criterion's "up to one reaction" wording allows. With two dispositions, not every turn can provoke one.
+  - **Room replies:**
+    - An exact replay reports `replayed: true`, matching Convex.
+    - A capture timeout is reported as temporarily unavailable ("try again"), not as `STALE_STATE`.
+    - When the initiator can't see the result of their own command, the room acknowledges only the version, which is correct redaction. Any decision owed to them must still reach them through their pending reads.
+  - **Storybook failures are real defects to fix:**
+    - Dimmed unavailable actions need 4.5:1 text contrast.
+    - The GM Window story's token-binding select must offer the fixture's actors.
+  - **Fog exploration along a move (defect found by the T3 fast tests).** A move explores continuously along the walked line, as Foundry does and as the code comment says. Today `deriveSceneTokenPathExplorationPatch` (`packages/shared/src/domains/vtt/exploration.ts:361`) samples only the path's corner points. A straight drag is a two-point path, so short-sighted tokens leave the middle unexplored. Fix it with a test that fails today.
+  - **No commits during the final R08 run.**
 * **D49** Rulings from the D47 fix batch:
-  * **Unbinding.** Deleting a prepared, bound Encounter while a room owns its Scene also goes through the room, the same way binding does.
-  * **Dimmed text.** Mantine's dimmed color now maps to the Forge secondary text token app-wide, raising contrast to at least 4.5:1 (light 6.26:1, dark 7.17:1). This is an accessibility improvement everywhere text is dimmed.
-  * **R08 drivers.** The Effects, Disarm and Campaign lifecycle drivers get a room binding helper in `DevelopmentHttpClient`.
-  * **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
-  * **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
+  - **Unbinding.** Deleting a prepared, bound Encounter while a room owns its Scene also goes through the room, the same way binding does.
+  - **Dimmed text.** Mantine's dimmed color now maps to the Forge secondary text token app-wide, raising contrast to at least 4.5:1 (light 6.26:1, dark 7.17:1). This is an accessibility improvement everywhere text is dimmed.
+  - **R08 drivers.** The Effects, Disarm and Campaign lifecycle drivers get a room binding helper in `DevelopmentHttpClient`.
+  - **Binding expiry window.** 10 seconds is accepted. The commit is refused once the binding's `expiresAt` has passed, and ABANDONED only after that. It relies on Convex and Worker clocks agreeing within the window: true locally, and NTP-synced in hosted environments.
+  - **Query cost.** Handler JavaScript is about 1–10 ms per call. The cost is cold module evaluation per function call: `projectionReads:get` ~75 ms and the capture ~150 ms cold. First measure on the real backend, with the browserless load check, whether Convex reuses module state between executions. Then decide on shrinking each function's module graph. Decide nothing before that measurement.
 
 * **D55** Speed after D52: the browserless check re-run shows command p95 at 1,089–1,090 ms (budget 1,000; was 2,528–2,785) and convergence p95 at 251–252 ms (budget 250). Fixed per-call setup is about 58% of each call: Zod schema construction at module load, plus the HTTP router's full module graph (40–65 ms, paid twice per command).
   * **Ruling:** build schemas lazily (constructed on first use, memoized), covering the HTTP router path.
@@ -189,43 +189,44 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   2. **Tests use seeded SRD records.** Tests and fixtures move from raw `srd/creatures/*.js` modules to the seeded records (T6).
   3. **Ice Devil.** Its Bite and Claws are authored.
   4. **Damage modifiers.** Creature damage matches the printed damage. Today the Wolf's Bite adds Strength +1, but it prints 2d4 + 2. The sweep asserts every SRD attack's damage expression against its printed damage, and any mismatches get fixed in authored data.
+  - **Done (1, 3, 4).** Creature publication (`creaturePublicationDtoSchema`, SRD import and `publishDraft`) refuses an attack without exactly one ATTACK roll. Discovery lists one invalid Creature action as unavailable with its reason (action drawer, disabled), and the rest of the Encounter still moves and acts. The Ice Devil's Bite and Claws are authored. The generated `attack-damage.ts` table holds each attack's printed hit damage. Of 516 attacks, 26 resolved to the wrong damage and 10 still do. The fixes: a doubled flat modifier on 7 dragon Tail Attacks; the wrong ability on the Wolf, Wererat, Blink Dog and Bearded Devil; a printed bonus that no ability explains on the Saber-Toothed Tiger (a flat +5); wrong dice on the Warhorse and the Ogre's thrown javelin; and the Ettercap's missing poison damage. The 10 that remain author a save-gated follow-up as unconditional hit damage. They are allowlisted under the follow-up-save slice.
 
 * **D53 (blocks closed beta) SRD creature attacks.** The E4 investigation found that only 31 of 285 SRD creatures have a working attack in the room, and 451 of 491 attack units fail. The end-to-end tests hid it because they rewrote the Wolf into a supported shape.
-  * **Failures by cause:**
+  - **Failures by cause:**
 
-    | Cause | Units | Stage |
-    |---|---|---|
-    | No authored ATTACK roll definition | 251 | Execution: `dnd5e.attack-modifier` missing |
-    | SEQUENTIAL/CHOICE paths | 105 | Compile |
-    | SPECIAL range (thrown), attack-triggered Multiattack, follow-up saves | 41 | Compile |
-    | Equipment base-damage mismatch | 39 | Discovery; the whole creature is unusable (21 creatures) |
-    | Legendary options sent as `RESOLVE_ACTION` | 12 | Compile (D51) |
-    | Unsupported outcome kinds | 3 | Compile |
-    | Zero-damage hits | 5 | Execution |
+    | Cause                                                                 | Units | Stage                                                    |
+    | --------------------------------------------------------------------- | ----- | -------------------------------------------------------- |
+    | No authored ATTACK roll definition                                    | 251   | Execution: `dnd5e.attack-modifier` missing               |
+    | SEQUENTIAL/CHOICE paths                                               | 105   | Compile                                                  |
+    | SPECIAL range (thrown), attack-triggered Multiattack, follow-up saves | 41    | Compile                                                  |
+    | Equipment base-damage mismatch                                        | 39    | Discovery; the whole creature is unusable (21 creatures) |
+    | Legendary options sent as `RESOLVE_ACTION`                            | 12    | Compile (D51)                                            |
+    | Unsupported outcome kinds                                             | 3     | Compile                                                  |
+    | Zero-damage hits                                                      | 5     | Execution                                                |
 
-  * **Rulings:**
+  - **Rulings:**
     1. Author an `ATTACK` roll definition with the printed bonus on every attack-triggered Creature Feature and option. A one-time authoring script generates it from the printed "+N to hit" (365 units). The 28 without a printed bonus take it from their base attack. It's committed as authored data, and the runtime never parses prose.
     2. Add a source-data invariant test, and fail early: discovery or compile rejects an attack-triggered action that has no ATTACK roll definition.
     3. Add a permanent SRD-wide sweep test: every SRD Creature attack must prepare, execute and plan through the room's functions. Known-unsupported shapes get an explicit, shrinking allowlist that fails if it grows.
     4. Follow-up slices, tracked by the sweep test: SEQUENTIAL/CHOICE paths, SPECIAL/thrown range and Multiattack, the Equipment base-damage mismatch, Legendary options as the creature's own actions (D51 B), outcome kinds and zero-damage hits.
-  * **Rejected:** deriving the bonus from CR and ability scores. It is wrong in 22 or more cases against the printed values.
+  - **Rejected:** deriving the bonus from CR and ability scores. It is wrong in 22 or more cases against the printed values.
 
 * **D52** Command speed, from the browserless V15 check ([v15-browserless-2026-09-26](../validation/phase-08-2/v15-browserless-2026-09-26.md)).
-  * **Findings:**
-    * The self-hosted backend re-evaluates each function's modules on every call, a fixed cost of about 55–150 ms that is 58–74% of each call.
-    * Command p95 is 2.5–2.8 s against a 1 s budget.
-    * A bound move makes about 7 serial Convex calls.
-    * Each commit re-runs `projectionReads:get` once per subscribed player, about 6 times.
-  * **Rulings:**
+  - **Findings:**
+    - The self-hosted backend re-evaluates each function's modules on every call, a fixed cost of about 55–150 ms that is 58–74% of each call.
+    - Command p95 is 2.5–2.8 s against a 1 s budget.
+    - A bound move makes about 7 serial Convex calls.
+    - Each commit re-runs `projectionReads:get` once per subscribed player, about 6 times.
+  - **Rulings:**
     1. Shrink per-call setup for the capture bundle, the commits, `encounterMovement:*`, `projectionReads:get` and the rules capture. Use narrower or lazy imports, and build no large schemas at module load. Prove it with per-function user execution time on the backend.
     2. Collapse the bound-move and reaction chain to at most 2 serial Convex calls per step. Fold route, begin, observe, capture and prepare into one call, and prepare into commit. This changes only the private room↔Convex routes, and keeps the write-ahead, fence and replay semantics.
     3. Re-run the browserless check. The 6-browser V15 runs only when command p95 is comfortably under 1 s and convergence p95 is under 250 ms.
-  * **Caveat:** hosted Convex may cache modules differently, and the staging run (R09) will measure that. Both fixes help either way.
+  - **Caveat:** hosted Convex may cache modules differently, and the staging run (R09) will measure that. Both fixes help either way.
 
 * **D51** D50 follow-ups:
-  * **Legendary attack options.** Option B: a Legendary option names the creature's own action (Tail Attack runs the Tail action) and supports target selection. Area options wait on the area-targeting work. Until then, discovery skips options it can't execute instead of crashing.
-  * **Stored-format changes.** `CANCELLED` is renamed to `RESISTANT_AND_VULNERABLE`, and Concentration `damageTypeId` is now nullable. Local data is reset under the standing reset approval, with no migration.
-  * **E4, open: do SRD creature attacks work?** 381 of 471 SRD creature attack features have no attack-roll definition, and on the pure path they fail at execution ("dnd5e.attack-modifier is missing"). A read-only investigation is checking the room path. If it fails there too, it blocks closed beta and is fixed next.
+  - **Legendary attack options.** Option B: a Legendary option names the creature's own action (Tail Attack runs the Tail action) and supports target selection. Area options wait on the area-targeting work. Until then, discovery skips options it can't execute instead of crashing.
+  - **Stored-format changes.** `CANCELLED` is renamed to `RESISTANT_AND_VULNERABLE`, and Concentration `damageTypeId` is now nullable. Local data is reset under the standing reset approval, with no migration.
+  - **E4, open: do SRD creature attacks work?** 381 of 471 SRD creature attack features have no attack-roll definition, and on the pure path they fail at execution ("dnd5e.attack-modifier is missing"). A read-only investigation is checking the room path. If it fails there too, it blocks closed beta and is fixed next.
 
 * **D50** Rules defects found by the T2 fast tests. All get fixed, each with a test that fails first:
   1. **HIGH: Legendary discovery throws on SRD dragon attack options.** `encounterTurnLegendaryDiscovery.ts:33` calls `adapter.compile`, which throws on anything that isn't a self action (`effectActionCompiler.ts:1646`). So ending a turn in an Assisted Encounter with an SRD dragon crashes. Legendary options that are attacks (Tail Attack, Wing Attack) must be offered and resolve as actions. Discovery must never throw on one option.
@@ -236,22 +237,22 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   6. **Resistance and vulnerability together.** When both apply, halve (round down) and then double. They don't cancel (SRD 5.1), and today every odd amount comes out 1 too high (`effectActionCompiler.ts:4720-4737`).
   7. **Cleaving reach** uses the fixed D48 grid measure (`encounterCleavingFacts.ts:205-209`). This goes into the D48 batch.
   8. **Smaller fixes:**
-     * Cleaving continues from a target at full HP that has temporary hit points, when the rules allow it.
-     * A `CONDITION_REMOVE` receipt reports `applied` correctly when the condition is on both the Sheet and the Campaign.
-     * `inMemoryInitiativeRepository` doesn't leak `expectedVersion` into DTOs or checksums.
-  10. **Heal multipliers** apply the same way damage multipliers do, rounded down. This was found during the D48 fixes.
-  11. **Ranged single-target `ON_USE` actions.** A `DISTANCE` range warns when out of range (D11). It isn't refused.
-  12. **Gridless Scenes** measure the edge-to-edge gap plus the System's base square (5 ft). That matches the grid rule, where adjacent is 5 ft, so reach means the same thing on every Scene.
-  13. **Area actions** (breath weapons, lines, cones, spheres) are confirmed as part of the queued area-targeting work (Phase 8.3, before closed beta). D48 proved Acid Breath's half damage on a single-target copy only.
-  9. **Tests typecheck.** Add a repo typecheck config for `packages/rules-runtime/src/__tests__`, run through turbo and CI. Fix the two existing errors it finds: `dnd5eCombatMath.test.ts:815` and `encounterMovementReactionDecision.test.ts:47`.
+     - Cleaving continues from a target at full HP that has temporary hit points, when the rules allow it.
+     - A `CONDITION_REMOVE` receipt reports `applied` correctly when the condition is on both the Sheet and the Campaign.
+     - `inMemoryInitiativeRepository` doesn't leak `expectedVersion` into DTOs or checksums.
+  9. **Heal multipliers** apply the same way damage multipliers do, rounded down. This was found during the D48 fixes.
+  10. **Ranged single-target `ON_USE` actions.** A `DISTANCE` range warns when out of range (D11). It isn't refused.
+  11. **Gridless Scenes** measure the edge-to-edge gap plus the System's base square (5 ft). That matches the grid rule, where adjacent is 5 ft, so reach means the same thing on every Scene.
+  12. **Area actions** (breath weapons, lines, cones, spheres) are confirmed as part of the queued area-targeting work (Phase 8.3, before closed beta). D48 proved Acid Breath's half damage on a single-target copy only.
+  13. **Tests typecheck.** Add a repo typecheck config for `packages/rules-runtime/src/__tests__`, run through turbo and CI. Fix the two existing errors it finds: `dnd5eCombatMath.test.ts:815` and `encounterMovementReactionDecision.test.ts:47`.
 
 * **D48** Rules defects found by the T1 fast tests. All are to be fixed, each with a test that fails first:
-  * **Half damage on a successful save.** An `ON_SAVE_SUCCESS` outcome's `multiplier` (for example 0.5) must apply to direct saving-throw actions, such as the Black Dragon Wyrmling's Acid Breath. Today only the nested follow-up save shape halves damage, so the tabletop disagrees with the Sheet.
-  * **Several non-dice outcomes on one save result.** Two or more fixed or condition outcomes on the same result path must not crash. Give every outcome group a unique node id, as dice groups already have.
-  * **Grid distance.** Range and reach use the SRD grid rule: count squares to the nearest occupied square of the target, so adjacent is 5 ft. Today the gap between footprints undercounts by one square: a 5-ft reach reaches a target two squares away. The same measure drives opportunity-attack reach, so fix both from one shared measure. This supersedes the documented "between complete occupied rectangles" choice.
-  * **Touch range.** A single-target Touch action (for example the Unicorn's Healing Touch) behaves as a 5-ft range that warns when out of reach (D11). It is not refused.
-  * **Wording:** "This actor can't take an action right now."
-  * **Creature saving-throw proficiencies.** Stat blocks with a Saving Throws line must use those modifiers. This needs a creature schema field and SRD data. It's queued as its own slice before closed beta. Its source-identity check requires a frozen tree.
+  - **Half damage on a successful save.** An `ON_SAVE_SUCCESS` outcome's `multiplier` (for example 0.5) must apply to direct saving-throw actions, such as the Black Dragon Wyrmling's Acid Breath. Today only the nested follow-up save shape halves damage, so the tabletop disagrees with the Sheet.
+  - **Several non-dice outcomes on one save result.** Two or more fixed or condition outcomes on the same result path must not crash. Give every outcome group a unique node id, as dice groups already have.
+  - **Grid distance.** Range and reach use the SRD grid rule: count squares to the nearest occupied square of the target, so adjacent is 5 ft. Today the gap between footprints undercounts by one square: a 5-ft reach reaches a target two squares away. The same measure drives opportunity-attack reach, so fix both from one shared measure. This supersedes the documented "between complete occupied rectangles" choice.
+  - **Touch range.** A single-target Touch action (for example the Unicorn's Healing Touch) behaves as a 5-ft range that warns when out of reach (D11). It is not refused.
+  - **Wording:** "This actor can't take an action right now."
+  - **Creature saving-throw proficiencies.** Stat blocks with a Saving Throws line must use those modifiers. This needs a creature schema field and SRD data. It's queued as its own slice before closed beta. Its source-identity check requires a frozen tree.
 
 ## Resolved
 

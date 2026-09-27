@@ -1,15 +1,24 @@
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { SRD_CREATURE_ATTACK_DAMAGE } from '@artificer-toolkit/source-data/srd/creatures/attack-damage.js'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
-import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_DAMAGE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { planNativeEncounterActionMechanics } from '../encounterActionMechanicsPlan.js'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
-import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { dnd5eAttackKind } from '../systems/dnd5e/attackKind.js'
+import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   createSrdRulesRuntime,
   srdCreatureActor,
@@ -19,6 +28,7 @@ import {
   TIMESTAMP
 } from './dnd5eSrdEncounter.js'
 import {
+  SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES,
   SRD_CREATURE_ATTACK_UNSUPPORTED,
   type SrdCreatureAttackUnsupportedReason
 } from './srdCreatureAttackSweepAllowlist.js'
@@ -40,11 +50,50 @@ const creatures = prepareSrdImport()
 type Feature = NonNullable<CreatureAuthored['features']>[number]
 
 interface AttackUnit {
+  effect: NonNullable<Feature['effects']>[number]
   effectId: string
   label: string
   owner: Feature
   option: Feature | null
   attackBonus: number
+  /** The owner Feature acts through a held Equipment loadout entry. */
+  equipmentBound: boolean
+}
+
+const damageTypeCodes = new Map(SRD_DAMAGE_TYPES.map(({ id, code }) => [id, code]))
+
+/** `XdY+Z` with dice terms and the summed modifier, or a flat amount, so equal totals compare equal. */
+function canonicalDamage(expression: string): string {
+  if (/^\d+$/.test(expression)) return expression
+  const { terms, modifier } = parseRollExpression(expression)
+  const dice = terms.map((term) => `${term.count}d${term.die}`).join('+')
+  return modifier === 0 ? dice : `${dice}${modifier > 0 ? '+' : ''}${modifier}`
+}
+
+/**
+ * Each hit damage part the room resolves for an attack: its dice plus the Creature's authored
+ * ability modifiers (the rule `bindFacts` applies), or its flat amount, with the damage type.
+ */
+function resolvedHitDamage(creature: CreatureAuthored, unit: AttackUnit): string[] {
+  const statBlock = { abilityScores: creature.abilityScores }
+  return normalizeCharacterActionMechanicFacts(compileEffect(unit.effect)).outcomes.flatMap(
+    (outcome) => {
+      if (outcome.kind !== 'DAMAGE' || outcome.pathCode !== 'ON_HIT') return []
+      const expression =
+        resolveCreatureDamageExpression({ outcome, sourceDerivedFacts: { statBlock } }) ??
+        String(outcome.values[0]?.amount ?? 'unresolved')
+      const multiplier = outcome.amountMultiplier === null ? '' : ` x${outcome.amountMultiplier}`
+      return [
+        `${canonicalDamage(expression)} ${damageTypeCodes.get(outcome.damageTypeId)}${multiplier}`
+      ]
+    }
+  )
+}
+
+function printedHitDamage(unit: AttackUnit): string[] {
+  const printed = SRD_CREATURE_ATTACK_DAMAGE.get(unit.effectId)
+  if (!printed) throw new Error(`${unit.label} has no printed damage entry.`)
+  return printed.map(([expression, damageType]) => `${canonicalDamage(expression)} ${damageType}`)
 }
 
 function attackUnits(creature: CreatureAuthored): AttackUnit[] {
@@ -64,11 +113,15 @@ function attackUnits(creature: CreatureAuthored): AttackUnit[] {
           const attackRoll = source.rollDefinitions?.find((roll) => roll.kind === 'ATTACK')
           if (!attackRoll) throw new Error(`${label} authors no ATTACK roll.`)
           return {
+            effect,
             effectId: effect.id,
             label,
             owner,
             option,
-            attackBonus: attackRoll.expression.modifier
+            attackBonus: attackRoll.expression.modifier,
+            equipmentBound: (creature.equipmentLoadout ?? []).some((entry) =>
+              entry.actionFeatureIds.includes(owner.id)
+            )
           }
         })
     })
@@ -81,7 +134,7 @@ function unsupportedReason(
   error: unknown
 ): SrdCreatureAttackUnsupportedReason | `UNEXPECTED ${string}` {
   const message = error instanceof Error ? error.message : String(error)
-  if (stage === 'DISCOVERY' && /Equipment/.test(message)) return 'EQUIPMENT_BASE_DAMAGE'
+  if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_BASE_DAMAGE'
   if (/paths must be unique direct outcomes/.test(message)) return 'SEQUENTIAL_PATHS'
   if (/unsupported bounded shape/.test(message)) {
     return unit.owner.section === 'LEGENDARY_ACTION' ? 'LEGENDARY_OPTION' : 'SPECIAL_RANGE'
@@ -91,6 +144,26 @@ function unsupportedReason(
 }
 
 describe('SRD Creature attack sweep', () => {
+  it('resolves every SRD Creature attack to its printed hit damage, except the shrinking allowlist', () => {
+    const mismatches: Record<string, string> = {}
+    const effectIds = new Set<string>()
+    for (const creature of creatures) {
+      for (const unit of attackUnits(creature)) {
+        effectIds.add(unit.effectId)
+        const resolved = resolvedHitDamage(creature, unit).sort()
+        const printed = printedHitDamage(unit).sort()
+        if (resolved.join(', ') === printed.join(', ')) continue
+        const known = SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES[unit.effectId]
+        mismatches[unit.effectId] =
+          known ??
+          `UNEXPECTED ${unit.label}: resolves ${resolved.join(', ')}, prints ${printed.join(', ')}`
+      }
+    }
+
+    expect(SRD_CREATURE_ATTACK_DAMAGE.size).toBe(effectIds.size)
+    expect(mismatches).toEqual(SRD_CREATURE_ATTACK_DAMAGE_MISMATCHES)
+  })
+
   it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist', async () => {
     const runtime = await createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')
@@ -111,31 +184,28 @@ describe('SRD Creature attack sweep', () => {
       }
       const actor = srdCreatureActor({ id: ACTOR_ID, creature })
       const actors = [actor, target]
-      let capabilities: ReturnType<typeof discoverEncounterFeatureActionCapabilities>
-      try {
-        capabilities = discoverEncounterFeatureActionCapabilities({
-          actor,
-          conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
-          abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
-        })
-      } catch (error) {
-        for (const unit of units) {
-          failures[unit.effectId] = unsupportedReason(unit, 'DISCOVERY', error)
-        }
-        continue
-      }
+      const discovery = discoverEncounterFeatureActions({
+        actor,
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
+      })
       const state = srdEncounterState({ actors, currentActorId: actor.id })
       const movementTargets = new Map(actors.map((entry) => [entry.id, srdCreatureTarget(entry)]))
 
       for (const unit of units) {
-        const capability = capabilities.find(
+        const capability = discovery.available.find(
           (entry) =>
             entry.effectId === unit.effectId &&
             entry.ownerFeatureId === unit.owner.id &&
             entry.featureOptionId === (unit.option?.id ?? null)
         )
         if (!capability) {
-          failures[unit.effectId] = `UNEXPECTED DISCOVERY: ${unit.label} is not an action.`
+          const unavailable = discovery.unavailable.find((entry) =>
+            entry.actionId.endsWith(`:EFFECT:${unit.effectId}`)
+          )
+          failures[unit.effectId] = unavailable
+            ? unsupportedReason(unit, 'DISCOVERY', new Error(unavailable.reason))
+            : `UNEXPECTED DISCOVERY: ${unit.label} is not an action.`
           continue
         }
         let stage: 'PREPARE' | 'EXECUTE' | 'PLAN' = 'PREPARE'
@@ -188,7 +258,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(514)
+    expect(effectIds.size).toBe(516)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
   }, 600_000)
