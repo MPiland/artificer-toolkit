@@ -63,6 +63,28 @@ export const salamander: CreatureAuthored = {
       label: 'Spear',
       description:
         'Spear. Melee or Ranged Weapon Attack: +7 to hit, reach 5 ft. or range 20 ft./60 ft., one target. Hit: 11 (2d6 + 4) piercing damage, or 13 (2d8 + 4) piercing damage if used with two hands to make a melee attack, plus 3 (1d6) fire damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 244,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'FIRE', diceConfig: '1d6' }]
+        }),
+        S.weaponAttack({
+          creatureIndex: 244,
+          localIndex: 11,
+          kind: 'RANGED',
+          feet: 20,
+          damageType: 'PIERCING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'FIRE', diceConfig: '1d6' }]
+        })
+      ],
       order: 4
     },
     {
@@ -70,6 +92,19 @@ export const salamander: CreatureAuthored = {
       label: 'Tail',
       description:
         "Tail. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage plus 7 (2d6) fire damage, and the target is grappled (escape DC 14). Until this grapple ends, the target is restrained, the salamander can automatically hit the target with its tail, and the salamander can't make tail attacks against other targets.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 244,
+          localIndex: 21,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'FIRE', diceConfig: '2d6' }],
+          grapples: true
+        })
+      ],
       order: 5
     }
   ]

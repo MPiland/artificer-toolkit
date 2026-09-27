@@ -51,6 +51,17 @@ export const polarBear: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 9 (1d8 + 5) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 223,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d8',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {
@@ -58,6 +69,17 @@ export const polarBear: CreatureAuthored = {
       label: 'Claws',
       description:
         'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 12 (2d6 + 5) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 223,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 4
     }
   ]

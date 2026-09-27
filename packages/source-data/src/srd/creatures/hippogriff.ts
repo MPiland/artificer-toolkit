@@ -49,6 +49,17 @@ export const hippogriff: CreatureAuthored = {
       label: 'Beak',
       description:
         'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 164,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {
@@ -56,6 +67,17 @@ export const hippogriff: CreatureAuthored = {
       label: 'Claws',
       description:
         'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 164,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 4
     }
   ]

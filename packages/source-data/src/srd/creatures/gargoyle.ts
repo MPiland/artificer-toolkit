@@ -57,6 +57,17 @@ export const gargoyle: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 108,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {
@@ -64,6 +75,17 @@ export const gargoyle: CreatureAuthored = {
       label: 'Claws',
       description:
         'Claws. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 108,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 4
     }
   ]

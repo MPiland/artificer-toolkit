@@ -104,6 +104,17 @@ export const stoneGiant: CreatureAuthored = {
       label: 'Rock',
       description:
         'Rock. Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 264,
+          localIndex: 1,
+          kind: 'RANGED',
+          feet: 60,
+          damageType: 'BLUDGEONING',
+          diceConfig: '4d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {

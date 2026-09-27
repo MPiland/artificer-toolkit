@@ -50,6 +50,18 @@ export const giantCrocodile: CreatureAuthored = {
       label: 'Bite',
       description:
         "Bite. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 21 (3d10 + 5) piercing damage, and the target is grappled (escape DC 16). Until this grapple ends, the target is restrained, and the crocodile can't bite another target.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 120,
+          localIndex: 21,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '3d10',
+          ability: 'STRENGTH',
+          grapples: true
+        })
+      ],
       order: 3
     },
     {

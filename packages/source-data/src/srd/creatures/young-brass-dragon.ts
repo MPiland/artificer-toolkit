@@ -51,6 +51,17 @@ export const youngBrassDragon: CreatureAuthored = {
       label: 'Bite',
       description:
         'Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 303,
+          localIndex: 31,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '2d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {

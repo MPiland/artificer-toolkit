@@ -46,6 +46,17 @@ export const gnoll: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 4 (1d4 + 2) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 144,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d4',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {
@@ -53,6 +64,26 @@ export const gnoll: CreatureAuthored = {
       label: 'Spear',
       description:
         'Spear. Melee or Ranged Weapon Attack: +4 to hit, reach 5 ft. or range 20/60 ft., one target. Hit: 5 (1d6 + 2) piercing damage, or 6 (1d8 + 2) piercing damage if used with two hands to make a melee attack.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 144,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        }),
+        S.weaponAttack({
+          creatureIndex: 144,
+          localIndex: 21,
+          kind: 'RANGED',
+          feet: 20,
+          damageType: 'PIERCING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {
@@ -60,6 +91,17 @@ export const gnoll: CreatureAuthored = {
       label: 'Longbow',
       description:
         'Longbow. Ranged Weapon Attack: +3 to hit, range 150/600 ft., one target. Hit: 5 (1d8 + 1) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 144,
+          localIndex: 31,
+          kind: 'RANGED',
+          feet: 150,
+          damageType: 'PIERCING',
+          diceConfig: '1d8',
+          ability: 'DEXTERITY'
+        })
+      ],
       order: 4
     }
   ]

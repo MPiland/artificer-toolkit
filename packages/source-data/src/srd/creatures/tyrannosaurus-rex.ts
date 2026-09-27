@@ -45,6 +45,18 @@ export const tyrannosaurusRex: CreatureAuthored = {
       label: 'Bite',
       description:
         "Bite. Melee Weapon Attack: +10 to hit, reach 10 ft., one target. Hit: 33 (4d12 + 7) piercing damage. If the target is a Medium or smaller creature, it is grappled (escape DC 17). Until this grapple ends, the target is restrained, and the tyrannosaurus can't bite another target.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 275,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '4d12',
+          ability: 'STRENGTH',
+          grapples: true
+        })
+      ],
       order: 2
     },
     {
@@ -52,6 +64,17 @@ export const tyrannosaurusRex: CreatureAuthored = {
       label: 'Tail',
       description:
         'Tail. Melee Weapon Attack: +10 to hit, reach 10 ft., one target. Hit: 20 (3d8 + 7) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 275,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '3d8',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     }
   ]

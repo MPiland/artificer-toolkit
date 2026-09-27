@@ -153,6 +153,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['1d6', 'ACID']
     ]
   ], // Ankheg: Bite
+  ['00000000-0002-0001-0070-001b00000000', [['1d6+3', 'BLUDGEONING']]], // Ape: Fist
+  ['00000000-0002-000b-0070-001b00000000', [['1d6+3', 'BLUDGEONING']]], // Ape: Rock
   ['00000000-0002-0001-0070-001c00000000', [['1d4+2', 'PIERCING']]], // Archmage: Dagger
   ['00000000-0002-0005-0070-001c00000000', [['1d4+2', 'PIERCING']]], // Archmage: Dagger
   ['00000000-0002-0006-0070-001d00000000', [['1d6+3', 'PIERCING']]], // Assassin: Shortsword
@@ -201,6 +203,14 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-002900000000', [['1', 'PIERCING']]], // Bat: Bite
   ['00000000-0002-0001-0070-0e1200000000', [['1d8+2', 'PIERCING']]], // Bearded Devil: Beard
   ['00000000-0002-0007-0070-0e1200000000', [['1d10+3', 'SLASHING']]], // Bearded Devil: Glaive
+  ['00000000-0002-0001-0070-002b00000000', [['3d10+6', 'PIERCING']]], // Behir: Bite
+  [
+    '00000000-0002-0015-0070-002b00000000',
+    [
+      ['2d10+6', 'BLUDGEONING'],
+      ['2d10+6', 'SLASHING']
+    ]
+  ], // Behir: Constrict
   ['00000000-0002-0001-0070-002c00000000', [['1d12+3', 'SLASHING']]], // Berserker: Greataxe
   ['00000000-0002-0004-0070-002d00000000', [['1d6+2', 'PIERCING']]], // Black Bear: Bite
   ['00000000-0002-0008-0070-002d00000000', [['2d4+2', 'SLASHING']]], // Black Bear: Claws
@@ -295,6 +305,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['1d6', 'LIGHTNING']
     ]
   ], // Djinni: Scimitar
+  ['00000000-0002-0001-0070-005300000000', [['1d6+4', 'BLUDGEONING']]], // Doppelganger: Slam
   ['00000000-0002-0001-0070-005400000000', [['2d4+4', 'BLUDGEONING']]], // Draft Horse: Hooves
   ['00000000-0002-0004-0070-005500000000', [['3d12+7', 'PIERCING']]], // Dragon Turtle: Bite
   ['00000000-0002-0008-0070-005500000000', [['2d8+7', 'SLASHING']]], // Dragon Turtle: Claw
@@ -337,6 +348,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-006e-0070-0d7a00000000', [['2d6+2', 'PIERCING']]], // Duergar: Javelin > Javelin (Ranged, Enlarged)
   ['00000000-0002-0001-0070-005c00000000', [['1d4+2', 'SLASHING']]], // Dust Mephit: Claws
   ['00000000-0002-0001-0070-005d00000000', [['1d4+2', 'SLASHING']]], // Eagle: Talons
+  ['00000000-0002-0001-0070-005e00000000', [['2d8+5', 'BLUDGEONING']]], // Earth Elemental: Slam
   [
     '00000000-0002-00cc-0070-005f00000000',
     [
@@ -374,7 +386,9 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Ettercap: Bite
   ['00000000-0002-0008-0070-006300000000', [['2d4+2', 'SLASHING']]], // Ettercap: Claws
   ['00000000-0002-000b-0070-006300000000', []], // Ettercap: Web (Recharge 5-6) (prints no hit damage)
+  ['00000000-0002-0015-0070-006400000000', [['2d8+5', 'SLASHING']]], // Ettin: Battleaxe
   ['00000000-0002-0008-0070-006400000000', [['2d8+5', 'PIERCING']]], // Ettin: Morningstar
+  ['00000000-0002-0001-0070-006500000000', [['2d6+3', 'FIRE']]], // Fire Elemental: Touch
   ['00000000-0002-0004-0070-006600000000', [['6d6+7', 'SLASHING']]], // Fire Giant: Greatsword
   ['00000000-0002-0008-0070-006600000000', [['4d10+7', 'BLUDGEONING']]], // Fire Giant: Rock
   ['00000000-0002-00d0-0070-006700000000', []], // Flesh Golem: Multiattack (prints no hit damage)
@@ -387,6 +401,10 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
     ]
   ], // Flying Snake: Bite
   ['00000000-0002-0002-0070-006900000000', [['1d8+1', 'SLASHING']]], // Flying Sword: Longsword
+  ['00000000-0002-0001-0070-006b00000000', [['3d12+6', 'SLASHING']]], // Frost Giant: Greataxe
+  ['00000000-0002-000b-0070-006b00000000', [['4d10+6', 'BLUDGEONING']]], // Frost Giant: Rock
+  ['00000000-0002-0001-0070-006c00000000', [['1d6+2', 'PIERCING']]], // Gargoyle: Bite
+  ['00000000-0002-000b-0070-006c00000000', [['1d6+2', 'SLASHING']]], // Gargoyle: Claws
   ['00000000-0002-0001-0070-045300000000', [['3d6', 'ACID']]], // Gelatinous Cube: Pseudopod
   ['00000000-0002-0001-0070-006e00000000', [['2d8+3', 'PIERCING']]], // Ghast: Bite
   ['00000000-0002-0005-0070-006e00000000', [['2d6+3', 'SLASHING']]], // Ghast: Claws
@@ -403,6 +421,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-007600000000', [['2d6+4', 'PIERCING']]], // Giant Constrictor Snake: Bite
   ['00000000-0002-0005-0070-007600000000', [['2d8+4', 'BLUDGEONING']]], // Giant Constrictor Snake: Constrict
   ['00000000-0002-0001-0070-007700000000', [['1d6+1', 'BLUDGEONING']]], // Giant Crab: Claw
+  ['00000000-0002-0015-0070-007800000000', [['3d10+5', 'PIERCING']]], // Giant Crocodile: Bite
   ['00000000-0002-0008-0070-007800000000', [['2d8+5', 'BLUDGEONING']]], // Giant Crocodile: Tail
   ['00000000-0002-00cb-0070-007900000000', []], // Giant Eagle: Multiattack (prints no hit damage)
   ['00000000-0002-00cc-0070-007900000000', [['1d6+3', 'PIERCING']]], // Giant Eagle: Beak
@@ -437,13 +456,29 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-008a00000000', [['1d6+2', 'PIERCING']]], // Giant Wasp: Sting
   ['00000000-0002-0001-0070-008b00000000', [['1d4+3', 'PIERCING']]], // Giant Weasel: Bite
   ['00000000-0002-0001-0070-008c00000000', [['1d6+1', 'PIERCING']]], // Giant Wolf Spider: Bite
+  ['00000000-0002-0001-0070-008d00000000', [['5d6', 'PIERCING']]], // Gibbering Mouther: Bites
   ['00000000-0002-00cd-0070-008e00000000', [['2d10+5', 'BLUDGEONING']]], // Glabrezu: Pincer
   ['00000000-0002-00d3-0070-008e00000000', [['2d4+2', 'BLUDGEONING']]], // Glabrezu: Fist
+  ['00000000-0002-0001-0070-008f00000000', [['2d6+4', 'PIERCING']]], // Gladiator: Spear
+  ['00000000-0002-000b-0070-008f00000000', [['2d6+4', 'PIERCING']]], // Gladiator: Spear
+  ['00000000-0002-0015-0070-008f00000000', [['2d4+4', 'BLUDGEONING']]], // Gladiator: Shield Bash
+  ['00000000-0002-0001-0070-009000000000', [['1d4+2', 'PIERCING']]], // Gnoll: Bite
+  ['00000000-0002-000b-0070-009000000000', [['1d6+2', 'PIERCING']]], // Gnoll: Spear
+  ['00000000-0002-0015-0070-009000000000', [['1d6+2', 'PIERCING']]], // Gnoll: Spear
+  ['00000000-0002-001f-0070-009000000000', [['1d8+1', 'PIERCING']]], // Gnoll: Longbow
   ['00000000-0002-0001-0070-009100000000', [['1d4+1', 'BLUDGEONING']]], // Goat: Ram
   ['00000000-0002-00ca-0070-009200000000', [['1d6+2', 'SLASHING']]], // Goblin: Scimitar
   ['00000000-0002-00ce-0070-009200000000', [['1d6+2', 'PIERCING']]], // Goblin: Shortbow
+  ['00000000-0002-0001-0070-009300000000', [['1d10+4', 'PIERCING']]], // Gold Dragon Wyrmling: Bite
   ['00000000-0002-0001-0070-009400000000', [['2d12+5', 'PIERCING']]], // Gorgon: Gore
   ['00000000-0002-0004-0070-009400000000', [['2d10+5', 'BLUDGEONING']]], // Gorgon: Hooves
+  [
+    '00000000-0002-0001-0070-009500000000',
+    [
+      ['1d6+1', 'BLUDGEONING'],
+      ['2d6', 'ACID']
+    ]
+  ], // Gray Ooze: Pseudopod
   [
     '00000000-0002-0001-0070-009600000000',
     [
@@ -470,8 +505,11 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-009c00000000', []], // Guardian Naga: Spit Poison (prints no hit damage)
   ['00000000-0002-00cc-0070-009d00000000', []], // Gynosphinx: Multiattack (prints no hit damage)
   ['00000000-0002-00cd-0070-009d00000000', [['2d8+4', 'SLASHING']]], // Gynosphinx: Claw
+  ['00000000-0002-001f-0070-009e00000000', [['1d8+3', 'SLASHING']]], // Half-Red Dragon Veteran: Longsword
   ['00000000-0002-0008-0070-009e00000000', [['1d6+3', 'PIERCING']]], // Half-Red Dragon Veteran: Shortsword
   ['00000000-0002-000c-0070-009e00000000', [['1d10+1', 'PIERCING']]], // Half-Red Dragon Veteran: Heavy Crossbow
+  ['00000000-0002-0001-0070-009f00000000', [['2d4+1', 'SLASHING']]], // Harpy: Claws
+  ['00000000-0002-000b-0070-009f00000000', [['1d4+1', 'BLUDGEONING']]], // Harpy: Club
   ['00000000-0002-0001-0070-00a000000000', [['1', 'SLASHING']]], // Hawk: Talons
   [
     '00000000-0002-0001-0070-00a100000000',
@@ -485,8 +523,11 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0008-0070-00a200000000', [['2d6+4', 'SLASHING']]], // Hezrou: Claw
   ['00000000-0002-0004-0070-00a300000000', [['3d8+5', 'BLUDGEONING']]], // Hill Giant: Greatclub
   ['00000000-0002-0008-0070-00a300000000', [['3d10+5', 'BLUDGEONING']]], // Hill Giant: Rock
+  ['00000000-0002-0001-0070-00a400000000', [['1d10+3', 'PIERCING']]], // Hippogriff: Beak
+  ['00000000-0002-000b-0070-00a400000000', [['2d6+3', 'SLASHING']]], // Hippogriff: Claws
   ['00000000-0002-0001-0070-00a500000000', [['1d8+1', 'SLASHING']]], // Hobgoblin: Longsword
   ['00000000-0002-0005-0070-00a500000000', [['1d8+1', 'PIERCING']]], // Hobgoblin: Longbow
+  ['00000000-0002-0001-0070-00a600000000', [['1', 'PIERCING']]], // Homunculus: Bite
   ['00000000-0002-00cc-0070-00a700000000', [['2d8+6', 'PIERCING']]], // Horned Devil: Fork
   ['00000000-0002-00d0-0070-00a700000000', [['1d8+6', 'PIERCING']]], // Horned Devil: Tail
   ['00000000-0002-00d7-0070-00a700000000', [['4d6', 'FIRE']]], // Horned Devil: Hurl Flame
@@ -560,6 +601,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['1d4', 'FIRE']
     ]
   ], // Magma Mephit: Claws
+  ['00000000-0002-0001-0070-00bd00000000', [['2d6', 'FIRE']]], // Magmin: Touch
   ['00000000-0002-0001-0070-00be00000000', [['4d8+7', 'PIERCING']]], // Mammoth: Gore
   ['00000000-0002-0004-0070-00be00000000', [['4d10+7', 'BLUDGEONING']]], // Mammoth: Stomp
   ['00000000-0002-0004-0070-00bf00000000', [['1d8+3', 'PIERCING']]], // Manticore: Bite
@@ -646,6 +688,14 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-01f5-0070-00d400000000', [['1d12+3', 'SLASHING']]], // Orc: Greataxe
   ['00000000-0002-01f6-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
   ['00000000-0002-0200-0070-00d400000000', [['1d6+3', 'PIERCING']]], // Orc: Javelin
+  ['00000000-0002-0001-0070-00d500000000', [['2d8+3', 'PIERCING']]], // Otyugh: Bite
+  [
+    '00000000-0002-000b-0070-00d500000000',
+    [
+      ['1d8+3', 'BLUDGEONING'],
+      ['1d8', 'PIERCING']
+    ]
+  ], // Otyugh: Tentacle
   ['00000000-0002-0001-0070-00d600000000', [['1', 'SLASHING']]], // Owl: Talons
   ['00000000-0002-0004-0070-00d700000000', [['1d10+5', 'PIERCING']]], // Owlbear: Beak
   ['00000000-0002-0007-0070-00d700000000', [['2d8+5', 'SLASHING']]], // Owlbear: Claws
@@ -672,6 +722,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Planetar: Greatsword
   ['00000000-0002-0001-0070-00dd00000000', [['3d6+4', 'PIERCING']]], // Plesiosaurus: Bite
   ['00000000-0002-0001-0070-00de00000000', [['1', 'PIERCING']]], // Poisonous Snake: Bite
+  ['00000000-0002-0001-0070-00df00000000', [['1d8+5', 'PIERCING']]], // Polar Bear: Bite
+  ['00000000-0002-000b-0070-00df00000000', [['2d6+5', 'SLASHING']]], // Polar Bear: Claws
   ['00000000-0002-0001-0070-00e000000000', [['2d4+2', 'BLUDGEONING']]], // Pony: Hooves
   ['00000000-0002-01f5-0070-00e100000000', [['1d6', 'BLUDGEONING']]], // Priest: Mace
   ['00000000-0002-0001-0070-00e200000000', [['1d4+2', 'PIERCING']]], // Pseudodragon: Bite
@@ -710,10 +762,32 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-0e0700000000', [['1d8+1', 'PIERCING']]], // Rust Monster: Bite
   ['00000000-0002-0001-0070-00f200000000', [['1d10+5', 'PIERCING']]], // Saber-Toothed Tiger: Bite
   ['00000000-0002-0005-0070-00f200000000', [['2d6+5', 'SLASHING']]], // Saber-Toothed Tiger: Claw
+  ['00000000-0002-001f-0070-00f300000000', [['1d4+1', 'PIERCING']]], // Sahuagin: Bite
   ['00000000-0002-0007-0070-00f300000000', [['1d4+1', 'SLASHING']]], // Sahuagin: Claws
   ['00000000-0002-000a-0070-00f300000000', [['1d6+1', 'PIERCING']]], // Sahuagin: Spear
   ['00000000-0002-000e-0070-00f300000000', [['1d8+1', 'PIERCING']]], // Sahuagin: Spear
   ['00000000-0002-0012-0070-00f300000000', [['1d6+1', 'PIERCING']]], // Sahuagin: Spear
+  [
+    '00000000-0002-0001-0070-00f400000000',
+    [
+      ['2d6+4', 'PIERCING'],
+      ['1d6', 'FIRE']
+    ]
+  ], // Salamander: Spear
+  [
+    '00000000-0002-000b-0070-00f400000000',
+    [
+      ['2d6+4', 'PIERCING'],
+      ['1d6', 'FIRE']
+    ]
+  ], // Salamander: Spear
+  [
+    '00000000-0002-0015-0070-00f400000000',
+    [
+      ['2d6+4', 'BLUDGEONING'],
+      ['2d6', 'FIRE']
+    ]
+  ], // Salamander: Tail
   ['00000000-0002-0001-0070-00f500000000', [['2d4+1', 'BLUDGEONING']]], // Satyr: Ram
   ['00000000-0002-0005-0070-00f500000000', [['1d6+3', 'PIERCING']]], // Satyr: Shortsword
   ['00000000-0002-0009-0070-00f500000000', [['1d6+3', 'PIERCING']]], // Satyr: Shortbow
@@ -757,6 +831,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ], // Steam Mephit: Claws
   ['00000000-0002-0001-0070-11f000000000', [['1d4+3', 'PIERCING']]], // Stirge: Blood Drain
   ['00000000-0002-0001-0070-0ceb00000000', [['3d8+6', 'BLUDGEONING']]], // Stone Giant: Greatclub
+  ['00000000-0002-0001-0070-010800000000', [['4d10+6', 'BLUDGEONING']]], // Stone Giant: Rock
   ['00000000-0002-0001-0070-0ccc00000000', [['3d8+6', 'BLUDGEONING']]], // Stone Golem: Slam
   ['00000000-0002-0004-0070-010a00000000', [['6d6+9', 'SLASHING']]], // Storm Giant: Greatsword
   ['00000000-0002-0008-0070-010a00000000', [['4d12+9', 'BLUDGEONING']]], // Storm Giant: Rock
@@ -785,6 +860,8 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-011100000000', [['3d10+6', 'BLUDGEONING']]], // Triceratops: Stomp
   ['00000000-0002-0004-0070-011200000000', [['1d6+4', 'PIERCING']]], // Troll: Bite
   ['00000000-0002-0008-0070-011200000000', [['2d6+4', 'SLASHING']]], // Troll: Claw
+  ['00000000-0002-0001-0070-011300000000', [['4d12+7', 'PIERCING']]], // Tyrannosaurus Rex: Bite
+  ['00000000-0002-000b-0070-011300000000', [['3d8+7', 'BLUDGEONING']]], // Tyrannosaurus Rex: Tail
   ['00000000-0002-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Hooves
   ['00000000-0002-0003-0070-011400000000', [['1d8+4', 'PIERCING']]], // Unicorn: Horn
   ['00000000-0005-0002-0070-011400000000', [['2d6+4', 'BLUDGEONING']]], // Unicorn: Legendary Actions > Hooves (from Hooves)
@@ -807,6 +884,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0007-0070-011700000000', [['1d8+3', 'SLASHING']]], // Veteran: Longsword
   ['00000000-0002-000b-0070-011700000000', [['1d6+3', 'PIERCING']]], // Veteran: Shortsword
   ['00000000-0002-000f-0070-011700000000', [['1d10+1', 'PIERCING']]], // Veteran: Heavy Crossbow
+  ['00000000-0002-0001-0070-011800000000', [['1d8', 'NECROTIC']]], // Violet Fungus: Rotting Touch
   ['00000000-0002-00cc-0070-011900000000', [['2d6+3', 'PIERCING']]], // Vrock: Beak
   ['00000000-0002-00d1-0070-011900000000', [['2d10+3', 'SLASHING']]], // Vrock: Talons
   ['00000000-0002-0001-0070-011a00000000', [['1d4', 'PIERCING']]], // Vulture: Beak
@@ -846,6 +924,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-012800000000', [['2d4+2', 'PIERCING']]], // Wolf: Bite
   ['00000000-0002-0001-0070-012900000000', [['2d6+3', 'PIERCING']]], // Worg: Bite
   ['00000000-0002-00cc-0070-012a00000000', [['4d8+3', 'NECROTIC']]], // Wraith: Life Drain
+  ['00000000-0002-0015-0070-012b00000000', [['2d6+4', 'PIERCING']]], // Wyvern: Bite
   ['00000000-0002-0008-0070-012b00000000', [['2d8+4', 'SLASHING']]], // Wyvern: Claws
   ['00000000-0002-000c-0070-012b00000000', [['2d6+4', 'PIERCING']]], // Wyvern: Stinger
   ['00000000-0002-0006-0070-012c00000000', [['1d6+3', 'SLASHING']]], // Xorn: Claw
@@ -866,6 +945,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
     ]
   ], // Young Blue Dragon: Bite
   ['00000000-0002-0009-0070-012e00000000', [['2d6+5', 'SLASHING']]], // Young Blue Dragon: Claw
+  ['00000000-0002-001f-0070-012f00000000', [['2d10+4', 'PIERCING']]], // Young Brass Dragon: Bite
   ['00000000-0002-0008-0070-012f00000000', [['2d6+4', 'SLASHING']]], // Young Brass Dragon: Claw
   ['00000000-0002-0001-0070-013000000000', [['2d10+5', 'PIERCING']]], // Young Bronze Dragon: Bite
   ['00000000-0002-000a-0070-013000000000', [['2d6+5', 'SLASHING']]], // Young Bronze Dragon: Claw
@@ -873,6 +953,13 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-00d8-0070-013100000000', [['2d6+4', 'SLASHING']]], // Young Copper Dragon: Claw
   ['00000000-0002-00d5-0070-013200000000', [['2d10+6', 'PIERCING']]], // Young Gold Dragon: Bite
   ['00000000-0002-00da-0070-013200000000', [['2d6+6', 'SLASHING']]], // Young Gold Dragon: Claw
+  [
+    '00000000-0002-001f-0070-013300000000',
+    [
+      ['2d10+4', 'PIERCING'],
+      ['2d6', 'POISON']
+    ]
+  ], // Young Green Dragon: Bite
   ['00000000-0002-0009-0070-013300000000', [['2d6+4', 'SLASHING']]], // Young Green Dragon: Claw
   [
     '00000000-0002-0004-0070-013400000000',

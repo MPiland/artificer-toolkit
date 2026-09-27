@@ -61,6 +61,17 @@ export const earthElemental: CreatureAuthored = {
       label: 'Slam',
       description:
         'Slam. Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 94,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '2d8',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 4
     }
   ]

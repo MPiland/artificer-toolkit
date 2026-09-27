@@ -57,6 +57,18 @@ export const youngGreenDragon: CreatureAuthored = {
       label: 'Bite',
       description:
         'Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage plus 7 (2d6) poison damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 307,
+          localIndex: 31,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '2d10',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'POISON', diceConfig: '2d6' }]
+        })
+      ],
       order: 3
     },
     {

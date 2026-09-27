@@ -44,6 +44,17 @@ export const wyvern: CreatureAuthored = {
       label: 'Bite',
       description:
         'Melee Weapon Attack: +7 to hit, reach 10 ft., one creature. Hit: 11 (2d6 + 4) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 299,
+          localIndex: 21,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '2d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {

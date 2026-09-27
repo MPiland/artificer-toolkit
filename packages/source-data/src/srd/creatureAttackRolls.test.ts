@@ -40,7 +40,7 @@ describe('SRD Creature attack rolls', () => {
         : [label]
     })
 
-    expect(attackSources).toHaveLength(505)
+    expect(attackSources).toHaveLength(547)
     expect(invalid).toEqual([])
   })
 

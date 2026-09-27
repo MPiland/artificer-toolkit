@@ -50,6 +50,17 @@ export const behir: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +10 to hit, reach 10 ft., one target. Hit: 22 (3d10 + 6) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 43,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '3d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {
@@ -57,6 +68,19 @@ export const behir: CreatureAuthored = {
       label: 'Constrict',
       description:
         "Constrict. Melee Weapon Attack: +10 to hit, reach 5 ft., one Large or smaller creature. Hit: 17 (2d10 + 6) bludgeoning damage plus 17 (2d10 + 6) slashing damage. The target is grappled (escape DC 16) if the behir isn't already constricting a creature, and the target is restrained until this grapple ends.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 43,
+          localIndex: 21,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'BLUDGEONING',
+          diceConfig: '2d10',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'SLASHING', diceConfig: '2d10+6' }],
+          grapples: true
+        })
+      ],
       order: 3
     },
     {
@@ -73,6 +97,72 @@ export const behir: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 1
       },
+      effects: [
+        {
+          id: S.actionId(43, 31),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(43, 32),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+              baseDc: 16
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            // A 20-foot line waits on area targeting (D60), like the dragons' breath weapons.
+            range: { id: S.actionId(43, 33), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          paths: [
+            {
+              id: S.actionId(43, 34),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(43, 34) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(43, 34),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '12d10'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(43, 35),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(43, 35) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(43, 35),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '12d10',
+                    multiplier: 0.5
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {

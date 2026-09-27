@@ -82,6 +82,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-001800000000', 12], // Androsphinx: Claw
   ['00000000-0001-0004-0070-001900000000', 4], // Animated Armor: Slam
   ['00000000-0001-0001-0070-001a00000000', 5], // Ankheg: Bite
+  ['00000000-0001-0002-0070-001b00000000', 5], // Ape: Fist
+  ['00000000-0001-0003-0070-001b00000000', 5], // Ape: Rock
   ['00000000-0001-0004-0070-001c00000000', 6], // Archmage: Dagger
   ['00000000-0001-0006-0070-001d00000000', 6], // Assassin: Shortsword
   ['00000000-0001-0007-0070-001d00000000', 6], // Assassin: Light Crossbow
@@ -104,6 +106,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-002900000000', 0], // Bat: Bite
   ['00000000-0001-0005-0070-002a00000000', 5], // Bearded Devil: Beard
   ['00000000-0001-0006-0070-002a00000000', 5], // Bearded Devil: Glaive
+  ['00000000-0001-0002-0070-002b00000000', 10], // Behir: Bite
+  ['00000000-0001-0003-0070-002b00000000', 10], // Behir: Constrict
   ['00000000-0001-0003-0070-002c00000000', 5], // Berserker: Greataxe
   ['00000000-0001-0003-0070-002d00000000', 3], // Black Bear: Bite
   ['00000000-0001-0004-0070-002d00000000', 3], // Black Bear: Claws
@@ -160,6 +164,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-005100000000', 5], // Dire Wolf: Bite
   ['00000000-0001-0003-0070-005200000000', 9], // Djinni: Multiattack (no printed bonus; from Scimitar)
   ['00000000-0001-0004-0070-005200000000', 9], // Djinni: Scimitar
+  ['00000000-0001-0005-0070-005300000000', 6], // Doppelganger: Slam
   ['00000000-0001-0001-0070-005400000000', 6], // Draft Horse: Hooves
   ['00000000-0001-0003-0070-005500000000', 13], // Dragon Turtle: Bite
   ['00000000-0001-0004-0070-005500000000', 13], // Dragon Turtle: Claw
@@ -176,6 +181,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0002-0070-005900000000', 2], // Druid: Quarterstaff
   ['00000000-0001-0003-0070-005c00000000', 4], // Dust Mephit: Claws
   ['00000000-0001-0002-0070-005d00000000', 4], // Eagle: Talons
+  ['00000000-0001-0004-0070-005e00000000', 8], // Earth Elemental: Slam
   ['00000000-0001-0004-0070-005f00000000', 10], // Efreeti: Scimitar
   ['00000000-0001-0005-0070-005f00000000', 7], // Efreeti: Hurl Flame
   ['00000000-0001-0002-0070-006000000000', 8], // Elephant: Gore
@@ -187,13 +193,19 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0005-0070-006300000000', 4], // Ettercap: Bite
   ['00000000-0001-0006-0070-006300000000', 4], // Ettercap: Claws
   ['00000000-0001-0007-0070-006300000000', 4], // Ettercap: Web (Recharge 5-6)
+  ['00000000-0001-0004-0070-006400000000', 7], // Ettin: Battleaxe
   ['00000000-0001-0005-0070-006400000000', 7], // Ettin: Morningstar
+  ['00000000-0001-0005-0070-006500000000', 6], // Fire Elemental: Touch
   ['00000000-0001-0002-0070-006600000000', 11], // Fire Giant: Greatsword
   ['00000000-0001-0003-0070-006600000000', 11], // Fire Giant: Rock
   ['00000000-0001-0008-0070-006700000000', 7], // Flesh Golem: Multiattack (no printed bonus; from Slam)
   ['00000000-0001-0009-0070-006700000000', 7], // Flesh Golem: Slam
   ['00000000-0001-0002-0070-006800000000', 6], // Flying Snake: Bite
   ['00000000-0001-0003-0070-006900000000', 3], // Flying Sword: Longsword
+  ['00000000-0001-0002-0070-006b00000000', 9], // Frost Giant: Greataxe
+  ['00000000-0001-0003-0070-006b00000000', 9], // Frost Giant: Rock
+  ['00000000-0001-0003-0070-006c00000000', 4], // Gargoyle: Bite
+  ['00000000-0001-0004-0070-006c00000000', 4], // Gargoyle: Claws
   ['00000000-0001-0004-0070-006d00000000', 4], // Gelatinous Cube: Pseudopod
   ['00000000-0001-0003-0070-006e00000000', 3], // Ghast: Bite
   ['00000000-0001-0004-0070-006e00000000', 5], // Ghast: Claws
@@ -210,6 +222,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0001-0070-007600000000', 6], // Giant Constrictor Snake: Bite
   ['00000000-0001-0002-0070-007600000000', 6], // Giant Constrictor Snake: Constrict
   ['00000000-0001-0002-0070-007700000000', 3], // Giant Crab: Claw
+  ['00000000-0001-0003-0070-007800000000', 8], // Giant Crocodile: Bite
   ['00000000-0001-0004-0070-007800000000', 8], // Giant Crocodile: Tail
   ['00000000-0001-0003-0070-007900000000', 5], // Giant Eagle: Multiattack (no printed bonus; from Beak, Talons)
   ['00000000-0001-0004-0070-007900000000', 5], // Giant Eagle: Beak
@@ -238,13 +251,21 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0001-0070-008a00000000', 4], // Giant Wasp: Sting
   ['00000000-0001-0002-0070-008b00000000', 5], // Giant Weasel: Bite
   ['00000000-0001-0004-0070-008c00000000', 3], // Giant Wolf Spider: Bite
+  ['00000000-0001-0004-0070-008d00000000', 2], // Gibbering Mouther: Bites
   ['00000000-0001-0005-0070-008e00000000', 9], // Glabrezu: Pincer
   ['00000000-0001-0006-0070-008e00000000', 9], // Glabrezu: Fist
+  ['00000000-0001-0004-0070-008f00000000', 7], // Gladiator: Spear
+  ['00000000-0001-0005-0070-008f00000000', 7], // Gladiator: Shield Bash
+  ['00000000-0001-0002-0070-009000000000', 4], // Gnoll: Bite
+  ['00000000-0001-0003-0070-009000000000', 4], // Gnoll: Spear
+  ['00000000-0001-0004-0070-009000000000', 3], // Gnoll: Longbow
   ['00000000-0001-0003-0070-009100000000', 3], // Goat: Ram
   ['00000000-0001-0002-0070-009200000000', 4], // Goblin: Scimitar
   ['00000000-0001-0003-0070-009200000000', 4], // Goblin: Shortbow
+  ['00000000-0001-0002-0070-009300000000', 6], // Gold Dragon Wyrmling: Bite
   ['00000000-0001-0002-0070-009400000000', 8], // Gorgon: Gore
   ['00000000-0001-0003-0070-009400000000', 8], // Gorgon: Hooves
+  ['00000000-0001-0004-0070-009500000000', 3], // Gray Ooze: Pseudopod
   ['00000000-0001-0002-0070-009600000000', 4], // Green Dragon Wyrmling: Bite
   ['00000000-0001-0004-0070-009700000000', 6], // Green Hag: Claws
   ['00000000-0001-0003-0070-009800000000', 4], // Grick: Tentacles
@@ -257,8 +278,11 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-009c00000000', 8], // Guardian Naga: Spit Poison
   ['00000000-0001-0004-0070-009d00000000', 8], // Gynosphinx: Multiattack (no printed bonus; from Claw)
   ['00000000-0001-0005-0070-009d00000000', 8], // Gynosphinx: Claw
+  ['00000000-0001-0002-0070-009e00000000', 5], // Half-Red Dragon Veteran: Longsword
   ['00000000-0001-0003-0070-009e00000000', 5], // Half-Red Dragon Veteran: Shortsword
   ['00000000-0001-0004-0070-009e00000000', 3], // Half-Red Dragon Veteran: Heavy Crossbow
+  ['00000000-0001-0002-0070-009f00000000', 3], // Harpy: Claws
+  ['00000000-0001-0003-0070-009f00000000', 3], // Harpy: Club
   ['00000000-0001-0002-0070-00a000000000', 5], // Hawk: Talons
   ['00000000-0001-0004-0070-00a100000000', 5], // Hell Hound: Bite
   ['00000000-0001-0004-0070-00a200000000', 7], // Hezrou: Multiattack (no printed bonus; from Bite, Claw)
@@ -266,8 +290,11 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0006-0070-00a200000000', 7], // Hezrou: Claw
   ['00000000-0001-0002-0070-00a300000000', 8], // Hill Giant: Greatclub
   ['00000000-0001-0003-0070-00a300000000', 8], // Hill Giant: Rock
+  ['00000000-0001-0003-0070-00a400000000', 5], // Hippogriff: Beak
+  ['00000000-0001-0004-0070-00a400000000', 5], // Hippogriff: Claws
   ['00000000-0001-0002-0070-00a500000000', 3], // Hobgoblin: Longsword
   ['00000000-0001-0003-0070-00a500000000', 3], // Hobgoblin: Longbow
+  ['00000000-0001-0002-0070-00a600000000', 4], // Homunculus: Bite
   ['00000000-0001-0004-0070-00a700000000', 10], // Horned Devil: Fork
   ['00000000-0001-0005-0070-00a700000000', 10], // Horned Devil: Tail
   ['00000000-0001-0006-0070-00a700000000', 7], // Horned Devil: Hurl Flame
@@ -307,6 +334,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0006-0070-00ba00000000', 4], // Lizardfolk: Spiked Shield
   ['00000000-0001-0003-0070-00bb00000000', 5], // Mage: Dagger
   ['00000000-0001-0004-0070-00bc00000000', 3], // Magma Mephit: Claws
+  ['00000000-0001-0003-0070-00bd00000000', 4], // Magmin: Touch
   ['00000000-0001-0002-0070-00be00000000', 10], // Mammoth: Gore
   ['00000000-0001-0003-0070-00be00000000', 10], // Mammoth: Stomp
   ['00000000-0001-0003-0070-00bf00000000', 5], // Manticore: Bite
@@ -345,6 +373,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0008-0070-00d300000000', 7], // Oni: Glaive
   ['00000000-0001-0002-0070-00d400000000', 5], // Orc: Greataxe
   ['00000000-0001-0003-0070-00d400000000', 5], // Orc: Javelin
+  ['00000000-0001-0003-0070-00d500000000', 6], // Otyugh: Bite
+  ['00000000-0001-0004-0070-00d500000000', 6], // Otyugh: Tentacle
   ['00000000-0001-0003-0070-00d600000000', 3], // Owl: Talons
   ['00000000-0001-0003-0070-00d700000000', 7], // Owlbear: Beak
   ['00000000-0001-0004-0070-00d700000000', 7], // Owlbear: Claws
@@ -359,6 +389,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0008-0070-00dc00000000', 12], // Planetar: Greatsword
   ['00000000-0001-0002-0070-00dd00000000', 6], // Plesiosaurus: Bite
   ['00000000-0001-0001-0070-00de00000000', 5], // Poisonous Snake: Bite
+  ['00000000-0001-0003-0070-00df00000000', 7], // Polar Bear: Bite
+  ['00000000-0001-0004-0070-00df00000000', 7], // Polar Bear: Claws
   ['00000000-0001-0001-0070-00e000000000', 4], // Pony: Hooves
   ['00000000-0001-0003-0070-00e100000000', 2], // Priest: Mace
   ['00000000-0001-0005-0070-00e200000000', 4], // Pseudodragon: Bite
@@ -384,8 +416,11 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-00f100000000', 3], // Rust Monster: Bite
   ['00000000-0001-0003-0070-00f200000000', 6], // Saber-Toothed Tiger: Bite
   ['00000000-0001-0004-0070-00f200000000', 6], // Saber-Toothed Tiger: Claw
+  ['00000000-0001-0005-0070-00f300000000', 3], // Sahuagin: Bite
   ['00000000-0001-0006-0070-00f300000000', 3], // Sahuagin: Claws
   ['00000000-0001-0007-0070-00f300000000', 3], // Sahuagin: Spear
+  ['00000000-0001-0004-0070-00f400000000', 7], // Salamander: Spear
+  ['00000000-0001-0005-0070-00f400000000', 7], // Salamander: Tail
   ['00000000-0001-0002-0070-00f500000000', 3], // Satyr: Ram
   ['00000000-0001-0003-0070-00f500000000', 5], // Satyr: Shortsword
   ['00000000-0001-0004-0070-00f500000000', 5], // Satyr: Shortbow
@@ -411,6 +446,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-010600000000', 2], // Steam Mephit: Claws
   ['00000000-0001-0002-0070-010700000000', 5], // Stirge: Blood Drain
   ['00000000-0001-0002-0070-010800000000', 9], // Stone Giant: Greatclub
+  ['00000000-0001-0003-0070-010800000000', 9], // Stone Giant: Rock
   ['00000000-0001-0005-0070-010900000000', 10], // Stone Golem: Slam
   ['00000000-0001-0004-0070-010a00000000', 14], // Storm Giant: Greatsword
   ['00000000-0001-0005-0070-010a00000000', 14], // Storm Giant: Rock
@@ -437,6 +473,8 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-011100000000', 9], // Triceratops: Stomp
   ['00000000-0001-0004-0070-011200000000', 7], // Troll: Bite
   ['00000000-0001-0005-0070-011200000000', 7], // Troll: Claw
+  ['00000000-0001-0002-0070-011300000000', 10], // Tyrannosaurus Rex: Bite
+  ['00000000-0001-0003-0070-011300000000', 10], // Tyrannosaurus Rex: Tail
   ['00000000-0001-0007-0070-011400000000', 7], // Unicorn: Hooves
   ['00000000-0001-0008-0070-011400000000', 7], // Unicorn: Horn
   ['00000000-0005-00c9-0070-011400000000', 7], // Unicorn: Legendary Actions > Hooves (no printed bonus; from Hooves)
@@ -447,6 +485,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-011700000000', 5], // Veteran: Longsword
   ['00000000-0001-0004-0070-011700000000', 5], // Veteran: Shortsword
   ['00000000-0001-0005-0070-011700000000', 3], // Veteran: Heavy Crossbow
+  ['00000000-0001-0003-0070-011800000000', 2], // Violet Fungus: Rotting Touch
   ['00000000-0001-0004-0070-011900000000', 6], // Vrock: Beak
   ['00000000-0001-0005-0070-011900000000', 6], // Vrock: Talons
   ['00000000-0001-0003-0070-011a00000000', 2], // Vulture: Beak
@@ -478,6 +517,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0003-0070-012800000000', 4], // Wolf: Bite
   ['00000000-0001-0002-0070-012900000000', 5], // Worg: Bite
   ['00000000-0001-0003-0070-012a00000000', 6], // Wraith: Life Drain
+  ['00000000-0001-0002-0070-012b00000000', 7], // Wyvern: Bite
   ['00000000-0001-0003-0070-012b00000000', 7], // Wyvern: Claws
   ['00000000-0001-0004-0070-012b00000000', 7], // Wyvern: Stinger
   ['00000000-0001-0005-0070-012c00000000', 6], // Xorn: Claw
@@ -486,6 +526,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0004-0070-012d00000000', 7], // Young Black Dragon: Claw
   ['00000000-0001-0002-0070-012e00000000', 9], // Young Blue Dragon: Bite
   ['00000000-0001-0003-0070-012e00000000', 9], // Young Blue Dragon: Claw
+  ['00000000-0001-0002-0070-012f00000000', 7], // Young Brass Dragon: Bite
   ['00000000-0001-0003-0070-012f00000000', 7], // Young Brass Dragon: Claw
   ['00000000-0001-0003-0070-013000000000', 8], // Young Bronze Dragon: Bite
   ['00000000-0001-0004-0070-013000000000', 8], // Young Bronze Dragon: Claw
@@ -493,6 +534,7 @@ export const SRD_CREATURE_ATTACK_BONUSES: ReadonlyMap<string, number> = new Map(
   ['00000000-0001-0005-0070-013100000000', 7], // Young Copper Dragon: Claw
   ['00000000-0001-0004-0070-013200000000', 10], // Young Gold Dragon: Bite
   ['00000000-0001-0005-0070-013200000000', 10], // Young Gold Dragon: Claw
+  ['00000000-0001-0003-0070-013300000000', 7], // Young Green Dragon: Bite
   ['00000000-0001-0004-0070-013300000000', 7], // Young Green Dragon: Claw
   ['00000000-0001-0002-0070-013400000000', 10], // Young Red Dragon: Bite
   ['00000000-0001-0003-0070-013400000000', 10], // Young Red Dragon: Claw

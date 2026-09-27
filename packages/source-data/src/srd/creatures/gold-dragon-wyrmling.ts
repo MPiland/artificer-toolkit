@@ -50,6 +50,17 @@ export const goldDragonWyrmling: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 9 (1d10 + 4) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 147,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {

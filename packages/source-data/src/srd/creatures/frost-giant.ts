@@ -48,6 +48,17 @@ export const frostGiant: CreatureAuthored = {
       label: 'Greataxe',
       description:
         'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 25 (3d12 + 6) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 107,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'SLASHING',
+          diceConfig: '3d12',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {
@@ -55,6 +66,17 @@ export const frostGiant: CreatureAuthored = {
       label: 'Rock',
       description:
         'Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 107,
+          localIndex: 11,
+          kind: 'RANGED',
+          feet: 60,
+          damageType: 'BLUDGEONING',
+          diceConfig: '4d10',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     }
   ]

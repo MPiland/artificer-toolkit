@@ -50,6 +50,17 @@ export const violetFungus: CreatureAuthored = {
       label: 'Rotting Touch',
       description:
         'Rotting Touch. Melee Weapon Attack: +2 to hit, reach 10 ft., one creature. Hit: 4 (1d8) necrotic damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 280,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'NECROTIC',
+          diceConfig: '1d8',
+          ability: null
+        })
+      ],
       order: 3
     }
   ]

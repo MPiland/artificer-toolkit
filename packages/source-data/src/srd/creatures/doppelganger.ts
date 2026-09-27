@@ -70,6 +70,17 @@ export const doppelganger: CreatureAuthored = {
       label: 'Slam',
       description:
         'Slam. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 7 (1d6 + 4) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 83,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d6',
+          ability: 'DEXTERITY'
+        })
+      ],
       order: 5
     },
     {

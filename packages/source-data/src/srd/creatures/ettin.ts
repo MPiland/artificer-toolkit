@@ -60,6 +60,17 @@ export const ettin: CreatureAuthored = {
       label: 'Battleaxe',
       description:
         'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 14 (2d8 + 5) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 100,
+          localIndex: 21,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '2d8',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 4
     },
     {

@@ -49,6 +49,17 @@ export const halfRedDragonVeteran: CreatureAuthored = {
       label: 'Longsword',
       description:
         'Longsword. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) slashing damage, or 8 (1d10 + 3) slashing damage if used with two hands.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 158,
+          localIndex: 31,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '1d8',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {

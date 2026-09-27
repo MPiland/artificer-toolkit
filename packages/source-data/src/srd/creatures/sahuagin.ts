@@ -69,6 +69,17 @@ export const sahuagin: CreatureAuthored = {
       label: 'Bite',
       description:
         'Bite. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 3 (1d4 + 1) piercing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 243,
+          localIndex: 31,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '1d4',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 5
     },
     {

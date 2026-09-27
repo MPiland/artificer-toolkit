@@ -1,5 +1,6 @@
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const otyugh: CreatureAuthored = {
@@ -56,6 +57,26 @@ export const otyugh: CreatureAuthored = {
       label: 'Bite',
       description:
         "Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 12 (2d8 + 3) piercing damage. If the target is a creature, it must succeed on a DC 15 Constitution saving throw against disease or become poisoned until the disease is cured. Every 24 hours that elapse, the target must repeat the saving throw, reducing its hit point maximum by 5 (1d10) on a failure. The disease is cured on a success. The target dies if the disease reduces its hit point maximum to 0. This reduction to the target's hit point maximum lasts until the disease is cured.",
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 213,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '2d8',
+          ability: 'STRENGTH',
+          followUpSave: S.conditionSave({
+            id: S.actionId(213, 7),
+            savingThrowId: S.actionId(213, 8),
+            ability: 'CONSTITUTION',
+            dc: 15,
+            conditionOutcomeId: S.actionId(213, 9),
+            conditionId: conditionTypeId('POISONED'),
+            repeatsAtTurnEnd: false
+          })
+        })
+      ],
       order: 3
     },
     {
@@ -63,6 +84,19 @@ export const otyugh: CreatureAuthored = {
       label: 'Tentacle',
       description:
         'Tentacle. Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 7 (1d8 + 3) bludgeoning damage plus 4 (1d8) piercing damage. If the target is Medium or smaller, it is grappled (escape DC 13) and restrained until the grapple ends. The otyugh has two tentacles, each of which can grapple one target.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 213,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 10,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d8',
+          ability: 'STRENGTH',
+          extraDamage: [{ damageType: 'PIERCING', diceConfig: '1d8' }],
+          grapples: true
+        })
+      ],
       order: 4
     },
     {

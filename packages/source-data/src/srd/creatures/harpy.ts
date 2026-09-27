@@ -44,6 +44,17 @@ export const harpy: CreatureAuthored = {
       label: 'Claws',
       description:
         'Claws. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 6 (2d4 + 1) slashing damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 159,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'SLASHING',
+          diceConfig: '2d4',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {
@@ -51,6 +62,17 @@ export const harpy: CreatureAuthored = {
       label: 'Club',
       description:
         'Club. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 3 (1d4 + 1) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 159,
+          localIndex: 11,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d4',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     },
     {

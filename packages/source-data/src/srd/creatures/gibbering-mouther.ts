@@ -1,5 +1,6 @@
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const gibberingMouther: CreatureAuthored = {
@@ -59,6 +60,26 @@ export const gibberingMouther: CreatureAuthored = {
       label: 'Bites',
       description:
         'Bites. Melee Weapon Attack: +2 to hit, reach 5 ft., one creature. Hit: 17 (5d6) piercing damage. If the target is Medium or smaller, it must succeed on a DC 10 Strength saving throw or be knocked prone. If the target is killed by this damage, it is absorbed into the mouther.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 141,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'PIERCING',
+          diceConfig: '5d6',
+          ability: null,
+          followUpSave: S.conditionSave({
+            id: S.actionId(141, 7),
+            savingThrowId: S.actionId(141, 8),
+            ability: 'STRENGTH',
+            dc: 10,
+            conditionOutcomeId: S.actionId(141, 9),
+            conditionId: conditionTypeId('PRONE'),
+            repeatsAtTurnEnd: false
+          })
+        })
+      ],
       order: 4
     },
     {

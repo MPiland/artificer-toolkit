@@ -76,6 +76,17 @@ export const fireElemental: CreatureAuthored = {
       label: 'Touch',
       description:
         'Touch. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) fire damage. If the target is a creature or a flammable object, it ignites. Until a creature takes an action to douse the fire, the target takes 5 (1d10) fire damage at the start of each of its turns.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 101,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'FIRE',
+          diceConfig: '2d6',
+          ability: 'DEXTERITY'
+        })
+      ],
       order: 5
     }
   ]

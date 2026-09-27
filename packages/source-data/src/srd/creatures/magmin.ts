@@ -54,6 +54,17 @@ export const magmin: CreatureAuthored = {
       label: 'Touch',
       description:
         'Touch. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d6) fire damage. If the target is a creature or a flammable object, it ignites. Until a creature takes an action to douse the fire, the target takes 3 (1d6) fire damage at the end of each of its turns.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 189,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'FIRE',
+          diceConfig: '2d6',
+          ability: null
+        })
+      ],
       order: 3
     }
   ]

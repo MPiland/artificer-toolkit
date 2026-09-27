@@ -42,6 +42,17 @@ export const ape: CreatureAuthored = {
       label: 'Fist',
       description:
         'Fist. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 27,
+          localIndex: 1,
+          kind: 'MELEE',
+          feet: 5,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 2
     },
     {
@@ -49,6 +60,17 @@ export const ape: CreatureAuthored = {
       label: 'Rock',
       description:
         'Rock. Ranged Weapon Attack: +5 to hit, range 25/50 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
+      effects: [
+        S.weaponAttack({
+          creatureIndex: 27,
+          localIndex: 11,
+          kind: 'RANGED',
+          feet: 25,
+          damageType: 'BLUDGEONING',
+          diceConfig: '1d6',
+          ability: 'STRENGTH'
+        })
+      ],
       order: 3
     }
   ]
